@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#181916">
+  <title>Field Plates</title>
+  <meta name="description" content="An interactive photography expedition through Yosemite and the Tetons.">
+  <style>/*
+Copyright 2022 The Instrument Serif Project Authors (https://github.com/Instrument/instrument-serif)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+https://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded, 
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION & CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
+*/
+:root {
+  color-scheme: dark;
+  --ivory: #eeece3;
+  --quiet: #bcb9ae;
+  --brass: #dac6a1;
+  --ink: #161713;
+  --line: #6b685d;
+  --surface: #1a1c18f0;
+  --serif: "Instrument Serif", Georgia, serif;
+  --sans: Inter, system-ui, sans-serif;
+}
+*,*::before,*::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html,body,main { width:100%;height:100%;margin:0;overflow:hidden; }
+body { background:var(--ink);color:var(--ivory);font: 14px/1.5 var(--sans); }
+main { position:relative; isolation:isolate; }
+button, input, select { font: inherit;color: inherit; }
+button, select { padding:8px 12px; border:1px solid var(--line);border-radius:3px;background:#1b1d18ee;cursor:pointer; }
+button:hover:not(:disabled),select:hover { background:#373a31;border-color:var(--brass); }
+button:disabled { opacity:.42;cursor:default; }
+button[aria-pressed="true"] { border-color:var(--brass);color:var(--brass); }
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible { outline:2px solid var(--brass);outline-offset:4px; }
+.paper { background:var(--ivory);border-color:var(--ivory);color:#20211d;font-weight:600; }
+.paper:hover:not(:disabled) { background:#fffdf4; }
+.row { display:flex;align-items:center;flex-wrap:wrap;gap:8px; }
+kbd { font: 10px/1 var(--sans);color:inherit;opacity:.80;border:1px solid #8c877688;border-radius:3px;padding:3px 4px;vertical-align:1px; }
+h1,h2,p { margin:0; }
+h1 { font:normal clamp(84px,13vw,204px)/.81 var(--serif);letter-spacing:-.054em; }
+h2 { font:normal clamp(43px,7vw,82px)/.93 var(--serif);letter-spacing:-.029em; }
+.eyebrow { text-transform:uppercase;letter-spacing:.145em;font-weight:600;font-size:10px;color:var(--brass); }
+small { color:var(--quiet); }
+.overlay { position:absolute;inset:0;z-index:5; }
+#world { display:block;position:absolute;inset:0;width:100%;height:100%;outline:none;touch-action:none; }
+#shade { pointer-events:none;position:absolute;inset:0;background:radial-gradient(ellipse at 52% 40%,transparent 32%,#0809054c 100%); }
+#opening {
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding: clamp(28px,6vw,95px);gap: clamp(29px,6vh,82px);
+  background:linear-gradient(90deg,#0e100dd1,transparent 79%),linear-gradient(0deg,#0d0e0deb,transparent 67%);
+}
+.title-block { max-width:730px; }
+.title-block .eyebrow { margin-bottom:24px; }
+.subtitle { font:normal clamp(29px,4vw,58px)/1.03 var(--serif);margin-top:15px; }
+.opening-copy { max-width:370px;margin:17px 0 21px;color:#d1cfc6; }
+.opening-credit,#loading { color:var(--quiet);font-size:12px; }
+#loading { margin-top:12px; }
+#field-top { position:absolute;top:0;left:0;right:0;padding:17px 22px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;z-index:3;pointer-events:none; }
+.location { display:grid;gap:4px;text-shadow:0 1px 9px #000; }
+.location strong { font:normal 30px/.96 var(--serif); }
+.header-buttons { justify-content:end;pointer-events:auto; }
+.header-buttons button { font-size:12px;padding:6px 9px; }
+#sheets { padding:5px 8px;border-radius:2px;background:#1b1d18b8;font-size:11px; }
+#field-tools { position:absolute;inset:auto 22px 18px;z-index:3;display:flex;justify-content:space-between;align-items:end;gap:10px;pointer-events:none; }
+.task { width:max-content;max-width:min(58vw,430px);padding:8px 11px;background:#151613da;border-left:1px solid var(--brass); }
+.task span,.task small { display:block; }
+.task span { font-weight:600;font-size:12px; }
+.task small { font-size:11px; }
+.field-buttons { justify-content:end;pointer-events:auto; }
+.field-buttons button { padding:7px 9px;font-size:12px; }
+#message { position:absolute;z-index:4;bottom:100px;left:50%;transform:translateX(-50%);max-width:min(530px,91vw);width:max-content;text-align:center;background:#151613ed;padding:8px 11px;border:1px solid #6c6556;border-radius:3px;color:var(--ivory);pointer-events:none; }
+#waypoint { position:absolute;z-index:1;display:grid;justify-items:center;gap:7px;transform:translate(-50%,-50%);font-size:10px;letter-spacing:.09em;text-shadow:0 2px 5px #000;pointer-events:none; }
+#waypoint i { width:8px;height:8px;transform:rotate(45deg);border:1px solid #e0d3b6;box-shadow:0 0 0 1px #151713; }
+#crosshair { pointer-events:none;position:absolute;top:50%;left:50%;width:4px;height:4px;border-radius:50%;background:#e1d5b4c9;box-shadow:0 0 0 1px #262721;transform:translate(-50%,-50%); }
+#flash { position:absolute;inset:0;pointer-events:none;background:#eae4d7;opacity:0;z-index:4; }
+#flash.shutter { animation: blink .38s ease-out; }
+@keyframes blink { 0%{opacity:.45}100%{opacity:0} }
+[data-mode="camera"] #world { inset:50% auto auto 50%;transform:translate(-50%,-50%);border:1px solid #928879;box-shadow:0 0 55px #020302; }
+[data-mode="camera"] #shade { background:transparent; }
+#camera-ui { position:absolute;inset:0;pointer-events:none;z-index:2; }
+#plate-guide { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border:1px solid #d4cbb468; }
+#film-size { position:absolute;top:8px;left:9px;color:#e6ddc4;background:#1c1e18c0;padding:1px 5px;font-size:10px;letter-spacing:.09em; }
+#meter-reticle { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border:1px solid #eee3be;border-radius:50%;box-shadow:0 0 0 1px #201e17; }
+#meter-reticle i { position:absolute;top:50%;left:50%;width:4px;height:4px;background:#eee2c4;transform:translate(-50%,-50%); }
+#meter-data { position:absolute;right:10px;top:10px;min-width:67px;padding:4px 8px;background:#161913ec;border:1px solid #b0a17f;border-radius:2px;text-align:center; }
+#zone { display:block;font:normal 34px/1 var(--serif);color:var(--brass); }
+#meter-ev { font-size:10px; }
+#camera-tray { position:absolute;left:50%;bottom:13px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 14px);padding:6px;background:#121410df;border:1px solid #615d51;border-radius:4px;pointer-events:auto; }
+.camera-main,.readings { justify-content:center; }
+.camera-main button,.readings button { font-size:12px;padding:6px 9px; }
+.readings { margin-top:6px; }
+.readings span { color:var(--brass); }
+#lens-tray { display:grid;grid-template-columns:repeat(4,minmax(85px,1fr));gap:8px 11px;margin:8px 0 5px;padding:10px 8px;border-top:1px solid var(--line);font-size:11px; }
+label { display:flex;flex-wrap:wrap;justify-content:space-between;gap:5px;align-items:center;color:#e1ded3; }
+input[type=range] { margin:3px 0 0;accent-color:var(--brass); }
+#lens-tray label input,#lens-tray label select { flex:1 0 100%;width:100%;min-width:0; }
+#lens-tray select { padding:4px 5px; }
+.lens-actions { grid-column:span 4; }
+.lens-actions button { padding:4px 8px;font-size:11px; }
+.book,#darkroom { background:#191b17f9;overflow:auto;overscroll-behavior:contain; }
+.book-inner { width:min(100%,1070px);margin:auto;padding:clamp(20px,4.5vw,58px); }
+.spread-heading { display:flex;justify-content:space-between;align-items:start;gap:14px; }
+.spread-heading .eyebrow { margin-bottom:9px; }
+#book-progress { margin:17px 0;color:var(--quiet); }
+#station-list { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px; }
+.station-card { display:flex;flex-direction:column;min-width:0;border:1px solid #585b50;background:#23261f; }
+.station-card header,.station-card .station-actions { padding:13px; }
+.station-card h3 { margin:3px 0 5px;font:normal 36px/.96 var(--serif); }
+.station-card p { margin:7px 0;font-size:12px;color:var(--quiet); }
+.station-card .placeholder { flex:1;min-height:22px;border-top:1px solid #46493f; }
+.station-card img { width:100%;aspect-ratio:1.25;object-fit:contain;background:#121310;border-top:1px solid #46493f; }
+.station-card button { font-size:12px;padding:6px 9px; }
+.field-note { margin:16px 0;padding:12px 15px;border-left:1px solid var(--brass);color:var(--quiet);background:#24261e; }
+.field-note strong { color:var(--ivory); }
+.book-footer { display:flex;align-items:start;justify-content:space-between;gap:13px; }
+.book-footer details { flex:1;color:var(--quiet); }
+summary { cursor:pointer; }
+.book-footer dl { display:grid;grid-template-columns:minmax(105px,auto) 1fr;gap:7px 13px;font-size:12px; }
+.book-footer dt,.book-footer dd { margin:0; }
+a { color:var(--brass); }
+#instructions p { margin:9px 0;max-width:630px; }
+#darkroom { padding:clamp(17px,3.6vw,49px);background:radial-gradient(ellipse at 34% 39%,#272521,#141511 82%); }
+.room-content { display:grid;grid-template-columns:minmax(250px,1fr) minmax(225px,300px);gap:clamp(12px,3vw,44px);margin-top:20px;align-items:center; }
+.print-mat { justify-self:center;padding:clamp(12px,3vw,42px);background:#e7e3d8;box-shadow:0 6px 40px #000a;line-height:0; }
+#print-canvas { display:block;max-width:100%;max-height:calc(100svh - 225px);width:auto;height:auto;touch-action:none;cursor:crosshair;background:#242620; }
+.print-tools { display:grid;gap:13px; }
+.print-tools>label input { width:100%; }
+.print-tools button { font-size:12px;padding:7px 10px; }
+.print-tools #file-print { margin-top:4px; }
+#negative-details { color:var(--quiet);font-size:12px;border-bottom:1px solid #605b4f;padding-bottom:10px; }
+#negative-details p+p { margin-top:7px; }
+#print-status { min-height:18px;color:var(--brass);font-size:12px; }
+#touch { display:none; }
+@media (pointer:coarse) {
+  #touch:not([hidden]) { display:flex;position:absolute;inset:auto 12px 103px;align-items:end;justify-content:space-between;z-index:3;pointer-events:none; }
+  #joystick { pointer-events:auto;width:75px;height:75px;border:1px solid #e7e2d48e;border-radius:50%;display:grid;place-items:center;background:#191b1682;touch-action:none; }
+  #joystick i { width:27px;height:27px;border:1px solid #e7e2d48e;background:#c9bea365;border-radius:50%; }
+  #touch-brake { pointer-events:auto; }
+}
+@media (max-width:720px) {
+  #field-top { padding:10px; }
+  .location strong { font-size:24px; }
+  .location .eyebrow { font-size:8px; }
+  #sheets { display:none; }
+  #field-tools { inset:auto 8px 8px;display:grid;justify-content:stretch; }
+  .field-buttons { justify-content:start; }
+  .task { max-width:90vw; }
+  kbd { display:none; }
+  #station-list { grid-template-columns:1fr; }
+  .station-card img { max-height:210px; }
+  .book-footer { flex-direction:column; }
+  .room-content { grid-template-columns:1fr; }
+  #print-canvas { max-height:48svh; }
+}
+@media (max-width:470px) {
+  h1 { font-size:clamp(66px,18vw,92px); }
+  #opening { padding:22px; }
+  .camera-main,.readings { gap:3px; }
+  .camera-main button,.readings button { font-size:10px;padding:5px; }
+  #lens-tray { grid-template-columns:repeat(3,minmax(55px,1fr));gap:6px; }
+  .lens-actions { grid-column:span 3; }
+}
+</style>
+</head>
+<body data-mode="opening">
+  <main>
+    <canvas id="world" tabindex="0" aria-label="Live expedition landscape"></canvas>
+    <div id="shade"></div>
+    <section id="opening" class="overlay" aria-labelledby="title">
+      <div class="title-block">
+        <p class="eyebrow">A photography expedition</p>
+        <h1 id="title">Field Plates</h1>
+        <p class="subtitle">Find where to stand.</p>
+        <p class="opening-copy">Lead Mistletoe into the Sierra. Take the wagon to the river. Work the light until you have a print.</p>
+        <div class="row"><button id="begin" class="paper" disabled>Begin expedition</button><button id="open-map" disabled>Field book</button></div>
+        <p id="loading" role="status">Loading the trail…</p>
+      </div>
+      <p class="opening-credit">Inspired by Ansel Adams’s fieldwork</p>
+    </section>
+    <header id="field-top" hidden>
+      <div class="location"><span class="eyebrow" id="region"></span><strong id="location"></strong></div>
+      <div class="row header-buttons"><span id="sheets"></span><button id="audio" aria-pressed="false">Sound on</button><button id="journal">Field book <kbd>Tab</kbd></button></div>
+    </header>
+    <div id="waypoint" hidden aria-hidden="true"><i></i><span></span></div>
+    <div id="crosshair" hidden aria-hidden="true"></div>
+    <div id="flash" aria-hidden="true"></div>
+    <div id="message" role="status" aria-live="polite" hidden></div>
+    <section id="field-tools" hidden aria-label="Trail controls">
+      <div class="task"><span id="task-name"></span><small id="task-detail"></small></div>
+      <div class="row field-buttons">
+        <button id="rig-action"><kbd>E</kbd> <span></span></button>
+        <button id="cargo"><kbd>P</kbd> Shift a case</button>
+        <button id="deck"><kbd>V</kbd> <span></span></button>
+        <button id="setup" class="paper"><kbd>C</kbd> Set camera</button>
+      </div>
+    </section>
+    <section id="camera-ui" hidden aria-label="Field camera">
+      <div id="plate-guide" aria-hidden="true">
+        <span id="film-size">8×10</span><div id="meter-reticle" hidden><i></i></div>
+        <div id="meter-data" hidden><span id="zone">—</span><small id="meter-ev"></small></div>
+      </div>
+      <div id="camera-tray">
+        <div class="row camera-main">
+          <button id="leave-camera"><kbd>Esc</kbd> Trail</button>
+          <button id="meter" aria-pressed="false"><kbd>F</kbd> Meter</button>
+          <button id="wait"><kbd>T</kbd> Wait for light</button>
+          <button id="optics" aria-expanded="false">Lens & glass</button>
+          <button id="expose" class="paper"><kbd>Space</kbd> Expose</button>
+        </div>
+        <div id="lens-tray" hidden>
+          <label for="glass">Filter<select id="glass" aria-label="Spectral filter"></select></label>
+          <label for="ev">Exposure <output id="ev-value"></output><input id="ev" type="range" min="-3" max="3" step=".25"></label>
+          <label for="focal">Focal length<select id="focal"><option>150</option><option>180</option><option>210</option><option>220</option><option>250</option><option>300</option><option>360</option></select></label>
+          <label for="aperture">Aperture<select id="aperture"><option>8</option><option>11</option><option>16</option><option>22</option><option>32</option><option>45</option><option>64</option></select></label>
+          <label for="focus">Focus <output id="focus-value"></output><input id="focus" type="range" min="0" max="100" step="1"></label>
+          <label for="rise">Rise <output id="rise-value"></output><input id="rise" type="range" min="-.22" max=".22" step=".01"></label>
+          <label for="tilt">Tilt <output id="tilt-value"></output><input id="tilt" type="range" min="-15" max="15" step="1"></label>
+          <div class="row lens-actions"><button id="orientation" aria-pressed="false">Portrait</button><button id="invert" aria-pressed="false">Ground glass</button><button id="reset-view">Recenter</button></div>
+        </div>
+        <div class="row readings" id="readings" hidden>
+          <button id="set-shadow"><kbd>J</kbd> Mark shadow <span></span></button>
+          <button id="set-light"><kbd>K</kbd> Mark highlight <span></span></button>
+        </div>
+      </div>
+    </section>
+    <div id="touch" hidden><div id="joystick"><i></i></div><button id="touch-brake">Brake</button></div>
+    <section id="book" class="overlay book" hidden aria-labelledby="book-title">
+      <div class="book-inner">
+        <div class="spread-heading"><div><p class="eyebrow">Expedition record</p><h2 id="book-title">Field book</h2></div><button id="book-close">Close <kbd>Esc</kbd></button></div>
+        <p id="book-progress"></p>
+        <div id="station-list"></div>
+        <div id="current-note" class="field-note"></div>
+        <div class="book-footer">
+          <details><summary>Controls and credits</summary><div id="instructions"></div></details>
+          <button id="reload">Return to camp & reload</button>
+        </div>
+      </div>
+    </section>
+    <section id="darkroom" class="overlay" hidden aria-labelledby="dark-title">
+      <header class="spread-heading">
+        <div><p id="dark-location" class="eyebrow"></p><h2 id="dark-title">The darkroom</h2></div>
+        <button id="room-close">Back to camera <kbd>Esc</kbd></button>
+      </header>
+      <div class="room-content">
+        <div class="print-mat"><canvas id="print-canvas" aria-label="Developed photograph. Paint with the selected dodge or burn brush."></canvas></div>
+        <div class="print-tools">
+          <div id="negative-details"></div>
+          <label class="contrast" for="contrast">Paper contrast <output id="contrast-value"></output><input id="contrast" type="range" min="-35" max="35" step="1" value="0"></label>
+          <div class="row brushes"><button id="dodge" aria-pressed="true" title="Lighten the print where you brush">Dodge</button><button id="burn" aria-pressed="false" title="Darken the print where you brush">Burn</button><button id="clear-marks">Clear</button></div>
+          <label for="brush-size">Brush size<input id="brush-size" type="range" min="4" max="32" step="1" value="13"></label>
+          <div class="row"><button id="show-negative" aria-pressed="false">View negative</button><button id="download">Save PNG</button></div>
+          <button id="file-print" class="paper">File the print</button>
+          <p id="print-status" role="status"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  
+  
+  
+  <script src="fonts.js" defer></script>
+  <script src="three.js" defer></script>
+  <script src="game.js" defer></script>
+</body>
+</html>
