@@ -121,7 +121,7 @@ function roundedBox(w,h,d,r){
 }
 
 /* ---------- the donkey ---------- */
-function makeDonkey(){
+function makeDonkey(opt){
   const group=new T.Group();group.rotation.order="YXZ";
 
   /* materials */
@@ -177,7 +177,7 @@ function makeDonkey(){
     };
     return m;
   }
-  const SHELLS=14,shellMats=[];
+  const SHELLS=(opt&&opt.shells)||14,shellMats=[];
   for(let i=1;i<=SHELLS;i++)shellMats.push(coat(new T.MeshStandardMaterial({vertexColors:true,map:furMap,roughness:1,alphaToCoverage:true}),i/SHELLS));
   coat(hide,0);
   const hideOpen=coat(hide.clone(),0);hideOpen.side=T.DoubleSide;hideOpen.shadowSide=T.FrontSide;
@@ -368,18 +368,19 @@ function makeDonkey(){
   const mouthRings=headRings.filter(r=>r.l>=.24&&r.l<=.498&&r.up>.02);
   const lipAng=r=>Math.acos(clamp((lipY(r)-r.p[1])/r.dn,-1,0));
   const inset=mouthRings.map(r=>Object.assign({},r,{am:lipAng(r),w:Math.max(r.w-.013,.004),up:Math.max(r.up-.012,.004),dn:Math.max(r.dn-.014,.004)}));
-  const inner=(arcOf,skin)=>{const m=skinned(loft(inset,{seg:18,open:true,tan:[0,0,1],xf:headXf,arcOf,skin}),lining);m.castShadow=false;return m;};
+  const mouthInside=[];
+  const inner=(arcOf,skin)=>{const m=skinned(loft(inset,{seg:18,open:true,tan:[0,0,1],xf:headXf,arcOf,skin}),lining);m.castShadow=false;mouthInside.push(m);return m;};
   inner(r=>[r.am+.06,TAU-r.am-.06],()=>[B_JAW,B_JAW,0]);
   inner(r=>[-r.am+.06,r.am-.06],r=>[B_HEAD,B_LIP,smooth(.41,.5,r.l)]);
   const lipSkin=new T.MeshStandardMaterial({vertexColors:true,roughness:.85,side:T.DoubleSide});
   const lipStrip=(sgn,skin)=>{ // outer lip face, lip edge, and the inner wall back to the lining
-    const R=headRings.filter(r=>r.l>=.375&&r.up>.012),seq=[],pos=[],col=[],si=[],sw=[],idx=[];
+    const R=headRings.filter(r=>r.l>=.392&&r.up>.012),seq=[],pos=[],col=[],si=[],sw=[],idx=[];
     for(let i=0;i<R.length;i+=2)seq.push([R[i],-1]);
     for(let i=R.length-1-((R.length-1)%2);i>=0;i-=2)seq.push([R[i],1]);
     seq.forEach(([r,sx],n)=>{
-      const y0=lipY(r),pale=lerp(.07,.34,smooth(.37,.44,r.l)),q=skin(r.l);
-      const pt=(dy,ins)=>{const y=y0+sgn*dy,x=surf(r,y-r.p[1]);return [sx*x*(1-ins),r.p[1]+(y-r.p[1])*(1-ins),r.l];};
-      for(const [v,c] of [[pt(.012,-.012),pale],[pt(.0008,.015),.045],[pt(.0008,.25),.04]]){
+      const y0=lipY(r),pale=lerp(.03,.3,smooth(.4,.46,r.l)),q=skin(r.l);
+      const tp=smooth(.392,.43,r.l),pt=(dy,ins)=>{const y=y0+sgn*dy*tp,x=surf(r,y-r.p[1]);ins*=tp;return [sx*x*(1-ins),r.p[1]+(y-r.p[1])*(1-ins),r.l];};
+      for(const [v,c] of [[pt(.006,-.004),pale],[pt(.0008,.015),.045],[pt(.0008,.25),.04]]){
         pos.push(v[0],v[1],v[2]);col.push(c,c,c);si.push(q[0],q[1],0,0);sw.push(1-q[2],q[2],0,0);}
       if(n){const a=(n-1)*3,b=n*3;idx.push(a,b,a+1,a+1,b,b+1,a+1,b+1,a+2,a+2,b+1,b+2);}
     });
@@ -460,7 +461,7 @@ function makeDonkey(){
   const eyeTex=noiseTexture(256,(c,s)=>{
     c.fillStyle="#b9b4aa";c.fillRect(0,0,s,s);
     for(let i=0;i<40;i++){c.strokeStyle="rgba(60,40,40,.25)";c.lineWidth=1;c.beginPath();const a=hash(i)*6.28;c.moveTo(128+Math.cos(a)*50,128+Math.sin(a)*100);c.lineTo(128+Math.cos(a)*120,128+Math.sin(a)*240);c.stroke();}
-    const g=c.createRadialGradient(128,128,6,128,128,47);g.addColorStop(0,"#6a5c4c");g.addColorStop(.7,"#40372e");g.addColorStop(.93,"#0b0a09");g.addColorStop(1,"#3c3832");
+    const g=c.createRadialGradient(128,128,6,128,128,47);g.addColorStop(0,"#8a7860");g.addColorStop(.7,"#5a4c3c");g.addColorStop(.93,"#0b0a09");g.addColorStop(1,"#3c3832");
     c.save();c.translate(128,128);c.scale(1,2);c.fillStyle=g;c.beginPath();c.arc(0,0,47,0,TAU);c.fill();
     for(let i=0;i<70;i++){const a=hash(i+3)*TAU;c.strokeStyle="rgba(120,105,85,.22)";c.beginPath();c.moveTo(Math.cos(a)*14,Math.sin(a)*8);c.lineTo(Math.cos(a)*42,Math.sin(a)*42);c.stroke();}
     c.fillStyle="#020202";c.beginPath();c.ellipse(0,0,25,9.5,0,0,TAU);c.fill();c.restore();
@@ -484,10 +485,11 @@ function makeDonkey(){
     const lid=rigid(lidGeo,lidMat,headFrame,ex,EYE[1],EYE[2]);lid.castShadow=false;
     const low=rigid(lidLow,lidMat,headFrame,ex,EYE[1],EYE[2]);low.castShadow=false;lids.push({lid,low,eye,s});
     rigid(lashGeo(s),dark,lid).castShadow=false;
-    const nostril=new T.Group();nostril.position.set(s*.033,.006,.487);lipFrame.add(nostril);
+    const nr=headAt(.488),ny=.004,nx=surf(nr,ny-nr.p[1]);
+    const nostril=new T.Group();nostril.position.set(s*nx*.93,ny,.4915);lipFrame.add(nostril);
     rigid(new T.SphereGeometry(.0135,12,9),dark,nostril).castShadow=false;
     const rim=rigid(new T.TorusGeometry(.0148,.0042,7,18,4.6),rimMat,nostril);rim.rotation.z=s>0?2.2:-2.2+Math.PI-4.6+Math.PI;rim.castShadow=false;
-    nostril.scale.set(.8,1.25,.5);nostril.rotation.set(-.35,s*.5,s*.3);nostrils.push(nostril);
+    nostril.scale.set(.8,1.25,.5);nostril.rotation.set(-.2,s*.95,s*.3);nostrils.push(nostril);
   }
   /* halter (always worn) */
   function band(rings,inflate,mat,parent,arc,seg){
@@ -626,14 +628,16 @@ function makeDonkey(){
   for(let i=0;i<2;i++)tube([[-.46,1.11,-.22+i*.56],[-.43,1.24,-.17+i*.44],[0,1.41,.03+i*.1],[.43,1.24,.27-i*.44],[.46,1.11,.34-i*.56]],.009,rope,pack);
 
   const heavy=new T.Group();heavy.visible=false;pack.add(heavy);
-  rigid(roundedBox(.66,.17,.62,.03),canvasDark,heavy,0,1.4,.1).rotation.y=.06;
-  rigid(roundedBox(.52,.13,.5,.05),canvas,heavy,.02,1.54,.08).rotation.y=-.12;
+  for(const [y,z,r,len,m] of [[1.39,-.06,.105,.62,canvasDark],[1.39,.27,.1,.6,canvas],[1.52,.1,.095,.5,canvasDark]]){
+    const roll=rigid(new T.CapsuleGeometry(r,len,6,16),m,heavy,0,y,z);roll.rotation.set(0,(z-.1)*.4,Math.PI/2);
+    for(const x of [-.18,.18])rigid(new T.TorusGeometry(r+.004,.008,6,18),leather,heavy,x,y,z).rotation.y=Math.PI/2;
+  }
   for(const sd of [1,-1]){
     const sack=rigid(new T.CapsuleGeometry(.11,.34,6,14),canvas,heavy,sd*.5,1.22,.1);sack.rotation.set(Math.PI/2,0,0);
     rigid(roundedBox(.012,.3,.04,.004),leather,heavy,sd*.338,1.4,-.08).scale.y=.6;rigid(roundedBox(.012,.3,.04,.004),leather,heavy,sd*.338,1.4,.28).scale.y=.6;
   }
-  for(const z of [-.1,.3])tube([[-.56,1.1,z],[-.5,1.36,z],[-.22,1.62,z],[.22,1.62,z],[.5,1.36,z],[.56,1.1,z]],.009,rope,heavy);
-  tube([[0,1.45,-.24],[0,1.63,-.05],[0,1.63,.24],[0,1.45,.42]],.009,rope,heavy);
+  for(const z of [-.1,.3])tube([[-.58,1.1,z],[-.5,1.36,z],[-.2,1.56,z],[.2,1.56,z],[.5,1.36,z],[.58,1.1,z]],.009,rope,heavy);
+  tube([[0,1.42,-.2],[0,1.63,-.02],[0,1.63,.22],[0,1.42,.4]],.009,rope,heavy);
   /* ---------- motion ---------- */
   const FACE={earF:0,earL:0,earR:0,earTurn:0,droop:0,lid:0,low:0,lidTilt:0,jaw:0,jawSide:0,lip:0,nos:0,neck:0,head:0,yaw:0,roll:0,tail:0,tailUp:0,rest:0,
     eyeX:0,eyeY:0,tongue:0,tongueUp:0,tongueSide:0,paw:0,pawFwd:0,kick:0,bodyPitch:0,crouch:0};
@@ -827,7 +831,7 @@ function makeDonkey(){
     T_.neck+=.34*pant*(1-lieK)+.3*hv*(1-g1)*(1-lieK)+.3*slopeU*mv-.12*slopeD*mv+run*(.1+.1*g3);T_.head+=-.1*pant-run*.22-.1*slopeU*mv;
     T_.droop+=.5*pant;T_.earF+=-.25*pant-.75*run;T_.lid+=.3*pant;T_.nos=Math.max(T_.nos,hard*(.4+.6*puff));
     T_.jaw=Math.max(T_.jaw,pant*(.1+.12*puff));T_.tongue=Math.max(T_.tongue,pant*.1);T_.tailUp+=run*.5;
-    if(lieK>0){const flat=S.collapsed?1:.55;T_.neck=lerp(T_.neck,.5+.26*flat,lieK);T_.head=lerp(T_.head,-.5-.3*flat,lieK);T_.lid=Math.max(T_.lid,lieK*(S.collapsed?.75:.3));T_.droop=Math.max(T_.droop,lieK*.6);T_.roll+=lieK*.12*flat;}
+    if(lieK>0){const flat=S.collapsed?1:.55;T_.neck=lerp(T_.neck,.48+.14*flat,lieK);T_.head=lerp(T_.head,-.42-.12*flat,lieK);T_.lid=Math.max(T_.lid,lieK*(S.collapsed?.75:.3));T_.droop=Math.max(T_.droop,lieK*.6);T_.roll+=lieK*.12*flat;}
     const ease=1-Math.exp(-dt*(M.snap||10));
     for(const k in FACE){
       const sp=SPRING[k];
@@ -842,6 +846,7 @@ function makeDonkey(){
     n1.rotation.set(carry+nod+F.neck,bend*1.1+S.look*.3+F.yaw*.35,0);
     n2.rotation.set(carry*.4+nod*.5+F.neck*.5,bend*.9+S.look*.35+F.yaw*.35,F.roll*.3);
     hd.rotation.set(-carry*.7-nod*.9+F.head,bend*.8+S.look*.4+F.yaw*.5,S.look*.08+F.roll);
+    for(const m of mouthInside)m.visible=F.jaw>.03||F.lip>.08;
     bones[B_JAW].rotation.set(F.jaw*.42,0,F.jawSide*.07);
     bones[B_LIP].rotation.set(-F.lip*.75,0,0);
     bones[B_LIP].position.copy(bones[B_LIP].userData.rest);bones[B_LIP].position.y+=F.lip*.012;
