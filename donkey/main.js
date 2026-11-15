@@ -164,7 +164,7 @@ const S=donkey.state;
 
 /* ---------- study plate: the donkey alone on paper, for comparing with reference sheets ---------- */
 let study=false,saved=null;
-const flat=()=>0,hf=(x,z)=>study?0:heightAt(x,z);
+const flat=()=>0,hf=(x,z)=>groundFn?groundFn(x,z):study?0:heightAt(x,z);
 const catcher=new T.Mesh(new T.PlaneGeometry(80,80),new T.ShadowMaterial({opacity:.3}));
 catcher.rotation.x=-Math.PI/2;catcher.receiveShadow=true;catcher.visible=false;scene.add(catcher);
 const fogOut=scene.fog,paper=new T.Color(0xd9d5cb);
@@ -194,7 +194,7 @@ S.onStep=(L,gait)=>{
   const t=audio.currentTime,src=audio.createBufferSource(),f=audio.createBiquadFilter(),g=audio.createGain();
   src.buffer=noiseBuf;src.playbackRate.value=.55+Math.random()*.25+(L.front?.1:0);
   f.type="bandpass";f.frequency.value=260+Math.random()*160+gait*180;f.Q.value=1.1;
-  g.gain.value=.16+gait*.18;src.connect(f).connect(g).connect(audio.destination);src.start(t);
+  g.gain.value=.16+gait*.18+S.g2*.2+S.hv*.12;src.connect(f).connect(g).connect(audio.destination);src.start(t);
 };
 function braySound(){
   if(!audio||muted)return;
@@ -216,7 +216,7 @@ function braySound(){
 const keys=new Set(),ctl={throttle:0,steer:0,trot:false};
 const cam={yaw:2.45,pitch:.2,dist:4.6,view:0,manual:0,face:false,faceYaw:.7};
 const views=[2.45,Math.PI/2,.55,Math.PI];
-let trotLatch=false,packOn=true;
+let trotLatch=false,packOn=true,paceLatch=0,groundFn=null;
 const stick={id:null,x:0,y:0,ox:0,oy:0};
 const orbit={id:null,x:0,y:0};
 let reel=-1,reelT=0;
@@ -227,6 +227,7 @@ function snort(){
   g.gain.setValueAtTime(.5,t);g.gain.exponentialRampToValueAtTime(.01,t+.5);src.connect(f).connect(g).connect(audio.destination);src.start(t);
 }
 S.onMood=id=>{
+  if(id==="collapse"){snort();return;}
   if(id==="bray")braySound();
   if(id==="startled"||id==="annoyed"||id==="shake"||id==="kick"||id==="paw")snort();
 };
@@ -234,8 +235,9 @@ function setMood(id){ensureAudio();donkey.setMood(id);}
 const moodKeys={"1":"calm","2":"alert","3":"curious","4":"content","5":"sleepy","6":"annoyed","7":"startled","8":"bray","9":"flehmen","0":"yawn","-":"chew","=":"shake","[":"graze","]":"lick",";":"greet","'":"paw","\\":"kick"};
 function act(name){
   ensureAudio();
-  if(name==="pack"){packOn=!packOn;donkey.setPack(packOn);$("b-pack").setAttribute("aria-pressed",packOn);}
-  if(name==="trot"){trotLatch=!trotLatch;$("b-trot").setAttribute("aria-pressed",trotLatch);}
+  if(name==="pack"){const n=(S.load+1)%3;donkey.setLoad(n);$("b-pack").textContent=["No load","Pack","Heavy"][n];$("b-pack").setAttribute("aria-pressed",n>0);}
+  if(name==="trot"){paceLatch=(paceLatch+1)%4;$("b-trot").textContent=["Walk","Trot","Canter","Gallop"][paceLatch];$("b-trot").setAttribute("aria-pressed",paceLatch>0);}
+  if(name==="lie")donkey.lie();
   if(name==="bray")setMood("bray");
   if(name==="mood"){const i=donkey.moods.findIndex(m=>m.id===S.mood);setMood(donkey.moods[(i+1)%donkey.moods.length].id);}
   if(name==="face"){cam.face=!cam.face;$("b-face").setAttribute("aria-pressed",cam.face);}
@@ -249,7 +251,7 @@ addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();keys.add(k);ensureAudio();
   if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();
   if(e.repeat)return;
-  if(k==="p")act("pack");if(k==="b"||k===" ")act("bray");if(k==="c")act("view");if(k==="t")act("trot");if(k==="m")act("sound");if(k==="f")act("face");if(k==="e")act("mood");if(k==="g")act("reel");if(moodKeys[k])setMood(moodKeys[k]);if(k==="v")act("study");
+  if(k==="p")act("pack");if(k==="b"||k===" ")act("bray");if(k==="c")act("view");if(k==="t")act("trot");if(k==="m")act("sound");if(k==="k")act("lie");if(k==="f")act("face");if(k==="e")act("mood");if(k==="g")act("reel");if(moodKeys[k])setMood(moodKeys[k]);if(k==="v")act("study");
   if(k==="r")donkey.place(0,0,-2.85,hf);
 });
 addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
@@ -295,9 +297,10 @@ function step(dt){
   let th=kd("w","arrowup")-kd("s","arrowdown"),st=kd("a","arrowleft")-kd("d","arrowright");
   if(stick.id!==null){
     th=Math.abs(stick.y)>.15?-stick.y:0;st=Math.abs(stick.x)>.2?-stick.x:0;
-    ctl.trot=trotLatch||Math.hypot(stick.x,stick.y)>.93&&th>.5;
-  } else ctl.trot=trotLatch!==keys.has("shift");
+    ctl.trot=Math.hypot(stick.x,stick.y)>.93&&th>.5;
+  } else ctl.trot=keys.has("shift");
   if(demo){th=1;ctl.trot=demo==="trot";st=demo==="turn"?1:demo==="spin"?(th=0,1):0;}
+  ctl.pace=Math.max(ctl.trot?1:0,paceLatch,keys.has("x")?3:keys.has("z")?2:0);
   ctl.throttle=th;ctl.steer=st;
   donkey.update(dt,ctl,hf);
   if(!study)for(const s of solids){
@@ -322,6 +325,7 @@ function step(dt){
   sky.position.copy(camera.position);sky.material.uniforms.time.value+=dt;
   sun.target.position.copy(look);sun.position.copy(look).addScaledVector(sunDir,32);fill.target.position.copy(look);fill.position.set(look.x-sunDir.x*20,look.y+6,look.z-sunDir.z*20);
 
+  $("stam").style.width=(S.stamina*100).toFixed(0)+"%";$("stam").parentNode.classList.toggle("low",S.stamina<.25);
   $("gait").textContent=S.label;$("mood").textContent=donkey.moods.find(m=>m.id===S.mood).label;
   $("speed").textContent=Math.abs(S.speed).toFixed(1)+" m/s";
 }
@@ -344,7 +348,7 @@ function orthoShot(view,cx,cy,halfW,halfH){
   renderer.render(scene,o);scene.background=bg;
 }
 if(params.get("mood"))donkey.setMood(params.get("mood"));
-window.__pd={setMood,orthoShot,step,render:()=>renderer.render(scene,camera),donkey,cam,act,heightAt,setStudy,camera};
+window.__pd={setGround(f){groundFn=f;},setMood,orthoShot,step,render:()=>renderer.render(scene,camera),donkey,cam,act,heightAt,setStudy,camera};
 if(params.has("study"))setStudy(true);
 if(!params.has("manual"))requestAnimationFrame(frame);
 document.body.classList.add("ready");

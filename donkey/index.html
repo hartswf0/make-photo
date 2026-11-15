@@ -30,6 +30,8 @@
     .bar button:focus-visible{outline:2px solid #f1eee6;outline-offset:2px}
     body.study{color:#1b1a17}body.study .plate,body.study .keys,body.study .touch-hint{text-shadow:none}
     body.study .keys b{border-color:rgba(27,26,23,.5)}body.study .vignette{display:none}
+    .stam{width:150px;height:3px;margin-top:9px;background:rgba(241,238,230,.25)}.stam i{display:block;height:100%;width:100%;background:#f1eee6}
+    .stam.low i{opacity:.5}body.study .stam{background:rgba(27,26,23,.2)}body.study .stam i{background:#1b1a17}
     #stick{position:fixed;width:108px;height:108px;margin:-54px 0 0 -54px;border-radius:50%;border:1px solid rgba(241,238,230,.5);
       background:rgba(21,22,19,.3);pointer-events:none;display:none}
     #stick.on{display:block}
@@ -46,20 +48,21 @@
   <header class="plate">
     <h1>Pack Donkey</h1>
     <p><span id="gait">Stand</span><span id="speed">0.0 m/s</span><span id="mood">Calm</span></p>
+    <div class="stam" aria-label="Stamina"><i id="stam"></i></div>
   </header>
   <p class="touch-hint">Left thumb drives · edge to trot · drag right to look</p>
   <p class="keys">
-    <b>W</b><b>A</b><b>S</b><b>D</b> drive &nbsp; <b>Shift</b> trot &nbsp; <b>Space</b> bray<br>
+    <b>W</b><b>A</b><b>S</b><b>D</b> drive &nbsp; <b>Shift</b> trot &nbsp; <b>Z</b> canter &nbsp; <b>X</b> gallop &nbsp; <b>K</b> lie down &nbsp; <b>Space</b> bray<br>
     <b>1</b>–<b>0</b> <b>-</b> <b>=</b> <b>[</b> <b>]</b> <b>;</b> <b>'</b> <b>\</b> moods &nbsp; <b>E</b> next mood &nbsp; <b>F</b> face camera &nbsp; <b>G</b> mood reel<br>
-    <b>P</b> pack &nbsp; <b>C</b> view &nbsp; <b>V</b> study &nbsp; <b>R</b> reset &nbsp; drag to look, scroll to zoom
+    <b>P</b> load &nbsp; <b>C</b> view &nbsp; <b>V</b> study &nbsp; <b>R</b> reset &nbsp; drag to look, scroll to zoom
   </p>
   <div class="bar">
-    <button id="b-trot" data-act="trot" aria-pressed="false">Trot</button>
+    <button id="b-trot" data-act="trot" aria-pressed="false">Walk</button>
     <button id="b-pack" data-act="pack" aria-pressed="true">Pack</button>
     <button data-act="mood">Mood</button>
     <button id="b-face" data-act="face" aria-pressed="false">Face</button>
     <button id="b-reel" data-act="reel" aria-pressed="false">Reel</button>
-    <button data-act="bray">Bray</button>
+    <button data-act="lie">Lie</button>
     <button data-act="view">View</button>
     <button id="b-study" data-act="study" aria-pressed="false">Study</button>
     <button id="b-sound" data-act="sound" aria-pressed="true">Sound</button>
