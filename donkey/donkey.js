@@ -211,10 +211,10 @@ function makeDonkey(){
   const B_TAIL=[];for(let i=0;i<4;i++)B_TAIL.push(bone("tail"+i,i?B_TAIL[i-1]:B_PELVIS,...tailPts[i]));
   const LP=.075,HOOF=.06;
   const legDefs=[
-    {name:"FL",front:true, x:.105,z:.418, y:.79,L1:.36,L2:.295,home:[.095,.448], slide:.24,off:[.25,.5]},
-    {name:"FR",front:true, x:-.105,z:.418,y:.79,L1:.36,L2:.295,home:[-.095,.418],slide:.24,off:[.75,1]},
-    {name:"HL",front:false,x:.115,z:-.25, y:.73,L1:.37,L2:.31, home:[.105,-.41], slide:.32,off:[0,0]},
-    {name:"HR",front:false,x:-.115,z:-.25,y:.73,L1:.37,L2:.31, home:[-.105,-.35],slide:.32,off:[.5,.5]}
+    {name:"FL",front:true, x:.105,z:.418, y:.79,L1:.36,L2:.295,home:[.095,.448], slide:.08,off:[.25,.5]},
+    {name:"FR",front:true, x:-.105,z:.418,y:.79,L1:.36,L2:.295,home:[-.095,.418],slide:.08,off:[.75,1]},
+    {name:"HL",front:false,x:.115,z:-.25, y:.73,L1:.37,L2:.31, home:[.105,-.41], slide:.1,off:[0,0]},
+    {name:"HR",front:false,x:-.115,z:-.25,y:.73,L1:.37,L2:.31, home:[-.105,-.35],slide:.1,off:[.5,.5]}
   ];
   for(const L of legDefs){
     const par=L.front?B_CHEST:B_PELVIS;
@@ -661,7 +661,9 @@ function makeDonkey(){
     const top=(ctl.trot?3.3:1.3)*clamp(1-S.slope*1.1,.5,1.12);
     const want=ctl.throttle>=0?ctl.throttle*top:ctl.throttle*.7;
     const acc=(Math.abs(want)<Math.abs(S.speed)||want*S.speed<0)?3.4:1.9;
+    const v0=S.speed;
     S.speed+=clamp(want-S.speed,-acc*dt,acc*dt);
+    S.accel=lerp(S.accel||0,(S.speed-v0)/Math.max(dt,1e-4),1-Math.exp(-dt*6));
     const yawWant=ctl.steer*lerp(1.35,1.0,smooth(0,3.3,Math.abs(S.speed)));
     S.yawRate=lerp(S.yawRate,yawWant,1-Math.exp(-dt*6));
     if(Math.abs(S.yawRate)<.002)S.yawRate=0;
@@ -671,7 +673,7 @@ function makeDonkey(){
     /* gait clock */
     const sp=Math.abs(S.speed);
     S.gait=smooth(1.7,2.4,sp);
-    const stride=lerp(lerp(.6,1.12,smooth(0,1.15,sp)),1.95,S.gait),beta=lerp(.63,.43,S.gait);
+    const stride=lerp(lerp(.55,.94,smooth(0,1.15,sp)),1.7,S.gait),beta=lerp(.63,.43,S.gait);
     const driving=sp>.04||Math.abs(S.yawRate)>.1;
     let settle=false;
     for(const L of legDefs){
@@ -721,7 +723,8 @@ function makeDonkey(){
     S.pitch=lerp(S.pitch,Math.atan2(hF-hH,.84),k);
     S.roll=lerp(S.roll,Math.atan2(hL-hR,.4)*.55,k);
     group.position.set(S.x,S.y,S.z);
-    group.rotation.set(-S.pitch+F.bodyPitch,S.heading,-S.roll);
+    S.lean=lerp(S.lean||0,clamp(S.yawRate*S.speed*.05,-.14,.14),1-Math.exp(-dt*5));
+    group.rotation.set(-S.pitch+F.bodyPitch+clamp(S.accel*.012,-.05,.05),S.heading,-S.roll+S.lean);
 
     /* body rhythm */
     const ph=S.phase*TAU,mv=S.moving,g=S.gait,walk=mv*(1-g),trot=mv*g;
@@ -763,7 +766,7 @@ function makeDonkey(){
     tongue.position.z=.262+F.tongue*.2;tongue.position.y=-.05+F.tongue*.006;tongue.rotation.set(-F.tongueUp*.25,F.tongueSide*.35,0);
     tongueTip.rotation.set(-F.tongueUp*1.0,F.tongueSide*.5,0);
     const nod=walk*.055*Math.cos(ph*2+1.9)+trot*.02*Math.cos(ph*2+.4);
-    const carry=walk*.1-trot*.06+clamp(S.slope,-.3,.4)*.5+(S.still?0:.04*Math.sin(t*.43)*(1-mv));
+    const carry=walk*.0-trot*.1+clamp(S.slope,-.3,.4)*.5+(S.still?0:.04*Math.sin(t*.43)*(1-mv));
     const n1=bones[B_NECK1],n2=bones[B_NECK2],hd=bones[B_HEAD];
     n1.rotation.set(carry+nod+F.neck,bend*1.1+S.look*.3+F.yaw*.35,0);
     n2.rotation.set(carry*.4+nod*.5+F.neck*.5,bend*.9+S.look*.35+F.yaw*.35,F.roll*.3);
@@ -801,7 +804,7 @@ function makeDonkey(){
     for(let i=0;i<4;i++){
       const b=bones[B_TAIL[i]];
       b.rotation.z=(.04+sw)*Math.sin(t*(sw>.02?9:2.2)-i*.9)*(.4+i*.15)+walk*.05*Math.sin(ph-i*.7)+trot*.05*Math.sin(ph*2-i)-S.yawRate*.07;
-      b.rotation.x=(i===0?.06:.015)+sp*.018-(i===0?F.tailUp*.6:0)+trot*.04*Math.sin(ph*2-i*.8);
+      b.rotation.x=(i===0?.06:.015)+(i===0?walk*.22+trot*.4:walk*.03)-(i===0?F.tailUp*.6:0)+trot*.04*Math.sin(ph*2-i*.8);
     }
 
     /* legs */
