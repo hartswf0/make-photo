@@ -220,6 +220,12 @@ const views=[2.45,Math.PI/2,.55,Math.PI];
 let trotLatch=false,packOn=true,paceLatch=0,groundFn=null;
 const stick={id:null,x:0,y:0,ox:0,oy:0};
 const orbit={id:null,x:0,y:0};
+function drawMind(){
+  const M=donkey.mind,rows=[["Hunger",M.hunger],["Tiredness",1-S.stamina],["Fear",M.fear],["Trust",M.trust],["Strain of what you ask",Math.min(1,M.strain)]];
+  const el=$("mind-bars");
+  if(!el.children.length)for(const r of rows){const d=document.createElement("div");d.className="mb";const s=document.createElement("span");s.textContent=r[0];const b=document.createElement("i");b.append(document.createElement("em"));d.append(s,b);el.append(d);}
+  rows.forEach((r,i)=>{el.children[i].querySelector("em").style.width=Math.round(r[1]*100)+"%";});
+}
 let reel=-1,reelT=0;
 /* ---------- packing: every item has a weight and a place; the donkey carries the sum ---------- */
 const items=[
@@ -285,6 +291,9 @@ function act(name){
   if(name==="pack"){const p=$("packing");p.hidden=!p.hidden;$("b-pack").setAttribute("aria-pressed",!p.hidden);if(!p.hidden)drawPacking();}
   if(name==="trot"){paceLatch=(paceLatch+1)%4;$("b-trot").textContent=["Walk","Trot","Canter","Gallop"][paceLatch];$("b-trot").setAttribute("aria-pressed",paceLatch>0);}
   if(name==="lie")donkey.lie();
+  if(name==="mind"){const p=$("mind");p.hidden=!p.hidden;$("b-mind").setAttribute("aria-pressed",!p.hidden);}
+  if(name==="feed"){ensureAudio();donkey.feed();}
+  if(name==="soothe"){ensureAudio();donkey.soothe();}
   if(name==="more"){const b=document.querySelector(".bar");b.classList.toggle("open");$("b-more").setAttribute("aria-pressed",b.classList.contains("open"));}
   if(name==="bray")setMood("bray");
   if(name==="mood"){const i=donkey.moods.findIndex(m=>m.id===S.mood);setMood(donkey.moods[(i+1)%donkey.moods.length].id);}
@@ -299,7 +308,7 @@ addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();keys.add(k);ensureAudio();
   if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();
   if(e.repeat)return;
-  if(k==="p")act("pack");if(k==="b"||k===" ")act("bray");if(k==="c")act("view");if(k==="t")act("trot");if(k==="m")act("sound");if(k==="k")act("lie");if(k==="f")act("face");if(k==="e")act("mood");if(k==="g")act("reel");if(moodKeys[k])setMood(moodKeys[k]);if(k==="v")act("study");
+  if(k==="p")act("pack");if(k==="b"||k===" ")act("bray");if(k==="c")act("view");if(k==="t")act("trot");if(k==="m")act("sound");if(k==="k")act("lie");if(k==="n")act("mind");if(k==="f")act("face");if(k==="e")act("mood");if(k==="g")act("reel");if(moodKeys[k])setMood(moodKeys[k]);if(k==="v")act("study");
   if(k==="r")donkey.place(0,0,-2.85,hf);
 });
 addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
@@ -360,6 +369,11 @@ function step(dt){
   if(demo){th=1;ctl.trot=demo==="trot";st=demo==="turn"?1:demo==="spin"?(th=0,1):0;}
   ctl.pace=Math.max(ctl.trot?1:0,paceLatch,keys.has("x")?3:keys.has("z")?2:0);
   ctl.throttle=th;ctl.steer=st;
+  { // what lies ahead: distance to the nearest rock or tree in the donkey's path
+    const fx=Math.sin(S.heading),fz=Math.cos(S.heading);let near=99;
+    if(!study)for(const s of solids){const dx=s[0]-S.x,dz=s[1]-S.z,a=dx*fx+dz*fz;if(a>0&&a<6&&Math.abs(dx*fz-dz*fx)<s[2]+.5)near=Math.min(near,a-s[2]);}
+    ctl.near=near;
+  }
   donkey.update(dt,ctl,hf);
   if(!study)for(const s of solids){
     const dx=S.x-s[0],dz=S.z-s[1],d=Math.hypot(dx,dz);
@@ -384,6 +398,7 @@ function step(dt){
   sun.target.position.copy(look);sun.position.copy(look).addScaledVector(sunDir,32);fill.target.position.copy(look);fill.position.set(look.x-sunDir.x*20,look.y+6,look.z-sunDir.z*20);
 
   $("stam").style.width=(S.stamina*100).toFixed(0)+"%";$("stam").parentNode.classList.toggle("low",S.stamina<.25);
+  $("thought").textContent=S.thought||"";if(!$("mind").hidden)drawMind();
   $("gait").textContent=S.label;$("mood").textContent=donkey.moods.find(m=>m.id===S.mood).label;
   $("speed").textContent=Math.abs(S.speed).toFixed(1)+" m/s";
 }
