@@ -65,14 +65,18 @@
     #toast[hidden]{display:none}
     #camhud{display:none}#cloth{display:none}#flash{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:7}
     #flash.go{animation:shutter .5s ease-out}@keyframes shutter{0%{opacity:1}35%{opacity:1}100%{opacity:0}}
-    body.glass #view{transform:rotate(180deg);filter:grayscale(1) sepia(.12) contrast(1.12) brightness(.92)}
+    body.glass #view{filter:grayscale(1) sepia(.12) contrast(1.1)}
     body.cam .bar,body.cam .keys,body.cam .touch-hint,body.cam #stick{display:none!important}body.glass .plate{display:none}
     .c-g{display:none!important}body.glass .c-g{display:flex!important}#camhud [hidden]{display:none!important}
-    body.glass #cloth{display:block;position:fixed;inset:0;pointer-events:none;z-index:3;box-shadow:inset 0 0 0 max(14px,3vmin) #050505,inset 0 0 16vmin 6vmin rgba(0,0,0,.85);
-      background:linear-gradient(rgba(241,238,230,.16),rgba(241,238,230,.16)) 33.33% 0/1px 100% no-repeat,linear-gradient(rgba(241,238,230,.16),rgba(241,238,230,.16)) 66.66% 0/1px 100% no-repeat,
-      linear-gradient(rgba(241,238,230,.16),rgba(241,238,230,.16)) 0 33.33%/100% 1px no-repeat,linear-gradient(rgba(241,238,230,.16),rgba(241,238,230,.16)) 0 66.66%/100% 1px no-repeat}
-    body.cam #camhud{display:flex;flex-direction:column;gap:8px;position:fixed;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));
-      margin:0 auto;max-width:560px;padding:12px;box-sizing:border-box;background:rgba(21,22,19,.88);border:1px solid rgba(241,238,230,.3);border-radius:10px;z-index:6;color:#f1eee6}
+    body.glass #cloth{display:block;position:fixed;inset:0;pointer-events:none;z-index:3;box-shadow:inset 0 0 14vmin 5vmin rgba(0,0,0,.9);
+}
+    #knob{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(74px,calc(env(safe-area-inset-bottom) + 74px));width:92px;height:92px;border-radius:50%;z-index:6;touch-action:none;cursor:ew-resize;
+      background:radial-gradient(circle at 35% 30%,#d8cfb4,#8c8266 55%,#4d4636);box-shadow:0 3px 10px rgba(0,0,0,.6),inset 0 0 0 6px rgba(0,0,0,.18)}
+    #knob[hidden]{display:none}#knob i{position:absolute;left:50%;top:50%;width:4px;height:38px;margin:-38px 0 0 -2px;background:#2a261c;border-radius:2px;transform-origin:50% 100%;transform:rotate(var(--a,160deg))}
+    body.cam #camhud{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;position:fixed;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));
+      margin:0;padding:0;background:none;border:0;z-index:6;color:#f1eee6;text-shadow:0 1px 6px #000}
+    #camhud{pointer-events:none}#camhud button{pointer-events:auto}
+    #c-count{font-size:11px;flex:1 1 auto;font-variant-numeric:tabular-nums}#camhud button{flex:none!important;min-height:36px!important;background:rgba(21,22,19,.6)!important}
     #camhud p{margin:0;font-size:12px;font-variant-numeric:tabular-nums}.c-hint{opacity:.7}
     .c-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.c-row span{font-size:12px;min-width:86px;text-align:center}
     #camhud button,#platebox button{font:600 10px/1 Inter,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#f1eee6;background:transparent;border:1px solid rgba(241,238,230,.45);
@@ -149,24 +153,12 @@
   <div id="cloth" aria-hidden="true"></div><div id="flash" aria-hidden="true"></div>
   <p id="toast" role="status" hidden></p>
   <section id="camhud" aria-label="Plate camera">
-    <p id="c-count"></p>
-    <div class="c-row">
-      <button type="button" data-act="next" id="c-next" class="go">Next</button>
-      <button type="button" data-act="glass" id="c-glass" class="go" hidden>Under the cloth</button>
-      <button type="button" data-act="camera">Pack up</button>
-    </div>
-    <div class="c-row c-g">
-      <button type="button" data-act="lens" id="c-lens">Lens</button>
-      <button type="button" data-act="filter" id="c-filter">Filter</button>
-      <button type="button" data-act="evdn" aria-label="Less exposure">−</button><span id="c-ev">Exposure 0</span><button type="button" data-act="evup" aria-label="More exposure">+</button>
-    </div>
-    <div class="c-row c-g">
-      <button type="button" data-act="expose" id="c-expose" class="go">Expose plate</button>
-      <button type="button" data-act="plates">Plate box</button>
-      <button type="button" data-act="glass">Step back</button>
-    </div>
-    <p class="c-hint" id="c-hint"></p>
+    <span id="c-count"></span>
+    <button type="button" data-act="glass" id="c-back" hidden>Step back</button>
+    <button type="button" data-act="plates">Plate box</button>
+    <button type="button" data-act="camera">Pack up</button>
   </section>
+  <div id="knob" hidden role="slider" aria-label="Focus"><i></i></div>
   <section id="platebox" hidden aria-label="Plate box">
     <header><h2>Plate box</h2><button type="button" data-act="plates" aria-label="Close plate box">Done</button></header>
     <p id="pl-note"></p>

@@ -734,6 +734,15 @@ function makeDonkey(opt){
   function think(dt,ctl){
     if(S.brainOff||S.still||S.alive===false)return ctl;
     if(S.tethered)ctl=Object.assign({},ctl,{throttle:0,steer:0});
+    if(S.goal){ // something has caught her interest, or she is being sent back
+      const dx=S.goal.x-S.x,dz=S.goal.z-S.z,d=Math.hypot(dx,dz);
+      if(d<.45){S.goal=null;S.arrived=true;}
+      else{const df=Math.atan2(Math.sin(Math.atan2(dx,dz)-S.heading),Math.cos(Math.atan2(dx,dz)-S.heading));S.thought=S.goalWhy||"Hm.";M.idleT=0;
+        if(S.mood==="graze"){S.mood="calm";S.moodT=0;}
+        return Object.assign({},ctl,{throttle:Math.abs(df)<1?.8:.12,steer:clamp(df*2.4,-1,1),pace:0,trot:false});}
+    }
+    if(S.faceTo!==undefined&&S.faceTo!==null){const df=Math.atan2(Math.sin(S.faceTo-S.heading),Math.cos(S.faceTo-S.heading));
+      if(Math.abs(df)>.1)return Object.assign({},ctl,{throttle:0,steer:clamp(df*2.5,-1,1),pace:0,trot:false});}
     const user=Math.abs(ctl.throttle)>.05||Math.abs(ctl.steer)>.05;
     const C=S.cargo,cm=S.load?C.m:0,hv=S.hv,off=Math.min(1,Math.abs(S.list)/.12),pant=S.pant,sp=Math.abs(S.speed);
     const slopeU=clamp(S.slope/.32,0,1),slopeD=clamp(-S.slope/.32,0,1);
