@@ -233,7 +233,7 @@ const STEPS=[
   ["lens","Tap the lens in the case."],
   ["cloth","Tap the camera back to drape the focusing cloth."]];
 const STOPS=[["f/8",.3,5],["f/16",.8,3.2],["f/32",2.2,1.8],["f/64",6,.9]];
-Object.assign(shot,{cur:0,t:0,busy:false,packing:false,glass:false,orbit:0,orbitP:.16,A:null,lid:true,ap:1,f:.3,sharp:1,holder:false,hk:0,slide:false,sk:0,
+Object.assign(shot,{tx:0,tz:0,tvx:0,tvz:0,fallen:false,fDet:0,wasSharp:false,keepers:0,cur:0,t:0,busy:false,packing:false,glass:false,orbit:0,orbitP:.16,A:null,lid:true,ap:1,f:.3,sharp:1,holder:false,hk:0,slide:false,sk:0,
   shutter:false,expT:0,latent:null,fog:false,shake:0,shook:false,bored:0,ev:null,evT:0,frame:0,ticks:0});
 const gear=new T.Group();gear.visible=false;scene.add(gear);
 const G={},hits=[];
@@ -284,12 +284,13 @@ const lensCam=new T.PerspectiveCamera(34,850/650,.35,1400);
 })();
 const packed=id=>{const it=items.find(i=>i.id===id);return it&&it.slot!=="-"&&!it.out;};
 function say(t,keep){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>{el.hidden=true;},keep||4200);}
-function tick(rate,gain,hp){if(!audio||muted)return;const t=audio.currentTime,s2=audio.createBufferSource(),g2=audio.createGain();s2.buffer=noiseBuf;s2.playbackRate.value=rate;g2.gain.value=gain;
+function buzz(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
+function tick(rate,gain,hp){buzz(Math.round(6+gain*40));if(!audio||muted)return;const t=audio.currentTime,s2=audio.createBufferSource(),g2=audio.createGain();s2.buffer=noiseBuf;s2.playbackRate.value=rate;g2.gain.value=gain;
   if(hp){const f=audio.createBiquadFilter();f.type="highpass";f.frequency.value=hp;s2.connect(f).connect(g2);}else s2.connect(g2);g2.connect(audio.destination);s2.start(t);}
 function unexposed(){return Math.max(0,24-shot.exposed-shot.broken);}
 function ready(){return shot.cur>=STEPS.length;}
 function camHud(){
-  $("c-count").textContent=Math.min(12-shot.used,unexposed())+" holder sides · "+unexposed()+" good plates"+(shot.broken?" · "+shot.broken+" cracked":"")+" · "+shot.exposed+" exposed";
+  $("c-count").textContent=Math.min(12-shot.used,unexposed())+" holder sides · "+unexposed()+" good plates"+(shot.broken?" · "+shot.broken+" cracked":"")+" · "+shot.exposed+" exposed · "+shot.keepers+" worth keeping";
   $("c-back").hidden=!shot.glass;$("knob").hidden=!shot.glass;
 }
 function prompt(){
@@ -302,7 +303,7 @@ function prompt(){
   else say("Tap the holder to take it out.",8000);
 }
 function needT(){return STOPS[shot.ap][1]*FILTERS[shot.filter][3];}
-function setGlass(on){if(on&&shot.holder){say("The holder covers the ground glass. Nothing to see.");return;}shot.glass=on;document.body.classList.toggle("glass",on);camHud();prompt();}
+function setGlass(on){if(on&&shot.fallen){say("The tripod is on the ground.");return;}if(on&&shot.holder){say("The holder covers the ground glass. Nothing to see.");return;}shot.glass=on;document.body.classList.toggle("glass",on);camHud();prompt();}
 function setUpCamera(){
   if(study){say("Leave the study plate first.");return;}
   if(S.down>0){say("Mistletoe is lying down.");return;}
@@ -332,6 +333,8 @@ function finishPackUp(){
 function tapGear(ids){
   if(shot.packing||shot.busy)return;
   if(shot.cur===0){advance();return;}
+  if(shot.fallen){if(true){shot.fallen=false;shot.hitT=3;shot.tx=shot.tz=shot.tvx=shot.tvz=0;shot.pitch=.04;S.goal={x:shot.A.home.x,z:shot.A.home.z};S.goalWhy="Moving off.";tick(1.3,.5);say("Tripod back on its feet. Level it and compose again.");}
+    else say("The tripod is on the ground. Tap it to stand it up.");return;}
   if(!ready()){
     const want=STEPS[shot.cur][0],ok={tripod:["top","tri"],legs:["tri"],case:["kyack"],mount:["box","cam","lid","glass"],bellows:["cam","glass","knob"],lens:["lens","box","lid"],cloth:["glass","cam"]}[want]||[];
     if(ids.some(i=>ok.includes(i)))advance();else if(ids[0]==="donkey")say("She leans into the scratch. "+STEPS[shot.cur][1],8000);else say(STEPS[shot.cur][1],60000);return;
@@ -363,7 +366,7 @@ function tapGear(ids){
   if(id==="knob"){say("Drag the knob to focus.");return;}
 }
 function pressBulb(down){
-  if(!ready())return;
+  if(!ready()||shot.fallen)return;
   if(down){
     shot.shutter=true;shot.expT=0;shot.ticks=0;shot.shook=false;tick(2.8,.5);
     if(shot.holder&&shot.slide){renderLens(plateRT);const px=new Uint8Array(850*650*4);renderer.readRenderTargetPixels(plateRT,0,0,850,650,px);shot.latent={px,sharp:shot.sharp,double:!!shot.latent};}
@@ -400,6 +403,7 @@ function develop(){
   x.putImageData(im,30,30);
   if(shot.fog)note="Fogged";else if(!L)note="Blank";else note=(r<.45?"Thin, underexposed":r>2.4?"Dense, overexposed":"Good exposure")+(L.sharp<.6?", soft focus":"")+(L.shook?", shaken":"")+(L.double?", double exposure":"");
   x.fillStyle="#d9d5cb";x.font="13px Georgia,serif";x.fillText("PLATE "+shot.exposed+" · "+STOPS[shot.ap][0]+" · "+(L?L.t.toFixed(1):"0")+" s · "+FILTERS[shot.filter][0]+" · "+note,34,c.height-9);
+  if(L&&!shot.fog&&r>=.45&&r<=2.4&&L.sharp>=.6&&!L.shook&&!L.double)shot.keepers++;
   shot.plates.push(c.toDataURL("image/jpeg",.86));shot.latent=null;shot.fog=false;
   say("Plate "+shot.exposed+": "+note.toLowerCase()+". It is in the plate box.");camHud();drawPlates();
 }
@@ -410,7 +414,7 @@ function mischief(dt){
     shot.evT-=dt;
     if(S.arrived){S.arrived=false;
       if(shot.ev==="nose"){if(shot.lid&&unexposed()>0){shot.broken++;tick(3.2,.5,3500);say("Mistletoe nosed into the open case. A plate cracked. Shut the lid next time.");camHud();}else say("Mistletoe sniffed at the case and found it shut.");donkey.setMood("curious");shot.evT=3;}
-      if(shot.ev==="bump"){shot.yaw+=(hash(S.time)-.5)*.3;shot.pitch+=.06;shot.shook=true;shot.shake=1;tick(1.1,.5);say("She leaned on the tripod. Your framing has moved"+(shot.shutter?" and the plate is shaken.":"."));shot.evT=2.5;}
+      if(shot.ev==="bump"){shot.evT=2.5;}
       if(shot.ev==="bomb"){S.faceTo=Math.atan2(A.spot.x-S.x,A.spot.z-S.z);donkey.setMood("curious");say("Mistletoe has walked into your picture.");shot.evT=9;}
     }
     if(shot.evT<=0){shot.ev=null;S.faceTo=null;S.goal={x:A.home.x,z:A.home.z};S.goalWhy="Bored of that.";}
@@ -422,7 +426,7 @@ function mischief(dt){
     shot.bored=0;const r=hash(S.time*2.1),ev=r<.4?"nose":r<.7?"bomb":"bump";shot.ev=ev;shot.evT=14;S.arrived=false;
     const to=(x,z,why)=>{S.goal={x,z};S.goalWhy=why;};
     if(ev==="nose")to(lerp(A.box.x,A.home.x,.3),lerp(A.box.z,A.home.z,.3),"What is in that box?");
-    if(ev==="bump")to(lerp(A.spot.x,A.home.x,.28),lerp(A.spot.z,A.home.z,.28),"That thing is in my way.");
+    if(ev==="bump")to(lerp(A.spot.x,A.home.x,.12),lerp(A.spot.z,A.home.z,.12),"That thing is in my way.");
     if(ev==="bomb")to(A.spot.x+Math.sin(shot.yaw)*2.7,A.spot.z+Math.cos(shot.yaw)*2.7,"What are you looking at?");
   }
 }
@@ -431,10 +435,11 @@ function pick(e){_nd.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
   const out=[];for(const h of _ray.intersectObjects(hits,true)){let o=h.object,vis=true;for(let q=o;q;q=q.parent)if(q.visible===false)vis=false;while(o&&!o.userData.hit)o=o.parent;if(o&&vis&&!out.includes(o.userData.hit))out.push(o.userData.hit);}return out;}
 let tapS=null;
 canvas.addEventListener("pointerdown",e=>{if(!shot.on)return;ensureAudio();tapS={x:e.clientX,y:e.clientY,t:performance.now(),id:pick(e)};
-  if(tapS.id[0]==="bulb"&&!shot.glass){pressBulb(true);tapS.bulb=true;}else if(tapS.id[0]==="knob")tapS.knob=true;},true);
-canvas.addEventListener("pointermove",e=>{if(tapS&&tapS.knob&&shot.on){shot.f=clamp(shot.f+(e.movementX||0)*.004,0,1);}},true);
+  if(tapS.id[0]==="bulb"&&!shot.glass){pressBulb(true);tapS.bulb=true;}
+  else if(ready()&&!shot.fallen&&!shot.glass&&(tapS.id.includes("knob")||tapS.id.includes("cam")||tapS.id[0]==="lens")&&!["holder","slide","filter"].includes(tapS.id[0])){tapS.knob=true;tapS.lx=e.clientX;}},true);
+canvas.addEventListener("pointermove",e=>{if(tapS&&tapS.knob&&shot.on){shot.f=clamp(shot.f+(e.clientX-tapS.lx)*.0035,0,1);tapS.lx=e.clientX;tapS.moved=true;}},true);
 for(const ev of ["pointerup","pointercancel"])canvas.addEventListener(ev,e=>{if(!tapS)return;const s=tapS;tapS=null;if(s.bulb){pressBulb(false);return;}
-  if(shot.on&&!shot.glass&&ev==="pointerup"&&Math.hypot(e.clientX-s.x,e.clientY-s.y)<10&&performance.now()-s.t<500&&s.id.length)tapGear(s.id);},true);
+  if(shot.on&&!shot.glass&&ev==="pointerup"&&Math.hypot(e.clientX-s.x,e.clientY-s.y)<10&&performance.now()-s.t<500&&(s.id.length||shot.fallen)&&!s.moved)tapGear(s.id);},true);
 (function knob(){const k=$("knob");let on=false,lx=0;
   k.addEventListener("pointerdown",e=>{on=true;lx=e.clientX;k.setPointerCapture(e.pointerId);});
   k.addEventListener("pointermove",e=>{if(!on)return;shot.f=clamp(shot.f+(e.clientX-lx)*.004,0,1);lx=e.clientX;k.style.setProperty("--a",(shot.f*540)+"deg");});
@@ -450,6 +455,33 @@ function stepRig(dt){
   } else if(shot.busy){shot.t+=dt/1.1;if(shot.t>=1){shot.t=0;shot.cur++;shot.busy=false;tick(2.2,.3);camHud();prompt();}}
   else mischief(dt);
   const p=i=>i<shot.cur?1:i===shot.cur?ez(clamp(shot.t,0,1)):0,arc=k=>Math.sin(Math.PI*k);
+  if(!shot.packing){
+    /* tether: the rope has a length */
+    if(shot.cur>=1){const rx=S.x-A.stake.x,rz=S.z-A.stake.z,rd=Math.hypot(rx,rz);if(rd>3.3){S.x=A.stake.x+rx/rd*3.3;S.z=A.stake.z+rz/rd*3.3;S.speed*=.5;}}
+    /* the tripod is a thing she can walk into: it rocks on its legs, and goes over if hit hard enough */
+    if(shot.cur>=3){
+      const dx=S.x-A.spot.x,dz=S.z-A.spot.z,d=Math.hypot(dx,dz),R=.62;
+      if(d<R&&d>1e-3){const hit=Math.abs(S.speed)*2.4+.5;S.x=A.spot.x+dx/d*R;S.z=A.spot.z+dz/d*R;
+        if(!shot.fallen&&!shot.hitT){shot.tvx+=-dz/d*hit;shot.tvz+=dx/d*hit;shot.hitT=.5;shot.shook=true;tick(1.1,.5);
+          say("She shouldered the tripod."+(shot.shutter?" The plate is shaken.":" Your framing has moved."));shot.yaw+=(hash(S.time)-.5)*.2;}
+        S.speed*=.4;}
+      shot.hitT=Math.max(0,(shot.hitT||0)-dt);
+      if(!shot.fallen){
+        shot.tvx+=(-70*shot.tx-4.5*shot.tvx)*dt;shot.tvz+=(-70*shot.tz-4.5*shot.tvz)*dt;shot.tx+=shot.tvx*dt;shot.tz+=shot.tvz*dt;
+        if(Math.hypot(shot.tx,shot.tz)>.03&&shot.shutter)shot.shook=true;
+        if(Math.hypot(shot.tx,shot.tz)>.42){shot.fallen=true;shot.fallDir=Math.atan2(shot.tz,shot.tx);if(shot.glass)setGlass(false);buzz(120);tick(.7,.8);
+          if(shot.holder&&shot.slide)shot.fog=true;shot.shutter=false;
+          if(unexposed()>0&&shot.holder){shot.broken++;}
+          say("The tripod went over"+(shot.holder?" with a plate in the camera. That one is lost.":".")+" Tap it to stand it up.",9000);camHud();}
+      }
+      /* the case can be kicked shut */
+      const bx=S.x-A.box.x,bz=S.z-A.box.z,bd=Math.hypot(bx,bz);
+      if(bd<.5&&bd>1e-3){S.x=A.box.x+bx/bd*.5;S.z=A.box.z+bz/bd*.5;if(shot.lid&&Math.abs(S.speed)>.5&&shot.ev!=="nose"){shot.lid=false;tick(1,.6);say("She knocked the case lid shut.");}}
+    }
+  }
+  /* rack-and-pinion detents and the snap into focus */
+  {const det=Math.floor(shot.f*26);if(det!==shot.fDet){shot.fDet=det;if(ready())tick(5,.1,3000);}
+    const sh=ready()&&shot.sharp>.9;if(sh&&!shot.wasSharp&&shot.glass){buzz(30);tick(3.4,.22,1200);}shot.wasSharp=sh;}
   donkey.group.updateMatrixWorld(true);donkey.group.localToWorld(G.hDonkey.position.set(0,.95,.15));
   donkey.group.localToWorld(G.hTop.position.set(0,1.4,.1));donkey.group.localToWorld(G.hKyack.position.set(.42,.95,.03));
   const top=G.hTop.position,ky=G.hKyack.position;
@@ -460,6 +492,8 @@ function stepRig(dt){
   G.tri.visible=shot.cur>=1||k1>0||true;
   G.tri.position.set(lerp(top.x,A.spot.x,k1),lerp(top.y+.02,A.spot.y+hy,k1)+arc(k1)*.35,lerp(top.z,A.spot.z,k1));
   G.tri.rotation.set(lerp(Math.PI/2,0,k1),lerp(S.heading,A.head,k1),0);for(const L of G.legs)L.rotation.x=a;
+  if(shot.fallen){G.tri.position.y=A.spot.y+.12;G.tri.rotation.set(Math.PI/2-.08,shot.fallDir||0,0);}
+  else if(shot.cur>=3){G.tri.rotation.x+=shot.tx;G.tri.rotation.z+=shot.tz;}
   const k3=p(3),kc=ez(clamp(k3/.7,0,1));
   G.box.visible=k3>0;G.box.position.set(lerp(ky.x,A.box.x,kc),lerp(ky.y,A.box.y,kc)+arc(kc)*.4,lerp(ky.z,A.box.z,kc));G.box.rotation.y=A.head+.5;
   shot.lidK=lerp(shot.lidK||0,k3>=1&&shot.lid&&!shot.packing?1:ez(clamp((k3-.7)/.3,0,1))*(shot.lid?1:0),1-Math.exp(-dt*8));G.lid.rotation.x=-1.9*shot.lidK;
@@ -467,7 +501,9 @@ function stepRig(dt){
   shot.shake=Math.max(0,shot.shake-dt*1.5);const jit=shot.shake*.04*Math.sin(S.time*60);
   G.cam.visible=k3>=1||shot.cur>3;
   G.cam.position.set(lerp(A.box.x,A.spot.x,k4),lerp(A.box.y+.06,headY,k4)+arc(k4)*.3,lerp(A.box.z,A.spot.z,k4));
-  G.cam.rotation.order="YXZ";G.cam.rotation.set(-shot.pitch*k4+jit,lerp(A.head+.5,shot.yaw,k4)+jit,0);G.cam.scale.setScalar(lerp(.86,1,k4));
+  G.cam.rotation.order="YXZ";G.cam.rotation.set(-shot.pitch*k4+jit+shot.tx,lerp(A.head+.5,shot.yaw,k4)+jit,shot.tz);G.cam.scale.setScalar(lerp(.86,1,k4));
+  if(!shot.fallen&&k4>=1){G.cam.position.x+=Math.sin(shot.tz)*-1.3;G.cam.position.z+=Math.sin(shot.tx)*1.3;}
+  if(shot.fallen&&k4>=1){const fd=shot.fallDir||0;G.cam.position.set(A.spot.x+Math.sin(fd)*1.35,A.spot.y+.14,A.spot.z+Math.cos(fd)*1.35);G.cam.rotation.set(-1.2,fd,.3);}
   const fzz=lerp(-.1,.15,e);G.front.position.set(0,.17,fzz);G.knob.rotation.x=shot.f*9;
   G.bell.forEach((b,i)=>{const k=i/9;b.position.set(0,.17,lerp(-.135,fzz-.02,k));b.scale.set(lerp(.27,.17,k)+(i%2?.025:0),lerp(.23,.17,k)+(i%2?.025:0),1);});
   G.cloth.visible=p(7)>0&&!shot.holder;G.cloth.scale.set(.72,.62*p(7),.85);
@@ -493,7 +529,7 @@ function stepRig(dt){
     const fstar=ang<.3&&dd<7?clamp(.2+1.7/dd,0,1):.2;shot.sharp=clamp(1-Math.abs(shot.f-fstar)*STOPS[shot.ap][2],0,1);
     const want=shot.glass?[64,128,256,512,800][Math.round(shot.sharp*4)]:[48,96,160,256,256][Math.round(shot.sharp*4)];
     if(glassRT.width!==want)glassRT.setSize(want,Math.round(want*.77));
-    G.glass.visible=!shot.holder;if(!shot.holder&&(shot.glass||shot.frame%3===0))renderLens(glassRT);
+    G.glass.visible=!shot.holder&&!shot.fallen;if(!shot.holder&&!shot.fallen&&(shot.glass||shot.frame%3===0))renderLens(glassRT);
   } else G.glass.visible=false;
   /* the ring that shows what to touch next */
   let mk=null;
@@ -509,8 +545,8 @@ function stepRig(dt){
     G.back.localToWorld(_v.set(0,0,-.0235));G.cam.getWorldQuaternion(_q);camera.position.copy(_v).add(_up2.set(0,0,-dist).applyQuaternion(_q));camera.quaternion.copy(_q);
     G.cloth.visible=false;
   } else {
-    const wide=shot.cur<4,tx=wide?lerp(S.x,A.spot.x,.55):A.spot.x,tz=wide?lerp(S.z,A.spot.z,.55):A.spot.z,ty=A.spot.y+(wide?1.0:1.25);
-    const o=shot.orbit,ph=shot.orbitP,d=wide?5.2:2.5,cp=Math.cos(ph);
+    const wide=shot.cur<4,tx=wide?lerp(S.x,A.spot.x,.55):A.spot.x,tz=wide?lerp(S.z,A.spot.z,.55):A.spot.z,ty=A.spot.y+(shot.fallen?.5:wide?1.0:1.25);
+    const o=shot.orbit,ph=shot.fallen?Math.max(shot.orbitP,.35):shot.orbitP,d=wide?5.2:shot.fallen?3.6:2.5,cp=Math.cos(ph);
     want.set(tx+Math.sin(o)*cp*d,ty+Math.sin(ph)*d,tz+Math.cos(o)*cp*d);want.y=Math.max(want.y,hf(want.x,want.z)+.3);
     if(!shot.cp)shot.cp=camera.position.clone();shot.cp.lerp(want,1-Math.exp(-dt*5));camera.position.copy(shot.cp);look.set(tx,ty,tz);camera.lookAt(look);
     if(camera.fov===40)resize();
@@ -583,6 +619,8 @@ function drawPacking(){
     if(C.m>60)v.push("Overloaded. A donkey this size carries about 50 kg; it will tire fast and cannot run.");
     else if(C.m>45)v.push("A full load. Walk and trot only.");
   }
+  if(S.turned)v.unshift("The saddle has turned.");else if(S.slip>.35)v.unshift("The saddle is creeping round.");
+  $("pk-resaddle").hidden=!(S.turned||S.slip>.2);
   $("pk-verdict").textContent=v.join(" ");
 }
 function snort(){
@@ -593,6 +631,8 @@ function snort(){
 }
 S.onMood=id=>{
   if(id==="collapse"){snort();return;}
+  if(id==="turned"){snort();buzz(90);say("The load has rolled round under her belly. Open Packing and re-saddle.",9000);return;}
+  if(id==="bolt"){snort();buzz(140);say("You pushed her once too often. She has bolted with the load.",7000);return;}
   if(id==="bray")braySound();
   if(id==="startled"||id==="annoyed"||id==="shake"||id==="kick"||id==="paw")snort();
 };
@@ -605,6 +645,7 @@ function act(name){
   if(name==="lie")donkey.lie();
   if(name==="mind"){const p=$("mind");p.hidden=!p.hidden;$("b-mind").setAttribute("aria-pressed",!p.hidden);}
   if(name==="feed"){ensureAudio();donkey.feed();}
+  if(name==="resaddle"){donkey.resaddle();tick(1.2,.5);say("Saddle squared up and cinched.");drawPacking();}
   if(name==="soothe"){ensureAudio();donkey.soothe();}
   if(name==="camera"){if(shot.on)packUpCamera();else setUpCamera();}
   if(name==="glass"){if(shot.on&&ready())setGlass(!shot.glass);}
@@ -646,7 +687,7 @@ canvas.addEventListener("pointermove",e=>{
     stick.x=dx;stick.y=dy;nub.style.transform="translate("+dx*44+"px,"+dy*44+"px)";
   } else if(e.pointerId===orbit.id){
     if(pinch){orbit.x=e.clientX;orbit.y=e.clientY;return;}
-    if(shot.on){const dx=e.clientX-orbit.x,dy=e.clientY-orbit.y;orbit.x=e.clientX;orbit.y=e.clientY;
+    if(shot.on){const dx=e.clientX-orbit.x,dy=e.clientY-orbit.y;orbit.x=e.clientX;orbit.y=e.clientY;if(tapS&&tapS.knob)return;
       if(shot.glass){const k=camera.fov/34*.0028;shot.yaw-=dx*k;shot.pitch=clamp(shot.pitch-dy*k,-.45,.7);}
       else{shot.orbit-=dx*.006;shot.orbitP=clamp(shot.orbitP+dy*.004,.02,.9);}return;}
     if(cam.face)cam.faceYaw-=(e.clientX-orbit.x)*.0065;else cam.yaw-=(e.clientX-orbit.x)*.0065;cam.pitch=clamp(cam.pitch+(e.clientY-orbit.y)*.005,-.12,1.5);
@@ -693,7 +734,7 @@ function step(dt){
   { // what lies ahead: distance to the nearest rock or tree in the donkey's path
     const fx=Math.sin(S.heading),fz=Math.cos(S.heading);let near=99;
     if(!study)for(const s of solids){const dx=s[0]-S.x,dz=s[1]-S.z,a=dx*fx+dz*fz;if(a>0&&a<6&&Math.abs(dx*fz-dz*fx)<s[2]+.5)near=Math.min(near,a-s[2]);}
-    ctl.near=near;
+    ctl.near=near;ctl.drop=hf(S.x+fx*1.6,S.z+fz*1.6)-hf(S.x,S.z);
   }
   donkey.update(dt,ctl,hf);
   if(!study)for(const s of solids){

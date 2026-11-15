@@ -715,7 +715,7 @@ function makeDonkey(opt){
     shake:{label:"Shaking off",dur:1.5,snap:40,f:(t,P)=>{const e=pulse(t,0,1.5),k=Math.sin(t*24);P.roll=.42*k*e;P.yaw=.12*Math.cos(t*24)*e;
       P.droop=(.5+.45*k)*e;P.earTurn=.5*k*e;P.lid=.8*e;P.low=.5*e;P.neck=.1*e;P.jaw=.05*e;}}
   };
-  const S={cargo:{m:38,x:0,y:.98,z:.03,L:14,R:14,T:10},list:0,nose:0,sw:0,swV:0,sp:0,spV:0,stamina:1,pant:0,hv:0,load:1,down:0,downWant:false,collapsed:false,g2:0,g3:0,breathPh:0,nextEar:2,earAim:[0,0,0],mood:"calm",moodT:0,autoT:0,idleMood:6,alive:true,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,phase:0,gait:0,pitch:0,roll:0,moving:0,time:0,
+  const S={slip:0,slipA:0,turned:false,cargo:{m:38,x:0,y:.98,z:.03,L:14,R:14,T:10},list:0,nose:0,sw:0,swV:0,sp:0,spV:0,stamina:1,pant:0,hv:0,load:1,down:0,downWant:false,collapsed:false,g2:0,g3:0,breathPh:0,nextEar:2,earAim:[0,0,0],mood:"calm",moodT:0,autoT:0,idleMood:6,alive:true,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,phase:0,gait:0,pitch:0,roll:0,moving:0,time:0,
     bray:0,blink:0,nextBlink:2,idle:0,rest:0,swish:0,nextSwish:3,look:0,lookTarget:0,nextLook:2,slope:0,onStep:null,label:"Stand"};
   const v3=new T.Vector3(),m4=new T.Matrix4(),home=new T.Vector3();
   const fwdX=()=>Math.sin(S.heading),fwdZ=()=>Math.cos(S.heading);
@@ -730,7 +730,7 @@ function makeDonkey(opt){
   }
 
   /* ---------- the mind: what you ask is a request; the donkey weighs it against its own state ---------- */
-  const M=S.mind={hunger:.3,fear:0,trust:.7,press:0,grudge:0,idleT:0,act:null,actT:0,turn:0,refusing:false,auto:false,strain:0,thought:"Waiting."};
+  const M=S.mind={pushes:0,bolt:0,insp:0,inspOk:0,hunger:.3,fear:0,trust:.7,press:0,grudge:0,idleT:0,act:null,actT:0,turn:0,refusing:false,auto:false,strain:0,thought:"Waiting."};
   function think(dt,ctl){
     if(S.brainOff||S.still||S.alive===false)return ctl;
     if(S.tethered)ctl=Object.assign({},ctl,{throttle:0,steer:0});
@@ -743,6 +743,8 @@ function makeDonkey(opt){
     }
     if(S.faceTo!==undefined&&S.faceTo!==null){const df=Math.atan2(Math.sin(S.faceTo-S.heading),Math.cos(S.faceTo-S.heading));
       if(Math.abs(df)>.1)return Object.assign({},ctl,{throttle:0,steer:clamp(df*2.5,-1,1),pace:0,trot:false});}
+    if(M.bolt>0&&S.down===0){M.bolt-=dt;M.refusing=false;S.thought=M.thought="Enough.";
+      return Object.assign({},ctl,{throttle:1,steer:Math.sin(S.time*1.7)*.6,pace:2,trot:true});}
     const user=Math.abs(ctl.throttle)>.05||Math.abs(ctl.steer)>.05;
     const C=S.cargo,cm=S.load?C.m:0,hv=S.hv,off=Math.min(1,Math.abs(S.list)/.12),pant=S.pant,sp=Math.abs(S.speed);
     const slopeU=clamp(S.slope/.32,0,1),slopeD=clamp(-S.slope/.32,0,1);
@@ -761,15 +763,22 @@ function makeDonkey(opt){
       M.idleT=0;M.act=null;M.auto=false;
       const pace=ctl.pace!==undefined?ctl.pace:(ctl.trot?1:0),fwd=ctl.throttle>.05;
       let p=pace;while(p>0&&cost(p)>will)p--;
-      if(fwd&&cost(0)>will){ // it will not go until it is coaxed, and it remembers being pushed
-        M.press+=dt*.4;M.refusing=true;
-        if(M.press>1){M.press=0;M.grudge=1;M.trust=Math.max(.35,M.trust-.05);}
+      const drop=ctl.drop!==undefined&&ctl.drop<-.5&&fwd;
+      if(drop&&M.insp<=0&&M.inspOk<=0)M.insp=1.6;
+      M.inspOk=Math.max(0,M.inspOk-dt);
+      if(M.insp>0){M.insp-=dt;if(M.insp<=0)M.inspOk=6;M.refusing=false;M.thought=S.thought="Looking at the ground.";
+        return Object.assign({},ctl,{throttle:0,steer:0,pace:0,trot:false});}
+      if(drop)p=0;
+      if(fwd&&(S.turned||cost(0)>will)){ // it will not go until it is coaxed, and it remembers being pushed
+        if(!S.turned)M.press+=dt*.4;M.refusing=true;
+        if(M.press>1){M.press=0;M.pushes++;M.trust=Math.max(.35,M.trust-.05);
+          if(M.pushes>=3&&!S.turned){M.pushes=0;M.bolt=5;M.fear=.8;if(S.onMood)S.onMood("bolt");}else M.grudge=1;}
         out=Object.assign({},ctl,{throttle:0,steer:ctl.steer*.3,pace:0,trot:false});
-        M.thought=cm>60?"Too much weight. Not moving.":off>.6?"The load is pulling me over.":pant>.6?"Spent. I need to stand.":slopeU>.5?"Too steep with this load.":M.fear>.5?"Something is wrong here.":"No.";
+        M.thought=S.turned?"The saddle has turned under me.":cm>60?"Too much weight. Not moving.":off>.6?"The load is pulling me over.":pant>.6?"Spent. I need to stand.":slopeU>.5?"Too steep with this load.":M.fear>.5?"Something is wrong here.":"No.";
       } else {
         M.refusing=false;M.press=Math.max(0,M.press-dt*.5);
         if(p!==pace)out=Object.assign({},ctl,{pace:p,trot:p>=1});
-        M.thought=!fwd?(ctl.throttle<-.05?"Backing up.":"Turning."):M.grudge>.3?"Fine. Slowly.":p<pace?(pant>.4?"Tired. This is as fast as I go.":hv>.3?"Too heavy to run.":M.fear>.4?"Careful.":"Not that fast.")
+        M.thought=drop?"Careful. One foot at a time.":!fwd?(ctl.throttle<-.05?"Backing up.":"Turning."):M.grudge>.3?"Fine. Slowly.":p<pace?(pant>.4?"Tired. This is as fast as I go.":hv>.3?"Too heavy to run.":M.fear>.4?"Careful.":"Not that fast.")
           :S.g3>.5?"Running.":slopeU>.4?"Climbing.":slopeD>.4?"Watching my feet.":M.hunger>.8?"Hungry.":"Walking on.";
       }
     } else if(S.down>0||S.collapsed){
@@ -814,6 +823,11 @@ function makeDonkey(opt){
     const listT=S.load?clamp(C.x*C.m*.03,-.2,.2):0,noseT=S.load?clamp(C.z*C.m*.012,-.06,.06):0;   // radians of list from off-centre mass
     S.list=lerp(S.list,listT,1-Math.exp(-dt*2.5));S.nose=lerp(S.nose,noseT,1-Math.exp(-dt*2.5));
     const tippy=S.load?clamp((C.y-.95)*2.2+(cm-30)/120,0,1):0,off=Math.min(1,Math.abs(S.list)/.12);
+    if(S.load&&!S.turned&&!S.tireless){const mvg=Math.abs(S.speed)>.5?1:0;
+      S.slip=clamp(S.slip+dt*(mvg*(off>.5?off*.11:0)+(tippy>.45?S.g2*.14:0)-.015),0,1);
+      if(S.slip>=1){S.turned=true;if(S.onMood)S.onMood("turned");}}
+    if(!S.load){S.slip=0;S.turned=false;}
+    S.slipA=lerp(S.slipA,(S.turned?2.75:S.slip*S.slip*.45)*(S.list<0?-1:1),1-Math.exp(-dt*(S.turned?3:6)));
     const pant=S.pant=lerp(S.pant,smooth(.7,.15,S.stamina),1-Math.exp(-dt*1.5));
     let pace=ctl.pace!==undefined?ctl.pace:(ctl.trot?1:0);
     if(hv>.55||off>.75)pace=Math.min(pace,1);else if(hv>.25||off>.4)pace=Math.min(pace,2);
@@ -905,6 +919,7 @@ function makeDonkey(opt){
     body.position.copy(body.userData.rest);
     body.position.y+=-lieK*.42-hv*.03-pant*.015*(1-lieK)+run*(.045*Math.cos(ph+.9)-.02)-.02*slopeD+(.003+.006*pant)*breath-F.crouch*.05+walk*(.011+.012*hv)*Math.cos(ph*2+.6)+trot*(.026*Math.cos(ph*2+.2)-.012)+.003*breath-.012*Math.abs(S.pitch)*3;
     body.position.x+=walk*.012*Math.sin(ph+.5);
+    {const lame=smooth(.7,1.05,S.mind.strain)*mv;body.position.y-=lame*.03*Math.max(0,Math.sin(ph+.8));body.rotation.z+=lame*.03*Math.sin(ph+.8);}
     body.rotation.set(walk*.012*Math.sin(ph*2)+trot*.01*Math.sin(ph*2+1)+run*(.07+.05*g3)*Math.sin(ph+1.9)+.05*slopeU-.08*slopeD+(rising?-.3:.24)*Math.sin(Math.PI*S.down),0,
       walk*(.022+.02*hv+.03*pant)*Math.sin(ph+.9)+trot*.012*Math.sin(ph)+pant*.012*Math.sin(t*2.3)*(1-lieK));
     const bend=clamp(S.yawRate*.11,-.16,.16);
@@ -940,6 +955,7 @@ function makeDonkey(opt){
     T_.droop+=.5*pant;T_.earF+=-.25*pant-.75*run;T_.lid+=.3*pant;T_.nos=Math.max(T_.nos,hard*(.4+.6*puff));
     T_.jaw=Math.max(T_.jaw,pant*(.1+.12*puff));T_.tongue=Math.max(T_.tongue,pant*.1);T_.tailUp+=run*.5;
     S.brace=lerp(S.brace||0,S.mind.refusing?1:0,1-Math.exp(-dt*6));
+    if(S.mind.insp>0){T_.neck+=.55;T_.head-=.25;T_.earF+=.35;T_.nos=Math.max(T_.nos,.6);}
     if(S.mind.refusing){T_.bodyPitch-=.06;T_.crouch+=.35;T_.earF-=1.1;T_.head-=.16;T_.neck-=.08;T_.yaw+=.32*Math.sin(t*1.3);T_.tail=1;T_.lid+=.2;T_.nos=Math.max(T_.nos,.5);}
     {const fr=S.mind.fear;if(fr>.3){T_.lid-=.3*fr;T_.nos=Math.max(T_.nos,fr);T_.eyeX+=.6*Math.sin(t*3)*fr;T_.neck-=.15*fr;}}
     if(lieK>0){const flat=S.collapsed?1:.55;T_.neck=lerp(T_.neck,.48+.14*flat,lieK);T_.head=lerp(T_.head,-.42-.12*flat,lieK);T_.lid=Math.max(T_.lid,lieK*(S.collapsed?.75:.3));T_.droop=Math.max(T_.droop,lieK*.6);T_.roll+=lieK*.12*flat;}
@@ -986,8 +1002,7 @@ function makeDonkey(opt){
       S.swV+=(-w*w*(S.sw+S.list*1.6)-2*.28*w*S.swV+(aLat*1.1+drive)*(1+2.2*tippy))*dt;S.sw=clamp(S.sw+S.swV*dt,-.4,.4);
       S.spV+=(-w*w*(S.sp-S.nose)-2*.3*w*S.spV+(-S.accel*.9+trot*2*Math.sin(ph*2+2.2)+run*4*Math.sin(ph+2))*(1+1.5*tippy))*dt;S.sp=clamp(S.sp+S.spV*dt,-.3,.3);
     }
-    packPivot.rotation.set(S.sp*.25,0,S.sw*.3);
-    packPivot.position.y=trot*.007*Math.cos(ph*2+1.3);
+    packPivot.rotation.set(S.sp*.25,0,S.sw*.3-S.slipA);packPivot.position.y=-Math.abs(Math.sin(S.slipA*.5))*.34;
     for(const G of bags)G.hang.rotation.z=G.s*(walk*.03*Math.sin(ph*2+G.s)+(trot*.05+run*.09)*Math.max(0,Math.sin(ph*2+1.6+G.s)))-S.sw*.5;
 
     /* tail */
@@ -1067,6 +1082,7 @@ function makeDonkey(opt){
     },
     lie(){if(S.collapsed)return;S.downWant=!S.downWant;M.auto=false;},
     mind:M,
+    resaddle(){S.slip=0;S.turned=false;M.press=0;M.pushes=0;},
     feed(){M.hunger=0;M.trust=Math.min(1,M.trust+.1);M.press=0;S.mood="chew";S.moodT=0;S.autoT=5;},
     soothe(){M.fear=0;M.press=0;M.trust=Math.min(1,M.trust+.06);S.mood="content";S.moodT=0;S.autoT=4;},
     moods:Object.keys(MOODS).map(k=>({id:k,label:MOODS[k].label})),
