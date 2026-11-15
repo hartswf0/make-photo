@@ -18,8 +18,9 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
 renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
 const scene=new T.Scene();
-scene.fog=new T.FogExp2(0xb9b6ae,.0042);
+scene.fog=new T.FogExp2(0xb9b6ae,.003);
 const camera=new T.PerspectiveCamera(38,1,.08,1400);
+const world=new T.Group();scene.add(world);
 
 /* ---------- terrain ---------- */
 const CELL=1.4,N=360,HALF=CELL*N/2;
@@ -66,7 +67,7 @@ function heightAt(x,z){
   }
   const tex=new T.CanvasTexture(c);tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.colorSpace=T.NoColorSpace;tex.anisotropy=8;
   const m=new T.Mesh(g,new T.MeshStandardMaterial({vertexColors:true,map:tex,bumpMap:tex,bumpScale:2.5,roughness:1}));
-  m.receiveShadow=true;scene.add(m);
+  m.receiveShadow=true;world.add(m);
 })();
 
 /* rocks and pines */
@@ -88,15 +89,22 @@ const solids=[];
     const g=.5+hash(i,20)*.5;c.setRGB(g,g,g);rocks.setColorAt(i,c);
     if(big)solids.push([x,z,s*.95+.38]);
   }
-  rocks.castShadow=rocks.receiveShadow=true;scene.add(rocks);
+  rocks.castShadow=rocks.receiveShadow=true;world.add(rocks);
 
   const parts=[];
-  for(let i=0;i<5;i++){const g=new T.ConeGeometry(1.5-i*.25,2.6,9,1,true);g.translate(0,2.4+i*1.35,0);parts.push(g.toNonIndexed());}
-  const trunk=new T.CylinderGeometry(.16,.24,3,7);trunk.translate(0,1.5,0);parts.push(trunk.toNonIndexed());
+  for(let i=0;i<9;i++){
+    const t=i/8,g=new T.ConeGeometry(1.55*(1-t*.82)*(.85+.3*hash(i,41)),1.9,11,1,true),q=g.attributes.position;
+    for(let v=0;v<q.count;v++){
+      const a=Math.atan2(q.getZ(v),q.getX(v)),j=1+.22*Math.sin(a*5+i*1.7)+.12*Math.sin(a*11+i);
+      if(q.getY(v)<0)q.setXYZ(v,q.getX(v)*j,q.getY(v)-.25*Math.abs(Math.sin(a*5+i)),q.getZ(v)*j);
+    }
+    g.translate(0,2.2+i*.95,0);g.computeVertexNormals();parts.push(g.toNonIndexed());
+  }
+  const trunk=new T.CylinderGeometry(.13,.26,4,7);trunk.translate(0,2,0);parts.push(trunk.toNonIndexed());
   const n=parts.reduce((s,g)=>s+g.attributes.position.count,0),P=new Float32Array(n*3),Nn=new Float32Array(n*3);
   let off=0;for(const g of parts){P.set(g.attributes.position.array,off);Nn.set(g.attributes.normal.array,off);off+=g.attributes.position.count*3;}
   const tg=new T.BufferGeometry();tg.setAttribute("position",new T.BufferAttribute(P,3));tg.setAttribute("normal",new T.BufferAttribute(Nn,3));
-  const tc=420,trees=new T.InstancedMesh(tg,new T.MeshStandardMaterial({color:0x1b1c1a,roughness:1,side:T.DoubleSide}),tc);
+  const tc=420,trees=new T.InstancedMesh(tg,new T.MeshStandardMaterial({color:0x232421,roughness:1,side:T.DoubleSide}),tc);
   let k=0;
   for(let i=0;k<tc&&i<9000;i++){
     const x=(hash(i,31)-.5)*330,z=(hash(i,32)-.5)*330,r=Math.hypot(x,z);
@@ -105,7 +113,22 @@ const solids=[];
     o.position.set(x,heightAt(x,z)-.2,z);o.rotation.set(0,hash(i,34)*TAU,0);o.scale.set(s,s*(.9+hash(i,35)*.5),s);o.updateMatrix();
     trees.setMatrixAt(k++,o.matrix);solids.push([x,z,.55]);
   }
-  trees.count=k;trees.castShadow=true;scene.add(trees);
+  trees.count=k;trees.castShadow=true;world.add(trees);
+})();
+
+/* trail post */
+(function post(){
+  const g=new T.Group(),wood=new T.MeshStandardMaterial({color:0x6d675d,roughness:.95});
+  const px=3.2,pz=-5.5;g.position.set(px,heightAt(px,pz),pz);g.rotation.y=.5;
+  const pole=new T.Mesh(new T.CylinderGeometry(.07,.09,1.9,7),wood);pole.position.y=.9;pole.rotation.z=.04;g.add(pole);
+  const c=document.createElement("canvas");c.width=256;c.height=160;const x=c.getContext("2d");
+  x.fillStyle="#7b756a";x.fillRect(0,0,256,160);x.strokeStyle="#2a2824";x.lineWidth=6;x.strokeRect(8,8,240,144);
+  x.fillStyle="#1d1b18";x.textAlign="center";x.font="600 30px Georgia,serif";x.fillText("BURRO PASS",128,66);
+  x.font="22px Georgia,serif";x.fillText("ELEV. 11,120 FT",128,112);
+  const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;
+  const sign=new T.Mesh(new T.BoxGeometry(.52,.32,.035),[wood,wood,wood,wood,new T.MeshStandardMaterial({map:t,roughness:.9}),wood]);
+  sign.position.set(.2,1.5,.08);sign.rotation.z=-.05;g.add(sign);
+  g.traverse(o=>{o.castShadow=o.receiveShadow=true;});world.add(g);solids.push([px,pz,.45]);
 })();
 
 /* sky */
@@ -123,10 +146,10 @@ const sky=new T.Mesh(new T.SphereGeometry(1200,32,20),new T.ShaderMaterial({side
     float lit=.72+.3*f(p*2.3+3.);
     g=mix(g,lit,c*.92);
     gl_FragColor=vec4(vec3(g)*vec3(1.,.985,.95),1.);}`}));
-sky.frustumCulled=false;scene.add(sky);
+sky.frustumCulled=false;world.add(sky);
 
 /* light */
-scene.add(new T.HemisphereLight(0xdcdcdc,0x5a5852,1.45));
+const hemi=new T.HemisphereLight(0xdcdcdc,0x5a5852,1.45);scene.add(hemi);
 const sun=new T.DirectionalLight(0xffffff,2.9);
 const sunDir=new T.Vector3(-.55,.72,.42).normalize();
 sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0004;sun.shadow.normalBias=.012;
@@ -137,6 +160,23 @@ scene.add(sun,sun.target);
 const donkey=window.makeDonkey();scene.add(donkey.group);
 donkey.place(0,0,-2.85,heightAt);
 const S=donkey.state;
+
+/* ---------- study plate: the donkey alone on paper, for comparing with reference sheets ---------- */
+let study=false,saved=null;
+const flat=()=>0,hf=(x,z)=>study?0:heightAt(x,z);
+const catcher=new T.Mesh(new T.PlaneGeometry(80,80),new T.ShadowMaterial({opacity:.3}));
+catcher.rotation.x=-Math.PI/2;catcher.receiveShadow=true;catcher.visible=false;scene.add(catcher);
+const fogOut=scene.fog,paper=new T.Color(0xd9d5cb);
+function setStudy(on){
+  if(on===study)return;study=on;
+  world.visible=!on;catcher.visible=on;scene.fog=on?null:fogOut;scene.background=on?paper:null;
+  hemi.intensity=on?2.1:1.45;hemi.groundColor.set(on?0xa8a59c:0x5a5852);sun.intensity=on?2.0:2.9;
+  if(on){saved=[S.x,S.z,S.heading];donkey.place(0,0,S.heading,flat);}
+  else if(saved)donkey.place(saved[0],saved[1],saved[2],heightAt);
+  document.body.classList.toggle("study",on);
+  const b=$("b-study");if(b)b.setAttribute("aria-pressed",on);
+  resize();
+}
 
 /* ---------- sound ---------- */
 let audio=null,noiseBuf=null,muted=false;
@@ -183,6 +223,7 @@ function act(name){
   if(name==="pack"){packOn=!packOn;donkey.setPack(packOn);$("b-pack").setAttribute("aria-pressed",packOn);}
   if(name==="trot"){trotLatch=!trotLatch;$("b-trot").setAttribute("aria-pressed",trotLatch);}
   if(name==="bray"){if(S.bray<=0){donkey.bray();braySound();}}
+  if(name==="study")setStudy(!study);
   if(name==="view"){cam.view=(cam.view+1)%views.length;cam.yaw=views[cam.view];}
   if(name==="sound"){muted=!muted;$("b-sound").setAttribute("aria-pressed",!muted);if(!muted)ensureAudio();}
 }
@@ -191,8 +232,8 @@ addEventListener("keydown",e=>{
   const k=e.key.toLowerCase();keys.add(k);ensureAudio();
   if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();
   if(e.repeat)return;
-  if(k==="p")act("pack");if(k==="b"||k===" ")act("bray");if(k==="c")act("view");if(k==="t")act("trot");if(k==="m")act("sound");
-  if(k==="r")donkey.place(0,0,-2.85,heightAt);
+  if(k==="p")act("pack");if(k==="b"||k===" ")act("bray");if(k==="c")act("view");if(k==="t")act("trot");if(k==="m")act("sound");if(k==="v")act("study");
+  if(k==="r")donkey.place(0,0,-2.85,hf);
 });
 addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
 addEventListener("blur",()=>keys.clear());
@@ -210,7 +251,7 @@ canvas.addEventListener("pointermove",e=>{
     let dx=(e.clientX-stick.ox)/52,dy=(e.clientY-stick.oy)/52;const l=Math.hypot(dx,dy);if(l>1){dx/=l;dy/=l;}
     stick.x=dx;stick.y=dy;nub.style.transform="translate("+dx*44+"px,"+dy*44+"px)";
   } else if(e.pointerId===orbit.id){
-    cam.yaw-=(e.clientX-orbit.x)*.0065;cam.pitch=clamp(cam.pitch+(e.clientY-orbit.y)*.005,-.12,1.25);
+    cam.yaw-=(e.clientX-orbit.x)*.0065;cam.pitch=clamp(cam.pitch+(e.clientY-orbit.y)*.005,-.12,1.5);
     orbit.x=e.clientX;orbit.y=e.clientY;
   }
 });
@@ -224,7 +265,7 @@ canvas.addEventListener("wheel",e=>{e.preventDefault();cam.dist=clamp(cam.dist*M
 /* ---------- loop ---------- */
 function resize(){
   const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;
-  camera.fov=w<h?52:38;camera.updateProjectionMatrix();
+  camera.fov=study?(w<h?24:17):(w<h?52:38);camera.updateProjectionMatrix();
 }
 addEventListener("resize",resize);resize();
 const look=new T.Vector3(),camPos=new T.Vector3(0,3,-6),want=new T.Vector3();
@@ -240,20 +281,21 @@ function step(dt){
   } else ctl.trot=trotLatch!==keys.has("shift");
   if(demo){th=1;ctl.trot=demo==="trot";st=demo==="turn"?1:demo==="spin"?(th=0,1):0;}
   ctl.throttle=th;ctl.steer=st;
-  donkey.update(dt,ctl,heightAt);
-  for(const s of solids){
+  donkey.update(dt,ctl,hf);
+  if(!study)for(const s of solids){
     const dx=S.x-s[0],dz=S.z-s[1],d=Math.hypot(dx,dz);
     if(d<s[2]&&d>1e-4){S.x=s[0]+dx/d*s[2];S.z=s[1]+dz/d*s[2];S.speed*=.9;}
   }
-  const r=Math.hypot(S.x,S.z);if(r>150){S.x*=150/r;S.z*=150/r;}
+  const r=Math.hypot(S.x,S.z);if(!study&&r>150){S.x*=150/r;S.z*=150/r;}
+  catcher.position.set(S.x,.002,S.z);
 
   /* camera */
   const target=S.heading+cam.yaw;
   camYaw+=Math.atan2(Math.sin(target-camYaw),Math.cos(target-camYaw))*(1-Math.exp(-dt*(orbit.id!==null?30:3.2)));
-  look.set(S.x,S.y+(cam.lookY||.92),S.z);
-  const cp=Math.cos(cam.pitch);
-  want.set(look.x+Math.sin(camYaw)*cp*cam.dist,look.y+Math.sin(cam.pitch)*cam.dist,look.z+Math.cos(camYaw)*cp*cam.dist);
-  want.y=Math.max(want.y,heightAt(want.x,want.z)+.3);
+  look.set(S.x+Math.sin(S.heading)*(cam.lookF||0),S.y+(cam.lookY||.92),S.z+Math.cos(S.heading)*(cam.lookF||0));
+  const cp=Math.cos(cam.pitch),dist=cam.dist*(study?2.35:1);
+  want.set(look.x+Math.sin(camYaw)*cp*dist,look.y+Math.sin(cam.pitch)*dist,look.z+Math.cos(camYaw)*cp*dist);
+  if(!study||!cam.free)want.y=Math.max(want.y,hf(want.x,want.z)+.3);
   if(first){camPos.copy(want);first=false;}else camPos.lerp(want,1-Math.exp(-dt*9));
   camera.position.copy(camPos);camera.lookAt(look);
   sky.position.copy(camera.position);sky.material.uniforms.time.value+=dt;
@@ -268,7 +310,8 @@ function frame(now){
   step(dt);renderer.render(scene,camera);
   requestAnimationFrame(frame);
 }
-window.__pd={step,render:()=>renderer.render(scene,camera),donkey,cam,act,heightAt};
+window.__pd={step,render:()=>renderer.render(scene,camera),donkey,cam,act,heightAt,setStudy,camera};
+if(params.has("study"))setStudy(true);
 if(!params.has("manual"))requestAnimationFrame(frame);
 document.body.classList.add("ready");
 })();

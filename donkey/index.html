@@ -28,6 +28,8 @@
       backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);cursor:pointer}
     .bar button[aria-pressed="true"]{background:#f1eee6;color:#151613;border-color:#f1eee6}
     .bar button:focus-visible{outline:2px solid #f1eee6;outline-offset:2px}
+    body.study{color:#1b1a17}body.study .plate,body.study .keys,body.study .touch-hint{text-shadow:none}
+    body.study .keys b{border-color:rgba(27,26,23,.5)}body.study .vignette{display:none}
     #stick{position:fixed;width:108px;height:108px;margin:-54px 0 0 -54px;border-radius:50%;border:1px solid rgba(241,238,230,.5);
       background:rgba(21,22,19,.3);pointer-events:none;display:none}
     #stick.on{display:block}
@@ -48,13 +50,14 @@
   <p class="touch-hint">Left thumb drives · edge to trot · drag right to look</p>
   <p class="keys">
     <b>W</b><b>A</b><b>S</b><b>D</b> drive &nbsp; <b>Shift</b> trot &nbsp; <b>Space</b> bray<br>
-    <b>P</b> pack &nbsp; <b>C</b> view &nbsp; <b>R</b> reset &nbsp; drag to look, scroll to zoom
+    <b>P</b> pack &nbsp; <b>C</b> view &nbsp; <b>V</b> study &nbsp; <b>R</b> reset &nbsp; drag to look, scroll to zoom
   </p>
   <div class="bar">
     <button id="b-trot" data-act="trot" aria-pressed="false">Trot</button>
     <button id="b-pack" data-act="pack" aria-pressed="true">Pack</button>
     <button data-act="bray">Bray</button>
     <button data-act="view">View</button>
+    <button id="b-study" data-act="study" aria-pressed="false">Study</button>
     <button id="b-sound" data-act="sound" aria-pressed="true">Sound</button>
   </div>
   <div id="stick"><div id="nub"></div></div>
