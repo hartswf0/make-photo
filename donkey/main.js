@@ -226,12 +226,12 @@ function snort(){
   src.buffer=noiseBuf;src.playbackRate.value=.35;f.type="bandpass";f.frequency.value=420;f.Q.value=.8;
   g.gain.setValueAtTime(.5,t);g.gain.exponentialRampToValueAtTime(.01,t+.5);src.connect(f).connect(g).connect(audio.destination);src.start(t);
 }
-function setMood(id){
-  ensureAudio();donkey.setMood(id);
+S.onMood=id=>{
   if(id==="bray")braySound();
-  if(id==="startled"||id==="annoyed"||id==="shake")snort();
-}
-const moodKeys={"1":"calm","2":"alert","3":"curious","4":"content","5":"sleepy","6":"annoyed","7":"startled","8":"bray","9":"flehmen","0":"yawn","-":"chew","=":"shake"};
+  if(id==="startled"||id==="annoyed"||id==="shake"||id==="kick"||id==="paw")snort();
+};
+function setMood(id){ensureAudio();donkey.setMood(id);}
+const moodKeys={"1":"calm","2":"alert","3":"curious","4":"content","5":"sleepy","6":"annoyed","7":"startled","8":"bray","9":"flehmen","0":"yawn","-":"chew","=":"shake","[":"graze","]":"lick",";":"greet","'":"paw","\\":"kick"};
 function act(name){
   ensureAudio();
   if(name==="pack"){packOn=!packOn;donkey.setPack(packOn);$("b-pack").setAttribute("aria-pressed",packOn);}
@@ -285,6 +285,7 @@ function resize(){
   camera.fov=study?(w<h?24:17):(w<h?52:38);camera.updateProjectionMatrix();
 }
 addEventListener("resize",resize);resize();
+const faceP=new T.Vector3(),faceLook=new T.Vector3();let faceInit=false;
 const look=new T.Vector3(),camPos=new T.Vector3(0,3,-6),want=new T.Vector3();
 let camYaw=S.heading+cam.yaw,first=true;
 const params=new URLSearchParams(location.search);
@@ -312,6 +313,7 @@ function step(dt){
   if(reel>=0){reelT+=dt;if(reelT>3.7){reelT=0;reel=(reel+1)%donkey.moods.length;setMood(donkey.moods[reel].id);}}
   const lf=cam.lookF!==undefined?cam.lookF:(cam.face?.95:0),ly=cam.lookY||(cam.face?1.06:.92);
   look.set(S.x+Math.sin(S.heading)*lf,S.y+ly,S.z+Math.cos(S.heading)*lf);
+  if(cam.face&&cam.lookF===undefined){donkey.faceAt(faceP);if(faceInit)faceLook.lerp(faceP,1-Math.exp(-dt*5));else{faceLook.copy(faceP);faceInit=true;}look.copy(faceLook);}else faceInit=false;
   const cp=Math.cos(cam.pitch),dist=cam.face&&!cam.rawDist?(study?3.6:1.7):cam.dist*(study?2.35:1);
   want.set(look.x+Math.sin(camYaw)*cp*dist,look.y+Math.sin(cam.pitch)*dist,look.z+Math.cos(camYaw)*cp*dist);
   if(!study||!cam.free)want.y=Math.max(want.y,hf(want.x,want.z)+.3);
