@@ -155,6 +155,7 @@ const sunDir=new T.Vector3(-.55,.72,.42).normalize();
 sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0004;sun.shadow.normalBias=.012;
 Object.assign(sun.shadow.camera,{left:-7,right:7,top:7,bottom:-7,near:1,far:70});
 scene.add(sun,sun.target);
+const fill=new T.DirectionalLight(0xffffff,.75);scene.add(fill,fill.target);
 
 /* ---------- donkey ---------- */
 const donkey=window.makeDonkey();scene.add(donkey.group);
@@ -299,7 +300,7 @@ function step(dt){
   if(first){camPos.copy(want);first=false;}else camPos.lerp(want,1-Math.exp(-dt*9));
   camera.position.copy(camPos);camera.lookAt(look);
   sky.position.copy(camera.position);sky.material.uniforms.time.value+=dt;
-  sun.target.position.copy(look);sun.position.copy(look).addScaledVector(sunDir,32);
+  sun.target.position.copy(look);sun.position.copy(look).addScaledVector(sunDir,32);fill.target.position.copy(look);fill.position.set(look.x-sunDir.x*20,look.y+6,look.z-sunDir.z*20);
 
   $("gait").textContent=S.label;
   $("speed").textContent=Math.abs(S.speed).toFixed(1)+" m/s";
