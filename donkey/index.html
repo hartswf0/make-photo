@@ -65,9 +65,10 @@
     #toast[hidden]{display:none}
     #camhud{display:none}#cloth{display:none}#flash{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:7}
     #flash.go{animation:shutter .5s ease-out}@keyframes shutter{0%{opacity:1}35%{opacity:1}100%{opacity:0}}
-    body.cam #view{transform:rotate(180deg);filter:grayscale(1) sepia(.12) contrast(1.12) brightness(.92)}
-    body.cam .bar,body.cam .keys,body.cam .touch-hint,body.cam .plate,body.cam #stick{display:none!important}
-    body.cam #cloth{display:block;position:fixed;inset:0;pointer-events:none;z-index:3;box-shadow:inset 0 0 0 max(14px,3vmin) #050505,inset 0 0 16vmin 6vmin rgba(0,0,0,.85);
+    body.glass #view{transform:rotate(180deg);filter:grayscale(1) sepia(.12) contrast(1.12) brightness(.92)}
+    body.cam .bar,body.cam .keys,body.cam .touch-hint,body.cam #stick{display:none!important}body.glass .plate{display:none}
+    .c-g{display:none!important}body.glass .c-g{display:flex!important}#camhud [hidden]{display:none!important}
+    body.glass #cloth{display:block;position:fixed;inset:0;pointer-events:none;z-index:3;box-shadow:inset 0 0 0 max(14px,3vmin) #050505,inset 0 0 16vmin 6vmin rgba(0,0,0,.85);
       background:linear-gradient(rgba(241,238,230,.16),rgba(241,238,230,.16)) 33.33% 0/1px 100% no-repeat,linear-gradient(rgba(241,238,230,.16),rgba(241,238,230,.16)) 66.66% 0/1px 100% no-repeat,
       linear-gradient(rgba(241,238,230,.16),rgba(241,238,230,.16)) 0 33.33%/100% 1px no-repeat,linear-gradient(rgba(241,238,230,.16),rgba(241,238,230,.16)) 0 66.66%/100% 1px no-repeat}
     body.cam #camhud{display:flex;flex-direction:column;gap:8px;position:fixed;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));
@@ -150,16 +151,21 @@
   <section id="camhud" aria-label="Plate camera">
     <p id="c-count"></p>
     <div class="c-row">
+      <button type="button" data-act="next" id="c-next" class="go">Next</button>
+      <button type="button" data-act="glass" id="c-glass" class="go" hidden>Under the cloth</button>
+      <button type="button" data-act="camera">Pack up</button>
+    </div>
+    <div class="c-row c-g">
       <button type="button" data-act="lens" id="c-lens">Lens</button>
       <button type="button" data-act="filter" id="c-filter">Filter</button>
       <button type="button" data-act="evdn" aria-label="Less exposure">−</button><span id="c-ev">Exposure 0</span><button type="button" data-act="evup" aria-label="More exposure">+</button>
     </div>
-    <div class="c-row">
+    <div class="c-row c-g">
       <button type="button" data-act="expose" id="c-expose" class="go">Expose plate</button>
       <button type="button" data-act="plates">Plate box</button>
-      <button type="button" data-act="camera">Pack up</button>
+      <button type="button" data-act="glass">Step back</button>
     </div>
-    <p class="c-hint">The ground glass shows the scene upside down. Drag to aim.</p>
+    <p class="c-hint" id="c-hint"></p>
   </section>
   <section id="platebox" hidden aria-label="Plate box">
     <header><h2>Plate box</h2><button type="button" data-act="plates" aria-label="Close plate box">Done</button></header>

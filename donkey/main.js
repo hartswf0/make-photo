@@ -223,63 +223,167 @@ const orbit={id:null,x:0,y:0};
 /* ---------- the plate camera: tie the burro, unload, compose on the ground glass, expose ---------- */
 const shot={on:false,yaw:0,pitch:.05,lens:1,filter:0,ev:0,used:0,broken:0,exposed:0,shock:0,plates:[],x:0,z:0};
 const LENSES=[["Wide 6¾ in",52],["Normal 10 in",34],["Long 19 in",18]],FILTERS=[["No filter",1,1],["Yellow K2",.78,1.06],["Red A",.5,1.16]];
-const rig=new T.Group();rig.visible=false;scene.add(rig);
-(function buildRig(){
-  const wood=new T.MeshStandardMaterial({color:0x4a4034,roughness:.7}),brass=new T.MeshStandardMaterial({color:0x8a8272,roughness:.35,metalness:.8}),
-    black=new T.MeshStandardMaterial({color:0x0c0c0c,roughness:.9});
+const STEPS=[
+  ["Tie Mistletoe","Lead rope hitched to a picket. She can graze but not wander."],
+  ["Unlash the tripod","Off the top pack: 5.5 kg lighter, and lower."],
+  ["Spread the legs","Spikes set in the ground, head levelled."],
+  ["Lift out the camera case","Camera and holders out of the left kyack. Watch her list to the right."],
+  ["Mount the camera","Folded camera onto the tripod head."],
+  ["Rack out the bellows","Front standard run forward along the bed."],
+  ["Fit the lens","Brass lens and board clipped to the front standard."],
+  ["Drape the focusing cloth","Ready. Get under the cloth to see the ground glass."]];
+Object.assign(shot,{cur:0,t:0,busy:false,packing:false,glass:false,seq:0,orbit:0,orbitP:.16,A:null});
+const gear=new T.Group();gear.visible=false;scene.add(gear);
+const G={};
+(function buildGear(){
+  const wood=new T.MeshStandardMaterial({color:0x5a4c3c,roughness:.65}),walnut=new T.MeshStandardMaterial({color:0x3a3026,roughness:.6}),
+    brass=new T.MeshStandardMaterial({color:0x9a917c,roughness:.3,metalness:.85}),black=new T.MeshStandardMaterial({color:0x0b0b0b,roughness:.92,side:T.DoubleSide}),
+    glass=new T.MeshStandardMaterial({color:0x8d8a80,roughness:.25}),iron=new T.MeshStandardMaterial({color:0x2b2b2a,roughness:.5,metalness:.6});
+  const box=(w,h,d,m,par,x,y,z)=>{const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x||0,y||0,z||0);o.castShadow=true;par.add(o);return o;};
+  /* picket and lead rope */
+  G.stake=new T.Mesh(new T.CylinderGeometry(.02,.012,.6,7),iron);G.stake.castShadow=true;gear.add(G.stake);
+  G.rope=new T.Line(new T.BufferGeometry().setAttribute("position",new T.BufferAttribute(new Float32Array(14*3),3)),new T.LineBasicMaterial({color:0xb9b09a}));G.rope.frustumCulled=false;gear.add(G.rope);
+  /* tripod: three legs hinged at the head */
+  G.tri=new T.Group();gear.add(G.tri);G.legs=[];
   for(let i=0;i<3;i++){
-    const a=i/3*TAU+.5,leg=new T.Mesh(new T.CylinderGeometry(.014,.02,1.5,6),wood);
-    leg.position.set(Math.sin(a)*.3,.7,Math.cos(a)*.3);leg.rotation.set(Math.cos(a)*.42,0,-Math.sin(a)*.42);rig.add(leg);
+    const yaw=new T.Group();yaw.rotation.y=i/3*TAU+.5;G.tri.add(yaw);const tilt=new T.Group();yaw.add(tilt);
+    const leg=new T.Mesh(new T.CylinderGeometry(.016,.022,1.45,7),wood);leg.position.y=-.725;leg.castShadow=true;tilt.add(leg);
+    const spike=new T.Mesh(new T.ConeGeometry(.014,.07,6),brass);spike.position.y=-1.48;spike.rotation.x=Math.PI;tilt.add(spike);
+    box(.03,.03,.5,brass,tilt,0,-.5,0).scale.set(1,1,.08);G.legs.push(tilt);
   }
-  const head=new T.Mesh(new T.CylinderGeometry(.07,.07,.04,12),brass);head.position.y=1.36;rig.add(head);
-  const body=new T.Group();body.position.y=1.5;rig.add(body);rig.userData.body=body;
-  const back=new T.Mesh(new T.BoxGeometry(.3,.26,.05),wood);back.position.z=-.14;body.add(back);
-  const front=new T.Mesh(new T.BoxGeometry(.22,.2,.03),wood);front.position.z=.12;body.add(front);
-  for(let i=0;i<9;i++){const k=i/8,b=new T.Mesh(new T.BoxGeometry(lerp(.27,.19,k)+(i%2?.02:0),lerp(.23,.17,k)+(i%2?.02:0),.03),black);b.position.z=lerp(-.11,.1,k);body.add(b);}
-  const lens=new T.Mesh(new T.CylinderGeometry(.04,.045,.07,14),brass);lens.rotation.x=Math.PI/2;lens.position.z=.165;body.add(lens);
-  const bed=new T.Mesh(new T.BoxGeometry(.2,.02,.34),wood);bed.position.y=-.14;body.add(bed);
-  const cloth=new T.Mesh(new T.SphereGeometry(.2,12,8,0,TAU,0,Math.PI*.55),black);cloth.position.set(0,-.02,-.2);cloth.scale.set(1,1.1,1.2);body.add(cloth);
-  rig.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+  const puck=new T.Mesh(new T.CylinderGeometry(.075,.06,.05,14),brass);puck.castShadow=true;G.tri.add(puck);
+  /* walnut case with a hinged lid */
+  G.box=new T.Group();gear.add(G.box);
+  box(.44,.26,.36,walnut,G.box,0,.13,0);box(.4,.02,.32,black,G.box,0,.262,0);
+  G.lid=new T.Group();G.lid.position.set(0,.26,-.18);G.box.add(G.lid);box(.44,.04,.36,walnut,G.lid,0,.02,.18);box(.06,.03,.02,brass,G.lid,0,.02,.365);
+  for(const x of [-.16,.16])box(.03,.2,.37,iron,G.box,x,.13,0).scale.z=1.01;
+  /* the view camera: bed, back standard with ground glass, bellows, front standard */
+  G.cam=new T.Group();gear.add(G.cam);
+  box(.2,.022,.4,wood,G.cam,0,.011,0);for(const x of [-.085,.085])box(.012,.012,.4,brass,G.cam,x,.028,0);
+  G.back=new T.Group();G.back.position.set(0,.17,-.16);G.cam.add(G.back);
+  box(.32,.28,.045,wood,G.back);box(.26,.22,.01,glass,G.back,0,0,-.024);for(const y of [-.15,.15])box(.34,.016,.05,brass,G.back,0,y,0);
+  G.front=new T.Group();G.cam.add(G.front);box(.2,.2,.028,wood,G.front);box(.05,.3,.012,brass,G.front,-.115,-.02,0);box(.05,.3,.012,brass,G.front,.115,-.02,0);
+  G.bell=[];for(let i=0;i<10;i++)G.bell.push(box(1,1,.02,black,G.cam));
+  G.cloth=new T.Mesh(new T.SphereGeometry(.24,14,10,0,TAU,0,Math.PI*.6),black);G.cloth.position.set(0,.22,-.27);G.cloth.castShadow=true;G.cam.add(G.cloth);
+  G.holder=box(.28,.24,.022,walnut,G.cam,0,.17,-.2);G.slide=box(.25,.23,.006,black,G.cam,0,.17,-.214);box(.1,.02,.01,brass,G.slide,0,.125,0);
+  /* lens on its board */
+  G.lens=new T.Group();gear.add(G.lens);box(.12,.12,.012,walnut,G.lens);
+  const barrel=new T.Mesh(new T.CylinderGeometry(.038,.042,.08,16),brass);barrel.rotation.x=Math.PI/2;barrel.position.z=.045;barrel.castShadow=true;G.lens.add(barrel);
+  const el=new T.Mesh(new T.CircleGeometry(.03,16),new T.MeshPhysicalMaterial({color:0x050505,roughness:.05,clearcoat:1}));el.position.z=.086;G.lens.add(el);
 })();
 const packed=id=>{const it=items.find(i=>i.id===id);return it&&it.slot!=="-"&&!it.out;};
-function say(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>{el.hidden=true;},3600);}
+function say(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>{el.hidden=true;},4200);}
+function tick(rate,gain){if(!audio||muted)return;const t=audio.currentTime,s2=audio.createBufferSource(),g2=audio.createGain();s2.buffer=noiseBuf;s2.playbackRate.value=rate;g2.gain.value=gain;s2.connect(g2).connect(audio.destination);s2.start(t);}
 function unexposed(){return Math.max(0,24-shot.exposed-shot.broken);}
 function camHud(){
+  const ready=shot.cur>=STEPS.length;
+  $("c-next").hidden=ready;$("c-glass").hidden=!ready||shot.glass;
+  if(!ready)$("c-next").textContent=(shot.cur+1)+" of "+STEPS.length+" · "+STEPS[shot.cur][0];
+  $("c-next").disabled=shot.busy||shot.packing;
   $("c-lens").textContent=LENSES[shot.lens][0];$("c-filter").textContent=FILTERS[shot.filter][0];
   $("c-ev").textContent="Exposure "+(shot.ev>0?"+":"")+shot.ev;
   const left=Math.min(12-shot.used,unexposed());
-  $("c-count").textContent=left+" of 12 in the holders · "+unexposed()+" unexposed · "+shot.exposed+" exposed"+(shot.broken?" · "+shot.broken+" cracked":"");
-  $("c-expose").disabled=left<=0;
+  $("c-count").textContent=(ready?"":"Setting up · ")+left+" of 12 in the holders · "+unexposed()+" unexposed · "+shot.exposed+" exposed"+(shot.broken?" · "+shot.broken+" cracked":"")+" · "+S.cargo.m.toFixed(1)+" kg on the burro";
+  $("c-expose").disabled=left<=0||shot.seq>0;
+  $("c-hint").textContent=shot.glass?"The ground glass shows the scene upside down. Drag to aim.":ready?"Drag to walk around the camera.":STEPS[shot.cur][1];
 }
+function setGlass(on){shot.glass=on;document.body.classList.toggle("glass",on);if(!on){sky.material.uniforms.dark.value=1;renderer.toneMappingExposure=1.05;resize();}camHud();}
 function setUpCamera(){
   if(study){say("Leave the study plate first.");return;}
   if(S.down>0){say("Mistletoe is lying down.");return;}
   if(Math.abs(S.speed)>.15){say("Stop first. A burro will not hold a tripod.");return;}
   for(const [id,what] of [["camera","The view camera is not packed."],["tripod","No tripod on the load."],["holders","No plate holders on the load."]])if(!packed(id)){say(what);return;}
-  for(const id of ["camera","tripod","holders"])items.find(i=>i.id===id).out=true;
-  applyCargo();S.tethered=true;
-  const fx=Math.sin(S.heading),fz=Math.cos(S.heading);
-  shot.x=S.x+fz*2.4+fx*1.2;shot.z=S.z-fx*2.4+fz*1.2;shot.yaw=S.heading;shot.pitch=.04;
-  rig.position.set(shot.x,hf(shot.x,shot.z),shot.z);rig.visible=true;
-  shot.on=true;document.body.classList.add("cam");$("packing").hidden=true;$("mind").hidden=true;
-  say("Mistletoe is tied. Camera and tripod are off the load: "+S.cargo.m.toFixed(1)+" kg left on.");camHud();
+  const fx=Math.sin(S.heading),fz=Math.cos(S.heading),lx=fz,lz=-fx,A={};
+  const at=(side,fwd)=>{const x=S.x+lx*side+fx*fwd,z=S.z+lz*side+fz*fwd;return new T.Vector3(x,hf(x,z),z);};
+  donkey.group.updateMatrixWorld(true);
+  A.top=donkey.group.localToWorld(new T.Vector3(0,1.42,.1));A.kyack=donkey.group.localToWorld(new T.Vector3(.42,.95,.03));
+  A.spot=at(2.3,1.3);A.box=at(1.5,1.9);A.stake=at(.55,1.75);A.head=S.heading;
+  shot.A=A;shot.x=A.spot.x;shot.z=A.spot.z;shot.yaw=S.heading;shot.pitch=.04;shot.cur=0;shot.t=0;shot.busy=false;shot.packing=false;shot.seq=0;
+  shot.orbit=Math.atan2(A.spot.x-S.x,A.spot.z-S.z)+.75;shot.orbitP=.16;
+  shot.cp=null;S.tethered=true;shot.on=true;gear.visible=true;document.body.classList.add("cam");$("packing").hidden=true;$("mind").hidden=true;
+  say("Unpack the camera, one piece at a time.");camHud();
 }
-function packUpCamera(){
+function nextStep(){
+  if(!shot.on||shot.busy||shot.packing||shot.cur>=STEPS.length)return;
+  shot.busy=true;shot.t=0;tick(1.6,.35);
+  if(shot.cur===1){items.find(i=>i.id==="tripod").out=true;applyCargo();}
+  if(shot.cur===3){items.find(i=>i.id==="camera").out=true;items.find(i=>i.id==="holders").out=true;applyCargo();}
+  say(STEPS[shot.cur][0]+". "+STEPS[shot.cur][1]);camHud();
+}
+function packUpCamera(){if(!shot.on||shot.packing)return;setGlass(false);shot.packing=true;shot.busy=false;shot.seq=0;if(shot.cur>=STEPS.length){shot.cur=STEPS.length-1;shot.t=1;}say("Packing up.");camHud();}
+function finishPackUp(){
   for(const id of ["camera","tripod","holders"]){const it=items.find(i=>i.id===id);if(it)it.out=false;}
-  applyCargo();S.tethered=false;shot.on=false;rig.visible=false;rig.userData.body.visible=true;document.body.classList.remove("cam");
-  sky.material.uniforms.dark.value=1;renderer.toneMappingExposure=1.05;resize();
+  applyCargo();S.tethered=false;shot.on=false;shot.packing=false;gear.visible=false;document.body.classList.remove("cam");
   say("Packed up. "+S.cargo.m.toFixed(1)+" kg on the load.");
 }
-function aimPlateCamera(){
-  rig.rotation.y=shot.yaw;rig.userData.body.rotation.x=-shot.pitch;rig.userData.body.visible=false;
-  const y=rig.position.y+1.5;
-  camera.position.set(shot.x+Math.sin(shot.yaw)*.2,y,shot.z+Math.cos(shot.yaw)*.2);
-  camera.rotation.set(0,0,0);camera.rotation.order="YXZ";camera.rotation.y=shot.yaw+Math.PI;camera.rotation.x=shot.pitch;
-  const fov=LENSES[shot.lens][1];if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}
-  sky.material.uniforms.dark.value=FILTERS[shot.filter][1];renderer.toneMappingExposure=1.05*Math.pow(1.45,shot.ev)*FILTERS[shot.filter][2];
+const _v=new T.Vector3(),_q=new T.Quaternion(),_e=new T.Euler();
+function stepRig(dt){
+  const A=shot.A,ez=k=>k*k*(3-2*k);
+  if(shot.packing){
+    if(shot.t>0)shot.t=Math.max(0,shot.t-dt*2.6);
+    else if(shot.cur>0){shot.cur--;shot.t=1;tick(1.4,.25);
+      if(shot.cur===3){items.find(i=>i.id==="camera").out=false;items.find(i=>i.id==="holders").out=false;applyCargo();}
+      if(shot.cur===1){items.find(i=>i.id==="tripod").out=false;applyCargo();}}
+    else{finishPackUp();return;}
+  } else if(shot.busy){shot.t+=dt/1.25;if(shot.t>=1){shot.t=0;shot.cur++;shot.busy=false;tick(2.2,.3);camHud();}}
+  const p=i=>i<shot.cur?1:i===shot.cur?ez(clamp(shot.t,0,1)):0,arc=k=>Math.sin(Math.PI*k);
+  /* picket and rope */
+  G.stake.position.set(A.stake.x,A.stake.y+.3-.5*(1-p(0)),A.stake.z);G.stake.visible=p(0)>0;G.rope.visible=p(0)>.5;
+  if(G.rope.visible){
+    donkey.faceAt(_v);const P=G.rope.geometry.attributes.position;
+    for(let i=0;i<14;i++){const k=i/13;P.setXYZ(i,lerp(_v.x,A.stake.x,k),lerp(_v.y-.12,A.stake.y+.5,k)-Math.sin(Math.PI*k)*.22,lerp(_v.z,A.stake.z,k));}
+    P.needsUpdate=true;
+  }
+  /* tripod */
+  const a=lerp(.035,.4,p(2)),hy=1.47*Math.cos(a),k1=p(1);
+  G.tri.visible=k1>0;G.tri.position.set(lerp(A.top.x,A.spot.x,k1),lerp(A.top.y+.02,A.spot.y+hy,k1)+arc(k1)*.35,lerp(A.top.z,A.spot.z,k1));
+  G.tri.rotation.set(lerp(Math.PI/2,0,k1),A.head,0);for(const L of G.legs)L.rotation.x=a;
+  /* case */
+  const k3=p(3),kc=ez(clamp(k3/.7,0,1));
+  G.box.visible=k3>0;G.box.position.set(lerp(A.kyack.x,A.box.x,kc),lerp(A.kyack.y,A.box.y,kc)+arc(kc)*.4,lerp(A.kyack.z,A.box.z,kc));G.box.rotation.y=A.head+.5;
+  G.lid.rotation.x=-1.9*ez(clamp((k3-.7)/.3,0,1));
+  /* camera body */
+  const k4=p(4),e=p(5),headY=A.spot.y+1.47*Math.cos(.4)+.03;
+  G.cam.visible=k3>=1||shot.cur>3;
+  G.cam.position.set(lerp(A.box.x,A.spot.x,k4),lerp(A.box.y+.06,headY,k4)+arc(k4)*.3,lerp(A.box.z,A.spot.z,k4));
+  G.cam.rotation.order="YXZ";G.cam.rotation.set(-shot.pitch*k4,lerp(A.head+.5,shot.yaw,k4),0);
+  G.cam.scale.setScalar(lerp(.86,1,k4));
+  const fzz=lerp(-.1,.15,e);G.front.position.set(0,.17,fzz);
+  G.bell.forEach((b,i)=>{const k=i/9;b.position.set(0,.17,lerp(-.135,fzz-.02,k));b.scale.set(lerp(.27,.17,k)+(i%2?.025:0),lerp(.23,.17,k)+(i%2?.025:0),1);});
+  G.cloth.visible=p(7)>0&&!shot.seq;G.cloth.scale.set(.72,.62*p(7),.85);
+  /* lens */
+  const k6=p(6);G.lens.visible=G.cam.visible&&shot.cur>=4;
+  G.cam.updateMatrixWorld(true);G.front.localToWorld(_v.set(0,0,.016));
+  G.lens.position.set(lerp(A.box.x,_v.x,k6),lerp(A.box.y+.3,_v.y,k6)+arc(k6)*.25,lerp(A.box.z,_v.z,k6));
+  G.cam.getWorldQuaternion(_q);G.lens.quaternion.copy(_q);
+  /* holder and dark slide during an exposure */
+  let hk=0,up=0;
+  if(shot.seq>0){
+    const u=2.8-shot.seq;shot.seq-=dt;
+    hk=ez(clamp(u/.6,0,1))*(1-ez(clamp((u-2.3)/.5,0,1)));up=ez(clamp((u-.75)/.4,0,1))*(1-ez(clamp((u-1.75)/.4,0,1)));
+    if(u>=1.3&&!shot.clicked){shot.clicked=true;tick(2.6,.55);$("flash").classList.remove("go");void $("flash").offsetWidth;$("flash").classList.add("go");}
+    if(shot.seq<=0){shot.seq=0;setGlass(true);drawPlates();}
+  }
+  G.holder.visible=G.slide.visible=shot.seq>0;G.holder.position.x=G.slide.position.x=lerp(.55,0,hk);G.slide.position.y=.17+up*.2;
+  /* view */
+  if(shot.glass){
+    const kk=dt*.9;if(keys.has("a")||keys.has("arrowleft"))shot.yaw+=kk;if(keys.has("d")||keys.has("arrowright"))shot.yaw-=kk;
+    if(keys.has("w")||keys.has("arrowup"))shot.pitch=Math.min(.7,shot.pitch+kk*.6);if(keys.has("s")||keys.has("arrowdown"))shot.pitch=Math.max(-.45,shot.pitch-kk*.6);
+    G.cam.visible=G.lens.visible=false;
+    camera.position.set(A.spot.x+Math.sin(shot.yaw)*.22,headY+.17,A.spot.z+Math.cos(shot.yaw)*.22);
+    camera.rotation.order="YXZ";camera.rotation.set(shot.pitch,shot.yaw+Math.PI,0);
+    const fov=LENSES[shot.lens][1];if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}
+    sky.material.uniforms.dark.value=FILTERS[shot.filter][1];renderer.toneMappingExposure=1.05*Math.pow(1.45,shot.ev)*FILTERS[shot.filter][2];
+  } else {
+    const wide=shot.cur<4&&!shot.seq,tx=wide?lerp(S.x,A.spot.x,.55):A.spot.x,tz=wide?lerp(S.z,A.spot.z,.55):A.spot.z,ty=A.spot.y+(shot.seq?1.55:1.0);
+    const o=shot.seq?shot.yaw+Math.PI-.7:shot.orbit,ph=shot.seq?.3:shot.orbitP,d=shot.seq?1.25:wide?5.2:3.3,cp=Math.cos(ph);
+    want.set(tx+Math.sin(o)*cp*d,ty+Math.sin(ph)*d,tz+Math.cos(o)*cp*d);want.y=Math.max(want.y,hf(want.x,want.z)+.3);
+    if(!shot.cp)shot.cp=camera.position.clone();shot.cp.lerp(want,1-Math.exp(-dt*5));camera.position.copy(shot.cp);look.set(tx,ty,tz);camera.lookAt(look);
+    if(camera.fov!==38&&innerWidth>=innerHeight||camera.fov!==52&&innerWidth<innerHeight)resize();
+  }
 }
 function expose(){
-  if(!shot.on||Math.min(12-shot.used,unexposed())<=0)return;
+  if(!shot.on||!shot.glass||shot.seq>0||Math.min(12-shot.used,unexposed())<=0)return;
   renderer.render(scene,camera);
   const src=renderer.domElement,W=850,H=650,c=document.createElement("canvas");c.width=W+60;c.height=H+60;
   const x=c.getContext("2d");x.fillStyle="#0b0b0a";x.fillRect(0,0,c.width,c.height);
@@ -295,8 +399,8 @@ function expose(){
   x.fillStyle="#d9d5cb";x.font="13px Georgia,serif";x.fillText("PLATE "+(shot.exposed+1)+" · "+LENSES[shot.lens][0]+" · "+FILTERS[shot.filter][0],34,c.height-9);
   shot.plates.push(c.toDataURL("image/jpeg",.86));shot.used++;shot.exposed++;
   if(audio&&!muted){const t=audio.currentTime,s2=audio.createBufferSource(),g2=audio.createGain();s2.buffer=noiseBuf;s2.playbackRate.value=2.4;g2.gain.value=.5;s2.connect(g2).connect(audio.destination);s2.start(t);}
-  $("flash").classList.remove("go");void $("flash").offsetWidth;$("flash").classList.add("go");
-  say("Plate "+shot.exposed+" exposed. Dark slide in, holder flipped.");camHud();drawPlates();
+  shot.seq=2.8;shot.clicked=false;setGlass(false);
+  say("Holder in. Dark slide out. Shutter. Slide back in. Plate "+shot.exposed+" exposed.");camHud();
 }
 function drawPlates(){
   const g=$("pl-grid");g.textContent="";
@@ -387,6 +491,8 @@ function act(name){
   if(name==="feed"){ensureAudio();donkey.feed();}
   if(name==="soothe"){ensureAudio();donkey.soothe();}
   if(name==="camera"){if(shot.on)packUpCamera();else setUpCamera();}
+  if(name==="next")nextStep();
+  if(name==="glass"){if(shot.on&&shot.cur>=STEPS.length&&!shot.seq)setGlass(!shot.glass);}
   if(name==="expose")expose();
   if(name==="lens"){shot.lens=(shot.lens+1)%LENSES.length;camHud();}
   if(name==="filter"){shot.filter=(shot.filter+1)%FILTERS.length;camHud();}
@@ -409,7 +515,7 @@ addEventListener("keydown",e=>{
   if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();
   if(e.repeat)return;
   if(k==="p")act("pack");if(k==="b"||k===" ")act("bray");if(k==="c")act("view");if(k==="t")act("trot");if(k==="m")act("sound");if(k==="k")act("lie");if(k==="n")act("mind");if(k==="f")act("face");if(k==="e")act("mood");if(k==="g")act("reel");if(moodKeys[k])setMood(moodKeys[k]);if(k==="v")act("study");
-  if(k==="o")act("camera");if(shot.on&&(k==="enter"||k===" "))expose();
+  if(k==="o")act("camera");if(shot.on&&(k==="enter"||k===" ")){if(shot.glass)expose();else if(shot.cur<STEPS.length)nextStep();else act("glass");}
   if(k==="r"&&!shot.on)donkey.place(0,0,-2.85,hf);
 });
 addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
@@ -429,7 +535,9 @@ canvas.addEventListener("pointermove",e=>{
     stick.x=dx;stick.y=dy;nub.style.transform="translate("+dx*44+"px,"+dy*44+"px)";
   } else if(e.pointerId===orbit.id){
     if(pinch){orbit.x=e.clientX;orbit.y=e.clientY;return;}
-    if(shot.on){const k=camera.fov/34*.0028;shot.yaw-=(e.clientX-orbit.x)*k;shot.pitch=clamp(shot.pitch-(e.clientY-orbit.y)*k,-.45,.7);orbit.x=e.clientX;orbit.y=e.clientY;return;}
+    if(shot.on){const dx=e.clientX-orbit.x,dy=e.clientY-orbit.y;orbit.x=e.clientX;orbit.y=e.clientY;
+      if(shot.glass){const k=camera.fov/34*.0028;shot.yaw-=dx*k;shot.pitch=clamp(shot.pitch-dy*k,-.45,.7);}
+      else{shot.orbit-=dx*.006;shot.orbitP=clamp(shot.orbitP+dy*.004,.02,.9);}return;}
     if(cam.face)cam.faceYaw-=(e.clientX-orbit.x)*.0065;else cam.yaw-=(e.clientX-orbit.x)*.0065;cam.pitch=clamp(cam.pitch+(e.clientY-orbit.y)*.005,-.12,1.5);
     orbit.x=e.clientX;orbit.y=e.clientY;
   }
@@ -496,8 +604,7 @@ function step(dt){
   if(!study||!cam.free)want.y=Math.max(want.y,hf(want.x,want.z)+.3);
   if(first){camPos.copy(want);first=false;}else camPos.lerp(want,1-Math.exp(-dt*9));
   camera.position.copy(camPos);camera.lookAt(look);
-  if(shot.on){const kk=dt*.9;if(keys.has("a")||keys.has("arrowleft"))shot.yaw+=kk;if(keys.has("d")||keys.has("arrowright"))shot.yaw-=kk;
-    if(keys.has("w")||keys.has("arrowup"))shot.pitch=Math.min(.7,shot.pitch+kk*.6);if(keys.has("s")||keys.has("arrowdown"))shot.pitch=Math.max(-.45,shot.pitch-kk*.6);aimPlateCamera();}
+  if(shot.on)stepRig(dt);
   else plateShock(dt);
   sky.position.copy(camera.position);sky.material.uniforms.time.value+=dt;
   sun.target.position.copy(look);sun.position.copy(look).addScaledVector(sunDir,32);fill.target.position.copy(look);fill.position.set(look.x-sunDir.x*20,look.y+6,look.z-sunDir.z*20);
