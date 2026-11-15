@@ -134,14 +134,14 @@ const solids=[];
 
 /* sky */
 const sky=new T.Mesh(new T.SphereGeometry(1200,32,20),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,fog:false,
-  uniforms:{time:{value:0}},
+  uniforms:{time:{value:0},dark:{value:1}},
   vertexShader:"varying vec3 d;void main(){d=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}",
-  fragmentShader:`varying vec3 d;uniform float time;
+  fragmentShader:`varying vec3 d;uniform float time,dark;
   float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
   float f(vec2 p){float s=0.,a=.5;for(int i=0;i<5;i++){s+=a*n(p);p=p*2.03+7.;a*=.5;}return s;}
   void main(){vec3 v=normalize(d);float y=max(v.y,0.);
-    float g=mix(.74,.1,pow(y,.45));
+    float g=mix(.74,.1,pow(y,.45))*dark;
     vec2 p=v.xz/(y+.12)*1.1+vec2(time*.006,0.);
     float c=smoothstep(.5,.78,f(p))*smoothstep(.0,.12,y);
     float lit=.72+.3*f(p*2.3+3.);
@@ -220,6 +220,98 @@ const views=[2.45,Math.PI/2,.55,Math.PI];
 let trotLatch=false,packOn=true,paceLatch=0,groundFn=null;
 const stick={id:null,x:0,y:0,ox:0,oy:0};
 const orbit={id:null,x:0,y:0};
+/* ---------- the plate camera: tie the burro, unload, compose on the ground glass, expose ---------- */
+const shot={on:false,yaw:0,pitch:.05,lens:1,filter:0,ev:0,used:0,broken:0,exposed:0,shock:0,plates:[],x:0,z:0};
+const LENSES=[["Wide 6¾ in",52],["Normal 10 in",34],["Long 19 in",18]],FILTERS=[["No filter",1,1],["Yellow K2",.78,1.06],["Red A",.5,1.16]];
+const rig=new T.Group();rig.visible=false;scene.add(rig);
+(function buildRig(){
+  const wood=new T.MeshStandardMaterial({color:0x4a4034,roughness:.7}),brass=new T.MeshStandardMaterial({color:0x8a8272,roughness:.35,metalness:.8}),
+    black=new T.MeshStandardMaterial({color:0x0c0c0c,roughness:.9});
+  for(let i=0;i<3;i++){
+    const a=i/3*TAU+.5,leg=new T.Mesh(new T.CylinderGeometry(.014,.02,1.5,6),wood);
+    leg.position.set(Math.sin(a)*.3,.7,Math.cos(a)*.3);leg.rotation.set(Math.cos(a)*.42,0,-Math.sin(a)*.42);rig.add(leg);
+  }
+  const head=new T.Mesh(new T.CylinderGeometry(.07,.07,.04,12),brass);head.position.y=1.36;rig.add(head);
+  const body=new T.Group();body.position.y=1.5;rig.add(body);rig.userData.body=body;
+  const back=new T.Mesh(new T.BoxGeometry(.3,.26,.05),wood);back.position.z=-.14;body.add(back);
+  const front=new T.Mesh(new T.BoxGeometry(.22,.2,.03),wood);front.position.z=.12;body.add(front);
+  for(let i=0;i<9;i++){const k=i/8,b=new T.Mesh(new T.BoxGeometry(lerp(.27,.19,k)+(i%2?.02:0),lerp(.23,.17,k)+(i%2?.02:0),.03),black);b.position.z=lerp(-.11,.1,k);body.add(b);}
+  const lens=new T.Mesh(new T.CylinderGeometry(.04,.045,.07,14),brass);lens.rotation.x=Math.PI/2;lens.position.z=.165;body.add(lens);
+  const bed=new T.Mesh(new T.BoxGeometry(.2,.02,.34),wood);bed.position.y=-.14;body.add(bed);
+  const cloth=new T.Mesh(new T.SphereGeometry(.2,12,8,0,TAU,0,Math.PI*.55),black);cloth.position.set(0,-.02,-.2);cloth.scale.set(1,1.1,1.2);body.add(cloth);
+  rig.traverse(o=>{if(o.isMesh)o.castShadow=true;});
+})();
+const packed=id=>{const it=items.find(i=>i.id===id);return it&&it.slot!=="-"&&!it.out;};
+function say(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>{el.hidden=true;},3600);}
+function unexposed(){return Math.max(0,24-shot.exposed-shot.broken);}
+function camHud(){
+  $("c-lens").textContent=LENSES[shot.lens][0];$("c-filter").textContent=FILTERS[shot.filter][0];
+  $("c-ev").textContent="Exposure "+(shot.ev>0?"+":"")+shot.ev;
+  const left=Math.min(12-shot.used,unexposed());
+  $("c-count").textContent=left+" of 12 in the holders · "+unexposed()+" unexposed · "+shot.exposed+" exposed"+(shot.broken?" · "+shot.broken+" cracked":"");
+  $("c-expose").disabled=left<=0;
+}
+function setUpCamera(){
+  if(study){say("Leave the study plate first.");return;}
+  if(S.down>0){say("Mistletoe is lying down.");return;}
+  if(Math.abs(S.speed)>.15){say("Stop first. A burro will not hold a tripod.");return;}
+  for(const [id,what] of [["camera","The view camera is not packed."],["tripod","No tripod on the load."],["holders","No plate holders on the load."]])if(!packed(id)){say(what);return;}
+  for(const id of ["camera","tripod","holders"])items.find(i=>i.id===id).out=true;
+  applyCargo();S.tethered=true;
+  const fx=Math.sin(S.heading),fz=Math.cos(S.heading);
+  shot.x=S.x+fz*2.4+fx*1.2;shot.z=S.z-fx*2.4+fz*1.2;shot.yaw=S.heading;shot.pitch=.04;
+  rig.position.set(shot.x,hf(shot.x,shot.z),shot.z);rig.visible=true;
+  shot.on=true;document.body.classList.add("cam");$("packing").hidden=true;$("mind").hidden=true;
+  say("Mistletoe is tied. Camera and tripod are off the load: "+S.cargo.m.toFixed(1)+" kg left on.");camHud();
+}
+function packUpCamera(){
+  for(const id of ["camera","tripod","holders"]){const it=items.find(i=>i.id===id);if(it)it.out=false;}
+  applyCargo();S.tethered=false;shot.on=false;rig.visible=false;rig.userData.body.visible=true;document.body.classList.remove("cam");
+  sky.material.uniforms.dark.value=1;renderer.toneMappingExposure=1.05;resize();
+  say("Packed up. "+S.cargo.m.toFixed(1)+" kg on the load.");
+}
+function aimPlateCamera(){
+  rig.rotation.y=shot.yaw;rig.userData.body.rotation.x=-shot.pitch;rig.userData.body.visible=false;
+  const y=rig.position.y+1.5;
+  camera.position.set(shot.x+Math.sin(shot.yaw)*.2,y,shot.z+Math.cos(shot.yaw)*.2);
+  camera.rotation.set(0,0,0);camera.rotation.order="YXZ";camera.rotation.y=shot.yaw+Math.PI;camera.rotation.x=shot.pitch;
+  const fov=LENSES[shot.lens][1];if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}
+  sky.material.uniforms.dark.value=FILTERS[shot.filter][1];renderer.toneMappingExposure=1.05*Math.pow(1.45,shot.ev)*FILTERS[shot.filter][2];
+}
+function expose(){
+  if(!shot.on||Math.min(12-shot.used,unexposed())<=0)return;
+  renderer.render(scene,camera);
+  const src=renderer.domElement,W=850,H=650,c=document.createElement("canvas");c.width=W+60;c.height=H+60;
+  const x=c.getContext("2d");x.fillStyle="#0b0b0a";x.fillRect(0,0,c.width,c.height);
+  const sw=src.width,sh=src.height,ar=W/H;let cw=sw,ch=sw/ar;if(ch>sh){ch=sh;cw=sh*ar;}
+  x.drawImage(src,(sw-cw)/2,(sh-ch)/2,cw,ch,30,30,W,H);
+  const im=x.getImageData(30,30,W,H),d=im.data;
+  for(let i=0;i<d.length;i+=4){
+    const px=(i/4)%W,py=Math.floor(i/4/W),vx=px/W-.5,vy=py/H-.5;
+    let g=(d[i]*.3+d[i+1]*.59+d[i+2]*.11)/255;g=(g-.42)*1.3+.5;g*=1-.5*(vx*vx+vy*vy);g+=(Math.random()-.5)*.035;
+    g=clamp(g,0,1)*255;d[i]=g*1.0;d[i+1]=g*.975;d[i+2]=g*.93;
+  }
+  x.putImageData(im,30,30);
+  x.fillStyle="#d9d5cb";x.font="13px Georgia,serif";x.fillText("PLATE "+(shot.exposed+1)+" · "+LENSES[shot.lens][0]+" · "+FILTERS[shot.filter][0],34,c.height-9);
+  shot.plates.push(c.toDataURL("image/jpeg",.86));shot.used++;shot.exposed++;
+  if(audio&&!muted){const t=audio.currentTime,s2=audio.createBufferSource(),g2=audio.createGain();s2.buffer=noiseBuf;s2.playbackRate.value=2.4;g2.gain.value=.5;s2.connect(g2).connect(audio.destination);s2.start(t);}
+  $("flash").classList.remove("go");void $("flash").offsetWidth;$("flash").classList.add("go");
+  say("Plate "+shot.exposed+" exposed. Dark slide in, holder flipped.");camHud();drawPlates();
+}
+function drawPlates(){
+  const g=$("pl-grid");g.textContent="";
+  $("pl-note").textContent=shot.plates.length?shot.plates.length+" exposed plate"+(shot.plates.length>1?"s":"")+" in the box. Tap one to look.":"No plates exposed yet. Set up the camera and expose one.";
+  shot.plates.forEach((u,i)=>{const b=document.createElement("button");b.type="button";b.setAttribute("aria-label","Plate "+(i+1));const im=new Image();im.src=u;im.alt="Plate "+(i+1);b.append(im);
+    b.addEventListener("click",()=>{$("pl-big").src=u;$("pl-big").hidden=false;});g.append(b);});
+  $("pl-reload").disabled=!(shot.used>0&&unexposed()>0&&packed("tent")||shot.used>0&&unexposed()>0&&shot.on);
+}
+function plateShock(dt){ // glass rides on edge in the kyack; a walk is safe, bounding gaits crack it
+  if(!packed("plates")||unexposed()<=0)return;
+  shot.shock+=dt*(S.g2*.5+S.g3*.9)*(Math.abs(S.speed)>3?1:0);
+  if(shot.shock>1){shot.shock=0;shot.broken++;say("A glass plate cracked in the kyack. "+unexposed()+" good plates left.");
+    if(audio&&!muted){const t=audio.currentTime,s2=audio.createBufferSource(),f=audio.createBiquadFilter(),g2=audio.createGain();s2.buffer=noiseBuf;s2.playbackRate.value=3.2;f.type="highpass";f.frequency.value=3500;g2.gain.value=.5;s2.connect(f).connect(g2).connect(audio.destination);s2.start(t);}
+  }
+}
 function drawMind(){
   const M=donkey.mind,rows=[["Hunger",M.hunger],["Tiredness",1-S.stamina],["Fear",M.fear],["Trust",M.trust],["Strain of what you ask",Math.min(1,M.strain)]];
   const el=$("mind-bars");
@@ -229,9 +321,9 @@ function drawMind(){
 let reel=-1,reelT=0;
 /* ---------- packing: every item has a weight and a place; the donkey carries the sum ---------- */
 const items=[
-  {id:"camera",name:"8×10 view camera",note:"Folding field camera in its walnut case",kg:9,slot:"L"},
-  {id:"plates",name:"Glass plates",note:"Two dozen 8×10 dry plates, boxed in felt",kg:11,slot:"R"},
-  {id:"holders",name:"Plate holders",note:"Six double holders, loaded in the changing tent",kg:6.5,slot:"L"},
+  {id:"camera",name:"6½ × 8½ view camera",note:"Wooden plate camera, bellows, lens boards and brass lenses",kg:9,slot:"L"},
+  {id:"plates",name:"Glass dry plates",note:"Two dozen, packed on edge in a padded box. They crack at a canter",kg:11,slot:"R"},
+  {id:"holders",name:"Plate holders",note:"Six double holders: twelve exposures before reloading in the dark",kg:6.5,slot:"L"},
   {id:"lenses",name:"Lens case",note:"Three lenses, shutter, lens board",kg:3,slot:"R"},
   {id:"filters",name:"Filters and meter",note:"Yellow, red and green glass; exposure meter",kg:1.2,slot:"L"},
   {id:"tripod",name:"Tripod",note:"Ash legs, brass fittings, lashed lengthwise on top",kg:5.5,slot:"T"},
@@ -243,7 +335,7 @@ const items=[
   {id:"tarp",name:"Coat and tarp",note:"Oilcloth for the load in rain",kg:3,slot:"T"}
 ];
 const SLOTS=[["L","Left"],["T","Top"],["R","Right"],["-","Off"]];
-function applyCargo(){return donkey.setCargo(items.filter(i=>i.slot!=="-"));}
+function applyCargo(){return donkey.setCargo(items.filter(i=>i.slot!=="-"&&!i.out));}
 function drawPacking(){
   const C=applyCargo(),list=$("pk-list");list.textContent="";
   for(const it of items){
@@ -266,7 +358,7 @@ function drawPacking(){
   const v=[];
   if(!C.m)v.push("Unloaded.");
   else{
-    if(Math.abs(diff)<2)v.push("Balanced side to side.");else v.push("Lists "+(diff>0?"left":"right")+" by "+Math.abs(diff).toFixed(1)+" kg. Even the panniers or the saddle will turn.");
+    if(Math.abs(diff)<1.3)v.push("Balanced side to side, within three pounds.");else v.push("Lists "+(diff>0?"left":"right")+" by "+Math.abs(diff).toFixed(1)+" kg. Even the panniers or the saddle will turn.");
     if(C.T>C.m*.45&&C.T>12)v.push("Top-heavy: the load will sway in turns.");
     if(C.m>60)v.push("Overloaded. A donkey this size carries about 50 kg; it will tire fast and cannot run.");
     else if(C.m>45)v.push("A full load. Walk and trot only.");
@@ -294,6 +386,14 @@ function act(name){
   if(name==="mind"){const p=$("mind");p.hidden=!p.hidden;$("b-mind").setAttribute("aria-pressed",!p.hidden);}
   if(name==="feed"){ensureAudio();donkey.feed();}
   if(name==="soothe"){ensureAudio();donkey.soothe();}
+  if(name==="camera"){if(shot.on)packUpCamera();else setUpCamera();}
+  if(name==="expose")expose();
+  if(name==="lens"){shot.lens=(shot.lens+1)%LENSES.length;camHud();}
+  if(name==="filter"){shot.filter=(shot.filter+1)%FILTERS.length;camHud();}
+  if(name==="evup"){shot.ev=Math.min(2,shot.ev+1);camHud();}
+  if(name==="evdn"){shot.ev=Math.max(-2,shot.ev-1);camHud();}
+  if(name==="plates"){const p=$("platebox");p.hidden=!p.hidden;$("pl-big").hidden=true;if(!p.hidden)drawPlates();}
+  if(name==="reload"){if(unexposed()>0){shot.used=0;say("Holders reloaded in the changing tent.");camHud();drawPlates();}}
   if(name==="more"){const b=document.querySelector(".bar");b.classList.toggle("open");$("b-more").setAttribute("aria-pressed",b.classList.contains("open"));}
   if(name==="bray")setMood("bray");
   if(name==="mood"){const i=donkey.moods.findIndex(m=>m.id===S.mood);setMood(donkey.moods[(i+1)%donkey.moods.length].id);}
@@ -309,7 +409,8 @@ addEventListener("keydown",e=>{
   if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();
   if(e.repeat)return;
   if(k==="p")act("pack");if(k==="b"||k===" ")act("bray");if(k==="c")act("view");if(k==="t")act("trot");if(k==="m")act("sound");if(k==="k")act("lie");if(k==="n")act("mind");if(k==="f")act("face");if(k==="e")act("mood");if(k==="g")act("reel");if(moodKeys[k])setMood(moodKeys[k]);if(k==="v")act("study");
-  if(k==="r")donkey.place(0,0,-2.85,hf);
+  if(k==="o")act("camera");if(shot.on&&(k==="enter"||k===" "))expose();
+  if(k==="r"&&!shot.on)donkey.place(0,0,-2.85,hf);
 });
 addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
 addEventListener("blur",()=>keys.clear());
@@ -317,7 +418,7 @@ for(const b of document.querySelectorAll("[data-act]"))b.addEventListener("click
 const pad=$("stick"),nub=$("nub");
 canvas.addEventListener("pointerdown",e=>{
   ensureAudio();canvas.setPointerCapture(e.pointerId);
-  if(e.pointerType==="touch"&&e.clientX<innerWidth*.45&&stick.id===null){
+  if(e.pointerType==="touch"&&e.clientX<innerWidth*.45&&stick.id===null&&!shot.on){
     stick.id=e.pointerId;stick.ox=e.clientX;stick.oy=e.clientY;stick.x=stick.y=0;
     pad.style.left=e.clientX+"px";pad.style.top=e.clientY+"px";pad.classList.add("on");nub.style.transform="";
   } else if(orbit.id===null){orbit.id=e.pointerId;orbit.x=e.clientX;orbit.y=e.clientY;}
@@ -328,6 +429,7 @@ canvas.addEventListener("pointermove",e=>{
     stick.x=dx;stick.y=dy;nub.style.transform="translate("+dx*44+"px,"+dy*44+"px)";
   } else if(e.pointerId===orbit.id){
     if(pinch){orbit.x=e.clientX;orbit.y=e.clientY;return;}
+    if(shot.on){const k=camera.fov/34*.0028;shot.yaw-=(e.clientX-orbit.x)*k;shot.pitch=clamp(shot.pitch-(e.clientY-orbit.y)*k,-.45,.7);orbit.x=e.clientX;orbit.y=e.clientY;return;}
     if(cam.face)cam.faceYaw-=(e.clientX-orbit.x)*.0065;else cam.yaw-=(e.clientX-orbit.x)*.0065;cam.pitch=clamp(cam.pitch+(e.clientY-orbit.y)*.005,-.12,1.5);
     orbit.x=e.clientX;orbit.y=e.clientY;
   }
@@ -394,6 +496,9 @@ function step(dt){
   if(!study||!cam.free)want.y=Math.max(want.y,hf(want.x,want.z)+.3);
   if(first){camPos.copy(want);first=false;}else camPos.lerp(want,1-Math.exp(-dt*9));
   camera.position.copy(camPos);camera.lookAt(look);
+  if(shot.on){const kk=dt*.9;if(keys.has("a")||keys.has("arrowleft"))shot.yaw+=kk;if(keys.has("d")||keys.has("arrowright"))shot.yaw-=kk;
+    if(keys.has("w")||keys.has("arrowup"))shot.pitch=Math.min(.7,shot.pitch+kk*.6);if(keys.has("s")||keys.has("arrowdown"))shot.pitch=Math.max(-.45,shot.pitch-kk*.6);aimPlateCamera();}
+  else plateShock(dt);
   sky.position.copy(camera.position);sky.material.uniforms.time.value+=dt;
   sun.target.position.copy(look);sun.position.copy(look).addScaledVector(sunDir,32);fill.target.position.copy(look);fill.position.set(look.x-sunDir.x*20,look.y+6,look.z-sunDir.z*20);
 
@@ -421,7 +526,7 @@ function orthoShot(view,cx,cy,halfW,halfH){
   renderer.render(scene,o);scene.background=bg;
 }
 if(params.get("mood"))donkey.setMood(params.get("mood"));
-window.__pd={setGround(f){groundFn=f;},setMood,orthoShot,step,render:()=>renderer.render(scene,camera),donkey,cam,act,heightAt,setStudy,camera};
+window.__pd={shot,setGround(f){groundFn=f;},setMood,orthoShot,step,render:()=>renderer.render(scene,camera),donkey,cam,act,heightAt,setStudy,camera};
 if(params.has("study"))setStudy(true);
 if(!params.has("manual"))requestAnimationFrame(frame);
 applyCargo();

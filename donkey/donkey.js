@@ -733,6 +733,7 @@ function makeDonkey(opt){
   const M=S.mind={hunger:.3,fear:0,trust:.7,press:0,grudge:0,idleT:0,act:null,actT:0,turn:0,refusing:false,auto:false,strain:0,thought:"Waiting."};
   function think(dt,ctl){
     if(S.brainOff||S.still||S.alive===false)return ctl;
+    if(S.tethered)ctl=Object.assign({},ctl,{throttle:0,steer:0});
     const user=Math.abs(ctl.throttle)>.05||Math.abs(ctl.steer)>.05;
     const C=S.cargo,cm=S.load?C.m:0,hv=S.hv,off=Math.min(1,Math.abs(S.list)/.12),pant=S.pant,sp=Math.abs(S.speed);
     const slopeU=clamp(S.slope/.32,0,1),slopeD=clamp(-S.slope/.32,0,1);
@@ -774,6 +775,7 @@ function makeDonkey(opt){
           if(S.stamina<.45&&!S.load){M.act="rest";M.actT=40;S.downWant=true;M.auto=true;}
           else if(M.hunger>.4){M.act=r<.3?"step":"graze";M.actT=r<.3?1.3:6+r*5;}
           else{M.act=r<.3?"wander":"stand";M.actT=r<.3?2+r*8:5+r*8;}
+          if(S.tethered&&(M.act==="step"||M.act==="wander"))M.act=M.hunger>.4?"graze":"stand";
           M.turn=(hash(S.time+3)-.5)*1.6;
           if(M.act==="graze"&&S.mood!=="graze"){S.mood="graze";S.moodT=0;S.autoT=M.actT;}
         }
@@ -783,8 +785,8 @@ function makeDonkey(opt){
           const blocked=ctl.near!==undefined&&ctl.near<1.8;
           out=Object.assign({},ctl,{throttle:M.act==="step"?.55:.8,steer:blocked?1:M.turn*(M.actT>1.2?1:0),pace:0,trot:false});
         }
-        M.thought=M.act==="graze"?"Grass.":M.act==="wander"?"Having a look around.":M.act==="step"?"Better grass over there.":M.act==="rest"?"Resting.":"Standing easy.";
-      } else M.thought="Waiting.";
+        M.thought=M.act==="graze"?"Grass.":M.act==="wander"?"Having a look around.":M.act==="step"?"Better grass over there.":M.act==="rest"?"Resting.":S.tethered?"Tied. Waiting.":"Standing easy.";
+      } else M.thought=S.tethered?"Tied. Waiting.":"Waiting.";
     }
     S.thought=M.thought;
     return out;
@@ -928,7 +930,8 @@ function makeDonkey(opt){
     T_.neck+=.34*pant*(1-lieK)+.3*hv*(1-g1)*(1-lieK)+.3*slopeU*mv-.12*slopeD*mv+run*(.1+.1*g3);T_.head+=-.1*pant-run*.22-.1*slopeU*mv;
     T_.droop+=.5*pant;T_.earF+=-.25*pant-.75*run;T_.lid+=.3*pant;T_.nos=Math.max(T_.nos,hard*(.4+.6*puff));
     T_.jaw=Math.max(T_.jaw,pant*(.1+.12*puff));T_.tongue=Math.max(T_.tongue,pant*.1);T_.tailUp+=run*.5;
-    if(S.mind.refusing){T_.earF-=1.1;T_.head-=.16;T_.neck-=.08;T_.yaw+=.32*Math.sin(t*1.3);T_.tail=1;T_.lid+=.2;T_.nos=Math.max(T_.nos,.5);}
+    S.brace=lerp(S.brace||0,S.mind.refusing?1:0,1-Math.exp(-dt*6));
+    if(S.mind.refusing){T_.bodyPitch-=.06;T_.crouch+=.35;T_.earF-=1.1;T_.head-=.16;T_.neck-=.08;T_.yaw+=.32*Math.sin(t*1.3);T_.tail=1;T_.lid+=.2;T_.nos=Math.max(T_.nos,.5);}
     {const fr=S.mind.fear;if(fr>.3){T_.lid-=.3*fr;T_.nos=Math.max(T_.nos,fr);T_.eyeX+=.6*Math.sin(t*3)*fr;T_.neck-=.15*fr;}}
     if(lieK>0){const flat=S.collapsed?1:.55;T_.neck=lerp(T_.neck,.48+.14*flat,lieK);T_.head=lerp(T_.head,-.42-.12*flat,lieK);T_.lid=Math.max(T_.lid,lieK*(S.collapsed?.75:.3));T_.droop=Math.max(T_.droop,lieK*.6);T_.roll+=lieK*.12*flat;}
     const ease=1-Math.exp(-dt*(M.snap||10));
@@ -1007,6 +1010,7 @@ function makeDonkey(opt){
       const rs=Math.max(S.rest,F.rest*(1-mv));
       if(L.name==="HL"&&rs>.001){chi=lerp(chi,50*DEG,rs);psi=lerp(psi,-8*DEG,rs);}
       let lift=L.lift;
+      if(L.front&&S.brace>.01)v3.z+=S.brace*.13;
       if(Math.abs(S.list)>.004){const heavySide=Math.sign(L.x)===Math.sign(S.list)?1:0;psi+=heavySide*Math.abs(S.list)*1.1;v3.x+=Math.sign(S.list)*(heavySide?.02:.05)*off;}
       if(lieK>0){v3.z+=lieK*(L.front?-.2:.26);v3.x+=Math.sign(L.x)*lieK*.05;chi=lerp(chi,.5,lieK);}
       if(L.name==="FL"&&F.paw>.002){lift+=F.paw*.24;v3.z+=F.pawFwd*.24;chi=lerp(chi,.7,F.paw);psi=lerp(psi,-.3,F.paw);}
