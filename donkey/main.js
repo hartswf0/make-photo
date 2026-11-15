@@ -268,7 +268,6 @@ const lensCam=new T.PerspectiveCamera(34,850/650,.35,1400);
   tag(box(.2,.022,.4,wood,G.cam,0,.011,0),"cam");for(const x of [-.085,.085])box(.012,.012,.4,brass,G.cam,x,.028,0);
   G.back=tag(new T.Group(),"glass");G.back.position.set(0,.17,-.16);G.cam.add(G.back);
   box(.32,.28,.045,wood,G.back);for(const y of [-.15,.15])box(.34,.016,.05,brass,G.back,0,y,0);
-  glassRT.texture.center.set(.5,.5);glassRT.texture.rotation=Math.PI;
   G.glass=new T.Mesh(new T.PlaneGeometry(.26,.2),new T.MeshBasicMaterial({map:glassRT.texture,color:0xbdbab0}));G.glass.rotation.y=Math.PI;G.glass.position.z=-.0235;G.back.add(G.glass);
   G.front=tag(new T.Group(),"cam");G.cam.add(G.front);box(.2,.2,.028,wood,G.front);box(.05,.3,.012,brass,G.front,-.115,-.02,0);box(.05,.3,.012,brass,G.front,.115,-.02,0);
   G.knob=tag(new T.Mesh(new T.CylinderGeometry(.028,.028,.03,14),brass),"knob");G.knob.rotation.z=Math.PI/2;G.knob.position.set(.13,.03,.02);G.cam.add(G.knob);
@@ -337,7 +336,9 @@ function tapGear(ids){
     const want=STEPS[shot.cur][0],ok={tripod:["top","tri"],legs:["tri"],case:["kyack"],mount:["box","cam","lid","glass"],bellows:["cam","glass","knob"],lens:["lens","box","lid"],cloth:["glass","cam"]}[want]||[];
     if(ids.some(i=>ok.includes(i)))advance();else if(ids[0]==="donkey")say("She leans into the scratch. "+STEPS[shot.cur][1],8000);else say(STEPS[shot.cur][1],60000);return;
   }
-  const id=["bulb","slide","holder","knob","filter","lens","lid","glass","box","cam","tri","donkey"].find(i=>ids.includes(i));
+  if(!shot.holder)ids=ids.map(i=>i==="slide"?"holder":i);
+  let id=ids.find(i=>["slide","holder","filter","knob","lens","lid"].includes(i))||ids.find(i=>i!=="donkey"&&i!=="tri")||ids[0];
+  if(shot.holder&&(ids.includes("slide")||ids.includes("holder")))id=shot.slide?"slide":shot.latent?"holder":"slide";
   if(id==="donkey"){
     if(shot.cur===0){advance();return;}
     shot.bored=0;shot.ev=null;S.goal={x:shot.A.home.x,z:shot.A.home.z};S.goalWhy="Going back.";S.faceTo=null;donkey.soothe();
@@ -418,7 +419,7 @@ function mischief(dt){
   if(shot.cur<3||S.goal)return;
   shot.bored+=dt*(.035+.05*M.hunger)*(shot.shutter?.3:1);
   if(shot.bored>1){
-    shot.bored=0;const r=hash(S.time*2.1),ev=window.__pd.forceEv||(r<.4?"nose":r<.7?"bomb":"bump");shot.ev=ev;shot.evT=14;S.arrived=false;
+    shot.bored=0;const r=hash(S.time*2.1),ev=r<.4?"nose":r<.7?"bomb":"bump";shot.ev=ev;shot.evT=14;S.arrived=false;
     const to=(x,z,why)=>{S.goal={x,z};S.goalWhy=why;};
     if(ev==="nose")to(lerp(A.box.x,A.home.x,.3),lerp(A.box.z,A.home.z,.3),"What is in that box?");
     if(ev==="bump")to(lerp(A.spot.x,A.home.x,.28),lerp(A.spot.z,A.home.z,.28),"That thing is in my way.");
@@ -430,7 +431,7 @@ function pick(e){_nd.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
   const out=[];for(const h of _ray.intersectObjects(hits,true)){let o=h.object,vis=true;for(let q=o;q;q=q.parent)if(q.visible===false)vis=false;while(o&&!o.userData.hit)o=o.parent;if(o&&vis&&!out.includes(o.userData.hit))out.push(o.userData.hit);}return out;}
 let tapS=null;
 canvas.addEventListener("pointerdown",e=>{if(!shot.on)return;ensureAudio();tapS={x:e.clientX,y:e.clientY,t:performance.now(),id:pick(e)};
-  if(tapS.id.includes("bulb")&&!shot.glass){pressBulb(true);tapS.bulb=true;}else if(tapS.id[0]==="knob")tapS.knob=true;},true);
+  if(tapS.id[0]==="bulb"&&!shot.glass){pressBulb(true);tapS.bulb=true;}else if(tapS.id[0]==="knob")tapS.knob=true;},true);
 canvas.addEventListener("pointermove",e=>{if(tapS&&tapS.knob&&shot.on){shot.f=clamp(shot.f+(e.movementX||0)*.004,0,1);}},true);
 for(const ev of ["pointerup","pointercancel"])canvas.addEventListener(ev,e=>{if(!tapS)return;const s=tapS;tapS=null;if(s.bulb){pressBulb(false);return;}
   if(shot.on&&!shot.glass&&ev==="pointerup"&&Math.hypot(e.clientX-s.x,e.clientY-s.y)<10&&performance.now()-s.t<500&&s.id.length)tapGear(s.id);},true);
@@ -476,7 +477,7 @@ function stepRig(dt){
   G.lens.position.set(lerp(lr.x,_v.x,k6),lerp(lr.y,_v.y,k6)+arc(k6)*.25,lerp(lr.z,_v.z,k6));G.cam.getWorldQuaternion(_q);
   if(k6>.5)G.lens.quaternion.copy(_q);else G.lens.rotation.set(-Math.PI/2,0,0);
   G.filt.visible=shot.filter>0&&k6>=1;G.filt.material.color.setScalar(shot.filter===2?.12:.5);G.iris.scale.setScalar([1,.7,.45,.25][shot.ap]);G.bulb.scale.set(1,shot.shutter?.8:1.3,1);
-  G.filtCase.visible=G.box.visible&&k3>=1&&shot.lidK>.5;G.box.localToWorld(G.filtCase.position.set(-.16,.3,-.1));
+  G.filtCase.visible=G.box.visible&&k3>=1&&shot.lidK>.5;G.box.localToWorld(G.filtCase.position.set(-.17,.3,.12));
   /* holder and slide travel between the case and the camera back */
   shot.hk=lerp(shot.hk,shot.holder?1:0,1-Math.exp(-dt*6));shot.sk=lerp(shot.sk,shot.slide?1:0,1-Math.exp(-dt*7));
   const hc=G.box.localToWorld(new T.Vector3(.2+.028,.36,0)),hb=G.cam.localToWorld(new T.Vector3(0,.17,-.2));
@@ -743,7 +744,7 @@ function orthoShot(view,cx,cy,halfW,halfH){
   renderer.render(scene,o);scene.background=bg;
 }
 if(params.get("mood"))donkey.setMood(params.get("mood"));
-window.__pd={G,shot,setGround(f){groundFn=f;},setMood,orthoShot,step,render:()=>renderer.render(scene,camera),donkey,cam,act,heightAt,setStudy,camera};
+window.__pd={pick,G,shot,setGround(f){groundFn=f;},setMood,orthoShot,step,render:()=>renderer.render(scene,camera),donkey,cam,act,heightAt,setStudy,camera};
 if(params.has("study"))setStudy(true);
 if(!params.has("manual"))requestAnimationFrame(frame);
 applyCargo();
