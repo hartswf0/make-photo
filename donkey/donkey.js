@@ -258,9 +258,21 @@ function makeDonkey(opt){
     [.02,1.07,.545,.242,.83,.28],[.14,1.057,.537,.235,.83,.32],[.24,1.06,.542,.216,.84,.4],[.335,1.085,.56,.202,.86,.5],
     [.42,1.09,.58,.19,.88,.5],[.49,1.055,.635,.162,.92,.4],[.533,.99,.71,.1,.96,.2],[.55,.91,.79,.03,1,0]
   ].map(a=>{const cy=a[2]+(a[1]-a[2])*.52;return {p:[0,cy,a[0]],z:a[0],w:a[3],up:a[1]-cy,dn:cy-a[2],e:a[4],tw:a[5]};});
-  const torso=refine(torsoRaw,4);
+  const torso=refine(torsoRaw,6);
   const mottle=(a,b)=>1+.09*Math.sin(a*37+b*11)*Math.sin(a*13-b*29);
-  skinned(loft(torso,{seg:32,tan:[0,0,1],ur:9,vr:7,topw:1,rw:1,
+  const torsoSculpt=(r,cx,cy)=>{
+    const z=r.z,ax=Math.abs(cx)/(r.w||1),v=cy/(cy>0?r.up:r.dn),Bq=(a,c,w)=>Math.exp(-Math.pow((a-c)/w,2)),side=smooth(.45,.85,ax);
+    return side*(.012*Bq(z,.36,.07)*Bq(v,.25,.5)          // shoulder blade and its muscles
+      +.01*Bq(z,.27,.06)*Bq(v,-.35,.35)                    // triceps above the elbow
+      -.006*Bq(z,.2,.035)*Bq(v,-.1,.6)                     // groove behind the shoulder
+      +.0022*Math.sin(z*62)*smooth(-.12,-.02,z)*smooth(.22,.12,z)*Bq(v,-.1,.6)  // ribs under the coat
+      -.009*Bq(z,-.17,.06)*Bq(v,.25,.3)                    // hollow of the flank
+      +.012*Bq(z,-.3,.07)*Bq(v,.1,.5)                      // quadriceps
+      +.008*Bq(z,-.43,.05)*Bq(v,.0,.6))                    // hamstrings
+      +.007*Bq(z,-.25,.05)*Bq(v,.9,.25)*smooth(.25,.6,ax)  // point of the hip
+      +.008*Bq(z,.47,.04)*Bq(v,-.3,.3)*smooth(.2,.6,ax);   // point of the shoulder
+  };
+  skinned(loft(torso,{seg:36,sculpt:torsoSculpt,tan:[0,0,1],ur:9,vr:7,topw:1,rw:1,
     color:(r,sa,ca)=>{
       let g=lerp(COAT,.3,smooth(-.35,-.95,ca))*mottle(r.z,sa);
       if(ca>0)g=lerp(g,.04,1-smooth(.04,.15,Math.abs(sa)));
@@ -529,6 +541,8 @@ function makeDonkey(opt){
     fur:r=>lerp(.004,.026,smooth(.62,.5,r.p[1]))*smooth(.37,.41,r.p[1])+.003,
     skin:r=>{const k=clamp(r.k,0,2.999),i=Math.floor(k);return [B_TAIL[i],B_TAIL[i+1],k-i];}}),hide);
 
+  const hornDark=new T.MeshStandardMaterial({color:new T.Color(.03,.03,.03),roughness:.7});
+  const soleMat=new T.MeshStandardMaterial({color:new T.Color(.12,.115,.105),roughness:.9,side:T.DoubleSide});
   /* ----- legs ----- */
   const frontRings=[[.24,.01,.02,.02,0,-.05],[.2,.05,.09,.09,0,-.02],[.14,.07,.125,.125,0,.004],[.07,.08,.125,.125,0,.018],[0,.078,.108,.112,-.004,.02],
     [-.1,.07,.09,.09,-.002,.012],[-.19,.058,.07,.066,.002,.008],[-.27,.05,.056,.05,.006,0],[-.325,.047,.053,.044,.008,0],[-.355,.05,.059,.044,.01,0],
@@ -543,7 +557,7 @@ function makeDonkey(opt){
     const rings=refine((L.front?frontRings:hindRings).map(a=>{
       const th=lerp(1,1.2,smooth(.02,-.12,a[0])),T=L.front?[0,-.355,-.655,-.732]:[0,-.398,-.73,-.807],J=[0,j1,j2,j3];
       let y=a[0];for(let i=0;i<3;i++)if(a[0]<=T[i]&&a[0]>=T[i+1])y=lerp(J[i],J[i+1],(a[0]-T[i])/(T[i+1]-T[i]));
-      return {p:[L.x+s*a[5],L.y+y,L.z+a[4]],y,w:a[1]*th,up:a[2]*th,dn:a[3]*th};}),3);
+      return {p:[L.x+s*a[5],L.y+y,L.z+a[4]],y,w:a[1]*th,up:a[2]*th,dn:a[3]*th};}),5);
     const path=L.front?[[.26,.43,1.02],[0,.44,.79],[-.36,.44,.40],[-.655,.44,.13],[-.8,.45,0]]
       :[[.2,-.27,.93],[0,-.27,.73],[-.19,-.37,.56],[-.37,-.49,.40],[-.68,-.43,.11],[-.82,-.4,0]];
     const legProj=(r,cy)=>{
@@ -551,7 +565,38 @@ function makeDonkey(opt){
       const a=path[i],b=path[i+1],t=clamp((r.y-a[0])/(b[0]-a[0]),0,1);
       return [lerp(a[1],b[1],t)+cy*.9,lerp(a[2],b[2],t)];
     };
-    skinned(loft(rings,{seg:16,tan:[0,-1,0],ur:4,vr:7,proj:legProj,fw:1,rw:1,
+    const B=(v,c,w)=>Math.exp(-Math.pow((v-c)/w,2));
+    const legSculpt=(r,cx,cy)=>{ // cx: outward, cy: forward (+) / back (-)
+      const y=r.y,out=cx*s,ax=Math.abs(cx)/(r.w||1),fr=cy/(cy>0?r.up:r.dn),cannon=smooth(j1-.05,j1-.1,y)*smooth(j2+.03,j2+.07,y);
+      let d=0;
+      d+=-.0055*cannon*B(fr,-.45,.22)*smooth(.55,.9,ax);                 // groove between cannon bone and flexor tendons
+      d+=.0035*cannon*B(fr,-1,.3)*(1-ax);                                // tendons standing off behind the bone
+      d+=.002*cannon*B(fr,1,.25)*(1-ax);                                 // front edge of the cannon bone
+      d+=.005*B(y,j2+.005,.03)*(1+.6*B(fr,-1,.4));                       // fetlock joint and sesamoids
+      d+=.006*B(y,j2-.02,.014)*B(fr,-1,.3)*(1-ax);                       // ergot tuft
+      d+=-.003*B(y,j2-.045,.02)*smooth(.5,.9,ax);                        // waist of the pastern
+      d+=.004*B(y,j3+.012,.012);                                         // coronet band
+      if(L.front){
+        d+=.006*B(y,j1+.005,.03)*smooth(-.2,.6,fr)*(1-.5*ax);            // knee: carpal bones in front
+        d+=.007*B(y,j1-.012,.022)*B(fr,-1,.35)*(1-ax);                   // accessory carpal behind
+        d+=-.003*B(y,j1-.05,.02)*smooth(.3,.8,ax);                       // below the knee
+        d+=.008*B(y,-.16,.09)*B(fr,.35,.5)*smooth(-.2,.6,out/(r.w||1));  // extensor mass of the forearm
+        d+=.005*B(y,-.12,.07)*B(fr,-.8,.4);                              // flexor mass behind
+        d+=-.004*B(y,-.2,.1)*B(fr,-.1,.18)*smooth(.6,1,ax);              // furrow between them
+        d+=.007*B(y,-.03,.06)*B(fr,-.9,.4);                              // point of the elbow
+        d+=.004*B(y,-.13,.03)*B(fr,-.2,.3)*smooth(.5,1,-out/(r.w||1));   // chestnut, inside
+      } else {
+        d+=.012*B(y,j1+.03,.03)*B(fr,-1,.3)*(1-ax);                      // point of the hock
+        d+=-.008*B(y,j1+.11,.06)*B(fr,-.55,.25)*smooth(.5,.95,ax);       // hollow in front of the Achilles tendon
+        d+=.004*B(y,j1+.1,.07)*B(fr,-1,.25)*(1-ax);                      // Achilles tendon
+        d+=.005*B(y,j1+.0,.03)*smooth(.1,.8,fr)*(1-.4*ax);               // front of the hock
+        d+=.009*B(y,j1+.2,.08)*B(fr,.1,.6)*smooth(-.1,.7,out/(r.w||1));  // gaskin
+        d+=.008*B(y,.0,.07)*B(fr,.9,.35);                                // stifle
+        d+=-.005*B(y,-.06,.07)*B(fr,-.2,.2)*smooth(.6,1,ax);             // groove between thigh muscles
+      }
+      return d;
+    };
+    skinned(loft(rings,{seg:24,sculpt:legSculpt,tan:[0,-1,0],ur:4,vr:7,proj:legProj,fw:1,rw:1,
       color:(r,sa)=>lerp(lerp(COAT,.19,smooth(.2,.9,-sa*s)*smooth(j2,.05,r.y)),.065,smooth(j2+.1,j3,r.y)*.6)*mottle(r.y,sa),
       fur:(r,sa,ca)=>(lerp(.008,.017,smooth(j1-.04,j1+.12,r.y))+.014*smooth(-.1,-.8,ca)*(1-smooth(.02,.1,Math.abs(r.y-j2+.01))))*smooth(j3-.004,j3+.03,r.y),
       skin:r=>{
@@ -567,7 +612,11 @@ function makeDonkey(opt){
       {p:[L.x,L.y+j3-.04,L.z+.011],w:.045*k,up:.056*k,dn:.041*k},{p:[L.x,L.y+j3-HOOF+.003,L.z+.014],w:.048*k,up:.062*k,dn:.042*k}],2)
       .concat([{p:[L.x,L.y+j3-HOOF,L.z+.014],w:.044*k,up:.057*k,dn:.038*k},{p:[L.x,L.y+j3-HOOF+.008,L.z+.01],w:.004,up:.004,dn:.004}]);
     hoof.forEach(r=>{r.y=r.p[1]-L.y;});
-    skinned(loft(hoof,{seg:16,tan:[0,-1,0],ur:2,vr:14,proj:legProj,fw:1,rw:1,skin:()=>[L.b3,L.b3,0],color:()=>.2}),horn);
+    skinned(loft(hoof,{seg:20,tan:[0,-1,0],ur:2,vr:14,proj:legProj,fw:1,rw:1,skin:()=>[L.b3,L.b3,0],
+      disp:r=>1+.012*Math.sin(r.y*520),color:r=>.16+.06*Math.sin(r.y*520)}),horn);
+    for(const q of [1,-1]){const hb=rigid(new T.SphereGeometry(.017,10,8),hornDark,L.hoof,q*.017*k,-.03,-.03);hb.scale.set(1,.8,1.1);}
+    const sole=rigid(new T.CircleGeometry(.044*k,18),soleMat,L.hoof,0,-HOOF+.0035,.014);sole.rotation.x=Math.PI/2;sole.scale.y=1.2;
+    const frog=rigid(new T.ConeGeometry(.02*k,.05,3),hornDark,L.hoof,0,-HOOF+.004,-.004);frog.rotation.x=Math.PI/2;frog.scale.z=.25;
   }
 
   /* ----- pack (rides on the body bone) ----- */
@@ -596,7 +645,7 @@ function makeDonkey(opt){
   const bags=[];
   for(const s of [1,-1]){
     const hang=new T.Group();hang.position.set(s*.275,1.1,.06);pack.add(hang);
-    const bag=new T.Group();bag.position.set(s*.095,-.225,0);bag.rotation.z=s*.16;hang.add(bag);bags.push({hang,s});
+    const bag=new T.Group();bag.position.set(s*.095,-.225,0);bag.rotation.z=s*.16;hang.add(bag);bags.push({hang,bag,s});
     rigid(roundedBox(.2,.45,.52,.032),canvas,bag);
     rigid(roundedBox(.205,.03,.525,.012),canvasDark,bag,0,.21,0);
     rigid(roundedBox(.205,.03,.525,.012),canvasDark,bag,0,-.21,0);
@@ -616,7 +665,7 @@ function makeDonkey(opt){
       up:Math.max(.004,.165*sw*lump),dn:Math.max(.004,.095*sw),e:.66});
   }
   const fold=(r,sa,ca)=>Math.sin(sa*9+r.z*23)*Math.sin(ca*4+r.z*11)+.6*Math.sin(r.z*55+sa*4);
-  rigid(loft(rollProf,{seg:40,tan:[0,0,1],ur:5,vr:5,disp:(r,sa,ca)=>1+.035*fold(r,sa,ca),color:(r,sa,ca)=>.8+.2*fold(r,sa,ca)}),
+  const rollMesh=rigid(loft(rollProf,{seg:40,tan:[0,0,1],ur:5,vr:5,disp:(r,sa,ca)=>1+.035*fold(r,sa,ca),color:(r,sa,ca)=>.8+.2*fold(r,sa,ca)}),
     new T.MeshStandardMaterial({vertexColors:true,color:new T.Color(.42,.4,.36),roughness:.97,map:weave,bumpMap:weave,bumpScale:.8}),pack);
   for(const z of [-.12,.27]){
     const R=[-.022,0,.022].map(d=>Object.assign({},sampleRings(rollProf,"z",z+d)));
@@ -684,7 +733,7 @@ function makeDonkey(opt){
     shake:{label:"Shaking off",dur:1.5,snap:40,f:(t,P)=>{const e=pulse(t,0,1.5),k=Math.sin(t*24);P.roll=.42*k*e;P.yaw=.12*Math.cos(t*24)*e;
       P.droop=(.5+.45*k)*e;P.earTurn=.5*k*e;P.lid=.8*e;P.low=.5*e;P.neck=.1*e;P.jaw=.05*e;}}
   };
-  const S={stamina:1,pant:0,hv:0,load:1,down:0,downWant:false,collapsed:false,g2:0,g3:0,breathPh:0,nextEar:2,earAim:[0,0,0],mood:"calm",moodT:0,autoT:0,idleMood:6,alive:true,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,phase:0,gait:0,pitch:0,roll:0,moving:0,time:0,
+  const S={cargo:{m:38,x:0,y:.98,z:.03,L:14,R:14,T:10},list:0,nose:0,sw:0,swV:0,sp:0,spV:0,stamina:1,pant:0,hv:0,load:1,down:0,downWant:false,collapsed:false,g2:0,g3:0,breathPh:0,nextEar:2,earAim:[0,0,0],mood:"calm",moodT:0,autoT:0,idleMood:6,alive:true,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,phase:0,gait:0,pitch:0,roll:0,moving:0,time:0,
     bray:0,blink:0,nextBlink:2,idle:0,rest:0,swish:0,nextSwish:3,look:0,lookTarget:0,nextLook:2,slope:0,onStep:null,label:"Stand"};
   const v3=new T.Vector3(),m4=new T.Matrix4(),home=new T.Vector3();
   const fwdX=()=>Math.sin(S.heading),fwdZ=()=>Math.cos(S.heading);
@@ -705,12 +754,16 @@ function makeDonkey(opt){
     const fx=fwdX(),fz=fwdZ();
     const hF=heightAt(S.x+fx*.44,S.z+fz*.44),hH=heightAt(S.x-fx*.4,S.z-fz*.4);
     const slope=(hF-hH)/.84;S.slope=lerp(S.slope,slope,1-Math.exp(-dt*4));
-    const hv=S.hv=lerp(S.hv,S.load===2?1:0,1-Math.exp(-dt*3));
+    const C=S.cargo,cm=S.load?C.m:0;
+    const hv=S.hv=lerp(S.hv,clamp((cm-30)/45,0,1),1-Math.exp(-dt*3));
+    const listT=S.load?clamp(C.x*C.m*.03,-.2,.2):0,noseT=S.load?clamp(C.z*C.m*.012,-.06,.06):0;   // radians of list from off-centre mass
+    S.list=lerp(S.list,listT,1-Math.exp(-dt*2.5));S.nose=lerp(S.nose,noseT,1-Math.exp(-dt*2.5));
+    const tippy=S.load?clamp((C.y-.95)*2.2+(cm-30)/120,0,1):0,off=Math.min(1,Math.abs(S.list)/.12);
     const pant=S.pant=lerp(S.pant,smooth(.7,.15,S.stamina),1-Math.exp(-dt*1.5));
     let pace=ctl.pace!==undefined?ctl.pace:(ctl.trot?1:0);
-    if(S.load===2)pace=Math.min(pace,1);
+    if(hv>.55||off>.75)pace=Math.min(pace,1);else if(hv>.25||off>.4)pace=Math.min(pace,2);
     const slopeU=clamp(S.slope/.32,0,1),slopeD=clamp(-S.slope/.32,0,1);
-    const top=[1.3,3.3,4.8,7][pace]*(1-.45*slopeU-.4*slopeD)*(1-.3*hv)*lerp(1,.5,pant);
+    const top=[1.3,3.3,4.8,7][pace]*(1-.45*slopeU-.4*slopeD)*(1-.3*hv)*(1-.3*off)*lerp(1,.5,pant);
     /* lying down and getting up */
     if(S.stamina<=0&&!S.downWant){S.downWant=true;S.collapsed=true;if(S.onMood)S.onMood("collapse");}
     if(S.downWant&&S.down>.98&&ctl.throttle>.2&&S.stamina>.3){S.downWant=false;S.collapsed=false;}
@@ -750,7 +803,7 @@ function makeDonkey(opt){
     S.moving=lerp(S.moving,driving?1:0,1-Math.exp(-dt*5));
     S.idle=driving||settle?0:S.idle+dt;
     S.rest=lerp(S.rest,S.idle>9&&Math.abs(S.pitch)<.12?1:0,1-Math.exp(-dt*(S.idle>9?1.5:9)));
-    S.label=S.down>.5?(S.collapsed?"Collapsed":"Lying down"):S.down>0?(rising?"Getting up":"Going down"):!driving?"Stand":g3>.5?"Gallop":g2>.5?"Canter":sp<=.04?"Turn":S.speed<0?"Back":S.gait>.5?"Trot":S.slope>.14?"Uphill step":S.slope<-.14?"Downhill step":hv>.5?"Heavy walk":pant>.6?"Exhausted walk":"Walk";
+    S.label=S.down>.5?(S.collapsed?"Collapsed":"Lying down"):S.down>0?(rising?"Getting up":"Going down"):!driving?"Stand":off>.6&&sp>.1?(S.list>0?"Listing left":"Listing right"):g3>.5?"Gallop":g2>.5?"Canter":sp<=.04?"Turn":S.speed<0?"Back":S.gait>.5?"Trot":S.slope>.14?"Uphill step":S.slope<-.14?"Downhill step":hv>.5?"Heavy walk":pant>.6?"Exhausted walk":"Walk";
 
     /* feet */
     for(const L of legDefs){
@@ -787,7 +840,7 @@ function makeDonkey(opt){
     S.roll=lerp(S.roll,Math.atan2(hL-hR,.4)*.55,k);
     group.position.set(S.x,S.y,S.z);
     S.lean=lerp(S.lean||0,clamp(S.yawRate*S.speed*.05,-.14,.14),1-Math.exp(-dt*5));
-    group.rotation.set(-S.pitch+F.bodyPitch+clamp(S.accel*.012,-.05,.05),S.heading,-S.roll+S.lean+lieK*.16);
+    group.rotation.set(-S.pitch+F.bodyPitch+clamp(S.accel*.012,-.05,.05)+S.nose*.5,S.heading,-S.roll+S.lean+lieK*.16-S.list*.55-S.sw*.06*(1+tippy));
 
     /* body rhythm */
     const ph=S.phase*TAU,mv=S.moving,g=S.gait,walk=mv*(1-g),trot=mv*g*(1-g2),run=mv*g2;
@@ -870,9 +923,14 @@ function makeDonkey(opt){
     }
 
     /* load sways against the stride */
-    packPivot.rotation.set(trot*.012*Math.sin(ph*2+2.2),0,walk*.018*Math.sin(ph+2.1)+trot*.012*Math.sin(ph+1));
+    { // the load is a damped pendulum on the back: gravity pulls it toward the heavy side, turns and strides throw it
+      const w=lerp(13,5.5,tippy),aLat=S.yawRate*S.speed,drive=walk*1.6*Math.sin(ph+2.1)+trot*2.2*Math.sin(ph+1)+run*3*Math.sin(ph+.4);
+      S.swV+=(-w*w*(S.sw+S.list*1.6)-2*.28*w*S.swV+(aLat*1.1+drive)*(1+2.2*tippy))*dt;S.sw=clamp(S.sw+S.swV*dt,-.4,.4);
+      S.spV+=(-w*w*(S.sp-S.nose)-2*.3*w*S.spV+(-S.accel*.9+trot*2*Math.sin(ph*2+2.2)+run*4*Math.sin(ph+2))*(1+1.5*tippy))*dt;S.sp=clamp(S.sp+S.spV*dt,-.3,.3);
+    }
+    packPivot.rotation.set(S.sp*.25,0,S.sw*.3);
     packPivot.position.y=trot*.007*Math.cos(ph*2+1.3);
-    for(const G of bags)G.hang.rotation.z=G.s*(walk*.03*Math.sin(ph*2+G.s)+trot*.05*Math.max(0,Math.sin(ph*2+1.6+G.s)));
+    for(const G of bags)G.hang.rotation.z=G.s*(walk*.03*Math.sin(ph*2+G.s)+(trot*.05+run*.09)*Math.max(0,Math.sin(ph*2+1.6+G.s)))-S.sw*.5;
 
     /* tail */
     if(t>S.nextSwish){S.swish=1;S.nextSwish=t+2+hash(t+2)*6;}
@@ -903,6 +961,7 @@ function makeDonkey(opt){
       const rs=Math.max(S.rest,F.rest*(1-mv));
       if(L.name==="HL"&&rs>.001){chi=lerp(chi,50*DEG,rs);psi=lerp(psi,-8*DEG,rs);}
       let lift=L.lift;
+      if(Math.abs(S.list)>.004){const heavySide=Math.sign(L.x)===Math.sign(S.list)?1:0;psi+=heavySide*Math.abs(S.list)*1.1;v3.x+=Math.sign(S.list)*(heavySide?.02:.05)*off;}
       if(lieK>0){v3.z+=lieK*(L.front?-.2:.26);v3.x+=Math.sign(L.x)*lieK*.05;chi=lerp(chi,.5,lieK);}
       if(L.name==="FL"&&F.paw>.002){lift+=F.paw*.24;v3.z+=F.pawFwd*.24;chi=lerp(chi,.7,F.paw);psi=lerp(psi,-.3,F.paw);}
       if(!L.front&&F.kick>.002){lift+=F.kick*(L.x>0?.46:.4);v3.z-=F.kick*.5;chi=lerp(chi,1.1,F.kick);psi=lerp(psi,-.5,F.kick);}
@@ -936,7 +995,17 @@ function makeDonkey(opt){
     faceAt(out){return out.copy(facePoint.set(0,-.03,.3)).applyMatrix4(headFrame.matrixWorld);},
     setFur(on){for(const f of furMeshes)f.visible=on;},
     setPack(on){this.setLoad(on?1:0);},
-    setLoad(n){S.load=n;pack.visible=halter.visible=n>0;heavy.visible=n===2;},
+    setLoad(n){S.load=n;if(n===2)this.setCargo([{kg:20,slot:"L"},{kg:20,slot:"R"},{kg:34,slot:"T"}]);else if(n===1)this.setCargo([{kg:14,slot:"L"},{kg:14,slot:"R"},{kg:10,slot:"T"}]);else pack.visible=halter.visible=false;},
+    /* items: [{kg, slot: "L" | "R" | "T" | "F" | "B"}] -> total mass and centre of gravity over the back */
+    setCargo(items){
+      const P={L:[.36,.9,.03],R:[-.36,.9,.03],T:[0,1.32,.1],F:[0,1.2,.36],B:[0,1.2,-.2]},C={m:0,x:0,y:0,z:0,L:0,R:0,T:0};
+      for(const it of items){const q=P[it.slot];if(!q)continue;C.m+=it.kg;C.x+=it.kg*q[0];C.y+=it.kg*q[1];C.z+=it.kg*q[2];C[it.slot==="L"||it.slot==="R"?it.slot:"T"]+=it.kg;}
+      if(C.m>0){C.x/=C.m;C.y/=C.m;C.z/=C.m;}else C.y=.95;
+      S.cargo=C;S.load=C.m>0?1:0;pack.visible=halter.visible=C.m>0;
+      for(const G of bags){const k=G.s>0?C.L:C.R;G.bag.visible=k>0;G.bag.scale.set(lerp(.55,1.3,clamp(k/26,0,1)),1,1);}
+      rollMesh.visible=C.T>0;heavy.visible=C.T>18;
+      return C;
+    },
     lie(){if(S.collapsed)return;S.downWant=!S.downWant;},
     moods:Object.keys(MOODS).map(k=>({id:k,label:MOODS[k].label})),
     setMood(id){if(!MOODS[id])return;S.mood=id;S.moodT=0;S.autoT=0;S.idleMood=id==="calm"?12:8;if(id==="startled")S.speed=Math.min(S.speed,-.9);if(S.onMood)S.onMood(id);},

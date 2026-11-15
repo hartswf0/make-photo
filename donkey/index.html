@@ -32,6 +32,25 @@
     body.study .keys b{border-color:rgba(27,26,23,.5)}body.study .vignette{display:none}
     .stam{width:150px;height:3px;margin-top:9px;background:rgba(241,238,230,.25)}.stam i{display:block;height:100%;width:100%;background:#f1eee6}
     .stam.low i{opacity:.5}body.study .stam{background:rgba(27,26,23,.2)}body.study .stam i{background:#1b1a17}
+    #packing{position:fixed;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));bottom:76px;width:min(370px,calc(100vw - 24px));
+      display:flex;flex-direction:column;gap:8px;padding:14px;box-sizing:border-box;background:rgba(21,22,19,.9);color:#f1eee6;border:1px solid rgba(241,238,230,.3);border-radius:10px;
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:5;-webkit-user-select:none;user-select:none}
+    #packing[hidden]{display:none}
+    #packing header{display:flex;justify-content:space-between;align-items:center}
+    #packing h2{margin:0;font:400 22px/1 "Instrument Serif",Georgia,serif;letter-spacing:.12em;text-transform:uppercase}
+    #packing button{font:600 10px/1 Inter,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#f1eee6;background:transparent;border:1px solid rgba(241,238,230,.4);border-radius:999px;min-height:32px;padding:0 10px;cursor:pointer}
+    #packing button[aria-pressed="true"]{background:#f1eee6;color:#151613;border-color:#f1eee6}
+    .pk-sum{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-variant-numeric:tabular-nums}.pk-sum b{font-size:20px;font-weight:600}.pk-sum span{font-size:11px;opacity:.8}
+    .pk-beam{position:relative;height:22px}.pk-beam i{position:absolute;left:4%;right:4%;top:6px;height:1px;background:rgba(241,238,230,.5)}
+    .pk-beam i::after{content:"";position:absolute;left:50%;top:-4px;height:9px;width:1px;background:rgba(241,238,230,.7)}
+    .pk-beam em{position:absolute;top:1px;width:11px;height:11px;margin-left:-5.5px;border-radius:50%;background:#f1eee6;transition:left .25s}
+    .pk-beam span{position:absolute;bottom:-2px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;opacity:.6}.pk-beam span:last-child{right:0}
+    #packing p{margin:0;font-size:12px;line-height:1.4}#pk-height{opacity:.75}
+    #pk-list{overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:0;flex:1;touch-action:pan-y;padding-right:2px}
+    .pk-row{display:flex;flex-direction:column;gap:5px;padding:8px 0;border-top:1px solid rgba(241,238,230,.16)}.pk-row.off .pk-txt{opacity:.55}
+    .pk-txt{display:grid;grid-template-columns:1fr auto;gap:0 8px;font-size:13px}.pk-txt span{font-variant-numeric:tabular-nums}.pk-txt small{grid-column:1/-1;font-size:11px;opacity:.7}
+    .pk-seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+    @media (hover:none),(max-width:640px){#packing{left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));width:auto;top:auto;height:58vh;bottom:max(10px,env(safe-area-inset-bottom))}}
     #b-more{display:none}
     @media (hover:none),(max-width:640px){
       .bar{left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));max-width:none;gap:6px;display:grid;grid-template-columns:repeat(4,1fr)}
@@ -62,7 +81,7 @@
   <p class="keys">
     <b>W</b><b>A</b><b>S</b><b>D</b> drive &nbsp; <b>Shift</b> trot &nbsp; <b>Z</b> canter &nbsp; <b>X</b> gallop &nbsp; <b>K</b> lie down &nbsp; <b>Space</b> bray<br>
     <b>1</b>–<b>0</b> <b>-</b> <b>=</b> <b>[</b> <b>]</b> <b>;</b> <b>'</b> <b>\</b> moods &nbsp; <b>E</b> next mood &nbsp; <b>F</b> face camera &nbsp; <b>G</b> mood reel<br>
-    <b>P</b> load &nbsp; <b>C</b> view &nbsp; <b>V</b> study &nbsp; <b>R</b> reset &nbsp; drag to look, scroll to zoom
+    <b>P</b> packing &nbsp; <b>C</b> view &nbsp; <b>V</b> study &nbsp; <b>R</b> reset &nbsp; drag to look, scroll to zoom
   </p>
   <div class="bar">
     <button id="b-trot" data-act="trot" aria-pressed="false">Walk</button>
@@ -77,6 +96,13 @@
     <button id="b-sound" class="x" data-act="sound" aria-pressed="true">Sound</button>
     <button id="b-more" data-act="more" aria-pressed="false" aria-label="More controls">···</button>
   </div>
+  <section id="packing" hidden aria-label="Packing">
+    <header><h2>Packing</h2><button type="button" data-act="pack" aria-label="Close packing">Done</button></header>
+    <div class="pk-sum"><b id="pk-total">0 kg</b><span id="pk-sides"></span></div>
+    <div class="pk-beam" aria-hidden="true"><i></i><em id="pk-dot"></em><span>Left</span><span>Right</span></div>
+    <p id="pk-height"></p><p id="pk-verdict"></p>
+    <div id="pk-list"></div>
+  </section>
   <div id="stick"><div id="nub"></div></div>
   <script src="../field-plates/fonts.js"></script>
   <script src="../field-plates/three.js"></script>

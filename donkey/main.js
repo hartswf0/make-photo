@@ -221,6 +221,52 @@ let trotLatch=false,packOn=true,paceLatch=0,groundFn=null;
 const stick={id:null,x:0,y:0,ox:0,oy:0};
 const orbit={id:null,x:0,y:0};
 let reel=-1,reelT=0;
+/* ---------- packing: every item has a weight and a place; the donkey carries the sum ---------- */
+const items=[
+  {id:"camera",name:"8×10 view camera",note:"Folding field camera in its walnut case",kg:9,slot:"L"},
+  {id:"plates",name:"Glass plates",note:"Two dozen 8×10 dry plates, boxed in felt",kg:11,slot:"R"},
+  {id:"holders",name:"Plate holders",note:"Six double holders, loaded in the changing tent",kg:6.5,slot:"L"},
+  {id:"lenses",name:"Lens case",note:"Three lenses, shutter, lens board",kg:3,slot:"R"},
+  {id:"filters",name:"Filters and meter",note:"Yellow, red and green glass; exposure meter",kg:1.2,slot:"L"},
+  {id:"tripod",name:"Tripod",note:"Ash legs, brass fittings, lashed lengthwise on top",kg:5.5,slot:"T"},
+  {id:"tent",name:"Dark cloth and changing tent",note:"For loading holders in the field",kg:2.5,slot:"T"},
+  {id:"bedroll",name:"Bedroll",note:"Wool blankets in a canvas cover",kg:4,slot:"T"},
+  {id:"water",name:"Water canteens",note:"Two gallons, the heaviest thing for its size",kg:8,slot:"R"},
+  {id:"grain",name:"Grain sack",note:"Oats for the donkey",kg:10,slot:"-"},
+  {id:"cook",name:"Cook kit",note:"Pot, pan, coffee, tins",kg:3.5,slot:"L"},
+  {id:"tarp",name:"Coat and tarp",note:"Oilcloth for the load in rain",kg:3,slot:"T"}
+];
+const SLOTS=[["L","Left"],["T","Top"],["R","Right"],["-","Off"]];
+function applyCargo(){return donkey.setCargo(items.filter(i=>i.slot!=="-"));}
+function drawPacking(){
+  const C=applyCargo(),list=$("pk-list");list.textContent="";
+  for(const it of items){
+    const row=document.createElement("div");row.className="pk-row"+(it.slot==="-"?" off":"");
+    const txt=document.createElement("div");txt.className="pk-txt";
+    const nm=document.createElement("b");nm.textContent=it.name;const kg=document.createElement("span");kg.textContent=it.kg.toFixed(1)+" kg";
+    const nt=document.createElement("small");nt.textContent=it.note;txt.append(nm,kg,nt);
+    const seg=document.createElement("div");seg.className="pk-seg";seg.setAttribute("role","group");seg.setAttribute("aria-label","Place "+it.name);
+    for(const [id,label] of SLOTS){
+      const b=document.createElement("button");b.type="button";b.textContent=label;b.setAttribute("aria-pressed",it.slot===id);
+      b.addEventListener("click",()=>{it.slot=id;drawPacking();});seg.append(b);
+    }
+    row.append(txt,seg);list.append(row);
+  }
+  const diff=C.L-C.R,tilt=C.x*C.m;
+  $("pk-total").textContent=C.m.toFixed(1)+" kg";
+  $("pk-sides").textContent="Left "+C.L.toFixed(1)+" · Top "+C.T.toFixed(1)+" · Right "+C.R.toFixed(1);
+  $("pk-dot").style.left=(50-clamp(tilt/8,-1,1)*46)+"%";
+  $("pk-height").textContent=C.m?"Centre of gravity "+Math.round(C.y*100)+" cm above the ground":"Nothing loaded";
+  const v=[];
+  if(!C.m)v.push("Unloaded.");
+  else{
+    if(Math.abs(diff)<2)v.push("Balanced side to side.");else v.push("Lists "+(diff>0?"left":"right")+" by "+Math.abs(diff).toFixed(1)+" kg. Even the panniers or the saddle will turn.");
+    if(C.T>C.m*.45&&C.T>12)v.push("Top-heavy: the load will sway in turns.");
+    if(C.m>60)v.push("Overloaded. A donkey this size carries about 50 kg; it will tire fast and cannot run.");
+    else if(C.m>45)v.push("A full load. Walk and trot only.");
+  }
+  $("pk-verdict").textContent=v.join(" ");
+}
 function snort(){
   if(!audio||muted)return;
   const t=audio.currentTime,src=audio.createBufferSource(),f=audio.createBiquadFilter(),g=audio.createGain();
@@ -236,7 +282,7 @@ function setMood(id){ensureAudio();donkey.setMood(id);}
 const moodKeys={"1":"calm","2":"alert","3":"curious","4":"content","5":"sleepy","6":"annoyed","7":"startled","8":"bray","9":"flehmen","0":"yawn","-":"chew","=":"shake","[":"graze","]":"lick",";":"greet","'":"paw","\\":"kick"};
 function act(name){
   ensureAudio();
-  if(name==="pack"){const n=(S.load+1)%3;donkey.setLoad(n);$("b-pack").textContent=["No load","Pack","Heavy"][n];$("b-pack").setAttribute("aria-pressed",n>0);}
+  if(name==="pack"){const p=$("packing");p.hidden=!p.hidden;$("b-pack").setAttribute("aria-pressed",!p.hidden);if(!p.hidden)drawPacking();}
   if(name==="trot"){paceLatch=(paceLatch+1)%4;$("b-trot").textContent=["Walk","Trot","Canter","Gallop"][paceLatch];$("b-trot").setAttribute("aria-pressed",paceLatch>0);}
   if(name==="lie")donkey.lie();
   if(name==="more"){const b=document.querySelector(".bar");b.classList.toggle("open");$("b-more").setAttribute("aria-pressed",b.classList.contains("open"));}
@@ -363,5 +409,6 @@ if(params.get("mood"))donkey.setMood(params.get("mood"));
 window.__pd={setGround(f){groundFn=f;},setMood,orthoShot,step,render:()=>renderer.render(scene,camera),donkey,cam,act,heightAt,setStudy,camera};
 if(params.has("study"))setStudy(true);
 if(!params.has("manual"))requestAnimationFrame(frame);
+applyCargo();
 document.body.classList.add("ready");
 })();
