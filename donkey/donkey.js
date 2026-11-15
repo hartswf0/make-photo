@@ -61,6 +61,7 @@ function loft(rings,opt){
     }
   }
   for(let i=0;i<n-1;i++)for(let j=0;j<seg;j++){
+    if(opt.cut&&opt.cut(rings[i],rings[i+1],lerp(a0,a1,j/seg),lerp(a0,a1,(j+1)/seg)))continue;
     const a=i*(seg+1)+j,b=a+1,c=a+seg+1,d=c+1;
     idx.push(a,c,b,b,c,d);
   }
@@ -172,13 +173,14 @@ function makeDonkey(){
         "float hw=vHA.z+vHB.z;if(hw>.001)pc=mix(pc,(texture2D(tHead,vHA.xy).r*vHA.z+texture2D(tHead,vHB.xy).r*vHB.z)/hw,clamp(hw,0.,1.));\n"+
         "pc=pow(pc,2.2);pc=pc*2.1/(1.+1.7*pc);\n"+
         "diffuseColor.rgb=mix(diffuseColor.rgb,vec3(pc)*(.72+.4*texture2D(map,vMapUv).r),vProj.z);\n"+
-        "if(shell>0.)diffuseColor.rgb*=mix(.75,1.35,shell*shell);");
+        "if(shell>0.)diffuseColor.rgb*=mix(.75,1.35,shell*shell);if(!gl_FrontFacing)diffuseColor.rgb*=.22;");
     };
     return m;
   }
   const SHELLS=14,shellMats=[];
   for(let i=1;i<=SHELLS;i++)shellMats.push(coat(new T.MeshStandardMaterial({vertexColors:true,map:furMap,roughness:1,alphaToCoverage:true}),i/SHELLS));
   coat(hide,0);
+  const hideOpen=coat(hide.clone(),0);hideOpen.side=T.DoubleSide;hideOpen.shadowSide=T.FrontSide;
   const horn=coat(new T.MeshStandardMaterial({vertexColors:true,roughness:.6,map:furMap}),0);
   const canvas=new T.MeshStandardMaterial({color:new T.Color(.36,.345,.31),roughness:.96,map:weave,bumpMap:weave,bumpScale:.8,side:T.DoubleSide});
   const canvasDark=new T.MeshStandardMaterial({color:new T.Color(.3,.285,.255),roughness:.97,map:weave,bumpMap:weave,bumpScale:.8,side:T.DoubleSide});
@@ -202,6 +204,9 @@ function makeDonkey(){
   const B_NECK1=bone("neck1",B_CHEST,0,.92,.45);
   const B_NECK2=bone("neck2",B_NECK1,0,1.04,.68);
   const B_HEAD=bone("head",B_NECK2,0,1.25,.868);
+  const HEAD_PITCH=1.1,HS=1.19;
+  const headPt=(y,l)=>[0,bind[B_HEAD][1]+HS*(y*Math.cos(HEAD_PITCH)-l*Math.sin(HEAD_PITCH)),bind[B_HEAD][2]+HS*(y*Math.sin(HEAD_PITCH)+l*Math.cos(HEAD_PITCH))];
+  const B_JAW=bone("jaw",B_HEAD,...headPt(-.05,.12)),B_LIP=bone("lip",B_HEAD,...headPt(.02,.4));
   const tailPts=[[0,1.0,-.47],[0,.91,-.503],[0,.79,-.512],[0,.67,-.514],[0,.56,-.512]];
   const B_TAIL=[];for(let i=0;i<4;i++)B_TAIL.push(bone("tail"+i,i?B_TAIL[i-1]:B_PELVIS,...tailPts[i]));
   const LP=.075,HOOF=.06;
@@ -228,7 +233,7 @@ function makeDonkey(){
   function skinned(geo,mat){
     const m=new T.SkinnedMesh(geo,mat);m.castShadow=true;m.receiveShadow=true;m.frustumCulled=false;
     group.add(m);m.bind(skeleton);meshes.push(m);
-    if(mat===hide)for(const sm of shellMats){
+    if(mat===hide||mat===hideOpen)for(const sm of shellMats){
       const f=new T.SkinnedMesh(geo,sm);f.frustumCulled=false;f.receiveShadow=true;group.add(f);f.bind(skeleton);furMeshes.push(f);
     }
     return m;
@@ -284,14 +289,14 @@ function makeDonkey(){
   skinned(loft(maneRings,{seg:8,ur:3,vr:9,pw:.5,skin:neckSkin,color:()=>.03,fur:(r,sa,ca)=>.012+.034*smooth(-.2,.7,ca)}),hide);
 
   /* ----- head ----- */
-  const HEAD_PITCH=1.1;
-  const HS=1.19,headXf=new T.Matrix4().makeRotationX(HEAD_PITCH).scale(new T.Vector3(HS,HS,HS)).setPosition(bind[B_HEAD][0],bind[B_HEAD][1],bind[B_HEAD][2]);
+  const headXf=new T.Matrix4().makeRotationX(HEAD_PITCH).scale(new T.Vector3(HS,HS,HS)).setPosition(bind[B_HEAD][0],bind[B_HEAD][1],bind[B_HEAD][2]);
   const headRings=refine([[-.06,.03,.03,.035,0,0],[-.03,.092,.088,.1,.2,.2],[.03,.116,.106,.138,.22,.32],[.1,.124,.11,.168,.26,.46],
     [.18,.12,.102,.178,.3,.5],[.25,.104,.09,.156,.34,.46],[.31,.086,.077,.108,.34,.32],[.365,.074,.069,.084,.26,.2],
     [.41,.073,.068,.082,.16,.1],[.45,.071,.066,.084,.12,.1],[.485,.06,.054,.066,.1,.1,.004],[.505,.024,.022,.03,0,0,.008]
   ].map(a=>({p:[0,-.01+(a[6]||0),a[0]],l:a[0],w:a[1],up:a[2],dn:a[3],tw:a[4],bw:a[5]})),8);
   const headAt=l=>sampleRings(headRings,"l",l);
   const EYE=[0,.005,.21];EYE[0]=surf(headAt(EYE[2]),EYE[1]+.01);
+  const MOUTH=-.048,headY=(r,ca)=>(ca>0?ca*r.up:ca*r.dn)+r.p[1],lipY=r=>Math.max(MOUTH,r.p[1]-.56*r.dn);
   const G=(a,b,c,sa,sb,sc)=>Math.exp(-(a*a/(sa*sa)+b*b/(sb*sb)+c*c/(sc*sc)));
   const sculptHead=(r,x,y)=>{
     const ax=Math.abs(x),yy=y-.01,l=r.l;
@@ -303,10 +308,17 @@ function makeDonkey(){
       +.004*G(ax-.07,yy+.0,l-.31,.03,.012,.06)                      // facial crest
       -.016*G(ax-.036,yy-.004,l-.484,.013,.016,.013)                  // nostril
       +.006*G(ax-.05,yy-.012,l-.468,.012,.02,.02)                  // nostril wing
-      -.0045*G(0,yy+.062,l-.46,1,.005,.05)*smooth(.385,.42,l)         // mouth
+      -.004*G(0,yy+.05,l-.46,1,.005,.05)*smooth(.385,.42,l)         // mouth
       +.002*G(ax,yy+.07,l-.45,.03,.012,.03);                       // chin
   };
-  skinned(loft(headRings,{seg:44,ur:5,vr:9,topw:.2,fw:1,xf:headXf,sculpt:sculptHead,hw:(r,sa,ca)=>lerp(smooth(.25,-.1,ca),1,smooth(.02,.12,r.l)),skin:()=>[B_HEAD,B_HEAD,0],tan:[0,0,1],
+  skinned(loft(headRings,{seg:44,ur:5,vr:9,topw:.2,fw:1,xf:headXf,sculpt:sculptHead,hw:(r,sa,ca)=>lerp(smooth(.25,-.1,ca),1,smooth(.02,.12,r.l)),skin:(r,sa,ca)=>{
+      const l=r.l,yy=headY(r,ca),m=lipY(r);
+      if(yy>m)return [B_HEAD,B_LIP,smooth(.41,.5,l)];
+      const k=smooth(.3,.385,l);
+      return [B_HEAD,B_JAW,smooth(.1,.28,l)*smooth(lerp(-.02,m+.00002,k),lerp(-.08,m-.00002,k),yy)];
+    },
+    cut:(a,b,p,q)=>Math.min(a.l,b.l)>.385&&Math.cos((p+q)/2)<0&&((headY(a,Math.cos(p))-lipY(a))*(headY(a,Math.cos(q))-lipY(a))<=0||(headY(b,Math.cos(p))-lipY(b))*(headY(b,Math.cos(q))-lipY(b))<=0),
+    tan:[0,0,1],
     fur:(r,sa,ca)=>{
       const dy=(ca>0?ca*r.up:ca*r.dn)-EYE[1],d=Math.abs(sa)>.5?Math.hypot(r.l-EYE[2],dy):1;
       return lerp(.0055,.0015,smooth(.26,.38,r.l))*smooth(.505,.46,r.l)*smooth(.018,.045,d);
@@ -317,10 +329,10 @@ function makeDonkey(){
       
       g=lerp(g,.5,smooth(.3,.37,r.l));
       return lerp(g,.16,smooth(.47,.505,r.l));
-    }}),hide);
+    }}),hideOpen);
   (function fitPortrait(){
     const L=[[-EYE[0],EYE[1],EYE[2],240,232,12],[EYE[0],EYE[1],EYE[2],352,233],[-.036,.004,.487,335,386,4],[0,-.004,.507,378,402],
-      [0,-.09,.46,322,442],[0,.1,.02,252,116],[-.06,-.155,.19,192,368],[0,.098,.19,306,208],[0,.068,.37,350,316],[-.055,-.062,.41,292,402]];
+      [0,-.09,.46,322,442],[0,.1,.02,252,116],[-.06,-.155,.19,192,368],[0,.098,.19,306,208],[0,.068,.37,350,316],[-.055,-.05,.41,292,402]];
     const A=[0,1,2,3].map(()=>[0,0,0,0,0,0]),v=new T.Vector3();
     for(const q of L){
       v.set(q[0],q[1],q[2]).applyMatrix4(headXf);const x=[v.x,v.y,v.z,1];
@@ -341,7 +353,22 @@ function makeDonkey(){
     makeDonkey.fit={meanPixelError:err/L.length,dir:d.toArray()};
   })();
   const headFrame=new T.Group();headFrame.rotation.x=HEAD_PITCH;headFrame.scale.setScalar(HS);bones[B_HEAD].add(headFrame);
-  const ears=[],lids=[];
+  const frameOn=b=>{const f=new T.Group();f.rotation.x=HEAD_PITCH;f.scale.setScalar(HS);
+    f.position.set(0,bind[B_HEAD][1]-bind[b][1],bind[B_HEAD][2]-bind[b][2]);bones[b].add(f);return f;};
+  const jawFrame=frameOn(B_JAW),lipFrame=frameOn(B_LIP);
+  const gum=new T.MeshStandardMaterial({color:new T.Color(.035,.03,.03),roughness:.5});
+  const tooth=new T.MeshStandardMaterial({color:new T.Color(.62,.6,.52),roughness:.35});
+  const tongueMat=new T.MeshStandardMaterial({color:new T.Color(.2,.17,.17),roughness:.4});
+  const blob=(mat,par,x,y,z,sx,sy,sz)=>{const m=rigid(new T.SphereGeometry(1,14,10),mat,par,x,y,z);m.scale.set(sx,sy,sz);m.castShadow=false;return m;};
+  blob(gum,headFrame,0,-.05,.27,.05,.05,.05);
+  blob(tongueMat,jawFrame,0,-.064,.4,.024,.008,.07);
+  for(let i=0;i<6;i++){
+    const a=(i-2.5)*.3,x=Math.sin(a)*.03,z=.458+Math.cos(a)*.03;
+    const up=rigid(new T.BoxGeometry(.0085,.014,.006),tooth,headFrame,x,-.038,z);up.rotation.y=a;up.castShadow=false;
+    const dn=rigid(new T.BoxGeometry(.0085,.013,.006),tooth,jawFrame,x*.94,-.058,z-.003);dn.rotation.y=a;dn.castShadow=false;
+  }
+
+  const ears=[],lids=[],nostrils=[];
   const earGeo=(function(){
     const NU=22,NV=11,pos=[],col=[],uv=[],fur=[],idx=[],ring=NV*2;
     for(let i=0;i<=NU;i++){
@@ -368,19 +395,22 @@ function makeDonkey(){
     return g;
   })();
   const lidGeo=new T.SphereGeometry(.0138,14,8,0,TAU,0,Math.PI*.5);
+  const lidLow=lidGeo.clone().rotateX(Math.PI);
   const lidMat=new T.MeshStandardMaterial({color:new T.Color(.05,.05,.05),roughness:.9});
   for(const s of [1,-1]){
-    const pivot=new T.Group();pivot.position.set(s*.088,-.012,.045);bones[B_HEAD].add(pivot);
+    const sw=new T.Group();sw.position.set(s*.088,-.012,.045);sw.rotation.order="YXZ";bones[B_HEAD].add(sw);
+    const pivot=new T.Group();sw.add(pivot);
     pivot.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),new T.Vector3(s*.42,.84,.36).normalize());
     const twist=new T.Group();twist.rotation.y=s*.85;pivot.add(twist);
     const ear=new T.Group();twist.add(ear);
     rigid(earGeo,hide,ear);
-    ears.push({ear,s,flick:0,next:1+hash(s+5)*4});
+    ears.push({ear,sw,s,flick:0,next:1+hash(s+5)*4});
     const ex=s*(EYE[0]-.0165);
     rigid(new T.SphereGeometry(.0125,16,12),eyeMat,headFrame,ex,EYE[1],EYE[2]);
-    const lid=rigid(lidGeo,lidMat,headFrame,ex,EYE[1],EYE[2]);lid.castShadow=false;lids.push({lid,s});
-    const nostril=rigid(new T.SphereGeometry(.014,10,8),dark,headFrame,s*.031,.006,.481);
-    nostril.scale.set(.8,1.25,.5);nostril.rotation.set(-.35,s*.5,s*.3);
+    const lid=rigid(lidGeo,lidMat,headFrame,ex,EYE[1],EYE[2]);lid.castShadow=false;
+    const low=rigid(lidLow,lidMat,headFrame,ex,EYE[1],EYE[2]);low.castShadow=false;lids.push({lid,low,s});
+    const nostril=rigid(new T.SphereGeometry(.014,10,8),dark,lipFrame,s*.031,.006,.481);
+    nostril.scale.set(.8,1.25,.5);nostril.rotation.set(-.35,s*.5,s*.3);nostrils.push(nostril);
   }
   /* halter (always worn) */
   function band(rings,inflate,mat,parent,arc,seg){
@@ -519,7 +549,36 @@ function makeDonkey(){
   for(let i=0;i<2;i++)tube([[-.46,1.11,-.22+i*.56],[-.43,1.24,-.17+i*.44],[0,1.41,.03+i*.1],[.43,1.24,.27-i*.44],[.46,1.11,.34-i*.56]],.009,rope,pack);
 
   /* ---------- motion ---------- */
-  const S={x:0,z:0,y:0,heading:0,speed:0,yawRate:0,phase:0,gait:0,pitch:0,roll:0,moving:0,time:0,
+  const FACE={earF:0,earL:0,earR:0,earTurn:0,droop:0,lid:0,low:0,lidTilt:0,jaw:0,jawSide:0,lip:0,nos:0,neck:0,head:0,yaw:0,roll:0,tail:0,tailUp:0,rest:0};
+  const F=Object.assign({},FACE),T_=Object.assign({},FACE);
+  const pulse=(t,a,b)=>smooth(a,a+(b-a)*.3,t)*smooth(b,b-(b-a)*.35,t);
+  /* Moods: f(t since start, targets, clock). Fields: ears (earF forward+/back-, droop sideways), lids (lid +closed/-wide, low = lower lid),
+     jaw open, upper lip curl, nostril flare, neck/head pitch (+ lowers), yaw, roll, tail. `dur` makes a mood a one-shot. */
+  const MOODS={
+    calm:{label:"Calm",f:(t,P,c)=>{P.earF=.05;P.droop=.16+.05*Math.sin(c*.5);P.lid=.05;}},
+    alert:{label:"Alert",f:(t,P)=>{P.earF=.34;P.droop=-.08;P.lid=-.28;P.nos=.6;P.neck=-.24;P.head=.1;P.yaw=.28*Math.sin(t*.9);P.tailUp=.15;}},
+    curious:{label:"Curious",f:(t,P)=>{const k=Math.sin(t*1.3);P.roll=.24*smooth(-.4,.4,k)-.06;P.yaw=.3;P.neck=-.06;P.head=-.16;
+      P.earF=.2;P.earL=.22*smooth(-.2,.2,Math.sin(t*2.1));P.earR=.22*smooth(-.2,.2,Math.sin(t*2.1+2.4));P.lid=-.12;
+      P.nos=.45+.45*Math.sin(t*9);P.lip=.07+.07*Math.sin(t*9+1);}},
+    content:{label:"Content",f:(t,P)=>{P.lid=.5;P.low=.55;P.droop=.62;P.earF=-.12;P.jaw=.03;P.neck=.12;P.head=.05;P.roll=.04*Math.sin(t*.7);P.tail=.25;}},
+    sleepy:{label:"Dozing",f:(t,P)=>{const nodOff=pulse(t%5,3.2,4.6);P.lid=.9-.5*pulse(t%5,4.5,5);P.low=.4;P.droop=.78;P.earF=-.08;
+      P.jaw=.05;P.neck=.3+.14*nodOff;P.head=-.12;P.rest=1;}},
+    annoyed:{label:"Annoyed",f:(t,P)=>{P.earF=-1.25;P.droop=.1;P.lid=.3;P.lidTilt=.6;P.nos=.9;P.neck=.2;P.head=-.28;P.yaw=.16*Math.sin(t*3.1);
+      P.lip=-.08;P.tail=1;P.jawSide=.3*Math.sin(t*5);}},
+    startled:{label:"Startled",dur:1.9,snap:26,f:(t,P)=>{const e=1-smooth(.9,1.9,t);P.neck=-.42*e;P.head=.22*e;P.lid=-.3;P.nos=1;
+      P.earF=.4*e;P.earTurn=.5*Math.sin(t*14)*smooth(.3,.5,t)*e;P.tailUp=.5*e;}},
+    bray:{label:"Braying",dur:3.1,snap:16,f:(t,P)=>{const e=pulse(t,0,3.1),hee=Math.abs(Math.sin(t*4.4));P.neck=-.34*e-.05*hee*e;P.head=-.4*e;
+      P.jaw=(.35+.6*hee)*e;P.lip=.25*e*hee;P.earF=-.9*e;P.nos=e;P.lid=.35*e;P.low=.4*e;P.tailUp=.8*e;}},
+    flehmen:{label:"Flehmen",dur:3.6,f:(t,P)=>{const e=pulse(t,0,3.6);P.neck=-.4*e;P.head=-.62*e;P.lip=e;P.jaw=.1*e;P.lid=.55*e;P.low=.6*e;
+      P.earF=-.25*e;P.droop=.35*e;P.nos=-.4*e;P.roll=.05*Math.sin(t*2)*e;}},
+    yawn:{label:"Yawning",dur:3.4,f:(t,P)=>{const e=pulse(t,.2,3.2);P.jaw=1.15*e;P.lid=1*e;P.low=.5*e;P.head=-.35*e;P.neck=-.1*e;P.roll=.22*e;
+      P.earF=-.5*e;P.droop=.3*e;P.lip=.2*e;P.jawSide=.5*e;}},
+    chew:{label:"Chewing",f:(t,P)=>{const k=t*6.2;P.jaw=.05+.1*Math.max(0,Math.sin(k));P.jawSide=.9*Math.sin(k+1.3);P.lid=.18;P.droop=.3;
+      P.earF=-.02;P.neck=.05;P.head=.03*Math.sin(k);P.lip=.05*Math.sin(k*.5);}},
+    shake:{label:"Shaking off",dur:1.5,snap:40,f:(t,P)=>{const e=pulse(t,0,1.5),k=Math.sin(t*24);P.roll=.42*k*e;P.yaw=.12*Math.cos(t*24)*e;
+      P.droop=(.5+.45*k)*e;P.earTurn=.5*k*e;P.lid=.8*e;P.low=.5*e;P.neck=.1*e;P.jaw=.05*e;}}
+  };
+  const S={mood:"calm",moodT:0,x:0,z:0,y:0,heading:0,speed:0,yawRate:0,phase:0,gait:0,pitch:0,roll:0,moving:0,time:0,
     bray:0,blink:0,nextBlink:2,idle:0,rest:0,swish:0,nextSwish:3,look:0,lookTarget:0,nextLook:2,slope:0,onStep:null,label:"Stand"};
   const v3=new T.Vector3(),m4=new T.Matrix4(),home=new T.Vector3();
   const fwdX=()=>Math.sin(S.heading),fwdZ=()=>Math.cos(S.heading);
@@ -617,33 +676,44 @@ function makeDonkey(){
     pelvis.rotation.set(0,-bend+walk*.05*Math.sin(ph+.3),walk*.03*Math.sin(ph+.3)-S.rest*.035);
     chest.rotation.set(0,bend*.8-walk*.035*Math.sin(ph+.3),-walk*.02*Math.sin(ph+.3));
 
-    /* neck and head */
+    /* neck, head and face: a mood sets targets, the face eases toward them */
     if(t>S.nextLook){S.lookTarget=(hash(t)-.5)*1.1;S.nextLook=t+2.5+hash(t+1)*5;}
-    S.look=lerp(S.look,mv>.3||S.still?0:S.lookTarget,1-Math.exp(-dt*1.6));
+    S.look=lerp(S.look,mv>.3||S.still||S.mood!=="calm"?0:S.lookTarget,1-Math.exp(-dt*1.6));
     if(S.still){S.idle=0;S.nextSwish=S.nextBlink=t+9;for(const E of ears)E.next=t+9;}
-    let brayUp=0,brayOpen=0;
-    if(S.bray>0){
-      S.bray-=dt;const bt=2.6-S.bray;
-      brayUp=smooth(0,.35,bt)*smooth(2.6,2.2,bt);brayOpen=brayUp*(.5+.5*Math.sin(bt*9.5));
-    }
+    S.moodT+=dt;
+    let M=MOODS[S.mood];
+    if(M.dur&&S.moodT>M.dur){S.mood="calm";S.moodT=0;M=MOODS.calm;}
+    if(mv>.5&&(S.mood==="sleepy"||S.mood==="content")){S.mood="calm";S.moodT=0;M=MOODS.calm;}
+    for(const k in FACE)T_[k]=0;
+    M.f(S.moodT,T_,t);
+    const ease=1-Math.exp(-dt*(M.snap||10));
+    for(const k in FACE)F[k]=lerp(F[k],T_[k],ease);
     const nod=walk*.055*Math.cos(ph*2+1.9)+trot*.02*Math.cos(ph*2+.4);
     const carry=walk*.1-trot*.06+clamp(S.slope,-.3,.4)*.5+(S.still?0:.04*Math.sin(t*.43)*(1-mv));
     const n1=bones[B_NECK1],n2=bones[B_NECK2],hd=bones[B_HEAD];
-    n1.rotation.set(carry+nod-brayUp*.3,bend*1.1+S.look*.3,0);
-    n2.rotation.set(carry*.4+nod*.5-brayUp*.14,bend*.9+S.look*.35,0);
-    hd.rotation.set(-carry*.7-nod*.9-brayUp*.38-brayOpen*.1,bend*.8+S.look*.4,S.look*.08);
+    n1.rotation.set(carry+nod+F.neck,bend*1.1+S.look*.3+F.yaw*.35,0);
+    n2.rotation.set(carry*.4+nod*.5+F.neck*.5,bend*.9+S.look*.35+F.yaw*.35,F.roll*.3);
+    hd.rotation.set(-carry*.7-nod*.9+F.head,bend*.8+S.look*.4+F.yaw*.5,S.look*.08+F.roll);
+    bones[B_JAW].rotation.set(F.jaw*.42,0,F.jawSide*.07);
+    bones[B_LIP].rotation.set(-F.lip*.75,0,0);
+    bones[B_LIP].position.copy(bones[B_LIP].userData.rest);bones[B_LIP].position.y+=F.lip*.012;
+    for(const N of nostrils)N.scale.set(.8*(1+.55*F.nos),1.25*(1+.35*F.nos),.5);
     for(const E of ears){
       if(t>E.next){E.flick=1;E.next=t+1.2+hash(t+E.s)*5;}
       E.flick=Math.max(0,E.flick-dt*4.5);
-      const f=Math.sin(E.flick*Math.PI),back=trot*.35+brayUp*.8;
-      E.ear.rotation.set(-back*.75-f*.25+walk*.04*Math.sin(ph*2+E.s),-E.s*f*.7,E.s*(f*.2+.04*Math.sin(t*.8+E.s)-back*.25));
+      const f=Math.sin(E.flick*Math.PI)*(1-Math.min(1,Math.abs(F.earF))),own=E.s>0?F.earL:F.earR;
+      E.sw.rotation.set((F.earF+own)*1.0-trot*.3+walk*.04*Math.sin(ph*2+E.s),-E.s*F.earTurn,-E.s*(F.droop*.95+.04*Math.sin(t*.8+E.s)));
+      E.ear.rotation.set(-f*.25,-E.s*f*.7,E.s*f*.2);
     }
 
     /* eyes */
     if(t>S.nextBlink){S.blink=1;S.nextBlink=t+1.5+hash(t+3)*5;}
     S.blink=Math.max(0,S.blink-dt*7);
-    const shut=Math.sin(S.blink*Math.PI);
-    for(const E of lids)E.lid.rotation.z=-E.s*(.35+shut*1.15+brayUp*.2);
+    const shut=Math.max(Math.sin(S.blink*Math.PI),0);
+    for(const E of lids){
+      E.lid.rotation.set(F.lidTilt*.5,0,-E.s*clamp(.35+F.lid*1.15+shut*1.15,.02,1.5));
+      E.low.rotation.set(0,0,E.s*clamp(F.low*.95+shut*.3,0,1.2));
+    }
 
     /* load sways against the stride */
     packPivot.rotation.set(trot*.012*Math.sin(ph*2+2.2),0,walk*.018*Math.sin(ph+2.1)+trot*.012*Math.sin(ph+1));
@@ -653,11 +723,11 @@ function makeDonkey(){
     /* tail */
     if(t>S.nextSwish){S.swish=1;S.nextSwish=t+2+hash(t+2)*6;}
     S.swish=Math.max(0,S.swish-dt*.9);
-    const sw=Math.sin(S.swish*Math.PI)*.2;
+    const sw=Math.sin(S.swish*Math.PI)*.2+F.tail*.22;
     for(let i=0;i<4;i++){
       const b=bones[B_TAIL[i]];
       b.rotation.z=(.04+sw)*Math.sin(t*(sw>.02?9:2.2)-i*.9)*(.4+i*.15)+walk*.05*Math.sin(ph-i*.7)+trot*.05*Math.sin(ph*2-i)-S.yawRate*.07;
-      b.rotation.x=(i===0?.06:.015)+sp*.018-(i===0?brayUp*.5:0)+trot*.04*Math.sin(ph*2-i*.8);
+      b.rotation.x=(i===0?.06:.015)+sp*.018-(i===0?F.tailUp*.6:0)+trot*.04*Math.sin(ph*2-i*.8);
     }
 
     /* legs */
@@ -676,7 +746,8 @@ function makeDonkey(){
         chi=(34*(1-smooth(0,.5,u))*mv+30*fl*Math.sin(Math.PI*clamp(u/.62,0,1))-9*smooth(.62,.92,u)*(1-smooth(.94,1,u)))*DEG;
         psi=(24-52*fl*Math.pow(Math.sin(Math.PI*u),1.2))*DEG;
       }
-      if(L.name==="HL"&&S.rest>.001){chi=lerp(chi,50*DEG,S.rest);psi=lerp(psi,-8*DEG,S.rest);}
+      const rs=Math.max(S.rest,F.rest*(1-mv));
+      if(L.name==="HL"&&rs>.001){chi=lerp(chi,50*DEG,rs);psi=lerp(psi,-8*DEG,rs);}
       const c=Math.cos(chi),sn=Math.sin(chi),cp=chi>0;
       const cy=v3.y+L.lift+(cp?HOOF*c+.058*sn:HOOF),cz=v3.z+(cp?.058+HOOF*sn-.058*c:0)-.013;
       const fy=cy+LP*Math.cos(psi),fz=cz-LP*Math.sin(psi);
@@ -705,7 +776,9 @@ function makeDonkey(){
   return {group,update,place,state:S,pack,furMeshes,
     setFur(on){for(const f of furMeshes)f.visible=on;},
     setPack(on){pack.visible=halter.visible=on;},
-    bray(){if(S.bray<=0)S.bray=2.6;}};
+    moods:Object.keys(MOODS).map(k=>({id:k,label:MOODS[k].label})),
+    setMood(id){if(!MOODS[id])return;S.mood=id;S.moodT=0;if(id==="startled")S.speed=Math.min(S.speed,-.9);if(S.onMood)S.onMood(id);},
+    bray(){this.setMood("bray");}};
 }
 window.makeDonkey=makeDonkey;
 })();
