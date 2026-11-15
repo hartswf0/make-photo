@@ -310,7 +310,19 @@ function frame(now){
   step(dt);renderer.render(scene,camera);
   requestAnimationFrame(frame);
 }
-window.__pd={step,render:()=>renderer.render(scene,camera),donkey,cam,act,heightAt,setStudy,camera};
+/* test hook: orthographic silhouette of the standing donkey, for scoring against reference sheets */
+function orthoShot(view,cx,cy,halfW,halfH){
+  setStudy(true);catcher.visible=false;
+  const bg=scene.background;scene.background=new T.Color(0x00ff00);
+  const o=new T.OrthographicCamera(-halfW,halfW,halfH,-halfH,.1,50),c=new T.Vector3(S.x,S.y,S.z);
+  const f=new T.Vector3(Math.sin(S.heading),0,Math.cos(S.heading)),l=new T.Vector3(f.z,0,-f.x);
+  if(view==="left"){o.position.copy(c).addScaledVector(l,10).addScaledVector(f,cx);o.position.y+=cy;o.lookAt(c.clone().addScaledVector(f,cx).setY(S.y+cy));}
+  if(view==="front"){o.position.copy(c).addScaledVector(f,10).addScaledVector(l,cx);o.position.y+=cy;o.lookAt(c.clone().addScaledVector(l,cx).setY(S.y+cy));}
+  if(view==="rear"){o.position.copy(c).addScaledVector(f,-10).addScaledVector(l,cx);o.position.y+=cy;o.lookAt(c.clone().addScaledVector(l,cx).setY(S.y+cy));}
+  if(view==="top"){o.up.copy(l).negate();o.position.copy(c).addScaledVector(f,cx);o.position.y+=10;o.lookAt(c.clone().addScaledVector(f,cx));}
+  renderer.render(scene,o);scene.background=bg;
+}
+window.__pd={orthoShot,step,render:()=>renderer.render(scene,camera),donkey,cam,act,heightAt,setStudy,camera};
 if(params.has("study"))setStudy(true);
 if(!params.has("manual"))requestAnimationFrame(frame);
 document.body.classList.add("ready");
