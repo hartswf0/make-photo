@@ -1249,6 +1249,9 @@ function buildCamera() {
   return {group,stand,head:cameraHead,bellows};
 }
 const wagon=buildWagon(),burro=makeBurro(),tripod=buildCamera();
+/* Mistletoe is the shared pack donkey from ../donkey/donkey.js when that script is present; the old burro stays as its ground anchor. */
+const mist=window.makeDonkey?window.makeDonkey({assetPath:"../donkey/",shells:8}):null;
+if(mist){scene.add(mist.group);burro.body.visible=false;mist.state.tethered=true;}
 const lineGeometry=new T.BufferGeometry();
 const linePosition=new T.BufferAttribute(new Float32Array(17*3),3);
 lineGeometry.setAttribute("position",linePosition);
@@ -1280,11 +1283,11 @@ function resetRigs() {
   burroFacing=.76+wagonFacing;
   seatOnGround(burro,stop,p.x-dir.z*3.04-dir.x*.37,p.z+dir.x*3.04-dir.z*.37);
   wagon.group.rotation.y=wagonFacing;burro.group.rotation.y=burroFacing;
-  wagon.body.rotation.set(0,0,0);burro.walk=0;
+  wagon.body.rotation.set(0,0,0);burro.walk=0;if(mist)mist.seated=false;
   burro.load.visible=burro.cargo.visible=true;
   rigActors.forEach(object=>{object.visible=false;});
   wagon.group.visible=wagon.shadow.visible=stop.transport==="wagon";
-  burro.group.visible=burro.shadow.visible=stop.transport==="burro";
+  burro.group.visible=burro.shadow.visible=stop.transport==="burro";if(mist)mist.group.visible=stop.transport==="burro";
 }
 function updateRigs(dt) {
   const stop=currentStop();
@@ -1305,43 +1308,58 @@ function updateRigs(dt) {
     }
   } else {
     const p=burro.group.position;
-    let stride=0;
-    if(state.lead&&state.mode==="field"){
-      anchor.set(state.x+Math.cos(state.yaw)*.64+Math.sin(state.yaw)*1.48,0,state.z-Math.sin(state.yaw)*.64+Math.cos(state.yaw)*1.48);
-      const dx=anchor.x-p.x,dz=anchor.z-p.z,len=Math.hypot(dx,dz);
-      if(len>.17){
-        stride=Math.min((state.packs===2?2.30:2.73)*dt,len);
-        p.x+=dx/len*stride;p.z+=dz/len*stride;
-        const goal=Math.atan2(-dx,-dz);
-        const turn=Math.atan2(Math.sin(goal-burroFacing),Math.cos(goal-burroFacing));
-        burroFacing+=turn*Math.min(1,dt*7.8);
+    if(mist){
+      const M=mist.state,ground=(x,z)=>heightAt(stop,x,z);
+      if(!mist.seated||Math.hypot(M.x-p.x,M.z-p.z)>8){mist.place(p.x,p.z,burroFacing+Math.PI,ground);mist.seated=true;}
+      let goal=null;
+      if(state.lead&&state.mode==="field"){
+        anchor.set(state.x+Math.cos(state.yaw)*.64+Math.sin(state.yaw)*1.48,0,state.z-Math.sin(state.yaw)*.64+Math.cos(state.yaw)*1.48);
+        if(Math.hypot(anchor.x-M.x,anchor.z-M.z)>.6)goal={x:anchor.x,z:anchor.z};
       }
+      M.goal=goal;M.goalWhy="Following.";
+      mist.update(dt,{throttle:0,steer:0},ground);
+      seatOnGround(burro,stop,M.x,M.z);burroFacing=M.heading+Math.PI;burro.group.rotation.y=burroFacing;
+      if(mist.packs!==state.packs){mist.packs=state.packs;
+        mist.setCargo(state.packs===2?[{kg:14,slot:"L"},{kg:14,slot:"R"},{kg:10,slot:"T"}]:state.packs===1?[{kg:12,slot:"L"},{kg:12,slot:"R"}]:[]);}
+    } else {
+      let stride=0;
+      if(state.lead&&state.mode==="field"){
+        anchor.set(state.x+Math.cos(state.yaw)*.64+Math.sin(state.yaw)*1.48,0,state.z-Math.sin(state.yaw)*.64+Math.cos(state.yaw)*1.48);
+        const dx=anchor.x-p.x,dz=anchor.z-p.z,len=Math.hypot(dx,dz);
+        if(len>.17){
+          stride=Math.min((state.packs===2?2.30:2.73)*dt,len);
+          p.x+=dx/len*stride;p.z+=dz/len*stride;
+          const goal=Math.atan2(-dx,-dz);
+          const turn=Math.atan2(Math.sin(goal-burroFacing),Math.cos(goal-burroFacing));
+          burroFacing+=turn*Math.min(1,dt*7.8);
+        }
+      }
+      burro.walk+=stride*5.2;
+      seatOnGround(burro,stop,p.x,p.z);
+      burro.group.rotation.y=burroFacing;
+      const sway=Math.min(1,stride/Math.max(.00001,dt*1.17));
+      const gait=burro.walk;
+      burro.body.position.y=(.028*Math.cos(gait*2)*sway+.011*Math.sin(state.elapsed*2.3))*motionUniform.value;
+      for(const leg of burro.legs) {
+        const swing=Math.sin(gait+leg.phase);
+        leg.limb.rotation.x=sway*swing*.51;
+        leg.shin.rotation.x=sway*Math.max(0,Math.cos(gait+leg.phase))*.71;
+      }
+      burro.neck.rotation.x=(.078*sway*Math.sin(gait)+(!state.lead?.07+.14*Math.sin(state.elapsed*.6):-.08))*motionUniform.value;
+      burro.head.rotation.y=(.13*Math.sin(state.elapsed*.77)+.08*sway*Math.sin(gait*.51))*motionUniform.value;
+      burro.tail.rotation.z=.29*Math.sin(state.elapsed*2.1)*motionUniform.value;
+      for(const {ear,sign} of burro.ears){
+        ear.rotation.z=sign*(-.20-.18*Math.sin(state.elapsed*1.91+sign*1.75)*motionUniform.value);
+        ear.rotation.x=.15+.24*Math.sin(state.elapsed*.66+sign)*motionUniform.value;
+      }
+      burro.load.visible=state.packs===2;
+      burro.cargo.visible=state.packs>0;
     }
-    burro.walk+=stride*5.2;
-    seatOnGround(burro,stop,p.x,p.z);
-    burro.group.rotation.y=burroFacing;
-    const sway=Math.min(1,stride/Math.max(.00001,dt*1.17));
-    const gait=burro.walk;
-    burro.body.position.y=(.028*Math.cos(gait*2)*sway+.011*Math.sin(state.elapsed*2.3))*motionUniform.value;
-    for(const leg of burro.legs) {
-      const swing=Math.sin(gait+leg.phase);
-      leg.limb.rotation.x=sway*swing*.51;
-      leg.shin.rotation.x=sway*Math.max(0,Math.cos(gait+leg.phase))*.71;
-    }
-    burro.neck.rotation.x=(.078*sway*Math.sin(gait)+(!state.lead?.07+.14*Math.sin(state.elapsed*.6):-.08))*motionUniform.value;
-    burro.head.rotation.y=(.13*Math.sin(state.elapsed*.77)+.08*sway*Math.sin(gait*.51))*motionUniform.value;
-    burro.tail.rotation.z=.29*Math.sin(state.elapsed*2.1)*motionUniform.value;
-    for(const {ear,sign} of burro.ears){
-      ear.rotation.z=sign*(-.20-.18*Math.sin(state.elapsed*1.91+sign*1.75)*motionUniform.value);
-      ear.rotation.x=.15+.24*Math.sin(state.elapsed*.66+sign)*motionUniform.value;
-    }
-    burro.load.visible=state.packs===2;
-    burro.cargo.visible=state.packs>0;
   }
   leadRope.visible=state.mode==="field"&&state.lead;
   if(leadRope.visible){
     burro.head.updateWorldMatrix(true,false);
-    const muzzlePoint=burro.head.localToWorld(new T.Vector3(.09,-.151,-.40));
+    const muzzlePoint=mist?mist.faceAt(new T.Vector3()):burro.head.localToWorld(new T.Vector3(.09,-.151,-.40));
     const h=heightAt(stop,state.x,state.z);
     const hand=new T.Vector3(state.x+Math.cos(state.yaw)*.35-Math.sin(state.yaw)*.14,h+.98,state.z-Math.sin(state.yaw)*.35-Math.cos(state.yaw)*.14);
     for(let i=0;i<linePosition.count;i++){
