@@ -101,6 +101,8 @@
     #tasks{position:fixed;right:max(14px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));width:230px;color:#f1eee6;text-shadow:0 1px 8px rgba(0,0,0,.7);pointer-events:none;z-index:2}
     #tasks p{margin:0}#t-name{font:400 20px/1.1 "Instrument Serif",Georgia,serif;letter-spacing:.06em}#t-time{font-size:11px;opacity:.8;margin-top:4px!important}
     .light{height:3px;margin-top:8px;background:rgba(241,238,230,.25)}.light i{display:block;height:100%;background:#f1eee6}
+    #map{display:block;width:132px;height:132px;margin:12px 0 0 auto;border-radius:50%;filter:grayscale(1) sepia(.15)}
+    @media (max-width:640px){#map{width:96px;height:96px}}
     #t-list{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px;font-size:12px;line-height:1.3}
     #t-list li{padding-left:18px;position:relative;opacity:.55}#t-list li::before{content:"";position:absolute;left:0;top:.25em;width:9px;height:9px;border:1px solid currentColor;border-radius:50%}
     #t-list li.now{opacity:1;font-weight:600}#t-list li.done{opacity:.7;text-decoration:line-through}#t-list li.done::before{background:currentColor}
@@ -152,6 +154,7 @@
     <p id="t-name"></p>
     <div class="light"><i id="t-light"></i></div><p id="t-time"></p>
     <ol id="t-list"></ol>
+    <canvas id="map" width="264" height="264" aria-label="Map: the arrow is Mistletoe, the triangle is the cairn, the square is the trailhead"></canvas>
   </aside>
   <header class="plate">
     <h1>Pack Donkey</h1>

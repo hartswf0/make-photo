@@ -796,6 +796,32 @@ function orthoShot(view,cx,cy,halfW,halfH){
 if(params.get("mood"))donkey.setMood(params.get("mood"));
 window.__pd={pick,G,shot,setGround(f){groundFn=f;},setMood,orthoShot,step,render:()=>renderer.render(scene,camera),donkey,cam,act,heightAt,setStudy,camera};
 if(params.has("study"))setStudy(true);
+/* ---------- minimap: shaded relief, trees, the trailhead, the cairn, the camera and the donkey ---------- */
+const MAP_R=170,MAP_PX=256,mapBase=document.createElement("canvas");mapBase.width=mapBase.height=MAP_PX;
+(function paintMap(){
+  const x=mapBase.getContext("2d"),im=x.createImageData(MAP_PX,MAP_PX),d=im.data,m2p=MAP_PX/(MAP_R*2);
+  for(let py=0;py<MAP_PX;py++)for(let px=0;px<MAP_PX;px++){
+    const wx=-(px/m2p-MAP_R),wz=-(py/m2p-MAP_R),h=heightAt(wx,wz),hx=heightAt(wx-2,wz)-h,hz=heightAt(wx,wz-2)-h;
+    let g=150+(hx-hz)*45;if(Math.abs((h/3)%1)<.09)g-=38;                       // light from the north-west, a contour every 3 m
+    g=clamp(g,40,235);const o=(py*MAP_PX+px)*4;d[o]=g;d[o+1]=g*.98;d[o+2]=g*.93;d[o+3]=255;
+  }
+  x.putImageData(im,0,0);x.fillStyle="rgba(20,22,18,.75)";
+  for(const s of solids){x.beginPath();x.arc((MAP_R-s[0])*m2p,(MAP_R-s[1])*m2p,Math.max(1.1,s[2]*m2p*1.4),0,TAU);x.fill();}
+})();
+function drawMap(){
+  const c=$("map"),x=c.getContext("2d"),W=c.width/2,R=W/2,view=62,k=R/view,m2p=MAP_PX/(MAP_R*2);
+  x.setTransform(2,0,0,2,0,0);x.clearRect(0,0,W,W);x.save();x.beginPath();x.arc(R,R,R-1,0,TAU);x.clip();
+  x.fillStyle="#6f6c64";x.fillRect(0,0,W,W);
+  const sx=(MAP_R-S.x-view)*m2p,sy=(MAP_R-S.z-view)*m2p,sw=view*2*m2p;x.imageSmoothingEnabled=true;x.drawImage(mapBase,sx,sy,sw,sw,0,0,W,W);
+  const at=(wx,wz)=>[R-(wx-S.x)*k,R-(wz-S.z)*k];
+  const mark=(wx,wz,draw)=>{let [px,py]=at(wx,wz);const dx=px-R,dy=py-R,dd=Math.hypot(dx,dy),edge=dd>R-9;if(edge){px=R+dx/dd*(R-9);py=R+dy/dd*(R-9);}draw(px,py,edge);};
+  x.lineWidth=1.5;
+  mark(0,0,(px,py)=>{x.fillStyle="#151613";x.strokeStyle="#f1eee6";x.fillRect(px-4,py-4,8,8);x.strokeRect(px-4,py-4,8,8);});                         // trailhead
+  mark(LV.cairn[0],LV.cairn[1],(px,py)=>{x.fillStyle="#f1eee6";x.strokeStyle="#151613";x.beginPath();x.moveTo(px,py-7);x.lineTo(px+6,py+5);x.lineTo(px-6,py+5);x.closePath();x.fill();x.stroke();}); // cairn
+  if(shot.on)mark(shot.x,shot.z,(px,py)=>{x.fillStyle="#151613";x.strokeStyle="#f1eee6";x.beginPath();x.arc(px,py,4,0,TAU);x.fill();x.stroke();});  // the camera
+  x.translate(R,R);x.rotate(-S.heading);x.fillStyle="#f1eee6";x.strokeStyle="#151613";x.beginPath();x.moveTo(0,-9);x.lineTo(6,7);x.lineTo(0,3);x.lineTo(-6,7);x.closePath();x.fill();x.stroke(); // the donkey
+  x.restore();x.strokeStyle="rgba(241,238,230,.8)";x.lineWidth=2;x.beginPath();x.arc(R,R,R-1,0,TAU);x.stroke();
+}
 /* ---------- the day's assignment: something to do, and an end ---------- */
 const game={on:false,t:0,over:false,reached:false,setup:false,packed:false,home:false};
 const cairn=new T.Group();
@@ -832,6 +858,7 @@ function endDay(won){
   $("end").hidden=false;
 }
 function stepGame(dt){
+  stepGame.n=(stepGame.n||0)+1;if(stepGame.n%5===0&&!study&&!shot.glass)drawMap();
   if(!game.on||game.over||study)return;
   game.t+=dt;
   if(!game.reached&&Math.hypot(S.x-LV.cairn[0],S.z-LV.cairn[1])<7){game.reached=true;say("The cairn. Stop, and unpack the camera.");}
