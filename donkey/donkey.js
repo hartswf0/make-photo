@@ -12,7 +12,7 @@
    Hooks: d.state.onStep(leg, gait)   d.state.onMood(id)
    See README.md in this folder. */
 (function(){"use strict";
-const T=window.THREE;
+let T=typeof window!=="undefined"?window.THREE:null;
 const TAU=Math.PI*2, DEG=Math.PI/180;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const lerp=(a,b,t)=>a+(b-a)*t;
@@ -134,6 +134,11 @@ function roundedBox(w,h,d,r){
 
 /* ---------- the donkey ---------- */
 function makeDonkey(opt){
+  opt=opt||{};
+  if(opt.THREE)T=opt.THREE;
+  else if(typeof window!=="undefined"&&window.THREE)T=window.THREE;
+  const monoMode=Boolean(opt.monochrome);
+  const mono=(r,g,b)=>{if(!monoMode)return new T.Color(r,g,b);const l=.2126*r+.7152*g+.0722*b;return new T.Color(l,l,l);};
   const group=new T.Group();group.rotation.order="YXZ";
 
   /* materials */
@@ -154,14 +159,20 @@ function makeDonkey(opt){
     for(let i=0;i<500;i++){c.fillStyle="rgba(0,0,0,"+hash(i+.2)*.12+")";c.fillRect(hash(i)*s,hash(i+.7)*s,2+hash(i+.3)*7,1+hash(i+.5)*5);}
   });
   const hide=new T.MeshPhysicalMaterial({vertexColors:true,map:furMap,bumpMap:furMap,bumpScale:1.4,roughness:.93,metalness:0,
-    sheen:1,sheenRoughness:.6,sheenColor:new T.Color(.1,.098,.092)});
+    sheen:1,sheenRoughness:.6,sheenColor:mono(.1,.098,.092)});
   const strand=noiseTexture(256,(c,s)=>{
     const d=c.createImageData(s,s);
     for(let i=0;i<s*s;i++){const v=Math.floor(Math.pow(hash(i*.37+1.3),.8)*255);d.data[i*4]=d.data[i*4+1]=d.data[i*4+2]=v;d.data[i*4+3]=255;}
     c.putImageData(d,0,0);
   });
   /* the coat is the reference sheet itself: side view on the flanks, top view on the back */
-  const sheet=name=>{const t=new T.TextureLoader().load(((opt&&opt.assetPath)||"")+name);t.colorSpace=T.NoColorSpace;t.generateMipmaps=false;t.minFilter=t.magFilter=T.LinearFilter;return t;};
+  const sheet=name=>{
+    const src=opt.textures&&opt.textures[name];
+    const t=src?(src.isTexture?src:new T.Texture(src)):new T.TextureLoader().load((opt.assetPath||opt.textureBase||"")+name);
+    t.colorSpace=T.NoColorSpace;t.generateMipmaps=false;t.minFilter=t.magFilter=T.LinearFilter;
+    if(src&&!src.isTexture)t.needsUpdate=true;
+    return t;
+  };
   const tSide=sheet("coat_side.jpg"),tTop=sheet("coat_top.jpg"),tFront=sheet("coat_front.jpg"),tRear=sheet("coat_rear.jpg"),tHead=sheet("coat_head.jpg");
   const face={hU:{value:new T.Vector4()},hV:{value:new T.Vector4()},hD:{value:new T.Vector3()},tHead:{value:tHead}};
   function coat(m,h){
@@ -194,12 +205,12 @@ function makeDonkey(opt){
   coat(hide,0);
   const hideOpen=coat(hide.clone(),0);hideOpen.side=T.DoubleSide;hideOpen.shadowSide=T.FrontSide;
   const horn=coat(new T.MeshStandardMaterial({vertexColors:true,roughness:.6,map:furMap}),0);
-  const canvas=new T.MeshStandardMaterial({color:new T.Color(.36,.345,.31),roughness:.96,map:weave,bumpMap:weave,bumpScale:.8,side:T.DoubleSide});
-  const canvasDark=new T.MeshStandardMaterial({color:new T.Color(.3,.285,.255),roughness:.97,map:weave,bumpMap:weave,bumpScale:.8,side:T.DoubleSide});
-  const leather=new T.MeshStandardMaterial({color:new T.Color(.075,.066,.058),roughness:.58,side:T.DoubleSide});
-  const metal=new T.MeshStandardMaterial({color:new T.Color(.62,.6,.56),roughness:.35,metalness:.85});
+  const canvas=new T.MeshStandardMaterial({color:mono(.36,.345,.31),roughness:.96,map:weave,bumpMap:weave,bumpScale:.8,side:T.DoubleSide});
+  const canvasDark=new T.MeshStandardMaterial({color:mono(.3,.285,.255),roughness:.97,map:weave,bumpMap:weave,bumpScale:.8,side:T.DoubleSide});
+  const leather=new T.MeshStandardMaterial({color:mono(.075,.066,.058),roughness:.58,side:T.DoubleSide});
+  const metal=new T.MeshStandardMaterial({color:mono(.62,.6,.56),roughness:.35,metalness:.85});
   const eyeMat=new T.MeshPhysicalMaterial({color:0x030303,roughness:.05,clearcoat:1,clearcoatRoughness:.03});
-  const dark=new T.MeshStandardMaterial({color:new T.Color(.02,.02,.02),roughness:.8});
+  const dark=new T.MeshStandardMaterial({color:mono(.02,.02,.02),roughness:.8});
 
   /* ----- skeleton (bind pose: all rotations identity, positions in metres, +Z forward) ----- */
   const bones=[],bind=[];
@@ -365,7 +376,7 @@ function makeDonkey(opt){
     fur:(r,sa,ca)=>inMouthDn(r,ca)||headY(r,ca)>jawLevel(r)-.006?0:faceFur(r,sa,ca),
     color:(r,sa,ca)=>inMouthDn(r,ca)?flesh(r):lerp(faceCol(r,sa,ca),.05,smooth(.385,.41,r.l)*smooth(jawLevel(r)-.008,jawLevel(r)-.001,headY(r,ca)))}),hide);
   /* cheeks: skin from the jaw hinge to the corner of the mouth, stretching as the jaw drops */
-  const cheekMat=new T.MeshStandardMaterial({color:new T.Color(.022,.021,.02),roughness:.95,side:T.DoubleSide});
+  const cheekMat=new T.MeshStandardMaterial({color:mono(.022,.021,.02),roughness:.95,side:T.DoubleSide});
   const cheekRings=headRings.filter(r=>r.l>=.2&&r.l<=.4);
   for(const sd of [1,-1])skinned(loft(cheekRings,{seg:2,open:true,ur:5,vr:9,topw:.2,fw:1,xf:headXf,sculpt:sculptHead,tan:[0,0,1],hw:faceHw,
     arcOf:r=>{const a=Math.acos(clamp((lipY(r)-r.p[1])/r.dn,-1,0));return sd>0?[a-.05,a+.05]:[TAU-a+.05,TAU-a-.05];},
@@ -396,12 +407,12 @@ function makeDonkey(opt){
   const frameOn=b=>{const f=new T.Group();f.rotation.x=HEAD_PITCH;f.scale.setScalar(HS);
     f.position.set(0,bind[B_HEAD][1]-bind[b][1],bind[B_HEAD][2]-bind[b][2]);bones[b].add(f);return f;};
   const jawFrame=frameOn(B_JAW),lipFrame=frameOn(B_LIP);
-  const gum=new T.MeshStandardMaterial({color:new T.Color(.035,.03,.03),roughness:.5});
-  const tooth=new T.MeshStandardMaterial({color:new T.Color(.36,.34,.28),roughness:.4});
-  const tongueMat=new T.MeshStandardMaterial({color:new T.Color(.2,.17,.17),roughness:.4});
+  const gum=new T.MeshStandardMaterial({color:mono(.035,.03,.03),roughness:.5});
+  const tooth=new T.MeshStandardMaterial({color:mono(.36,.34,.28),roughness:.4});
+  const tongueMat=new T.MeshStandardMaterial({color:mono(.2,.17,.17),roughness:.4});
   const blob=(mat,par,x,y,z,sx,sy,sz)=>{const m=rigid(new T.SphereGeometry(1,14,10),mat,par,x,y,z);m.scale.set(sx,sy,sz);m.castShadow=false;return m;};
   /* mouth: a lining gives both jaws thickness, lips rim the slit, incisors stand in gums, a jointed tongue rides the jaw */
-  const gumMat=new T.MeshStandardMaterial({color:new T.Color(.2,.14,.14),roughness:.35});
+  const gumMat=new T.MeshStandardMaterial({color:mono(.2,.14,.14),roughness:.35});
   const toothGeo=roundedBox(.0108,.021,.0072,.0028);
   for(const [frame,y,tilt,gy] of [[headFrame,-.041,-.22,-.034],[jawFrame,-.029,.2,-.038]]){
     for(let i=0;i<6;i++){
@@ -412,7 +423,7 @@ function makeDonkey(opt){
     const gm=rigid(new T.TorusGeometry(.034,.0085,8,20,Math.PI*.8),gumMat,frame,0,gy,.428);
     gm.rotation.set(Math.PI/2,0,Math.PI*.1+Math.PI);gm.scale.set(.86,1.28,1);gm.castShadow=false;
   }
-  const molar=roundedBox(.013,.013,.021,.004),stain=new T.MeshStandardMaterial({color:new T.Color(.24,.22,.18),roughness:.55});
+  const molar=roundedBox(.013,.013,.021,.004),stain=new T.MeshStandardMaterial({color:mono(.24,.22,.18),roughness:.55});
   for(const sd of [1,-1])for(let i=0;i<5;i++){
     const l=.205+i*.026,k=1+.12*Math.sin(i*2.1);
     const a=rigid(molar,stain,headFrame,sd*.031,-.039,l);a.scale.y=k;a.castShadow=false;
@@ -425,7 +436,7 @@ function makeDonkey(opt){
       R.push({p:[0,0,lerp(z0,z1,t)],w:lerp(w0,w1,t)*e,up:.0075*(round?lerp(1,.6,t)*e:1),dn:.0045*(round?e:1)});}
     return loft(R,{seg:14,tan:[0,0,1],open:!round,color:(r,sa,ca)=>ca>.5?lerp(.75,1,smooth(0,.4,Math.abs(sa))):1});
   };
-  const tMat=new T.MeshStandardMaterial({color:new T.Color(.17,.12,.12),roughness:.35,vertexColors:true});
+  const tMat=new T.MeshStandardMaterial({color:mono(.17,.12,.12),roughness:.35,vertexColors:true});
   rigid(tng(0,.122,8,.021,.0235,false),tMat,tongue).castShadow=false;
   rigid(tng(0,.072,9,.0235,.019,true),tMat,tongueTip).castShadow=false;
   const ears=[],lids=[],nostrils=[];
@@ -456,19 +467,19 @@ function makeDonkey(opt){
   })();
   const lidGeo=new T.SphereGeometry(.0138,14,8,0,TAU,0,Math.PI*.5);
   const eyeTex=noiseTexture(256,(c,s)=>{
-    c.fillStyle="#b9b4aa";c.fillRect(0,0,s,s);
-    for(let i=0;i<40;i++){c.strokeStyle="rgba(60,40,40,.25)";c.lineWidth=1;c.beginPath();const a=hash(i)*6.28;c.moveTo(128+Math.cos(a)*50,128+Math.sin(a)*100);c.lineTo(128+Math.cos(a)*120,128+Math.sin(a)*240);c.stroke();}
-    const g=c.createRadialGradient(128,128,6,128,128,47);g.addColorStop(0,"#8a7860");g.addColorStop(.7,"#5a4c3c");g.addColorStop(.93,"#0b0a09");g.addColorStop(1,"#3c3832");
+    c.fillStyle=monoMode?"#b6b6b6":"#b9b4aa";c.fillRect(0,0,s,s);
+    for(let i=0;i<40;i++){c.strokeStyle=monoMode?"rgba(45,45,45,.25)":"rgba(60,40,40,.25)";c.lineWidth=1;c.beginPath();const a=hash(i)*6.28;c.moveTo(128+Math.cos(a)*50,128+Math.sin(a)*100);c.lineTo(128+Math.cos(a)*120,128+Math.sin(a)*240);c.stroke();}
+    const g=c.createRadialGradient(128,128,6,128,128,47);g.addColorStop(0,monoMode?"#797979":"#8a7860");g.addColorStop(.7,monoMode?"#4e4e4e":"#5a4c3c");g.addColorStop(.93,"#0b0a09");g.addColorStop(1,monoMode?"#383838":"#3c3832");
     c.save();c.translate(128,128);c.scale(1,2);c.fillStyle=g;c.beginPath();c.arc(0,0,47,0,TAU);c.fill();
-    for(let i=0;i<70;i++){const a=hash(i+3)*TAU;c.strokeStyle="rgba(120,105,85,.22)";c.beginPath();c.moveTo(Math.cos(a)*14,Math.sin(a)*8);c.lineTo(Math.cos(a)*42,Math.sin(a)*42);c.stroke();}
+    for(let i=0;i<70;i++){const a=hash(i+3)*TAU;c.strokeStyle=monoMode?"rgba(107,107,107,.22)":"rgba(120,105,85,.22)";c.beginPath();c.moveTo(Math.cos(a)*14,Math.sin(a)*8);c.lineTo(Math.cos(a)*42,Math.sin(a)*42);c.stroke();}
     c.fillStyle="#020202";c.beginPath();c.ellipse(0,0,25,9.5,0,0,TAU);c.fill();c.restore();
   });
   eyeTex.wrapS=eyeTex.wrapT=T.ClampToEdgeWrapping;
   const eyeBall=new T.MeshPhysicalMaterial({map:eyeTex,roughness:.08,clearcoat:1,clearcoatRoughness:.02});
   const lashGeo=s=>{const g=new T.TorusGeometry(.0146,.0016,4,16,1.9);g.rotateZ(-.95);g.rotateX(Math.PI/2);g.translate(0,.0008,0);if(s<0)g.rotateY(Math.PI);return g;};
-  const rimMat=new T.MeshStandardMaterial({color:new T.Color(.2,.19,.18),roughness:.55});
+  const rimMat=new T.MeshStandardMaterial({color:mono(.2,.19,.18),roughness:.55});
   const lidLow=lidGeo.clone().rotateX(Math.PI);
-  const lidMat=new T.MeshStandardMaterial({color:new T.Color(.05,.05,.05),roughness:.9});
+  const lidMat=new T.MeshStandardMaterial({color:mono(.05,.05,.05),roughness:.9});
   for(const s of [1,-1]){
     const sw=new T.Group();sw.position.set(s*.088,-.012,.045);sw.rotation.order="YXZ";bones[B_HEAD].add(sw);
     const pivot=new T.Group();sw.add(pivot);
@@ -527,8 +538,8 @@ function makeDonkey(opt){
     fur:r=>lerp(.004,.026,smooth(.62,.5,r.p[1]))*smooth(.37,.41,r.p[1])+.003,
     skin:r=>{const k=clamp(r.k,0,2.999),i=Math.floor(k);return [B_TAIL[i],B_TAIL[i+1],k-i];}}),hide);
 
-  const hornDark=new T.MeshStandardMaterial({color:new T.Color(.03,.03,.03),roughness:.7});
-  const soleMat=new T.MeshStandardMaterial({color:new T.Color(.12,.115,.105),roughness:.9,side:T.DoubleSide});
+  const hornDark=new T.MeshStandardMaterial({color:mono(.03,.03,.03),roughness:.7});
+  const soleMat=new T.MeshStandardMaterial({color:mono(.12,.115,.105),roughness:.9,side:T.DoubleSide});
   /* ----- legs ----- */
   const frontRings=[[.24,.01,.02,.02,0,-.05],[.2,.05,.09,.09,0,-.02],[.14,.07,.125,.125,0,.004],[.07,.08,.125,.125,0,.018],[0,.078,.108,.112,-.004,.02],
     [-.1,.07,.09,.09,-.002,.012],[-.19,.058,.07,.066,.002,.008],[-.27,.05,.056,.05,.006,0],[-.325,.047,.053,.044,.008,0],[-.355,.05,.059,.044,.01,0],
@@ -653,14 +664,14 @@ function makeDonkey(opt){
   }
   const fold=(r,sa,ca)=>Math.sin(sa*9+r.z*23)*Math.sin(ca*4+r.z*11)+.6*Math.sin(r.z*55+sa*4);
   const rollMesh=rigid(loft(rollProf,{seg:40,tan:[0,0,1],ur:5,vr:5,disp:(r,sa,ca)=>1+.035*fold(r,sa,ca),color:(r,sa,ca)=>.8+.2*fold(r,sa,ca)}),
-    new T.MeshStandardMaterial({vertexColors:true,color:new T.Color(.42,.4,.36),roughness:.97,map:weave,bumpMap:weave,bumpScale:.8}),topG);
+    new T.MeshStandardMaterial({vertexColors:true,color:mono(.42,.4,.36),roughness:.97,map:weave,bumpMap:weave,bumpScale:.8}),topG);
   for(const z of [-.12,.27]){
     const R=[-.022,0,.022].map(d=>Object.assign({},sampleRings(rollProf,"z",z+d)));
     R.forEach(r=>{r.w*=1.02;r.up*=1.0;});
     band(R,.012,leather,topG,null,30);
     rigid(new T.BoxGeometry(.055,.014,.058),metal,topG,.1,R[1].p[1]+R[1].up+.012,z);
   }
-  const rope=new T.MeshStandardMaterial({color:new T.Color(.5,.46,.38),roughness:.9});
+  const rope=new T.MeshStandardMaterial({color:mono(.5,.46,.38),roughness:.9});
   const lash=(zA,zB)=>{ // a rope laid over the bundle from one pannier to the other
     const pts=[];
     for(let i=0;i<=16;i++){
@@ -1073,20 +1084,51 @@ function makeDonkey(opt){
       L.pastern.rotation.x=-(psi-a2);
       L.hoof.rotation.x=chi+psi;
     }
+    if(hoofShadows.length){
+      invGroup.copy(group.matrixWorld).invert();
+      for(let i=0;i<legDefs.length;i++){
+        const L=legDefs[i],hs=hoofShadows[i];
+        locV.copy(L.pos).applyMatrix4(invGroup);
+        hs.position.set(locV.x,locV.y+.022,locV.z);
+        hs.material.opacity=.85*(1-clamp(L.lift*8,0,1));
+      }
+      bodyShadow.material.opacity=lerp(.72,.96,lieK);
+    }
   }
 
-  const facePoint=new T.Vector3();
+  const facePoint=new T.Vector3(),ringPoint=new T.Vector3(),saddleSeat=new T.Object3D();
+  saddleSeat.position.set(0,.22,.02);bones[B_BODY].add(saddleSeat);
+  let bodyShadow=null,hoofShadows=[];
+  const invGroup=new T.Matrix4(),locV=new T.Vector3();
+  if(opt.contactShadow){
+    const sc=document.createElement("canvas");sc.width=sc.height=64;
+    const sx=sc.getContext("2d"),rg=sx.createRadialGradient(32,32,2,32,32,30);
+    rg.addColorStop(0,"rgba(18,18,16,.48)");rg.addColorStop(.55,"rgba(18,18,16,.24)");rg.addColorStop(1,"rgba(18,18,16,0)");
+    sx.fillStyle=rg;sx.fillRect(0,0,64,64);
+    const stex=new T.CanvasTexture(sc);
+    const smat=new T.MeshBasicMaterial({map:stex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+    bodyShadow=new T.Mesh(new T.PlaneGeometry(1.15,1.65),smat);
+    bodyShadow.rotation.x=-Math.PI/2;bodyShadow.position.set(0,.03,.05);bodyShadow.renderOrder=6;group.add(bodyShadow);
+    const hgeo=new T.PlaneGeometry(.24,.24);
+    for(let i=0;i<4;i++){
+      const hm=new T.Mesh(hgeo,smat.clone());
+      hm.rotation.x=-Math.PI/2;hm.renderOrder=6;group.add(hm);hoofShadows.push(hm);
+    }
+  }
+  const halterRingY=-headAt(.32).dn-.036;
   return {group,update,place,state:S,pack,furMeshes,
     faceAt(out){return out.copy(facePoint.set(0,-.03,.3)).applyMatrix4(headFrame.matrixWorld);},
+    halterRing(out){return out.copy(ringPoint.set(0,halterRingY,.32)).applyMatrix4(headFrame.matrixWorld);},
+    saddleAt(posOut,quatOut){saddleSeat.getWorldPosition(posOut);if(quatOut)saddleSeat.getWorldQuaternion(quatOut);return posOut;},
     setFur(on){for(const f of furMeshes)f.visible=on;},
     setPack(on){this.setLoad(on?1:0);},
-    setLoad(n){S.load=n;if(n===2)this.setCargo([{kg:20,slot:"L"},{kg:20,slot:"R"},{kg:34,slot:"T"}]);else if(n===1)this.setCargo([{kg:14,slot:"L"},{kg:14,slot:"R"},{kg:10,slot:"T"}]);else pack.visible=halter.visible=false;},
+    setLoad(n){S.load=n;if(n===2)this.setCargo([{kg:20,slot:"L"},{kg:20,slot:"R"},{kg:34,slot:"T"}]);else if(n===1)this.setCargo([{kg:14,slot:"L"},{kg:14,slot:"R"},{kg:10,slot:"T"}]);else{pack.visible=false;halter.visible=Boolean(opt.alwaysHalter);}},
     /* items: [{kg, slot: "L" | "R" | "T" | "F" | "B"}] -> total mass and centre of gravity over the back */
     setCargo(items){
       const P={L:[.36,.9,.03],R:[-.36,.9,.03],T:[0,1.32,.1],F:[0,1.2,.36],B:[0,1.2,-.2]},C={m:0,x:0,y:0,z:0,L:0,R:0,T:0};
       for(const it of items){const q=P[it.slot];if(!q)continue;C.m+=it.kg;C.x+=it.kg*q[0];C.y+=it.kg*q[1];C.z+=it.kg*q[2];C[it.slot==="L"||it.slot==="R"?it.slot:"T"]+=it.kg;}
       if(C.m>0){C.x/=C.m;C.y/=C.m;C.z/=C.m;}else C.y=.95;
-      S.cargo=C;S.load=C.m>0?1:0;pack.visible=halter.visible=C.m>0;
+      S.cargo=C;S.load=C.m>0?1:0;pack.visible=C.m>0;halter.visible=C.m>0||Boolean(opt.alwaysHalter);
       for(const G of bags){const k=G.s>0?C.L:C.R;G.bag.visible=k>0;G.bag.scale.set(lerp(.55,1.3,clamp(k/26,0,1)),1,1);}
       topG.visible=C.T>0;heavy.visible=C.T>18;
       return C;
@@ -1100,5 +1142,5 @@ function makeDonkey(opt){
     setMood(id){if(!MOODS[id])return;S.mood=id;S.moodT=0;S.autoT=0;S.idleMood=id==="calm"?12:8;if(id==="startled")S.speed=Math.min(S.speed,-.9);if(S.onMood)S.onMood(id);},
     bray(){this.setMood("bray");}};
 }
-window.makeDonkey=makeDonkey;
+if(typeof window!=="undefined")window.makeDonkey=makeDonkey;
 })();

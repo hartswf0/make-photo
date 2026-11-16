@@ -1,0 +1,86 @@
+<main id="monolith">
+  <canvas id="world" aria-label="The playable wilderness" tabindex="0" hidden></canvas>
+  <img id="archive" src="__ARCHIVE_SRC__" alt="Ansel Adams, The Tetons and the Snake River, Grand Teton National Park, 1942">
+  <img id="overlook-still" alt="The Snake River terrain study rendered from Adams’s viewpoint." hidden>
+  <div id="fade" aria-hidden="true"></div>
+  <div id="flash" aria-hidden="true"></div>
+  <section id="cover" aria-labelledby="title">
+    <div class="cover-copy">
+      <div class="eyebrow">A FIELD EXPEDITION</div>
+      <h1 id="title">MONOLITH</h1>
+      <p>Follow the Snake River. Change the light to cross it.</p>
+      <button type="button" class="primary" id="begin">Begin at the overlook <span aria-hidden="true">→</span></button>
+      <div class="cover-links">
+        <button type="button" id="cover-guide">Field guide</button>
+        <a href="https://www.archives.gov/research/still-pictures/highlights/the-tetons-snake-river" target="_blank" rel="noopener noreferrer">Ansel Adams, 1942</a>
+      </div>
+    </div>
+  </section>
+  <div id="hud" hidden>
+    <header>
+      <div class="where"><span id="chapter"></span><h2 id="place"></h2></div>
+      <div class="hud-top-actions">
+        <button type="button" class="menu" id="open-burro" aria-label="Mistletoe pack and mind">
+          <span class="mini-stam" aria-hidden="true"><i id="hud-stam"></i></span>
+          <strong id="hud-burro-label">Mistletoe</strong>
+          <span id="hud-burro-state">Stand</span>
+        </button>
+        <button type="button" class="menu" id="open-map" aria-label="Expedition map and plates">Map &amp; Plates <span id="plate-count">0</span></button>
+        <button type="button" class="menu" id="guide" aria-label="Open field guide">Field guide</button>
+      </div>
+    </header>
+    <div id="cross" aria-hidden="true"></div>
+    <div id="readout" hidden>
+      <p id="reading-name"></p><strong id="reading-zone"></strong><p id="reading-state"></p>
+    </div>
+    <div id="ground-glass" hidden aria-label="8 by 10 ground glass viewfinder">
+      <div class="gg-frame">
+        <span class="gg-corner tl"></span><span class="gg-corner tr"></span>
+        <span class="gg-corner bl"></span><span class="gg-corner br"></span>
+        <div class="gg-rule-h"></div><div class="gg-rule-v"></div>
+      </div>
+      <div class="gg-controls">
+        <span id="gg-status">8×10 Ground Glass · f/16 · Sharp</span>
+        <label class="gg-focus-wrap">Focus <input id="gg-focus" type="range" min="0" max="1" step="0.01" value="0.56" aria-label="Bellows focus"></label>
+        <button type="button" class="tool" id="gg-stop">f/16</button>
+        <button type="button" class="tool" id="gg-invert" aria-pressed="true">Inverted</button>
+        <button type="button" class="tool gg-expose" id="gg-expose">Expose plate</button>
+        <button type="button" class="tool" id="gg-back">Step back</button>
+      </div>
+    </div>
+    <div class="field-status">
+      <p id="objective"></p>
+      <button type="button" id="interaction" hidden></button>
+      <p id="message" role="status" aria-live="polite"></p>
+    </div>
+    <footer>
+      <button type="button" class="tool" id="glass"><span id="glass-dot" aria-hidden="true"></span><span id="glass-name">Clear glass</span></button>
+      <button type="button" class="tool" id="meter">Spot meter</button>
+      <button type="button" class="tool" id="camera-btn">8×10 Camera</button>
+      <div class="mount-tools" id="mount-tools" hidden>
+        <button type="button" class="tool" id="pace-btn">Walk</button>
+        <button type="button" class="tool" id="view-btn">Orbit cam</button>
+        <button type="button" class="tool" id="bray-btn">Bray</button>
+      </div>
+      <div class="tilt-tools" id="tilt-tools" hidden>
+        <button type="button" class="tool" id="tilt-down" aria-label="Tilt focal plane down">−</button>
+        <span id="tilt-value">0°</span>
+        <button type="button" class="tool" id="tilt-up" aria-label="Tilt focal plane up">+</button>
+      </div>
+      <button type="button" class="tool" id="sound" aria-pressed="false">Sound off</button>
+    </footer>
+    <div id="touch-walk" aria-label="Walk" hidden>
+      <button type="button" data-walk="KeyW" aria-label="Walk forward">↑</button>
+      <button type="button" data-walk="KeyA" aria-label="Walk left">←</button>
+      <button type="button" data-walk="KeyS" aria-label="Walk backward">↓</button>
+      <button type="button" data-walk="KeyD" aria-label="Walk right">→</button>
+    </div>
+  </div>
+  <dialog id="field-panel" aria-labelledby="panel-title">
+    <div class="panel-top"><div id="panel-kicker" class="eyebrow">MONOLITH</div><button type="button" id="close" aria-label="Close panel">×</button></div>
+    <h2 id="panel-title"></h2>
+    <div id="panel-body"></div>
+  </dialog>
+  <div id="loading" role="status" hidden><span></span><p id="loading-text">Opening the terrain</p></div>
+  <noscript><p class="no-script">Enable JavaScript in a WebGL 2 browser to play.</p></noscript>
+</main>
