@@ -12,6 +12,14 @@ function noise(x,z){
 }
 function fbm(x,z,o=4){let s=0,a=.5,f=1;for(let i=0;i<o;i++){s+=a*noise(x*f,z*f);a*=.5;f*=2.03;}return s;}
 
+/* ---------- levels: add an entry here to make a new place to work ---------- */
+const LEVELS={
+  meadow:{name:"Tuolumne Meadow",relief:1,keepers:2,minutes:9,cairn:[26,40],next:"pass",
+    brief:"Lead Mistletoe to the cairn on the knoll, set up the plate camera and bring two good plates home before the light goes."},
+  pass:{name:"Granite Pass",relief:2.3,keepers:3,minutes:12,cairn:[-58,74],next:"meadow",
+    brief:"Steeper ground and a longer walk. Balance the load, watch her on the descents, and bring three good plates home."}
+};
+const LEVEL=LEVELS[new URLSearchParams(location.search).get("level")]?new URLSearchParams(location.search).get("level"):"meadow",LV=LEVELS[LEVEL];
 const canvas=$("view");
 const renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:"high-performance"});
 const phone=matchMedia("(pointer:coarse)").matches||Math.min(innerWidth,innerHeight)<520;
@@ -27,8 +35,8 @@ const world=new T.Group();scene.add(world);
 const CELL=1.4,N=360,HALF=CELL*N/2;
 function ground(x,z){
   const r=Math.hypot(x,z);
-  let h=(fbm(x*.011+3,z*.011+9)-.5)*9*smooth(6,60,r)+(noise(x*.06,z*.06)-.5)*1.1*smooth(3,22,r)+(noise(x*.33,z*.33)-.5)*.1;
-  h+=5.2*Math.exp(-((x-20)*(x-20)+(z-34)*(z-34))/300);
+  let h=(fbm(x*.011+3,z*.011+9)-.5)*9*LV.relief*smooth(6,60,r)+(noise(x*.06,z*.06)-.5)*1.1*smooth(3,22,r)+(noise(x*.33,z*.33)-.5)*.1;
+  h+=5.2*Math.exp(-((x-LV.cairn[0])*(x-LV.cairn[0])+(z-LV.cairn[1])*(z-LV.cairn[1]))/300);
   const m=smooth(105,250,r);
   if(m>0){const n=fbm(x*.0065+11,z*.0065+5,5),ridge=1-Math.abs(2*n-1);h+=m*m*(40+150*ridge*ridge+50*n);}
   return h;
@@ -763,6 +771,7 @@ function step(dt){
 
   $("stam").style.width=(S.stamina*100).toFixed(0)+"%";$("stam").parentNode.classList.toggle("low",S.stamina<.25);
   $("thought").textContent=S.thought||"";if(!$("mind").hidden)drawMind();
+  stepGame(dt);
   $("gait").textContent=S.label;$("mood").textContent=donkey.moods.find(m=>m.id===S.mood).label;
   $("speed").textContent=Math.abs(S.speed).toFixed(1)+" m/s";
 }
@@ -787,6 +796,62 @@ function orthoShot(view,cx,cy,halfW,halfH){
 if(params.get("mood"))donkey.setMood(params.get("mood"));
 window.__pd={pick,G,shot,setGround(f){groundFn=f;},setMood,orthoShot,step,render:()=>renderer.render(scene,camera),donkey,cam,act,heightAt,setStudy,camera};
 if(params.has("study"))setStudy(true);
+/* ---------- the day's assignment: something to do, and an end ---------- */
+const game={on:false,t:0,over:false,reached:false,setup:false,packed:false,home:false};
+const cairn=new T.Group();
+(function buildCairn(){
+  const [cx,cz]=LV.cairn,stone=new T.MeshStandardMaterial({color:0x8c8a85,roughness:.95,flatShading:true});
+  for(let i=0;i<6;i++){const r=.42-i*.055,m=new T.Mesh(new T.DodecahedronGeometry(r,0),stone);m.position.set((hash(i,71)-.5)*.1,.2+i*.3,(hash(i,72)-.5)*.1);m.rotation.y=hash(i,73)*3;m.scale.y=.6;m.castShadow=true;cairn.add(m);}
+  const pole=new T.Mesh(new T.CylinderGeometry(.025,.025,2.2,6),new T.MeshStandardMaterial({color:0x4a4034}));pole.position.y=2.6;cairn.add(pole);
+  const flag=new T.Mesh(new T.PlaneGeometry(.7,.4),new T.MeshStandardMaterial({color:0xe9e5da,side:T.DoubleSide}));flag.position.set(.36,3.45,0);cairn.add(flag);
+  cairn.position.set(cx,heightAt(cx,cz),cz);world.add(cairn);solids.push([cx,cz,.8]);
+})();
+function drawTasks(){
+  const k=Math.min(shot.keepers,LV.keepers),dc=Math.hypot(S.x-LV.cairn[0],S.z-LV.cairn[1]),dh=Math.hypot(S.x,S.z);
+  const rows=[
+    [game.reached,"Lead Mistletoe to the cairn"+(game.reached?"":" · "+Math.round(dc)+" m")],
+    [game.setup,"Set up the plate camera"],
+    [k>=LV.keepers,"Plates worth keeping · "+k+" of "+LV.keepers],
+    [game.packed,"Pack up"],
+    [game.home,"Walk back to the trailhead"+(game.packed&&!game.home?" · "+Math.round(dh)+" m":"")]];
+  const el=$("t-list");
+  if(el.children.length!==rows.length){el.textContent="";for(let i=0;i<rows.length;i++)el.append(document.createElement("li"));}
+  let next=true;rows.forEach((r,i)=>{const li=el.children[i];li.textContent=r[1];li.className=r[0]?"done":next?"now":"";if(!r[0])next=false;});
+  const left=Math.max(0,LV.minutes*60-game.t);$("t-light").style.width=(left/(LV.minutes*60)*100).toFixed(1)+"%";
+  $("t-time").textContent=left>60?Math.ceil(left/60)+" min of light":Math.ceil(left)+" s of light";
+}
+function endDay(won){
+  if(game.over)return;game.over=true;
+  const k=Math.min(shot.keepers,LV.keepers);
+  $("e-title").textContent=won?"A good day":k?"The light has gone":"Nothing to show for it";
+  $("e-text").textContent=won
+    ?"You brought "+shot.keepers+" good plate"+(shot.keepers>1?"s":"")+" home from "+LV.name+(shot.broken?", and lost "+shot.broken+" to cracked glass.":" without breaking any glass.")
+    :"The light failed with "+k+" of "+LV.keepers+" plates worth keeping"+(game.packed?", and Mistletoe still short of the trailhead.":".")+" "+(shot.exposed-shot.keepers>0?(shot.exposed-shot.keepers)+" exposed plates were not good enough. ":"")+"Try again, or look around first.";
+  $("e-next").textContent=won?"Go on to "+LEVELS[LV.next].name:"Try "+LV.name+" again";
+  $("e-next").onclick=()=>{location.search="?level="+(won?LV.next:LEVEL);};
+  $("end").hidden=false;
+}
+function stepGame(dt){
+  if(!game.on||game.over||study)return;
+  game.t+=dt;
+  if(!game.reached&&Math.hypot(S.x-LV.cairn[0],S.z-LV.cairn[1])<7){game.reached=true;say("The cairn. Stop, and unpack the camera.");}
+  if(shot.on&&ready())game.setup=true;
+  if(shot.keepers>=LV.keepers&&!shot.on&&game.setup)game.packed=true;
+  if(game.packed&&!game.home&&Math.hypot(S.x,S.z)<7){game.home=true;endDay(true);}
+  const f=clamp(game.t/(LV.minutes*60),0,1),dusk=smooth(.7,1,f);
+  if(!shot.on||!shot.glass){sun.intensity=(study?2:2.9)*(1-.75*dusk);hemi.intensity=(study?2.1:1.45)*(1-.55*dusk);}
+  sunDir.set(-.55,lerp(.72,.14,dusk),.42).normalize();
+  if(f>=1)endDay(false);
+  if(Math.floor(game.t*2)!==stepGame.last){stepGame.last=Math.floor(game.t*2);drawTasks();}
+}
+function begin(){$("start").hidden=true;game.on=true;ensureAudio();drawTasks();}
+(function intro(){
+  $("s-level").textContent=LV.name;$("s-brief").textContent=LV.brief;$("t-name").textContent=LV.name;
+  $("s-begin").addEventListener("click",begin);$("e-stay").addEventListener("click",()=>{$("end").hidden=true;});
+  if(params.has("manual")||params.has("study")){$("start").hidden=true;game.on=!params.has("study");}
+  drawTasks();
+})();
+window.__pd.game=game;window.__pd.LV=LV;
 if(!params.has("manual"))requestAnimationFrame(frame);
 applyCargo();
 document.body.classList.add("ready");

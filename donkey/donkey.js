@@ -1,5 +1,16 @@
-/* Pack donkey: procedural skinned model with foot-planted walk and trot.
-   Usage: const d=makeDonkey(); scene.add(d.group); d.update(dt,{throttle,steer,trot},heightAt). */
+/* Pack donkey: a self-contained, reusable animal for any three.js (r160) scene.
+
+   const d = makeDonkey({ assetPath: "donkey/", shells: 14 });   // assetPath: where coat_*.jpg live; shells: fur layers
+   scene.add(d.group);
+   d.place(x, z, heading, heightAt);                            // heightAt(x, z) -> ground height
+   d.update(dt, { throttle, steer, pace, near, drop }, heightAt); // every frame. pace 0-3 = walk, trot, canter, gallop
+
+   What you pass is a request: the donkey's own mind (d.mind) may slow it, refuse it or bolt.
+   Load:  d.setCargo([{ kg, slot: "L" | "R" | "T" }])   d.setLoad(0 | 1 | 2)   d.resaddle()
+   Mood:  d.setMood(id)  d.moods  d.bray()  d.lie()  d.feed()  d.soothe()
+   State: d.state (speed, stamina, label, thought, tethered, goal, ...)   d.faceAt(vec3)
+   Hooks: d.state.onStep(leg, gait)   d.state.onMood(id)
+   See README.md in this folder. */
 (function(){"use strict";
 const T=window.THREE;
 const TAU=Math.PI*2, DEG=Math.PI/180;
@@ -150,7 +161,7 @@ function makeDonkey(opt){
     c.putImageData(d,0,0);
   });
   /* the coat is the reference sheet itself: side view on the flanks, top view on the back */
-  const sheet=name=>{const t=new T.TextureLoader().load(name);t.colorSpace=T.NoColorSpace;t.generateMipmaps=false;t.minFilter=t.magFilter=T.LinearFilter;return t;};
+  const sheet=name=>{const t=new T.TextureLoader().load(((opt&&opt.assetPath)||"")+name);t.colorSpace=T.NoColorSpace;t.generateMipmaps=false;t.minFilter=t.magFilter=T.LinearFilter;return t;};
   const tSide=sheet("coat_side.jpg"),tTop=sheet("coat_top.jpg"),tFront=sheet("coat_front.jpg"),tRear=sheet("coat_rear.jpg"),tHead=sheet("coat_head.jpg");
   const face={hU:{value:new T.Vector4()},hV:{value:new T.Vector4()},hD:{value:new T.Vector3()},tHead:{value:tHead}};
   function coat(m,h){

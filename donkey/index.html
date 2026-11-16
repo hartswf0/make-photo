@@ -89,7 +89,24 @@
     #platebox h2{margin:0;font:400 22px/1 "Instrument Serif",Georgia,serif;letter-spacing:.12em;text-transform:uppercase}#platebox p{margin:0;font-size:12px}
     #pl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}#pl-grid button{padding:0;border-radius:2px;min-height:0;border-color:rgba(241,238,230,.25)}
     #pl-grid img,#pl-big{display:block;width:100%;height:auto}#pl-big[hidden]{display:none}
-    #b-more{display:none}
+    #start,#end{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(21,22,19,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+      padding:20px max(20px,env(safe-area-inset-right)) 20px max(20px,env(safe-area-inset-left));box-sizing:border-box;color:#f1eee6}
+    #start[hidden],#end[hidden]{display:none}#start>div,#end>div{max-width:440px;display:flex;flex-direction:column;gap:14px}
+    #start h2,#end h2{margin:0;font:400 40px/1.05 "Instrument Serif",Georgia,serif;letter-spacing:.02em;text-wrap:balance}
+    .eyebrow{margin:0;font-size:11px;letter-spacing:.24em;text-transform:uppercase;opacity:.75}
+    #start p,#end p{margin:0;font-size:15px;line-height:1.5}#start ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.45;opacity:.9}
+    #start b{font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:11px;margin-right:6px}
+    #start button,#end button{align-self:flex-start;font:600 12px/1 Inter,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#151613;background:#f1eee6;border:1px solid #f1eee6;border-radius:999px;min-height:46px;padding:0 24px;cursor:pointer}
+    #end button.quiet{background:transparent;color:#f1eee6;border-color:rgba(241,238,230,.45)}
+    #tasks{position:fixed;right:max(14px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));width:230px;color:#f1eee6;text-shadow:0 1px 8px rgba(0,0,0,.7);pointer-events:none;z-index:2}
+    #tasks p{margin:0}#t-name{font:400 20px/1.1 "Instrument Serif",Georgia,serif;letter-spacing:.06em}#t-time{font-size:11px;opacity:.8;margin-top:4px!important}
+    .light{height:3px;margin-top:8px;background:rgba(241,238,230,.25)}.light i{display:block;height:100%;background:#f1eee6}
+    #t-list{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px;font-size:12px;line-height:1.3}
+    #t-list li{padding-left:18px;position:relative;opacity:.55}#t-list li::before{content:"";position:absolute;left:0;top:.25em;width:9px;height:9px;border:1px solid currentColor;border-radius:50%}
+    #t-list li.now{opacity:1;font-weight:600}#t-list li.done{opacity:.7;text-decoration:line-through}#t-list li.done::before{background:currentColor}
+    body.study #tasks,body.glass #tasks{display:none}body.study #tasks{color:#1b1a17}
+    @media (max-width:640px){.plate h1{display:none}.touch-hint{display:none!important}.plate{max-width:48vw}#tasks{width:150px}#t-name{font-size:16px}#t-list{font-size:11px}#t-list li:not(.now){display:none}}
+    .bar .x{display:none}.bar.open .x{display:inline-block}
     @media (hover:none),(max-width:640px){
       .bar{left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));max-width:none;gap:6px;display:grid;grid-template-columns:repeat(4,1fr)}
       .bar button{padding:0 4px;min-height:44px;font-size:10px;letter-spacing:.08em}
@@ -110,6 +127,32 @@
 <body>
   <canvas id="view" aria-label="A pack donkey in a mountain meadow"></canvas>
   <div class="vignette"></div>
+  <section id="start">
+    <div>
+      <p class="eyebrow">Pack Donkey</p>
+      <h2 id="s-level"></h2>
+      <p id="s-brief"></p>
+      <ul>
+        <li><b>Drive</b> W A S D or the left thumb. Shift, Z, X to go faster.</li>
+        <li><b>Pack</b> P. Keep the two sides within three pounds.</li>
+        <li><b>Camera</b> O, once she is standing still. Then touch the pieces themselves.</li>
+      </ul>
+      <button type="button" id="s-begin">Set out</button>
+    </div>
+  </section>
+  <section id="end" hidden>
+    <div>
+      <h2 id="e-title"></h2>
+      <p id="e-text"></p>
+      <button type="button" id="e-next"></button>
+      <button type="button" id="e-stay" class="quiet">Stay and look around</button>
+    </div>
+  </section>
+  <aside id="tasks" aria-label="Today">
+    <p id="t-name"></p>
+    <div class="light"><i id="t-light"></i></div><p id="t-time"></p>
+    <ol id="t-list"></ol>
+  </aside>
   <header class="plate">
     <h1>Pack Donkey</h1>
     <p><span id="gait">Stand</span><span id="speed">0.0 m/s</span><span id="mood">Calm</span></p>
@@ -118,23 +161,22 @@
   </header>
   <p class="touch-hint">Left thumb drives · drag right to look · pinch to zoom</p>
   <p class="keys">
-    <b>W</b><b>A</b><b>S</b><b>D</b> drive &nbsp; <b>Shift</b> trot &nbsp; <b>Z</b> canter &nbsp; <b>X</b> gallop &nbsp; <b>K</b> lie down &nbsp; <b>O</b> camera &nbsp; <b>N</b> mind &nbsp; <b>Space</b> bray<br>
-    <b>1</b>–<b>0</b> <b>-</b> <b>=</b> <b>[</b> <b>]</b> <b>;</b> <b>'</b> <b>\</b> moods &nbsp; <b>E</b> next mood &nbsp; <b>F</b> face camera &nbsp; <b>G</b> mood reel<br>
-    <b>P</b> packing &nbsp; <b>C</b> view &nbsp; <b>V</b> study &nbsp; <b>R</b> reset &nbsp; drag to look, scroll to zoom
+    <b>W</b><b>A</b><b>S</b><b>D</b> drive &nbsp; <b>Shift</b> <b>Z</b> <b>X</b> faster &nbsp; <b>P</b> pack &nbsp; <b>O</b> camera &nbsp; <b>N</b> mind &nbsp; <b>K</b> lie down<br>
+    Drag to look, scroll to zoom. More under <b>···</b>
   </p>
   <div class="bar">
     <button id="b-trot" data-act="trot" aria-pressed="false">Walk</button>
     <button id="b-pack" data-act="pack" aria-pressed="true">Pack</button>
-    <button data-act="mood">Mood</button>
-    <button data-act="bray">Bray</button>
+    <button class="x" data-act="mood">Mood</button>
+    <button class="x" data-act="bray">Bray</button>
     <button data-act="camera">Camera</button>
     <button data-act="lie">Lie</button>
-    <button id="b-face" data-act="face" aria-pressed="false">Face</button>
-    <button id="b-reel" class="x" data-act="reel" aria-pressed="false">Reel</button>
-    <button id="b-mind" class="x" data-act="mind" aria-pressed="false">Mind</button>
+    <button class="x" id="b-face" data-act="face" aria-pressed="false">Face</button>
+    <button class="x" id="b-reel" data-act="reel" aria-pressed="false">Reel</button>
+    <button id="b-mind" data-act="mind" aria-pressed="false">Mind</button>
     <button class="x" data-act="view">View</button>
-    <button id="b-study" class="x" data-act="study" aria-pressed="false">Study</button>
-    <button id="b-sound" class="x" data-act="sound" aria-pressed="true">Sound</button>
+    <button class="x" id="b-study" data-act="study" aria-pressed="false">Study</button>
+    <button class="x" id="b-sound" data-act="sound" aria-pressed="true">Sound</button>
     <button id="b-more" data-act="more" aria-pressed="false" aria-label="More controls">···</button>
   </div>
   <section id="mind" hidden aria-label="Mind">
