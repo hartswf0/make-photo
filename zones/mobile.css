@@ -1,0 +1,394 @@
+#viewfinder { display: contents; }
+.field-corner { display: none; }
+.loader-actions:not([hidden]) { display: flex; gap: 8px; }
+
+.field-key {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 3px 5px;
+  border: 1px solid #727b70;
+  border-radius: 5px;
+  background: #16211f;
+  color: #f4eddb;
+  font: 600 12px/1.15 Inter, system-ui, sans-serif;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.field-key:focus-visible { outline: 2px solid #b1f7fa; outline-offset: 2px; }
+.field-key[hidden] { display: none !important; }
+
+@media (max-width: 860px), (pointer: coarse) {
+  body {
+    --ice: #b3f1ed;
+    --amber: #f9d28c;
+    --glass: #071d1cc2;
+    --etch: rgba(175, 239, 233, .62);
+    --instrument: 550 11px/1.15 "IBM Plex Mono", ui-monospace, monospace;
+    --rim-x: 9px;
+    --rim-y: 8px;
+    --top: calc(var(--rim-y) + env(safe-area-inset-top));
+    --bottom: calc(var(--rim-y) + env(safe-area-inset-bottom));
+    --left: calc(var(--rim-x) + env(safe-area-inset-left));
+    --right: calc(var(--rim-x) + env(safe-area-inset-right));
+    position: relative;
+    touch-action: auto;
+    height: 100vh;
+    height: 100dvh;
+    color: #fff2d7;
+    background: #071717;
+  }
+  #top-left, #reel-col, #rack-tray, #platebox, #focus-dock, #wedge-wrap, #keys,
+  #toast, #thirst-alert, #ppc-hud, #cam-frame-tag, #flash, #cinema-intro, .letterbox,
+  body:not(.ground-glass) #cloth { display: none; }
+
+  #viewfinder {
+    display: block;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  #view {
+    position: absolute;
+    touch-action: none;
+  }
+  #viewfinder::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 215px 170px at 0 0, #041110ed, transparent),
+      radial-gradient(ellipse 215px 170px at 100% 0, #041110ed, transparent),
+      radial-gradient(ellipse 180px 166px at 0 100%, #041110e8, transparent),
+      radial-gradient(ellipse 180px 175px at 100% 100%, #041110ed, transparent);
+  }
+  #cloth { position: absolute; }
+  #reticle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    margin: -6px 0 0 -6px;
+    border-color: #ffe3a7a8;
+    box-shadow: 0 0 0 1px #17262688;
+  }
+  #reticle::after, body.intro-active #reticle, body.intro-active #cam-frame { display: none; }
+  #cam-frame {
+    position: absolute;
+    width: var(--crop-width, 80%);
+    height: var(--crop-height, 45%);
+    border: 0;
+    box-shadow: none;
+  }
+  #cam-frame::before, #cam-frame::after {
+    inset: 0;
+    border-color: #b3f1eda6;
+    border-width: 1px;
+    filter: drop-shadow(0 0 1px #071717);
+  }
+  #cam-frame::before {
+    border-style: solid none;
+    mask: linear-gradient(90deg, #000 14px, transparent 14px, transparent calc(100% - 14px), #000 calc(100% - 14px));
+  }
+  #cam-frame::after {
+    border-style: none solid;
+    mask: linear-gradient(#000 14px, transparent 14px, transparent calc(100% - 14px), #000 calc(100% - 14px));
+  }
+  body.field-no-guides :is(#reticle, #cam-frame) { display: none; }
+
+  .field-corner {
+    position: absolute;
+    z-index: 6;
+    pointer-events: none;
+    text-shadow: 0 1px 2px #030b0b, 0 0 5px #030b0b, 0 0 9px #030b0b;
+  }
+  body:not(.field-ready) .field-corner { visibility: hidden; }
+  .field-corner .field-key {
+    pointer-events: auto;
+    touch-action: manipulation;
+    padding: 0 2px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: inherit;
+    font: var(--instrument);
+    text-shadow: inherit;
+    text-transform: uppercase;
+  }
+  .field-corner .field-key:active, .field-key[data-held], .field-key[data-armed] {
+    color: var(--amber);
+    text-shadow: 0 0 7px #edb960, 0 1px 2px #030b0b;
+  }
+  .field-key[data-field-key], #field-stick, #field-value[data-adjustable] {
+    touch-action: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  #field-status {
+    top: var(--top);
+    left: var(--left);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+    gap: 4px;
+    width: min(calc(50vw - 12px), 213px);
+    padding-left: 6px;
+    border-left: 1px solid #99e8e679;
+  }
+  .field-links { display: flex; gap: 1px; }
+  .field-links .field-key { display: grid; place-items: center; font-size: 10px; }
+  #field-place {
+    margin: 0;
+    font: 400 clamp(18px, 5.6vw, 24px)/.97 "Instrument Serif", Georgia, serif;
+    overflow-wrap: anywhere;
+  }
+  #field-state, #field-wifi, #field-notice { margin: 0; font: var(--instrument); }
+  #field-state { text-transform: uppercase; }
+  #field-wifi { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; color: var(--ice); }
+  #field-wifi[hidden], #field-notice:empty { display: none; }
+  #field-wifi-scale, #field-tool-dots { display: inline-flex; justify-content: center; gap: 4px; }
+  #field-wifi-scale i, #field-tool-dots i {
+    width: 4px;
+    height: 4px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    opacity: .55;
+  }
+  #field-wifi-scale i[data-lit], #field-tool-dots i[data-lit] {
+    background: currentColor;
+    opacity: 1;
+    box-shadow: 0 0 4px currentColor;
+  }
+  #field-notice {
+    color: #ffe2aa;
+    overflow-wrap: anywhere;
+  }
+  #field-notice[data-warning] { color: #ffab96; }
+  #field-progress { width: 100%; height: 5px; accent-color: var(--ice); }
+
+  #field-tools {
+    top: var(--top);
+    right: var(--right);
+    display: grid;
+    width: min(calc(50vw - 15px), 170px);
+    color: var(--ice);
+  }
+  #field-tools::before, #field-tools::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0 5px;
+    border: 1px dashed #89dbd99e;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, #05191822 53%, #16383564 72%, transparent 73%);
+  }
+  #field-tools::after {
+    inset: 7px 12px;
+    border-style: solid;
+    border-color: #8edbd348;
+    background: none;
+  }
+  #field-dial-index {
+    position: absolute;
+    z-index: -1;
+    inset: 1px 6px;
+    border-radius: 50%;
+    background:
+      conic-gradient(from var(--dial-angle, 39deg), #ffdc94 0 3deg, transparent 3deg),
+      repeating-conic-gradient(#a8dedc73 0deg 1deg, transparent 1deg 8deg);
+    mask: radial-gradient(ellipse, transparent 65%, #000 66% 71%, transparent 72%);
+  }
+  #field-dial-index[hidden] { display: none; }
+  .field-select {
+    min-height: 44px;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+  }
+  .field-label, .field-value {
+    justify-self: center;
+    text-align: center;
+    overflow-wrap: anywhere;
+    font: var(--instrument);
+    text-transform: uppercase;
+  }
+  #field-tool-name { display: block; font-size: 12px; color: #fff2d7; }
+  #field-tool-dots { display: flex; margin-top: 4px; color: var(--amber); }
+  .field-corner :is(.field-arrow, .field-adjust) { font-size: 19px; }
+  .field-arrow::before, #field-actions > .field-key:not(.field-shutter)::before {
+    content: "";
+    display: block;
+    margin: 1px auto 2px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 4px currentColor;
+  }
+  .field-corner .field-adjust { color: var(--amber); }
+  #field-choice[data-wide] > .field-key { grid-column: 1 / -1; }
+  #field-choice :is(#field-value, #field-apply, #field-plate-link) {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--amber);
+  }
+  #field-choice[data-wide] :is(#field-value, #field-apply, #field-plate-link) { grid-column: 1 / -1; }
+  #field-value { width: 100%; cursor: default; }
+  #field-value[data-adjustable] { cursor: ew-resize; }
+  #field-value[disabled] { opacity: 1; }
+  #field-plate-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 10px;
+  }
+  #field-plate-thumb { width: 25px; aspect-ratio: 5/4; object-fit: cover; border-radius: 2px; }
+  #field-value-prev { grid-column: 1; }
+  #field-value-next { grid-column: 3; grid-row: 1; }
+
+  #field-move {
+    left: var(--left);
+    bottom: var(--bottom);
+    display: grid;
+    grid-template-columns: 94px 44px;
+    grid-template-rows: 44px 50px;
+    align-items: end;
+    color: var(--ice);
+  }
+  #field-stick {
+    position: relative;
+    grid-area: 1 / 1 / span 2;
+    width: 94px;
+    height: 94px;
+    touch-action: none;
+    border: 1px solid var(--etch);
+    background: radial-gradient(circle, #071d1c8f 42%, #16383573 71%);
+    box-shadow: 0 0 16px #16393545, inset 0 0 10px #91eeed38;
+    user-select: none;
+  }
+  #field-stick::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border: 1px dashed var(--etch);
+    border-radius: 50%;
+  }
+  #field-stick-dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 19px;
+    height: 19px;
+    margin: -9.5px;
+    border: 1px solid #cefffb;
+    border-radius: 50%;
+    background: #71c6c596;
+    box-shadow: 0 0 9px #7bd8d882;
+    transform: translate(var(--stick-x, 0), var(--stick-y, 0));
+    pointer-events: none;
+  }
+  #field-stick-up, #field-stick-down, #field-stick-name {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    pointer-events: none;
+    font-size: 9px;
+  }
+  #field-stick-up { top: 10px; }
+  #field-stick-down { bottom: 22px; }
+  #field-stick-name { bottom: 7px; letter-spacing: .06em; }
+  #field-boost { grid-area: 1 / 2; }
+  #field-boost::before {
+    content: "◦";
+    display: block;
+    font: 650 21px/.8 system-ui, sans-serif;
+  }
+
+  #field-actions, #field-intro {
+    right: var(--right);
+    bottom: var(--bottom);
+    width: min(calc(50vw - 14px), 172px);
+    display: grid;
+    grid-template:
+      "vehicle wing" 44px
+      "wagon shutter" 44px
+      "water shutter" 44px / minmax(44px, 1fr) minmax(73px, 1.1fr);
+    align-items: end;
+    color: #fff0d5;
+  }
+  #field-vehicle { grid-area: vehicle; }
+  #field-wing, #field-brake { grid-area: wing; }
+  #field-water { grid-area: water; }
+  #field-water[data-rescue] { color: #ffac8b; border: 1px solid currentColor; background: var(--glass); }
+  #field-wagon { grid-area: wagon; }
+  #field-expose {
+    grid-area: shutter;
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    color: var(--amber);
+    white-space: nowrap;
+  }
+  #field-orb {
+    position: relative;
+    display: grid;
+    width: 65px;
+    height: 65px;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid #ffe7b1c9;
+    background: radial-gradient(circle at 38% 30%, #fff1b0c8, #a97527a6 29%, #2b2319ad 45%, #d1aa6f63 58%, #443c27b5 63%, #131d1bd9 70%);
+    box-shadow: inset 0 0 11px #ffda8870, 0 0 15px #bb8d4873;
+  }
+  #field-orb::after {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border: 1px dashed #ffe6adb0;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  #field-orb-img {
+    width: 49px;
+    height: 49px;
+    object-fit: cover;
+    border-radius: 50%;
+    opacity: .86;
+    mask-image: radial-gradient(circle, #000 44%, #0009 58%, transparent 71%);
+  }
+  #field-expose:active #field-orb, #field-expose[data-exposed] #field-orb {
+    border-color: #fff5d5;
+    box-shadow: inset 0 0 14px #ffdf9b, 0 0 17px #edb859a6;
+  }
+  #field-intro { grid-template: repeat(3, 44px) / minmax(0, 1fr); }
+  #field-intro .field-key { border: 1px solid var(--etch); border-radius: 4px; background: var(--glass); }
+  #field-prologue { grid-row: 1; }
+  #field-summit { grid-row: 2; }
+  #field-enter, #field-skip { grid-row: 3; color: var(--amber); }
+  body:not(.intro-active) #field-intro,
+  body.intro-active :is(#field-tools, #field-move, #field-actions) { display: none; }
+
+  @media (orientation: landscape) {
+    body { --rim-x: 14px; }
+    #field-status { width: min(25vw, 190px); }
+    #field-place { font-size: clamp(17px, 3vw, 23px); }
+  }
+  @media (orientation: landscape) and (max-height: 300px) {
+    #field-actions {
+      width: 188px;
+      grid-template:
+        "vehicle wagon shutter" 44px
+        "water wing shutter" 44px / 56px 54px 78px;
+    }
+    #field-orb { width: 54px; height: 54px; }
+    #field-orb-img { width: 39px; height: 39px; }
+  }
+}

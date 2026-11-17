@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#141512">
   <meta name="description" content="DONKEY WATER SCIFI · Cyan Jerikan Over Cosmic Addis: 11-Zone multi-shader worlds, blue jerikan optical filter, drivable survey cart, and Mistletoe.">
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
@@ -1229,14 +1229,81 @@
       #focus-knob i { height: 22px; margin-top: -22px; }
     }
   </style>
+  <link rel="stylesheet" href="./mobile.css">
 </head>
 <body>
   <audio id="jerikan-audio" src="./cyan-jerikan.ogg" loop preload="auto"></audio>
-  <canvas id="view"></canvas>
-  <div id="cloth" aria-hidden="true"></div>
-  <div id="flash" aria-hidden="true"></div>
-  <div id="reticle" aria-hidden="true"></div>
-  <div id="cam-frame" aria-hidden="true"><span id="cam-frame-tag">8×10 WIFI SURVEY · 34% IN FRAME · ALT +5.2m</span></div>
+  <div id="viewfinder">
+    <canvas id="view" aria-label="Live expedition view"></canvas>
+    <div id="cloth" aria-hidden="true"></div>
+    <div id="flash" aria-hidden="true"></div>
+    <div id="reticle" aria-hidden="true"></div>
+    <div id="cam-frame" aria-hidden="true"><span id="cam-frame-tag">8×10 WIFI SURVEY · 34% IN FRAME · ALT +5.2m</span></div>
+  </div>
+
+  <header id="field-status" class="field-corner">
+    <div class="field-links">
+      <a class="field-key" href="../" aria-label="Return to expedition index">‹ Index</a>
+      <button class="field-key" id="field-pause" type="button" aria-label="Pause tape" hidden>Ⅱ Tape</button>
+      <button class="field-key" id="field-undo" type="button" aria-label="Undo last camera adjustment" hidden>Undo</button>
+    </div>
+    <h1 id="field-place">Donkey Water</h1>
+    <p id="field-state"></p>
+    <p id="field-wifi" hidden><span id="field-wifi-value"></span><span id="field-wifi-scale" aria-hidden="true"></span></p>
+    <p id="field-notice" role="status"></p>
+    <progress id="field-progress" aria-label="Prologue progress" max="1" value="0" hidden></progress>
+  </header>
+
+  <div id="field-tools" class="field-corner" role="group" aria-label="Expedition tool controls">
+    <span id="field-dial-index" aria-hidden="true"></span>
+    <div class="field-select">
+      <button class="field-key field-arrow" type="button" id="field-tool-prev" aria-label="Previous tool group">‹</button>
+      <span class="field-label"><span id="field-tool-name" aria-live="polite">Lens</span><span id="field-tool-dots" aria-hidden="true"></span></span>
+      <button class="field-key field-arrow" type="button" id="field-tool-next" aria-label="Next tool group">›</button>
+    </div>
+    <div class="field-select">
+      <button class="field-key field-arrow" type="button" id="field-setting-prev" aria-label="Previous setting">‹</button>
+      <span class="field-label" id="field-setting-name" aria-live="polite">Focus</span>
+      <button class="field-key field-arrow" type="button" id="field-setting-next" aria-label="Next setting">›</button>
+    </div>
+    <div class="field-select" id="field-choice">
+      <button class="field-key field-adjust" type="button" id="field-value-prev" aria-label="Decrease focus">−</button>
+      <button class="field-key field-value" id="field-value" type="button" aria-live="polite">18.0 m</button>
+      <button class="field-key field-adjust" type="button" id="field-value-next" aria-label="Increase focus">+</button>
+      <button class="field-key" type="button" id="field-apply" hidden></button>
+      <a class="field-key" id="field-plate-link" target="_blank" rel="noopener" hidden>
+        <img alt="" id="field-plate-thumb"><span id="field-plate-caption"></span>
+      </a>
+    </div>
+  </div>
+
+  <div id="field-move" class="field-corner" role="group" aria-label="Movement controls">
+    <button class="field-key" id="field-stick" type="button" aria-label="Move. Drag the stick or use the arrow keys.">
+      <span id="field-stick-up" aria-hidden="true"></span>
+      <span id="field-stick-dot" aria-hidden="true"></span>
+      <span id="field-stick-down" aria-hidden="true"></span>
+      <span id="field-stick-name" aria-hidden="true">Move</span>
+    </button>
+    <button class="field-key" id="field-boost" type="button" data-field-key="ShiftLeft" aria-label="Hold while moving to run">Run</button>
+  </div>
+
+  <div id="field-actions" class="field-corner" role="group" aria-label="Live actions">
+    <button class="field-key" type="button" id="field-vehicle">Ride</button>
+    <button class="field-key" type="button" id="field-wing" aria-label="Open glider wing">Wing</button>
+    <button class="field-key" type="button" id="field-brake" data-field-key="KeyX" aria-label="Hold wagon brake" hidden>Brake</button>
+    <button class="field-key" type="button" id="field-wagon">Wagon</button>
+    <button class="field-key" type="button" id="field-water">Ping WiFi</button>
+    <button class="field-key field-shutter" type="button" id="field-expose">
+      <span id="field-orb" aria-hidden="true"><img id="field-orb-img" alt="" hidden></span><span>Expose 8×10</span>
+    </button>
+  </div>
+
+  <div id="field-intro" class="field-corner" role="group" aria-label="Enter expedition">
+    <button class="field-key" type="button" id="field-prologue">Play prologue</button>
+    <button class="field-key" type="button" id="field-summit">Summit jump</button>
+    <button class="field-key field-shutter" type="button" id="field-enter">Enter overlook</button>
+    <button class="field-key field-shutter" type="button" id="field-skip" hidden>Skip prologue</button>
+  </div>
 
   <!-- Camcorder REC PPC Viewfinder Overlay (Donkey Water Sci-Fi) -->
   <div id="ppc-hud" aria-hidden="true">
@@ -1262,6 +1329,10 @@
     <h2>DONKEY WATER</h2>
     <p id="world-loader-msg">Unpacking MONOLITH-3 Grand Teton &amp; Yosemite USGS Terrain…</p>
     <div class="loader-bar" aria-hidden="true"></div>
+    <div class="loader-actions" id="loader-actions" hidden>
+      <button class="field-key" type="button" id="loader-retry">Retry</button>
+      <a class="field-key" href="../">‹ Index</a>
+    </div>
   </div>
 
   <div id="letterbox-top" class="letterbox" aria-hidden="true"></div>

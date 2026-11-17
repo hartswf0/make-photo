@@ -1825,10 +1825,33 @@ void main(){
 
   /* ---------- Renderer & Post-Processing Pipeline ---------- */
   const canvas = $("view");
-  const renderer = new T.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+  const fieldLayout = matchMedia("(max-width: 860px), (pointer: coarse)");
   const phone = matchMedia("(pointer:coarse)").matches || Math.min(innerWidth, innerHeight) < 560;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, phone ? 1.5 : 2));
+  $("loader-retry").addEventListener("click", () => location.reload());
+  function showWorldFault(message, error) {
+    if (error) console.error("THRESHOLD MONOLITH-3:", error);
+    const loader = $("world-loader");
+    loader.classList.remove("fade-out");
+    loader.hidden = false;
+    $("world-loader-msg").textContent = message;
+    loader.querySelector(".loader-bar").hidden = true;
+    $("loader-actions").hidden = false;
+    $("loader-retry").focus();
+  }
+  let renderer;
+  try {
+    renderer = new T.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+  } catch (error) {
+    showWorldFault("The 3D view could not start. Retry or return to the index.", error);
+    return;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, phone ? 1.25 : 2));
   renderer.toneMapping = T.NoToneMapping;
+  let contextLost = false;
+  canvas.addEventListener("webglcontextlost", () => {
+    contextLost = true;
+    showWorldFault("The 3D view paused. Retry or return to the index.");
+  });
 
   const NEAR = 0.35, FAR = 48000;
   const camera = new T.PerspectiveCamera(47, 1, NEAR, FAR);
@@ -3248,8 +3271,15 @@ void main(){
       wedgeEl.appendChild(btn);
     });
 
-    function toast(msg) {
+    let fieldNotice = "", fieldNoticeUntil = 0;
+    function toast(msg, shortMessage = msg) {
       if (state.introActive) return;
+      if (fieldLayout.matches) {
+        fieldNotice = shortMessage;
+        fieldNoticeUntil = performance.now() + 3400;
+        updateFieldNotice();
+        return;
+      }
       const t = $("toast"); t.textContent = msg; t.hidden = false;
       clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 3400);
     }
@@ -3286,8 +3316,7 @@ void main(){
       return { idx, ep: SONG_EPOCHS[idx], trackTime: t };
     }
 
-    function updateHUD() {
-      const m = MODES[state.modeIdx], st = STOPS[state.stopIdx], fl = FILTERS[state.filterIdx], Z = ZONES[state.currentZone];
+    function updateDesktopHUD(m, fl, Z) {
       const activeLook = state.soloLook >= 0 ? LOOKS[state.soloLook] : LOOKS[state.focusLook];
       const rTag = state.region === "ridge" ? "YOSEMITE HALF DOME" : state.region === "abyss" ? "ABYSSAL FLUKE SANCTUARY" : "GRAND TETON";
       $("zone-title").textContent = `Zone ${ROMAN[Z.z]} · ${Z.name}`;
@@ -3370,7 +3399,12 @@ void main(){
         b.classList.toggle("resonant", idx === state.resonantZone);
       });
       updateFocusKnobVisual();
+    }
 
+    function updateHUD() {
+      const st = STOPS[state.stopIdx], fl = FILTERS[state.filterIdx];
+      if (fieldLayout.matches) updateFieldHUD();
+      else updateDesktopHUD(MODES[state.modeIdx], fl, ZONES[state.currentZone]);
       const u = lookMat.uniforms;
       u.uFocusDist.value = state.focusDist; u.uDofOctaves.value = st.oct; u.uTilt.value = state.tilt;
       u.uStrataLock.value = st.lock; u.uRouteMode.value = state.modeIdx; u.uSoloLook.value = state.soloLook;
@@ -3479,20 +3513,40 @@ void main(){
 
     ["mode", "look", "lens", "burro"].forEach(k => $("sp-" + k).addEventListener("click", () => { state.trayTab = state.trayTab === k ? null : k; renderTray(); }));
     $("sp-clocks").addEventListener("click", () => {
-      const on = audio.toggle(); $("sp-clocks").setAttribute("aria-pressed", String(on));
-      toast(on ? "Three Clocks WebAudio engaged." : "Three Clocks muted.");
+      toggleClocks();
     });
 
     /* Cassette Deck + Spatial Radio Controls */
     const audioEl = $("jerikan-audio");
+    function toggleClocks() {
+      const on = audio.toggle();
+      $("sp-clocks").setAttribute("aria-pressed", String(on));
+      toast(on ? "Three Clocks WebAudio engaged." : "Three Clocks muted.", on ? "Clocks on" : "Clocks muted");
+      updateHUD();
+    }
+    function syncTapeUI() {
+      const playing = !audioEl.paused && !audioEl.ended;
+      $("tape-btn").setAttribute("aria-pressed", String(playing));
+      $("tape-btn").textContent = playing ? "❚❚ Pause Tape" : "▶ Play Tape";
+      document.body.classList.toggle("tape-playing", playing);
+      updateHUD();
+    }
+    for (const event of ["play", "pause", "ended", "emptied"]) audioEl.addEventListener(event, syncTapeUI);
+    audioEl.addEventListener("error", () => {
+      syncTapeUI();
+      toast("Tape unavailable. Select Play to retry.", "Tape unavailable. Retry Play.");
+    });
     function toggleTape() {
       audio.connectTape(audioEl);
       if (audioEl.paused) {
-        audioEl.play().catch(() => {}); $("tape-btn").setAttribute("aria-pressed", "true"); $("tape-btn").textContent = "❚❚ Pause Tape";
-        document.body.classList.add("tape-playing"); toast("Scion C60 Radio TX from Mistletoe’s pack speakers!");
+        if (audioEl.error) audioEl.load();
+        audioEl.play().catch(error => {
+          if (error.name === "AbortError") return;
+          syncTapeUI();
+          toast("Tape unavailable. Select Play to retry.", "Tape unavailable. Retry Play.");
+        });
       } else {
-        audioEl.pause(); $("tape-btn").setAttribute("aria-pressed", "false"); $("tape-btn").textContent = "▶ Play Tape";
-        document.body.classList.remove("tape-playing");
+        audioEl.pause();
       }
     }
     $("tape-btn").addEventListener("click", toggleTape);
@@ -3500,14 +3554,15 @@ void main(){
     function toggleSpatialAudio() {
       state.spatialAudio = audio.setSpatialMode(!state.spatialAudio);
       updateHUD();
-      toast(state.spatialAudio ? "3D Donkey Pack Speaker TX (distance attenuation ON)." : "Cabin Stereo Monitor (direct full volume).");
+      toast(state.spatialAudio ? "3D Donkey Pack Speaker TX (distance attenuation ON)." : "Cabin Stereo Monitor (direct full volume).",
+        state.spatialAudio ? "Burro speakers" : "Cabin stereo");
     }
     if ($("tape-spatial-btn")) $("tape-spatial-btn").addEventListener("click", toggleSpatialAudio);
 
-    function seekTape(sec) {
+    function seekTape(sec, play = true) {
       const dur = Number.isFinite(audioEl.duration) ? audioEl.duration : 283;
       audioEl.currentTime = clamp(sec, 0, dur - .2);
-      if (audioEl.paused) toggleTape();
+      if (play && audioEl.paused) toggleTape();
       updateHUD();
     }
     if ($("tape-scrub")) {
@@ -3559,24 +3614,54 @@ void main(){
       updateHUD();
     }
 
+    let interruptedRelay = null;
     function startPourAnim(r) {
-      if (!r || r.lit || (state.pourAnim && state.pourAnim.relay === r)) return;
+      if (!r || r.lit || state.pourAnim) return;
       if (state.donkeyCollapsed || state.donkeyWater <= .05) {
-        toast("Mistletoe has no water to pour! Press P to give emergency water first.");
+        toast("Mistletoe has no water to pour! Press P to give emergency water first.", "Give Mistletoe water first.");
         return;
       }
-      state.pourAnim = { relay: r, t: 0, dur: 3.2, lastChime: -1 };
+      interruptedRelay = null;
+      state.pourAnim = {
+        relay: r, t: 0, dur: 3.2, lastChime: -1,
+        fills: r.cans.map(c => c.userData.fill || 0),
+        poolMaterial: r.poolMesh?.material,
+        poolY: r.poolMesh?.position.y
+      };
       audio.pourSplash(0);
-      toast(`Mistletoe bows at ${r.name} — pouring cyan WiFi water & filling ${r.cans.length} jerrycans!`);
+      toast(`Mistletoe bows at ${r.name} — pouring cyan WiFi water & filling ${r.cans.length} jerrycans!`, "Filling jerrycans");
+    }
+
+    function stopPour() {
+      const pour = state.pourAnim;
+      if (!pour) return;
+      const r = pour.relay;
+      r.cans.forEach((can, index) => can.userData.setFill(pour.fills[index]));
+      if (r.poolMesh) {
+        r.poolMesh.material = pour.poolMaterial;
+        r.poolMesh.position.y = pour.poolY;
+      }
+      pourGroup.visible = false;
+      state.pourAnim = null;
+      interruptedRelay = r;
+      recomputeFilledCans();
+      toast("Pour stopped. Tap Pour to retry.");
+      updateHUD();
     }
 
     function triggerDance(dur = 5.2, silentToast = false) {
+      if (state.danceTimer > 0 && !silentToast) {
+        state.danceTimer = 0;
+        toast("Dance stopped");
+        updateHUD();
+        return;
+      }
       if (state.donkeyCollapsed) { toast("Give Mistletoe water first (P)!"); return; }
-      state.danceTimer = state.danceTimer > 0 && !silentToast ? 0 : dur;
+      state.danceTimer = dur;
       if (state.danceTimer > 0) {
         donkey.soothe(); donkey.bray();
         audio.relayChime(false);
-        if (!silentToast) toast("Mistletoe dances the 6/8 Cosmic Addis Eskista!");
+        if (!silentToast) toast("Mistletoe dances the 6/8 Cosmic Addis Eskista!", "Mistletoe dancing");
       }
       updateHUD();
     }
@@ -3586,7 +3671,8 @@ void main(){
       state.lidarOn = !state.lidarOn;
       state.lidarStrength = state.lidarOn ? 1.0 : 0.0;
       updateHUD();
-      toast(state.lidarOn ? "3D USGS Lidar + Song-Zone Flow Path ON (1m/5m contours & signal guide)." : "Lidar Contours OFF.");
+      toast(state.lidarOn ? "3D USGS Lidar + Song-Zone Flow Path ON (1m/5m contours & signal guide)." : "Lidar Contours OFF.",
+        state.lidarOn ? "Lidar on" : "Lidar off");
     }
     if ($("btn-lidar")) $("btn-lidar").addEventListener("click", toggleLidar);
 
@@ -3599,7 +3685,7 @@ void main(){
       state.focusPulse = 1.0;
       audio.forestChime(zIdx);
       updateHUD();
-      toast(`Tuned to Song Epoch ${SONG_EPOCHS[state.songEpochIdx].name} (Zone ${ROMAN[zIdx]}) — Conduit Boost ACTIVE!`);
+      toast(`Tuned to Song Epoch ${SONG_EPOCHS[state.songEpochIdx].name} (Zone ${ROMAN[zIdx]}) — Conduit Boost ACTIVE!`, `Synced to Zone ${ROMAN[zIdx]}`);
     }
     if ($("btn-sync-zone")) $("btn-sync-zone").addEventListener("click", syncResonantZone);
     if ($("res-pill")) $("res-pill").addEventListener("click", syncResonantZone);
@@ -3613,8 +3699,8 @@ void main(){
         const rx = state.x + fx * 3.1 + rxOff * 1.45, rz = state.z + fz * 3.1 + rzOff * 1.45;
         fieldRigGroup.position.set(rx, driveSurfaceAt(rx, rz), rz);
         fieldRigGroup.rotation.y = state.yaw + Math.PI - .32;
-        toast("8×10 Mahogany & Brass Field Camera set on tripod!");
-      } else toast("8×10 Field Camera packed.");
+        toast("8×10 Mahogany & Brass Field Camera set on tripod!", "8×10 rig deployed");
+      } else toast("8×10 Field Camera packed.", "8×10 rig packed");
       updateHUD();
     }
     if ($("btn-rig")) $("btn-rig").addEventListener("click", deployRig);
@@ -3628,7 +3714,8 @@ void main(){
       state.unlockedGroves = forestGroves.filter(x => x.unlocked).length;
       state.unlockedTrees = forestGroves.reduce((s, x) => s + (x.unlocked ? x.trees : 0), 0);
       audio.forestChime(g.id);
-      toast(`SIGNAL +${Math.round(state.relElev)}m UNLOCKED "${g.name}" (${state.unlockedGroves}/${forestGroves.length} Film Forest)!`);
+      toast(`SIGNAL +${Math.round(state.relElev)}m UNLOCKED "${g.name}" (${state.unlockedGroves}/${forestGroves.length} Film Forest)!`,
+        `Forest unlocked · ${state.unlockedGroves}/${forestGroves.length}`);
       updateHUD();
     }
 
@@ -3643,17 +3730,23 @@ void main(){
     function pingSignal() {
       state.pingTimer = 4.2; state.focusPulse = 1.0;
       audio.relayChime(false); checkForestUnlocks();
-      toast(`High-Altitude WiFi Signal Ping! Alt ${fmtElev(state.antennaElev)} · Range ${Math.round(state.signalRadius * 1.25)} m.`);
+      toast(`High-Altitude WiFi Signal Ping! Alt ${fmtElev(state.antennaElev)} · Range ${Math.round(state.signalRadius * 1.25)} m.`,
+        `Ping · ${Math.round(state.signalRadius * 1.25)} m range`);
     }
 
-    function pourWifi() {
-      let closest = null, bestD = 1e9;
+    function findPourTarget() {
+      let closest = null, bestD = 44;
       for (const r of relays) {
         if (r.lit) continue;
         const d = Math.min(Math.hypot(r.x - state.x, r.z - state.z), Math.hypot(r.x - donkey.state.x, r.z - donkey.state.z));
         if (d < bestD) { bestD = d; closest = r; }
       }
-      if (closest && bestD < 44) startPourAnim(closest);
+      return closest;
+    }
+
+    function pourWifi() {
+      const closest = findPourTarget();
+      if (closest) startPourAnim(closest);
       else if (Math.hypot(well.x - state.x, well.z - state.z) < 22) { pumpWell(); pingSignal(); }
       else pingSignal();
     }
@@ -3666,7 +3759,7 @@ void main(){
       donkey.state.collapsed = false; donkey.state.downWant = false; donkey.state.stamina = 1.0;
       audio.pumpClank(); donkey.feed(); donkey.soothe();
       updateHUD();
-      toast("Cyan WiFi Water fills Mistletoe & her 20L jerrycans (100% Hydrated)!");
+      toast("Cyan WiFi Water fills Mistletoe & her 20L jerrycans (100% Hydrated)!", "Mistletoe hydrated · 100%");
       if (state.trayTab === "burro") renderTray();
     }
     $("btn-pump").addEventListener("click", pumpWell);
@@ -3683,14 +3776,14 @@ void main(){
         state.roofJumpStart.set(donkey.state.x, donkey.group.position.y, donkey.state.z);
         state.chaseCamPos.copy(camera.position);
         state.chaseLookAt.set(wagon.x, wagon.y + 1.8, wagon.z);
-        toast("Cruiser Woody (Collisions OFF) · Mistletoe on roof-deck! Drive continuously anywhere — no fences!");
+        toast("Cruiser Woody (Collisions OFF) · Mistletoe on roof-deck! Drive continuously anywhere — no fences!", "Mistletoe on roof deck");
       } else {
         wagon.speed = 0; state.donkeyOnRoof = false;
         const dx = wagon.x + Math.cos(wagon.heading) * 2.8, dz = wagon.z - Math.sin(wagon.heading) * 2.8;
         state.x = dx; state.z = dz; state.y = driveSurfaceAt(dx, dz) + 1.68;
         state.yaw = wagon.heading + Math.PI; state.pitch = -.05;
         donkey.place(wagon.x - Math.cos(wagon.heading) * 2.4, wagon.z + Math.sin(wagon.heading) * 2.4, wagon.heading, (x, z) => driveSurfaceAt(x, z));
-        toast("Parked Cruiser Woody — Mistletoe hops down.");
+        toast("Parked Cruiser Woody — Mistletoe hops down.", "Wagon parked");
       }
       updateHUD();
     }
@@ -3731,7 +3824,7 @@ void main(){
       state.chaseLookAt.set(gx + Math.sin(hdg) * 14, startY + 1.2, gz + Math.cos(hdg) * 14);
       audio.glideWhoosh();
       toast(customLaunch ? `SUMMIT BASE-JUMP! ${customLaunch.name} — W dive · S climb · Shift updraft!`
-                         : "Donkey Paraglider unfurled! W dive · S flare · Shift thermal updraft · Space expose!");
+                         : "Donkey Paraglider unfurled! W dive · S flare · Shift thermal updraft · Space expose!", "Wing open");
       updateHUD();
     }
     if ($("btn-glide")) $("btn-glide").addEventListener("click", () => toggleGlide());
@@ -3760,7 +3853,7 @@ void main(){
       donkey.place(Z.x - 1.5, Z.pz + 2.5, state.yaw + Math.PI, (x, z) => driveSurfaceAt(x, z));
       applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
       initRain(); updateHUD();
-      toast(`Arrived at Zone ${ROMAN[Z.z]} · ${Z.name}`);
+      toast(`Arrived at Zone ${ROMAN[Z.z]} · ${Z.name}`, `Arrived · Zone ${ROMAN[Z.z]}`);
     }
 
     function toggleRegion() {
@@ -3792,7 +3885,8 @@ void main(){
         applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
       }
       updateHUD();
-      toast(state.riding ? "Mounted Mistletoe (3rd-Person Trail Cam) — WASD ride, J Base-Jump!" : "Dismounted.");
+      toast(state.riding ? "Mounted Mistletoe (3rd-Person Trail Cam) — WASD ride, J Base-Jump!" : "Dismounted.",
+        state.riding ? "Mounted Mistletoe" : "Dismounted");
     }
     $("btn-ride").addEventListener("click", toggleRide);
 
@@ -3861,14 +3955,25 @@ void main(){
       renderer.render(postScene, postCam);
     }
 
+    function captureBounds(width, height) {
+      const aspect = 5 / 4;
+      const margin = fieldLayout.matches ? .84 : 1;
+      const w = Math.round(Math.min(width, height * aspect) * margin);
+      const h = Math.round(Math.min(height, width / aspect) * margin);
+      return { x: Math.round((width - w) / 2), y: Math.round((height - h) / 2), w, h };
+    }
+
     const tmpRayDir = new T.Vector3(), tmpSample = new T.Vector3();
     function computeFrameWifiPct() {
       const emitters = sampleWifiEmitters();
+      const bounds = captureBounds(canvas.width, canvas.height);
+      const spanX = fieldLayout.matches ? .92 * bounds.w / Math.max(1, canvas.width) : .68;
+      const spanY = fieldLayout.matches ? .92 * bounds.h / Math.max(1, canvas.height) : .68;
       let sum = 0, count = 0;
       const ox = camera.position.x, oy = camera.position.y, oz = camera.position.z;
       for (let gy = 0; gy < 4; gy++) {
         for (let gx = 0; gx < 5; gx++) {
-          const ndcX = lerp(-.68, .68, gx / 4), ndcY = lerp(-.68, .68, gy / 3);
+          const ndcX = lerp(-spanX, spanX, gx / 4), ndcY = lerp(-spanY, spanY, gy / 3);
           tmpSample.set(ndcX, ndcY, .5).unproject(camera);
           tmpRayDir.copy(tmpSample).sub(camera.position).normalize();
           let hitX = ox + tmpRayDir.x * 110, hitZ = oz + tmpRayDir.z * 110;
@@ -3937,17 +4042,19 @@ void main(){
     }
 
     function exposePlate() {
+      if (contextLost) return;
       audio.shutter();
-      const fl = $("flash"); fl.classList.remove("go"); void fl.offsetWidth; fl.classList.add("go");
+      if (fieldLayout.matches) {
+        exposedUntil = performance.now() + 450;
+      } else {
+        const fl = $("flash"); fl.classList.remove("go"); void fl.offsetWidth; fl.classList.add("go");
+      }
       sampleMeter(); renderFrame(performance.now() * .001);
       const tmp = document.createElement("canvas"), cw = 640, ch = 512;
       tmp.width = cw; tmp.height = ch;
       const tx = tmp.getContext("2d");
-      const sw = canvas.width, sh = canvas.height, aspect = 5 / 4;
-      let sx = 0, sy = 0, sWidth = sw, sHeight = sh;
-      if (sw / sh > aspect) { sWidth = Math.round(sh * aspect); sx = Math.round((sw - sWidth) / 2); }
-      else { sHeight = Math.round(sw / aspect); sy = Math.round((sh - sHeight) / 2); }
-      tx.drawImage(canvas, sx, sy, sWidth, sHeight, 0, 0, cw, ch);
+      const crop = captureBounds(canvas.width, canvas.height);
+      tx.drawImage(canvas, crop.x, crop.y, crop.w, crop.h, 0, 0, cw, ch);
       splicePlateIntoFilmStrip(tmp, `${ZONES[state.currentZone].name.slice(0, 14).toUpperCase()}`);
       tx.fillStyle = "rgba(10, 15, 22, 0.80)"; tx.fillRect(0, ch - 34, cw, 34);
       tx.fillStyle = "#22d0ff"; tx.font = "700 13px Inter, system-ui, sans-serif";
@@ -3958,7 +4065,7 @@ void main(){
       tx.textAlign = "left";
 
       const plate = {
-        id: state.plates.length + 1, zone: state.meteredZone, roman: ROMAN[state.meteredZone],
+        id: (state.plates.at(-1)?.id ?? 0) + 1, zone: state.meteredZone, roman: ROMAN[state.meteredZone],
         place: ZONES[state.currentZone].name, region: state.region,
         mode: MODES[state.modeIdx].label, look: LOOKS[state.soloLook >= 0 ? state.soloLook : state.focusLook].name,
         focus: state.focusDist.toFixed(1) + " m", stop: STOPS[state.stopIdx].name,
@@ -3967,9 +4074,17 @@ void main(){
         dataUrl: tmp.toDataURL("image/jpeg", .86)
       };
       state.plates.push(plate);
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ plates: state.plates.slice(-22) })); } catch {}
+      plateIndex = -1;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ plates: state.plates.slice(-22) }));
+        plateStorageFault = false;
+      } catch {
+        plateStorageFault = true;
+      }
       updateHUD();
-      toast(`8×10 Plate #${plate.id} Spliced Onto Film Trees! · IN-FRAME WIFI ${plate.frameWifiPct}%`);
+      if (plateStorageFault) toast("Plate in this session. Download to keep it.");
+      else toast(`8×10 Plate #${plate.id} Spliced Onto Film Trees! · IN-FRAME WIFI ${plate.frameWifiPct}%`,
+        `Plate #${plate.id} · ${plate.frameWifiPct}% WiFi`);
     }
     $("expose-btn").addEventListener("click", exposePlate);
 
@@ -3978,13 +4093,13 @@ void main(){
       const got = new Set(state.plates.map(p => p.zone));
       note.textContent = `${state.plates.length} Plate(s) · ${got.size}/11 Zones · Film Forest ${state.unlockedGroves}/${forestGroves.length} · Jerrycans ${state.filledCans}/${state.totalCans}.`;
       big.hidden = true;
-      grid.innerHTML = state.plates.length ? state.plates.slice().reverse().map(p => `
-        <button type="button" class="pl-card" data-pid="${p.id}">
+      grid.innerHTML = state.plates.length ? state.plates.slice().reverse().map((p, index) => `
+        <button type="button" class="pl-card" data-pid="${state.plates.length - 1 - index}">
           <img src="${p.dataUrl}" alt="Zone ${p.roman} plate">
           <small><strong>#${p.id} · WIFI ${p.frameWifiPct ?? 0}%</strong> (${p.place})<br>Alt ${fmtElev(p.antennaElev ?? 0)} · Forest ${p.unlockedGroves ?? 1}/${forestGroves.length}</small>
         </button>`).join("") : `<p class="tray-note">No coverage plates exposed yet. Press Space or click Expose 8×10.</p>`;
       grid.querySelectorAll("[data-pid]").forEach(btn => {
-        btn.onclick = () => { const p = state.plates.find(x => x.id === +btn.dataset.pid); if (p) { big.src = p.dataUrl; big.hidden = false; } };
+        btn.onclick = () => { const p = state.plates[+btn.dataset.pid]; if (p) { big.src = p.dataUrl; big.hidden = false; } };
       });
       box.hidden = false;
     }
@@ -4041,6 +4156,7 @@ void main(){
 
     function syncIntroUI() {
       document.body.classList.toggle("intro-active", state.introActive);
+      if (state.introActive) releaseFieldInputs();
       const sec = $("cinema-intro"), tStage = $("cinema-title-stage"), mStage = $("cinema-montage-stage");
       if (sec) sec.hidden = !state.introActive;
       if (tStage) tStage.hidden = !state.introActive || state.introPhase !== "title";
@@ -4085,7 +4201,7 @@ void main(){
       }
       syncIntroUI();
       updateHUD();
-      toast("Snake River Overlook · WASD move · C drive Woody · J Base-Jump · K Dance · L Lidar!");
+      toast("Snake River Overlook · WASD move · C drive Woody · J Base-Jump · K Dance · L Lidar!", "Drag the view to look");
     }
 
     if ($("intro-roll")) $("intro-roll").addEventListener("click", startPrologue);
@@ -4097,10 +4213,389 @@ void main(){
     });
     if ($("montage-skip")) $("montage-skip").addEventListener("click", () => finishIntro(false));
 
+    /* ---------- Mobile viewfinder controls ---------- */
+    const cycle = (index, count, step) => (index + step + count) % count;
+    const opticsKeys = ["focusDist", "focusLook", "modeIdx", "filterIdx", "stopIdx", "tilt", "soloLook", "groundGlass", "chaseZoom", "ppcOn"];
+    const labels = {
+      walk: ["On foot", "Move", "", "", "Run"],
+      ride: ["Mounted", "Ride", "", "", "Trot"],
+      drive: ["Wagon", "Drive", "Fwd", "Reverse", "Turbo"],
+      glide: ["Glide", "Steer", "Dive", "Climb", "Lift"]
+    };
+    const fieldStick = $("field-stick");
+    const fieldHoldButtons = [...document.querySelectorAll("[data-field-key]")];
+    const heldPointers = new Map();
+    const heldButtons = new Set();
+    let stickPointer = null, stickX = 0, stickY = 0;
+    let fieldMotion = "", fieldToolIndex = 0, fieldSettingIndex = 0;
+    let opticsUndo = null, armedTravel = null, armedUntil = 0, exposedUntil = 0;
+    let plateIndex = -1, fieldPlateURL = "", fieldPlateSource = "", plateStorageFault = false;
+    const destinations = [0, 4, 0];
+    const shortZones = ["Rim shadow", "Moraine", "Cloud notch", "Bluff pines", "Overlook", "Sage bench", "Silver Ford", "Oxbow", "Reef", "East apron", "Pueblo"];
+    const shortSummits = ["Overlook", "Moraine", "Half Dome", "Reef"];
+    const tiltStops = [-.32, 0, .32];
+    const dotElements = (id, count) => Array.from({length: count}, () => $(id).appendChild(document.createElement("i")));
+    const wifiDots = dotElements("field-wifi-scale", 5);
+    const toolDots = dotElements("field-tool-dots", 6);
+    const canTravel = () => !state.gliding && !state.pourAnim;
+    const canMount = () => !state.donkeyCollapsed && !state.pourAnim;
+    const canDance = () => state.danceTimer > 0 || (canMount() && !state.gliding && !state.drivingCart);
+    const currentMotion = () => state.gliding ? "glide" : state.drivingCart ? "drive" : state.riding ? "ride" : "walk";
+    const fieldZone = () => ZONES[destinations[1]];
+    const fieldSummit = () => SUMMITS[destinations[2]];
+    const fieldPlate = () => state.plates[plateIndex < 0 ? state.plates.length - 1 : plateIndex];
+    const setText = (id, value) => { if ($(id).textContent !== value) $(id).textContent = value; };
+
+    function setOptics(property, value) {
+      if (state[property] === value) return;
+      opticsUndo = Object.fromEntries(opticsKeys.map(key => [key, state[key]]));
+      state[property] = value;
+      applyFieldOptics();
+    }
+    function applyFieldOptics() {
+      state.focusPulse = .85;
+      document.body.classList.toggle("ground-glass", state.groundGlass);
+      updateHUD();
+    }
+    function travelWithConfirmation(key, label, run) {
+      if (armedTravel === key && performance.now() <= armedUntil) {
+        armedTravel = null;
+        releaseFieldInputs();
+        run();
+      } else {
+        armedTravel = key;
+        armedUntil = performance.now() + 3400;
+        toast(`Tap again · ${label}`);
+      }
+    }
+    const changeStep = (property, list, dir) => setOptics(property, cycle(state[property], list.length, dir));
+    const fieldTravel = (key, label, run) => () => travelWithConfirmation(key, label(), run);
+    const fieldGroups = [
+      { name: "Lens", settings: [
+        { name: "Focus", value: () => `${state.focusDist.toFixed(1)} m`, step: d => setOptics("focusDist", clamp(state.focusDist * 1.16 ** d, 1.2, 900)) },
+        { name: "Aperture", value: () => STOPS[state.stopIdx].name, step: d => changeStep("stopIdx", STOPS, d) },
+        { name: "Front tilt", value: () => state.tilt < -.08 ? "Near–far" : state.tilt > .08 ? "Reverse" : "Level", step: d => {
+          const index = state.tilt < -.08 ? 0 : state.tilt > .08 ? 2 : 1;
+          setOptics("tilt", tiltStops[cycle(index, 3, d)]);
+        } },
+        { name: "Filter", value: () => state.filterIdx === 5 ? "#47B" : FILTERS[state.filterIdx].short, step: d => changeStep("filterIdx", FILTERS, d) },
+        { name: "Cloth", value: () => state.groundGlass ? "Open cloth" : "Close cloth", run: () => setOptics("groundGlass", !state.groundGlass) },
+        { name: "8×10 rig", value: () => state.rigDeployed ? "Pack tripod" : "Set tripod", run: deployRig },
+        { name: "View", value: () => state.ppcOn ? "Hide reticle" : "Show reticle", run: () => setOptics("ppcOn", !state.ppcOn) },
+        { name: "Chase zoom", value: () => `${state.chaseZoom.toFixed(1)} m`, show: () => currentMotion() !== "walk",
+          step: d => setOptics("chaseZoom", clamp(state.chaseZoom * 1.12 ** d, 4.5, 22)) }
+      ] },
+      { name: "Look", settings: [
+        { name: "Mode", value: () => MODES[state.modeIdx].label, step: d => changeStep("modeIdx", MODES, d) },
+        { name: "Shader", value: () => state.soloLook < 0 ? "All zones" : LOOKS[state.soloLook].name,
+          step: d => setOptics("soloLook", cycle(state.soloLook + 1, LOOKS.length + 1, d) - 1) }
+      ] },
+      { name: "Route", settings: [
+        { name: "Focus zone", value: () => `Z‑${ROMAN[destinations[0]]}`, step: d => { destinations[0] = cycle(destinations[0], ZONES.length, d); },
+          detail: () => ZONES[destinations[0]].name,
+          run: () => {
+            const z = ZONES[destinations[0]];
+            const before = Object.fromEntries(opticsKeys.map(key => [key, state[key]]));
+            state.focusDist = clamp(Math.hypot(z.x - camera.position.x, z.pz - camera.position.z), 1.4, 900);
+            state.focusLook = z.look;
+            opticsUndo = before;
+            applyFieldOptics();
+            toast(`Focus · Zone ${ROMAN[z.z]}`);
+          } },
+        { name: "Travel zone", value: () => shortZones[destinations[1]], detail: () => fieldZone().name,
+          step: d => { destinations[1] = cycle(destinations[1], ZONES.length, d); },
+          show: canTravel, confirm: true, run: fieldTravel("Travel zone", () => shortZones[destinations[1]], () => teleportZone(destinations[1])) },
+        { name: "Summit jump", value: () => shortSummits[destinations[2]], detail: () => fieldSummit().name,
+          step: d => { destinations[2] = cycle(destinations[2], SUMMITS.length, d); },
+          show: () => canTravel() && canMount(), confirm: true,
+          run: fieldTravel("Summit jump", () => shortSummits[destinations[2]], () => launchSummit(destinations[2])) },
+        { name: "Shuttle", value: () => state.region === "tetons" ? "To Reef" : state.region === "abyss" ? "To Half Dome" : "To Tetons",
+          show: canTravel, confirm: true, run: fieldTravel("Shuttle", () => "Shuttle", toggleRegion) },
+        { name: "Lidar", value: () => state.lidarOn ? "Lidar off" : "Lidar on", run: toggleLidar },
+        { name: "Prologue", value: () => "Replay", show: canTravel, confirm: true, run: fieldTravel("Prologue", () => "Replay", startPrologue) }
+      ] },
+      { name: "Burro", settings: [
+        { name: "Hydration", value: () => `Water · ${Math.round(state.donkeyWater * 100)}%`, run: pumpWell },
+        { name: "Trust", value: () => `Soothe · ${Math.round(donkey.mind.trust * 100)}%`, run: () => { donkey.soothe(); toast("Mistletoe soothed"); } },
+        { name: "Energy", value: () => `Feed · ${Math.round(donkey.state.stamina * 100)}%`, run: () => { donkey.feed(); toast("Mistletoe fed"); } },
+        { name: "Bray", value: () => "Call", run: () => { donkey.bray(); toast("Mistletoe brayed"); } },
+        { name: "Dance", value: () => state.danceTimer > 0 ? "Stop dance" : "Eskista", show: canDance, run: () => triggerDance() },
+        { name: "Delivery", value: () => `${state.filledCans}/${state.totalCans} cans` },
+        { name: "Forest", value: () => `${state.unlockedGroves}/${forestGroves.length} groves` },
+        { name: "Signal", value: () => `${Math.round(state.signalRadius)} m · ${state.signalDbm} dBm` }
+      ] },
+      { name: "Radio", settings: [
+        { name: "Tape", value: () => audioEl.paused ? "Play tape" : "Pause tape", run: toggleTape },
+        { name: "Cue ±10 s", value: () => formatMMSS(audioEl.currentTime || 0), step: d => seekTape((audioEl.currentTime || 0) + d * 10, false) },
+        { name: "Source", value: () => state.spatialAudio ? "3D burro" : "Cabin", run: toggleSpatialAudio },
+        { name: "Clocks", value: () => audio.isOn() ? "Mute clocks" : "Play clocks", run: toggleClocks },
+        { name: "Resonance", value: () => `Sync Z‑${ROMAN[state.resonantZone]}`, run: syncResonantZone }
+      ] },
+      { name: "Plates", settings: [
+        { name: "Inspect", plate: "inspect" },
+        { name: "Download", plate: "download", show: () => state.plates.length > 0 },
+        { name: "Coverage", value: () => `${new Set(state.plates.map(p => p.zone)).size}/11 zones`, show: () => state.plates.length > 0 }
+      ] }
+    ];
+
+    function fieldSettings() {
+      return fieldGroups[fieldToolIndex].settings.filter(s => !s.show || s.show());
+    }
+    function fieldSetting() {
+      const settings = fieldSettings();
+      return settings[fieldSettingIndex % settings.length];
+    }
+    function stepFieldValue(direction) {
+      const setting = fieldSetting();
+      armedTravel = null;
+      if (setting.plate && state.plates.length) {
+        const ix = plateIndex < 0 ? state.plates.length - 1 : plateIndex;
+        plateIndex = cycle(ix, state.plates.length, direction);
+      } else setting.step?.(direction);
+      updateHUD();
+    }
+    function syncFieldPlate(plate, operation) {
+      const link = $("field-plate-link");
+      link.hidden = !plate;
+      if (!plate) return;
+      if (fieldPlateSource !== plate.dataUrl) {
+        if (fieldPlateURL) URL.revokeObjectURL(fieldPlateURL);
+        const encoded = plate.dataUrl.split(",")[1];
+        const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+        fieldPlateURL = URL.createObjectURL(new Blob([bytes], {type: "image/jpeg"}));
+        fieldPlateSource = plate.dataUrl;
+        $("field-plate-thumb").src = plate.dataUrl;
+        link.href = fieldPlateURL;
+      }
+      if (operation === "download") link.download = `monolith-plate-${plate.id}.jpg`;
+      else link.removeAttribute("download");
+      const name = operation === "download" ? "Save plate" : "Open plate";
+      link.setAttribute("aria-label", `${name} ${plate.id}, Zone ${plate.roman}, ${plate.place}`);
+      setText("field-plate-caption", `#${plate.id} · ${plate.roman}`);
+    }
+    function updateFieldNotice() {
+      const notice = $("field-notice");
+      let msg = "";
+      if (state.introActive) {
+        if (state.introPhase === "montage" && state.introShotIdx >= 0) msg = INTRO_SHOTS[state.introShotIdx].kicker;
+      } else if (state.donkeyCollapsed) msg = "Mistletoe needs water";
+      else if (state.donkeyWater < .22) msg = `Burro water · ${Math.round(state.donkeyWater * 100)}%`;
+      else if (state.pourAnim) msg = `Pouring · ${Math.round(state.pourAnim.t / state.pourAnim.dur * 100)}%`;
+      else if (performance.now() < fieldNoticeUntil) msg = fieldNotice;
+      else if (plateStorageFault) msg = "Plate in session · download to keep";
+      else if (state.plates.length) msg = `Plate #${state.plates.at(-1).id} · ${state.plates.at(-1).frameWifiPct ?? 0}% WiFi`;
+      setText("field-notice", msg);
+      notice.toggleAttribute("data-warning", !state.introActive && state.donkeyWater < .22);
+    }
+    function updateFieldHUD() {
+      const motion = currentMotion();
+      const [label, stickName, pitchUp, pitchDown, boost] = labels[motion];
+      if (fieldMotion !== motion) {
+        fieldMotion = motion;
+        releaseFieldInputs();
+        setText("field-stick-name", stickName);
+        setText("field-stick-up", pitchUp);
+        setText("field-stick-down", pitchDown);
+        setText("field-boost", boost);
+        fieldStick.setAttribute("aria-label", `${stickName}. Drag or use arrow keys.${motion === "glide" ? " Up to dive, down to climb." : ""}`);
+        $("field-boost").setAttribute("aria-label", `Hold to ${boost.toLowerCase()}`);
+      }
+      setText("field-place", state.introActive ? "Donkey Water" : ZONES[state.currentZone].name);
+      setText("field-state", state.introActive ? (state.introPhase === "montage" ? "Prologue" : "Grand Teton") :
+        `${label} · ${fmtElev(state.antennaElev)}`);
+      $("field-wifi").hidden = state.introActive;
+      setText("field-wifi-value", `WiFi ${state.frameWifiPct}%`);
+      wifiDots.forEach((dot, i) => dot.toggleAttribute("data-lit", state.frameWifiPct > i * 20));
+      $("field-pause").hidden = audioEl.paused;
+      $("field-undo").hidden = state.introActive || !opticsUndo;
+      $("field-progress").hidden = !state.introActive || state.introPhase !== "montage";
+      $("field-progress").value = clamp(state.introT / INTRO_DURATION, 0, 1);
+      for (const id of ["field-enter", "field-prologue", "field-summit"]) $(id).hidden = state.introPhase !== "title";
+      $("field-skip").hidden = state.introPhase !== "montage";
+      updateFieldNotice();
+      document.body.classList.toggle("field-no-guides", !state.ppcOn);
+      if (state.introActive) return;
+
+      const dancing = state.danceTimer > 0;
+      setText("field-vehicle", state.gliding ? "Fold wing" : state.drivingCart ? "Park" : state.riding ? "Dismount" : "Ride");
+      $("field-vehicle").hidden = !canMount() && motion === "walk";
+      $("field-wing").hidden = state.drivingCart || (!dancing && (state.gliding || !canMount()));
+      $("field-wing").setAttribute("aria-label", dancing ? "Stop dance" : "Open glider wing");
+      setText("field-wing", dancing ? "Stop dance" : "Wing");
+      $("field-brake").hidden = !state.drivingCart;
+      $("field-wagon").hidden = state.drivingCart || state.gliding || !canMount();
+      const water = state.pourAnim ? "Stop pour" : state.donkeyWater < .22 ? "Give water" : findPourTarget() ? "Pour"
+        : Math.hypot(well.x - state.x, well.z - state.z) < 22 ? "Pump" : "Ping WiFi";
+      setText("field-water", water);
+      $("field-water").toggleAttribute("data-rescue", state.donkeyWater < .22);
+      $("field-expose").toggleAttribute("data-exposed", performance.now() < exposedUntil);
+      const lastPlate = state.plates.at(-1), orb = $("field-orb-img");
+      orb.hidden = !lastPlate;
+      if (lastPlate && orb.getAttribute("src") !== lastPlate.dataUrl) orb.src = lastPlate.dataUrl;
+
+      const setting = fieldSetting(), plate = setting.plate && fieldPlate();
+      const adjustable = !!setting.step || (!!plate && state.plates.length > 1);
+      const apply = $("field-apply"), value = $("field-value");
+      const armed = setting.confirm && armedTravel === setting.name && performance.now() < armedUntil;
+      setText("field-tool-name", fieldGroups[fieldToolIndex].name);
+      toolDots.forEach((dot, i) => dot.toggleAttribute("data-lit", i === fieldToolIndex));
+      setText("field-setting-name", setting.name);
+      const indexMark = $("field-dial-index");
+      indexMark.hidden = !adjustable;
+      const fractions = {
+        Focus: Math.log(state.focusDist / 1.2) / Math.log(900 / 1.2),
+        Aperture: state.stopIdx / (STOPS.length - 1),
+        "Front tilt": (state.tilt + .35) / .7,
+        Filter: state.filterIdx / (FILTERS.length - 1),
+        Mode: state.modeIdx / (MODES.length - 1),
+        Shader: (state.soloLook + 1) / LOOKS.length,
+        "Chase zoom": (state.chaseZoom - 4.5) / 17.5
+      };
+      indexMark.style.setProperty("--dial-angle", `${-95 + 190 * (fractions[setting.name] ?? .5)}deg`);
+      $("field-choice").toggleAttribute("data-wide", !adjustable);
+      $("field-value-prev").hidden = $("field-value-next").hidden = !adjustable;
+      $("field-value-prev").setAttribute("aria-label", `Previous ${setting.name.toLowerCase()}`);
+      $("field-value-next").setAttribute("aria-label", `Next ${setting.name.toLowerCase()}`);
+      value.hidden = !!setting.run || !!plate;
+      value.disabled = !setting.step;
+      value.toggleAttribute("data-adjustable", !!setting.step);
+      if (!value.hidden) {
+        setText("field-value", setting.value?.() ?? "No plates");
+        value.setAttribute("aria-label", `${setting.name} ${value.textContent}${setting.step ? ". Tap or drag to adjust." : ""}`);
+      }
+      apply.hidden = !setting.run;
+      apply.toggleAttribute("data-armed", !!armed);
+      if (setting.run) {
+        setText("field-apply", armed ? "Confirm" : setting.value());
+        apply.setAttribute("aria-label", `${armed ? "Confirm " : ""}${setting.name}: ${setting.detail?.() ?? setting.value()}`);
+      }
+      syncFieldPlate(plate, setting.plate);
+    }
+
+    function releaseFieldInputs() {
+      stickPointer = null;
+      setStick(0, 0);
+      for (const button of fieldHoldButtons) button.removeAttribute("data-held");
+      heldPointers.clear();
+      heldButtons.clear();
+    }
+    const fieldClick = (id, handler) => $(id).addEventListener("click", handler);
+    for (const [suffix, dir] of [["prev", -1], ["next", 1]]) {
+      fieldClick("field-tool-" + suffix, () => {
+        fieldToolIndex = cycle(fieldToolIndex, fieldGroups.length, dir);
+        fieldSettingIndex = 0;
+        armedTravel = null;
+        updateHUD();
+      });
+      fieldClick("field-setting-" + suffix, () => {
+        fieldSettingIndex = cycle(fieldSettingIndex, fieldSettings().length, dir);
+        armedTravel = null;
+        updateHUD();
+      });
+      fieldClick("field-value-" + suffix, () => stepFieldValue(dir));
+    }
+    fieldClick("field-apply", () => { fieldSetting().run?.(); updateHUD(); });
+    fieldClick("field-pause", () => audioEl.pause());
+    fieldClick("field-undo", () => {
+      if (!opticsUndo) return;
+      Object.assign(state, opticsUndo);
+      opticsUndo = null;
+      applyFieldOptics();
+      toast("Camera adjustment restored");
+    });
+    fieldClick("field-vehicle", () => state.gliding ? toggleGlide() : state.drivingCart ? toggleCart() : toggleRide());
+    fieldClick("field-wing", () => state.danceTimer > 0 ? triggerDance() : toggleGlide());
+    fieldClick("field-wagon", toggleCart);
+    fieldClick("field-water", () => {
+      if (state.pourAnim) stopPour();
+      else if (state.donkeyWater < .22) pumpWell();
+      else pourWifi();
+    });
+    fieldClick("field-expose", exposePlate);
+    fieldClick("field-enter", () => finishIntro(false));
+    fieldClick("field-prologue", startPrologue);
+    fieldClick("field-summit", () => $("intro-jump").click());
+    fieldClick("field-skip", () => finishIntro(false));
+
+    let dialPointer = null, dialStart = 0, dialMoved = false;
+    const dial = $("field-value");
+    dial.addEventListener("pointerdown", e => {
+      if (!fieldSetting().step || e.button !== 0 || dialPointer !== null) return;
+      dialPointer = e.pointerId; dialStart = e.clientX; dialMoved = false;
+      dial.setPointerCapture(e.pointerId);
+    });
+    dial.addEventListener("pointerup", e => {
+      if (e.pointerId !== dialPointer) return;
+      const delta = e.clientX - dialStart;
+      dialMoved = Math.abs(delta) > 12;
+      if (dialMoved) stepFieldValue(Math.sign(delta));
+      dialPointer = null;
+    });
+    for (const type of ["pointercancel", "lostpointercapture"]) dial.addEventListener(type, () => { dialPointer = null; });
+    dial.addEventListener("click", () => {
+      if (!dialMoved && fieldSetting().step) stepFieldValue(1);
+      dialMoved = false;
+    });
+
+    function setStick(x, y) {
+      stickX = x; stickY = y;
+      fieldStick.style.setProperty("--stick-x", `${x * 28}px`);
+      fieldStick.style.setProperty("--stick-y", `${y * 28}px`);
+    }
+    function moveStick(event) {
+      const {left, top, width, height} = fieldStick.getBoundingClientRect();
+      const dx = event.clientX - left - width / 2, dy = event.clientY - top - height / 2;
+      const dist = Math.hypot(dx, dy);
+      const scale = dist > 7 ? 1 / Math.max(31, dist) : 0;
+      setStick(dx * scale, dy * scale);
+    }
+    fieldStick.addEventListener("pointerdown", e => {
+      if (stickPointer !== null || e.button !== 0 || state.introActive) return;
+      stickPointer = e.pointerId;
+      armedTravel = null;
+      fieldStick.setPointerCapture(e.pointerId);
+      moveStick(e);
+    });
+    fieldStick.addEventListener("pointermove", e => { if (stickPointer === e.pointerId) moveStick(e); });
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+      fieldStick.addEventListener(type, e => {
+        if (stickPointer !== e.pointerId) return;
+        stickPointer = null;
+        setStick(0, 0);
+      });
+    }
+    for (const button of fieldHoldButtons) {
+      button.addEventListener("pointerdown", e => {
+        if (e.button !== 0 || state.introActive) return;
+        heldPointers.set(e.pointerId, button);
+        button.setAttribute("data-held", "");
+        button.setPointerCapture(e.pointerId);
+      });
+      for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) button.addEventListener(type, e => {
+        heldPointers.delete(e.pointerId);
+        if (![...heldPointers.values()].includes(button) && !heldButtons.has(button)) button.removeAttribute("data-held");
+      });
+      button.addEventListener("keydown", e => {
+        if (!["Space", "Enter"].includes(e.code)) return;
+        e.preventDefault();
+        heldButtons.add(button);
+        button.setAttribute("data-held", "");
+      });
+      for (const type of ["keyup", "blur"]) button.addEventListener(type, e => {
+        if (type === "keyup" && !["Space", "Enter"].includes(e.code)) return;
+        heldButtons.delete(button);
+        if (![...heldPointers.values()].includes(button)) button.removeAttribute("data-held");
+      });
+    }
+    const fieldHeld = code => fieldHoldButtons.some(button => button.dataset.fieldKey === code &&
+      (heldButtons.has(button) || [...heldPointers.values()].includes(button)));
+
     /* ---------- Input Handling ---------- */
     const keys = Object.create(null);
     addEventListener("keydown", e => {
-      if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+      if (contextLost || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof Element &&
+          (e.target.closest("input,textarea,select") || (["Space", "Enter"].includes(e.code) && e.target.closest("a,button")))) return;
       if (state.introActive) {
         if (e.code === "Escape") { e.preventDefault(); finishIntro(false); return; }
         if (state.introPhase === "title" && performance.now() - state.bootMs > 450 && ["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp"].includes(e.code)) {
@@ -4111,6 +4606,12 @@ void main(){
           else finishIntro(false);
           return;
         }
+      }
+      if (e.code === "Escape" && armedTravel) {
+        armedTravel = null;
+        toast("Travel canceled");
+        updateHUD();
+        return;
       }
       keys[e.code] = true;
       if (e.code === "BracketLeft") { state.focusDist = clamp(state.focusDist * .86, 1.2, 900); state.focusPulse = 1; updateHUD(); }
@@ -4134,10 +4635,16 @@ void main(){
     });
     addEventListener("keyup", e => { keys[e.code] = false; });
 
-    let dragLook = false, lastPX = 0, lastPY = 0;
-    canvas.addEventListener("pointerdown", e => { dragLook = true; lastPX = e.clientX; lastPY = e.clientY; canvas.setPointerCapture(e.pointerId); });
+    let lookPointer = null, lastPX = 0, lastPY = 0;
+    canvas.addEventListener("pointerdown", e => {
+      if (lookPointer !== null || e.button !== 0 || state.introActive || contextLost) return;
+      lookPointer = e.pointerId;
+      lastPX = e.clientX;
+      lastPY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    });
     canvas.addEventListener("pointermove", e => {
-      if (!dragLook) return;
+      if (lookPointer !== e.pointerId) return;
       const dx = e.clientX - lastPX, dy = e.clientY - lastPY;
       lastPX = e.clientX; lastPY = e.clientY;
       if (state.drivingCart || state.gliding || state.riding) {
@@ -4148,7 +4655,9 @@ void main(){
         state.pitch = clamp(state.pitch - dy * .0038, -.82, .82);
       }
     });
-    addEventListener("pointerup", () => { dragLook = false; });
+    for (const event of ["pointerup", "pointercancel", "lostpointercapture"]) {
+      canvas.addEventListener(event, e => { if (lookPointer === e.pointerId) lookPointer = null; });
+    }
 
     canvas.addEventListener("wheel", e => {
       e.preventDefault();
@@ -4170,14 +4679,41 @@ void main(){
     });
     addEventListener("pointerup", () => { dragKnob = false; });
 
+    function clearInput() {
+      lookPointer = null;
+      dragKnob = false;
+      dialPointer = null;
+      for (const key of Object.keys(keys)) delete keys[key];
+      releaseFieldInputs();
+    }
+    addEventListener("blur", clearInput);
+    canvas.addEventListener("webglcontextlost", clearInput);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) clearInput(); });
+    fieldLayout.addEventListener("change", () => {
+      clearInput();
+      updateHUD();
+      resize();
+    });
+
+    let renderWidth = 0, renderHeight = 0;
     function resize() {
+      const width = Math.max(2, canvas.clientWidth), height = Math.max(2, canvas.clientHeight);
+      if (renderWidth === width && renderHeight === height && camera.userData.fieldLayout === fieldLayout.matches) return;
+      renderWidth = width; renderHeight = height;
+      camera.userData.fieldLayout = fieldLayout.matches;
       const dpr = renderer.getPixelRatio();
-      const w = Math.max(2, Math.floor(innerWidth * dpr)), h = Math.max(2, Math.floor(innerHeight * dpr));
-      renderer.setSize(innerWidth, innerHeight, false);
-      camera.aspect = innerWidth / Math.max(1, innerHeight); camera.updateProjectionMatrix();
+      const w = Math.floor(width * dpr), h = Math.floor(height * dpr);
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.fov = fieldLayout.matches ? clamp(2 * Math.atan(Math.tan(47 * Math.PI / 360) / camera.aspect) * 180 / Math.PI, 47, 77) : 47;
+      camera.updateProjectionMatrix();
       rtScene.setSize(w, h); rtA.setSize(w, h); rtB.setSize(w, h);
+      const crop = captureBounds(width, height), frame = $("cam-frame");
+      frame.style.setProperty("--crop-width", `${crop.w}px`);
+      frame.style.setProperty("--crop-height", `${crop.h}px`);
     }
     addEventListener("resize", resize);
+    new ResizeObserver(resize).observe(canvas);
     resize();
 
     /* ---------- Simulation Loop: Unified Open World + Spatial Audio + Flow Puzzle + Hydration + Pour & Eskista Dance ---------- */
@@ -4190,10 +4726,10 @@ void main(){
     }
 
     function step(dt) {
-      const fwdInput = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
-      const sideInput = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
-      const turbo = keys.ShiftLeft || keys.ShiftRight;
-      const brakeInput = keys.KeyX ? 1 : 0;
+      const fwdInput = clamp((keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - stickY, -1, 1);
+      const sideInput = clamp((keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + stickX, -1, 1);
+      const turbo = keys.ShiftLeft || keys.ShiftRight || fieldHeld("ShiftLeft");
+      const brakeInput = keys.KeyX || fieldHeld("KeyX");
       const nowSec = performance.now() * .001;
 
       if (state.pingTimer > 0) state.pingTimer = Math.max(0, state.pingTimer - dt);
@@ -4226,7 +4762,7 @@ void main(){
       lookMat.uniforms.uT.value = nowSec;
       state.focusPulse = Math.max(0, state.focusPulse - dt * 1.4);
       lookMat.uniforms.uFocusPulse.value = state.focusPulse;
-      drawRadioViz(sp.bands12, state.beatPulse);
+      if (!fieldLayout.matches) drawRadioViz(sp.bands12, state.beatPulse);
 
       if (state.introActive) {
         donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, (x, z) => driveSurfaceAt(x, z));
@@ -4286,7 +4822,8 @@ void main(){
           donkey.place(g.x, g.z, g.heading, (x, z) => driveSurfaceAt(x, z));
           state.riding = true; state.x = g.x; state.z = g.z; state.y = surfY + 1.65;
           state.yaw = g.heading + Math.PI;
-          toast("Touchdown! Mistletoe lands softly on four hooves.");
+          toast("Touchdown! Mistletoe lands softly on four hooves.", "Touchdown · mounted");
+          if (fieldLayout.matches) updateHUD();
         } else {
           donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 0, drop: 0 }, () => g.y + .22);
           donkey.state.x = g.x; donkey.state.y = g.y; donkey.state.z = g.z; donkey.state.heading = g.heading;
@@ -4308,7 +4845,8 @@ void main(){
           contrailR.line.geometry.attributes.position.needsUpdate = true;
         }
 
-        const camDist = state.chaseZoom * .82, lookHdg = g.heading + state.cartYawOffset;
+        const camDist = state.chaseZoom * (fieldLayout.matches && camera.aspect < 1 ? 1.46 : .82);
+        const lookHdg = g.heading + state.cartYawOffset;
         tmpCamPos.set(
           g.x - Math.sin(lookHdg) * camDist,
           Math.max(driveSurfaceAt(g.x - Math.sin(lookHdg) * camDist, g.z - Math.cos(lookHdg) * camDist) + 1.8, g.y + 3.0 + state.cartPitchOffset * 4.5),
@@ -4388,7 +4926,8 @@ void main(){
           toggleGlide({ x: donkey.state.x, z: donkey.state.z, boostY: 2.0, heading: donkey.state.heading, name: "Cliff Edge Auto-Launch!" });
         } else {
           const lookHdg = donkey.state.heading + state.cartYawOffset;
-          const distBack = 5.4, camX = donkey.state.x - Math.sin(lookHdg) * distBack, camZ = donkey.state.z - Math.cos(lookHdg) * distBack;
+          const distBack = fieldLayout.matches ? 5.4 * state.chaseZoom / 9.2 : 5.4;
+          const camX = donkey.state.x - Math.sin(lookHdg) * distBack, camZ = donkey.state.z - Math.cos(lookHdg) * distBack;
           tmpCamPos.set(camX, Math.max(driveSurfaceAt(camX, camZ) + 1.5, donkey.group.position.y + 2.35 + state.cartPitchOffset * 2.6), camZ);
           tmpCamLook.set(donkey.state.x + Math.sin(donkey.state.heading) * 8.0, donkey.group.position.y + 1.35, donkey.state.z + Math.cos(donkey.state.heading) * 8.0);
           state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * 11));
@@ -4470,8 +5009,8 @@ void main(){
         donkeyRig.rotation.x = lerp(donkeyRig.rotation.x, 0, clamp(dt * 8, 0, 1));
       }
 
+      state.danceTimer = Math.max(0, state.danceTimer - dt);
       if (state.danceTimer > 0 && !state.donkeyCollapsed && !state.drivingCart && !state.gliding) {
-        state.danceTimer = Math.max(0, state.danceTimer - dt);
         const ph = nowSec * 9.8; // 6/8 Cosmic Addis Eskista tempo
         donkey.group.position.y += Math.abs(Math.sin(ph)) * .22;
         donkey.group.rotation.y += Math.sin(ph * .5) * .36;
@@ -4502,7 +5041,7 @@ void main(){
         state.riding = false; state.drivingCart = false; state.donkeyOnRoof = false; state.gliding = false;
         donkeyGlider.visible = false; wagon.speed = 0;
         applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
-        toast("EMERGENCY: Mistletoe collapsed from thirst! Press P to give water!");
+        toast("EMERGENCY: Mistletoe collapsed from thirst! Press P to give water!", "Mistletoe needs water");
         updateHUD();
       } else if (state.donkeyCollapsed && state.donkeyWater > .25) {
         state.donkeyCollapsed = false;
@@ -4571,8 +5110,9 @@ void main(){
 
       // Auto-pour when arriving next to an unlit cistern
       if (!state.pourAnim && !state.donkeyCollapsed) {
+        if (interruptedRelay && Math.hypot(interruptedRelay.x - donkey.state.x, interruptedRelay.z - donkey.state.z) >= 18) interruptedRelay = null;
         for (const r of relays) {
-          if (r.lit) continue;
+          if (r.lit || r === interruptedRelay) continue;
           if (Math.hypot(r.x - donkey.state.x, r.z - donkey.state.z) < 18.0) { startPourAnim(r); break; }
         }
       }
@@ -4641,14 +5181,14 @@ void main(){
               : state.donkeyOnRoof
                 ? `Cruiser Woody (No Collisions/Fences) · Cans ${state.filledCans}/${state.totalCans} · Next ${state.nextRelayName.split(" ")[0]} ${Math.round(state.nextRelayDist)}m.`
                 : `Unified World (${state.region === "ridge" ? "Half Dome" : state.region === "abyss" ? "Abyssal Sanctuary" : "Grand Teton"}) · Song ${SONG_EPOCHS[state.songEpochIdx].hint}`;
-        if (!audioEl.paused || audioEl.currentTime > 0) {
+        if (!fieldLayout.matches && (!audioEl.paused || audioEl.currentTime > 0)) {
           const curT = audioEl.currentTime, dur = Number.isFinite(audioEl.duration) ? audioEl.duration : 283;
           $("tape-time").textContent = `${formatMMSS(curT)} / ${formatMMSS(dur)}`;
           if ($("tape-fill")) $("tape-fill").style.width = `${clamp((curT / dur) * 100, 0, 100)}%`;
           $("ppc-timecode").textContent = `01:${String(12 + Math.floor(curT / 60)).padStart(2, "0")}:${String(Math.floor(curT % 60)).padStart(2, "0")}`;
           let line = LYRICS[0][1]; for (const [ts, txt] of LYRICS) if (curT >= ts) line = txt;
           $("lyric-line").textContent = line;
-        } else $("ppc-timecode").textContent = `01:14:${String(17 + (Math.floor(nowSec) % 42)).padStart(2, "0")}`;
+        } else if (!fieldLayout.matches) $("ppc-timecode").textContent = `01:14:${String(17 + (Math.floor(nowSec) % 42)).padStart(2, "0")}`;
         updateHUD();
       }
       audio.tick(dt, state.meteredZone);
@@ -4660,13 +5200,15 @@ void main(){
     sampleMeter();
     updateHUD();
     renderFrame(.016);
+    document.body.classList.add("field-ready");
     const loaderEl = $("world-loader");
-    if (loaderEl) {
+    if (loaderEl && !contextLost) {
       loaderEl.classList.add("fade-out");
-      setTimeout(() => { loaderEl.hidden = true; }, 580);
+      setTimeout(() => { if (!contextLost) loaderEl.hidden = true; }, 580);
     }
 
     function loop(now) {
+      if (contextLost) return;
       if (lastT === null) lastT = now - 16;
       const dt = clamp((now - lastT) / 1000, .001, .05); lastT = now;
       step(dt); renderFrame(now * .001); requestAnimationFrame(loop);
@@ -4777,8 +5319,6 @@ void main(){
   }
 
   boot().catch(err => {
-    console.error("THRESHOLD MONOLITH-3 boot error:", err);
-    const msg = $("world-loader-msg");
-    if (msg) msg.textContent = "Error loading MONOLITH-3 terrain: " + (err && err.message ? err.message : String(err));
+    showWorldFault("The expedition could not load. Retry or return to the index.", err);
   });
 })();
