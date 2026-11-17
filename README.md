@@ -1,9 +1,9 @@
 # make-photo
 After Ansel Adams ("You don’t take a photograph, you make it"): haul 8×10 plates by burro or woody roof-deck and sculpt living worlds across 11 tonal zones.
 
-## THRESHOLD · Donkey Water Sci-Fi (11 Tonal Worlds)
+## THRESHOLD · Donkey Water Sci-Fi (MONOLITH-3 Open World × 11 Tonal Worlds)
 
-[`zones/`](./zones/) pairs a high-density highland expedition — **4-wheel sprung 1940s Woody Station Wagon** (`buildWagon`) where **Mistletoe** leaps onto the roof-deck (+2.3 m WiFi antenna elevation) carrying an ash-wood Sawbuck pack saddle, flush-ribbed 20L electric-cyan jerrycans, diamond-hitch rope & Scion transceiver, graded caravan cobble road + 3 switchback overlook spurs, instanced boulders/pines/grass tufts, **8 elevation-gated Filmstrip Forest groves** (36 sprocket trees that unfurl when high-altitude signal reaches them), 5 Cistern Relays leading to a 14-building **Highland Pueblo**, `REC PPC` live in-frame WiFi `%` viewfinder camera, and *Cyan Jerikan Over Cosmic Addis* soundtrack — with **14 GPU Zone shaders** driven by a 3D world-space WiFi field (`Cyan Jerikan #47B` selective-cyan print plus `Light Alone`, `The Set`, `Warm Cave`, `Silhouette`, `Woodblock`, `Silver Gelatin`, `The Card`, `Spray Wall`, `Watercolour`, `Cyanotype`, `Optical Glass`, `Risograph`, and `Ink Wash`).
+[`zones/`](./zones/) streams the real `MONOLITH-3` USGS Grand Teton (Snake River Overlook, Bluff Trail, Silver Ford, Oxbow, Far-Bank Pueblo) and Yosemite Half Dome open world with **Physics & Collisions OFF** for crisp cruiser handling in the **1940s Woody Station Wagon** (`buildWagon`) where **Mistletoe** rides the roof-deck (ash-wood Sawbuck pack saddle, flush-ribbed 20L electric-cyan jerrycans, diamond-hitch rope & Scion transceiver). Includes **Summit Donkey Base-Jumping & Rogallo Paraglider Valley Flight** (`J` key or cliff launch with cyan wingtip contrails), **WiFi-bounded electric-cyan rain** falling strictly inside live Donkey / Relay / Filmstrip Forest coverage domes, **8 elevation-gated Filmstrip Forest groves**, `REC PPC` live `IN-FRAME WIFI %` 8×10 viewfinder, *Cyan Jerikan Over Cosmic Addis* cassette deck, and **14 GPU Zone shaders**.
 
 ## MONOLITH-3 (Open World + Mistletoe)
 

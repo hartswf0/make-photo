@@ -63,6 +63,33 @@
     #flash.go { animation: shutter .48s ease-out; }
     @keyframes shutter { 0% { opacity: .95; } 30% { opacity: .75; } 100% { opacity: 0; } }
 
+    #world-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 24px;
+      text-align: center;
+      background: radial-gradient(circle at 50% 42%, rgba(26, 30, 34, .96), rgba(14, 15, 13, .98));
+    }
+    #world-loader[hidden] { display: none; }
+    #world-loader h2 {
+      margin: 0;
+      font: 400 clamp(24px, 4vw, 36px)/1.1 "Instrument Serif", "Iowan Old Style", Georgia, serif;
+      letter-spacing: .05em;
+    }
+    #world-loader p {
+      margin: 0;
+      font-size: 12px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+
     #reticle {
       position: fixed;
       left: 50%;
@@ -870,15 +897,20 @@
 
   <p id="toast" role="status" hidden></p>
 
+  <div id="world-loader" role="status" aria-live="polite">
+    <h2>THRESHOLD · MONOLITH-3</h2>
+    <p id="world-loader-msg">Unpacking MONOLITH-3 Grand Teton &amp; Yosemite USGS Terrain…</p>
+  </div>
+
   <div id="top-left">
     <header id="plate">
       <div class="kicker-row">
         <a class="home-link" href="../">← Index</a>
-        <span class="kicker">DONKEY WATER SCIFI · COSMIC ADDIS</span>
+        <span class="kicker">MONOLITH-3 WORLD · DONKEY WATER SCIFI · PHYSICS OFF</span>
       </div>
-      <h1 id="zone-title">Zone IV · Wellhead &amp; Terrace</h1>
+      <h1 id="zone-title">Zone IV · Snake River Overlook</h1>
       <p id="hud-sub">DONKEY WATER · FOCUS 14.0 m · f/16 · BLUE JERIKAN #47B</p>
-      <p id="thought">Wellhead primed. Pump the iron lever or board the survey cart.</p>
+      <p id="thought">Wellhead primed on the Overlook rim. Drive the cruiser Woody, climb ridges, or base-jump across the valley.</p>
     </header>
 
     <div id="tape-bar" aria-label="Taxi Ferric Cassette Deck">
@@ -892,7 +924,9 @@
 
     <div id="quick-bar">
       <button type="button" class="qpill" id="btn-cart" aria-pressed="false">Drive Wagon (C)</button>
-      <button type="button" class="qpill" id="btn-ride" aria-pressed="false">Ride Mistletoe (V)</button>
+      <button type="button" class="qpill cyan" id="btn-glide" aria-pressed="false">Base Jump / Glide (J)</button>
+      <button type="button" class="qpill" id="btn-region" aria-pressed="false">Tetons ↔ Half Dome (R)</button>
+      <button type="button" class="qpill" id="btn-ride" aria-pressed="false">Ride (V)</button>
       <button type="button" class="qpill" id="btn-pump">Pump Well (P)</button>
       <button type="button" class="qpill cyan" id="btn-pour" aria-pressed="false">Pour / Ping WiFi (F)</button>
       <button type="button" class="qpill cyan" id="btn-jerikan" aria-pressed="true">Blue Jerikan</button>
@@ -937,10 +971,10 @@
   </div>
 
   <div id="keys">
-    <b>WASD</b> move / drive / ride · <b>Drag</b> look<br>
-    <b>C</b> drive (donkey on roof) · <b>V</b> ride · <b>B</b> roof-deck<br>
-    <b>P</b> pump · <b>F</b> pour / signal ping · <b>X</b> brake · <b>[/]</b> focus<br>
-    <b>1–6</b> filters · <b>H</b> REC PPC · <b>Space</b> expose 8×10
+    <b>WASD</b> move / cruiser wagon / glide · <b>Shift</b> turbo / updraft<br>
+    <b>C</b> drive wagon (burro on roof) · <b>J</b> donkey base-jump / glide<br>
+    <b>V</b> ride · <b>R</b> Tetons ↔ Half Dome · <b>P</b> pump · <b>F</b> pour / ping<br>
+    <b>[/]</b> focus · <b>1–6</b> filters · <b>Space</b> expose 8×10 plate
   </div>
 
   <section id="platebox" hidden aria-label="Eleven-Zone Plate Box">
