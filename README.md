@@ -3,7 +3,7 @@ After Ansel Adams ("You don’t take a photograph, you make it"): haul 8×10 pla
 
 ## THRESHOLD · Donkey Water Sci-Fi (11 Tonal Worlds)
 
-[`zones/`](./zones/) pairs an interactive highland expedition (cast-iron wellhead pump & cyan washbasin, 20L cyan jerikans, drivable Survey Cart, shared pack donkey Mistletoe, cyan rain, Stone Steps & Blue-Lit Door, `REC PPC` camcorder HUD, and the ferric cassette track *Cyan Jerikan Over Cosmic Addis*) with **14 high-definition GPU shaders** (`Cyan Jerikan #47B` selective-cyan silver print, `Light Alone`, `The Set`, `Warm Cave`, `Silhouette`, `Woodblock`, `Silver Gelatin`, `The Card`, `Spray Wall`, `Watercolour`, `Cyanotype`, `Optical Glass`, `Risograph`, and `Ink Wash`) pulled across focus (`Donkey Water`, `Threshold`, `Depth Shells`, or `11 Tonal Strata`).
+[`zones/`](./zones/) pairs an interactive highland expedition — **1940s Woody Station Wagon** (`buildWagon`), shared pack donkey **Mistletoe** rigged with sculpted 20L electric-cyan jerrycans and live terrain-hugging WiFi broadcast rings, cast-iron wellhead pump & cyan washbasin, 5 Cistern Relays leading to a 9-building **Highland Pueblo**, Stone Steps & Blue-Lit Sanctuary Door, `REC PPC` WiFi telemetry HUD, and *Cyan Jerikan Over Cosmic Addis* soundtrack — with **14 high-definition GPU shaders** (`Cyan Jerikan #47B` selective-cyan print plus `Light Alone`, `The Set`, `Warm Cave`, `Silhouette`, `Woodblock`, `Silver Gelatin`, `The Card`, `Spray Wall`, `Watercolour`, `Cyanotype`, `Optical Glass`, `Risograph`, and `Ink Wash`).
 
 ## MONOLITH-3 (Open World + Mistletoe)
 

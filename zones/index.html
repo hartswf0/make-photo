@@ -141,6 +141,19 @@
       font-size: 14px;
       opacity: .75;
     }
+    #ppc-wifi {
+      position: absolute;
+      right: 64px;
+      top: 24px;
+      font-size: 11px;
+      letter-spacing: .12em;
+      color: var(--cyan);
+      text-transform: uppercase;
+      background: rgba(14, 18, 22, .62);
+      padding: 2px 7px;
+      border-radius: 3px;
+      border: 1px solid rgba(24, 180, 255, .36);
+    }
     #ppc-left-ticks {
       position: absolute;
       left: 6px;
@@ -728,6 +741,7 @@
     <div class="ppc-c ppc-br"></div>
     <div id="ppc-rec"><i class="rec-dot"></i><span>REC PPC</span></div>
     <div id="ppc-dashes">----</div>
+    <div id="ppc-wifi">(((•))) -38 dBm · PUEBLO 1/5 (20%)</div>
     <div id="ppc-left-ticks">
       <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
       <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
@@ -760,9 +774,10 @@
     </div>
 
     <div id="quick-bar">
-      <button type="button" class="qpill" id="btn-cart" aria-pressed="false">Drive Cart (C)</button>
+      <button type="button" class="qpill" id="btn-cart" aria-pressed="false">Drive Wagon (C)</button>
       <button type="button" class="qpill" id="btn-ride" aria-pressed="false">Ride Mistletoe (V)</button>
       <button type="button" class="qpill" id="btn-pump">Pump Well (P)</button>
+      <button type="button" class="qpill cyan" id="btn-pour" aria-pressed="false">Pour WiFi (F)</button>
       <button type="button" class="qpill cyan" id="btn-jerikan" aria-pressed="true">Blue Jerikan</button>
       <button type="button" class="qpill" id="btn-ppc" aria-pressed="true">REC PPC (H)</button>
     </div>
@@ -796,10 +811,10 @@
   </div>
 
   <div id="keys">
-    <b>WASD</b> move / drive cart / ride · <b>Drag</b> look<br>
-    <b>C</b> drive cart · <b>V</b> ride Mistletoe · <b>B</b> roof-deck<br>
-    <b>P</b> pump well · <b>[ / ]</b> focus · <b>1–6</b> filters<br>
-    <b>H</b> REC PPC · <b>Space</b> expose plate / brake
+    <b>WASD</b> move / drive wagon / ride · <b>Drag</b> look<br>
+    <b>C</b> drive wagon · <b>V</b> ride Mistletoe · <b>B</b> roof-deck<br>
+    <b>P</b> pump well · <b>F</b> pour WiFi water · <b>[/]</b> focus<br>
+    <b>1–6</b> filters · <b>H</b> REC PPC · <b>Space</b> capture / brake
   </div>
 
   <section id="platebox" hidden aria-label="Eleven-Zone Plate Box">
