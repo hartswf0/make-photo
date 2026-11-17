@@ -1,6 +1,10 @@
 # make-photo
 After Ansel Adams ("You don’t take a photograph, you make it"): haul 8×10 plates by burro or woody roof-deck and sculpt living worlds across 11 tonal zones.
 
+## THRESHOLD (11 Tonal Worlds)
+
+[`zones/`](./zones/) maps each Ansel Adams tonal zone (`0`–`X`) to its own procedural GPU shader world (`Light Alone`, `The Set`, `Warm Cave`, `Silhouette`, `Woodblock`, `Silver Gelatin`, `The Card`, `Spray Wall`, `Watercolour`, `Cyanotype`, and `Optical Glass`, plus `Risograph` and `Ink Wash`), pulled through camera focus (`Threshold` hybrid pull, `Depth Shells`, or `11 Tonal Strata`) with the shared pack donkey Mistletoe, woody wagon roof-deck, and Three-Clocks WebAudio.
+
 ## MONOLITH-3 (Open World + Mistletoe)
 
 `MONOLITH-3.html` is a self-contained single-file field expedition (`~21 MB` Tier-1 lossless build) uniting:
