@@ -21,13 +21,14 @@
 
 @media (max-width: 860px), (pointer: coarse) {
   body {
-    --ice: #b3f1ed;
-    --amber: #f9d28c;
-    --glass: #071d1cc2;
-    --etch: rgba(175, 239, 233, .62);
+    --ice: #b2eef0;
+    --amber: #f5d291;
+    --glass: #161d22d9;
+    --etch: #c3d3d58f;
     --instrument: 550 11px/1.15 "IBM Plex Mono", ui-monospace, monospace;
-    --rim-x: 9px;
-    --rim-y: 8px;
+    --engraving: 400 12px/1.1 "Instrument Serif", Georgia, serif;
+    --rim-x: 12px;
+    --rim-y: 12px;
     --top: calc(var(--rim-y) + env(safe-area-inset-top));
     --bottom: calc(var(--rim-y) + env(safe-area-inset-bottom));
     --left: calc(var(--rim-x) + env(safe-area-inset-left));
@@ -61,18 +62,18 @@
     z-index: 2;
     pointer-events: none;
     background:
-      radial-gradient(ellipse 215px 170px at 0 0, #041110ed, transparent),
-      radial-gradient(ellipse 215px 170px at 100% 0, #041110ed, transparent),
-      radial-gradient(ellipse 180px 166px at 0 100%, #041110e8, transparent),
-      radial-gradient(ellipse 180px 175px at 100% 100%, #041110ed, transparent);
+      radial-gradient(ellipse 188px 142px at 0 0, #10131eb3, transparent),
+      radial-gradient(ellipse 175px 150px at 100% 0, #10131e69, transparent),
+      radial-gradient(ellipse 142px 124px at 0 100%, #0a121e90, transparent),
+      radial-gradient(ellipse 147px 154px at 100% 100%, #0a121e90, transparent);
   }
   #cloth { position: absolute; }
   #reticle {
     position: absolute;
-    width: 12px;
-    height: 12px;
-    margin: -6px 0 0 -6px;
-    border-color: #ffe3a7a8;
+    width: 8px;
+    height: 8px;
+    margin: -4px 0 0 -4px;
+    border-color: #ffe3a79e;
     box-shadow: 0 0 0 1px #17262688;
   }
   #reticle::after, body.intro-active #reticle, body.intro-active #cam-frame { display: none; }
@@ -122,7 +123,7 @@
     color: var(--amber);
     text-shadow: 0 0 7px #edb960, 0 1px 2px #030b0b;
   }
-  .field-key[data-field-key], #field-stick, #field-value[data-adjustable] {
+  .field-key[data-field-key], #field-stick, .field-key[data-turn] {
     touch-action: none;
     user-select: none;
     -webkit-touch-callout: none;
@@ -134,20 +135,20 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     justify-items: start;
-    gap: 4px;
-    width: min(calc(50vw - 12px), 213px);
-    padding-left: 6px;
-    border-left: 1px solid #99e8e679;
+    gap: 5px;
+    width: min(calc(50vw - 20px), 215px);
   }
   .field-links { display: flex; gap: 1px; }
   .field-links .field-key { display: grid; place-items: center; font-size: 10px; }
   #field-place {
     margin: 0;
-    font: 400 clamp(18px, 5.6vw, 24px)/.97 "Instrument Serif", Georgia, serif;
-    overflow-wrap: anywhere;
+    font: 400 clamp(15px, 4.25vw, 20px)/1.06 "Instrument Serif", Georgia, serif;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    overflow-wrap: break-word;
   }
   #field-state, #field-wifi, #field-notice { margin: 0; font: var(--instrument); }
-  #field-state { text-transform: uppercase; }
+  #field-state { font: var(--engraving); letter-spacing: .11em; text-transform: uppercase; }
   #field-wifi { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; color: var(--ice); }
   #field-wifi[hidden], #field-notice:empty { display: none; }
   #field-wifi-scale, #field-tool-dots { display: inline-flex; justify-content: center; gap: 4px; }
@@ -171,77 +172,93 @@
   #field-progress { width: 100%; height: 5px; accent-color: var(--ice); }
 
   #field-tools {
+    --ring: 116px;
     top: var(--top);
     right: var(--right);
     display: grid;
-    width: min(calc(50vw - 15px), 170px);
-    color: var(--ice);
+    justify-items: center;
+    width: min(calc(50vw - 12px), 172px);
+    color: #fff2d7;
   }
-  #field-tools::before, #field-tools::after {
+  #field-tool-next {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-content: center;
+    gap: 3px 5px;
+    min-width: 90px;
+    padding-top: 8px;
+    font: var(--engraving);
+    letter-spacing: .11em;
+  }
+  #field-band-code { color: var(--ice); }
+  #field-tool-dots { display: flex; grid-column: 1 / -1; color: var(--amber); }
+  #field-lens {
+    display: grid;
+    justify-items: center;
+    width: 100%;
+  }
+  #field-tools::before, #field-tools::after, #field-dial-index {
     content: "";
     position: absolute;
     z-index: -1;
-    inset: 0 5px;
-    border: 1px dashed #89dbd99e;
+    top: 50%;
+    left: 50%;
+    width: var(--ring);
+    height: var(--ring);
     border-radius: 50%;
-    background: radial-gradient(ellipse, #05191822 53%, #16383564 72%, transparent 73%);
+    transform: translate(-50%, -50%);
+  }
+  #field-tools::before {
+    border: 1px solid #ede5ca96;
+    background: radial-gradient(circle, #161d24a1 56%, #c4af8d5e 62%, #303943ba 66%, #d5c8a6a1 69%, #1018207a 71%);
+    box-shadow: 0 2px 8px #07080a58, inset 0 1px 3px #e5dfc797;
   }
   #field-tools::after {
-    inset: 7px 12px;
-    border-style: solid;
-    border-color: #8edbd348;
-    background: none;
+    width: calc(var(--ring) - 17px);
+    height: calc(var(--ring) - 17px);
+    border: 1px solid #cdcbb852;
   }
   #field-dial-index {
-    position: absolute;
-    z-index: -1;
-    inset: 1px 6px;
-    border-radius: 50%;
     background:
       conic-gradient(from var(--dial-angle, 39deg), #ffdc94 0 3deg, transparent 3deg),
-      repeating-conic-gradient(#a8dedc73 0deg 1deg, transparent 1deg 8deg);
-    mask: radial-gradient(ellipse, transparent 65%, #000 66% 71%, transparent 72%);
+      repeating-conic-gradient(#e0e2d480 0deg 1deg, transparent 1deg 8deg);
+    mask: radial-gradient(circle, transparent 58%, #000 59% 67%, transparent 68%);
   }
   #field-dial-index[hidden] { display: none; }
-  .field-select {
+  #field-setting-next {
+    max-width: var(--ring);
+    width: 100%;
+    font: var(--engraving);
+    letter-spacing: .09em;
+  }
+  #field-choice {
     min-height: 44px;
+    width: 100%;
     display: grid;
     grid-template-columns: 44px minmax(0, 1fr) 44px;
     align-items: center;
   }
-  .field-label, .field-value {
-    justify-self: center;
-    text-align: center;
-    overflow-wrap: anywhere;
-    font: var(--instrument);
-    text-transform: uppercase;
-  }
-  #field-tool-name { display: block; font-size: 12px; color: #fff2d7; }
-  #field-tool-dots { display: flex; margin-top: 4px; color: var(--amber); }
-  .field-corner :is(.field-arrow, .field-adjust) { font-size: 19px; }
-  .field-arrow::before, #field-actions > .field-key:not(.field-shutter)::before {
-    content: "";
-    display: block;
-    margin: 1px auto 2px;
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: currentColor;
-    box-shadow: 0 0 4px currentColor;
-  }
-  .field-corner .field-adjust { color: var(--amber); }
-  #field-choice[data-wide] > .field-key { grid-column: 1 / -1; }
+  .field-corner .field-adjust { color: var(--amber); font: 400 19px/1 Georgia, serif; }
   #field-choice :is(#field-value, #field-apply, #field-plate-link) {
     grid-column: 2;
     grid-row: 1;
     min-width: 0;
     overflow-wrap: anywhere;
-    color: var(--amber);
+    color: #fff2d7;
   }
-  #field-choice[data-wide] :is(#field-value, #field-apply, #field-plate-link) { grid-column: 1 / -1; }
-  #field-value { width: 100%; cursor: default; }
-  #field-value[data-adjustable] { cursor: ew-resize; }
-  #field-value[disabled] { opacity: 1; }
+  #field-choice[data-wide] :is(#field-value, #field-apply, #field-plate-link) {
+    grid-column: 1 / -1;
+    width: var(--ring);
+    justify-self: center;
+  }
+  #field-value { padding-bottom: 9px; cursor: default; }
+  #field-value[data-turn] { cursor: ew-resize; }
+  #field-value[disabled] { opacity: 1; pointer-events: none; }
+  #field-lens[data-measure] #field-value {
+    font: italic 400 clamp(16px, 5.2vw, 23px)/1 "Instrument Serif", Georgia, serif;
+    text-transform: none;
+    white-space: nowrap;
+  }
   #field-plate-link {
     display: flex;
     flex-direction: column;
@@ -258,7 +275,7 @@
     left: var(--left);
     bottom: var(--bottom);
     display: grid;
-    grid-template-columns: 94px 44px;
+    grid-template-columns: 84px 44px;
     grid-template-rows: 44px 50px;
     align-items: end;
     color: var(--ice);
@@ -266,12 +283,12 @@
   #field-stick {
     position: relative;
     grid-area: 1 / 1 / span 2;
-    width: 94px;
-    height: 94px;
+    width: 84px;
+    height: 84px;
     touch-action: none;
     border: 1px solid var(--etch);
-    background: radial-gradient(circle, #071d1c8f 42%, #16383573 71%);
-    box-shadow: 0 0 16px #16393545, inset 0 0 10px #91eeed38;
+    background: radial-gradient(circle, #071d286b 41%, #1c35435c 73%);
+    box-shadow: inset 0 0 10px #91dadb28;
     user-select: none;
   }
   #field-stick::before {
@@ -285,13 +302,13 @@
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 19px;
-    height: 19px;
-    margin: -9.5px;
+    width: 15px;
+    height: 15px;
+    margin: -7.5px;
     border: 1px solid #cefffb;
     border-radius: 50%;
-    background: #71c6c596;
-    box-shadow: 0 0 9px #7bd8d882;
+    background: #89d7dfb5;
+    box-shadow: 0 0 8px #7bd8d877;
     transform: translate(var(--stick-x, 0), var(--stick-y, 0));
     pointer-events: none;
   }
@@ -315,44 +332,57 @@
   #field-actions, #field-intro {
     right: var(--right);
     bottom: var(--bottom);
-    width: min(calc(50vw - 14px), 172px);
+    width: min(calc(50vw - 14px), 162px);
     display: grid;
-    grid-template:
-      "vehicle wing" 44px
-      "wagon shutter" 44px
-      "water shutter" 44px / minmax(44px, 1fr) minmax(73px, 1.1fr);
-    align-items: end;
+    justify-items: end;
     color: #fff0d5;
   }
-  #field-vehicle { grid-area: vehicle; }
-  #field-wing, #field-brake { grid-area: wing; }
-  #field-water { grid-area: water; }
-  #field-water[data-rescue] { color: #ffac8b; border: 1px solid currentColor; background: var(--glass); }
-  #field-wagon { grid-area: wagon; }
+  .field-latches {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: end;
+    gap: 0 3px;
+    padding-right: 5px;
+  }
+  .field-latches .field-key { width: 68px; }
+  .field-latches .field-key::before {
+    content: "";
+    display: block;
+    margin: 0 auto 4px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 5px var(--amber);
+  }
+  #field-context[data-rescue] { color: #ffba8d; }
+  #field-context[data-rescue]::before { background: currentColor; box-shadow: 0 0 5px currentColor; }
   #field-expose {
-    grid-area: shutter;
     display: grid;
+    width: 90px;
     justify-items: center;
-    gap: 4px;
+    gap: 5px;
     color: var(--amber);
+    font: var(--engraving);
+    letter-spacing: .08em;
     white-space: nowrap;
   }
   #field-orb {
     position: relative;
     display: grid;
-    width: 65px;
-    height: 65px;
+    width: 66px;
+    height: 66px;
     place-items: center;
     border-radius: 50%;
-    border: 1px solid #ffe7b1c9;
-    background: radial-gradient(circle at 38% 30%, #fff1b0c8, #a97527a6 29%, #2b2319ad 45%, #d1aa6f63 58%, #443c27b5 63%, #131d1bd9 70%);
-    box-shadow: inset 0 0 11px #ffda8870, 0 0 15px #bb8d4873;
+    border: 1px solid #ffe7b1dd;
+    background: radial-gradient(circle at 42% 37%, #f0d297c7, #957349ac 35%, #433327ca 50%, #ebc07a94 64%, #2b251cd6 74%);
+    box-shadow: inset 0 0 0 2px #745032a9, inset 0 0 12px #edd09b70, 0 0 10px #bb8d484d;
   }
   #field-orb::after {
     content: "";
     position: absolute;
     inset: 5px;
-    border: 1px dashed #ffe6adb0;
+    border: 1px solid #ffe6adb0;
     border-radius: inherit;
     pointer-events: none;
   }
@@ -368,7 +398,7 @@
     border-color: #fff5d5;
     box-shadow: inset 0 0 14px #ffdf9b, 0 0 17px #edb859a6;
   }
-  #field-intro { grid-template: repeat(3, 44px) / minmax(0, 1fr); }
+  #field-intro { grid-template: repeat(3, 44px) / minmax(0, 1fr); justify-items: stretch; }
   #field-intro .field-key { border: 1px solid var(--etch); border-radius: 4px; background: var(--glass); }
   #field-prologue { grid-row: 1; }
   #field-summit { grid-row: 2; }
@@ -379,14 +409,13 @@
   @media (orientation: landscape) {
     body { --rim-x: 14px; }
     #field-status { width: min(25vw, 190px); }
-    #field-place { font-size: clamp(17px, 3vw, 23px); }
+    #field-place { font-size: clamp(15px, 2.5vw, 20px); }
   }
   @media (orientation: landscape) and (max-height: 300px) {
     #field-actions {
-      width: 188px;
-      grid-template:
-        "vehicle wagon shutter" 44px
-        "water wing shutter" 44px / 56px 54px 78px;
+      width: min(42vw, 244px);
+      grid-template-columns: 1fr 90px;
+      align-items: end;
     }
     #field-orb { width: 54px; height: 54px; }
     #field-orb-img { width: 39px; height: 39px; }

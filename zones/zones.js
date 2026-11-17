@@ -4214,7 +4214,7 @@ void main(){
     if ($("montage-skip")) $("montage-skip").addEventListener("click", () => finishIntro(false));
 
     /* ---------- Mobile viewfinder controls ---------- */
-    const cycle = (index, count, step) => (index + step + count) % count;
+    const cycle = (index, count, step) => ((index + step) % count + count) % count;
     const opticsKeys = ["focusDist", "focusLook", "modeIdx", "filterIdx", "stopIdx", "tilt", "soloLook", "groundGlass", "chaseZoom", "ppcOn"];
     const labels = {
       walk: ["On foot", "Move", "", "", "Run"],
@@ -4227,7 +4227,7 @@ void main(){
     const heldPointers = new Map();
     const heldButtons = new Set();
     let stickPointer = null, stickX = 0, stickY = 0;
-    let fieldMotion = "", fieldToolIndex = 0, fieldSettingIndex = 0;
+    let fieldMotion = "", fieldSettingIndex = 0;
     let opticsUndo = null, armedTravel = null, armedUntil = 0, exposedUntil = 0;
     let plateIndex = -1, fieldPlateURL = "", fieldPlateSource = "", plateStorageFault = false;
     const destinations = [0, 4, 0];
@@ -4239,11 +4239,12 @@ void main(){
     const toolDots = dotElements("field-tool-dots", 6);
     const canTravel = () => !state.gliding && !state.pourAnim;
     const canMount = () => !state.donkeyCollapsed && !state.pourAnim;
-    const canDance = () => state.danceTimer > 0 || (canMount() && !state.gliding && !state.drivingCart);
+    const canStartMotion = () => canMount() && !state.gliding && !state.drivingCart;
+    const canDance = () => state.danceTimer > 0 || canStartMotion();
     const currentMotion = () => state.gliding ? "glide" : state.drivingCart ? "drive" : state.riding ? "ride" : "walk";
     const fieldZone = () => ZONES[destinations[1]];
     const fieldSummit = () => SUMMITS[destinations[2]];
-    const fieldPlate = () => state.plates[plateIndex < 0 ? state.plates.length - 1 : plateIndex];
+    const selectedFieldPlate = () => plateIndex < 0 ? state.plates.length - 1 : plateIndex;
     const setText = (id, value) => { if ($(id).textContent !== value) $(id).textContent = value; };
 
     function setOptics(property, value) {
@@ -4271,7 +4272,7 @@ void main(){
     const changeStep = (property, list, dir) => setOptics(property, cycle(state[property], list.length, dir));
     const fieldTravel = (key, label, run) => () => travelWithConfirmation(key, label(), run);
     const fieldGroups = [
-      { name: "Lens", settings: [
+      { band: 4, name: "Lens", settings: [
         { name: "Focus", value: () => `${state.focusDist.toFixed(1)} m`, step: d => setOptics("focusDist", clamp(state.focusDist * 1.16 ** d, 1.2, 900)) },
         { name: "Aperture", value: () => STOPS[state.stopIdx].name, step: d => changeStep("stopIdx", STOPS, d) },
         { name: "Front tilt", value: () => state.tilt < -.08 ? "Near–far" : state.tilt > .08 ? "Reverse" : "Level", step: d => {
@@ -4285,12 +4286,12 @@ void main(){
         { name: "Chase zoom", value: () => `${state.chaseZoom.toFixed(1)} m`, show: () => currentMotion() !== "walk",
           step: d => setOptics("chaseZoom", clamp(state.chaseZoom * 1.12 ** d, 4.5, 22)) }
       ] },
-      { name: "Look", settings: [
+      { band: 1, name: "Look", settings: [
         { name: "Mode", value: () => MODES[state.modeIdx].label, step: d => changeStep("modeIdx", MODES, d) },
         { name: "Shader", value: () => state.soloLook < 0 ? "All zones" : LOOKS[state.soloLook].name,
           step: d => setOptics("soloLook", cycle(state.soloLook + 1, LOOKS.length + 1, d) - 1) }
       ] },
-      { name: "Route", settings: [
+      { band: 6, name: "Route", settings: [
         { name: "Focus zone", value: () => `Z‑${ROMAN[destinations[0]]}`, step: d => { destinations[0] = cycle(destinations[0], ZONES.length, d); },
           detail: () => ZONES[destinations[0]].name,
           run: () => {
@@ -4309,12 +4310,15 @@ void main(){
           step: d => { destinations[2] = cycle(destinations[2], SUMMITS.length, d); },
           show: () => canTravel() && canMount(), confirm: true,
           run: fieldTravel("Summit jump", () => shortSummits[destinations[2]], () => launchSummit(destinations[2])) },
+        { name: "Glider", value: () => "Unfurl wing", show: canStartMotion, run: () => toggleGlide() },
+        { name: "Wagon", value: () => "Drive", show: canStartMotion, run: toggleCart },
         { name: "Shuttle", value: () => state.region === "tetons" ? "To Reef" : state.region === "abyss" ? "To Half Dome" : "To Tetons",
           show: canTravel, confirm: true, run: fieldTravel("Shuttle", () => "Shuttle", toggleRegion) },
         { name: "Lidar", value: () => state.lidarOn ? "Lidar off" : "Lidar on", run: toggleLidar },
         { name: "Prologue", value: () => "Replay", show: canTravel, confirm: true, run: fieldTravel("Prologue", () => "Replay", startPrologue) }
       ] },
-      { name: "Burro", settings: [
+      { band: 2, name: "Burro", settings: [
+        { name: "Mount", value: () => state.riding ? "Dismount" : "Ride", show: canStartMotion, run: toggleRide },
         { name: "Hydration", value: () => `Water · ${Math.round(state.donkeyWater * 100)}%`, run: pumpWell },
         { name: "Trust", value: () => `Soothe · ${Math.round(donkey.mind.trust * 100)}%`, run: () => { donkey.soothe(); toast("Mistletoe soothed"); } },
         { name: "Energy", value: () => `Feed · ${Math.round(donkey.state.stamina * 100)}%`, run: () => { donkey.feed(); toast("Mistletoe fed"); } },
@@ -4322,21 +4326,43 @@ void main(){
         { name: "Dance", value: () => state.danceTimer > 0 ? "Stop dance" : "Eskista", show: canDance, run: () => triggerDance() },
         { name: "Delivery", value: () => `${state.filledCans}/${state.totalCans} cans` },
         { name: "Forest", value: () => `${state.unlockedGroves}/${forestGroves.length} groves` },
-        { name: "Signal", value: () => `${Math.round(state.signalRadius)} m · ${state.signalDbm} dBm` }
+        { name: "Signal", value: () => `${Math.round(state.signalRadius)} m · ${state.signalDbm} dBm` },
+        { name: "WiFi", value: () => "Ping", run: pingSignal }
       ] },
-      { name: "Radio", settings: [
+      { band: 3, name: "Radio", settings: [
         { name: "Tape", value: () => audioEl.paused ? "Play tape" : "Pause tape", run: toggleTape },
         { name: "Cue ±10 s", value: () => formatMMSS(audioEl.currentTime || 0), step: d => seekTape((audioEl.currentTime || 0) + d * 10, false) },
         { name: "Source", value: () => state.spatialAudio ? "3D burro" : "Cabin", run: toggleSpatialAudio },
         { name: "Clocks", value: () => audio.isOn() ? "Mute clocks" : "Play clocks", run: toggleClocks },
         { name: "Resonance", value: () => `Sync Z‑${ROMAN[state.resonantZone]}`, run: syncResonantZone }
       ] },
-      { name: "Plates", settings: [
+      { band: 5, name: "Plates", settings: [
         { name: "Inspect", plate: "inspect" },
         { name: "Download", plate: "download", show: () => state.plates.length > 0 },
         { name: "Coverage", value: () => `${new Set(state.plates.map(p => p.zone)).size}/11 zones`, show: () => state.plates.length > 0 }
       ] }
-    ];
+    ].sort((a, b) => a.band - b.band);
+    let fieldToolIndex = fieldGroups.findIndex(group => group.name === "Lens");
+
+    const nearbyActions = {
+      stopPour: { label: "Stop pour", run: stopPour },
+      water: { label: "Give water", run: pumpWell },
+      stopDance: { label: "Stop dance", run: () => triggerDance() },
+      pour: { label: "Pour", run: pourWifi },
+      pump: { label: "Pump", run: pumpWell },
+      ride: { label: "Ride", run: toggleRide }
+    };
+
+    function fieldContext(motion) {
+      if (state.pourAnim) return nearbyActions.stopPour;
+      if (state.donkeyCollapsed || state.donkeyWater < .22) return nearbyActions.water;
+      if (state.danceTimer > 0) return nearbyActions.stopDance;
+      if (motion !== "walk") return null;
+      if (findPourTarget()) return nearbyActions.pour;
+      if (Math.hypot(well.x - state.x, well.z - state.z) < 22) return nearbyActions.pump;
+      if (Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z) < 12) return nearbyActions.ride;
+      return null;
+    }
 
     function fieldSettings() {
       return fieldGroups[fieldToolIndex].settings.filter(s => !s.show || s.show());
@@ -4349,8 +4375,7 @@ void main(){
       const setting = fieldSetting();
       armedTravel = null;
       if (setting.plate && state.plates.length) {
-        const ix = plateIndex < 0 ? state.plates.length - 1 : plateIndex;
-        plateIndex = cycle(ix, state.plates.length, direction);
+        plateIndex = cycle(selectedFieldPlate(), state.plates.length, direction);
       } else setting.step?.(direction);
       updateHUD();
     }
@@ -4383,7 +4408,6 @@ void main(){
       else if (state.pourAnim) msg = `Pouring · ${Math.round(state.pourAnim.t / state.pourAnim.dur * 100)}%`;
       else if (performance.now() < fieldNoticeUntil) msg = fieldNotice;
       else if (plateStorageFault) msg = "Plate in session · download to keep";
-      else if (state.plates.length) msg = `Plate #${state.plates.at(-1).id} · ${state.plates.at(-1).frameWifiPct ?? 0}% WiFi`;
       setText("field-notice", msg);
       notice.toggleAttribute("data-warning", !state.introActive && state.donkeyWater < .22);
     }
@@ -4402,7 +4426,7 @@ void main(){
       }
       setText("field-place", state.introActive ? "Donkey Water" : ZONES[state.currentZone].name);
       setText("field-state", state.introActive ? (state.introPhase === "montage" ? "Prologue" : "Grand Teton") :
-        `${label} · ${fmtElev(state.antennaElev)}`);
+        (motion === "glide" ? `${label} · ${fmtElev(state.antennaElev)}` : label));
       $("field-wifi").hidden = state.introActive;
       setText("field-wifi-value", `WiFi ${state.frameWifiPct}%`);
       wifiDots.forEach((dot, i) => dot.toggleAttribute("data-lit", state.frameWifiPct > i * 20));
@@ -4416,30 +4440,30 @@ void main(){
       document.body.classList.toggle("field-no-guides", !state.ppcOn);
       if (state.introActive) return;
 
-      const dancing = state.danceTimer > 0;
-      setText("field-vehicle", state.gliding ? "Fold wing" : state.drivingCart ? "Park" : state.riding ? "Dismount" : "Ride");
-      $("field-vehicle").hidden = !canMount() && motion === "walk";
-      $("field-wing").hidden = state.drivingCart || (!dancing && (state.gliding || !canMount()));
-      $("field-wing").setAttribute("aria-label", dancing ? "Stop dance" : "Open glider wing");
-      setText("field-wing", dancing ? "Stop dance" : "Wing");
+      setText("field-vehicle", state.gliding ? "Fold wing" : state.drivingCart ? "Park" : "Dismount");
+      $("field-vehicle").hidden = motion === "walk";
       $("field-brake").hidden = !state.drivingCart;
-      $("field-wagon").hidden = state.drivingCart || state.gliding || !canMount();
-      const water = state.pourAnim ? "Stop pour" : state.donkeyWater < .22 ? "Give water" : findPourTarget() ? "Pour"
-        : Math.hypot(well.x - state.x, well.z - state.z) < 22 ? "Pump" : "Ping WiFi";
-      setText("field-water", water);
-      $("field-water").toggleAttribute("data-rescue", state.donkeyWater < .22);
+      const context = fieldContext(motion);
+      $("field-context").hidden = !context;
+      setText("field-context", context?.label ?? "");
+      $("field-context").toggleAttribute("data-rescue", context === nearbyActions.water);
       $("field-expose").toggleAttribute("data-exposed", performance.now() < exposedUntil);
       const lastPlate = state.plates.at(-1), orb = $("field-orb-img");
       orb.hidden = !lastPlate;
       if (lastPlate && orb.getAttribute("src") !== lastPlate.dataUrl) orb.src = lastPlate.dataUrl;
 
-      const setting = fieldSetting(), plate = setting.plate && fieldPlate();
+      const setting = fieldSetting(), plate = setting.plate && state.plates[selectedFieldPlate()];
       const adjustable = !!setting.step || (!!plate && state.plates.length > 1);
       const apply = $("field-apply"), value = $("field-value");
       const armed = setting.confirm && armedTravel === setting.name && performance.now() < armedUntil;
-      setText("field-tool-name", fieldGroups[fieldToolIndex].name);
+      const group = fieldGroups[fieldToolIndex];
+      setText("field-tool-name", group.name);
+      setText("field-band-code", `B${group.band}`);
+      $("field-tool-next").setAttribute("aria-label", `${group.name}, band ${group.band} of ${fieldGroups.length}. Tap or swipe to change band.`);
       toolDots.forEach((dot, i) => dot.toggleAttribute("data-lit", i === fieldToolIndex));
       setText("field-setting-name", setting.name);
+      $("field-setting-next").setAttribute("aria-label", `${setting.name}. Tap or swipe to change setting.`);
+      $("field-lens").toggleAttribute("data-measure", ["Focus", "Aperture", "Chase zoom"].includes(setting.name));
       const indexMark = $("field-dial-index");
       indexMark.hidden = !adjustable;
       const fractions = {
@@ -4449,7 +4473,13 @@ void main(){
         Filter: state.filterIdx / (FILTERS.length - 1),
         Mode: state.modeIdx / (MODES.length - 1),
         Shader: (state.soloLook + 1) / LOOKS.length,
-        "Chase zoom": (state.chaseZoom - 4.5) / 17.5
+        "Chase zoom": (state.chaseZoom - 4.5) / 17.5,
+        "Focus zone": destinations[0] / (ZONES.length - 1),
+        "Travel zone": destinations[1] / (ZONES.length - 1),
+        "Summit jump": destinations[2] / (SUMMITS.length - 1),
+        "Cue ±10 s": Number.isFinite(audioEl.duration) && audioEl.duration > 0 ? audioEl.currentTime / audioEl.duration : 0,
+        Inspect: selectedFieldPlate() / Math.max(1, state.plates.length - 1),
+        Download: selectedFieldPlate() / Math.max(1, state.plates.length - 1)
       };
       indexMark.style.setProperty("--dial-angle", `${-95 + 190 * (fractions[setting.name] ?? .5)}deg`);
       $("field-choice").toggleAttribute("data-wide", !adjustable);
@@ -4458,7 +4488,7 @@ void main(){
       $("field-value-next").setAttribute("aria-label", `Next ${setting.name.toLowerCase()}`);
       value.hidden = !!setting.run || !!plate;
       value.disabled = !setting.step;
-      value.toggleAttribute("data-adjustable", !!setting.step);
+      value.toggleAttribute("data-turn", !!setting.step);
       if (!value.hidden) {
         setText("field-value", setting.value?.() ?? "No plates");
         value.setAttribute("aria-label", `${setting.name} ${value.textContent}${setting.step ? ". Tap or drag to adjust." : ""}`);
@@ -4480,20 +4510,8 @@ void main(){
       heldButtons.clear();
     }
     const fieldClick = (id, handler) => $(id).addEventListener("click", handler);
-    for (const [suffix, dir] of [["prev", -1], ["next", 1]]) {
-      fieldClick("field-tool-" + suffix, () => {
-        fieldToolIndex = cycle(fieldToolIndex, fieldGroups.length, dir);
-        fieldSettingIndex = 0;
-        armedTravel = null;
-        updateHUD();
-      });
-      fieldClick("field-setting-" + suffix, () => {
-        fieldSettingIndex = cycle(fieldSettingIndex, fieldSettings().length, dir);
-        armedTravel = null;
-        updateHUD();
-      });
-      fieldClick("field-value-" + suffix, () => stepFieldValue(dir));
-    }
+    fieldClick("field-value-prev", () => stepFieldValue(-1));
+    fieldClick("field-value-next", () => stepFieldValue(1));
     fieldClick("field-apply", () => { fieldSetting().run?.(); updateHUD(); });
     fieldClick("field-pause", () => audioEl.pause());
     fieldClick("field-undo", () => {
@@ -4503,39 +4521,63 @@ void main(){
       applyFieldOptics();
       toast("Camera adjustment restored");
     });
-    fieldClick("field-vehicle", () => state.gliding ? toggleGlide() : state.drivingCart ? toggleCart() : toggleRide());
-    fieldClick("field-wing", () => state.danceTimer > 0 ? triggerDance() : toggleGlide());
-    fieldClick("field-wagon", toggleCart);
-    fieldClick("field-water", () => {
-      if (state.pourAnim) stopPour();
-      else if (state.donkeyWater < .22) pumpWell();
-      else pourWifi();
+    fieldClick("field-vehicle", () => {
+      if (state.gliding) toggleGlide();
+      else if (state.drivingCart) toggleCart();
+      else if (state.riding) toggleRide();
     });
+    fieldClick("field-context", () => fieldContext(currentMotion())?.run());
     fieldClick("field-expose", exposePlate);
     fieldClick("field-enter", () => finishIntro(false));
     fieldClick("field-prologue", startPrologue);
     fieldClick("field-summit", () => $("intro-jump").click());
     fieldClick("field-skip", () => finishIntro(false));
 
-    let dialPointer = null, dialStart = 0, dialMoved = false;
-    const dial = $("field-value");
-    dial.addEventListener("pointerdown", e => {
-      if (!fieldSetting().step || e.button !== 0 || dialPointer !== null) return;
-      dialPointer = e.pointerId; dialStart = e.clientX; dialMoved = false;
-      dial.setPointerCapture(e.pointerId);
+    let dialPointer = null;
+    function bindFieldTurn(id, step, enabled = () => true) {
+      const key = $(id);
+      let skipClick = false;
+      key.setAttribute("data-turn", "");
+      key.addEventListener("pointerdown", e => {
+        if (e.button !== 0 || dialPointer || !enabled()) return;
+        dialPointer = { key, id: e.pointerId, start: e.clientX };
+        skipClick = false;
+        key.setPointerCapture(e.pointerId);
+      });
+      const isDialPointer = e => dialPointer?.key === key && dialPointer.id === e.pointerId;
+      key.addEventListener("pointerup", e => {
+        if (!isDialPointer(e)) return;
+        const delta = e.clientX - dialPointer.start;
+        dialPointer = null;
+        skipClick = Math.abs(delta) >= 14;
+        if (skipClick && enabled()) step(Math.sign(delta) * Math.max(1, Math.floor(Math.abs(delta) / 28)));
+      });
+      for (const type of ["pointercancel", "lostpointercapture"]) {
+        key.addEventListener(type, e => { if (isDialPointer(e)) dialPointer = null; });
+      }
+      key.addEventListener("click", e => {
+        if (enabled() && (!skipClick || e.detail === 0)) step(1);
+        skipClick = false;
+      });
+      key.addEventListener("keydown", e => {
+        if (!enabled() || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        step(e.key === "ArrowLeft" ? -1 : 1);
+      });
+    }
+    bindFieldTurn("field-tool-next", step => {
+      fieldToolIndex = cycle(fieldToolIndex, fieldGroups.length, step);
+      fieldSettingIndex = 0;
+      armedTravel = null;
+      updateHUD();
     });
-    dial.addEventListener("pointerup", e => {
-      if (e.pointerId !== dialPointer) return;
-      const delta = e.clientX - dialStart;
-      dialMoved = Math.abs(delta) > 12;
-      if (dialMoved) stepFieldValue(Math.sign(delta));
-      dialPointer = null;
+    bindFieldTurn("field-setting-next", step => {
+      fieldSettingIndex = cycle(fieldSettingIndex, fieldSettings().length, step);
+      armedTravel = null;
+      updateHUD();
     });
-    for (const type of ["pointercancel", "lostpointercapture"]) dial.addEventListener(type, () => { dialPointer = null; });
-    dial.addEventListener("click", () => {
-      if (!dialMoved && fieldSetting().step) stepFieldValue(1);
-      dialMoved = false;
-    });
+    bindFieldTurn("field-value", stepFieldValue, () => !!fieldSetting().step);
 
     function setStick(x, y) {
       stickX = x; stickY = y;
