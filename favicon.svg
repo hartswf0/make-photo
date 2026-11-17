@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#141512"/>
+  <rect x="3" y="3" width="58" height="58" rx="9" fill="none" stroke="#2c2d27" stroke-width="1.5"/>
+  <!-- Brass 8x10 Corner Brackets -->
+  <path d="M9 17V9h8M47 9h8v8M9 47v8h8M47 55h8v-8" fill="none" stroke="#cbb182" stroke-width="2.6" stroke-linecap="square"/>
+  <!-- Electric-Cyan WiFi Signal Arcs -->
+  <path d="M21 21a16 16 0 0 1 22 0" fill="none" stroke="#18b4ff" stroke-width="2.6" stroke-linecap="round" opacity=".55"/>
+  <path d="M25.5 25a10 10 0 0 1 13 0" fill="none" stroke="#22d0ff" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="32" cy="27.5" r="2.1" fill="#22d0ff"/>
+  <!-- Twin Cathedral / Half Dome Monolith Peaks -->
+  <path d="M10 47 L24 27 L31 36 L39 23 L54 47 Z" fill="#f1eee6"/>
+  <path d="M24 27 L29 47 L10 47 Z" fill="#9c998f"/>
+  <path d="M39 23 L45 47 L31 47 L31 36 Z" fill="#77746b"/>
+  <!-- 5-Step Tonal Wedge Bar -->
+  <rect x="12" y="49" width="8" height="4" fill="#0d0e0d"/>
+  <rect x="20" y="49" width="8" height="4" fill="#3a3934"/>
+  <rect x="28" y="49" width="8" height="4" fill="#0080ff"/>
+  <rect x="36" y="49" width="8" height="4" fill="#bab6aa"/>
+  <rect x="44" y="49" width="8" height="4" fill="#f1eee6"/>
+</svg>

@@ -23,6 +23,7 @@ import base64
 import io
 import os
 import re
+import urllib.parse
 import zlib
 from pathlib import Path
 from PIL import Image
@@ -155,6 +156,9 @@ def build(source_html: Path, target_html: Path) -> None:
     assert "</script>" not in donkey_js, "donkey.js must not contain literal </script>"
     assert "</script>" not in game_js, "game.js must not contain literal </script>"
 
+    favicon_svg = (ROOT / "favicon.svg").read_text(encoding="utf-8")
+    favicon_uri = "data:image/svg+xml," + urllib.parse.quote(re.sub(r"\s+", " ", favicon_svg).strip(), safe=",/:;=#")
+
     out = "\n".join([
         "<!doctype html>",
         '<html lang="en">',
@@ -162,7 +166,7 @@ def build(source_html: Path, target_html: Path) -> None:
         '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">',
         '<meta name="theme-color" content="#171715">',
-        '<link rel="icon" href="data:,">',
+        f'<link rel="icon" type="image/svg+xml" href="{favicon_uri}">',
         "<title>MONOLITH · A field expedition</title>",
         "<style>",
         font_css,

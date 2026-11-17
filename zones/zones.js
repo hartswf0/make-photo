@@ -1070,8 +1070,10 @@ void main(){
   ];
 
   const STORAGE_KEY = "make-photo-zones-v4";
-  const urlMode = new URLSearchParams(location.search).get("mode");
+  const urlParams = new URLSearchParams(location.search);
+  const urlMode = urlParams.get("mode");
   const initModeIdx = urlMode && MODES.some(m => m.id === urlMode) ? MODES.findIndex(m => m.id === urlMode) : 0;
+  const skipIntroParam = urlParams.get("skipIntro") === "1";
 
   /* ---------- WebAudio ---------- */
   const audio = (() => {
@@ -1717,10 +1719,16 @@ void main(){
       unlockedTrees: 4,
       meteredZone: 4,
       currentZone: 4,
+      introActive: !skipIntroParam,
+      introPhase: skipIntroParam ? "done" : "title",
+      introT: 0,
+      introShotIdx: -1,
+      savedModeBeforeIntro: initModeIdx,
       plates: [],
       chaseCamPos: new T.Vector3(-11, 160, 4),
       chaseLookAt: new T.Vector3(-36, 156, 1.35)
     };
+    document.body.classList.toggle("intro-active", state.introActive);
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
       if (saved && Array.isArray(saved.plates)) state.plates = saved.plates;
@@ -1893,9 +1901,9 @@ void main(){
     const dryWaterMat = new T.MeshStandardMaterial({ color: 0x2a2926, roughness: .95 });
     const relayRingMat = new T.LineBasicMaterial({ color: 0x0080ff, transparent: true, opacity: .86 });
 
-    // 1) Cast-Iron Wellhead Pump & Cyan Washbasin at Snake River Overlook (-22.2, -3.8)
+    // 1) Cast-Iron Wellhead Pump & Cyan Washbasin at Snake River Overlook (-22.2, -6.2, clear of deck ramp)
     const well = (() => {
-      const wx = -22.2, wz = -3.8, wy = mw.tetonGround(wx, wz);
+      const wx = -22.2, wz = -6.2, wy = mw.tetonGround(wx, wz);
       const g = new T.Group(); g.position.set(wx, wy, wz);
       const concrete = new T.MeshStandardMaterial({ color: 0x5d5c57, roughness: .94 });
       const ironMat = new T.MeshStandardMaterial({ color: 0x262626, roughness: .48, metalness: .68 });
@@ -2002,7 +2010,7 @@ void main(){
     }
 
     const relayDefs = [
-      { id: "wellhead", region: "tetons", name: "Overlook Wellhead", x: -22.2, z: -3.8, lit: true },
+      { id: "wellhead", region: "tetons", name: "Overlook Wellhead", x: -22.2, z: -6.2, lit: true },
       { id: "switchback", region: "tetons", name: "Moraine Switchback Cistern", x: -48, z: -168, lit: false },
       { id: "ford", region: "tetons", name: "Silver Ford Relay", x: -248, z: -55, lit: false },
       { id: "oxbow", region: "tetons", name: "Cottonwood Oxbow Kiosk", x: -518, z: 94, lit: false },
@@ -2198,6 +2206,7 @@ void main(){
     });
 
     function toast(msg) {
+      if (state.introActive) return;
       const t = $("toast"); t.textContent = msg; t.hidden = false;
       clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 3400);
     }
@@ -2268,11 +2277,13 @@ void main(){
         tray.innerHTML = `
           <div class="tray-head"><h2>Focus Pull Mode &amp; Summits</h2><button type="button" class="chip" id="tr-close">Done</button></div>
           <p class="tray-note">${MODES[state.modeIdx].desc}</p>
+          <button type="button" class="chip wide" id="md-replay">▶ Replay Cinematic Prologue</button>
           <div class="chip-grid">${MODES.map((m, i) => `<button type="button" class="chip wide" data-mode="${i}" aria-pressed="${state.modeIdx === i}">${m.label} — ${m.sub}</button>`).join("")}</div>
           <div class="sec-label">Summit Base-Jump Launches (J)</div>
           <div class="chip-grid">${SUMMITS.map((s, idx) => `<button type="button" class="chip wide" data-summit="${idx}">${s.name}</button>`).join("")}</div>
           <div class="sec-label">MONOLITH-3 Zone Vantages</div>
           <div class="chip-grid">${ZONES.map(z => `<button type="button" class="chip" data-tp="${z.z}">Z-${ROMAN[z.z]} ${z.name}</button>`).join("")}</div>`;
+        $("md-replay").onclick = () => { state.trayTab = null; renderTray(); startPrologue(); };
         tray.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { state.modeIdx = +b.dataset.mode; state.focusPulse = 1; renderTray(); updateHUD(); });
         tray.querySelectorAll("[data-summit]").forEach(b => b.onclick = () => { launchSummit(+b.dataset.summit); renderTray(); });
         tray.querySelectorAll("[data-tp]").forEach(b => b.onclick = () => teleportZone(+b.dataset.tp));
@@ -2720,10 +2731,126 @@ void main(){
     $("sp-plates").addEventListener("click", openPlateBox);
     $("pl-close").addEventListener("click", () => { $("platebox").hidden = true; });
 
+    /* ---------- 2-Stage Live 3D Cinematic Intro Choreography ---------- */
+    const INTRO_DURATION = 13.6;
+    const startPlayerY = driveSurfaceAt(-14.8, 0.8, "tetons") + 1.68;
+    const startYaw = Math.PI * .50, startPitch = -.05;
+    const endLookX = -14.8 - Math.sin(startYaw) * Math.cos(startPitch) * 20;
+    const endLookY = startPlayerY + Math.sin(startPitch) * 20;
+    const endLookZ = 0.8 - Math.cos(startYaw) * Math.cos(startPitch) * 20;
+    const yWell = well.y, yDonkey = driveSurfaceAt(-26.0, -1.2, "tetons");
+
+    const INTRO_SHOTS = [
+      {
+        t0: 0.0, t1: 3.4,
+        fromPos: [-19.2, yWell + 1.32, -8.4], toPos: [-18.4, yWell + 1.48, -6.4],
+        fromLook: [well.x + .85, yWell + .38, well.z + .85], toLook: [well.x + .55, yWell + .68, well.z + .55],
+        focus0: 2.6, focus1: 3.4, modeIdx: 0,
+        kicker: "ACT I · THE WELLHEAD",
+        line: "“Iron lever cracks before the rooster — take this cyan WiFi water from my well.”",
+        onEnter() { state.pumpFlow = 1.0; state.pumpLeverPhase = .02; audio.pumpClank(); }
+      },
+      {
+        t0: 3.4, t1: 6.8,
+        fromPos: [-23.1, yDonkey + 1.28, -3.5], toPos: [-21.6, yDonkey + 1.62, 1.9],
+        fromLook: [-26.0, yDonkey + 1.15, -1.1], toLook: [-24.6, yDonkey + 1.35, 1.4],
+        focus0: 3.2, focus1: 4.8, modeIdx: 0,
+        kicker: "ACT II · MISTLETOE & THE SCION PACK",
+        line: "“Cyan jerikan balanced on my shoulder blade — hooves on cobble and the tape is turning.”",
+        onEnter() { state.focusPulse = 1.0; audio.relayChime(false); }
+      },
+      {
+        t0: 6.8, t1: 10.4,
+        fromPos: [-28.0, 165.0, 14.0], toPos: [-42.0, 189.0, -12.0],
+        fromLook: [-180.0, 128.0, -35.0], toLook: [-320.0, 145.0, -18.0],
+        focus0: 42.0, focus1: 185.0, modeIdx: 1,
+        kicker: "ACT III · ELEVEN TONAL WORLDS",
+        line: "“You don’t take a photograph, you make it — eleven living Zone worlds across the valley.”",
+        onEnter() { state.pingTimer = 3.8; state.focusPulse = 1.0; }
+      },
+      {
+        t0: 10.4, t1: INTRO_DURATION,
+        fromPos: [-8.2, 165.5, 5.4], toPos: [-14.8, startPlayerY, 0.8],
+        fromLook: [-34.0, 157.0, 0.4], toLook: [endLookX, endLookY, endLookZ],
+        focus0: 28.0, focus1: 18.0, modeIdx: state.savedModeBeforeIntro,
+        kicker: "ACT IV · SNAKE RIVER OVERLOOK",
+        line: "“Carry the cyan up the ridge with me — drive the Cruiser Woody or leap from the summit.”",
+        onEnter() { state.modeIdx = state.savedModeBeforeIntro; state.focusPulse = .85; }
+      }
+    ];
+
+    function syncIntroUI() {
+      document.body.classList.toggle("intro-active", state.introActive);
+      const sec = $("cinema-intro"), tStage = $("cinema-title-stage"), mStage = $("cinema-montage-stage");
+      if (sec) sec.hidden = !state.introActive;
+      if (tStage) tStage.hidden = !state.introActive || state.introPhase !== "title";
+      if (mStage) mStage.hidden = !state.introActive || state.introPhase !== "montage";
+    }
+
+    function resetOverlookScene() {
+      setRegion("tetons");
+      state.drivingCart = false; state.donkeyOnRoof = false; state.gliding = false; state.riding = false;
+      donkeyGlider.visible = false; contrailL.line.visible = false; contrailR.line.visible = false;
+      wagon.x = -23.0; wagon.z = 4.6; wagon.y = driveSurfaceAt(wagon.x, wagon.z, "tetons");
+      wagon.heading = -Math.PI * .52; wagon.speed = 0;
+      wagon.group.position.set(wagon.x, wagon.y, wagon.z); wagon.group.rotation.y = wagon.heading;
+      donkey.place(-26.0, -1.2, -Math.PI * .45, (x, z) => driveSurfaceAt(x, z, "tetons"));
+      donkey.group.rotation.set(0, donkey.state.heading, 0);
+      state.x = -14.8; state.z = 0.8; state.y = startPlayerY;
+      state.yaw = startYaw; state.pitch = startPitch;
+      initRain();
+    }
+
+    function startPrologue() {
+      state.savedModeBeforeIntro = state.modeIdx;
+      resetOverlookScene();
+      state.introActive = true;
+      state.introPhase = "montage";
+      state.introT = 0;
+      state.introShotIdx = -1;
+      syncIntroUI();
+      if (audioEl.paused) toggleTape();
+    }
+
+    function finishIntro(keepCurrentPose = false) {
+      if (!state.introActive) return;
+      state.introActive = false;
+      state.introPhase = "done";
+      state.modeIdx = state.savedModeBeforeIntro;
+      if (!keepCurrentPose) {
+        state.focusDist = 18.0;
+        if (state.region === "tetons") {
+          state.x = -14.8; state.z = 0.8; state.y = startPlayerY;
+          state.yaw = startYaw; state.pitch = startPitch;
+        }
+      }
+      syncIntroUI();
+      updateHUD();
+      toast("Snake River Overlook · WASD move · C drive Woody · J Donkey Base-Jump!");
+    }
+
+    if ($("intro-roll")) $("intro-roll").addEventListener("click", startPrologue);
+    if ($("intro-skip")) $("intro-skip").addEventListener("click", () => finishIntro(false));
+    if ($("intro-jump")) $("intro-jump").addEventListener("click", () => {
+      if (audioEl.paused) toggleTape();
+      finishIntro(true);
+      launchSummit(0);
+    });
+    if ($("montage-skip")) $("montage-skip").addEventListener("click", () => finishIntro(false));
+
     /* ---------- Input Handling ---------- */
     const keys = Object.create(null);
     addEventListener("keydown", e => {
       if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+      if (state.introActive) {
+        if (e.code === "Escape") { e.preventDefault(); finishIntro(false); return; }
+        if (e.code === "Enter" || e.code === "Space") {
+          e.preventDefault();
+          if (state.introPhase === "title") startPrologue();
+          else finishIntro(false);
+          return;
+        }
+      }
       keys[e.code] = true;
       if (e.code === "BracketLeft") { state.focusDist = clamp(state.focusDist * .86, 1.2, 900); state.focusPulse = 1; updateHUD(); }
       else if (e.code === "BracketRight") { state.focusDist = clamp(state.focusDist * 1.16, 1.2, 900); state.focusPulse = 1; updateHUD(); }
@@ -2805,7 +2932,48 @@ void main(){
 
       if (state.pingTimer > 0) state.pingTimer = Math.max(0, state.pingTimer - dt);
 
-      if (state.gliding) {
+      if (state.introActive) {
+        const nowSec = performance.now() * .001;
+        donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, (x, z) => driveSurfaceAt(x, z));
+        donkey.group.rotation.set(0, donkey.state.heading, 0);
+        if (state.introPhase === "title") {
+          const orb = nowSec * .085;
+          camera.position.set(-8.0 + Math.cos(orb) * 6.5, 171.5 + Math.sin(orb * .7) * 2.2, 2.0 + Math.sin(orb) * 19.0);
+          camera.lookAt(-68.0, 140.0, -4.0);
+          camera.updateMatrixWorld();
+          state.focusDist = 26.0;
+        } else if (state.introPhase === "montage") {
+          state.introT += dt;
+          if (state.introT >= INTRO_DURATION) {
+            finishIntro(false);
+          } else {
+            let idx = INTRO_SHOTS.findIndex(s => state.introT >= s.t0 && state.introT < s.t1);
+            if (idx < 0) idx = INTRO_SHOTS.length - 1;
+            const s = INTRO_SHOTS[idx];
+            if (state.introShotIdx !== idx) {
+              state.introShotIdx = idx;
+              state.modeIdx = s.modeIdx;
+              if (s.onEnter) s.onEnter();
+              if ($("cinema-shot-kicker")) $("cinema-shot-kicker").textContent = s.kicker;
+              if ($("cinema-shot-line")) $("cinema-shot-line").textContent = s.line;
+            }
+            const u = smooth(0, 1, clamp((state.introT - s.t0) / Math.max(.01, s.t1 - s.t0), 0, 1));
+            camera.position.set(
+              lerp(s.fromPos[0], s.toPos[0], u),
+              lerp(s.fromPos[1], s.toPos[1], u),
+              lerp(s.fromPos[2], s.toPos[2], u)
+            );
+            camera.lookAt(
+              lerp(s.fromLook[0], s.toLook[0], u),
+              lerp(s.fromLook[1], s.toLook[1], u),
+              lerp(s.fromLook[2], s.toLook[2], u)
+            );
+            camera.updateMatrixWorld();
+            state.focusDist = lerp(s.focus0, s.focus1, u);
+            if ($("cinema-shot-bar")) $("cinema-shot-bar").style.width = `${clamp((state.introT / INTRO_DURATION) * 100, 0, 100)}%`;
+          }
+        }
+      } else if (state.gliding) {
         /* --- DONKEY BASE-JUMP & VALLEY PARAGLIDER FLIGHT --- */
         state.glide.time += dt;
         state.glideOpen = lerp(state.glideOpen, 1.0, 1 - Math.exp(-dt * 11));
@@ -3067,10 +3235,16 @@ void main(){
     }
 
     initRain();
+    syncIntroUI();
+    step(.016);
     sampleMeter();
     updateHUD();
+    renderFrame(.016);
     const loaderEl = $("world-loader");
-    if (loaderEl) loaderEl.hidden = true;
+    if (loaderEl) {
+      loaderEl.classList.add("fade-out");
+      setTimeout(() => { loaderEl.hidden = true; }, 580);
+    }
 
     function loop(now) {
       if (lastT === null) lastT = now - 16;
@@ -3087,6 +3261,9 @@ void main(){
         for (let i = 0; i < RAIN_N; i++) if (!inWifiReach(rainX[i], rainZ[i], emitters)) rainOutsideWifi++;
         return {
           ready: true,
+          introActive: state.introActive,
+          introPhase: state.introPhase,
+          introShotIdx: state.introShotIdx,
           region: state.region,
           mode: MODES[state.modeIdx].id,
           soloLook: state.soloLook,
@@ -3137,7 +3314,8 @@ void main(){
         camera.rotation.order = "YXZ"; camera.rotation.y = state.yaw; camera.rotation.x = state.pitch;
         camera.updateMatrixWorld(); sampleMeter(); updateHUD();
       },
-      exposePlate, teleportZone, toggleRide, toggleCart, toggleGlide, launchSummit, toggleRegion, pumpWell, pourWifi, pingSignal, toggleTape
+      exposePlate, teleportZone, toggleRide, toggleCart, toggleGlide, launchSummit, toggleRegion, pumpWell, pourWifi, pingSignal, toggleTape,
+      playIntro: startPrologue, skipIntro: () => finishIntro(false)
     };
   }
 

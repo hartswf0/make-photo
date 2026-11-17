@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#0e1216"/>
+  <!-- REC PPC Camcorder Corner Brackets -->
+  <path d="M8 16V8h9M47 8h9v8M8 48v8h9M47 56h9v-8" fill="none" stroke="#f1eee6" stroke-width="2.4" stroke-linecap="square" opacity=".88"/>
+  <!-- REC Cyan Dot -->
+  <circle cx="15.5" cy="14.5" r="2.6" fill="#22d0ff"/>
+  <!-- Concentric WiFi Water Signal Arcs -->
+  <path d="M20 17a18 18 0 0 1 24 0" fill="none" stroke="#0088ff" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M24.5 21.5a11.5 11.5 0 0 1 15 0" fill="none" stroke="#22d0ff" stroke-width="2.6" stroke-linecap="round"/>
+  <!-- 20L Electric-Cyan Jerikan -->
+  <g transform="translate(18,24)">
+    <!-- Handle Cutout -->
+    <rect x="4" y="1" width="12" height="5" rx="2" fill="#006eff"/>
+    <rect x="7" y="3" width="6" height="2" rx="1" fill="#0e1216"/>
+    <!-- Angled Neck & White Spout Cap -->
+    <polygon points="18,4 24,0 27,3 22,8" fill="#006eff"/>
+    <rect x="23" y="0" width="5" height="3.5" rx="1" transform="rotate(-22 25 2)" fill="#f4f4f0"/>
+    <!-- Body -->
+    <rect x="2" y="5" width="24" height="27" rx="4.5" fill="#006eff"/>
+    <!-- Embossed X Ribs -->
+    <path d="M7 11L21 26M21 11L7 26" stroke="#0044b8" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M7 11L21 26M21 11L7 26" stroke="#22d0ff" stroke-width="1" stroke-linecap="round" opacity=".55"/>
+  </g>
+</svg>
