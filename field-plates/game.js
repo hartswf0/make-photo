@@ -145,7 +145,7 @@ async function loadRegion(stop) {
 
 const state={
   index:0,mode:"opening",active:false,elapsed:0,weather:stops[0].startWeather,time:stops[0].time,
-  x:0,z:0,yaw:0,pitch:0,road:0,speed:0,drive:false,lead:false,roof:false,walkSpeed:0,
+  x:0,z:0,yaw:0,pitch:0,driveYaw:0,drivePitch:0,road:0,speed:0,drive:false,lead:false,roof:false,walkSpeed:0,
   packs:2,sheets:4,meter:false,meterReading:null,listen:true,
   glass:0,ev:0,aperture:22,focus:80,focal:210,shift:0,tilt:0,frame:"landscape",
   plates:{},noticeUntil:0,quality:1
@@ -1745,7 +1745,7 @@ function placeCamp(index,begin=true) {
   state.index=index;
   const stop=currentStop();
   Object.assign(state,{
-    active:begin,weather:stop.startWeather,time:stop.time,road:0,lane:0,speed:0,
+    active:begin,weather:stop.startWeather,time:stop.time,road:0,lane:0,speed:0,driveYaw:0,drivePitch:0,
     drive:false,roof:false,lead:false,burroTied:false,packs:2,sheets:4,
     glass:0,ev:0,aperture:22,focus:index===0?940:index===1?135:550,focal:stop.focal,tilt:0,shift:0,frame:"landscape",
     pitch:-.025,invert:false,meter:false,meterReading:null,parkHint:false
@@ -1785,9 +1785,10 @@ function syncPose() {
   }
   if(state.drive) {
     const dir=directionOfRoute(state.road), p=wagon.group.position;
-    camera.position.set(p.x-dir.x*6.62+dir.z*.89,p.y+3.51,p.z-dir.z*6.62-dir.x*.89);
-    const focus=landscape.route.at(state.road+8.3);
-    camera.lookAt(focus.x,heightAt(stop,focus.x,focus.z)+1.68,focus.z);
+    const baseYaw=Math.atan2(dir.x,dir.z), camYaw=baseYaw+state.driveYaw;
+    const cx=Math.sin(camYaw), cz=Math.cos(camYaw);
+    camera.position.set(p.x-cx*6.8+dir.z*.6,p.y+3.35,p.z-cz*6.8-dir.x*.6);
+    camera.lookAt(p.x+cx*9.5,heightAt(stop,p.x+cx*9.5,p.z+cz*9.5)+1.65+state.drivePitch*6,p.z+cz*9.5);
     return;
   }
   if(state.roof) {
@@ -1803,10 +1804,11 @@ function driveUpdate(dt) {
   const accelerate=+(inputs.has("KeyW")||inputs.has("ArrowUp"))-+(inputs.has("KeyS")||inputs.has("ArrowDown"))-touchAxis.y;
   const turn=+(inputs.has("KeyD")||inputs.has("ArrowRight"))-+(inputs.has("KeyA")||inputs.has("ArrowLeft"))+touchAxis.x;
   const braking=inputs.has("Space")||inputs.has("touchBrake");
-  if(braking)state.speed*=Math.exp(-dt*7.7);
-  else state.speed=lerp(state.speed,accelerate>=0?clamp(accelerate,0,1)*11.7:clamp(accelerate,-1,0)*3.8,1-Math.exp(-dt*(accelerate===0?1.38:2.11)));
-  if(Math.abs(state.speed)<.022)state.speed=0;
-  state.lane=clamp(lerp(state.lane,turn*.88,1-Math.exp(-dt*2.9)),-.94,.94);
+  if(braking)state.speed*=Math.exp(-dt*9.2);
+  else state.speed=lerp(state.speed,accelerate>=0?clamp(accelerate,0,1)*12.2:clamp(accelerate,-1,0)*4.8,1-Math.exp(-dt*(accelerate===0?2.9:3.2)));
+  if(Math.abs(state.speed)<.025)state.speed=0;
+  state.lane=clamp(lerp(state.lane,turn*1.38,1-Math.exp(-dt*4.8)),-1.45,1.45);
+  if(!drag&&Math.abs(state.speed)>.4)state.driveYaw*=Math.exp(-dt*1.8);
   const end=landscape.route.station+1.65;
   state.road=clamp(state.road+state.speed*dt,0,end);
   if(state.road===end&&state.speed>0){
@@ -1867,15 +1869,14 @@ function rigAction() {
       sound.click("chain");report("Lead Mistletoe along the trail to the cairn.");
     } else report("Walk back to Mistletoe to take the rope.");
   } else if(state.drive) {
-    if(Math.abs(state.speed)>.70){report("Brake before getting out.");return;}
-    state.drive=false;state.speed=0;climbDown();
+    state.drive=false;state.speed=0;state.driveYaw=0;state.drivePitch=0;climbDown();
     report("Brake set. Climb the deck from beside the wagon.",3.3);
   } else if(state.roof) {
     climbDown();
   } else if(rigNear()){
     state.drive=true;
-    state.speed=0;
-    report("W / S for throttle and reverse. Space to brake.",4.4);
+    state.speed=0;state.driveYaw=0;state.drivePitch=0;
+    report("W / S for throttle and reverse, A/D steer, drag to look, Space to brake.",4.4);
   } else report("Approach the wagon to get in.");
   syncControls();
 }
@@ -1889,7 +1890,7 @@ function changeCargo(){
 }
 function climbDeck() {
   if(state.mode!=="field"||state.index===0)return;
-  if(state.drive){report("Brake and get out before climbing.");return;}
+  if(state.drive){state.drive=false;state.speed=0;state.driveYaw=0;state.drivePitch=0;}
   if(state.roof){climbDown();syncControls();return;}
   if(!rigNear()){report("Go to the wagon’s ladder.");return;}
   state.roof=true;
@@ -2241,7 +2242,13 @@ function showWaypoint() {
   marker.querySelector("span").textContent=state.index===0?"UPPER BENCH":"PULLOUT";
 }
 function look(dx,dy) {
-  if(state.mode!=="camera"&&(state.mode!=="field"||state.drive))return;
+  if(state.mode!=="camera"&&state.mode!=="field")return;
+  if(state.drive){
+    state.driveYaw=clamp(state.driveYaw-dx*.0031,-1.15,1.15);
+    state.drivePitch=clamp(state.drivePitch-dy*.0028,-.45,.45);
+    dirty=true;
+    return;
+  }
   const sensitivity=state.mode==="camera"?.0021:.0031;
   const factor=state.mode==="camera"&&state.invert?-1:1;
   state.yaw-=dx*sensitivity*factor;
