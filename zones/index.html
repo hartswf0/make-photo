@@ -783,6 +783,7 @@
       cursor: pointer;
     }
     .qpill:hover { border-color: var(--brass); }
+    .qpill[hidden], .chip[hidden] { display: none; }
     .qpill[aria-pressed="true"] {
       background: var(--paper);
       color: var(--bg);
@@ -1423,6 +1424,7 @@
     <div id="quick-bar">
       <button type="button" class="qpill" id="btn-cart" aria-pressed="false">Drive Wagon (C)</button>
       <button type="button" class="qpill cyan" id="btn-glide" aria-pressed="false">Base Jump / Glide (J)</button>
+      <button type="button" class="qpill cyan" id="btn-teton-cruise" hidden>Fly to Tetons</button>
       <button type="button" class="qpill" id="btn-ride" aria-pressed="false">Ride (V)</button>
       <button type="button" class="qpill cyan" id="btn-pour" aria-pressed="false">Pour / Deliver (F)</button>
       <button type="button" class="qpill" id="btn-dance" aria-pressed="false">Dance (K)</button>
@@ -1497,6 +1499,6 @@
   <script src="../field-plates/fonts.js"></script>
   <script src="../field-plates/three.js"></script>
   <script src="../donkey/donkey.js"></script>
-  <script src="./zones.js?v=f270ecf277a0"></script>
+  <script src="./zones.js?v=fede58bd7bc1"></script>
 </body>
 </html>
