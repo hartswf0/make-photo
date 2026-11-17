@@ -1826,8 +1826,12 @@ void main(){
   /* ---------- Renderer & Post-Processing Pipeline ---------- */
   const canvas = $("view");
   const renderer = new T.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
-  const phone = matchMedia("(pointer:coarse)").matches || Math.min(innerWidth, innerHeight) < 560;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, phone ? 1.5 : 2));
+  function computeMobileUI() {
+    return innerWidth <= 860 || (innerHeight > innerWidth && innerWidth <= 980) || new URLSearchParams(location.search).get("mobile") === "1";
+  }
+  let isMobileUI = computeMobileUI();
+  document.body.classList.toggle("mobile-ui", isMobileUI);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.toneMapping = T.NoToneMapping;
 
   const NEAR = 0.35, FAR = 48000;
@@ -2369,7 +2373,7 @@ void main(){
         float ed = length(vec2(rawX, rawY)) * 2.5;
         vec3 silverBase = raw;
         vec3 tr = texture2D(tTrail, uv).rgb;
-        float vg = smoothstep(1.36, 0.34, length((uv - 0.5) * vec2(1.10, 1.0)) * 1.48);
+        float vg = smoothstep(1.36, 0.34, length((uv - 0.5) * vec2(clamp(uRes.x / max(1.0, uRes.y), 0.78, 1.25), 1.0)) * 1.48);
 
         float zoneEff = clamp(l + wifiField * 0.25, 0.0, 1.0);
         vec3 outCol;
@@ -2511,6 +2515,10 @@ void main(){
       introShotIdx: -1,
       bootMs: performance.now(),
       savedModeBeforeIntro: initModeIdx,
+      touchFwd: 0,
+      touchSide: 0,
+      touchTurbo: false,
+      mobDialMode: "focus",
       plates: [],
       chaseCamPos: new T.Vector3(-11, 160, 4),
       chaseLookAt: new T.Vector3(-36, 156, 1.35)
@@ -2577,7 +2585,7 @@ void main(){
     const donkey = window.makeDonkey({
       assetPath: "../donkey/",
       textures: mw.coatTextures,
-      shells: phone ? 6 : 11,
+      shells: isMobileUI ? 6 : 11,
       monochrome: true,
       contactShadow: true,
       alwaysHalter: true
@@ -2657,44 +2665,61 @@ void main(){
       pourGroup.add(m); return m;
     });
 
-    /* ---------- Sculpted Electric-Cyan & Sprocket Film Rogallo Glider Wing + Contrails ---------- */
+    /* ---------- Sculpted 18-Cell Arched Electric-Cyan & Sprocket Film Paraglider Wing + Contrails ---------- */
     const donkeyGlider = new T.Group();
-    donkeyGlider.position.set(0, 1.35, .06);
+    donkeyGlider.position.set(0, 1.25, .04);
     donkeyGlider.visible = false;
     donkeyRig.add(donkeyGlider);
-    const sailDarkMat = new T.MeshStandardMaterial({ color: 0x16181c, roughness: .6, side: T.DoubleSide });
-    const sailFilmMat = new T.MeshStandardMaterial({ map: forestFilmTex, color: 0x006eff, emissive: 0x0044c4, emissiveIntensity: .9, roughness: .35, side: T.DoubleSide });
-    const wingCellCount = 7, span = 5.2, halfSpan = span * .5;
+    const sailDarkMat = new T.MeshStandardMaterial({ color: 0x0d549c, emissive: 0x062d5e, emissiveIntensity: .62, roughness: .38, side: T.DoubleSide });
+    const canopyCyanMat = new T.MeshStandardMaterial({ color: 0x24b4ff, emissive: 0x0c66db, emissiveIntensity: .88, roughness: .30, side: T.DoubleSide });
+    const sailFilmMat = new T.MeshStandardMaterial({ map: forestFilmTex, color: 0x16a2ff, emissive: 0x0c5ed6, emissiveIntensity: .92, roughness: .32, side: T.DoubleSide });
+    const seamMat = new T.MeshBasicMaterial({ color: 0x0a111a });
+    const riserCordMat = new T.MeshBasicMaterial({ color: 0x5c5344 });
+    const wingCellCount = 18, wingSpan = 6.2, halfSpan = wingSpan * .5, maxTheta = 1.08, radSpan = halfSpan / Math.sin(maxTheta);
+    const wingPt = (theta, cFrac, lift = 0) => {
+      const ch = 1.56 * Math.cos(theta * .68);
+      const leadZ = .56 - (1 - Math.cos(theta)) * .68;
+      return [Math.sin(theta) * radSpan, 1.02 + Math.cos(theta) * 1.98 + lift, leadZ - cFrac * ch];
+    };
+    const pushQuad = (arr, uvs, a, b, c, d, u0, u1, v0, v1) => {
+      arr.push(...a, ...b, ...c, ...b, ...d, ...c);
+      uvs.push(u0, v0, u1, v0, u0, v1, u1, v0, u1, v1, u0, v1);
+    };
     for (let c = 0; c < wingCellCount; c++) {
-      const u0 = -1 + (c / wingCellCount) * 2, u1 = -1 + ((c + 1) / wingCellCount) * 2;
-      const x0 = u0 * halfSpan, x1 = u1 * halfSpan, xm = (x0 + x1) * .5;
-      const archY0 = 1.48 - u0 * u0 * .34, archY1 = 1.48 - u1 * u1 * .34;
-      const sweepZ0 = -Math.abs(u0) * .72, sweepZ1 = -Math.abs(u1) * .72;
-      const chord0 = 1.68 * (1 - Math.abs(u0) * .36), chord1 = 1.68 * (1 - Math.abs(u1) * .36);
-      const verts = new Float32Array([
-        x0, archY0, .75 + sweepZ0,
-        x1, archY1, .75 + sweepZ1,
-        x0, archY0 - .05, .75 + sweepZ0 - chord0,
-        x1, archY1 - .05, .75 + sweepZ1 - chord1
-      ]);
-      const uvs = new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]);
+      const t0 = -maxTheta + (c / wingCellCount) * (2 * maxTheta);
+      const t1 = -maxTheta + ((c + 1) / wingCellCount) * (2 * maxTheta);
+      const tm = (t0 + t1) * .5;
+      const puff0 = .14 * Math.cos(t0 * .5), puff1 = .14 * Math.cos(t1 * .5), puffM = .20 * Math.cos(tm * .5);
+      const L0 = wingPt(t0, 0, 0), L1 = wingPt(t1, 0, 0), LM = wingPt(tm, 0, .03);
+      const C0 = wingPt(t0, .36, puff0), C1 = wingPt(t1, .36, puff1), CM = wingPt(tm, .36, puffM);
+      const T0 = wingPt(t0, 1.0, .01), T1 = wingPt(t1, 1.0, .01), TM = wingPt(tm, 1.0, .03);
+      const verts = [], uvs = [];
+      pushQuad(verts, uvs, L0, LM, C0, CM, 0, .5, 1, .64);
+      pushQuad(verts, uvs, LM, L1, CM, C1, .5, 1, 1, .64);
+      pushQuad(verts, uvs, C0, CM, T0, TM, 0, .5, .64, 0);
+      pushQuad(verts, uvs, CM, C1, TM, T1, .5, 1, .64, 0);
       const g = new T.BufferGeometry();
-      g.setAttribute("position", new T.BufferAttribute(verts, 3));
-      g.setAttribute("uv", new T.BufferAttribute(uvs, 2));
-      g.setIndex([0, 1, 2, 1, 3, 2]);
+      g.setAttribute("position", new T.Float32BufferAttribute(verts, 3));
+      g.setAttribute("uv", new T.Float32BufferAttribute(uvs, 2));
       g.computeVertexNormals();
-      const mat = c === 3 ? sailFilmMat : (c % 2 === 0 ? beaconCyanMat.clone() : sailDarkMat);
-      mat.side = T.DoubleSide;
+      const mat = (c >= 7 && c <= 10) ? sailFilmMat : (c % 2 === 0 ? canopyCyanMat : sailDarkMat);
       donkeyGlider.add(new T.Mesh(g, mat));
-      addPackBar(donkeyGlider, [xm, (archY0 + archY1) * .5 - .04, .18 + (sweepZ0 + sweepZ1) * .35], [c > 3 ? .18 : c < 3 ? -.18 : 0, .02, 0], .006, brassMat);
+      addPackBar(donkeyGlider, L0, C0, .0055, seamMat);
+      addPackBar(donkeyGlider, C0, T0, .0055, seamMat);
     }
-    addPackBar(donkeyGlider, [-halfSpan, 1.14, .03], [0, 1.48, .75], .024, sawWoodMat);
-    addPackBar(donkeyGlider, [halfSpan, 1.14, .03], [0, 1.48, .75], .024, sawWoodMat);
-    addPackBar(donkeyGlider, [-halfSpan * .74, 1.24, .12], [halfSpan * .74, 1.24, .12], .020, sawWoodMat);
-    addPackBar(donkeyGlider, [0, 1.48, .75], [0, 1.38, -.92], .022, sawWoodMat);
+    // Outer end seam
+    addPackBar(donkeyGlider, wingPt(maxTheta, 0, 0), wingPt(maxTheta, 1, .01), .0055, seamMat);
+    // 16 taut suspension risers fanning from Mistletoe's saddle lugs across the curved canopy
+    for (const cIdx of [1, 3, 5, 7, 10, 12, 14, 16]) {
+      const th = -maxTheta + ((cIdx + .5) / wingCellCount) * (2 * maxTheta);
+      const lug = [cIdx >= 9 ? .28 : -.28, .08, .06];
+      addPackBar(donkeyGlider, lug, wingPt(th, .14, .06), .0045, riserCordMat);
+      addPackBar(donkeyGlider, lug, wingPt(th, .68, .05), .0045, riserCordMat);
+    }
     const wingTipL = new T.Object3D(), wingTipR = new T.Object3D();
-    wingTipL.position.set(-halfSpan, 1.12, -.12);
-    wingTipR.position.set(halfSpan, 1.12, -.12);
+    const tipLP = wingPt(-maxTheta, .45, 0), tipRP = wingPt(maxTheta, .45, 0);
+    wingTipL.position.set(tipLP[0], tipLP[1], tipLP[2]);
+    wingTipR.position.set(tipRP[0], tipRP[1], tipRP[2]);
     donkeyGlider.add(wingTipL, wingTipR);
 
     // Twin Cyan Wingtip Contrail Ribbons in World Space
@@ -2808,6 +2833,9 @@ void main(){
         }
         tctx.putImageData(imgData, 0, 0);
         drawFilmFrameCell(i, tmpC, sh.label);
+        if (i === 4 && $("mob-shutter-thumb") && !$("mob-shutter-thumb").src) {
+          $("mob-shutter-thumb").src = tmpC.toDataURL("image/jpeg", .80);
+        }
         if (i < 4) drawFilmFrameCell(12 + i, tmpC, "ABYSS " + sh.label);
       }
       renderer.setRenderTarget(prevTarget);
@@ -3370,6 +3398,64 @@ void main(){
         b.classList.toggle("resonant", idx === state.resonantZone);
       });
       updateFocusKnobVisual();
+
+      document.body.classList.toggle("gliding", state.gliding);
+      if ($("mob-place")) {
+        $("mob-place").textContent = Z.name.toUpperCase();
+        $("mob-state").textContent = state.gliding
+          ? `GLIDE ${fmtElev(state.antennaElev)}`
+          : state.drivingCart
+          ? `WOODY · ${Math.abs(wagon.speed).toFixed(0)} M/S`
+          : state.riding
+          ? `RIDING · ${fmtElev(state.antennaElev)}`
+          : `ON FOOT · ${fmtElev(state.antennaElev)}`;
+        $("mob-wifi").textContent = `WIFI ${state.frameWifiPct}%`;
+        const dots = $("mob-dots").querySelectorAll("i");
+        const litDots = state.donkeyCollapsed ? 0 : Math.max(1, Math.round(state.donkeyWater * 5));
+        dots.forEach((d, idx) => {
+          d.classList.toggle("on", idx < litDots);
+          d.classList.toggle("low", state.donkeyWater < .30);
+        });
+        $("mob-deck-btn").textContent = state.zoneSynced
+          ? `♪ BOOST · CANS ${state.filledCans}/${state.totalCans}`
+          : `♪ FIELD DECK · CANS ${state.filledCans}/${state.totalCans}`;
+        $("mob-deck-btn").setAttribute("aria-expanded", String(document.body.classList.contains("mob-deck-open")));
+      }
+      if ($("mob-lens-dial")) {
+        $("mob-dial-kicker").textContent = `Z-${ROMAN[state.meteredZone]} LENS`;
+        let dialFrac = .3;
+        if (state.mobDialMode === "focus") {
+          $("mob-dial-mode").textContent = "FOCUS";
+          $("mob-dial-val").textContent = `${state.focusDist.toFixed(1)} m`;
+          dialFrac = clamp((Math.log2(state.focusDist) - Math.log2(1.2)) / (Math.log2(900) - Math.log2(1.2)), 0, 1);
+        } else if (state.mobDialMode === "aperture") {
+          $("mob-dial-mode").textContent = "APERTURE";
+          $("mob-dial-val").textContent = st.name;
+          dialFrac = state.stopIdx / Math.max(1, STOPS.length - 1);
+        } else {
+          $("mob-dial-mode").textContent = "ZONE";
+          $("mob-dial-val").textContent = `Z-${ROMAN[state.meteredZone]}`;
+          dialFrac = state.meteredZone / 10;
+        }
+        $("mob-lens-dial").style.setProperty("--dial-deg", `${(-130 + dialFrac * 260).toFixed(1)}deg`);
+        $("mob-lens-dial").setAttribute("aria-valuenow", String(Math.round(dialFrac * 100)));
+      }
+      if ($("mob-stick-top")) {
+        $("mob-stick-top").hidden = !state.gliding;
+        $("mob-stick-bot").hidden = !state.gliding;
+        $("mob-stick-in").textContent = state.gliding ? "GLIDE" : state.drivingCart ? "DRIVE" : state.riding ? "RIDE" : "MOVE";
+      }
+      if ($("mob-ctx-btn")) {
+        const nearUnlit = relays.some(r => !r.lit && Math.hypot(r.x - donkey.state.x, r.z - donkey.state.z) < 34);
+        let ctxTxt = "RIDE", isCy = false;
+        if (state.donkeyCollapsed || state.donkeyWater < .28) { ctxTxt = "WATER BURRO"; isCy = true; }
+        else if (state.gliding) { ctxTxt = "FOLD WING"; isCy = false; }
+        else if (nearUnlit) { ctxTxt = "POUR CANS"; isCy = true; }
+        else if (state.drivingCart) { ctxTxt = "EXIT WOODY"; isCy = false; }
+        else if (state.riding) { ctxTxt = state.relElev > 35 ? "BASE JUMP" : "DISMOUNT"; isCy = state.relElev > 35; }
+        $("mob-ctx-lbl").textContent = ctxTxt;
+        $("mob-ctx-btn").classList.toggle("cyan", isCy);
+      }
 
       const u = lookMat.uniforms;
       u.uFocusDist.value = state.focusDist; u.uDofOctaves.value = st.oct; u.uTilt.value = state.tilt;
@@ -3940,10 +4026,11 @@ void main(){
       audio.shutter();
       const fl = $("flash"); fl.classList.remove("go"); void fl.offsetWidth; fl.classList.add("go");
       sampleMeter(); renderFrame(performance.now() * .001);
-      const tmp = document.createElement("canvas"), cw = 640, ch = 512;
+      const portraitShot = canvas.height > canvas.width;
+      const tmp = document.createElement("canvas"), cw = portraitShot ? 512 : 640, ch = portraitShot ? 640 : 512;
       tmp.width = cw; tmp.height = ch;
       const tx = tmp.getContext("2d");
-      const sw = canvas.width, sh = canvas.height, aspect = 5 / 4;
+      const sw = canvas.width, sh = canvas.height, aspect = cw / ch;
       let sx = 0, sy = 0, sWidth = sw, sHeight = sh;
       if (sw / sh > aspect) { sWidth = Math.round(sh * aspect); sx = Math.round((sw - sWidth) / 2); }
       else { sHeight = Math.round(sw / aspect); sy = Math.round((sh - sHeight) / 2); }
@@ -3966,6 +4053,7 @@ void main(){
         antennaElev: +state.antennaElev.toFixed(1), unlockedGroves: state.unlockedGroves,
         dataUrl: tmp.toDataURL("image/jpeg", .86)
       };
+      if ($("mob-shutter-thumb")) $("mob-shutter-thumb").src = plate.dataUrl;
       state.plates.push(plate);
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ plates: state.plates.slice(-22) })); } catch {}
       updateHUD();
@@ -4134,10 +4222,14 @@ void main(){
     });
     addEventListener("keyup", e => { keys[e.code] = false; });
 
-    let dragLook = false, lastPX = 0, lastPY = 0;
-    canvas.addEventListener("pointerdown", e => { dragLook = true; lastPX = e.clientX; lastPY = e.clientY; canvas.setPointerCapture(e.pointerId); });
+    let lookPointerId = null, lastPX = 0, lastPY = 0;
+    canvas.addEventListener("pointerdown", e => {
+      if (lookPointerId !== null) return;
+      lookPointerId = e.pointerId; lastPX = e.clientX; lastPY = e.clientY;
+      try { canvas.setPointerCapture(e.pointerId); } catch {}
+    });
     canvas.addEventListener("pointermove", e => {
-      if (!dragLook) return;
+      if (e.pointerId !== lookPointerId) return;
       const dx = e.clientX - lastPX, dy = e.clientY - lastPY;
       lastPX = e.clientX; lastPY = e.clientY;
       if (state.drivingCart || state.gliding || state.riding) {
@@ -4148,7 +4240,9 @@ void main(){
         state.pitch = clamp(state.pitch - dy * .0038, -.82, .82);
       }
     });
-    addEventListener("pointerup", () => { dragLook = false; });
+    const releaseLook = e => { if (e.pointerId === lookPointerId) lookPointerId = null; };
+    addEventListener("pointerup", releaseLook);
+    addEventListener("pointercancel", releaseLook);
 
     canvas.addEventListener("wheel", e => {
       e.preventDefault();
@@ -4170,11 +4264,138 @@ void main(){
     });
     addEventListener("pointerup", () => { dragKnob = false; });
 
+    /* ---------- Mobile 4-Corner Multi-Touch Controls ---------- */
+    const mobStick = $("mob-stick"), mobNub = $("mob-stick-nub");
+    if (mobStick && mobNub) {
+      let stickPid = null, stickCx = 0, stickCy = 0;
+      const updateStick = (cx, cy) => {
+        const maxR = 34;
+        let dx = cx - stickCx, dy = cy - stickCy;
+        const mag = Math.hypot(dx, dy);
+        if (mag > maxR) { dx = (dx / mag) * maxR; dy = (dy / mag) * maxR; }
+        mobNub.style.setProperty("--sx", `${dx.toFixed(1)}px`);
+        mobNub.style.setProperty("--sy", `${dy.toFixed(1)}px`);
+        const nx = dx / maxR, ny = dy / maxR;
+        state.touchSide = clamp(nx, -1, 1);
+        state.touchFwd = clamp(-ny, -1, 1);
+        state.touchTurbo = Math.hypot(nx, ny) > .88;
+      };
+      mobStick.addEventListener("pointerdown", e => {
+        if (stickPid !== null) return;
+        e.preventDefault(); e.stopPropagation();
+        if (state.introActive && state.introPhase === "title") finishIntro(false);
+        const r = mobStick.getBoundingClientRect();
+        stickCx = r.left + r.width * .5; stickCy = r.top + r.height * .5;
+        stickPid = e.pointerId;
+        try { mobStick.setPointerCapture(e.pointerId); } catch {}
+        updateStick(e.clientX, e.clientY);
+      });
+      mobStick.addEventListener("pointermove", e => { if (e.pointerId === stickPid) { e.preventDefault(); updateStick(e.clientX, e.clientY); } });
+      const endStick = e => {
+        if (e.pointerId !== stickPid) return;
+        stickPid = null;
+        state.touchFwd = 0; state.touchSide = 0; state.touchTurbo = false;
+        mobNub.style.setProperty("--sx", "0px"); mobNub.style.setProperty("--sy", "0px");
+      };
+      mobStick.addEventListener("pointerup", endStick);
+      mobStick.addEventListener("pointercancel", endStick);
+    }
+
+    function stepMobDial(dir) {
+      if (state.mobDialMode === "focus") {
+        state.focusDist = clamp(state.focusDist * (dir > 0 ? 1.24 : .81), 1.2, 900);
+      } else if (state.mobDialMode === "aperture") {
+        state.stopIdx = clamp(state.stopIdx + (dir > 0 ? 1 : -1), 0, STOPS.length - 1);
+      } else {
+        const nz = clamp(state.meteredZone + (dir > 0 ? 1 : -1), 0, 10);
+        state.meteredZone = nz; state.focusLook = ZONES[nz].look;
+      }
+      state.focusPulse = 1.0; updateHUD();
+    }
+    const mobDial = $("mob-lens-dial");
+    if (mobDial) {
+      let dialPid = null, dialX0 = 0, dialY0 = 0, dialMoved = false, dialVal0 = 0;
+      mobDial.addEventListener("pointerdown", e => {
+        e.preventDefault(); e.stopPropagation();
+        dialPid = e.pointerId; dialX0 = e.clientX; dialY0 = e.clientY; dialMoved = false;
+        dialVal0 = state.mobDialMode === "focus" ? state.focusDist : state.mobDialMode === "aperture" ? state.stopIdx : state.meteredZone;
+        try { mobDial.setPointerCapture(e.pointerId); } catch {}
+      });
+      mobDial.addEventListener("pointermove", e => {
+        if (e.pointerId !== dialPid) return;
+        const dx = e.clientX - dialX0, dy = e.clientY - dialY0;
+        if (!dialMoved && Math.hypot(dx, dy) > 6) dialMoved = true;
+        if (!dialMoved) return;
+        const delta = dx - dy * .6;
+        if (state.mobDialMode === "focus") {
+          state.focusDist = clamp(dialVal0 * Math.exp(delta * .015), 1.2, 900);
+        } else if (state.mobDialMode === "aperture") {
+          state.stopIdx = clamp(Math.round(dialVal0 + delta / 22), 0, STOPS.length - 1);
+        } else {
+          const nz = clamp(Math.round(dialVal0 + delta / 18), 0, 10);
+          state.meteredZone = nz; state.focusLook = ZONES[nz].look;
+        }
+        state.focusPulse = 1.0; updateHUD();
+      });
+      const endDial = e => {
+        if (e.pointerId !== dialPid) return;
+        dialPid = null;
+        if (!dialMoved) {
+          const order = ["focus", "aperture", "zone"];
+          state.mobDialMode = order[(order.indexOf(state.mobDialMode) + 1) % order.length];
+          updateHUD();
+        }
+      };
+      mobDial.addEventListener("pointerup", endDial);
+      mobDial.addEventListener("pointercancel", endDial);
+    }
+    if ($("mob-dial-minus")) $("mob-dial-minus").addEventListener("click", () => stepMobDial(-1));
+    if ($("mob-dial-plus")) $("mob-dial-plus").addEventListener("click", () => stepMobDial(1));
+
+    if ($("mob-ctx-btn")) $("mob-ctx-btn").addEventListener("click", () => {
+      const nearUnlit = relays.some(r => !r.lit && Math.hypot(r.x - donkey.state.x, r.z - donkey.state.z) < 34);
+      if (state.donkeyCollapsed || state.donkeyWater < .28) pumpWell();
+      else if (state.gliding) toggleGlide();
+      else if (nearUnlit) pourWifi();
+      else if (state.drivingCart) toggleCart();
+      else if (state.riding && state.relElev > 35) toggleGlide();
+      else toggleRide();
+    });
+
+    if ($("mob-shutter")) {
+      let pressTimer = 0, longFired = false;
+      $("mob-shutter").addEventListener("pointerdown", () => {
+        longFired = false;
+        pressTimer = setTimeout(() => { longFired = true; openPlateBox(); }, 480);
+      });
+      const cancelPress = () => clearTimeout(pressTimer);
+      $("mob-shutter").addEventListener("pointerup", cancelPress);
+      $("mob-shutter").addEventListener("pointercancel", cancelPress);
+      $("mob-shutter").addEventListener("click", () => { if (!longFired) exposePlate(); });
+    }
+    if ($("mob-deck-btn")) $("mob-deck-btn").addEventListener("click", () => {
+      document.body.classList.toggle("mob-deck-open");
+      updateHUD();
+    });
+    if ($("mob-deck-close")) $("mob-deck-close").addEventListener("click", () => {
+      document.body.classList.remove("mob-deck-open");
+      state.trayTab = null; renderTray();
+      updateHUD();
+    });
+
     function resize() {
+      isMobileUI = computeMobileUI();
+      document.body.classList.toggle("mobile-ui", isMobileUI);
+      if (!isMobileUI) document.body.classList.remove("mob-deck-open");
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       const dpr = renderer.getPixelRatio();
+      const aspect = innerWidth / Math.max(1, innerHeight);
       const w = Math.max(2, Math.floor(innerWidth * dpr)), h = Math.max(2, Math.floor(innerHeight * dpr));
       renderer.setSize(innerWidth, innerHeight, false);
-      camera.aspect = innerWidth / Math.max(1, innerHeight); camera.updateProjectionMatrix();
+      const baseRad = 47 * Math.PI / 180;
+      const portraitBoost = aspect < 1.05 ? clamp(Math.pow(1.05 / Math.max(.40, aspect), .68), 1.0, 1.56) : 1.0;
+      camera.fov = clamp((2 * Math.atan(Math.tan(baseRad * .5) * portraitBoost)) * 180 / Math.PI, 47, 72);
+      camera.aspect = aspect; camera.updateProjectionMatrix();
       rtScene.setSize(w, h); rtA.setSize(w, h); rtB.setSize(w, h);
     }
     addEventListener("resize", resize);
@@ -4190,11 +4411,15 @@ void main(){
     }
 
     function step(dt) {
-      const fwdInput = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
-      const sideInput = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
-      const turbo = keys.ShiftLeft || keys.ShiftRight;
+      const kbFwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+      const kbSide = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+      const fwdInput = clamp(kbFwd + state.touchFwd, -1, 1);
+      const sideInput = clamp(kbSide + state.touchSide, -1, 1);
+      const turbo = !!(keys.ShiftLeft || keys.ShiftRight || state.touchTurbo);
       const brakeInput = keys.KeyX ? 1 : 0;
       const nowSec = performance.now() * .001;
+      const portPull = camera.aspect < .85 ? 1.38 : 1.0;
+      const portLift = camera.aspect < .85 ? .85 : 0.0;
 
       if (state.pingTimer > 0) state.pingTimer = Math.max(0, state.pingTimer - dt);
 
@@ -4270,8 +4495,8 @@ void main(){
         g.heading -= sideInput * 1.75 * dt;
         g.bank = lerp(g.bank, sideInput * .46, 1 - Math.exp(-dt * 8));
 
-        const targetSpd = (turbo ? 38.0 : (fwdInput > 0 ? 46.0 : (fwdInput < 0 ? 18.0 : 27.0))) * flowSpeedMult;
-        const targetVy = turbo ? 11.5 : (fwdInput > 0 ? -15.5 : (fwdInput < 0 ? 9.5 : -2.6));
+        const targetSpd = (turbo ? 38.0 : (fwdInput > .14 ? 46.0 : (fwdInput < -.14 ? 18.0 : 27.0))) * flowSpeedMult;
+        const targetVy = turbo ? 11.5 : (fwdInput > .14 ? -15.5 : (fwdInput < -.14 ? 9.5 : -2.6));
         g.speed = lerp(g.speed, targetSpd, 1 - Math.exp(-dt * 5.0));
         g.vy = lerp(g.vy, targetVy, 1 - Math.exp(-dt * 4.5));
 
@@ -4308,13 +4533,13 @@ void main(){
           contrailR.line.geometry.attributes.position.needsUpdate = true;
         }
 
-        const camDist = state.chaseZoom * .82, lookHdg = g.heading + state.cartYawOffset;
+        const camDist = state.chaseZoom * .82 * portPull, lookHdg = g.heading + state.cartYawOffset;
         tmpCamPos.set(
           g.x - Math.sin(lookHdg) * camDist,
-          Math.max(driveSurfaceAt(g.x - Math.sin(lookHdg) * camDist, g.z - Math.cos(lookHdg) * camDist) + 1.8, g.y + 3.0 + state.cartPitchOffset * 4.5),
+          Math.max(driveSurfaceAt(g.x - Math.sin(lookHdg) * camDist, g.z - Math.cos(lookHdg) * camDist) + 1.8, g.y + 3.0 + portLift + state.cartPitchOffset * 4.5),
           g.z - Math.cos(lookHdg) * camDist
         );
-        tmpCamLook.set(g.x + Math.sin(g.heading) * 14, g.y + 1.1, g.z + Math.cos(g.heading) * 14);
+        tmpCamLook.set(g.x + Math.sin(g.heading) * 14, g.y + (camera.aspect < .85 ? 1.85 : 1.1), g.z + Math.cos(g.heading) * 14);
         state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * 9.5));
         state.chaseLookAt.lerp(tmpCamLook, 1 - Math.exp(-dt * 11));
         applyLevelChaseCamera(state.chaseCamPos, state.chaseLookAt);
@@ -4322,10 +4547,10 @@ void main(){
         state.yaw = lookHdg + Math.PI;
       } else if (state.drivingCart) {
         /* --- CRUISER WOODY STATION WAGON (PHYSICS & COLLISIONS OFF + SUSPENSION SPRING) --- */
-        const targetSpeed = (brakeInput ? 0 : fwdInput > 0 ? (turbo ? 42.0 : 25.0) : fwdInput < 0 ? -15.0 : 0) * flowSpeedMult;
-        const accelRate = (fwdInput === 0 || brakeInput) ? 9.5 : 6.8;
+        const targetSpeed = (brakeInput ? 0 : fwdInput > .08 ? clamp(fwdInput, .35, 1) * (turbo ? 42.0 : 25.0) : fwdInput < -.08 ? fwdInput * 15.0 : 0) * flowSpeedMult;
+        const accelRate = (Math.abs(fwdInput) <= .08 || brakeInput) ? 9.5 : 6.8;
         wagon.speed = lerp(wagon.speed, targetSpeed, 1 - Math.exp(-dt * accelRate));
-        if (Math.abs(wagon.speed) < .06 && fwdInput === 0) wagon.speed = 0;
+        if (Math.abs(wagon.speed) < .06 && Math.abs(fwdInput) <= .08) wagon.speed = 0;
 
         const revFlip = (fwdInput < 0 && wagon.speed < -.5) ? -1 : 1;
         wagon.heading -= sideInput * revFlip * 1.85 * dt;
@@ -4366,9 +4591,9 @@ void main(){
         donkey.group.position.set(dpx, dpy, dpz);
         donkey.group.rotation.set(0, wagon.heading, 0);
 
-        const lookHdg = wagon.heading + state.cartYawOffset;
-        const camX = wagon.x - Math.sin(lookHdg) * state.chaseZoom, camZ = wagon.z - Math.cos(lookHdg) * state.chaseZoom;
-        tmpCamPos.set(camX, Math.max(driveSurfaceAt(camX, camZ) + 2.0, wagon.y + 4.35 + state.cartPitchOffset * 4.2), camZ);
+        const lookHdg = wagon.heading + state.cartYawOffset, wZoom = state.chaseZoom * portPull;
+        const camX = wagon.x - Math.sin(lookHdg) * wZoom, camZ = wagon.z - Math.cos(lookHdg) * wZoom;
+        tmpCamPos.set(camX, Math.max(driveSurfaceAt(camX, camZ) + 2.0, wagon.y + 4.35 + portLift + state.cartPitchOffset * 4.2), camZ);
         tmpCamLook.set(wagon.x + Math.sin(wagon.heading) * 10, wagon.y + 2.4, wagon.z + Math.cos(wagon.heading) * 10);
         state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * 9.5));
         state.chaseLookAt.lerp(tmpCamLook, 1 - Math.exp(-dt * 11));
@@ -4384,12 +4609,12 @@ void main(){
         donkey.group.position.set(donkey.state.x, donkey.state.y, donkey.state.z);
 
         const aheadX = donkey.state.x + Math.sin(donkey.state.heading) * 2.5, aheadZ = donkey.state.z + Math.cos(donkey.state.heading) * 2.5;
-        if (!state.donkeyCollapsed && donkey.group.position.y - driveSurfaceAt(aheadX, aheadZ) > 4.5 && fwdInput > 0) {
+        if (!state.donkeyCollapsed && donkey.group.position.y - driveSurfaceAt(aheadX, aheadZ) > 4.5 && fwdInput > .15) {
           toggleGlide({ x: donkey.state.x, z: donkey.state.z, boostY: 2.0, heading: donkey.state.heading, name: "Cliff Edge Auto-Launch!" });
         } else {
           const lookHdg = donkey.state.heading + state.cartYawOffset;
-          const distBack = 5.4, camX = donkey.state.x - Math.sin(lookHdg) * distBack, camZ = donkey.state.z - Math.cos(lookHdg) * distBack;
-          tmpCamPos.set(camX, Math.max(driveSurfaceAt(camX, camZ) + 1.5, donkey.group.position.y + 2.35 + state.cartPitchOffset * 2.6), camZ);
+          const distBack = 5.4 * portPull, camX = donkey.state.x - Math.sin(lookHdg) * distBack, camZ = donkey.state.z - Math.cos(lookHdg) * distBack;
+          tmpCamPos.set(camX, Math.max(driveSurfaceAt(camX, camZ) + 1.5, donkey.group.position.y + 2.35 + portLift * .7 + state.cartPitchOffset * 2.6), camZ);
           tmpCamLook.set(donkey.state.x + Math.sin(donkey.state.heading) * 8.0, donkey.group.position.y + 1.35, donkey.state.z + Math.cos(donkey.state.heading) * 8.0);
           state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * 11));
           state.chaseLookAt.lerp(tmpCamLook, 1 - Math.exp(-dt * 13));
@@ -4698,6 +4923,11 @@ void main(){
           x: +state.x.toFixed(2), z: +state.z.toFixed(2), y: +state.y.toFixed(2),
           groundY: +groundAt(state.x, state.z).toFixed(2),
           cameraRollDeg: rollDeg,
+          mobileUI: isMobileUI,
+          fov: +camera.fov.toFixed(1),
+          dpr: renderer.getPixelRatio(),
+          mobDialMode: state.mobDialMode,
+          mobDeckOpen: document.body.classList.contains("mob-deck-open"),
           wagon: { x: wagon.x, z: wagon.z, y: wagon.y, speed: wagon.speed, steerAngle: wagon.steerAngle, roll: wagon.roll, pitch: +wagon.pitch.toFixed(3) },
           donkeyOnRoof: state.donkeyOnRoof,
           gliding: state.gliding,
@@ -4772,6 +5002,7 @@ void main(){
       },
       exposePlate, teleportZone, toggleRide, toggleCart, toggleGlide, launchSummit, toggleRegion,
       pumpWell, pourWifi, pingSignal, toggleTape, toggleLidar, syncResonantZone, triggerDance, toggleSpatialAudio, deployRig, seekTape,
+      setTouchStick: (fx, fy) => { state.touchSide = clamp(fx, -1, 1); state.touchFwd = clamp(fy, -1, 1); state.touchTurbo = Math.hypot(fx, fy) > .88; },
       playIntro: startPrologue, skipIntro: () => finishIntro(false)
     };
   }

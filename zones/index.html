@@ -1222,11 +1222,406 @@
 
     @media (max-width: 860px) {
       #keys { display: none; }
-      #wedge-wrap { left: max(22px, env(safe-area-inset-left)); transform: none; max-width: calc(100vw - 135px); }
-      #step-wedge { grid-template-columns: repeat(11, minmax(19px, 30px)); }
+      #wedge-wrap { left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); transform: none; max-width: none; }
+      #step-wedge { grid-template-columns: repeat(11, minmax(0, 1fr)); width: 100%; }
       .swatch { height: 27px; font-size: 9px; }
       #focus-knob { width: 58px; height: 58px; }
       #focus-knob i { height: 22px; margin-top: -22px; }
+      #cinema-intro { padding: 14px; }
+      #cinema-title-stage { padding: 18px 16px; width: min(92vw, 420px); gap: 10px; }
+      .cinema-eyebrow { font-size: 9.5px; letter-spacing: .16em; }
+      .cinema-h1 { font-size: clamp(34px, 11vw, 62px); letter-spacing: .09em; }
+      .cinema-sub { font-size: 15.5px; }
+      .cinema-actions { width: 100%; }
+      .cinema-btn { flex: 1 1 100%; padding: 11px 14px; font-size: 10.5px; text-align: center; }
+      #cinema-montage-stage { left: 12px; right: 12px; flex-direction: column; align-items: stretch; gap: 10px; }
+      .montage-card { max-width: none; padding: 10px 12px; }
+    }
+
+    /* 4-Corner Tactile Analog Camera Mobile HUD & Slide-Up Field Deck */
+    #mobile-hud {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+    body.mobile-ui:not(.intro-active) #mobile-hud { display: block; }
+    body.mobile-ui.mob-deck-open #mobile-hud { display: none !important; }
+    body.mobile-ui #ppc-hud,
+    body.mobile-ui #cam-frame,
+    body.mobile-ui #focus-dock,
+    body.mobile-ui #keys { display: none !important; }
+    body.mobile-ui:not(.mob-deck-open) #top-left,
+    body.mobile-ui:not(.mob-deck-open) #wedge-wrap,
+    body.mobile-ui:not(.mob-deck-open) #reel-col { display: none !important; }
+
+    #mobile-hud button,
+    #mob-lens-dial,
+    #mob-stick { pointer-events: auto; }
+
+    /* Subdued L-corner viewfinder brackets */
+    #mob-brackets { position: fixed; inset: 0; pointer-events: none; }
+    .mb-c {
+      position: fixed;
+      width: 24px;
+      height: 24px;
+      border-color: rgba(34, 210, 255, .72);
+      border-style: solid;
+      filter: drop-shadow(0 1px 4px rgba(0, 0, 0, .6));
+    }
+    .mb-tl { left: max(36px, calc(env(safe-area-inset-left) + 28px)); top: 20%; border-width: 2px 0 0 2px; }
+    .mb-tr { right: max(36px, calc(env(safe-area-inset-right) + 28px)); top: 20%; border-width: 2px 2px 0 0; }
+    .mb-bl { left: max(36px, calc(env(safe-area-inset-left) + 28px)); bottom: 25%; border-width: 0 0 2px 2px; }
+    .mb-br { right: max(36px, calc(env(safe-area-inset-right) + 28px)); bottom: 25%; border-width: 0 2px 2px 0; }
+    body.gliding #reticle {
+      width: 22px; height: 22px; margin: -11px 0 0 -11px;
+      border-radius: 3px; border: 1.5px solid rgba(241, 238, 230, .78);
+    }
+
+    /* Top-left clean expedition typography + 5 cyan LED dots + Field Deck toggle */
+    #mob-tl {
+      position: fixed;
+      left: max(18px, calc(env(safe-area-inset-left) + 12px));
+      top: max(18px, calc(env(safe-area-inset-top) + 10px));
+      max-width: calc(100vw - 178px);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, .92);
+    }
+    #mob-place {
+      font: 600 12px/1.15 Inter, system-ui, sans-serif;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--paper);
+    }
+    #mob-state {
+      font: 500 11px/1.15 Inter, system-ui, sans-serif;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #dfd6c4;
+      font-variant-numeric: tabular-nums;
+    }
+    #mob-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+      font: 600 10.5px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #dff4ff;
+      font-variant-numeric: tabular-nums;
+    }
+    #mob-dots { display: inline-flex; align-items: center; gap: 4px; }
+    #mob-dots i {
+      width: 7px; height: 7px; border-radius: 50%;
+      border: 1px solid rgba(34, 210, 255, .62);
+      background: rgba(14, 18, 22, .45);
+    }
+    #mob-dots i.on {
+      background: #2ce2ff;
+      border-color: #9bf4ff;
+      box-shadow: 0 0 8px rgba(34, 210, 255, .92);
+    }
+    #mob-dots i.low.on { background: #ff5c5c; border-color: #ffb2b2; box-shadow: 0 0 8px rgba(255, 75, 75, .9); }
+    #mob-deck-btn {
+      align-self: flex-start;
+      margin-top: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(203, 177, 130, .55);
+      background: rgba(14, 17, 20, .72);
+      color: #f4ead6;
+      font: 600 9.5px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    /* Top-right knurled gunmetal & cyan lens bezel dial */
+    #mob-lens-wrap {
+      position: fixed;
+      right: max(14px, calc(env(safe-area-inset-right) + 8px));
+      top: max(14px, calc(env(safe-area-inset-top) + 8px));
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .mob-step {
+      width: 24px; height: 28px;
+      border: 0; padding: 0;
+      background: rgba(14, 17, 20, .55);
+      border-radius: 999px;
+      color: #efe9dc;
+      font: 500 17px/1 Inter, system-ui, sans-serif;
+      cursor: pointer;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, .9);
+    }
+    #mob-lens-dial {
+      position: relative;
+      width: 92px; height: 92px;
+      border-radius: 50%;
+      touch-action: none;
+      cursor: ew-resize;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background:
+        radial-gradient(circle at 50% 50%, #171c22 0 54%, rgba(24, 180, 255, .14) 55%, #11161c 62%, #4a4b49 74%, #222320 86%, #6b6a64 95%, #1a1b19 100%);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .72), inset 0 0 0 1.5px rgba(241, 238, 230, .28);
+    }
+    #mob-lens-dial::before {
+      content: "";
+      position: absolute;
+      inset: 9px;
+      border-radius: 50%;
+      background: repeating-conic-gradient(from -90deg, rgba(44, 218, 255, .72) 0deg 1.6deg, transparent 1.6deg 9deg);
+      -webkit-mask: radial-gradient(circle, transparent 0 65%, #000 66% 88%, transparent 89%);
+      mask: radial-gradient(circle, transparent 0 65%, #000 66% 88%, transparent 89%);
+      pointer-events: none;
+    }
+    #mob-dial-notch {
+      position: absolute;
+      inset: 3px;
+      border-radius: 50%;
+      transform: rotate(var(--dial-deg, 0deg));
+      pointer-events: none;
+      transition: transform .12s ease-out;
+    }
+    #mob-dial-notch::after {
+      content: "";
+      position: absolute;
+      left: 50%; top: 1px;
+      width: 4px; height: 10px;
+      margin-left: -2px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, #ffbd59, #d28a2c);
+      box-shadow: 0 0 6px rgba(255, 189, 89, .75);
+    }
+    #mob-dial-kicker {
+      font: 600 7.5px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .12em;
+      color: var(--brass);
+      text-transform: uppercase;
+    }
+    #mob-dial-mode {
+      margin-top: 2px;
+      font: 600 8px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .11em;
+      color: rgba(241, 238, 230, .76);
+      text-transform: uppercase;
+    }
+    #mob-dial-val {
+      margin-top: 2px;
+      font: 400 15px/1.05 "Instrument Serif", "Iowan Old Style", Georgia, serif;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Bottom-left knurled thumb joystick */
+    #mob-stick-wrap {
+      position: fixed;
+      left: max(18px, calc(env(safe-area-inset-left) + 12px));
+      bottom: max(18px, calc(env(safe-area-inset-bottom) + 12px));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    #mob-stick-top, #mob-stick-bot {
+      font: 600 9.5px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .16em;
+      color: #dff4ff;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, .9);
+    }
+    #mob-stick {
+      position: relative;
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 50%, rgba(16, 20, 24, .82) 0 64%, rgba(62, 60, 54, .92) 72%, rgba(24, 24, 21, .95) 100%);
+      border: 1.5px solid rgba(203, 177, 130, .48);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, .72), inset 0 0 16px rgba(0, 0, 0, .65);
+    }
+    #mob-stick::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border-radius: 50%;
+      background: repeating-conic-gradient(from 0deg, rgba(241, 238, 230, .28) 0deg 1.5deg, transparent 1.5deg 10deg);
+      -webkit-mask: radial-gradient(circle, transparent 0 68%, #000 69% 94%, transparent 95%);
+      mask: radial-gradient(circle, transparent 0 68%, #000 69% 94%, transparent 95%);
+      pointer-events: none;
+    }
+    #mob-stick-nub {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #b6fbff, #18c8ff 65%, #0077d4 100%);
+      box-shadow: 0 0 14px rgba(34, 210, 255, .95);
+      transform: translate(var(--sx, 0px), var(--sy, 0px));
+      pointer-events: none;
+    }
+    #mob-stick-in {
+      position: absolute;
+      bottom: 13px;
+      font: 600 8px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .16em;
+      color: rgba(241, 238, 230, .72);
+      pointer-events: none;
+    }
+
+    /* Bottom-right context button + gilded antique-brass shutter medallion */
+    #mob-br {
+      position: fixed;
+      right: max(18px, calc(env(safe-area-inset-right) + 12px));
+      bottom: max(14px, calc(env(safe-area-inset-bottom) + 10px));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+    }
+    #mob-ctx-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(203, 177, 130, .48);
+      background: rgba(14, 17, 20, .72);
+      color: #f4ecd9;
+      font: 600 10px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      cursor: pointer;
+    }
+    #mob-ctx-btn .ctx-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #e6bf72; box-shadow: 0 0 7px rgba(230, 191, 114, .8);
+    }
+    #mob-ctx-btn.cyan .ctx-dot { background: #22d0ff; box-shadow: 0 0 8px #22d0ff; }
+    #mob-shutter {
+      background: none; border: 0; padding: 0;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      cursor: pointer;
+    }
+    .shutter-ring {
+      width: 82px; height: 82px;
+      border-radius: 50%;
+      padding: 7px;
+      display: block;
+      background:
+        conic-gradient(from 40deg, #b89858, #efe0b4, #876b37, #e2ce98, #6e572c, #dfd0a4, #b89858);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .76), inset 0 0 0 2px rgba(28, 22, 12, .72);
+    }
+    #mob-shutter-thumb {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      background: #14191e;
+      border: 2px solid #262015;
+    }
+    .shutter-cap {
+      font: 600 9.5px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .15em;
+      color: var(--paper);
+      text-shadow: 0 1px 6px rgba(0, 0, 0, .92);
+    }
+
+    /* Mobile Slide-Up Field Deck Sheet & Popover Framing */
+    #mob-deck-close {
+      position: fixed;
+      right: max(12px, env(safe-area-inset-right));
+      top: max(62px, calc(env(safe-area-inset-top) + 54px));
+      z-index: 25;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--cyan);
+      background: rgba(14, 17, 20, .94);
+      color: #dff4ff;
+      font: 600 10px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    body:not(.mobile-ui) #mob-deck-close,
+    body:not(.mob-deck-open) #mob-deck-close { display: none !important; }
+
+    body.mobile-ui.mob-deck-open #top-left {
+      position: fixed;
+      left: 10px; right: 10px;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      top: auto;
+      max-width: none;
+      max-height: min(68dvh, 560px);
+      overflow-y: auto;
+      padding: 12px 13px;
+      background: rgba(14, 17, 20, .94);
+      border: 1px solid rgba(203, 177, 130, .44);
+      border-radius: 14px;
+      z-index: 24;
+      pointer-events: auto;
+      touch-action: pan-y;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .82);
+    }
+    body.mobile-ui.mob-deck-open #top-left #thought { display: none; }
+    body.mobile-ui.mob-deck-open #tape-bar { max-width: none; }
+    body.mobile-ui.mob-deck-open #quick-bar {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      max-width: none;
+      gap: 6px;
+    }
+    body.mobile-ui.mob-deck-open .qpill { min-height: 36px; text-align: center; padding: 7px 6px; font-size: 9.5px; }
+    body.mobile-ui.mob-deck-open #reel-col {
+      left: 10px; right: 10px;
+      top: max(10px, env(safe-area-inset-top));
+      flex-direction: row;
+      justify-content: space-between;
+      z-index: 25;
+    }
+    body.mobile-ui.mob-deck-open .sprocket { width: 44px; height: 44px; font-size: 7.5px; }
+    body.mobile-ui.mob-deck-open #wedge-wrap {
+      bottom: calc(min(68dvh, 560px) + max(20px, env(safe-area-inset-bottom)));
+      z-index: 24;
+    }
+    body.mobile-ui #rack-tray {
+      left: 10px; right: 10px;
+      top: max(64px, calc(env(safe-area-inset-top) + 56px));
+      width: auto;
+      max-height: 66dvh;
+      z-index: 26;
+    }
+    body.mobile-ui #thirst-alert {
+      left: 14px; right: 14px;
+      top: auto;
+      bottom: 136px;
+      max-width: none;
+      z-index: 26;
+    }
+    body.mobile-ui #toast {
+      left: 50%;
+      bottom: 162px;
+      max-width: calc(100vw - 36px);
+      font-size: 13.5px;
+      padding: 6px 12px;
+      text-align: center;
+      z-index: 26;
+    }
+    body.mobile-ui.mob-deck-open #toast {
+      bottom: auto;
+      top: max(96px, calc(env(safe-area-inset-top) + 86px));
     }
   </style>
 </head>
@@ -1392,6 +1787,44 @@
     <b>L</b> lidar · <b>T</b> tune song zone · <b>R</b> shuttle · <b>B</b> 8×10 rig<br>
     <b>[/]</b> focus · <b>1–6</b> filters · <b>Space</b> expose 8×10 plate
   </div>
+
+  <div id="mobile-hud" aria-label="Mobile Field Viewfinder">
+    <div id="mob-brackets" aria-hidden="true">
+      <i class="mb-c mb-tl"></i><i class="mb-c mb-tr"></i><i class="mb-c mb-bl"></i><i class="mb-c mb-br"></i>
+    </div>
+    <div id="mob-tl">
+      <div id="mob-place">SNAKE RIVER OVERLOOK</div>
+      <div id="mob-state">ON FOOT · +158.7 m</div>
+      <div id="mob-meta"><span id="mob-wifi">WIFI 58%</span><span id="mob-dots" aria-label="Burro hydration"><i></i><i></i><i></i><i></i><i></i></span></div>
+      <button type="button" id="mob-deck-btn" aria-expanded="false">♪ Field Deck · Cans 6/72</button>
+    </div>
+    <div id="mob-lens-wrap">
+      <button type="button" class="mob-step" id="mob-dial-minus" aria-label="Decrease optical setting">−</button>
+      <div id="mob-lens-dial" role="slider" aria-label="Optical Lens Dial" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40">
+        <i id="mob-dial-notch"></i>
+        <span id="mob-dial-kicker">Z-IV LENS</span>
+        <span id="mob-dial-mode">FOCUS</span>
+        <strong id="mob-dial-val">18.0 m</strong>
+      </div>
+      <button type="button" class="mob-step" id="mob-dial-plus" aria-label="Increase optical setting">+</button>
+    </div>
+    <div id="mob-stick-wrap">
+      <span id="mob-stick-top" hidden>• LIFT</span>
+      <div id="mob-stick" aria-label="Movement and Steering Thumb Stick">
+        <div id="mob-stick-nub"></div>
+        <span id="mob-stick-in">MOVE</span>
+      </div>
+      <span id="mob-stick-bot" hidden>STEER</span>
+    </div>
+    <div id="mob-br">
+      <button type="button" id="mob-ctx-btn"><i class="ctx-dot"></i><span id="mob-ctx-lbl">RIDE</span></button>
+      <button type="button" id="mob-shutter" aria-label="Expose 8 by 10 Plate">
+        <span class="shutter-ring"><img id="mob-shutter-thumb" alt="Last 8 by 10 Plate"></span>
+        <span class="shutter-cap">EXPOSE 8×10</span>
+      </button>
+    </div>
+  </div>
+  <button type="button" id="mob-deck-close">× Viewfinder</button>
 
   <section id="platebox" hidden aria-label="Eleven-Zone Plate Box">
     <header>
