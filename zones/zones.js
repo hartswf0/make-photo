@@ -164,6 +164,10 @@
       const notes = isPueblo ? [293.66, 392, 440, 587.33, 783.99] : [293.66, 440, 587.33];
       notes.forEach((f, idx) => setTimeout(() => tone(f, .42, .12, "triangle", (idx - 1) * .25, true), idx * 95));
     }
+    function forestChime(groveIdx) {
+      const base = 329.63 * Math.pow(1.06, groveIdx);
+      [1, 1.25, 1.5, 2].forEach((m, idx) => setTimeout(() => tone(base * m, .48, .10, "sine", (idx - 1.5) * .22, true), idx * 75));
+    }
     function step(leg, gait) {
       if (!enabled) return;
       tone((gait > 1 ? 128 : 92) + leg * 11, .055, gait > 1 ? .08 : .045, "triangle", leg % 2 ? .28 : -.28);
@@ -179,11 +183,48 @@
     return {
       toggle() { enabled = !enabled; if (enabled) ensure(); return enabled; },
       isOn: () => enabled,
-      connectTape, sampleTape, tick, shutter, pumpClank, relayChime, step
+      connectTape, sampleTape, tick, shutter, pumpClank, relayChime, forestChime, step
     };
   })();
 
-  /* ---------- Terrain & Biome Field Functions ---------- */
+  /* ---------- Terrain, Graded Caravan Road, Switchback Overlook Spurs & O(1) Heightfield ---------- */
+  const SPUR_PATHS = [
+    { name: "Wellhead Overlook Spur", peakElev: 9.8, pts: [[0, 0], [-10, 11], [-22, 24], [-31, 35], [-21, 46]] },
+    { name: "Meadow Ridge Switchback", peakElev: 15.2, pts: [[28, 20], [18, 36], [5, 49], [-6, 61], [9, 69]] },
+    { name: "Pueblo Escarpment Lookout", peakElev: 20.6, pts: [[114, 86], [98, 102], [85, 119], [96, 136], [118, 141]] }
+  ];
+
+  function segDistSq(px, pz, ax, az, bx, bz) {
+    const dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz || 1;
+    const u = clamp(((px - ax) * dx + (pz - az) * dz) / l2, 0, 1);
+    const qx = ax + dx * u, qz = az + dz * u;
+    return { u, d2: (px - qx) * (px - qx) + (pz - qz) * (pz - qz) };
+  }
+
+  function roadInfoAt(x, z) {
+    let bestD = 1e9, spurBoost = 0, roadT = 0;
+    const len = ZONES.length - 1;
+    for (let i = 0; i < len; i++) {
+      const a = ZONES[i], b = ZONES[i + 1];
+      const r = segDistSq(x, z, a.x, a.pz, b.x, b.pz);
+      const d = Math.sqrt(r.d2);
+      if (d < bestD) { bestD = d; roadT = (i + r.u) / len; }
+    }
+    for (const sp of SPUR_PATHS) {
+      let spD = 1e9, spProg = 0;
+      const pts = sp.pts, n = pts.length - 1;
+      for (let i = 0; i < n; i++) {
+        const r = segDistSq(x, z, pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]);
+        const d = Math.sqrt(r.d2);
+        if (d < spD) { spD = d; spProg = (i + r.u) / n; }
+      }
+      bestD = Math.min(bestD, spD);
+      const spurRamp = smooth(18, 3.2, spD) * sp.peakElev * smooth(.06, .95, spProg);
+      spurBoost = Math.max(spurBoost, spurRamp);
+    }
+    return { dist: bestD, spurBoost, roadT };
+  }
+
   function valleyProjection(x, z) {
     let bestT = 0, bestD = 1e9;
     const len = ZONES.length - 1;
@@ -210,17 +251,28 @@
     return { river: waterMask, chasm: chasmMask, crev: crevMask };
   }
 
-  function terrainHeight(x, z) {
+  function groundRaw(x, z) {
     const proj = valleyProjection(x, z);
+    const road = roadInfoAt(x, z);
     const zCoord = proj.t * 10;
-    const ridgeWall = smooth(16, 68, proj.dist);
-    const coarse = (fbm(x * .014 + 3.1, z * .014 + 1.7, 4) - .46) * (6.0 + ridgeWall * 25.0);
-    const detail = (fbm(x * .06, z * .06, 2) - .5) * 1.15;
-    const macro = lerp(-3.0, 12.2, smooth(0, 10, zCoord)) + ridgeWall * (7.5 + 1.0 * zCoord);
-    let h = macro + coarse * (.30 + .70 * ridgeWall) + detail;
+    const roadFlatten = smooth(9.5, 2.2, road.dist);
+    const ridgeWall = smooth(15, 72, proj.dist);
+    const coarse = (fbm(x * .014 + 3.1, z * .014 + 1.7, 4) - .46) * (6.2 + ridgeWall * 28.0);
+    const detail = (fbm(x * .06, z * .06, 2) - .5) * 1.15 * (1 - roadFlatten * .86);
+    const macro = lerp(-3.0, 12.6, smooth(0, 10, zCoord)) + ridgeWall * (7.5 + 1.05 * zCoord);
+    let h = macro + coarse * lerp(.28 + .72 * ridgeWall, .14, roadFlatten) + detail;
     for (const Z of ZONES) {
-      const k = smooth(14, 3.5, Math.hypot(x - Z.x, z - Z.pz));
-      h = lerp(h, macro + (fbm(Z.x * .014 + 3.1, Z.pz * .014 + 1.7, 4) - .46) * 1.8, k * .82);
+      const k = smooth(15, 3.8, Math.hypot(x - Z.x, z - Z.pz));
+      h = lerp(h, macro + (fbm(Z.x * .014 + 3.1, Z.pz * .014 + 1.7, 4) - .46) * 1.6, k * .84);
+    }
+    h += road.spurBoost;
+    // Serrated outer Rift Escarpment Mountain Rim enclosing the expedition horizon
+    const rimDist = Math.hypot(x - 18, z - 12);
+    const rimT = smooth(178, 285, rimDist);
+    if (rimT > 0) {
+      const rn = fbm(x * .009 + 11.4, z * .009 + 5.2, 5);
+      const crest = 1 - Math.abs(2 * rn - 1);
+      h += rimT * rimT * (28 + 95 * crest * crest + 36 * rn) * (1 - roadFlatten * .6);
     }
     const ch = channelFactor(x, z);
     h -= ch.river * 2.7;
@@ -229,15 +281,45 @@
     return h;
   }
 
+  const TERRAIN_SPAN = 576, SEG = 360, CELL = TERRAIN_SPAN / SEG, HALF = TERRAIN_SPAN * .5;
+  const CX_OFF = 18, CZ_OFF = 12;
+  const H = new Float32Array((SEG + 1) * (SEG + 1));
+  const RD = new Float32Array((SEG + 1) * (SEG + 1));
+  for (let j = 0; j <= SEG; j++) {
+    for (let i = 0; i <= SEG; i++) {
+      const x = i * CELL - HALF + CX_OFF, z = j * CELL - HALF + CZ_OFF;
+      const q = j * (SEG + 1) + i;
+      H[q] = groundRaw(x, z);
+      RD[q] = roadInfoAt(x, z).dist;
+    }
+  }
+
+  function terrainHeight(x, z) {
+    const gx = (x - CX_OFF + HALF) / CELL, gz = (z - CZ_OFF + HALF) / CELL;
+    if (gx < 0 || gx >= SEG || gz < 0 || gz >= SEG) return groundRaw(x, z);
+    const i = Math.floor(gx), j = Math.floor(gz), fx = gx - i, fz = gz - j, w = SEG + 1;
+    const a = H[j * w + i], b = H[j * w + i + 1], c = H[(j + 1) * w + i], d = H[(j + 1) * w + i + 1];
+    return fx + fz <= 1 ? a + (b - a) * fx + (c - a) * fz : d + (c - d) * (1 - fx) + (b - d) * (1 - fz);
+  }
+
+  function roadDistAt(x, z) {
+    const gx = clamp((x - CX_OFF + HALF) / CELL, 0, SEG - .001);
+    const gz = clamp((z - CZ_OFF + HALF) / CELL, 0, SEG - .001);
+    return RD[Math.floor(gz) * (SEG + 1) + Math.floor(gx)];
+  }
+
   function terrainAlbedo(x, z, h) {
     const proj = valleyProjection(x, z);
+    const rd = roadDistAt(x, z);
+    const roadMask = smooth(4.4, 1.5, rd);
     const zf = clamp(proj.t * 10, 0, 10);
     const z0 = Math.floor(zf), z1 = Math.min(10, z0 + 1);
     let base = lerp(ZONES[z0].refl, ZONES[z1].refl, zf - z0);
     const strat = (fbm(x * .085 + h * .16, z * .085, 3) - .5) * .30;
     const ridgeline = smooth(20, 68, proj.dist) * .16;
+    const track = lerp(base + strat + ridgeline, base * .78 + .16, roadMask * .62);
     const ch = channelFactor(x, z);
-    return clamp(base + strat + ridgeline - ch.river * .12 - ch.chasm * .30 - ch.crev * .18, .05, .97);
+    return clamp(track - ch.river * .12 - ch.chasm * .30 - ch.crev * .18, .05, .97);
   }
 
   /* ---------- Threshold Crossings (Widened for Woody Wagon + Mistletoe WiFi Solidification) ---------- */
@@ -247,7 +329,7 @@
       const dx = x - th.x, dz = z - th.z;
       const along = dx * th.dirX + dz * th.dirZ;
       const across = Math.abs(-dx * th.dirZ + dz * th.dirX);
-      if (Math.abs(along) <= th.halfLen + 2.4 && across <= th.halfWidth + 1.0) return th;
+      if (Math.abs(along) <= th.halfLen + 2.4 && across <= th.halfWidth + 1.2) return th;
     }
     return null;
   }
@@ -269,9 +351,9 @@
 
   const scene = new T.Scene();
   scene.background = new T.Color(0x6c6c68);
-  scene.fog = new T.FogExp2(0x74746e, .0028);
+  scene.fog = new T.FogExp2(0x74746e, .0024);
 
-  const NEAR = 0.25, FAR = 520;
+  const NEAR = 0.25, FAR = 900;
   const camera = new T.PerspectiveCamera(46, 1, NEAR, FAR);
 
   scene.add(new T.HemisphereLight(0xf6f4ee, 0x2e2e2a, 0.96));
@@ -280,9 +362,9 @@
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   const sc = sun.shadow.camera;
-  sc.near = 10; sc.far = 420; sc.left = -140; sc.right = 140; sc.top = 140; sc.bottom = -140;
+  sc.near = 10; sc.far = 420; sc.left = -95; sc.right = 95; sc.top = 95; sc.bottom = -95;
   sun.shadow.bias = -.0005;
-  scene.add(sun);
+  scene.add(sun, sun.target);
 
   const skyMat = new T.ShaderMaterial({
     side: T.BackSide, depthWrite: false,
@@ -303,13 +385,27 @@
         gl_FragColor = vec4(col, 1.0);
       }`
   });
-  scene.add(new T.Mesh(new T.SphereGeometry(420, 32, 20), skyMat));
+  scene.add(new T.Mesh(new T.SphereGeometry(680, 32, 20), skyMat));
 
-  /* ---------- Terrain Mesh ---------- */
-  const TERRAIN_SPAN = 420, SEG = 210;
+  /* ---------- High-Density Terrain Mesh + Procedural Granite/Cobble Bump Texture ---------- */
+  const groundTex = (() => {
+    const c = document.createElement("canvas"); c.width = c.height = 512;
+    const gx = c.getContext("2d");
+    gx.fillStyle = "#b0aea8"; gx.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 24000; i++) {
+      const v = Math.floor(84 + hash2(i, 1.7) * 150);
+      const r = .6 + hash2(i, 4.1) * hash2(i, 9.3) * 3.6;
+      gx.fillStyle = `rgba(${v},${v},${v},.45)`;
+      gx.beginPath(); gx.ellipse(hash2(i, 3.1) * 512, hash2(i, 6.4) * 512, r, r * .72, hash2(i, 2.2) * 3, 0, TAU); gx.fill();
+    }
+    const t = new T.CanvasTexture(c);
+    t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(36, 36); t.colorSpace = T.NoColorSpace;
+    return t;
+  })();
+
   const tGeo = new T.PlaneGeometry(TERRAIN_SPAN, TERRAIN_SPAN, SEG, SEG);
   tGeo.rotateX(-Math.PI / 2);
-  tGeo.translate(18, 0, 12);
+  tGeo.translate(CX_OFF, 0, CZ_OFF);
   const posAttr = tGeo.attributes.position;
   const cols = new Float32Array(posAttr.count * 3);
   for (let i = 0; i < posAttr.count; i++) {
@@ -321,7 +417,9 @@
   }
   tGeo.setAttribute("color", new T.BufferAttribute(cols, 3));
   tGeo.computeVertexNormals();
-  const terrainMesh = new T.Mesh(tGeo, new T.MeshStandardMaterial({ vertexColors: true, roughness: .92, metalness: .04 }));
+  const terrainMesh = new T.Mesh(tGeo, new T.MeshStandardMaterial({
+    vertexColors: true, map: groundTex, bumpMap: groundTex, bumpScale: 1.9, roughness: .94, metalness: .04
+  }));
   terrainMesh.receiveShadow = true;
   scene.add(terrainMesh);
 
@@ -345,7 +443,7 @@
   waterGeo.computeVertexNormals();
   scene.add(new T.Mesh(waterGeo, cyanWaterMat));
 
-  /* ---------- Film-Strip Texture (Zone Monoliths & Spray Mural) ---------- */
+  /* ---------- Film-Strip Textures (Zone Monoliths + Luminous Filmstrip Forest) ---------- */
   const filmCanvas = document.createElement("canvas");
   filmCanvas.width = 256; filmCanvas.height = 512;
   const fctx = filmCanvas.getContext("2d");
@@ -367,59 +465,95 @@
   const filmTex = new T.CanvasTexture(filmCanvas);
   filmTex.wrapS = T.RepeatWrapping; filmTex.wrapT = T.RepeatWrapping;
 
-  /* ---------- Sculpted 20L Electric-Cyan Jerrycan Builder ---------- */
+  const forestFilmTex = (() => {
+    const fc = document.createElement("canvas"); fc.width = 256; fc.height = 512;
+    const fx = fc.getContext("2d");
+    fx.fillStyle = "#0e1218"; fx.fillRect(0, 0, 256, 512);
+    for (let row = 0; row < 16; row++) {
+      const y = row * 32 + 6;
+      fx.fillStyle = row % 2 ? "#dcefff" : "#0058e8";
+      fx.fillRect(10, y, 17, 18); fx.fillRect(229, y, 17, 18);
+    }
+    for (let fr = 0; fr < 4; fr++) {
+      const y = fr * 128 + 12;
+      const g = fx.createLinearGradient(40, y, 216, y + 104);
+      g.addColorStop(0, "#0b1a36");
+      g.addColorStop(.5, fr % 2 ? "#1e66cc" : "#d6dce4");
+      g.addColorStop(1, "#0048cc");
+      fx.fillStyle = g;
+      fx.fillRect(40, y, 176, 104);
+      fx.strokeStyle = "#0064ff"; fx.lineWidth = 3;
+      fx.strokeRect(42, y + 2, 172, 100);
+    }
+    const t = new T.CanvasTexture(fc);
+    t.wrapS = T.RepeatWrapping; t.wrapT = T.RepeatWrapping;
+    return t;
+  })();
+
+  /* ---------- Sculpted Flush-Ribbed 20L Electric-Cyan Jerrycans & Low-Green Beacon Material ---------- */
   const jerikanMat = new T.MeshStandardMaterial({
-    color: 0x009aff,
-    emissive: 0x004ca8,
-    emissiveIntensity: .54,
+    color: 0x0066e8,
+    emissive: 0x003ba8,
+    emissiveIntensity: .68,
     roughness: .28,
     metalness: .06
   });
   const jerikanRibMat = new T.MeshStandardMaterial({
-    color: 0x0072d6,
-    emissive: 0x003a88,
-    emissiveIntensity: .46,
+    color: 0x004ec4,
+    emissive: 0x002d8a,
+    emissiveIntensity: .56,
     roughness: .34
   });
   const whiteCapMat = new T.MeshStandardMaterial({ color: 0xf4f4f0, roughness: .42 });
-  const strapMat = new T.MeshStandardMaterial({ color: 0x1e1b17, roughness: .7 });
+  const strapMat = new T.MeshStandardMaterial({ color: 0x1e1b17, roughness: .72 });
+  const leatherMat = new T.MeshStandardMaterial({ color: 0x5c361c, roughness: .62 });
+  const sawWoodMat = new T.MeshStandardMaterial({ color: 0xb9986b, roughness: .74 });
+  const brassMat = new T.MeshStandardMaterial({ color: 0xcab070, roughness: .28, metalness: .82 });
+  const ropeHitchMat = new T.MeshStandardMaterial({ color: 0xc8b68c, roughness: .9 });
   const antennaMat = new T.MeshStandardMaterial({ color: 0xe6e3d8, roughness: .25, metalness: .85 });
-  const beaconCyanMat = new T.MeshStandardMaterial({ color: 0x36d8ff, emissive: 0x00c8ff, emissiveIntensity: 1.5, roughness: .15 });
+  // Keep green component very low relative to blue so lookMat blueDom > 0.65 renders saturated electric cyan (never white)
+  const beaconCyanMat = new T.MeshStandardMaterial({
+    color: 0x006eff,
+    emissive: 0x0048dd,
+    emissiveIntensity: 1.35,
+    roughness: .16
+  });
 
-  // Chamfered 20L Jerrycan profile (rounded rectangle body + recessed X-ribs + twin handles + pour cap)
+  // Slimmed 20L Jerrycan (.15 body depth + flush .014 embossed X-ribs + welded seam + 3-bar handle + cap)
   const jerBodyGeo = (() => {
     const s = new T.Shape();
-    const a = .115, b = .175, r = .032;
+    const a = .112, b = .172, r = .028;
     s.moveTo(-a, -b - r); s.lineTo(a, -b - r); s.quadraticCurveTo(a + r, -b - r, a + r, -b);
     s.lineTo(a + r, b); s.quadraticCurveTo(a + r, b + r, a, b + r); s.lineTo(-a, b + r);
     s.quadraticCurveTo(-a - r, b + r, -a - r, b); s.lineTo(-a - r, -b); s.quadraticCurveTo(-a - r, -b - r, -a, -b - r);
-    const g = new T.ExtrudeGeometry(s, { depth: .21, bevelEnabled: true, bevelThickness: .022, bevelSize: .018, bevelSegments: 2 });
-    g.translate(0, 0, -.105);
+    const g = new T.ExtrudeGeometry(s, { depth: .15, bevelEnabled: true, bevelThickness: .018, bevelSize: .014, bevelSegments: 2 });
+    g.translate(0, 0, -.075);
     return g;
   })();
-  const jerRibGeo = new T.BoxGeometry(.24, .026, .275);
-  const jerHandleGeo = new T.BoxGeometry(.16, .048, .056);
-  const jerSpoutGeo = new T.CylinderGeometry(.032, .042, .065, 12);
-  const jerCapGeo = new T.CylinderGeometry(.038, .038, .036, 12);
+  const jerRibGeo = new T.BoxGeometry(.18, .018, .014);
+  const jerSeamGeo = new T.BoxGeometry(.252, .36, .012);
+  const jerHandleGeo = new T.BoxGeometry(.155, .042, .052);
+  const jerSpoutGeo = new T.CylinderGeometry(.028, .036, .06, 12);
+  const jerCapGeo = new T.CylinderGeometry(.034, .034, .032, 12);
 
   function makeJerikan(scale = 1) {
     const g = new T.Group();
     const b = new T.Mesh(jerBodyGeo, jerikanMat); b.position.y = .21; b.castShadow = true; b.receiveShadow = true; g.add(b);
-    // Embossed stiffening ribs on front/back faces
+    const seam = new T.Mesh(jerSeamGeo, jerikanRibMat); seam.position.y = .21; g.add(seam);
     for (const sgn of [-1, 1]) {
-      for (const ang of [.48, -.48]) {
+      for (const ang of [.54, -.54]) {
         const rb = new T.Mesh(jerRibGeo, jerikanRibMat);
-        rb.position.set(0, .20, sgn * .118); rb.rotation.z = ang; g.add(rb);
+        rb.position.set(0, .205, sgn * .092); rb.rotation.z = ang; g.add(rb);
       }
     }
-    const h = new T.Mesh(jerHandleGeo, jerikanMat); h.position.set(-.035, .435, 0); h.castShadow = true; g.add(h);
-    const sp = new T.Mesh(jerSpoutGeo, jerikanMat); sp.position.set(.085, .43, 0); sp.rotation.z = -.25; g.add(sp);
-    const cp = new T.Mesh(jerCapGeo, whiteCapMat); cp.position.set(.098, .465, 0); cp.rotation.z = -.25; g.add(cp);
+    const h = new T.Mesh(jerHandleGeo, jerikanMat); h.position.set(-.032, .42, 0); h.castShadow = true; g.add(h);
+    const sp = new T.Mesh(jerSpoutGeo, jerikanMat); sp.position.set(.082, .418, 0); sp.rotation.z = -.25; g.add(sp);
+    const cp = new T.Mesh(jerCapGeo, whiteCapMat); cp.position.set(.094, .45, 0); cp.rotation.z = -.25; g.add(cp);
     g.scale.setScalar(scale);
     return g;
   }
 
-  /* ---------- Ported 1940s Woody Station Wagon Builder (from field-plates/game.js) ---------- */
+  /* ---------- Ported 1940s Woody Station Wagon Builder (4-Wheel Sprung Chassis + Open Center Roof Deck) ---------- */
   function buildWagon() {
     const woodBox = new T.BoxGeometry(1, 1, 1), ball = new T.SphereGeometry(1, 18, 12);
     const coach = new T.MeshStandardMaterial({ color: 0x8e9597, roughness: .42, metalness: .18 });
@@ -500,12 +634,12 @@
         const ang = (i / 24) * TAU;
         billet(spin, rubber, 0, .387 * Math.cos(ang), .387 * Math.sin(ang), .176, .014, .022).rotation.x = ang;
       }
-      return { mount, spin, front };
+      return { mount, spin, front, baseY: y };
     };
 
     const root = new T.Group();
     const inner = new T.Group();
-    inner.rotation.y = Math.PI; // flip so +Z local is forward matching wagon.heading
+    inner.rotation.y = Math.PI; // flip so +Z world heading aligns with front bumper (-Z in inner)
     root.add(inner);
     const body = new T.Group();
     inner.add(body);
@@ -571,17 +705,20 @@
       const f = (i + .38) / 7;
       spar(body, nickel, [-.87, lerp(.37, 2.29, f), lerp(2.62, 2.10, f)], [-.40, lerp(.37, 2.29, f), lerp(2.62, 2.10, f)], .023);
     }
-    // 4 sculpted 20L Electric-Cyan Jerrycans + WiFi omni mast on roof-deck!
+    // 4 corner 20L Cyan Jerrycans + front-mounted WiFi mast clearing center roof-deck for Mistletoe
     for (const sgn of [-1, 1]) {
-      for (const z of [-.15, .95]) {
-        const jc = makeJerikan(1.0);
-        jc.position.set(sgn * .48, 2.30, z);
-        jc.rotation.y = sgn * .25;
+      for (const z of [-.95, 1.68]) {
+        const jc = makeJerikan(.96);
+        jc.position.set(sgn * .72, 2.30, z);
+        jc.rotation.y = sgn * .18;
         body.add(jc);
       }
     }
-    spar(body, antennaMat, [0, 2.28, -.75], [0, 3.35, -.75], .022, .010, 8);
-    const wagonBeacon = meshAt(new T.SphereGeometry(.09, 14, 10), beaconCyanMat, body, 0, 3.38, -.75);
+    spar(body, antennaMat, [0, 2.28, -1.28], [0, 3.45, -1.28], .022, .010, 8);
+    const wagonBeacon = meshAt(new T.SphereGeometry(.092, 14, 10), beaconCyanMat, body, 0, 3.48, -1.28);
+    const roofStandSpot = new T.Object3D();
+    roofStandSpot.position.set(0, 2.30, -.15);
+    body.add(roofStandSpot);
 
     const wheels = [
       makeWheel(inner, -.862, .394, -1.71, true),
@@ -597,39 +734,40 @@
     root.rotation.y = heading;
     scene.add(root);
     return {
-      group: root, wheels, beacon: wagonBeacon,
+      group: root, inner, chassis: body, wheels, beacon: wagonBeacon, roofStandSpot,
       x: wx, z: wz, y: wy, heading, speed: 0, steerAngle: 0,
-      get deckY() { return this.y + 2.30; }
+      suspY: 0, suspVY: 0, pitch: 0, pitchV: 0, roll: 0, rollV: 0,
+      get deckY() { return this.y + this.suspY + 2.30; }
     };
   }
   const wagon = buildWagon();
 
-  /* ---------- Biome Props, Cairn Landmarks, Film Monoliths & Pueblo ---------- */
+  /* ---------- Dense Sci-Fi Highland World: Instanced Boulders, Conifers, Grass, Signposts, Poles & Filmstrip Forest ---------- */
   const propGroup = new T.Group();
   scene.add(propGroup);
-  const darkRockMat = new T.MeshStandardMaterial({ color: 0x262628, roughness: .94 });
+  const darkRockMat = new T.MeshStandardMaterial({ color: 0x383836, roughness: .94 });
   const midRockMat = new T.MeshStandardMaterial({ color: 0x6c6b64, roughness: .88 });
   const paleRockMat = new T.MeshStandardMaterial({ color: 0xe6e3da, roughness: .52 });
-  const woodMat = new T.MeshStandardMaterial({ color: 0x4b4338, roughness: .9 });
-  const treeMat = new T.MeshStandardMaterial({ color: 0x2b3028, roughness: .95 });
-  const iceMat = new T.MeshPhysicalMaterial({ color: 0xf4f8fc, roughness: .18, metalness: .1, clearcoat: .9 });
+  const acaciaMat = new T.MeshStandardMaterial({ color: 0x383e31, roughness: .92 });
+  const pineMat = new T.MeshStandardMaterial({ color: 0x22271e, roughness: .95, side: T.DoubleSide });
+  const grassMat = new T.MeshStandardMaterial({ color: 0x5c5b49, roughness: .96, side: T.DoubleSide });
+  const timberMat = new T.MeshStandardMaterial({ color: 0x4f4335, roughness: .90 });
   const solids = [];
 
   const rockGeo = new T.DodecahedronGeometry(1, 1);
-  const coneGeo = new T.ConeGeometry(1.5, 6.5, 7);
-  const trunkGeo = new T.CylinderGeometry(.18, .3, 2.2, 6);
   const filmGeo = new T.PlaneGeometry(2.8, 12.2, 1, 8);
   const filmStrips = [];
 
+  // Zone Monoliths & 11 Zone Survey Cairns
   for (const Z of ZONES) {
     const gy = terrainHeight(Z.x, Z.pz);
     const fmMat = new T.MeshStandardMaterial({
-      map: filmTex, emissive: new T.Color(Z.refl * .36 + .14, Z.refl * .36 + .14, Z.refl * .38 + .15),
+      map: filmTex, emissive: new T.Color(Z.refl * .34 + .12, Z.refl * .34 + .12, Z.refl * .36 + .14),
       roughness: .4, side: T.DoubleSide
     });
     const fm = new T.Mesh(filmGeo, fmMat);
-    if (Z.z === 4) fm.position.set(18.0, gy + 5.8, -4.5);
-    else fm.position.set(Z.x + 5.6, gy + 5.8, Z.pz - 5.6);
+    if (Z.z === 4) fm.position.set(18.0, gy + 5.8, -6.5);
+    else fm.position.set(Z.x + 11.5, gy + 5.8, Z.pz - 11.5);
     fm.rotation.y = .45 + Z.z * .22;
     fm.castShadow = true;
     propGroup.add(fm);
@@ -647,46 +785,231 @@
     }
     propGroup.add(cairnBase);
     solids.push({ x: Z.x - 4.0, z: Z.pz + 4.4, r: .95 });
-
-    const count = Z.z === 3 ? 14 : Z.z >= 9 ? 4 : 8;
-    for (let k = 0; k < count; k++) {
-      const ang = (k / count) * TAU + hash2(Z.z, k) * .9;
-      const rad = 11.5 + hash2(k, Z.z + 11) * 19;
-      const px = Z.x + Math.cos(ang) * rad, pz = Z.pz + Math.sin(ang) * rad;
-      if (inThresholdSpan(px, pz) || Math.hypot(px, pz) < 11) continue;
-      const py = terrainHeight(px, pz);
-      if (Z.z === 2 || Z.z === 3) {
-        const s = .75 + hash2(k, 5) * 1.05;
-        const tr = new T.Mesh(trunkGeo, woodMat);
-        tr.position.set(px, py + 1.0 * s, pz); tr.scale.setScalar(s); tr.castShadow = true;
-        const cn = new T.Mesh(coneGeo, treeMat);
-        cn.position.set(px, py + 4.4 * s, pz); cn.scale.setScalar(s); cn.castShadow = true;
-        propGroup.add(tr, cn);
-        solids.push({ x: px, z: pz, r: .7 * s });
-      } else if (Z.z === 1 || Z.z === 7 || Z.z === 9) {
-        const colH = 3.2 + hash2(k, Z.z * 3) * 6.0;
-        const col = new T.Mesh(new T.CylinderGeometry(.65, .95, colH, Z.z === 1 ? 6 : 8),
-          Z.z === 1 ? darkRockMat : Z.z === 7 ? midRockMat : paleRockMat);
-        col.position.set(px, py + colH * .44, pz);
-        col.castShadow = true; col.receiveShadow = true;
-        propGroup.add(col);
-        solids.push({ x: px, z: pz, r: 1.0 });
-      } else {
-        const rs = .68 + hash2(k, Z.z * 7) * 1.7;
-        const rk = new T.Mesh(rockGeo, Z.z < 3 ? darkRockMat : Z.z < 7 ? midRockMat : Z.z < 10 ? paleRockMat : iceMat);
-        rk.scale.set(rs, rs * (.55 + hash2(k, 2) * .7), rs * .9);
-        rk.position.set(px, py + rs * .14, pz);
-        rk.rotation.set(hash2(k, 1), hash2(k, 3), 0);
-        rk.castShadow = true; rk.receiveShadow = true;
-        propGroup.add(rk);
-        solids.push({ x: px, z: pz, r: rs * .72 });
-      }
-    }
   }
 
-  /* ---------- Highland Pueblo Village (Zone IX-X Ridge) + Kiosk Awning + 5 WiFi Relays ---------- */
+  // Instanced Mesh 1: 1,600 Organic Escarpment Boulders & Talus Stones (clear of graded road & spurs)
+  (() => {
+    const rg = new T.IcosahedronGeometry(1, 2), rp = rg.attributes.position;
+    for (let i = 0; i < rp.count; i++) {
+      const vx = rp.getX(i), vy = rp.getY(i), vz = rp.getZ(i);
+      const s = .74 + .46 * noise2(vx * 1.8 + 4.2, vy * 1.8 + vz * 1.4) + .12 * noise2(vx * 5, vz * 5);
+      rp.setXYZ(i, vx * s, vy * s * .68, vz * s);
+    }
+    rg.computeVertexNormals();
+    const count = 1600;
+    const rocks = new T.InstancedMesh(rg, new T.MeshStandardMaterial({ color: 0x86847d, roughness: .94 }), count);
+    rocks.castShadow = true; rocks.receiveShadow = true;
+    const o = new T.Object3D(), c = new T.Color();
+    let placed = 0;
+    for (let i = 0; i < count * 3 && placed < count; i++) {
+      const rx = (hash2(i, 11.3) - .5) * 390 + 18, rz = (hash2(i, 19.7) - .5) * 330 + 12;
+      if (roadInfoAt(rx, rz).dist < 3.6 || inThresholdSpan(rx, rz) || Math.hypot(rx, rz) < 9.5) continue;
+      const ch = channelFactor(rx, rz);
+      if (ch.river > .25 || ch.chasm > .25 || ch.crev > .25) continue;
+      const ry = terrainHeight(rx, rz);
+      const big = hash2(i, 13.1) > .92;
+      const s = big ? 1.05 + hash2(i, 14.9) * 1.85 : .14 + Math.pow(hash2(i, 15.7), 2.1) * .85;
+      o.position.set(rx, ry - s * .20, rz);
+      o.rotation.set(hash2(i, 16.2) * .6, hash2(i, 17.5) * TAU, hash2(i, 18.8) * .6);
+      o.scale.set(s * (.82 + hash2(i, 21.1) * .52), s * (.62 + hash2(i, 22.3) * .5), s);
+      o.updateMatrix();
+      rocks.setMatrixAt(placed, o.matrix);
+      const g = .42 + hash2(i, 23.9) * .58;
+      c.setRGB(g, g, g); rocks.setColorAt(placed, c);
+      if (big) solids.push({ x: rx, z: rz, r: s * .82 });
+      placed++;
+    }
+    rocks.count = placed; rocks.computeBoundingSphere(); scene.add(rocks);
+  })();
+
+  // Instanced Mesh 2: 420 Multi-Tiered Mountain Pines & Rift Acacias
+  (() => {
+    const parts = [];
+    for (let i = 0; i < 9; i++) {
+      const t = i / 8, cg = new T.ConeGeometry(1.52 * (1 - t * .82) * (.85 + .3 * hash2(i, 41)), 1.85, 10, 1, true);
+      const q = cg.attributes.position;
+      for (let v = 0; v < q.count; v++) {
+        const a = Math.atan2(q.getZ(v), q.getX(v)), j = 1 + .20 * Math.sin(a * 5 + i * 1.7) + .11 * Math.sin(a * 11 + i);
+        if (q.getY(v) < 0) q.setXYZ(v, q.getX(v) * j, q.getY(v) - .22 * Math.abs(Math.sin(a * 5 + i)), q.getZ(v) * j);
+      }
+      cg.translate(0, 2.1 + i * .92, 0); cg.computeVertexNormals(); parts.push(cg.toNonIndexed());
+    }
+    const trunk = new T.CylinderGeometry(.14, .26, 3.8, 7); trunk.translate(0, 1.9, 0); parts.push(trunk.toNonIndexed());
+    const nV = parts.reduce((s, g) => s + g.attributes.position.count, 0);
+    const P = new Float32Array(nV * 3), Nn = new Float32Array(nV * 3);
+    let off = 0;
+    for (const g of parts) { P.set(g.attributes.position.array, off); Nn.set(g.attributes.normal.array, off); off += g.attributes.position.count * 3; }
+    const pineGeo = new T.BufferGeometry();
+    pineGeo.setAttribute("position", new T.BufferAttribute(P, 3));
+    pineGeo.setAttribute("normal", new T.BufferAttribute(Nn, 3));
+
+    const cap = 420, pines = new T.InstancedMesh(pineGeo, pineMat, cap);
+    pines.castShadow = true;
+    const o = new T.Object3D();
+    let k = 0;
+    for (let i = 0; k < cap && i < 6000; i++) {
+      const px = (hash2(i, 31.1) - .5) * 380 + 18, pz = (hash2(i, 32.7) - .5) * 320 + 12;
+      if (roadInfoAt(px, pz).dist < 4.5 || Math.hypot(px, pz) < 12) continue;
+      if (inThresholdSpan(px, pz)) continue;
+      if (noise2(px * .026 + 12, pz * .026 + 5) < .42) continue;
+      const py = terrainHeight(px, pz);
+      if (py < -3.5) continue;
+      const s = .68 + hash2(i, 33.5) * .95;
+      o.position.set(px, py - .15, pz);
+      o.rotation.set((hash2(i, 34.2) - .5) * .06, hash2(i, 35.8) * TAU, (hash2(i, 36.4) - .5) * .06);
+      o.scale.set(s, s * (.85 + hash2(i, 37.9) * .55), s);
+      o.updateMatrix();
+      pines.setMatrixAt(k++, o.matrix);
+      solids.push({ x: px, z: pz, r: .52 * s });
+    }
+    pines.count = k; pines.computeBoundingSphere(); scene.add(pines);
+
+    // Additional flat-topped Rift Valley Acacia trees along Zones IV-VIII flanks
+    for (let i = 0; i < 24; i++) {
+      const t = i / 24, side = i % 2 ? 1 : -1;
+      const ax = lerp(-24, 128, t) + side * (11 + hash2(i, 45) * 18);
+      const az = lerp(-18, 98, t) - side * (11 + hash2(i, 46) * 18);
+      if (roadInfoAt(ax, az).dist < 4.5) continue;
+      const ay = terrainHeight(ax, az), h = 2.8 + hash2(i, 47) * 1.8;
+      const ag = new T.Group(); ag.position.set(ax, ay, az);
+      const tr = new T.Mesh(new T.CylinderGeometry(.11, .21, h, 7), timberMat); tr.position.y = h * .5; tr.castShadow = true; ag.add(tr);
+      const cr = new T.Mesh(new T.CylinderGeometry(2.6, 1.3, .55, 11), acaciaMat); cr.position.y = h; cr.castShadow = true; ag.add(cr);
+      scene.add(ag);
+      solids.push({ x: ax, z: az, r: .55 });
+    }
+  })();
+
+  // Instanced Mesh 3: 2,600 Highland Grass & Sage Tufts (3rd Draw Call)
+  (() => {
+    const verts = [], uv = [];
+    for (let b = 0; b < 5; b++) {
+      const a = (b / 5) * TAU + .3, w = .045, h = .42 + (b % 2) * .16, tilt = .18;
+      const dx = Math.cos(a) * w, dz = Math.sin(a) * w;
+      verts.push(-dx, 0, -dz, dx, 0, dz, Math.sin(a) * tilt, h, Math.cos(a) * tilt);
+      uv.push(0, 0, 1, 0, .5, 1);
+    }
+    const gg = new T.BufferGeometry();
+    gg.setAttribute("position", new T.Float32BufferAttribute(verts, 3));
+    gg.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
+    gg.computeVertexNormals();
+    const cap = 2600, grass = new T.InstancedMesh(gg, grassMat, cap);
+    const o = new T.Object3D();
+    let k = 0;
+    for (let i = 0; i < cap * 2 && k < cap; i++) {
+      const gx = (hash2(i, 61.3) - .5) * 320 + 18, gz = (hash2(i, 62.9) - .5) * 260 + 12;
+      if (roadInfoAt(gx, gz).dist < 2.6 || Math.hypot(gx, gz) < 4.5) continue;
+      const ch = channelFactor(gx, gz);
+      if (ch.river > .22 || ch.chasm > .22 || ch.crev > .22) continue;
+      const gy = terrainHeight(gx, gz);
+      const s = .65 + hash2(i, 63.7) * 1.15;
+      o.position.set(gx, gy - .03, gz);
+      o.rotation.set(0, hash2(i, 64.1) * TAU, 0);
+      o.scale.set(s, s * (.8 + hash2(i, 65.5) * .6), s);
+      o.updateMatrix();
+      grass.setMatrixAt(k++, o.matrix);
+    }
+    grass.count = k; grass.computeBoundingSphere(); scene.add(grass);
+  })();
+
+  /* ---------- Roadside Ferric Telegraph Poles, Elevation Trailhead Signs & Cyan Supply Crates ---------- */
+  (() => {
+    const poleMat = new T.MeshStandardMaterial({ color: 0x3b3329, roughness: .9 });
+    const wireVerts = [];
+    let prevTop = null;
+    for (let i = 3; i < ZONES.length; i++) {
+      const Z = ZONES[i], px = Z.x - 4.4, pz = Z.pz + 2.8, py = terrainHeight(px, pz);
+      const pg = new T.Group(); pg.position.set(px, py, pz);
+      const post = new T.Mesh(new T.CylinderGeometry(.08, .12, 4.8, 7), poleMat); post.position.y = 2.4; post.castShadow = true; pg.add(post);
+      const bar = new T.Mesh(new T.BoxGeometry(1.1, .08, .08), poleMat); bar.position.y = 4.45; pg.add(bar);
+      for (const sx of [-.42, .42]) {
+        const ins = new T.Mesh(new T.CylinderGeometry(.04, .05, .14, 8), beaconCyanMat);
+        ins.position.set(sx, 4.56, 0); pg.add(ins);
+      }
+      scene.add(pg);
+      const curTop = new T.Vector3(px, py + 4.55, pz);
+      if (prevTop) {
+        const segs = 10;
+        for (let s = 0; s < segs; s++) {
+          const u0 = s / segs, u1 = (s + 1) / segs;
+          wireVerts.push(
+            lerp(prevTop.x, curTop.x, u0), lerp(prevTop.y, curTop.y, u0) - Math.sin(u0 * Math.PI) * 1.35, lerp(prevTop.z, curTop.z, u0),
+            lerp(prevTop.x, curTop.x, u1), lerp(prevTop.y, curTop.y, u1) - Math.sin(u1 * Math.PI) * 1.35, lerp(prevTop.z, curTop.z, u1)
+          );
+        }
+      }
+      prevTop = curTop;
+    }
+    const wGeo = new T.BufferGeometry(); wGeo.setAttribute("position", new T.Float32BufferAttribute(wireVerts, 3));
+    scene.add(new T.LineSegments(wGeo, new T.LineBasicMaterial({ color: 0x1680c8, transparent: true, opacity: .62 })));
+
+    // Trailhead & Elevation Spur Signposts ("CLIMB HIGH FOR FILMSTRIP FOREST")
+    const signs = [
+      { x: -3.2, z: 7.4, title: "OVERLOOK SPUR", sub: "ALT +10m · FOREST" },
+      { x: 24.5, z: 24.5, title: "PINE SWITCHBACK", sub: "ALT +15m · RELAY" },
+      { x: 109, z: 91, title: "ESCARPMENT RIM", sub: "ALT +21m · FULL FOREST" }
+    ];
+    for (const sg of signs) {
+      const sc = document.createElement("canvas"); sc.width = 256; sc.height = 144;
+      const ctx = sc.getContext("2d");
+      ctx.fillStyle = "#5c5448"; ctx.fillRect(0, 0, 256, 144);
+      ctx.strokeStyle = "#18b4ff"; ctx.lineWidth = 5; ctx.strokeRect(7, 7, 242, 130);
+      ctx.fillStyle = "#f2efe6"; ctx.textAlign = "center";
+      ctx.font = "700 22px Georgia, serif"; ctx.fillText(sg.title, 128, 62);
+      ctx.fillStyle = "#8ce0ff"; ctx.font = "600 17px monospace"; ctx.fillText(sg.sub, 128, 102);
+      const st = new T.CanvasTexture(sc); st.colorSpace = T.SRGBColorSpace;
+      const g = new T.Group(); g.position.set(sg.x, terrainHeight(sg.x, sg.z), sg.z); g.rotation.y = .65;
+      const post = new T.Mesh(new T.CylinderGeometry(.07, .09, 2.0, 7), timberMat); post.position.y = .95; post.castShadow = true; g.add(post);
+      const board = new T.Mesh(new T.BoxGeometry(1.15, .64, .06), [poleMat, poleMat, poleMat, poleMat, new T.MeshStandardMaterial({ map: st, roughness: .85 }), poleMat]);
+      board.position.set(0, 1.62, .05); g.add(board);
+      scene.add(g);
+    }
+  })();
+
+  /* ---------- Elevation-Gated Filmstrip Forest Groves (36 Sprocket Ribbon Trees across 8 Groves) ---------- */
+  const forestGroveDefs = [
+    { id: 0, name: "Wellhead Sprocket Stand", x: 11.5, z: -10.5, minElev: 4.0, trees: 4, unlocked: true },
+    { id: 1, name: "Overlook Knoll Grove", x: -16.5, z: 16.5, minElev: 6.2, trees: 4, unlocked: false },
+    { id: 2, name: "Terrace Ridge Ribbon Wood", x: -18.5, z: 34.0, minElev: 7.6, trees: 5, unlocked: false },
+    { id: 3, name: "Tuolumne Celluloid Copse", x: 35.0, z: 10.5, minElev: 9.2, trees: 4, unlocked: false },
+    { id: 4, name: "Meadow Switchback Canopy", x: 105.0, z: 98.0, minElev: 11.0, trees: 5, unlocked: false },
+    { id: 5, name: "Kiosk Escarpment Timber", x: 132.0, z: 96.0, minElev: 12.6, trees: 5, unlocked: false },
+    { id: 6, name: "Pueblo Rim Sprocket Stand", x: 136.0, z: 136.0, minElev: 14.2, trees: 5, unlocked: false },
+    { id: 7, name: "Cosmic Addis High Forest", x: 166.0, z: 106.0, minElev: 16.0, trees: 4, unlocked: false }
+  ];
+  const forestTreeGeo = new T.PlaneGeometry(2.6, 15.6, 2, 10);
+  forestTreeGeo.translate(0, 7.8, 0);
+  const forestGroves = [];
+  for (let gIdx = 0; gIdx < forestGroveDefs.length; gIdx++) {
+    const def = forestGroveDefs[gIdx], gy = terrainHeight(def.x, def.z);
+    const dormantMat = new T.MeshStandardMaterial({ map: filmTex, color: 0x3b3e42, emissive: 0x050910, roughness: .65, side: T.DoubleSide });
+    const awakeMat = new T.MeshStandardMaterial({ map: forestFilmTex, color: 0x8cc8ff, emissive: 0x0044b8, emissiveIntensity: .92, roughness: .32, side: T.DoubleSide });
+    const grp = new T.Group(); grp.position.set(def.x, gy, def.z);
+    const meshes = [], tips = [];
+    for (let t = 0; t < def.trees; t++) {
+      const a = (t / def.trees) * TAU + gIdx * .55, r = 1.6 + (t % 2) * 2.2;
+      const m = new T.Mesh(forestTreeGeo, def.unlocked ? awakeMat : dormantMat);
+      m.position.set(Math.cos(a) * r, -.1, Math.sin(a) * r);
+      m.rotation.y = a + .6 + (t * .3);
+      m.castShadow = true;
+      const initS = def.unlocked ? 1.0 : .15;
+      m.scale.set(1, initS, 1);
+      grp.add(m);
+      meshes.push({ mesh: m, phase: t * 1.1 + gIdx * .7, targetH: .9 + (t % 3) * .22 });
+      const orb = new T.Mesh(new T.OctahedronGeometry(.28, 0), def.unlocked ? beaconCyanMat : darkRockMat);
+      orb.position.set(Math.cos(a) * r, initS * 15.6 + .35, Math.sin(a) * r);
+      grp.add(orb);
+      tips.push(orb);
+    }
+    scene.add(grp);
+    forestGroves.push({
+      ...def, y: gy, grow: def.unlocked ? 1.0 : 0.15,
+      grp, meshes, tips, dormantMat, awakeMat
+    });
+  }
+
+  /* ---------- Highland Pueblo Village (Zone IX-X Ridge) + Kiosk Plaza + 5 WiFi Relays ---------- */
   const puebloDarkWinMat = new T.MeshStandardMaterial({ color: 0x101214, emissive: 0x001018, emissiveIntensity: .2 });
-  const puebloGlowWinMat = new T.MeshStandardMaterial({ color: 0x00a8ff, emissive: 0x00b4ff, emissiveIntensity: 1.35, roughness: .2 });
+  const puebloGlowWinMat = new T.MeshStandardMaterial({ color: 0x006eff, emissive: 0x0048dd, emissiveIntensity: 1.35, roughness: .2 });
   const puebloWinMeshes = [];
   const puebloDishes = [];
 
@@ -695,14 +1018,20 @@
     const adobe2 = new T.MeshStandardMaterial({ color: 0x7b776c, roughness: .94 });
     const vigaWood = new T.MeshStandardMaterial({ color: 0x3b3328, roughness: .88 });
     const PuebloHouses = [
-      [148, 114, 5.2, 3.8, 4.6, .35, true],
+      [144, 106, 5.2, 3.8, 4.6, .35, true],
       [147, 125, 4.8, 3.4, 4.2, -.2, false],
       [158, 111, 5.8, 4.2, 4.8, .12, true],
       [166, 117, 6.2, 4.8, 5.2, -.45, true],
       [168, 128, 5.4, 3.9, 4.6, .55, false],
       [155, 132, 4.9, 3.3, 4.4, -.12, true],
       [142, 120, 4.6, 3.2, 4.2, .7, false],
-      [172, 122, 5.5, 4.0, 4.5, .25, false]
+      [172, 122, 5.5, 4.0, 4.5, .25, false],
+      [161, 136, 5.1, 4.3, 4.6, .18, true],
+      [139, 128, 4.4, 3.1, 4.0, -.42, false],
+      [176, 114, 5.6, 4.5, 4.8, .62, true],
+      [152, 105, 4.8, 3.4, 4.2, -.15, false],
+      [167, 108, 4.7, 3.6, 4.1, .31, false],
+      [144, 134, 5.0, 3.8, 4.3, -.55, true]
     ];
     for (const [hx, hz, w, h, d, ry, twoStory] of PuebloHouses) {
       const hy = terrainHeight(hx, hz);
@@ -711,23 +1040,19 @@
       grp.rotation.y = ry;
       const body = new T.Mesh(new T.BoxGeometry(w, h, d), twoStory ? adobe1 : adobe2);
       body.position.y = h * .5 - .2; body.castShadow = true; body.receiveShadow = true; grp.add(body);
-      // Timber vigas protruding along roof line
       for (let i = -1; i <= 1; i++) {
         const vig = new T.Mesh(new T.CylinderGeometry(.09, .09, d + .9, 6), vigaWood);
         vig.rotation.x = Math.PI / 2; vig.position.set(i * w * .28, h - .65, 0); grp.add(vig);
       }
-      // Second stepped terrace story
       if (twoStory) {
         const top = new T.Mesh(new T.BoxGeometry(w * .62, h * .68, d * .64), adobe2);
         top.position.set(-.3, h + h * .34 - .25, .2); top.castShadow = true; top.receiveShadow = true; grp.add(top);
-        // Rooftop mesh node dish
         const pole = new T.Mesh(new T.CylinderGeometry(.04, .05, 1.4, 6), antennaMat);
         pole.position.set(.4, h + h * .68 + .4, -.3); grp.add(pole);
         const orb = new T.Mesh(new T.SphereGeometry(.14, 10, 8), puebloDarkWinMat);
         orb.position.set(.4, h + h * .68 + 1.15, -.3); grp.add(orb);
         puebloDishes.push(orb);
       }
-      // Glowing doorways & windows facing Pueblo plaza
       for (const sgn of [-1, 1]) {
         const win = new T.Mesh(new T.BoxGeometry(.78, .92, .12), puebloDarkWinMat);
         win.position.set(sgn * w * .24, h * .48, d * .5 + .03);
@@ -742,18 +1067,21 @@
       solids.push({ x: hx, z: hz, r: Math.max(w, d) * .48 });
     }
 
-    // Kiosk Awning Stall at Zone VII (ref: "Kidase hums beneath the kiosk awning")
+    // Expanded Mercato Kiosk Awning Plaza at Zone VII (with stacked cyan jerrycan crates)
     const kx = 85.5, kz = 67.5, ky = terrainHeight(kx, kz);
     const kg = new T.Group();
     kg.position.set(kx, ky, kz); kg.rotation.y = -.7;
-    const stall = new T.Mesh(new T.BoxGeometry(3.4, 2.3, 2.2), adobe2); stall.position.y = 1.1; stall.castShadow = true; kg.add(stall);
-    const awning = new T.Mesh(new T.BoxGeometry(3.9, .12, 2.6), adobe1); awning.position.set(0, 2.45, .8); awning.rotation.x = .24; awning.castShadow = true; kg.add(awning);
-    for (const sx of [-1.5, 1.5]) {
-      const p = new T.Mesh(new T.CylinderGeometry(.07, .07, 2.3, 6), vigaWood); p.position.set(sx, 1.15, 1.8); kg.add(p);
+    const stall = new T.Mesh(new T.BoxGeometry(3.8, 2.4, 2.4), adobe2); stall.position.y = 1.15; stall.castShadow = true; kg.add(stall);
+    const awning = new T.Mesh(new T.BoxGeometry(4.4, .12, 2.9), adobe1); awning.position.set(0, 2.52, .85); awning.rotation.x = .24; awning.castShadow = true; kg.add(awning);
+    for (const sx of [-1.7, 1.7]) {
+      const p = new T.Mesh(new T.CylinderGeometry(.07, .07, 2.35, 6), vigaWood); p.position.set(sx, 1.18, 1.9); kg.add(p);
     }
-    const tapeDeck = new T.Mesh(new T.BoxGeometry(1.0, .34, .45), beaconCyanMat); tapeDeck.position.set(0, 1.22, 1.12); kg.add(tapeDeck);
+    const tapeDeck = new T.Mesh(new T.BoxGeometry(1.0, .34, .45), beaconCyanMat); tapeDeck.position.set(0, 1.22, 1.18); kg.add(tapeDeck);
+    for (const [cx, cz, ry] of [[-1.5, 1.4, .2], [1.4, 1.3, -.4]]) {
+      const crateJ = makeJerikan(.92); crateJ.position.set(cx, 0, cz); crateJ.rotation.y = ry; kg.add(crateJ);
+    }
     scene.add(kg);
-    solids.push({ x: kx, z: kz, r: 2.1 });
+    solids.push({ x: kx, z: kz, r: 2.2 });
   })();
 
   /* ---------- Zone X Stone Steps & Blue-Lit Sanctuary Door ---------- */
@@ -916,7 +1244,7 @@
   addThresholdBridge("dune_arch", "Gypsum Chasm Span (Zone VIII)", 114, 86, .79, .61, 8.8, 3.2, 7.6, 0xd8d3c3);
   addThresholdBridge("ice_bridge", "Pueblo Approach Bridge (Zone X)", 150, 115, .79, .61, 8.2, 3.2, 11.0, 0xf2f7fc);
 
-  /* ---------- Mistletoe: Prominent Electric-Cyan Flank & Top Jerrycans + WiFi Antenna + Mobile Wavefront ---------- */
+  /* ---------- Mistletoe: Ash-Wood Sawbuck Pack Saddle, Flush 20L Cyan Jerrycans, Diamond Hitch & Scion Telemetry ---------- */
   const donkey = window.makeDonkey({
     assetPath: "../donkey/",
     shells: phone ? 6 : 11,
@@ -929,44 +1257,94 @@
     { name: "Cyan Jerikan R (20L)", kg: 12, slot: "R" },
     { name: "Scion WiFi Transceiver", kg: 8, slot: "T" }
   ]);
-  // Hide default gray canvas bags & bedroll groups while keeping fitted pad, cinch & leather straps
   for (const c of donkey.pack.children) if (c.isGroup) c.visible = false;
 
   const donkeyRig = new T.Group();
   donkey.pack.add(donkeyRig);
-  for (const sgn of [-1, 1]) {
-    const jc = makeJerikan(1.12);
-    jc.position.set(sgn * .35, .86, .04);
-    jc.rotation.y = sgn * Math.PI * .5;
-    jc.rotation.z = sgn * .14;
-    donkeyRig.add(jc);
-    // Leather lashing strap visibly securing cyan jerrycan onto pannier frame
-    const band = new T.Mesh(new T.BoxGeometry(.38, .05, .28), strapMat);
-    band.position.set(sgn * .34, 1.04, .04); band.rotation.z = sgn * .14; donkeyRig.add(band);
-  }
-  const topJer = makeJerikan(.96);
-  topJer.position.set(0, 1.25, .08);
-  topJer.rotation.y = .35;
-  donkeyRig.add(topJer);
-  // Swaying silver whip antenna & glowing cyan WiFi orb rising from Mistletoe's Scion jerrycan
-  const whip = new T.Mesh(new T.CylinderGeometry(.009, .016, .88, 6), antennaMat);
-  whip.position.set(-.05, 1.85, .08); donkeyRig.add(whip);
-  const donkeyBeacon = new T.Mesh(new T.SphereGeometry(.072, 12, 10), beaconCyanMat);
-  donkeyBeacon.position.set(-.05, 2.30, .08); donkeyRig.add(donkeyBeacon);
 
-  donkey.place(2.2, -3.4, 1.1, heightAt);
+  // Sculpted Ash-Wood Sawbuck Pack Frame (front & rear X-trees + longitudinal rails)
+  const addPackBar = (a, b, r, mat) => {
+    const p = new T.Vector3(...a), q = new T.Vector3(...b), d = q.clone().sub(p);
+    const m = new T.Mesh(new T.CylinderGeometry(r, r, d.length(), 8), mat);
+    m.position.copy(p).lerp(q, .5);
+    m.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize());
+    m.castShadow = true; donkeyRig.add(m);
+  };
+  for (const zTree of [-.14, .22]) {
+    addPackBar([-.22, 1.06, zTree], [.18, 1.38, zTree], .017, sawWoodMat);
+    addPackBar([.22, 1.06, zTree], [-.18, 1.38, zTree], .017, sawWoodMat);
+  }
+  for (const sgn of [-1, 1]) {
+    addPackBar([sgn * .21, 1.14, -.21], [sgn * .21, 1.14, .29], .015, sawWoodMat);
+    // Leather U-cradle sling & brass buckles supporting slim 20L Cyan Jerrycan
+    const jc = makeJerikan(1.0);
+    jc.position.set(sgn * .305, .86, .04);
+    jc.rotation.y = sgn * Math.PI * .5;
+    jc.rotation.z = sgn * .12;
+    donkeyRig.add(jc);
+
+    const cradleBand = new T.Mesh(new T.BoxGeometry(.024, .34, .036), leatherMat);
+    cradleBand.position.set(sgn * .29, 1.04, -.04); cradleBand.rotation.z = sgn * .12; donkeyRig.add(cradleBand);
+    const cradleBand2 = new T.Mesh(new T.BoxGeometry(.024, .34, .036), leatherMat);
+    cradleBand2.position.set(sgn * .29, 1.04, .12); cradleBand2.rotation.z = sgn * .12; donkeyRig.add(cradleBand2);
+    const cinch = new T.Mesh(new T.BoxGeometry(.25, .036, .045), leatherMat);
+    cinch.position.set(sgn * .32, 1.01, .04); cinch.rotation.z = sgn * .12; donkeyRig.add(cinch);
+    const buckle = new T.Mesh(new T.BoxGeometry(.032, .052, .056), brassMat);
+    buckle.position.set(sgn * .40, 1.01, .04); donkeyRig.add(buckle);
+
+    // Feed hose arching from jerrycan spout into center Scion radio dome
+    const hosePts = [
+      new T.Vector3(sgn * .31, 1.24, .11),
+      new T.Vector3(sgn * .20, 1.34, .09),
+      new T.Vector3(sgn * .09, 1.30, .06)
+    ];
+    donkeyRig.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(hosePts), 12, .013, 6, false), beaconCyanMat));
+  }
+
+  // Low-Profile Armored Scion WiFi Field Radio Chassis riding cleanly inside the Sawbuck X-horns
+  const scionCase = new T.Mesh(new T.BoxGeometry(.24, .14, .34), strapMat);
+  scionCase.position.set(0, 1.25, .04); scionCase.castShadow = true; donkeyRig.add(scionCase);
+  const scionCap = new T.Mesh(new T.BoxGeometry(.22, .04, .30), jerikanMat);
+  scionCap.position.set(0, 1.33, .04); donkeyRig.add(scionCap);
+  const scionBar = new T.Mesh(new T.BoxGeometry(.18, .026, .04), beaconCyanMat);
+  scionBar.position.set(0, 1.34, -.09); donkeyRig.add(scionBar);
+
+  // Manila Diamond-Hitch Rope cross-lashing across the pack
+  const hitchPts = [
+    new T.Vector3(-.39, .96, -.04), new T.Vector3(-.28, 1.30, -.12), new T.Vector3(0, 1.36, .04),
+    new T.Vector3(.28, 1.30, .20), new T.Vector3(.39, .96, .12), new T.Vector3(.28, 1.30, -.12),
+    new T.Vector3(0, 1.36, .04), new T.Vector3(-.28, 1.30, .20), new T.Vector3(-.39, .96, -.04)
+  ];
+  donkeyRig.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(hitchPts), 32, .009, 6, false), ropeHitchMat));
+
+  // Compact Spring-Base Whip Antenna + Pure Cyan Telemetry Beacon
+  const springCoil = new T.Mesh(new T.CylinderGeometry(.024, .024, .08, 8), brassMat);
+  springCoil.position.set(-.04, 1.38, .08); donkeyRig.add(springCoil);
+  const whip = new T.Mesh(new T.CylinderGeometry(.007, .014, .72, 6), antennaMat);
+  whip.position.set(-.04, 1.77, .08); donkeyRig.add(whip);
+  const donkeyBeacon = new T.Mesh(new T.SphereGeometry(.058, 12, 10), beaconCyanMat);
+  donkeyBeacon.position.set(-.04, 2.15, .08); donkeyRig.add(donkeyBeacon);
+
+  donkey.place(-2.6, -1.6, 0.9, heightAt);
+  donkey.update(0.016, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, heightAt);
   donkey.state.onStep = (leg, gait) => audio.step(leg, gait);
 
-  // Live Concentric WiFi Coverage Rings gliding across terrain around Mistletoe + Expanding 3D Wavefront Arcs
+  // Live Elevation-Scaled WiFi Coverage Rings & Expanding 3D Wavefront Arcs (low-green cyan so selective filter never washes white)
   const donkeyRings = [
-    makeTerrainRing(4.5, 44, new T.LineBasicMaterial({ color: 0x26ccff, transparent: true, opacity: .88 })),
-    makeTerrainRing(9.5, 52, new T.LineBasicMaterial({ color: 0x14a8ff, transparent: true, opacity: .66 })),
-    makeTerrainRing(15.5, 60, new T.LineBasicMaterial({ color: 0x0a84ff, transparent: true, opacity: .44 }))
+    makeTerrainRing(1.0, 48, new T.LineBasicMaterial({ color: 0x0088ff, transparent: true, opacity: .90 })),
+    makeTerrainRing(1.0, 56, new T.LineBasicMaterial({ color: 0x0066ff, transparent: true, opacity: .72 })),
+    makeTerrainRing(1.0, 64, new T.LineBasicMaterial({ color: 0x0048ee, transparent: true, opacity: .52 }))
   ];
   const waveArcs = [];
+  const waveRingPts = [];
+  for (let s = 0; s < 64; s++) {
+    const a = (s / 64) * TAU;
+    waveRingPts.push(Math.cos(a), 0, Math.sin(a));
+  }
+  const waveRingGeo = new T.BufferGeometry();
+  waveRingGeo.setAttribute("position", new T.Float32BufferAttribute(waveRingPts, 3));
   for (let i = 0; i < 4; i++) {
-    const m = new T.Mesh(new T.TorusGeometry(1.0, .032, 6, 36), new T.MeshBasicMaterial({ color: 0x24cbff, transparent: true, opacity: .7 }));
-    m.rotation.x = Math.PI / 2;
+    const m = new T.LineLoop(waveRingGeo, new T.LineBasicMaterial({ color: 0x0088ff, transparent: true, opacity: .82 }));
     scene.add(m);
     waveArcs.push({ mesh: m, phase: i / 4 });
   }
@@ -1021,15 +1399,20 @@
       uFilter: { value: new T.Vector3(1.02, 1.02, 1.18) },
       uJerikanFilter: { value: 1.0 },
       uAudioBass: { value: 0.0 },
-      uAudioHigh: { value: 0.0 }
+      uAudioHigh: { value: 0.0 },
+      uInvProjView: { value: new T.Matrix4() },
+      uWifi: { value: Array.from({ length: 8 }, () => new T.Vector4(0, 0, 0, 0)) },
+      uWifiPing: { value: 0.0 }
     },
     vertexShader: VS,
     fragmentShader: `
       uniform sampler2D tScene, tDepth, tTrail, tFilm;
       uniform vec2 uRes;
-      uniform float uT, uNear, uFar, uFocusDist, uDofOctaves, uTilt, uStrataLock, uFocusPulse, uJerikanFilter, uAudioBass, uAudioHigh;
+      uniform float uT, uNear, uFar, uFocusDist, uDofOctaves, uTilt, uStrataLock, uFocusPulse, uJerikanFilter, uAudioBass, uAudioHigh, uWifiPing;
       uniform int uRouteMode, uSoloLook, uFocusLook;
       uniform vec3 uFilter;
+      uniform mat4 uInvProjView;
+      uniform vec4 uWifi[8];
       varying vec2 vUv;
 
       float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -1160,9 +1543,33 @@
 
       void main() {
         vec2 uv = vUv, e = 1.0 / uRes;
-        float dist = readDist(uv);
+        float zb = texture2D(tDepth, uv).x;
+        float dist = (uNear * uFar) / max(0.0001, uFar - zb * (uFar - uNear));
         float planeD = uFocusDist * exp((uv.y - 0.5) * uTilt * 2.0);
         float coc = (log2(clamp(dist, uNear, uFar)) - log2(max(planeD, 0.5))) / max(0.14, uDofOctaves);
+
+        // Reconstruct 3D world position from depth buffer to compute live WiFi Zone Field
+        vec4 ndcPos = vec4(uv * 2.0 - 1.0, zb * 2.0 - 1.0, 1.0);
+        vec4 wp4 = uInvProjView * ndcPos;
+        vec3 wPos = wp4.xyz / max(0.0001, wp4.w);
+        float isGeo = step(zb, 0.9992);
+
+        float wifiField = 0.0;
+        float wifiEdge = 0.0;
+        float wifiWave = 0.0;
+        for (int i = 0; i < 8; i++) {
+          float rad = uWifi[i].w;
+          if (rad > 0.5) {
+            float dw = length(wPos.xz - uWifi[i].xz);
+            float f = smoothstep(rad, rad * 0.14, dw) * isGeo;
+            wifiField = max(wifiField, f);
+            float bnd = smoothstep(1.35, 0.0, abs(dw - rad)) * isGeo;
+            wifiEdge = max(wifiEdge, bnd);
+            float ringW = sin(dw * 1.45 - uT * 4.4);
+            wifiWave = max(wifiWave, f * smoothstep(0.90, 0.99, ringW));
+          }
+        }
+        wifiField = clamp(wifiField * (1.0 + 0.35 * uWifiPing), 0.0, 1.0);
 
         vec3 raw = texture2D(tScene, uv).rgb;
         float rawL = clamp(dot(raw, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);
@@ -1184,31 +1591,39 @@
         vec3 tr = texture2D(tTrail, uv).rgb;
         float vg = smoothstep(1.32, 0.32, length((uv - 0.5) * vec2(1.12, 1.0)) * 1.52);
 
+        // Inside WiFi coverage, lift tonal band + route pixels into glowing Cyanotype/Phosphor/Glass Zone worlds
+        float zoneEff = clamp(l + wifiField * 0.28, 0.0, 1.0);
         vec3 outCol;
         if (uSoloLook >= 0) {
-          outCol = evalLook(uSoloLook, uv, raw, silverBase, tr, l, ed, vg);
+          outCol = evalLook(uSoloLook, uv, raw, silverBase, tr, zoneEff, ed, vg);
         } else if (uRouteMode == 0) {
           vec3 jk = evalLook(13, uv, raw, silverBase, tr, l, ed, vg);
-          vec3 fLook = evalLook(uFocusLook, uv, raw, silverBase, tr, l, ed, vg);
+          vec3 fLook = evalLook(uFocusLook, uv, raw, silverBase, tr, zoneEff, ed, vg);
           float focalBand = 1.0 - smoothstep(0.45, 1.15, abs(coc));
           outCol = mix(jk, fLook, focalBand * 0.45);
+          // WiFi Field transforms ground & props beyond immediate hero radius while keeping Woody wagon wood crisp
+          float heroCut = smoothstep(2.0, 5.2, length(wPos.xz - uWifi[0].xz));
+          vec3 wifiWorld = mix(evalLook(9, uv, raw, silverBase, tr, zoneEff, ed, vg),
+                               evalLook(10, uv, raw, silverBase, tr, zoneEff, ed, vg),
+                               smoothstep(0.05, 0.25, ed) + 0.35 * sin(wPos.y * 0.4 + uT));
+          outCol = mix(outCol, mix(wifiWorld, vec3(0.04, 0.58, 0.98) * (0.45 + 0.72 * rawL), 0.30), wifiField * 0.76 * heroCut);
           float cyanWave = smoothstep(0.16, 0.0, abs(abs(coc) - 0.86)) * (0.12 + 0.72 * uFocusPulse);
-          outCol = mix(outCol, vec3(0.08, 0.74, 1.0), cyanWave * 0.65);
+          outCol = mix(outCol, vec3(0.06, 0.78, 1.0), clamp(cyanWave * 0.55 + wifiWave * 0.50 * heroCut + wifiEdge * 0.88, 0.0, 0.92));
         } else if (uRouteMode == 1) {
-          float zBand = clamp(l * 10.0 + coc * 2.1, 0.0, 10.0);
-          vec3 strataCol = evalByFloat(zBand, uv, raw, silverBase, tr, l, ed, vg);
-          vec3 focalCol = evalLook(uFocusLook, uv, raw, silverBase, tr, l, ed, vg);
+          float zBand = clamp(zoneEff * 10.0 + coc * 2.1 + wifiField * 2.2, 0.0, 10.0);
+          vec3 strataCol = evalByFloat(zBand, uv, raw, silverBase, tr, zoneEff, ed, vg);
+          vec3 focalCol = evalLook(uFocusLook, uv, raw, silverBase, tr, zoneEff, ed, vg);
           float sharp = 1.0 - smoothstep(0.45, 1.15, abs(coc));
           outCol = mix(strataCol, focalCol, sharp * (1.0 - uStrataLock));
-          float ring = smoothstep(0.14, 0.0, abs(abs(coc) - 0.90)) * uFocusPulse;
-          outCol = mix(outCol, vec3(0.18, 0.78, 1.0), ring * 0.65);
+          outCol = mix(outCol, vec3(0.06, 0.80, 1.0), clamp(wifiWave * 0.45 + wifiEdge * 0.82, 0.0, 0.88));
         } else if (uRouteMode == 2) {
-          float shellZ = clamp(5.0 + coc * 2.4, 0.0, 10.0);
-          outCol = evalByFloat(shellZ, uv, raw, silverBase, tr, l, ed, vg);
+          float shellZ = clamp(5.0 + coc * 2.4 + wifiField * 2.0, 0.0, 10.0);
+          outCol = evalByFloat(shellZ, uv, raw, silverBase, tr, zoneEff, ed, vg);
           float bound = smoothstep(0.09, 0.0, abs(fract(shellZ + 0.5) - 0.5)) * (0.14 + 0.45 * uFocusPulse);
-          outCol = mix(outCol, vec3(0.18, 0.78, 1.0), bound);
+          outCol = mix(outCol, vec3(0.10, 0.80, 1.0), clamp(bound + wifiWave * 0.42 + wifiEdge * 0.78, 0.0, 0.9));
         } else {
-          outCol = evalByFloat(l * 10.0, uv, raw, silverBase, tr, l, ed, vg);
+          outCol = evalByFloat(zoneEff * 10.0 + wifiField * 2.4, uv, raw, silverBase, tr, zoneEff, ed, vg);
+          outCol = mix(outCol, vec3(0.08, 0.78, 1.0), clamp(wifiWave * 0.42 + wifiEdge * 0.78, 0.0, 0.88));
         }
 
         /* Hue-ratio selective Blue Jerikan #47B pass: shadow-safe vivid electric cyan */
@@ -1240,6 +1655,9 @@
     soloLook: -1,
     focusLook: 13,
     drivingCart: false,
+    donkeyOnRoof: false,
+    roofMountT: 0,
+    roofJumpStart: new T.Vector3(),
     riding: false,
     onWagon: false,
     leadMode: "lead",
@@ -1251,12 +1669,20 @@
     pumpFlow: 0.92,
     pumpLeverPhase: 0,
     wifiCharge: 1.0,
+    antennaElev: donkey.group.position.y + 2.35,
+    signalRadius: 24.0,
+    pingTimer: 0,
     signalDbm: -38,
+    frameWifiPct: 48,
     litRelays: 1,
     coveragePct: 20,
+    unlockedGroves: 1,
+    unlockedTrees: 4,
     meteredZone: 4,
     currentZone: 4,
-    plates: []
+    plates: [],
+    chaseCamPos: new T.Vector3(-12, 6, -4),
+    chaseLookAt: new T.Vector3(0, 2, 4)
   };
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
@@ -1300,15 +1726,34 @@
     $("focus-knob").setAttribute("aria-valuenow", state.focusDist.toFixed(1));
   }
 
+  const fmtElev = v => `${v >= 0 ? "+" : ""}${v.toFixed(1)}m`;
+
   function updateHUD() {
     const m = MODES[state.modeIdx], st = STOPS[state.stopIdx], fl = FILTERS[state.filterIdx], Z = ZONES[state.currentZone];
     const activeLook = state.soloLook >= 0 ? LOOKS[state.soloLook] : LOOKS[state.focusLook];
     $("zone-title").textContent = `Zone ${ROMAN[Z.z]} · ${Z.name}`;
-    $("hud-sub").textContent = `${m.label} · ${state.drivingCart ? "WAGON " + Math.abs(wagon.speed).toFixed(1) + " m/s · " : ""}FOCUS ${state.focusDist.toFixed(1)} m · ${st.name} · ${fl.name}`;
+    $("hud-sub").textContent = `${m.label} · ${state.drivingCart ? "WAGON " + Math.abs(wagon.speed).toFixed(1) + " m/s (ROOF BURRO) · " : ""}FOCUS ${state.focusDist.toFixed(1)} m · ${st.name} · ${fl.name}`;
     $("focus-dist-val").textContent = `${state.focusDist.toFixed(1)} m`;
     $("focus-look-val").textContent = state.soloLook >= 0 ? `SOLO · ${activeLook.name}` : `FOCUS · ${activeLook.name}`;
-    $("wedge-caption").textContent = `Meter Zone ${ROMAN[state.meteredZone]} · WiFi ${state.signalDbm} dBm · Pueblo ${state.litRelays}/5 (${state.coveragePct}%)`;
-    $("ppc-wifi").textContent = `(((•))) ${state.signalDbm} dBm · PUEBLO ${state.litRelays}/5 (${state.coveragePct}%)`;
+    $("wedge-caption").textContent = `Meter Zone ${ROMAN[state.meteredZone]} · WiFi ${state.frameWifiPct}% Frame · Alt ${fmtElev(state.antennaElev)} · Forest ${state.unlockedGroves}/${forestGroves.length}`;
+    $("ppc-wifi").textContent = `(((•))) ${state.signalDbm} dBm · FRAME ${state.frameWifiPct}% · ALT ${fmtElev(state.antennaElev)} · FOREST ${state.unlockedGroves}/${forestGroves.length}`;
+
+    if ($("finder-pct")) $("finder-pct").textContent = `IN-FRAME WIFI ${state.frameWifiPct}%`;
+    if ($("finder-alt")) $("finder-alt").textContent = `ALT ${fmtElev(state.antennaElev)} · FOREST ${state.unlockedGroves}/${forestGroves.length}`;
+    if ($("finder-bar")) $("finder-bar").style.width = `${clamp(state.frameWifiPct, 4, 100)}%`;
+    if ($("cam-frame-tag")) $("cam-frame-tag").textContent = `8×10 WIFI SURVEY · ${state.frameWifiPct}% IN FRAME · ALT ${fmtElev(state.antennaElev)}`;
+
+    const lastCard = $("last-plate-card");
+    if (lastCard) {
+      if (state.plates.length) {
+        const lp = state.plates[state.plates.length - 1];
+        lastCard.hidden = false;
+        $("last-plate-img").src = lp.dataUrl;
+        $("last-plate-lbl").innerHTML = `<strong>#${lp.id} · ${lp.frameWifiPct ?? lp.coveragePct ?? 0}% WIFI</strong><span>Z-${lp.roman} · Inspect</span>`;
+      } else {
+        lastCard.hidden = true;
+      }
+    }
 
     $("btn-cart").setAttribute("aria-pressed", String(state.drivingCart));
     $("btn-cart").textContent = state.drivingCart ? "Exit Wagon (C)" : "Drive Wagon (C)";
@@ -1379,19 +1824,20 @@
       const bar = (lbl, v) => `<div class="mind-bar"><span>${lbl}</span><i><em style="width:${Math.round(v * 100)}%"></em></i><b>${Math.round(v * 100)}%</b></div>`;
       tray.innerHTML = `
         <div class="tray-head"><h2>Wagon, WiFi &amp; Mistletoe</h2><button type="button" class="chip" id="tr-close">Done</button></div>
-        <p class="tray-note">${ds.thought} · Broadcast ${state.signalDbm} dBm · Pueblo Coverage ${state.litRelays}/5 (${state.coveragePct}%).</p>
+        <p class="tray-note">${ds.thought} · Alt +${state.antennaElev.toFixed(1)}m · Range ${Math.round(state.signalRadius)}m · Filmstrip Forest ${state.unlockedGroves}/${forestGroves.length}.</p>
         <div class="chip-grid">
           <button type="button" class="chip" id="br-cart" aria-pressed="${state.drivingCart}">${state.drivingCart ? "Exit Wagon (C)" : "Drive Wagon (C)"}</button>
           <button type="button" class="chip" id="br-ride" aria-pressed="${state.riding}">${state.riding ? "Dismount (V)" : "Ride Mistletoe (V)"}</button>
           <button type="button" class="chip" id="br-deck" aria-pressed="${state.onWagon}">${state.onWagon ? "Step Off Deck (B)" : "Wagon Roof-Deck (B)"}</button>
-          <button type="button" class="chip" id="br-pour">Pour WiFi (F)</button>
+          <button type="button" class="chip" id="br-pour">Pour / Ping WiFi (F)</button>
           <button type="button" class="chip" id="br-pump">Pump Well (P)</button>
           <button type="button" class="chip" id="br-gait">Pace: ${["Walk", "Trot", "Canter", "Gallop"][state.gaitIdx]}</button>
         </div>
-        <div class="sec-label">Pack Donkey Mind &amp; WiFi Tank</div>
+        <div class="sec-label">Pack Donkey Mind, Signal &amp; Forest</div>
         ${bar("WiFi Water", state.wifiCharge)}
+        ${bar("In-Frame %", state.frameWifiPct / 100)}
+        ${bar("Forest Unlocks", state.unlockedGroves / forestGroves.length)}
         ${bar("Trust", m.trust)}
-        ${bar("Calm", 1 - m.fear)}
         ${bar("Energy", ds.stamina)}
         <div class="chip-grid">
           <button type="button" class="chip" id="br-feed">Feed Oats</button>
@@ -1440,7 +1886,7 @@
   }
   $("tape-btn").addEventListener("click", toggleTape);
 
-  /* ---------- Actions: Pump Well, Pour WiFi Water into Relays & Pueblo, Drive Wagon ---------- */
+  /* ---------- Actions: Pump Well, Pour / High-Altitude Ping WiFi Water, Drive Wagon, Filmstrip Forest ---------- */
   function igniteRelay(r) {
     if (r.lit) return;
     r.lit = true;
@@ -1448,7 +1894,7 @@
     if (r.beaconRing) r.beaconRing.material = beaconCyanMat;
     if (r.covRing) r.covRing.line.visible = true;
     if (r.arcLine) r.arcLine.visible = true;
-    state.wifiCharge = clamp(state.wifiCharge - .18, .25, 1.0);
+    state.wifiCharge = clamp(state.wifiCharge - .18, .35, 1.0);
     state.litRelays = relays.filter(x => x.lit).length;
     state.coveragePct = Math.round((state.litRelays / relays.length) * 100);
     if (r.id === "pueblo") {
@@ -1461,6 +1907,36 @@
       toast(`${r.name} energized with Cyan WiFi Water (${state.litRelays}/5 · ${state.coveragePct}%).`);
     }
     updateHUD();
+  }
+
+  function unlockForestGrove(g) {
+    if (g.unlocked) return;
+    g.unlocked = true;
+    for (const item of g.meshes) item.mesh.material = g.awakeMat;
+    for (const tip of g.tips) tip.material = beaconCyanMat;
+    state.unlockedGroves = forestGroves.filter(x => x.unlocked).length;
+    state.unlockedTrees = forestGroves.reduce((s, x) => s + (x.unlocked ? x.trees : 0), 0);
+    audio.forestChime(g.id);
+    toast(`SIGNAL ALT ${fmtElev(state.antennaElev)} UNLOCKED "${g.name}" (${state.unlockedGroves}/${forestGroves.length} Forest)!`);
+    updateHUD();
+  }
+
+  function checkForestUnlocks() {
+    for (const g of forestGroves) {
+      if (g.unlocked) continue;
+      const dist = Math.hypot(g.x - donkey.state.x, g.z - donkey.state.z);
+      if (state.antennaElev >= g.minElev && dist <= state.signalRadius * 1.15) {
+        unlockForestGrove(g);
+      }
+    }
+  }
+
+  function pingSignal() {
+    state.pingTimer = 4.2;
+    state.focusPulse = 1.0;
+    audio.relayChime(false);
+    checkForestUnlocks();
+    toast(`High-Altitude WiFi Signal Ping! Alt ${fmtElev(state.antennaElev)} · Range boosted to ${Math.round(state.signalRadius * 1.28)} m.`);
   }
 
   function pourWifi() {
@@ -1476,9 +1952,9 @@
       igniteRelay(closest);
     } else if (Math.hypot(well.x - state.x, well.z - state.z) < 15) {
       state.wifiCharge = 1.0;
-      toast("Cyan jerrycans refilled to 100% WiFi Charge at the Wellhead.");
+      pingSignal();
     } else {
-      toast(closest ? `Carry the cyan ${Math.round(bestD)} m closer to ${closest.name} to pour WiFi water.` : "All 5 WiFi Cisterns across the Pueblo ridge are active (100%)!");
+      pingSignal();
     }
   }
   $("btn-pour").addEventListener("click", pourWifi);
@@ -1499,13 +1975,20 @@
     state.drivingCart = !state.drivingCart;
     if (state.drivingCart) {
       state.cartYawOffset = 0; state.cartPitchOffset = 0;
-      toast("Driving Woody Station Wagon — W/S throttle, A/D steer, Space brake, C exit.");
+      state.donkeyOnRoof = true;
+      state.roofMountT = 0;
+      state.roofJumpStart.set(donkey.state.x, donkey.group.position.y, donkey.state.z);
+      state.chaseCamPos.copy(camera.position);
+      state.chaseLookAt.set(wagon.x, wagon.y + 1.8, wagon.z);
+      toast("Mistletoe hops onto the Woody roof-deck (+2.3m WiFi)! WASD drive · X brake · Space expose.");
     } else {
       wagon.speed = 0;
-      state.x = wagon.x + Math.cos(wagon.heading) * 2.6;
-      state.z = wagon.z - Math.sin(wagon.heading) * 2.6;
-      state.y = heightAt(state.x, state.z) + 1.68;
-      toast("Parked and stepped out beside the Woody Wagon.");
+      state.donkeyOnRoof = false;
+      const dx = wagon.x + Math.cos(wagon.heading) * 2.6, dz = wagon.z - Math.sin(wagon.heading) * 2.6;
+      state.x = dx; state.z = dz;
+      state.y = heightAt(dx, dz) + 1.68;
+      donkey.place(wagon.x - Math.cos(wagon.heading) * 2.4, wagon.z + Math.sin(wagon.heading) * 2.4, wagon.heading, heightAt);
+      toast("Parked Woody Wagon — Mistletoe hops down to lead.");
     }
     updateHUD();
   }
@@ -1513,7 +1996,7 @@
 
   function teleportZone(zoneIdx) {
     const Z = ZONES[clamp(zoneIdx, 0, 10)];
-    state.riding = false; state.onWagon = false; state.drivingCart = false;
+    state.riding = false; state.onWagon = false; state.drivingCart = false; state.donkeyOnRoof = false;
     state.x = Z.x - 5.5; state.z = Z.pz + 5.5;
     state.y = heightAt(state.x, state.z) + 1.68;
     state.yaw = Math.atan2(-(Z.x - state.x), -(Z.pz - state.z));
@@ -1525,19 +2008,19 @@
   }
 
   function toggleRide() {
-    if (state.onWagon || state.drivingCart) { state.onWagon = false; state.drivingCart = false; }
+    if (state.onWagon || state.drivingCart) { state.onWagon = false; state.drivingCart = false; state.donkeyOnRoof = false; }
     if (!state.riding && Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z) > 12) {
       donkey.place(state.x + 1.8, state.z + 1.8, state.yaw, heightAt);
     }
     state.riding = !state.riding; state.leadMode = "lead"; donkey.state.tethered = false;
     if (state.riding) state.yaw = donkey.state.heading + Math.PI;
     updateHUD();
-    toast(state.riding ? "Mounted Mistletoe — WASD to ride, F pour WiFi water at relays." : "Dismounted.");
+    toast(state.riding ? "Mounted Mistletoe — WASD to ride ridges, F ping signal / pour WiFi." : "Dismounted.");
   }
   $("btn-ride").addEventListener("click", toggleRide);
 
   function toggleWagonDeck() {
-    state.riding = false; state.drivingCart = false; wagon.speed = 0;
+    state.riding = false; state.drivingCart = false; state.donkeyOnRoof = false; wagon.speed = 0;
     state.onWagon = !state.onWagon;
     if (state.onWagon) {
       state.x = wagon.x; state.z = wagon.z;
@@ -1558,7 +2041,9 @@
     updateHUD(); if (state.trayTab === "lens") renderTray();
   });
   $("btn-ppc").addEventListener("click", () => { state.ppcOn = !state.ppcOn; updateHUD(); });
+  if ($("last-plate-card")) $("last-plate-card").addEventListener("click", () => openPlateBox());
 
+  const invProjView = new T.Matrix4(), projView = new T.Matrix4();
   function renderFrame() {
     const w = renderer.domElement.width, h = renderer.domElement.height;
     renderer.setRenderTarget(rtScene);
@@ -1573,6 +2058,27 @@
     renderer.render(postScene, postCam);
     [rtA, rtB] = [rtB, rtA];
 
+    // Push camera inverse matrix + 8 live WiFi nodes into lookMat
+    projView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    invProjView.copy(projView).invert();
+    lookMat.uniforms.uInvProjView.value.copy(invProjView);
+    lookMat.uniforms.uWifiPing.value = state.pingTimer > 0 ? smooth(0, 1.5, state.pingTimer) : 0;
+
+    const uW = lookMat.uniforms.uWifi.value;
+    uW[0].set(donkey.state.x, donkey.state.y + 2.1, donkey.state.z, state.signalRadius);
+    for (let i = 0; i < 5; i++) {
+      const r = relays[i];
+      uW[i + 1].set(r.x, r.y + 2.0, r.z, r.lit ? (i === 4 ? 34.0 : 25.0) : 0.0);
+    }
+    // Slots 6 & 7: two closest unlocked Filmstrip Forest Groves radiating live cyan WiFi zones
+    const nearGroves = forestGroves.filter(g => g.unlocked).sort((a, b) =>
+      Math.hypot(a.x - camera.position.x, a.z - camera.position.z) - Math.hypot(b.x - camera.position.x, b.z - camera.position.z));
+    for (let k = 0; k < 2; k++) {
+      const g = nearGroves[k];
+      if (g) uW[6 + k].set(g.x, g.y + 8.0, g.z, 22.0 * g.grow);
+      else uW[6 + k].set(0, 0, 0, 0);
+    }
+
     lookMat.uniforms.tTrail.value = rtA.texture;
     lookMat.uniforms.uRes.value.set(w, h);
     postQuad.material = lookMat;
@@ -1583,6 +2089,7 @@
   function exposePlate() {
     audio.shutter();
     const fl = $("flash"); fl.classList.remove("go"); void fl.offsetWidth; fl.classList.add("go");
+    sampleMeter();
     renderFrame();
     const tmp = document.createElement("canvas");
     const cw = 640, ch = 512;
@@ -1594,6 +2101,18 @@
     else { sHeight = Math.round(sw / aspect); sy = Math.round((sh - sHeight) / 2); }
     tx.drawImage(canvas, sx, sy, sWidth, sHeight, 0, 0, cw, ch);
 
+    // Stamp live 8x10 WiFi Coverage % Telemetry Strip onto captured plate
+    tx.fillStyle = "rgba(10, 15, 22, 0.80)";
+    tx.fillRect(0, ch - 34, cw, 34);
+    tx.fillStyle = "#22d0ff";
+    tx.font = "700 13px Inter, system-ui, sans-serif";
+    tx.fillText(`WIFI IN-FRAME ${state.frameWifiPct}%  ·  ${state.signalDbm} dBm`, 16, ch - 12);
+    tx.fillStyle = "#f1eee6";
+    tx.textAlign = "right";
+    tx.font = "600 12px Inter, system-ui, sans-serif";
+    tx.fillText(`Z-${ROMAN[state.meteredZone]}  ·  ALT ${fmtElev(state.antennaElev)}  ·  FOREST ${state.unlockedGroves}/${forestGroves.length}`, cw - 16, ch - 12);
+    tx.textAlign = "left";
+
     const plate = {
       id: state.plates.length + 1,
       zone: state.meteredZone,
@@ -1604,25 +2123,28 @@
       focus: state.focusDist.toFixed(1) + " m",
       stop: STOPS[state.stopIdx].name,
       signalDbm: state.signalDbm,
+      frameWifiPct: state.frameWifiPct,
       coveragePct: state.coveragePct,
-      dataUrl: tmp.toDataURL("image/jpeg", .84)
+      antennaElev: +state.antennaElev.toFixed(1),
+      unlockedGroves: state.unlockedGroves,
+      dataUrl: tmp.toDataURL("image/jpeg", .86)
     };
     state.plates.push(plate);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ plates: state.plates.slice(-22) })); } catch {}
     updateHUD();
-    toast(`WiFi Coverage Plate #${plate.id} · Zone ${plate.roman} · ${plate.signalDbm} dBm (Pueblo ${plate.coveragePct}%)`);
+    toast(`8×10 Plate #${plate.id} · IN-FRAME WIFI ${plate.frameWifiPct}% · ${plate.signalDbm} dBm · ALT ${fmtElev(state.antennaElev)}`);
   }
   $("expose-btn").addEventListener("click", exposePlate);
 
   function openPlateBox() {
     const box = $("platebox"), grid = $("pl-grid"), big = $("pl-big"), note = $("pl-note");
     const got = new Set(state.plates.map(p => p.zone));
-    note.textContent = `${state.plates.length} WiFi Coverage Plate(s) · ${got.size}/11 Tonal Zones · Pueblo Mesh ${state.litRelays}/5 (${state.coveragePct}%).`;
+    note.textContent = `${state.plates.length} WiFi Coverage Plate(s) · ${got.size}/11 Tonal Zones · Filmstrip Forest ${state.unlockedGroves}/${forestGroves.length} · Pueblo Mesh ${state.litRelays}/5 (${state.coveragePct}%).`;
     big.hidden = true;
     grid.innerHTML = state.plates.length ? state.plates.slice().reverse().map(p => `
       <button type="button" class="pl-card" data-pid="${p.id}">
         <img src="${p.dataUrl}" alt="Zone ${p.roman} plate">
-        <small><strong>#${p.id} · Zone ${p.roman}</strong> (${p.place})<br>WiFi ${p.signalDbm ?? -40} dBm · Pueblo ${p.coveragePct ?? 20}% · ${p.focus}</small>
+        <small><strong>#${p.id} · WIFI ${p.frameWifiPct ?? p.coveragePct ?? 20}%</strong> (Z-${p.roman} ${p.place})<br>${p.signalDbm ?? -40} dBm · Alt +${p.antennaElev ?? 5}m · Forest ${p.unlockedGroves ?? 1}/${forestGroves.length}</small>
       </button>`).join("") : `<p class="tray-note">No coverage plates exposed yet. Press Space or click Expose 8×10.</p>`;
     grid.querySelectorAll("[data-pid]").forEach(btn => {
       btn.onclick = () => { const p = state.plates.find(x => x.id === +btn.dataset.pid); if (p) { big.src = p.dataUrl; big.hidden = false; } };
@@ -1632,7 +2154,7 @@
   $("sp-plates").addEventListener("click", openPlateBox);
   $("pl-close").addEventListener("click", () => { $("platebox").hidden = true; });
 
-  /* ---------- Input ---------- */
+  /* ---------- Input (Space Always Captures 8x10 WiFi Plates; X Handbrake) ---------- */
   const keys = Object.create(null);
   addEventListener("keydown", e => {
     if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
@@ -1646,11 +2168,7 @@
     else if (e.code === "KeyF") pourWifi();
     else if (e.code === "KeyH") { state.ppcOn = !state.ppcOn; updateHUD(); }
     else if (e.code === "KeyG") { state.groundGlass = !state.groundGlass; document.body.classList.toggle("ground-glass", state.groundGlass); }
-    else if (e.code === "Space") {
-      e.preventDefault();
-      if (state.drivingCart) wagon.speed *= .2;
-      else exposePlate();
-    }
+    else if (e.code === "Space") { e.preventDefault(); exposePlate(); }
     else if (e.code === "KeyQ") { state.tilt = clamp(state.tilt - .16, -.35, .35); updateHUD(); }
     else if (e.code === "KeyE") { state.tilt = clamp(state.tilt + .16, -.35, .35); updateHUD(); }
     else if (e.code >= "Digit1" && e.code <= "Digit6") { state.filterIdx = +e.code.slice(5) - 1; updateHUD(); }
@@ -1699,9 +2217,41 @@
   addEventListener("resize", resize);
   resize();
 
-  /* ---------- Raycast Meter & Simulation Loop ---------- */
+  /* ---------- Raycast Meter, In-Frame WiFi Coverage % & Simulation Loop ---------- */
   const raycaster = new T.Raycaster(), centerVec = new T.Vector2(0, 0);
   const donkeyHand = new T.Vector3(), halterOut = new T.Vector3(), saddlePos = new T.Vector3();
+  const roofWorldPos = new T.Vector3(), tmpRayDir = new T.Vector3(), tmpSample = new T.Vector3();
+  const wheelCoords = [[-.862, -1.71], [.862, -1.71], [-.882, 1.61], [.882, 1.61]];
+  const wheelH = [0, 0, 0, 0];
+
+  function computeFrameWifiPct() {
+    let sum = 0, count = 0;
+    const ox = camera.position.x, oy = camera.position.y, oz = camera.position.z;
+    for (let gy = 0; gy < 4; gy++) {
+      for (let gx = 0; gx < 5; gx++) {
+        const ndcX = lerp(-.68, .68, gx / 4), ndcY = lerp(-.68, .68, gy / 3);
+        tmpSample.set(ndcX, ndcY, .5).unproject(camera);
+        tmpRayDir.copy(tmpSample).sub(camera.position).normalize();
+        let hitX = ox + tmpRayDir.x * 55, hitZ = oz + tmpRayDir.z * 55;
+        for (let st = 4; st <= 136; st += 8) {
+          const sx = ox + tmpRayDir.x * st, sy = oy + tmpRayDir.y * st, sz = oz + tmpRayDir.z * st;
+          if (sy <= terrainHeight(sx, sz) + .2) { hitX = sx; hitZ = sz; break; }
+        }
+        let cov = smooth(state.signalRadius, state.signalRadius * .12, Math.hypot(hitX - donkey.state.x, hitZ - donkey.state.z));
+        for (const r of relays) {
+          if (!r.lit) continue;
+          const rad = r.id === "pueblo" ? 34 : 25;
+          cov = Math.max(cov, smooth(rad, rad * .12, Math.hypot(hitX - r.x, hitZ - r.z)));
+        }
+        for (const g of forestGroves) {
+          if (!g.unlocked) continue;
+          cov = Math.max(cov, smooth(22 * g.grow, 4, Math.hypot(hitX - g.x, hitZ - g.z)) * .9);
+        }
+        sum += cov; count++;
+      }
+    }
+    return clamp(Math.round((sum / count) * 100), 0, 100);
+  }
 
   function sampleMeter() {
     raycaster.setFromCamera(centerVec, camera);
@@ -1713,72 +2263,154 @@
     const proj = valleyProjection(state.x, state.z);
     state.currentZone = clamp(Math.round(proj.t * 10), 0, 10);
 
-    // Compute live WiFi dBm telemetry from Mistletoe + Wagon + active Relays
+    // Live antenna elevation, dBm, signal reach & in-frame viewfinder % (use donkey.group.position.y so frame 0 is accurate)
+    state.antennaElev = donkey.group.position.y + 2.35;
+    const pingBoost = state.pingTimer > 0 ? 1.28 : 1.0;
+    state.signalRadius = clamp((18 + Math.max(0, state.antennaElev - 2.0) * 4.4) * (.74 + .26 * state.wifiCharge) * pingBoost, 18, 128);
+
     const dM = Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z);
     const dW = Math.hypot(wagon.x - state.x, wagon.z - state.z);
     let bestRelayD = 1e9;
     for (const r of relays) if (r.lit) bestRelayD = Math.min(bestRelayD, Math.hypot(r.x - state.x, r.z - state.z));
     const eff = Math.min(dM * 1.15, dW * 1.45, bestRelayD * .85);
-    state.signalDbm = Math.round(clamp(-32 - eff * 1.1, -92, -32));
+    state.signalDbm = Math.round(clamp(-32 - eff * 1.05 + Math.max(0, state.antennaElev - 4) * .55, -92, -26));
     state.litRelays = relays.filter(r => r.lit).length;
     state.coveragePct = Math.round((state.litRelays / relays.length) * 100);
+    state.unlockedGroves = forestGroves.filter(g => g.unlocked).length;
+    state.unlockedTrees = forestGroves.reduce((s, g) => s + (g.unlocked ? g.trees : 0), 0);
+    state.frameWifiPct = computeFrameWifiPct();
   }
 
   let lastT = performance.now(), meterClock = 0;
   function step(dt) {
     const fwdInput = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
     const sideInput = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+    const brakeInput = keys.KeyX ? 1 : 0;
     const shiftPace = keys.ShiftLeft || keys.ShiftRight ? Math.max(1, state.gaitIdx) : state.gaitIdx;
 
+    if (state.pingTimer > 0) state.pingTimer = Math.max(0, state.pingTimer - dt);
+
     if (state.drivingCart) {
-      const topFwd = (keys.ShiftLeft || keys.ShiftRight) ? 17.5 : 13.5;
-      const targetSpd = fwdInput > 0 ? topFwd : fwdInput < 0 ? -5.8 : 0;
-      const accelRate = fwdInput === 0 ? 3.6 : 4.2;
-      wagon.speed = lerp(wagon.speed, targetSpd, 1 - Math.exp(-dt * accelRate));
-      if (Math.abs(wagon.speed) < .04 && fwdInput === 0) wagon.speed = 0;
+      const topFwd = (keys.ShiftLeft || keys.ShiftRight) ? 21.0 : 15.5;
+      const topRev = -6.8;
+      const prevSpeed = wagon.speed;
 
-      const steerRate = 1.65, steerDir = wagon.speed < -0.5 ? 1 : -1;
-      wagon.heading += sideInput * steerDir * steerRate * dt;
-      wagon.steerAngle = lerp(wagon.steerAngle, -sideInput * .38, 1 - Math.exp(-dt * 8));
+      // Torque curve & hill grade physics
+      const sinH = Math.sin(wagon.heading), cosH = Math.cos(wagon.heading);
+      const slopeAhead = (heightAt(wagon.x + sinH * 1.8, wagon.z + cosH * 1.8) - heightAt(wagon.x - sinH * 1.8, wagon.z - cosH * 1.8)) / 3.6;
+      const driveForce = fwdInput > 0 ? 15.5 : fwdInput < 0 ? -10.5 : 0;
+      const drag = wagon.speed * .62 + Math.sign(wagon.speed) * .28;
+      const brakeDecel = brakeInput ? -wagon.speed * 6.5 : 0;
+      const slopeDrag = clamp(slopeAhead * 4.2, -3.5, 4.5);
 
-      let nx = clamp(wagon.x + Math.sin(wagon.heading) * wagon.speed * dt, -172, 200);
-      let nz = clamp(wagon.z + Math.cos(wagon.heading) * wagon.speed * dt, -172, 200);
+      wagon.speed += (driveForce - drag - slopeDrag + brakeDecel) * dt;
+      wagon.speed = clamp(wagon.speed, topRev, topFwd);
+      if (Math.abs(wagon.speed) < .05 && fwdInput === 0) wagon.speed = 0;
+      const longAccel = (wagon.speed - prevSpeed) / Math.max(.008, dt);
+
+      // True Ackermann wheelbase steering (never spins in place at 0 speed!)
+      const maxSteer = .46 / (1 + Math.abs(wagon.speed) * .038);
+      const targetSteer = -sideInput * maxSteer;
+      wagon.steerAngle = lerp(wagon.steerAngle, targetSteer, 1 - Math.exp(-dt * (sideInput === 0 ? 6.5 : 9.0)));
+      const angVel = (wagon.speed / 3.32) * Math.tan(wagon.steerAngle);
+      wagon.heading += angVel * dt;
+
+      let nx = clamp(wagon.x + Math.sin(wagon.heading) * wagon.speed * dt, -230, 260);
+      let nz = clamp(wagon.z + Math.cos(wagon.heading) * wagon.speed * dt, -230, 260);
       for (const s of solids) {
-        const dx = nx - s.x, dz = nz - s.z, minD = s.r + 1.5;
+        const dx = nx - s.x, dz = nz - s.z, minD = s.r + 1.45;
         const d = Math.hypot(dx, dz);
-        if (d < minD && d > .001) { nx = s.x + (dx / d) * minD; nz = s.z + (dz / d) * minD; }
+        if (d < minD && d > .001) {
+          nx = s.x + (dx / d) * minD;
+          nz = s.z + (dz / d) * minD;
+          wagon.speed *= .88; // glancing bump instead of dead stop
+        }
       }
       const ch = channelFactor(nx, nz), th = inThresholdSpan(nx, nz);
-      if ((ch.river > .58 || ch.chasm > .58 || ch.crev > .58) && !(th && th.solidFactor >= .45)) wagon.speed = 0;
+      if ((ch.river > .65 || ch.chasm > .65 || ch.crev > .65) && !(th && th.solidFactor >= .45)) wagon.speed *= -.25;
       else { wagon.x = nx; wagon.z = nz; }
 
-      wagon.y = heightAt(wagon.x, wagon.z);
+      // 4-Wheel Independent Terrain Probes + Spring-Damper Suspension Heave/Pitch/Roll
+      const newCos = Math.cos(wagon.heading), newSin = Math.sin(wagon.heading);
+      let sumH = 0;
+      for (let i = 0; i < 4; i++) {
+        const [lxIn, lzIn] = wheelCoords[i];
+        const wx = wagon.x - lxIn * newCos - lzIn * newSin;
+        const wz = wagon.z + lxIn * newSin - lzIn * newCos;
+        wheelH[i] = heightAt(wx, wz);
+        sumH += wheelH[i];
+      }
+      const avgGround = sumH * .25;
+      const roadStep = avgGround - wagon.y;
+      wagon.y = avgGround;
+      wagon.suspY = clamp(wagon.suspY - roadStep, -.26, .26);
+
+      // Vertical spring-damper + pebble bump compliance
+      const bump = Math.sin((wagon.x + wagon.z) * 1.9) * .006 * Math.min(1, Math.abs(wagon.speed) * .12);
+      const springF = (-wagon.suspY + bump) * 56.0 - wagon.suspVY * 10.2;
+      wagon.suspVY += springF * dt;
+      wagon.suspY = clamp(wagon.suspY + wagon.suspVY * dt, -.24, .24);
+
+      const frontH = (wheelH[0] + wheelH[1]) * .5, rearH = (wheelH[2] + wheelH[3]) * .5;
+      const leftH = (wheelH[0] + wheelH[2]) * .5, rightH = (wheelH[1] + wheelH[3]) * .5;
+      const targetPitch = clamp(Math.atan2(frontH - rearH, 3.32) + clamp(longAccel * .011, -.08, .08), -.32, .32);
+      const targetRoll = clamp(Math.atan2(rightH - leftH, 1.74) + clamp(-wagon.speed * angVel * .014, -.10, .10), -.22, .22);
+
+      wagon.pitchV += ((targetPitch - wagon.pitch) * 44.0 - wagon.pitchV * 9.0) * dt;
+      wagon.pitch += wagon.pitchV * dt;
+      wagon.rollV += ((targetRoll - wagon.roll) * 44.0 - wagon.rollV * 9.0) * dt;
+      wagon.roll += wagon.rollV * dt;
+
       wagon.group.position.set(wagon.x, wagon.y, wagon.z);
       wagon.group.rotation.y = wagon.heading;
-      const hf = heightAt(wagon.x + Math.sin(wagon.heading) * 1.8, wagon.z + Math.cos(wagon.heading) * 1.8);
-      const hb = heightAt(wagon.x - Math.sin(wagon.heading) * 1.8, wagon.z - Math.cos(wagon.heading) * 1.8);
-      wagon.group.rotation.x = clamp((hb - hf) * .25, -.28, .28);
-      for (const w of wagon.wheels) {
+      wagon.chassis.position.y = wagon.suspY;
+      wagon.chassis.rotation.x = wagon.pitch;
+      wagon.chassis.rotation.z = wagon.roll;
+
+      for (let i = 0; i < 4; i++) {
+        const w = wagon.wheels[i];
+        w.mount.position.y = lerp(w.mount.position.y, clamp(.394 + (wheelH[i] - wagon.y), .14, .66), 1 - Math.exp(-dt * 24));
         w.spin.rotation.x -= (wagon.speed * dt) / .394;
         if (w.front) w.mount.rotation.y = wagon.steerAngle;
       }
 
+      // Spring-smoothed chase camera
       if (!dragLook) state.cartYawOffset *= Math.exp(-dt * 2.4);
       const camAngle = wagon.heading + state.cartYawOffset;
-      const camX = wagon.x - Math.sin(camAngle) * 8.2, camZ = wagon.z - Math.cos(camAngle) * 8.2;
-      const camY = Math.max(heightAt(camX, camZ) + 2.5, wagon.y + 3.8);
-      camera.position.set(camX, camY, camZ);
-      camera.lookAt(wagon.x + Math.sin(camAngle) * 9.5, wagon.y + 1.6 + state.cartPitchOffset * 5.0, wagon.z + Math.cos(camAngle) * 9.5);
+      const goalCamX = wagon.x - Math.sin(camAngle) * 8.6, goalCamZ = wagon.z - Math.cos(camAngle) * 8.6;
+      const goalCamY = Math.max(heightAt(goalCamX, goalCamZ) + 2.4, wagon.y + wagon.suspY + 4.35);
+      const camEase = 1 - Math.exp(-dt * 6.5);
+      state.chaseCamPos.set(
+        lerp(state.chaseCamPos.x, goalCamX, camEase),
+        lerp(state.chaseCamPos.y, goalCamY, camEase),
+        lerp(state.chaseCamPos.z, goalCamZ, camEase)
+      );
+      const goalLookX = wagon.x + Math.sin(camAngle) * 9.5, goalLookZ = wagon.z + Math.cos(camAngle) * 9.5;
+      const goalLookY = wagon.y + wagon.suspY + 2.2 + state.cartPitchOffset * 5.0;
+      state.chaseLookAt.set(
+        lerp(state.chaseLookAt.x, goalLookX, 1 - Math.exp(-dt * 8.5)),
+        lerp(state.chaseLookAt.y, goalLookY, 1 - Math.exp(-dt * 8.5)),
+        lerp(state.chaseLookAt.z, goalLookZ, 1 - Math.exp(-dt * 8.5))
+      );
+      camera.position.copy(state.chaseCamPos);
+      camera.lookAt(state.chaseLookAt);
       camera.updateMatrixWorld();
-      state.x = wagon.x; state.z = wagon.z; state.y = wagon.y + 1.8;
+      state.x = wagon.x; state.z = wagon.z; state.y = wagon.y + wagon.suspY + 2.0;
 
-      const tDX = wagon.x - Math.cos(wagon.heading) * 3.1 - Math.sin(wagon.heading) * 1.4;
-      const tDZ = wagon.z + Math.sin(wagon.heading) * 3.1 - Math.cos(wagon.heading) * 1.4;
-      const mdx = tDX - donkey.state.x, mdz = tDZ - donkey.state.z, md = Math.hypot(mdx, mdz);
-      if (state.leadMode === "lead" && md > 1.8) {
-        const want = Math.atan2(mdx, mdz), df = Math.atan2(Math.sin(want - donkey.state.heading), Math.cos(want - donkey.state.heading));
-        donkey.update(dt, { throttle: clamp(md * .45, 0, 1), steer: clamp(df * 1.6, -1, 1), pace: md > 6 ? 1 : 0, near: 1, drop: 0 }, heightAt);
-      } else donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, heightAt);
+      // Mistletoe leaps onto and stands centered atop the sprung Woody Station Wagon roof-deck!
+      wagon.group.updateMatrixWorld(true);
+      wagon.roofStandSpot.getWorldPosition(roofWorldPos);
+      state.roofMountT = Math.min(1, state.roofMountT + dt * 2.6);
+      const hopK = smooth(0, 1, state.roofMountT);
+      const arcY = Math.sin(state.roofMountT * Math.PI) * 1.45;
+      const dpx = lerp(state.roofJumpStart.x, roofWorldPos.x, hopK);
+      const dpy = lerp(state.roofJumpStart.y, roofWorldPos.y, hopK) + arcY;
+      const dpz = lerp(state.roofJumpStart.z, roofWorldPos.z, hopK);
+      donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, () => dpy);
+      donkey.state.x = dpx; donkey.state.y = dpy; donkey.state.z = dpz;
+      donkey.state.heading = lerp(donkey.state.heading, wagon.heading, clamp(dt * 8, 0, 1));
+      donkey.group.position.set(dpx, dpy, dpz);
+      donkey.group.rotation.y = wagon.heading;
     } else if (state.riding) {
       const prevH = donkey.state.heading;
       donkey.update(dt, { throttle: fwdInput, steer: -sideInput, pace: shiftPace, near: 0, drop: 0 }, heightAt);
@@ -1793,8 +2425,8 @@
       if (!state.onWagon) {
         const speed = keys.ShiftLeft || keys.ShiftRight ? 9.5 : 5.6;
         const sx = Math.sin(state.yaw), cz = Math.cos(state.yaw);
-        let nx = clamp(state.x + (-sx * fwdInput + cz * sideInput) * speed * dt, -180, 210);
-        let nz = clamp(state.z + (-cz * fwdInput - sx * sideInput) * speed * dt, -180, 210);
+        let nx = clamp(state.x + (-sx * fwdInput + cz * sideInput) * speed * dt, -230, 260);
+        let nz = clamp(state.z + (-cz * fwdInput - sx * sideInput) * speed * dt, -230, 260);
         let blocked = false;
         for (const s of solids) { if (Math.hypot(nx - s.x, nz - s.z) < s.r + .42) { blocked = true; break; } }
         if (Math.hypot(nx - wagon.x, nz - wagon.z) < 2.2) blocked = true;
@@ -1813,36 +2445,66 @@
       camera.updateMatrixWorld();
     }
 
-    // Auto-energize unlit WiFi Cistern Relays when Mistletoe or Wagon carries the cyan within 10 m
+    // Move sun shadow frustum smoothly with explorer so sharp shadows follow across entire valley & spurs
+    sun.position.set(state.x + 110, state.y + 145, state.z - 75);
+    sun.target.position.set(state.x, state.y - 2, state.z);
+    sun.target.updateMatrixWorld();
+
+    // Update live elevation & signal radius every frame
+    state.antennaElev = donkey.group.position.y + 2.35;
+    const pingBoost = state.pingTimer > 0 ? 1.28 : 1.0;
+    state.signalRadius = clamp((18 + Math.max(0, state.antennaElev - 2.0) * 4.4) * (.74 + .26 * state.wifiCharge) * pingBoost, 18, 128);
+
+    // Check elevation + signal reach unlocks for the 8 Filmstrip Forest Groves!
+    checkForestUnlocks();
+    const nowSec = performance.now() * .001;
+    for (const g of forestGroves) {
+      const targetG = g.unlocked ? 1.0 : .15;
+      g.grow = lerp(g.grow, targetG, 1 - Math.exp(-dt * 2.2));
+      for (let t = 0; t < g.meshes.length; t++) {
+        const item = g.meshes[t];
+        const sw = g.unlocked ? .06 * Math.sin(nowSec * 1.1 + item.phase) : 0;
+        item.mesh.scale.set(1, g.grow * item.targetH, 1);
+        item.mesh.rotation.z = sw;
+        if (g.tips[t]) {
+          g.tips[t].position.y = g.grow * item.targetH * 15.6 + .35;
+          g.tips[t].rotation.y = nowSec * (g.unlocked ? 1.8 : .4);
+        }
+      }
+    }
+
+    // Auto-energize unlit WiFi Cistern Relays when Mistletoe or Wagon carries the cyan within 12 m
     for (const r of relays) {
       if (r.lit) continue;
-      if (Math.hypot(r.x - donkey.state.x, r.z - donkey.state.z) < 10.0 || (state.drivingCart && Math.hypot(r.x - wagon.x, r.z - wagon.z) < 10.5)) {
+      if (Math.hypot(r.x - donkey.state.x, r.z - donkey.state.z) < 12.0 || (state.drivingCart && Math.hypot(r.x - wagon.x, r.z - wagon.z) < 12.5)) {
         igniteRelay(r);
       }
     }
 
-    // Threshold bridges solidify in Focus, in Wagon beam, or in Mistletoe's active WiFi radius (18 m)
+    // Threshold bridges solidify in Focus, in Wagon beam, or inside Mistletoe's elevation-scaled WiFi radius
     const stOct = STOPS[state.stopIdx].oct;
     for (const th of thresholds) {
       const distToBridge = Math.hypot(th.x - camera.position.x, th.z - camera.position.z);
       const logDiff = Math.abs(Math.log2(Math.max(1, distToBridge) / state.focusDist));
-      const inCartBeam = state.drivingCart && Math.hypot(th.x - wagon.x, th.z - wagon.z) < 22;
-      const inDonkeyWifi = Math.hypot(th.x - donkey.state.x, th.z - donkey.state.z) < 18;
+      const inCartBeam = state.drivingCart && Math.hypot(th.x - wagon.x, th.z - wagon.z) < 24;
+      const inDonkeyWifi = Math.hypot(th.x - donkey.state.x, th.z - donkey.state.z) < state.signalRadius;
       const targetSolid = (logDiff <= Math.max(0.45, stOct * 0.95) || inCartBeam || inDonkeyWifi) ? 1 : 0;
       th.solidFactor = lerp(th.solidFactor, targetSolid, 1 - Math.exp(-dt * 12));
       th.solidMat.opacity = lerp(0.24, 0.96, th.solidFactor);
       th.wireMat.opacity = lerp(0.82, 0.08, th.solidFactor);
     }
 
-    // Update Mistletoe's concentric WiFi contours & expanding 3D wavefronts
+    // Update Mistletoe's elevation-scaled concentric WiFi terrain contours & expanding 3D wavefronts
+    donkeyRings[0].radius = state.signalRadius * .28;
+    donkeyRings[1].radius = state.signalRadius * .62;
+    donkeyRings[2].radius = state.signalRadius;
     for (const rg of donkeyRings) updateTerrainRing(rg, donkey.state.x, donkey.state.z, .18);
-    const nowSec = performance.now() * .001;
     for (const wv of waveArcs) {
       const p = fract(nowSec * .42 + wv.phase);
-      const rad = lerp(.65, 8.8, p);
-      wv.mesh.position.set(donkey.state.x, donkey.state.y + 1.9 + p * 1.4, donkey.state.z);
-      wv.mesh.scale.setScalar(rad);
-      wv.mesh.material.opacity = (1 - p) * .78 * (.6 + .4 * state.wifiCharge);
+      const rad = lerp(.85, Math.min(22.0, state.signalRadius * .52), p);
+      wv.mesh.position.set(donkey.state.x, donkey.group.position.y + 2.0 + p * 1.9, donkey.state.z);
+      wv.mesh.scale.set(rad, 1, rad);
+      wv.mesh.material.opacity = (1 - p) * .84 * (.6 + .4 * state.wifiCharge);
     }
     whip.rotation.z = Math.sin(nowSec * 3.1) * .08;
 
@@ -1895,7 +2557,9 @@
     meterClock += dt;
     if (meterClock > .12) {
       meterClock = 0; sampleMeter();
-      $("thought").textContent = donkey.state.thought || "Broadcasting cyan WiFi across the ridge.";
+      $("thought").textContent = state.donkeyOnRoof
+        ? `Standing atop Woody roof (+${state.antennaElev.toFixed(1)}m)! Signal reaching ${Math.round(state.signalRadius)}m — climb ridges for more Filmstrip Forest.`
+        : (donkey.state.thought || "Broadcasting cyan WiFi across the ridge.");
       if (!audioEl.paused || audioEl.currentTime > 0) {
         const curT = audioEl.currentTime, dur = Number.isFinite(audioEl.duration) ? audioEl.duration : 283;
         $("tape-time").textContent = `${formatMMSS(curT)} / ${formatMMSS(dur)}`;
@@ -1912,10 +2576,13 @@
   }
 
   function loop(now) {
-    const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
+    if (lastT === null) lastT = now - 16;
+    const dt = clamp((now - lastT) / 1000, .001, .05); lastT = now;
     step(dt); renderFrame(); requestAnimationFrame(loop);
   }
+  lastT = null;
 
+  sampleMeter();
   updateHUD();
   requestAnimationFrame(loop);
 
@@ -1930,7 +2597,19 @@
       currentZone: state.currentZone,
       meteredZone: state.meteredZone,
       x: state.x, z: state.z, y: state.y,
-      wagon: { x: wagon.x, z: wagon.z, speed: wagon.speed },
+      wagon: {
+        x: wagon.x, z: wagon.z, y: wagon.y,
+        speed: wagon.speed, steerAngle: wagon.steerAngle,
+        suspY: +wagon.suspY.toFixed(3), pitch: +wagon.pitch.toFixed(3), roll: +wagon.roll.toFixed(3)
+      },
+      donkeyOnRoof: state.donkeyOnRoof,
+      roofMountT: state.roofMountT,
+      antennaElev: +state.antennaElev.toFixed(2),
+      signalRadius: +state.signalRadius.toFixed(1),
+      frameWifiPct: state.frameWifiPct,
+      unlockedGroves: state.unlockedGroves,
+      totalGroves: forestGroves.length,
+      unlockedTrees: state.unlockedTrees,
       drivingCart: state.drivingCart,
       riding: state.riding,
       onWagon: state.onWagon,
@@ -1944,11 +2623,40 @@
       thresholds: thresholds.map(t => ({ id: t.id, dist: Math.hypot(t.x - state.x, t.z - state.z), solid: +(t.solidFactor.toFixed(2)) }))
     }),
     getRelays: () => relays.map(r => ({ id: r.id, name: r.name, lit: r.lit })),
+    getForest: () => forestGroves.map(g => ({ id: g.id, name: g.name, minElev: g.minElev, unlocked: g.unlocked, grow: +g.grow.toFixed(2), trees: g.trees })),
     setMode: id => { const i = MODES.findIndex(m => m.id === id); if (i >= 0) { state.modeIdx = i; state.focusPulse = 1; updateHUD(); if (state.trayTab) renderTray(); } },
     setFocus: m => { state.focusDist = clamp(m, 1.2, 260); state.focusPulse = 1; updateHUD(); },
     setStop: i => { state.stopIdx = clamp(i, 0, STOPS.length - 1); updateHUD(); if (state.trayTab) renderTray(); },
     setFilter: i => { state.filterIdx = clamp(i, 0, FILTERS.length - 1); updateHUD(); if (state.trayTab) renderTray(); },
     setSoloLook: id => { state.soloLook = id ? LOOKS.findIndex(l => l.id === id) : -1; updateHUD(); if (state.trayTab) renderTray(); },
-    exposePlate, teleportZone, toggleRide, toggleWagonDeck, toggleCart, pumpWell, pourWifi, toggleTape
+    lookAtDonkey: () => {
+      const dx = donkey.state.x, dz = donkey.state.z;
+      state.riding = false; state.onWagon = false; state.drivingCart = false; state.donkeyOnRoof = false;
+      state.x = dx - 2.3; state.z = dz + 1.8; state.y = heightAt(state.x, state.z) + 1.55;
+      state.yaw = Math.atan2(-(dx - state.x), -(dz - state.z));
+      state.pitch = -.06; state.focusDist = 2.9;
+      camera.position.set(state.x, state.y, state.z);
+      camera.rotation.order = "YXZ"; camera.rotation.y = state.yaw; camera.rotation.x = state.pitch;
+      camera.updateMatrixWorld();
+      sampleMeter(); updateHUD();
+    },
+    driveToZone: zIdx => {
+      const Z = ZONES[clamp(zIdx, 0, 10)];
+      wagon.x = Z.x - 9.5; wagon.z = Z.pz - 7.2;
+      wagon.y = heightAt(wagon.x, wagon.z);
+      wagon.heading = Math.atan2(Z.x - wagon.x, Z.pz - wagon.z);
+      wagon.group.position.set(wagon.x, wagon.y, wagon.z);
+      wagon.group.rotation.y = wagon.heading;
+      if (!state.drivingCart) toggleCart();
+      state.roofMountT = 1;
+      state.chaseCamPos.set(
+        wagon.x - Math.sin(wagon.heading) * 8.6,
+        Math.max(heightAt(wagon.x - Math.sin(wagon.heading) * 8.6, wagon.z - Math.cos(wagon.heading) * 8.6) + 2.4, wagon.y + 4.35),
+        wagon.z - Math.cos(wagon.heading) * 8.6
+      );
+      state.chaseLookAt.set(wagon.x + Math.sin(wagon.heading) * 9.5, wagon.y + 2.2, wagon.z + Math.cos(wagon.heading) * 9.5);
+      sampleMeter(); updateHUD();
+    },
+    exposePlate, teleportZone, toggleRide, toggleWagonDeck, toggleCart, pumpWell, pourWifi, pingSignal, toggleTape
   };
 })();

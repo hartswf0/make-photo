@@ -149,10 +149,60 @@
       letter-spacing: .12em;
       color: var(--cyan);
       text-transform: uppercase;
-      background: rgba(14, 18, 22, .62);
-      padding: 2px 7px;
+      background: rgba(14, 18, 22, .68);
+      padding: 3px 8px;
       border-radius: 3px;
-      border: 1px solid rgba(24, 180, 255, .36);
+      border: 1px solid rgba(24, 180, 255, .44);
+      font-variant-numeric: tabular-nums;
+    }
+    /* Centered 8x10 WiFi Survey Viewfinder Crop Frame */
+    #cam-frame {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      height: min(54vh, 42vw);
+      aspect-ratio: 5 / 4;
+      pointer-events: none;
+      z-index: 4;
+      border: 1px dashed rgba(24, 180, 255, .24);
+      box-shadow: inset 0 0 0 1px rgba(241, 238, 230, .06);
+    }
+    #cam-frame::before, #cam-frame::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      pointer-events: none;
+    }
+    #cam-frame::before {
+      border-top: 2px solid rgba(24, 180, 255, .72);
+      border-bottom: 2px solid rgba(24, 180, 255, .72);
+      -webkit-mask: linear-gradient(90deg, #000 22px, transparent 22px, transparent calc(100% - 22px), #000 calc(100% - 22px));
+      mask: linear-gradient(90deg, #000 22px, transparent 22px, transparent calc(100% - 22px), #000 calc(100% - 22px));
+    }
+    #cam-frame::after {
+      border-left: 2px solid rgba(24, 180, 255, .72);
+      border-right: 2px solid rgba(24, 180, 255, .72);
+      -webkit-mask: linear-gradient(180deg, #000 22px, transparent 22px, transparent calc(100% - 22px), #000 calc(100% - 22px));
+      mask: linear-gradient(180deg, #000 22px, transparent 22px, transparent calc(100% - 22px), #000 calc(100% - 22px));
+    }
+    #cam-frame-tag {
+      position: absolute;
+      right: 6px;
+      top: -22px;
+      font: 600 9.5px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #dff4ff;
+      background: rgba(14, 18, 22, .72);
+      border: 1px solid rgba(24, 180, 255, .42);
+      padding: 3px 7px;
+      border-radius: 3px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    @media (max-width: 860px) {
+      #cam-frame { width: min(76vw, 340px); height: auto; }
     }
     #ppc-left-ticks {
       position: absolute;
@@ -371,9 +421,9 @@
     #toast {
       position: fixed;
       left: 50%;
-      top: max(22px, env(safe-area-inset-top));
+      top: max(12px, env(safe-area-inset-top));
       transform: translateX(-50%);
-      max-width: min(500px, calc(100vw - 40px));
+      max-width: min(410px, calc(100vw - 440px));
       margin: 0;
       padding: 8px 14px;
       border-radius: 6px;
@@ -569,6 +619,72 @@
       box-shadow: 0 3px 12px rgba(0, 0, 0, .5);
     }
     #expose-btn:hover { background: var(--cyan); border-color: var(--cyan); color: #081218; }
+    #wifi-meter-box {
+      width: 174px;
+      background: rgba(14, 18, 22, .84);
+      border: 1px solid rgba(24, 180, 255, .42);
+      border-radius: 6px;
+      padding: 6px 9px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    #finder-pct {
+      display: block;
+      font: 700 12px/1.15 Inter, system-ui, sans-serif;
+      letter-spacing: .09em;
+      color: var(--cyan);
+    }
+    #finder-alt {
+      display: block;
+      margin-top: 2px;
+      font: 500 9.5px/1.15 Inter, system-ui, sans-serif;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--paper);
+      opacity: .84;
+    }
+    .finder-track {
+      height: 4px;
+      margin-top: 5px;
+      border-radius: 2px;
+      background: rgba(241, 238, 230, .14);
+      overflow: hidden;
+    }
+    #finder-bar {
+      display: block;
+      height: 100%;
+      width: 34%;
+      background: linear-gradient(90deg, #0078ff, #22d0ff);
+      transition: width .16s ease;
+    }
+    #last-plate-card {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 7px 4px 4px;
+      border-radius: 6px;
+      border: 1px solid rgba(24, 180, 255, .48);
+      background: rgba(16, 19, 22, .88);
+      color: var(--paper);
+      cursor: pointer;
+      text-align: left;
+      font: 600 9.5px/1.2 Inter, system-ui, sans-serif;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+    #last-plate-card[hidden] { display: none; }
+    #last-plate-card:hover { border-color: var(--cyan); }
+    #last-plate-img {
+      width: 44px;
+      height: 35px;
+      object-fit: cover;
+      border-radius: 3px;
+      border: 1px solid rgba(241, 238, 230, .2);
+      display: block;
+    }
+    #last-plate-lbl strong { display: block; color: var(--cyan); font-size: 10px; }
 
     /* Bottom-center 11-Zone Step Wedge */
     #wedge-wrap {
@@ -732,6 +848,7 @@
   <div id="cloth" aria-hidden="true"></div>
   <div id="flash" aria-hidden="true"></div>
   <div id="reticle" aria-hidden="true"></div>
+  <div id="cam-frame" aria-hidden="true"><span id="cam-frame-tag">8×10 WIFI SURVEY · 34% IN FRAME · ALT +5.2m</span></div>
 
   <!-- Camcorder REC PPC Viewfinder Overlay (Donkey Water Sci-Fi) -->
   <div id="ppc-hud" aria-hidden="true">
@@ -777,7 +894,7 @@
       <button type="button" class="qpill" id="btn-cart" aria-pressed="false">Drive Wagon (C)</button>
       <button type="button" class="qpill" id="btn-ride" aria-pressed="false">Ride Mistletoe (V)</button>
       <button type="button" class="qpill" id="btn-pump">Pump Well (P)</button>
-      <button type="button" class="qpill cyan" id="btn-pour" aria-pressed="false">Pour WiFi (F)</button>
+      <button type="button" class="qpill cyan" id="btn-pour" aria-pressed="false">Pour / Ping WiFi (F)</button>
       <button type="button" class="qpill cyan" id="btn-jerikan" aria-pressed="true">Blue Jerikan</button>
       <button type="button" class="qpill" id="btn-ppc" aria-pressed="true">REC PPC (H)</button>
     </div>
@@ -800,6 +917,15 @@
   </div>
 
   <div id="focus-dock">
+    <div id="wifi-meter-box">
+      <b id="finder-pct">IN-FRAME WIFI 34%</b>
+      <span id="finder-alt">ALT +5.2m · FOREST 1/8</span>
+      <div class="finder-track"><em id="finder-bar"></em></div>
+    </div>
+    <button type="button" id="last-plate-card" hidden title="Open last exposed 8×10 WiFi Coverage Plate">
+      <img id="last-plate-img" alt="Last captured WiFi coverage plate">
+      <span id="last-plate-lbl"><strong>#1 · 34%</strong><span>Tap to inspect</span></span>
+    </button>
     <div class="focus-row">
       <div id="focus-readout">
         <b id="focus-dist-val">14.0 m</b>
@@ -811,10 +937,10 @@
   </div>
 
   <div id="keys">
-    <b>WASD</b> move / drive wagon / ride · <b>Drag</b> look<br>
-    <b>C</b> drive wagon · <b>V</b> ride Mistletoe · <b>B</b> roof-deck<br>
-    <b>P</b> pump well · <b>F</b> pour WiFi water · <b>[/]</b> focus<br>
-    <b>1–6</b> filters · <b>H</b> REC PPC · <b>Space</b> capture / brake
+    <b>WASD</b> move / drive / ride · <b>Drag</b> look<br>
+    <b>C</b> drive (donkey on roof) · <b>V</b> ride · <b>B</b> roof-deck<br>
+    <b>P</b> pump · <b>F</b> pour / signal ping · <b>X</b> brake · <b>[/]</b> focus<br>
+    <b>1–6</b> filters · <b>H</b> REC PPC · <b>Space</b> expose 8×10
   </div>
 
   <section id="platebox" hidden aria-label="Eleven-Zone Plate Box">
