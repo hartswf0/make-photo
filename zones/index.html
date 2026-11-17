@@ -1229,7 +1229,7 @@
       #focus-knob i { height: 22px; margin-top: -22px; }
     }
   </style>
-  <link rel="stylesheet" href="./mobile.css">
+  <link rel="stylesheet" href="./mobile.css?v=454f4434d6b8">
 </head>
 <body>
   <audio id="jerikan-audio" src="./cyan-jerikan.ogg" loop preload="auto"></audio>
@@ -1255,11 +1255,21 @@
   </header>
 
   <div id="field-tools" class="field-corner" role="group" aria-label="Expedition tool controls">
-    <button class="field-key" type="button" id="field-tool-next" aria-label="Lens band. Tap or swipe to change band.">
+    <button class="field-key" type="button" id="field-band-toggle" aria-expanded="false" aria-controls="field-band-picker"
+      aria-label="Lens band. Choose another control.">
       <span id="field-band-code" aria-hidden="true">B4</span>
       <span id="field-tool-name" aria-live="polite">Lens</span>
+      <span class="field-band-chevron" aria-hidden="true">⌄</span>
       <span id="field-tool-dots" aria-hidden="true"></span>
     </button>
+    <div id="field-band-picker" role="group" aria-label="Viewfinder control bands" hidden>
+      <button class="field-key" type="button" data-field-band="6" aria-pressed="false"><span aria-hidden="true">B6</span>Mode</button>
+      <button class="field-key" type="button" data-field-band="1" aria-pressed="false"><span aria-hidden="true">B1</span>Look</button>
+      <button class="field-key" type="button" data-field-band="4" aria-pressed="true"><span aria-hidden="true">B4</span>Lens</button>
+      <button class="field-key" type="button" data-field-band="2" aria-pressed="false"><span aria-hidden="true">B2</span>Burro</button>
+      <button class="field-key" type="button" data-field-band="5" aria-pressed="false"><span aria-hidden="true">B5</span>Plates</button>
+      <button class="field-key" type="button" data-field-band="3" aria-pressed="false"><span aria-hidden="true">B3</span>Clocks</button>
+    </div>
     <div id="field-lens">
       <span id="field-dial-index" aria-hidden="true"></span>
       <button class="field-key" type="button" id="field-setting-next" aria-label="Focus. Tap or swipe to change setting.">
@@ -1477,6 +1487,6 @@
   <script src="../field-plates/fonts.js"></script>
   <script src="../field-plates/three.js"></script>
   <script src="../donkey/donkey.js"></script>
-  <script src="./zones.js"></script>
+  <script src="./zones.js?v=94f1688c542a"></script>
 </body>
 </html>

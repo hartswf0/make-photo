@@ -1825,8 +1825,10 @@ void main(){
 
   /* ---------- Renderer & Post-Processing Pipeline ---------- */
   const canvas = $("view");
-  const fieldLayout = matchMedia("(max-width: 860px), (pointer: coarse)");
-  const phone = matchMedia("(pointer:coarse)").matches || Math.min(innerWidth, innerHeight) < 560;
+  const fieldLayoutQuery = matchMedia("(max-width: 860px), (orientation: portrait) and (max-width: 980px), (pointer: coarse)");
+  const forceFieldLayout = urlParams.get("mobile") === "1";
+  const useFieldLayout = () => forceFieldLayout || fieldLayoutQuery.matches;
+  document.body.classList.toggle("field-ui", useFieldLayout());
   $("loader-retry").addEventListener("click", () => location.reload());
   function showWorldFault(message, error) {
     if (error) console.error("THRESHOLD MONOLITH-3:", error);
@@ -1845,7 +1847,7 @@ void main(){
     showWorldFault("The 3D view could not start. Retry or return to the index.", error);
     return;
   }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, phone ? 1.25 : 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.toneMapping = T.NoToneMapping;
   let contextLost = false;
   canvas.addEventListener("webglcontextlost", () => {
@@ -2392,7 +2394,7 @@ void main(){
         float ed = length(vec2(rawX, rawY)) * 2.5;
         vec3 silverBase = raw;
         vec3 tr = texture2D(tTrail, uv).rgb;
-        float vg = smoothstep(1.36, 0.34, length((uv - 0.5) * vec2(1.10, 1.0)) * 1.48);
+        float vg = smoothstep(1.36, 0.34, length((uv - 0.5) * vec2(clamp(uRes.x / max(1.0, uRes.y), 0.78, 1.25), 1.0)) * 1.48);
 
         float zoneEff = clamp(l + wifiField * 0.25, 0.0, 1.0);
         vec3 outCol;
@@ -2600,7 +2602,7 @@ void main(){
     const donkey = window.makeDonkey({
       assetPath: "../donkey/",
       textures: mw.coatTextures,
-      shells: phone ? 6 : 11,
+      shells: useFieldLayout() ? 6 : 11,
       monochrome: true,
       contactShadow: true,
       alwaysHalter: true
@@ -2680,44 +2682,61 @@ void main(){
       pourGroup.add(m); return m;
     });
 
-    /* ---------- Sculpted Electric-Cyan & Sprocket Film Rogallo Glider Wing + Contrails ---------- */
+    /* ---------- Sculpted 18-Cell Arched Electric-Cyan & Sprocket Film Paraglider Wing + Contrails ---------- */
     const donkeyGlider = new T.Group();
-    donkeyGlider.position.set(0, 1.35, .06);
+    donkeyGlider.position.set(0, 1.25, .04);
     donkeyGlider.visible = false;
     donkeyRig.add(donkeyGlider);
-    const sailDarkMat = new T.MeshStandardMaterial({ color: 0x16181c, roughness: .6, side: T.DoubleSide });
-    const sailFilmMat = new T.MeshStandardMaterial({ map: forestFilmTex, color: 0x006eff, emissive: 0x0044c4, emissiveIntensity: .9, roughness: .35, side: T.DoubleSide });
-    const wingCellCount = 7, span = 5.2, halfSpan = span * .5;
+    const sailDarkMat = new T.MeshStandardMaterial({ color: 0x0d549c, emissive: 0x062d5e, emissiveIntensity: .62, roughness: .38, side: T.DoubleSide });
+    const canopyCyanMat = new T.MeshStandardMaterial({ color: 0x24b4ff, emissive: 0x0c66db, emissiveIntensity: .88, roughness: .30, side: T.DoubleSide });
+    const sailFilmMat = new T.MeshStandardMaterial({ map: forestFilmTex, color: 0x16a2ff, emissive: 0x0c5ed6, emissiveIntensity: .92, roughness: .32, side: T.DoubleSide });
+    const seamMat = new T.MeshBasicMaterial({ color: 0x0a111a });
+    const riserCordMat = new T.MeshBasicMaterial({ color: 0x5c5344 });
+    const wingCellCount = 18, wingSpan = 6.2, halfSpan = wingSpan * .5, maxTheta = 1.08, radSpan = halfSpan / Math.sin(maxTheta);
+    const wingPt = (theta, cFrac, lift = 0) => {
+      const ch = 1.56 * Math.cos(theta * .68);
+      const leadZ = .56 - (1 - Math.cos(theta)) * .68;
+      return [Math.sin(theta) * radSpan, 1.02 + Math.cos(theta) * 1.98 + lift, leadZ - cFrac * ch];
+    };
+    const pushQuad = (arr, uvs, a, b, c, d, u0, u1, v0, v1) => {
+      arr.push(...a, ...b, ...c, ...b, ...d, ...c);
+      uvs.push(u0, v0, u1, v0, u0, v1, u1, v0, u1, v1, u0, v1);
+    };
     for (let c = 0; c < wingCellCount; c++) {
-      const u0 = -1 + (c / wingCellCount) * 2, u1 = -1 + ((c + 1) / wingCellCount) * 2;
-      const x0 = u0 * halfSpan, x1 = u1 * halfSpan, xm = (x0 + x1) * .5;
-      const archY0 = 1.48 - u0 * u0 * .34, archY1 = 1.48 - u1 * u1 * .34;
-      const sweepZ0 = -Math.abs(u0) * .72, sweepZ1 = -Math.abs(u1) * .72;
-      const chord0 = 1.68 * (1 - Math.abs(u0) * .36), chord1 = 1.68 * (1 - Math.abs(u1) * .36);
-      const verts = new Float32Array([
-        x0, archY0, .75 + sweepZ0,
-        x1, archY1, .75 + sweepZ1,
-        x0, archY0 - .05, .75 + sweepZ0 - chord0,
-        x1, archY1 - .05, .75 + sweepZ1 - chord1
-      ]);
-      const uvs = new Float32Array([0, 1, 1, 1, 0, 0, 1, 0]);
+      const t0 = -maxTheta + (c / wingCellCount) * (2 * maxTheta);
+      const t1 = -maxTheta + ((c + 1) / wingCellCount) * (2 * maxTheta);
+      const tm = (t0 + t1) * .5;
+      const puff0 = .14 * Math.cos(t0 * .5), puff1 = .14 * Math.cos(t1 * .5), puffM = .20 * Math.cos(tm * .5);
+      const L0 = wingPt(t0, 0, 0), L1 = wingPt(t1, 0, 0), LM = wingPt(tm, 0, .03);
+      const C0 = wingPt(t0, .36, puff0), C1 = wingPt(t1, .36, puff1), CM = wingPt(tm, .36, puffM);
+      const T0 = wingPt(t0, 1.0, .01), T1 = wingPt(t1, 1.0, .01), TM = wingPt(tm, 1.0, .03);
+      const verts = [], uvs = [];
+      pushQuad(verts, uvs, L0, LM, C0, CM, 0, .5, 1, .64);
+      pushQuad(verts, uvs, LM, L1, CM, C1, .5, 1, 1, .64);
+      pushQuad(verts, uvs, C0, CM, T0, TM, 0, .5, .64, 0);
+      pushQuad(verts, uvs, CM, C1, TM, T1, .5, 1, .64, 0);
       const g = new T.BufferGeometry();
-      g.setAttribute("position", new T.BufferAttribute(verts, 3));
-      g.setAttribute("uv", new T.BufferAttribute(uvs, 2));
-      g.setIndex([0, 1, 2, 1, 3, 2]);
+      g.setAttribute("position", new T.Float32BufferAttribute(verts, 3));
+      g.setAttribute("uv", new T.Float32BufferAttribute(uvs, 2));
       g.computeVertexNormals();
-      const mat = c === 3 ? sailFilmMat : (c % 2 === 0 ? beaconCyanMat.clone() : sailDarkMat);
-      mat.side = T.DoubleSide;
+      const mat = (c >= 7 && c <= 10) ? sailFilmMat : (c % 2 === 0 ? canopyCyanMat : sailDarkMat);
       donkeyGlider.add(new T.Mesh(g, mat));
-      addPackBar(donkeyGlider, [xm, (archY0 + archY1) * .5 - .04, .18 + (sweepZ0 + sweepZ1) * .35], [c > 3 ? .18 : c < 3 ? -.18 : 0, .02, 0], .006, brassMat);
+      addPackBar(donkeyGlider, L0, C0, .0055, seamMat);
+      addPackBar(donkeyGlider, C0, T0, .0055, seamMat);
     }
-    addPackBar(donkeyGlider, [-halfSpan, 1.14, .03], [0, 1.48, .75], .024, sawWoodMat);
-    addPackBar(donkeyGlider, [halfSpan, 1.14, .03], [0, 1.48, .75], .024, sawWoodMat);
-    addPackBar(donkeyGlider, [-halfSpan * .74, 1.24, .12], [halfSpan * .74, 1.24, .12], .020, sawWoodMat);
-    addPackBar(donkeyGlider, [0, 1.48, .75], [0, 1.38, -.92], .022, sawWoodMat);
+    // Outer end seam
+    addPackBar(donkeyGlider, wingPt(maxTheta, 0, 0), wingPt(maxTheta, 1, .01), .0055, seamMat);
+    // 16 taut suspension risers fanning from Mistletoe's saddle lugs across the curved canopy
+    for (const cIdx of [1, 3, 5, 7, 10, 12, 14, 16]) {
+      const th = -maxTheta + ((cIdx + .5) / wingCellCount) * (2 * maxTheta);
+      const lug = [cIdx >= 9 ? .28 : -.28, .08, .06];
+      addPackBar(donkeyGlider, lug, wingPt(th, .14, .06), .0045, riserCordMat);
+      addPackBar(donkeyGlider, lug, wingPt(th, .68, .05), .0045, riserCordMat);
+    }
     const wingTipL = new T.Object3D(), wingTipR = new T.Object3D();
-    wingTipL.position.set(-halfSpan, 1.12, -.12);
-    wingTipR.position.set(halfSpan, 1.12, -.12);
+    const tipLP = wingPt(-maxTheta, .45, 0), tipRP = wingPt(maxTheta, .45, 0);
+    wingTipL.position.set(tipLP[0], tipLP[1], tipLP[2]);
+    wingTipR.position.set(tipRP[0], tipRP[1], tipRP[2]);
     donkeyGlider.add(wingTipL, wingTipR);
 
     // Twin Cyan Wingtip Contrail Ribbons in World Space
@@ -3274,7 +3293,7 @@ void main(){
     let fieldNotice = "", fieldNoticeUntil = 0;
     function toast(msg, shortMessage = msg) {
       if (state.introActive) return;
-      if (fieldLayout.matches) {
+      if (useFieldLayout()) {
         fieldNotice = shortMessage;
         fieldNoticeUntil = performance.now() + 3400;
         updateFieldNotice();
@@ -3403,7 +3422,7 @@ void main(){
 
     function updateHUD() {
       const st = STOPS[state.stopIdx], fl = FILTERS[state.filterIdx];
-      if (fieldLayout.matches) updateFieldHUD();
+      if (useFieldLayout()) updateFieldHUD();
       else updateDesktopHUD(MODES[state.modeIdx], fl, ZONES[state.currentZone]);
       const u = lookMat.uniforms;
       u.uFocusDist.value = state.focusDist; u.uDofOctaves.value = st.oct; u.uTilt.value = state.tilt;
@@ -3416,6 +3435,11 @@ void main(){
 
     function renderTray() {
       const tray = $("rack-tray"), tab = state.trayTab;
+      if (useFieldLayout()) {
+        state.trayTab = null;
+        tray.hidden = true;
+        return;
+      }
       ["mode", "look", "lens", "burro"].forEach(k => $("sp-" + k).setAttribute("aria-pressed", String(tab === k)));
       if (!tab) { tray.hidden = true; return; }
       tray.hidden = false;
@@ -3956,8 +3980,8 @@ void main(){
     }
 
     function captureBounds(width, height) {
-      const aspect = 5 / 4;
-      const margin = fieldLayout.matches ? .84 : 1;
+      const aspect = height > width ? 4 / 5 : 5 / 4;
+      const margin = useFieldLayout() ? .84 : 1;
       const w = Math.round(Math.min(width, height * aspect) * margin);
       const h = Math.round(Math.min(height, width / aspect) * margin);
       return { x: Math.round((width - w) / 2), y: Math.round((height - h) / 2), w, h };
@@ -3967,8 +3991,8 @@ void main(){
     function computeFrameWifiPct() {
       const emitters = sampleWifiEmitters();
       const bounds = captureBounds(canvas.width, canvas.height);
-      const spanX = fieldLayout.matches ? .92 * bounds.w / Math.max(1, canvas.width) : .68;
-      const spanY = fieldLayout.matches ? .92 * bounds.h / Math.max(1, canvas.height) : .68;
+      const spanX = useFieldLayout() ? .92 * bounds.w / Math.max(1, canvas.width) : .68;
+      const spanY = useFieldLayout() ? .92 * bounds.h / Math.max(1, canvas.height) : .68;
       let sum = 0, count = 0;
       const ox = camera.position.x, oy = camera.position.y, oz = camera.position.z;
       for (let gy = 0; gy < 4; gy++) {
@@ -4044,13 +4068,14 @@ void main(){
     function exposePlate() {
       if (contextLost) return;
       audio.shutter();
-      if (fieldLayout.matches) {
+      if (useFieldLayout()) {
         exposedUntil = performance.now() + 450;
       } else {
         const fl = $("flash"); fl.classList.remove("go"); void fl.offsetWidth; fl.classList.add("go");
       }
       sampleMeter(); renderFrame(performance.now() * .001);
-      const tmp = document.createElement("canvas"), cw = 640, ch = 512;
+      const portrait = canvas.height > canvas.width;
+      const tmp = document.createElement("canvas"), cw = portrait ? 512 : 640, ch = portrait ? 640 : 512;
       tmp.width = cw; tmp.height = ch;
       const tx = tmp.getContext("2d");
       const crop = captureBounds(canvas.width, canvas.height);
@@ -4089,6 +4114,10 @@ void main(){
     $("expose-btn").addEventListener("click", exposePlate);
 
     function openPlateBox() {
+      if (useFieldLayout()) {
+        selectFieldBand(fieldGroups.findIndex(group => group.name === "Plates"));
+        return;
+      }
       const box = $("platebox"), grid = $("pl-grid"), big = $("pl-big"), note = $("pl-note");
       const got = new Set(state.plates.map(p => p.zone));
       note.textContent = `${state.plates.length} Plate(s) · ${got.size}/11 Zones · Film Forest ${state.unlockedGroves}/${forestGroves.length} · Jerrycans ${state.filledCans}/${state.totalCans}.`;
@@ -4282,16 +4311,16 @@ void main(){
         { name: "Filter", value: () => state.filterIdx === 5 ? "#47B" : FILTERS[state.filterIdx].short, step: d => changeStep("filterIdx", FILTERS, d) },
         { name: "Cloth", value: () => state.groundGlass ? "Open cloth" : "Close cloth", run: () => setOptics("groundGlass", !state.groundGlass) },
         { name: "8×10 rig", value: () => state.rigDeployed ? "Pack tripod" : "Set tripod", run: deployRig },
-        { name: "View", value: () => state.ppcOn ? "Hide reticle" : "Show reticle", run: () => setOptics("ppcOn", !state.ppcOn) },
+        { name: "Framing", value: () => state.ppcOn ? "Hide guides" : "Show guides", run: () => setOptics("ppcOn", !state.ppcOn) },
         { name: "Chase zoom", value: () => `${state.chaseZoom.toFixed(1)} m`, show: () => currentMotion() !== "walk",
           step: d => setOptics("chaseZoom", clamp(state.chaseZoom * 1.12 ** d, 4.5, 22)) }
       ] },
       { band: 1, name: "Look", settings: [
-        { name: "Mode", value: () => MODES[state.modeIdx].label, step: d => changeStep("modeIdx", MODES, d) },
         { name: "Shader", value: () => state.soloLook < 0 ? "All zones" : LOOKS[state.soloLook].name,
           step: d => setOptics("soloLook", cycle(state.soloLook + 1, LOOKS.length + 1, d) - 1) }
       ] },
-      { band: 6, name: "Route", settings: [
+      { band: 6, name: "Mode", settings: [
+        { name: "Render", value: () => MODES[state.modeIdx].label, step: d => changeStep("modeIdx", MODES, d) },
         { name: "Focus zone", value: () => `Z‑${ROMAN[destinations[0]]}`, step: d => { destinations[0] = cycle(destinations[0], ZONES.length, d); },
           detail: () => ZONES[destinations[0]].name,
           run: () => {
@@ -4303,13 +4332,13 @@ void main(){
             applyFieldOptics();
             toast(`Focus · Zone ${ROMAN[z.z]}`);
           } },
-        { name: "Travel zone", value: () => shortZones[destinations[1]], detail: () => fieldZone().name,
+        { name: "Travel zone", value: () => `${ROMAN[destinations[1]]} · ${shortZones[destinations[1]]}`, detail: () => fieldZone().name,
           step: d => { destinations[1] = cycle(destinations[1], ZONES.length, d); },
           show: canTravel, confirm: true, run: fieldTravel("Travel zone", () => shortZones[destinations[1]], () => teleportZone(destinations[1])) },
         { name: "Summit jump", value: () => shortSummits[destinations[2]], detail: () => fieldSummit().name,
           step: d => { destinations[2] = cycle(destinations[2], SUMMITS.length, d); },
           show: () => canTravel() && canMount(), confirm: true,
-          run: fieldTravel("Summit jump", () => shortSummits[destinations[2]], () => launchSummit(destinations[2])) },
+          run: fieldTravel("Summit jump", () => fieldSummit().name, () => launchSummit(destinations[2])) },
         { name: "Glider", value: () => "Unfurl wing", show: canStartMotion, run: () => toggleGlide() },
         { name: "Wagon", value: () => "Drive", show: canStartMotion, run: toggleCart },
         { name: "Shuttle", value: () => state.region === "tetons" ? "To Reef" : state.region === "abyss" ? "To Half Dome" : "To Tetons",
@@ -4319,21 +4348,24 @@ void main(){
       ] },
       { band: 2, name: "Burro", settings: [
         { name: "Mount", value: () => state.riding ? "Dismount" : "Ride", show: canStartMotion, run: toggleRide },
-        { name: "Hydration", value: () => `Water · ${Math.round(state.donkeyWater * 100)}%`, run: pumpWell },
+        { name: "Burro water", value: () => `Pump · ${Math.round(state.donkeyWater * 100)}%`, run: pumpWell },
+        { name: "WiFi water", value: () => `${Math.round(state.wifiCharge * 100)}%` },
         { name: "Trust", value: () => `Soothe · ${Math.round(donkey.mind.trust * 100)}%`, run: () => { donkey.soothe(); toast("Mistletoe soothed"); } },
         { name: "Energy", value: () => `Feed · ${Math.round(donkey.state.stamina * 100)}%`, run: () => { donkey.feed(); toast("Mistletoe fed"); } },
         { name: "Bray", value: () => "Call", run: () => { donkey.bray(); toast("Mistletoe brayed"); } },
         { name: "Dance", value: () => state.danceTimer > 0 ? "Stop dance" : "Eskista", show: canDance, run: () => triggerDance() },
+        { name: "Pour", value: () => state.pourAnim ? "Stop pour" : "Deliver",
+          show: () => !!state.pourAnim || (canMount() && !!findPourTarget()), run: () => state.pourAnim ? stopPour() : pourWifi() },
         { name: "Delivery", value: () => `${state.filledCans}/${state.totalCans} cans` },
         { name: "Forest", value: () => `${state.unlockedGroves}/${forestGroves.length} groves` },
         { name: "Signal", value: () => `${Math.round(state.signalRadius)} m · ${state.signalDbm} dBm` },
         { name: "WiFi", value: () => "Ping", run: pingSignal }
       ] },
-      { band: 3, name: "Radio", settings: [
+      { band: 3, name: "Clocks", settings: [
+        { name: "Three clocks", value: () => audio.isOn() ? "Mute" : "Play", run: toggleClocks },
         { name: "Tape", value: () => audioEl.paused ? "Play tape" : "Pause tape", run: toggleTape },
         { name: "Cue ±10 s", value: () => formatMMSS(audioEl.currentTime || 0), step: d => seekTape((audioEl.currentTime || 0) + d * 10, false) },
         { name: "Source", value: () => state.spatialAudio ? "3D burro" : "Cabin", run: toggleSpatialAudio },
-        { name: "Clocks", value: () => audio.isOn() ? "Mute clocks" : "Play clocks", run: toggleClocks },
         { name: "Resonance", value: () => `Sync Z‑${ROMAN[state.resonantZone]}`, run: syncResonantZone }
       ] },
       { band: 5, name: "Plates", settings: [
@@ -4343,6 +4375,32 @@ void main(){
       ] }
     ].sort((a, b) => a.band - b.band);
     let fieldToolIndex = fieldGroups.findIndex(group => group.name === "Lens");
+    const fieldBandPicker = $("field-band-picker");
+    const fieldBandToggle = $("field-band-toggle");
+    const fieldBandButtons = [...fieldBandPicker.querySelectorAll("[data-field-band]")];
+
+    function setFieldBandOpen(open) {
+      const returnFocus = !open && fieldBandPicker.contains(document.activeElement);
+      fieldBandPicker.hidden = !open;
+      $("field-lens").hidden = open;
+      $("field-tools").toggleAttribute("data-bands", open);
+      fieldBandToggle.setAttribute("aria-expanded", String(open));
+      armedTravel = null;
+      if (returnFocus) fieldBandToggle.focus({ preventScroll: true });
+    }
+
+    function selectFieldBand(index) {
+      fieldToolIndex = index;
+      fieldSettingIndex = 0;
+      setFieldBandOpen(false);
+      const band = fieldGroups[index].band;
+      fieldBandButtons.forEach(button => button.setAttribute("aria-pressed", String(Number(button.dataset.fieldBand) === band)));
+      updateHUD();
+    }
+    fieldBandButtons.forEach(button => button.addEventListener("click", () => {
+      const index = fieldGroups.findIndex(group => group.band === Number(button.dataset.fieldBand));
+      selectFieldBand(index);
+    }));
 
     const nearbyActions = {
       stopPour: { label: "Stop pour", run: stopPour },
@@ -4350,6 +4408,7 @@ void main(){
       stopDance: { label: "Stop dance", run: () => triggerDance() },
       pour: { label: "Pour", run: pourWifi },
       pump: { label: "Pump", run: pumpWell },
+      jump: { label: "Base jump", run: () => toggleGlide() },
       ride: { label: "Ride", run: toggleRide }
     };
 
@@ -4357,6 +4416,7 @@ void main(){
       if (state.pourAnim) return nearbyActions.stopPour;
       if (state.donkeyCollapsed || state.donkeyWater < .22) return nearbyActions.water;
       if (state.danceTimer > 0) return nearbyActions.stopDance;
+      if (motion === "ride" && state.relElev > 35 && canStartMotion()) return nearbyActions.jump;
       if (motion !== "walk") return null;
       if (findPourTarget()) return nearbyActions.pour;
       if (Math.hypot(well.x - state.x, well.z - state.z) < 22) return nearbyActions.pump;
@@ -4367,8 +4427,7 @@ void main(){
     function fieldSettings() {
       return fieldGroups[fieldToolIndex].settings.filter(s => !s.show || s.show());
     }
-    function fieldSetting() {
-      const settings = fieldSettings();
+    function fieldSetting(settings = fieldSettings()) {
       return settings[fieldSettingIndex % settings.length];
     }
     function stepFieldValue(direction) {
@@ -4452,17 +4511,19 @@ void main(){
       orb.hidden = !lastPlate;
       if (lastPlate && orb.getAttribute("src") !== lastPlate.dataUrl) orb.src = lastPlate.dataUrl;
 
-      const setting = fieldSetting(), plate = setting.plate && state.plates[selectedFieldPlate()];
+      const settings = fieldSettings(), setting = fieldSetting(settings);
+      const plate = setting.plate && state.plates[selectedFieldPlate()];
       const adjustable = !!setting.step || (!!plate && state.plates.length > 1);
       const apply = $("field-apply"), value = $("field-value");
       const armed = setting.confirm && armedTravel === setting.name && performance.now() < armedUntil;
       const group = fieldGroups[fieldToolIndex];
       setText("field-tool-name", group.name);
       setText("field-band-code", `B${group.band}`);
-      $("field-tool-next").setAttribute("aria-label", `${group.name}, band ${group.band} of ${fieldGroups.length}. Tap or swipe to change band.`);
+      fieldBandToggle.setAttribute("aria-label", `${group.name}, band ${group.band}. Choose a control.`);
       toolDots.forEach((dot, i) => dot.toggleAttribute("data-lit", i === fieldToolIndex));
       setText("field-setting-name", setting.name);
-      $("field-setting-next").setAttribute("aria-label", `${setting.name}. Tap or swipe to change setting.`);
+      $("field-setting-next").disabled = settings.length < 2;
+      $("field-setting-next").setAttribute("aria-label", settings.length < 2 ? setting.name : `${setting.name}. Tap or swipe to change setting.`);
       $("field-lens").toggleAttribute("data-measure", ["Focus", "Aperture", "Chase zoom"].includes(setting.name));
       const indexMark = $("field-dial-index");
       indexMark.hidden = !adjustable;
@@ -4471,7 +4532,7 @@ void main(){
         Aperture: state.stopIdx / (STOPS.length - 1),
         "Front tilt": (state.tilt + .35) / .7,
         Filter: state.filterIdx / (FILTERS.length - 1),
-        Mode: state.modeIdx / (MODES.length - 1),
+        Render: state.modeIdx / (MODES.length - 1),
         Shader: (state.soloLook + 1) / LOOKS.length,
         "Chase zoom": (state.chaseZoom - 4.5) / 17.5,
         "Focus zone": destinations[0] / (ZONES.length - 1),
@@ -4534,12 +4595,12 @@ void main(){
     fieldClick("field-skip", () => finishIntro(false));
 
     let dialPointer = null;
-    function bindFieldTurn(id, step, enabled = () => true) {
+    function bindFieldTurn(id, step, tap = () => step(1)) {
       const key = $(id);
       let skipClick = false;
       key.setAttribute("data-turn", "");
       key.addEventListener("pointerdown", e => {
-        if (e.button !== 0 || dialPointer || !enabled()) return;
+        if (e.button !== 0 || dialPointer || key.disabled) return;
         dialPointer = { key, id: e.pointerId, start: e.clientX };
         skipClick = false;
         key.setPointerCapture(e.pointerId);
@@ -4550,34 +4611,30 @@ void main(){
         const delta = e.clientX - dialPointer.start;
         dialPointer = null;
         skipClick = Math.abs(delta) >= 14;
-        if (skipClick && enabled()) step(Math.sign(delta) * Math.max(1, Math.floor(Math.abs(delta) / 28)));
+        if (skipClick && !key.disabled) step(Math.sign(delta) * Math.max(1, Math.floor(Math.abs(delta) / 28)));
       });
       for (const type of ["pointercancel", "lostpointercapture"]) {
         key.addEventListener(type, e => { if (isDialPointer(e)) dialPointer = null; });
       }
       key.addEventListener("click", e => {
-        if (enabled() && (!skipClick || e.detail === 0)) step(1);
+        if (!key.disabled && (!skipClick || e.detail === 0)) tap();
         skipClick = false;
       });
       key.addEventListener("keydown", e => {
-        if (!enabled() || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+        if (key.disabled || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
         e.preventDefault();
         e.stopPropagation();
         step(e.key === "ArrowLeft" ? -1 : 1);
       });
     }
-    bindFieldTurn("field-tool-next", step => {
-      fieldToolIndex = cycle(fieldToolIndex, fieldGroups.length, step);
-      fieldSettingIndex = 0;
-      armedTravel = null;
-      updateHUD();
-    });
+    bindFieldTurn("field-band-toggle", step => selectFieldBand(cycle(fieldToolIndex, fieldGroups.length, step)),
+      () => setFieldBandOpen(fieldBandPicker.hidden));
     bindFieldTurn("field-setting-next", step => {
       fieldSettingIndex = cycle(fieldSettingIndex, fieldSettings().length, step);
       armedTravel = null;
       updateHUD();
     });
-    bindFieldTurn("field-value", stepFieldValue, () => !!fieldSetting().step);
+    bindFieldTurn("field-value", stepFieldValue);
 
     function setStick(x, y) {
       stickX = x; stickY = y;
@@ -4655,6 +4712,11 @@ void main(){
         updateHUD();
         return;
       }
+      if (e.code === "Escape" && !fieldBandPicker.hidden) {
+        e.preventDefault();
+        setFieldBandOpen(false);
+        return;
+      }
       keys[e.code] = true;
       if (e.code === "BracketLeft") { state.focusDist = clamp(state.focusDist * .86, 1.2, 900); state.focusPulse = 1; updateHUD(); }
       else if (e.code === "BracketRight") { state.focusDist = clamp(state.focusDist * 1.16, 1.2, 900); state.focusPulse = 1; updateHUD(); }
@@ -4680,6 +4742,7 @@ void main(){
     let lookPointer = null, lastPX = 0, lastPY = 0;
     canvas.addEventListener("pointerdown", e => {
       if (lookPointer !== null || e.button !== 0 || state.introActive || contextLost) return;
+      if (!fieldBandPicker.hidden) setFieldBandOpen(false);
       lookPointer = e.pointerId;
       lastPX = e.clientX;
       lastPY = e.clientY;
@@ -4731,23 +4794,34 @@ void main(){
     addEventListener("blur", clearInput);
     canvas.addEventListener("webglcontextlost", clearInput);
     document.addEventListener("visibilitychange", () => { if (document.hidden) clearInput(); });
-    fieldLayout.addEventListener("change", () => {
-      clearInput();
-      updateHUD();
-      resize();
-    });
+    fieldLayoutQuery.addEventListener("change", resize);
 
     let renderWidth = 0, renderHeight = 0;
     function resize() {
+      const fieldLayout = useFieldLayout();
+      const layoutChanged = camera.userData.fieldLayout !== fieldLayout;
+      if (layoutChanged) {
+        document.body.classList.toggle("field-ui", fieldLayout);
+        clearInput();
+        if (fieldLayout) {
+          state.trayTab = null;
+          $("rack-tray").hidden = $("platebox").hidden = true;
+        } else {
+          setFieldBandOpen(false);
+        }
+        updateHUD();
+      }
       const width = Math.max(2, canvas.clientWidth), height = Math.max(2, canvas.clientHeight);
-      if (renderWidth === width && renderHeight === height && camera.userData.fieldLayout === fieldLayout.matches) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (renderWidth === width && renderHeight === height && !layoutChanged && renderer.getPixelRatio() === dpr) return;
       renderWidth = width; renderHeight = height;
-      camera.userData.fieldLayout = fieldLayout.matches;
-      const dpr = renderer.getPixelRatio();
+      camera.userData.fieldLayout = fieldLayout;
+      if (renderer.getPixelRatio() !== dpr) renderer.setPixelRatio(dpr);
       const w = Math.floor(width * dpr), h = Math.floor(height * dpr);
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
-      camera.fov = fieldLayout.matches ? clamp(2 * Math.atan(Math.tan(47 * Math.PI / 360) / camera.aspect) * 180 / Math.PI, 47, 77) : 47;
+      const portraitBoost = clamp(Math.pow(1.05 / Math.max(.40, camera.aspect), .68), 1, 1.56);
+      camera.fov = clamp(2 * Math.atan(Math.tan(47 * Math.PI / 360) * portraitBoost) * 180 / Math.PI, 47, 72);
       camera.updateProjectionMatrix();
       rtScene.setSize(w, h); rtA.setSize(w, h); rtB.setSize(w, h);
       const crop = captureBounds(width, height), frame = $("cam-frame");
@@ -4773,6 +4847,8 @@ void main(){
       const turbo = keys.ShiftLeft || keys.ShiftRight || fieldHeld("ShiftLeft");
       const brakeInput = keys.KeyX || fieldHeld("KeyX");
       const nowSec = performance.now() * .001;
+      const portPull = camera.aspect < .85 ? 1.38 : 1;
+      const portLift = camera.aspect < .85 ? .85 : 0;
 
       if (state.pingTimer > 0) state.pingTimer = Math.max(0, state.pingTimer - dt);
 
@@ -4804,7 +4880,7 @@ void main(){
       lookMat.uniforms.uT.value = nowSec;
       state.focusPulse = Math.max(0, state.focusPulse - dt * 1.4);
       lookMat.uniforms.uFocusPulse.value = state.focusPulse;
-      if (!fieldLayout.matches) drawRadioViz(sp.bands12, state.beatPulse);
+      if (!useFieldLayout()) drawRadioViz(sp.bands12, state.beatPulse);
 
       if (state.introActive) {
         donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, (x, z) => driveSurfaceAt(x, z));
@@ -4848,8 +4924,8 @@ void main(){
         g.heading -= sideInput * 1.75 * dt;
         g.bank = lerp(g.bank, sideInput * .46, 1 - Math.exp(-dt * 8));
 
-        const targetSpd = (turbo ? 38.0 : (fwdInput > 0 ? 46.0 : (fwdInput < 0 ? 18.0 : 27.0))) * flowSpeedMult;
-        const targetVy = turbo ? 11.5 : (fwdInput > 0 ? -15.5 : (fwdInput < 0 ? 9.5 : -2.6));
+        const targetSpd = (turbo ? 38.0 : (fwdInput > .14 ? 46.0 : (fwdInput < -.14 ? 18.0 : 27.0))) * flowSpeedMult;
+        const targetVy = turbo ? 11.5 : (fwdInput > .14 ? -15.5 : (fwdInput < -.14 ? 9.5 : -2.6));
         g.speed = lerp(g.speed, targetSpd, 1 - Math.exp(-dt * 5.0));
         g.vy = lerp(g.vy, targetVy, 1 - Math.exp(-dt * 4.5));
 
@@ -4865,7 +4941,7 @@ void main(){
           state.riding = true; state.x = g.x; state.z = g.z; state.y = surfY + 1.65;
           state.yaw = g.heading + Math.PI;
           toast("Touchdown! Mistletoe lands softly on four hooves.", "Touchdown · mounted");
-          if (fieldLayout.matches) updateHUD();
+          if (useFieldLayout()) updateHUD();
         } else {
           donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 0, drop: 0 }, () => g.y + .22);
           donkey.state.x = g.x; donkey.state.y = g.y; donkey.state.z = g.z; donkey.state.heading = g.heading;
@@ -4887,14 +4963,13 @@ void main(){
           contrailR.line.geometry.attributes.position.needsUpdate = true;
         }
 
-        const camDist = state.chaseZoom * (fieldLayout.matches && camera.aspect < 1 ? 1.46 : .82);
-        const lookHdg = g.heading + state.cartYawOffset;
+        const camDist = state.chaseZoom * .82 * portPull, lookHdg = g.heading + state.cartYawOffset;
         tmpCamPos.set(
           g.x - Math.sin(lookHdg) * camDist,
-          Math.max(driveSurfaceAt(g.x - Math.sin(lookHdg) * camDist, g.z - Math.cos(lookHdg) * camDist) + 1.8, g.y + 3.0 + state.cartPitchOffset * 4.5),
+          Math.max(driveSurfaceAt(g.x - Math.sin(lookHdg) * camDist, g.z - Math.cos(lookHdg) * camDist) + 1.8, g.y + 3.0 + portLift + state.cartPitchOffset * 4.5),
           g.z - Math.cos(lookHdg) * camDist
         );
-        tmpCamLook.set(g.x + Math.sin(g.heading) * 14, g.y + 1.1, g.z + Math.cos(g.heading) * 14);
+        tmpCamLook.set(g.x + Math.sin(g.heading) * 14, g.y + (camera.aspect < .85 ? 1.85 : 1.1), g.z + Math.cos(g.heading) * 14);
         state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * 9.5));
         state.chaseLookAt.lerp(tmpCamLook, 1 - Math.exp(-dt * 11));
         applyLevelChaseCamera(state.chaseCamPos, state.chaseLookAt);
@@ -4902,10 +4977,10 @@ void main(){
         state.yaw = lookHdg + Math.PI;
       } else if (state.drivingCart) {
         /* --- CRUISER WOODY STATION WAGON (PHYSICS & COLLISIONS OFF + SUSPENSION SPRING) --- */
-        const targetSpeed = (brakeInput ? 0 : fwdInput > 0 ? (turbo ? 42.0 : 25.0) : fwdInput < 0 ? -15.0 : 0) * flowSpeedMult;
-        const accelRate = (fwdInput === 0 || brakeInput) ? 9.5 : 6.8;
+        const targetSpeed = (brakeInput ? 0 : fwdInput > .08 ? clamp(fwdInput, .35, 1) * (turbo ? 42.0 : 25.0) : fwdInput < -.08 ? fwdInput * 15.0 : 0) * flowSpeedMult;
+        const accelRate = (Math.abs(fwdInput) <= .08 || brakeInput) ? 9.5 : 6.8;
         wagon.speed = lerp(wagon.speed, targetSpeed, 1 - Math.exp(-dt * accelRate));
-        if (Math.abs(wagon.speed) < .06 && fwdInput === 0) wagon.speed = 0;
+        if (Math.abs(wagon.speed) < .06 && Math.abs(fwdInput) <= .08) wagon.speed = 0;
 
         const revFlip = (fwdInput < 0 && wagon.speed < -.5) ? -1 : 1;
         wagon.heading -= sideInput * revFlip * 1.85 * dt;
@@ -4946,9 +5021,9 @@ void main(){
         donkey.group.position.set(dpx, dpy, dpz);
         donkey.group.rotation.set(0, wagon.heading, 0);
 
-        const lookHdg = wagon.heading + state.cartYawOffset;
-        const camX = wagon.x - Math.sin(lookHdg) * state.chaseZoom, camZ = wagon.z - Math.cos(lookHdg) * state.chaseZoom;
-        tmpCamPos.set(camX, Math.max(driveSurfaceAt(camX, camZ) + 2.0, wagon.y + 4.35 + state.cartPitchOffset * 4.2), camZ);
+        const lookHdg = wagon.heading + state.cartYawOffset, wZoom = state.chaseZoom * portPull;
+        const camX = wagon.x - Math.sin(lookHdg) * wZoom, camZ = wagon.z - Math.cos(lookHdg) * wZoom;
+        tmpCamPos.set(camX, Math.max(driveSurfaceAt(camX, camZ) + 2.0, wagon.y + 4.35 + portLift + state.cartPitchOffset * 4.2), camZ);
         tmpCamLook.set(wagon.x + Math.sin(wagon.heading) * 10, wagon.y + 2.4, wagon.z + Math.cos(wagon.heading) * 10);
         state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * 9.5));
         state.chaseLookAt.lerp(tmpCamLook, 1 - Math.exp(-dt * 11));
@@ -4964,13 +5039,13 @@ void main(){
         donkey.group.position.set(donkey.state.x, donkey.state.y, donkey.state.z);
 
         const aheadX = donkey.state.x + Math.sin(donkey.state.heading) * 2.5, aheadZ = donkey.state.z + Math.cos(donkey.state.heading) * 2.5;
-        if (!state.donkeyCollapsed && donkey.group.position.y - driveSurfaceAt(aheadX, aheadZ) > 4.5 && fwdInput > 0) {
+        if (!state.donkeyCollapsed && donkey.group.position.y - driveSurfaceAt(aheadX, aheadZ) > 4.5 && fwdInput > .15) {
           toggleGlide({ x: donkey.state.x, z: donkey.state.z, boostY: 2.0, heading: donkey.state.heading, name: "Cliff Edge Auto-Launch!" });
         } else {
           const lookHdg = donkey.state.heading + state.cartYawOffset;
-          const distBack = fieldLayout.matches ? 5.4 * state.chaseZoom / 9.2 : 5.4;
+          const distBack = 5.4 * portPull * (useFieldLayout() ? state.chaseZoom / 9.2 : 1);
           const camX = donkey.state.x - Math.sin(lookHdg) * distBack, camZ = donkey.state.z - Math.cos(lookHdg) * distBack;
-          tmpCamPos.set(camX, Math.max(driveSurfaceAt(camX, camZ) + 1.5, donkey.group.position.y + 2.35 + state.cartPitchOffset * 2.6), camZ);
+          tmpCamPos.set(camX, Math.max(driveSurfaceAt(camX, camZ) + 1.5, donkey.group.position.y + 2.35 + portLift * .7 + state.cartPitchOffset * 2.6), camZ);
           tmpCamLook.set(donkey.state.x + Math.sin(donkey.state.heading) * 8.0, donkey.group.position.y + 1.35, donkey.state.z + Math.cos(donkey.state.heading) * 8.0);
           state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * 11));
           state.chaseLookAt.lerp(tmpCamLook, 1 - Math.exp(-dt * 13));
@@ -5223,14 +5298,14 @@ void main(){
               : state.donkeyOnRoof
                 ? `Cruiser Woody (No Collisions/Fences) · Cans ${state.filledCans}/${state.totalCans} · Next ${state.nextRelayName.split(" ")[0]} ${Math.round(state.nextRelayDist)}m.`
                 : `Unified World (${state.region === "ridge" ? "Half Dome" : state.region === "abyss" ? "Abyssal Sanctuary" : "Grand Teton"}) · Song ${SONG_EPOCHS[state.songEpochIdx].hint}`;
-        if (!fieldLayout.matches && (!audioEl.paused || audioEl.currentTime > 0)) {
+        if (!useFieldLayout() && (!audioEl.paused || audioEl.currentTime > 0)) {
           const curT = audioEl.currentTime, dur = Number.isFinite(audioEl.duration) ? audioEl.duration : 283;
           $("tape-time").textContent = `${formatMMSS(curT)} / ${formatMMSS(dur)}`;
           if ($("tape-fill")) $("tape-fill").style.width = `${clamp((curT / dur) * 100, 0, 100)}%`;
           $("ppc-timecode").textContent = `01:${String(12 + Math.floor(curT / 60)).padStart(2, "0")}:${String(Math.floor(curT % 60)).padStart(2, "0")}`;
           let line = LYRICS[0][1]; for (const [ts, txt] of LYRICS) if (curT >= ts) line = txt;
           $("lyric-line").textContent = line;
-        } else if (!fieldLayout.matches) $("ppc-timecode").textContent = `01:14:${String(17 + (Math.floor(nowSec) % 42)).padStart(2, "0")}`;
+        } else if (!useFieldLayout()) $("ppc-timecode").textContent = `01:14:${String(17 + (Math.floor(nowSec) % 42)).padStart(2, "0")}`;
         updateHUD();
       }
       audio.tick(dt, state.meteredZone);
@@ -5282,6 +5357,12 @@ void main(){
           x: +state.x.toFixed(2), z: +state.z.toFixed(2), y: +state.y.toFixed(2),
           groundY: +groundAt(state.x, state.z).toFixed(2),
           cameraRollDeg: rollDeg,
+          mobileUI: useFieldLayout(),
+          fov: +camera.fov.toFixed(1),
+          dpr: renderer.getPixelRatio(),
+          fieldBand: fieldGroups[fieldToolIndex].name,
+          fieldSetting: fieldSetting().name,
+          bandPickerOpen: !fieldBandPicker.hidden,
           wagon: { x: wagon.x, z: wagon.z, y: wagon.y, speed: wagon.speed, steerAngle: wagon.steerAngle, roll: wagon.roll, pitch: +wagon.pitch.toFixed(3) },
           donkeyOnRoof: state.donkeyOnRoof,
           gliding: state.gliding,
@@ -5356,6 +5437,7 @@ void main(){
       },
       exposePlate, teleportZone, toggleRide, toggleCart, toggleGlide, launchSummit, toggleRegion,
       pumpWell, pourWifi, pingSignal, toggleTape, toggleLidar, syncResonantZone, triggerDance, toggleSpatialAudio, deployRig, seekTape,
+      setTouchStick: (fx, fy) => setStick(clamp(fx, -1, 1), -clamp(fy, -1, 1)),
       playIntro: startPrologue, skipIntro: () => finishIntro(false)
     };
   }
