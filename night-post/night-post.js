@@ -1,0 +1,6468 @@
+/* THRESHOLD · MONOLITH-3 Open World × Donkey Water Sci-Fi × 11 Tonal Zone Worlds
+ * - Streams real USGS Grand Teton (Snake River Overlook, Bluff Trail, Silver Ford, Oxbow, Far-Bank)
+ *   and Yosemite Half Dome terrain, planar-reflected river, and 11,800+ instanced trees/stones from ../MONOLITH-3.html.
+ * - Physics & Collisions OFF: crisp cruiser 1940s Woody Station Wagon with Mistletoe riding the roof-deck.
+ * - Donkey Base-Jumping & Rogallo Valley Fly-Glide (KeyJ / cliff launch) with wingtip cyan contrails.
+ * - WiFi Water Cyan Rain strictly constrained to active Donkey / Cistern Relay / Filmstrip Forest coverage domes.
+ * - 14 High-Definition GPU Zone Shaders, Live IN-FRAME WIFI % 8x10 Viewfinder & Cyan Jerikan Over Cosmic Addis tape deck. */
+(function () {
+  "use strict";
+  const T = window.THREE;
+  const TAU = Math.PI * 2;
+  const $ = id => document.getElementById(id);
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  const fract = v => v - Math.floor(v);
+  const hash2 = (x, z) => fract(Math.sin(x * 127.1 + z * 311.7 + 4.3) * 43758.5453123);
+  function seedRandom(seed) {
+    return () => {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+  }
+  function inside(bounds, x, z) {
+    const [west, east, south, north] = bounds;
+    return x >= west && x <= east && z >= -north && z <= -south;
+  }
+
+  /* ---------- Exact MONOLITH-3 Shaders (from monolith3/game.js) ---------- */
+  const noiseGLSL = `
+float hash21(vec2 p) {
+  vec3 q = fract(vec3(p.xyx) * .1031);
+  q += dot(q, q.yzx + 33.33);
+  return fract((q.x + q.y) * q.z);
+}
+float noise2(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3. - 2. * f);
+  return mix(mix(hash21(i), hash21(i + vec2(1,0)), f.x),
+             mix(hash21(i + vec2(0,1)), hash21(i + 1.), f.x), f.y);
+}
+float fbm(vec2 p) {
+  mat2 turn = mat2(.80, .60, -.60, .80);
+  return noise2(p) * .53
+       + noise2(turn * p * 2.07 + 17.) * .26
+       + noise2(turn * turn * p * 4.19 + 31.) * .14
+       + noise2(p * 8.13 + 10.) * .07;
+}
+float film(float linearValue) {
+  float gamma = pow(max(linearValue, 0.), .44);
+  float toe = smoothstep(0., .16, gamma);
+  return clamp(gamma * mix(.70, 1., toe) * .98 + .012, .012, .96);
+}
+float paper(float gray) {
+  float grain = hash21(gl_FragCoord.xy + 31.7) - .5;
+  return clamp(gray + grain * (.019 + .010 * (1. - gray)), 0., 1.);
+}`;
+
+  const stormGLSL = `
+uniform float uTime;
+uniform sampler2D uSky;
+uniform float uGlass;
+uniform vec3 sun;
+float skyPlate(vec2 uv) {
+  vec2 drift = vec2((uTime-8.)*.0027,-(uTime-8.)*.0008);
+  vec2 place = vec2(.065,.025) + uv * vec2(.865,.89) + drift;
+  float photo = texture2D(uSky,place).r;
+  float sky=mix(.10,.85,pow(photo,.95));
+  return sky*(1.-.58*step(2.5,uGlass)*step(uGlass,3.5));
+}
+float lightWindow(vec2 p) {
+  vec2 q = (p + vec2(-uTime * 66., uTime * 17.)) * .00019;
+  float bank = fbm(q + vec2(14.6,-2.8));
+  float breakX = -1350. - uTime*39.;
+  vec2 window=(p-vec2(breakX,400.))*vec2(.00066,.00055);
+  float opening = exp(-dot(window,window));
+  return (.40 + .42*smoothstep(.37,.71,bank) + .33*opening)*(.64+.52*sun.y);
+}`;
+
+  const meshVertex = `
+varying vec3 vWorld, vNormal;
+varying vec2 vUV;
+void main() {
+  vWorld = (modelMatrix * vec4(position,1.)).xyz;
+  vNormal = mat3(modelMatrix) * normal;
+  vUV = uv;
+  gl_Position = projectionMatrix * viewMatrix * vec4(vWorld,1.);
+}`;
+
+  const skyVertex = `
+varying vec2 vUV;
+void main() {
+  vUV = uv;
+  gl_Position = vec4(position.xy, .999995, 1.);
+}`;
+
+  const surfaceGLSL = `
+uniform sampler2D uRock, uScree, uGround, uCobbles, uGeology, uCanopy, uFlow, uGravel;
+uniform vec4 uGeoBounds, uCanopyBounds, uFlowBounds;
+vec2 fieldUV(vec2 xz, vec4 bounds) {
+  return (xz - bounds.xy) * bounds.zw;
+}
+float inField(vec2 uv) {
+  return step(0.,uv.x)*step(uv.x,1.)*step(0.,uv.y)*step(uv.y,1.);
+}
+vec3 triplanar(sampler2D detail, vec3 p, vec3 n) {
+  vec3 weights = pow(abs(n),vec3(4.));
+  weights /= dot(weights,vec3(1.));
+  return texture2D(detail,p.yz*vec2(.79,.89)).rgb*weights.x
+       + texture2D(detail,p.xz).rgb*weights.y
+       + texture2D(detail,p.xy*vec2(.91,.83)).rgb*weights.z;
+}
+vec3 bumpFromHeight(vec3 position, vec3 normal, float height, float strength) {
+  vec3 dx = dFdx(position), dy = dFdy(position);
+  vec3 rx = cross(dy,normal), ry = cross(normal,dx);
+  float det = dot(dx,rx);
+  vec3 gradient = sign(det)*(dFdx(height)*rx+dFdy(height)*ry);
+  return normalize(abs(det)*normal - gradient*strength);
+}
+float air(float dist, float height) {
+  return (1. - exp(-dist*.000033)) * (1. - smoothstep(70.,2190.,height)*.81);
+}
+float hazeValue(vec2 xz) {
+  return .087 + .035 * lightWindow(xz);
+}
+vec3 gravelSample(vec2 p) {
+  vec2 turn=mat2(.71,-.71,.71,.71)*p;
+  vec3 coarse=texture2D(uCobbles,turn*.117).rgb;
+  vec3 fine=texture2D(uCobbles,p*.37+vec2(.39,.18)).rgb;
+  return mix(coarse,fine,.44);
+}
+float willowClumps(vec2 p) {
+  vec2 scaled=p*.28;
+  vec2 cell=floor(scaled);
+  float d=2.;
+  for(int j=0;j<2;j++)for(int i=0;i<2;i++) {
+    vec2 n=cell+vec2(float(i),float(j));
+    vec2 offset=vec2(hash21(n+12.1),hash21(n+26.5))-.5;
+    vec2 diff=(scaled-n-offset*.68)*vec2(1.12,.83);
+    float size=mix(.58,1.17,hash21(n+2.7));
+    d=min(d,length(diff)*size);
+  }
+  return 1.-smoothstep(.12,.36,d);
+}`;
+
+  const printTerrainFragment = `
+varying vec3 vWorld, vNormal;
+varying vec2 vUV;
+uniform sampler2D uSurface;
+uniform sampler2D uMountainRelief;
+uniform vec4 uMountainBounds;
+uniform float uUnlit;
+${noiseGLSL}
+${stormGLSL}
+${surfaceGLSL}
+void main() {
+  vec3 p = vWorld;
+  vec3 n = normalize(vNormal);
+  vec2 local = p.xz;
+  vec3 fields = texture2D(uSurface,vUV).rgb;
+  vec2 flowUV = fieldUV(local,uFlowBounds);
+  float flowCoverage = inField(flowUV);
+  float bank = texture2D(uFlow,flowUV).b*flowCoverage*160. - 32.;
+  float aerial = fields.r;
+  float d = length(cameraPosition - p);
+  float slope = 1. - n.y;
+  float cloudLight = lightWindow(local);
+  vec3 form = texture2D(uGeology,fieldUV(local,uGeoBounds)).rgb;
+  vec2 foliageUV = fieldUV(local,uCanopyBounds);
+  vec3 canopy = texture2D(uCanopy,foliageUV).rgb*inField(foliageUV);
+  float bankGravel=(1.-smoothstep(3.,19.,abs(bank)))*flowCoverage;
+  float alpine = smoothstep(255.,800.,p.y);
+  float nearLand = 1.-smoothstep(1000.,4700.,d);
+  vec2 bar=texture2D(uGravel,flowUV).rg*flowCoverage;
+  float exposedBar=bar.x;
+  float wash = fbm(vec2(local.x*.005+2.,local.y*.006));
+  float rockFace = alpine*smoothstep(.035,.42,slope);
+  float softFloor = (1.-alpine)*(1.-bankGravel);
+  vec3 faceCoarse = triplanar(uRock,p/288. + vec3(.08,.16,.07),n);
+  vec3 faceFine = triplanar(uRock,p/68. + vec3(.17,.09,.13),n);
+  vec3 scree = triplanar(uScree,p/104. + vec3(.07,.31,.24),n);
+  vec3 floor = vec3(.52,.55,.78);
+  if (nearLand > .002) {
+    vec3 closeFloor = texture2D(uGround,local*.19).rgb;
+    vec3 soil = texture2D(uScree,local*.069 + vec2(.26,.17)).rgb;
+    floor = mix(mix(soil,closeFloor,.69),soil,min(1.,.48*wash+bankGravel*.38+exposedBar*.64));
+  }
+  float rockRelief = (faceCoarse.g - .52)*13.7 + (faceFine.g - .51)*2.2;
+  rockRelief = mix((scree.g-.5)*4.9,rockRelief,rockFace);
+  float gravelCover=max(bankGravel,exposedBar);
+  vec3 cobble=vec3(.5);
+  if(gravelCover>.005)cobble=gravelSample(local);
+  float clumps=0.;
+  if(bar.y>.03)clumps=willowClumps(local);
+  float shrub=clumps*smoothstep(.16,.63,bar.y);
+  float leafLitter=mix((floor.g-.5)*.53,(cobble.g-.5)*.54+shrub*.23,gravelCover)*nearLand;
+  vec3 litNormal = bumpFromHeight(p,n,mix(leafLitter,rockRelief,alpine),.72);
+  float diff = max(0.,dot(litNormal,sun));
+  float formShade = 1.-form.g*.61*alpine;
+  float weather = cloudLight * formShade;
+  float rockLum = (.019 + .104 * pow(mix(scree.r,faceCoarse.r,rockFace),1.8)) * mix(.64,1.12,faceFine.r);
+  rockLum *= .68 + .37*mix(scree.b,faceCoarse.b,rockFace);
+  vec2 mountainUV=fieldUV(local,uMountainBounds);
+  float mapped=alpine*inField(mountainUV);
+  vec3 relief=texture2D(uMountainRelief,mountainUV).rgb;
+  float leftExposure=smoothstep(2200.,6400.,p.z);
+  float snowHeight = 920. + 300.*(wash-.5) - 270.*n.z - 290.*leftExposure + 190.*smoothstep(2000.,4200.,-p.z);
+  float snowBase = smoothstep(snowHeight-90.,snowHeight+345.,p.y);
+  float mineral=triplanar(uRock,p/141. + vec3(.18,.50,.62),n).g;
+  float crack = mix(faceCoarse.g,faceFine.g,.34) + .66*form.r - .27*form.b + .24*(mineral-.5);
+  float gullies=relief.r*.66-relief.b*.32+(mineral-.5)*.32+.34*form.r+.40;
+  crack=mix(crack,gullies,mapped*.58);
+  float snow = snowBase * smoothstep(.48,.70,crack) * (1.-smoothstep(.43,.89,slope));
+  float drift=snowBase*smoothstep(.22,.71,relief.r)*(1.-smoothstep(.54,.88,relief.b));
+  snow=max(snow,drift*mapped*.46);
+  float rockShade = rockLum * (.17 + 1.16*diff*weather);
+  float snowShade = (.28 + .74 * diff*weather) * (.58 + .39*faceFine.g + .14*form.r);
+  rockShade*=mix(1.,.43+.74*relief.g+.17*relief.b,mapped*.86);
+  snowShade*=mix(1.,.67+.89*relief.g,mapped*.68);
+  float alpineShade = mix(rockShade,snowShade,snow);
+  float landBase = pow(max(aerial,.025),1.79) * (.69 + .42*wash);
+  float wetReach=flowCoverage*smoothstep(-2.65,-.16,bank+(cobble.g-.5)*1.1);
+  float sediment=fbm(local*vec2(.109,.096)+vec2(6.1,-9.3));
+  float gravel=(.056+.185*pow(cobble.r,1.42))*(.55+.71*cobble.b)*(.72+.51*sediment);
+  gravel*=1.-.72*shrub-.12*smoothstep(.31,.79,bar.y);
+  gravel*=1.-.35*wetReach;
+  float ground=mix(landBase*(.64+.58*floor.r),gravel,gravelCover*.96);
+  float shadow = 1.-canopy.b*.50*(1.-exposedBar);
+  float landShade = ground * (.52 + .66*diff*weather) * shadow * (1.+.16*exposedBar);
+  landShade *= 1.-canopy.g*.20*(1.-exposedBar);
+  float value = mix(landShade,alpineShade,alpine);
+  float lowMist=air(d,p.y)*(1.-.46*mapped);
+  value = mix(value,hazeValue(local),lowMist*.61);
+  float nearShade = 1.-smoothstep(78.,450.,d);
+  value *= 1.-nearShade*.78;
+  value += nearShade*softFloor * .006 * (floor.r+.21)*floor.b;
+  gl_FragColor = vec4(vec3(paper(film(value))),1.);
+}`;
+
+  const riverFragment = `
+varying vec3 vWorld;
+varying vec2 vUV;
+uniform sampler2D uFlowCoordinates;
+uniform vec3 uForward, uRight, uUp;
+uniform vec2 uShift;
+uniform float uTan, uAspect, uUnlit;
+uniform vec2 uReflectionSize;
+uniform sampler2D uBankReflection, uReachBed;
+uniform vec4 uReachBounds;
+uniform mat4 uReflectionCamera;
+${noiseGLSL}
+${stormGLSL}
+${surfaceGLSL}
+vec2 wave(vec2 p,vec2 dir,float wavelength,float steepness,float offset,float speed) {
+  float phase = dot(p,dir)*(6.2831853/wavelength) + offset - uTime*speed;
+  float footprint = fwidth(phase);
+  float fade = 1. - smoothstep(.42,2.5,footprint);
+  return dir * (cos(phase)*steepness*fade);
+}
+float skyRadiance(vec3 ray) {
+  float forward = max(.035,dot(ray,uForward));
+  vec2 ndc = vec2(dot(ray,uRight)/(uTan*uAspect),dot(ray,uUp)/uTan)/forward;
+  vec2 uv = ndc*.5+.5+vec2(uShift.x,-uShift.y);
+  float leftOpening=(uv.x-.30)*2.44;
+  float horizon = .33 + .26*exp(-leftOpening*leftOpening);
+  float tone = skyPlate(vec2(clamp(uv.x,-.08,1.10),clamp((uv.y-.48)/.52,0.,1.)));
+  float cloudAngle = skyPlate(vec2(clamp(uv.x*.77+.13,-.06,1.08),clamp((uv.y-.47)*1.22,0.,1.)));
+  return mix(horizon,pow(.65*tone+.35*cloudAngle,1.58),smoothstep(.008,.215,ray.y));
+}
+float reachDepth(vec3 p,float bank) {
+  float estimate=2.18*(1.-exp(-max(0.,bank)/12.5));
+  vec2 uv=fieldUV(p.xz,uReachBounds);
+  vec3 packedBed=texture2D(uReachBed,uv).rgb*255.;
+  float bed=(packedBed.r*256.+packedBed.g)*.1+packedBed.b*.02-120.;
+  return mix(estimate,clamp(p.y-bed,0.,3.4),inField(uv));
+}
+float reflectedScene(vec3 p,vec3 ray,vec2 g,float roughness,float fallback) {
+  vec4 q=uReflectionCamera*vec4(p,1.);
+  vec2 uv=q.xy/max(.001,q.w)*.5+.5;
+  uv+=vec2(g.x*.23+g.y*.07,g.y*.17-g.x*.06);
+  float valid=smoothstep(0.,.025,min(uv.x,1.-uv.x))*smoothstep(0.,.025,min(uv.y,1.-uv.y));
+  vec2 spread=(2.+5.5*roughness)/uReflectionSize;
+  float reflected=.40*texture2D(uBankReflection,uv).r
+    +.16*texture2D(uBankReflection,uv+vec2(spread.x,spread.y)).r
+    +.16*texture2D(uBankReflection,uv-vec2(spread.x,spread.y)).r
+    +.14*texture2D(uBankReflection,uv+vec2(spread.x,-spread.y)).r
+    +.14*texture2D(uBankReflection,uv+vec2(-spread.x,spread.y)).r;
+  float linearValue=pow(clamp((reflected-.012)/.98,0.,1.),1./.44);
+  return mix(fallback,linearValue,valid*(1.-.52*smoothstep(.06,.23,ray.y)));
+}
+void main() {
+  vec3 p = vWorld;
+  vec2 pos = p.xz;
+  vec3 info = texture2D(uFlow,vUV).rgb;
+  float toBank = info.b*160. - 32.;
+  float coverage=smoothstep(-2.65,-.75,toBank);
+  if(coverage < .01) discard;
+  vec2 f = info.rg*2. - 1.;
+  vec2 stream = normalize(f+vec2(.0001));
+  vec2 across = vec2(-stream.y,stream.x);
+  vec4 flowUV = texture2D(uFlowCoordinates,vUV)*255.;
+  vec2 q = vec2((flowUV.r*256.+flowUV.g)*.25,(flowUV.b*256.+flowUV.a)/18.-420.);
+  float swell = fbm(pos*.016+vec2(-uTime*.06,0.));
+  vec2 drifting=pos-stream*uTime*.41;
+  float chop=noise2(drifting*vec2(.28,.36)+vec2(6.7,-1.4));
+  float shear=noise2(drifting*vec2(.42,.19)+vec2(8.3,1.3));
+  q+=vec2(5.3,-4.7)*(swell-.5)+vec2(chop-.5,shear-.5)*2.3;
+  vec2 gradient = wave(q,normalize(vec2(.37,.93)),3.3,.022,5.4*swell+3.8*chop,1.44)
+                + wave(q,normalize(vec2(.59,-.80)),2.6,.024,4.6*swell+3.7*shear,2.97)
+                + wave(q,normalize(vec2(.27,.96)),1.31,.032,2.3*swell+1.6*chop,5.35)
+                + wave(q,normalize(vec2(.93,.37)),1.81,.038,5.1*swell+2.9*shear,4.37)
+                + wave(q,normalize(vec2(.81,.59)),1.04,.030,7.7*swell,6.9)
+                + wave(q,normalize(vec2(.64,-.77)),.76,.028,2.1*swell,9.2);
+  float rough=noise2(drifting*.53);
+  vec2 flicker=vec2(chop-shear,shear+rough-1.);
+  gradient+=flicker*.085*(1.-smoothstep(.08,.8,length(fwidth(drifting))));
+  float bankDepth=2.18*(1.-exp(-max(0.,toBank)/12.5));
+  float edge=1.-smoothstep(.05,1.13,bankDepth);
+  gradient *= (.64+.94*swell)*(1.-.55*edge);
+  vec2 g = stream*gradient.x + across*gradient.y;
+  vec3 n = normalize(vec3(-g.x,1.,-g.y));
+  vec3 v = normalize(cameraPosition-p);
+  vec3 ray = reflect(-v,n);
+  float d = length(cameraPosition-p);
+  float f0 = .0204;
+  float ndv = clamp(dot(n,v),0.,1.);
+  float fresnel = f0 + (1.-f0)*pow(1.-ndv,5.);
+  float sky = skyRadiance(ray);
+  float cloudLight = lightWindow(pos);
+  vec2 bendLight=(pos-vec2(-830.,122.))*vec2(.00084,.0028);
+  float lightOnBend=exp(-dot(bendLight,bendLight));
+  float farOpening=(p.x+1790.)*.00071;
+  float fartherBend=exp(-farOpening*farOpening);
+  float openReflection=(.21+.79*sky)*(.76+.39*lightOnBend+.27*fartherBend);
+  float bankEnvironment=reflectedScene(p,ray,g,swell,openReflection);
+  float reflectionWeight=(.58+.24*edge)*(1.-.54*fartherBend);
+  float reflected=mix(openReflection,bankEnvironment,reflectionWeight);
+  float vertical=reachDepth(p,toBank);
+  float path=vertical/max(.14,ndv);
+  float shallow=1.-smoothstep(.05,1.30,min(vertical,bankDepth));
+  vec3 sediment=gravelSample(pos+refract(-v,n,1./1.333).xz*min(.83,vertical));
+  float gravel=(.034+.098*pow(sediment.r,1.24))*(.69+.41*sediment.b);
+  float through=exp(-.68*min(path,6.));
+  float base=mix(.080+.040*swell,gravel,through*shallow*.78);
+  float radiance=mix(base,reflected,clamp(fresnel*1.22+.10,0.,1.));
+  vec3 sunPatch = normalize(vec3(-.93,.23,.28));
+  float spec = pow(max(0.,dot(ray,sunPatch)),105.);
+  radiance += spec*.077*(.28+lightOnBend)*cloudLight*(1.-edge*.66);
+  vec2 nearLight=(pos-vec2(-409.,122.))*vec2(.0037,.0044);
+  float bendFront=exp(-dot(nearLight,nearLight));
+  float facets = pow(clamp(.55+4.2*dot(g,normalize(vec2(.61,.79))),0.,1.),2.1);
+  float breaks=noise2(q*vec2(.91,1.21)+vec2(.73,-.51)*uTime);
+  vec2 gleamWindow=(pos-vec2(-435.,107.))*vec2(.00191,.00304);
+  float longGleam=exp(-dot(gleamWindow,gleamWindow));
+  vec2 tail=(pos-vec2(-359.,58.))*vec2(.0034,.0101);
+  float foregroundLight=exp(-dot(tail,tail));
+  float textureFade=1.-smoothstep(425.,1450.,d);
+  radiance+=(bendFront*.22+longGleam*.18)*(1.-edge*.64)*facets*(.48+1.01*breaks)*cloudLight;
+  radiance+=foregroundLight*(.067+.16*facets)*(.64+.63*breaks)*(1.-edge*.48);
+  radiance *= 1.+textureFade*(1.-edge*.71)*((breaks-.49)*.17+(rough-.50)*.064);
+  float foam=pow(max(0.,fbm(pos*.21-stream*uTime*.22)-.73)*3.2,2.);
+  radiance+=foam*.021*shallow*smoothstep(0.,1.5,toBank);
+  radiance *= 1.-.25*exp(-d*.0018);
+  radiance = mix(radiance,.165, (1.-exp(-d*.00011))*.20);
+  gl_FragColor = vec4(vec3(paper(film(radiance))),coverage);
+}`;
+
+  const viewSkyFragment = `
+varying vec2 vUV;
+uniform vec3 uSkyRight,uSkyUp,uSkyForward;
+uniform vec2 uSkyScale,uSkyShift;
+${noiseGLSL}
+${stormGLSL}
+void main() {
+  vec2 xy=(vUV*2.-1.-uSkyShift)*uSkyScale;
+  vec3 ray=normalize(uSkyForward+uSkyRight*xy.x+uSkyUp*xy.y);
+  float angle=atan(ray.x,-ray.z);
+  float rawAz=fract(angle/6.2831853+.70);
+  float seam=smoothstep(.86,1.,rawAz)+(1.-smoothstep(0.,.14,rawAz));
+  float az=mix(rawAz,.5,clamp(seam,0.,1.));
+  float elevation=asin(clamp(ray.y,-1.,1.));
+  vec2 uv=vec2(az,clamp(.32+elevation*.99,0.,1.));
+  float clouds=skyPlate(uv);
+  float valley=exp(-max(0.,elevation)*7.);
+  float horizon=(.49+.09*ray.z)*(1.-.28*step(2.5,uGlass)*step(uGlass,3.5));
+  float value=mix(clouds,horizon,.37*valley);
+  gl_FragColor=vec4(vec3(paper(value)),1.);
+}`;
+
+  const ridgeWorldVertex = `
+attribute vec3 aLocal;
+varying vec3 vWorld, vNormal, vLocal;
+varying vec2 vUV;
+void main() {
+  vWorld = (modelMatrix * vec4(position, 1.)).xyz;
+  vNormal = mat3(modelMatrix) * normal;
+  vLocal = aLocal;
+  vUV = uv;
+  gl_Position = projectionMatrix * viewMatrix * vec4(vWorld, 1.);
+}`;
+
+  const ridgeFragment = `
+varying vec3 vWorld,vNormal,vLocal;
+varying vec2 vUV;
+uniform sampler2D uGround,uRock,uScree,uAerial,uRelief;
+uniform vec4 uAerialBounds;
+${noiseGLSL}
+${stormGLSL}
+vec3 faces(sampler2D map,vec3 p,vec3 n) {
+  vec3 k=pow(abs(n),vec3(4.));
+  k/=dot(k,vec3(1.));
+  return texture2D(map,p.yz).rgb*k.x+texture2D(map,p.xz).rgb*k.y+texture2D(map,p.xy).rgb*k.z;
+}
+void main() {
+  vec3 p=vWorld,lp=vLocal,n=normalize(vNormal);
+  float d=length(cameraPosition-p), slope=1.-n.y;
+  vec2 field=(lp.xz-uAerialBounds.xy)*uAerialBounds.zw;
+  float mapped=step(0.,field.x)*step(field.x,1.)*step(0.,field.y)*step(field.y,1.);
+  vec3 relief=texture2D(uRelief,field).rgb;
+  float airborne=fbm(lp.xz*.006);
+  vec3 slabs=faces(uRock,lp/132.,n);
+  vec3 grains=faces(uRock,lp/14.,n);
+  vec3 grit=texture2D(uGround,lp.xz*.23).rgb;
+  float aerial=texture2D(uAerial,field).r;
+  float cliff=smoothstep(.16,.47,slope)*.75+.25*smoothstep(230.,1000.,lp.y);
+  float stone=(.077+.27*slabs.r)*(.66+.68*grains.r);
+  float soil=(.026+.117*grit.r)*(.69+.46*grit.b);
+  float wood=mix(.56,.94,airborne);
+  float key=max(0.,dot(n,sun));
+  float value=mix(soil*wood,stone,clamp(cliff,0.,1.));
+  value*=mix(1.,.57+.81*aerial,mapped*.75);
+  value*=.22+1.25*key*lightWindow(lp.xz);
+  value*=mix(1.,.49+.66*relief.g+.22*relief.r,mapped*cliff*.64);
+  float flakes=smoothstep(850.,1550.,lp.y)*smoothstep(.32,.72,relief.r+airborne*.35)*(1.-smoothstep(.45,.88,slope));
+  value=mix(value,(.16+.66*key)*(.62+.45*grains.r),flakes*.64);
+  float haze=(1.-exp(-d*.00018))*(1.-smoothstep(90.,1500.,lp.y)*.65);
+  value=mix(value,.20,haze*.48);
+  gl_FragColor=vec4(vec3(paper(film(value))),1.);
+}`;
+
+  /* ---------- Abyssal Field Studio Procedural Sanctuary & Reef Builders ---------- */
+  const ABYSS_OX = -1085, ABYSS_OZ = -35, ABYSS_SCALE = 2.15, ABYSS_BASE_Y = 47.5, ABYSS_SURF_Y = 86.0;
+  const AHIYA_OX = -1630, AHIYA_OZ = 665, AHIYA_BASE_Y = 74.0;
+  const RIDGE_OX = 620, RIDGE_OZ = 0, RIDGE_OY = 128;
+  const TETON_ARRIVAL_DISTANCE = 160;
+
+  const AB_PERM = new Uint8Array(512);
+  (() => {
+    const rng = seedRandom(0xAB155A1);
+    const p = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) p[i] = i;
+    for (let i = 255; i > 0; i--) { const j = (rng() * (i + 1)) | 0; const tmp = p[i]; p[i] = p[j]; p[j] = tmp; }
+    for (let i = 0; i < 512; i++) AB_PERM[i] = p[i & 255];
+  })();
+  function abGrad3(hash, x, y, z) {
+    const h = hash & 15, u = h < 8 ? x : y, v = h < 4 ? y : (h === 12 || h === 14 ? x : z);
+    return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+  }
+  function abNoise3(x, y, z) {
+    const X = Math.floor(x) & 255, Y = Math.floor(y) & 255, Z = Math.floor(z) & 255;
+    x -= Math.floor(x); y -= Math.floor(y); z -= Math.floor(z);
+    const u = x * x * x * (x * (x * 6 - 15) + 10);
+    const v = y * y * y * (y * (y * 6 - 15) + 10);
+    const w = z * z * z * (z * (z * 6 - 15) + 10);
+    const A = AB_PERM[X] + Y, AA = AB_PERM[A] + Z, AB = AB_PERM[A + 1] + Z;
+    const B = AB_PERM[X + 1] + Y, BA = AB_PERM[B] + Z, BB = AB_PERM[B + 1] + Z;
+    return lerp(
+      lerp(lerp(abGrad3(AB_PERM[AA], x, y, z), abGrad3(AB_PERM[BA], x - 1, y, z), u),
+           lerp(abGrad3(AB_PERM[AB], x, y - 1, z), abGrad3(AB_PERM[BB], x - 1, y - 1, z), u), v),
+      lerp(lerp(abGrad3(AB_PERM[AA + 1], x, y, z - 1), abGrad3(AB_PERM[BA + 1], x - 1, y, z - 1), u),
+           lerp(abGrad3(AB_PERM[AB + 1], x, y - 1, z - 1), abGrad3(AB_PERM[BB + 1], x - 1, y - 1, z - 1), u), v), w
+    );
+  }
+  function abFbm2(x, z, octaves) {
+    let sum = 0, amp = .5, freq = 1, norm = 0;
+    for (let i = 0; i < octaves; i++) { sum += amp * abNoise3(x * freq, .37 + i * 3.1, z * freq); norm += amp; freq *= 2.03; amp *= .5; }
+    return sum / norm;
+  }
+  function abFbm3(x, y, z, octaves) {
+    let sum = 0, amp = .5, freq = 1, norm = 0;
+    for (let i = 0; i < octaves; i++) { sum += amp * abNoise3(x * freq, y * freq, z * freq); norm += amp; freq *= 2.07; amp *= .5; }
+    return sum / norm;
+  }
+  function abSeabedH(x, z) {
+    let h = abFbm2(x * .018, z * .018, 4) * 9.5 + abFbm2(x * .055 + 5.2, z * .055 - 3.1, 3) * 2.4;
+    const dxS = (x + 1.2) / 14.5, dzS = (z - 6.0) / 15.5;
+    const sanctMask = Math.exp(-(dxS * dxS + dzS * dzS));
+    const sandRipples = Math.sin(x * 1.45 + z * .65 + abNoise3(x * .25, .2, z * .25) * 2.2) * .07;
+    h = lerp(h, .25 + sandRipples, sanctMask * .88);
+    const leftBank = Math.exp(-Math.pow((x + 10.5) / 6.5, 2) - Math.pow((z - 4.0) / 16.0, 2));
+    const rightBank = Math.exp(-Math.pow((x - 10.2) / 7.0, 2) - Math.pow((z - 3.0) / 17.0, 2));
+    h += (leftBank * 3.1 + rightBank * 2.8) * (.7 + .6 * abNoise3(x * .14, 1.1, z * .14));
+    const dxShip = (x + 12.0) / 14.5, dzShip = (z + 25.5) / 13.0;
+    const shipShelf = Math.exp(-(dxShip * dxShip + dzShip * dzShip));
+    h = lerp(h, 10.6 + abFbm2(x * .09, z * .09, 2) * 1.3, shipShelf * .92);
+    const dxArch = (x - 18.0) / 6.2, dzArch = (z + 5.5) / 14.0;
+    const canyonFloor = Math.exp(-(dxArch * dxArch + dzArch * dzArch));
+    h = lerp(h, .4 + sandRipples, canyonFloor * .82);
+    const canyonWalls = Math.exp(-Math.pow((Math.abs(x - 18.0) - 6.8) / 3.2, 2) - Math.pow((z + 5.5) / 11.0, 2));
+    h += canyonWalls * 6.4;
+    const trenchT = smooth(-26.0, -52.0, z) * smooth(-8.0, 22.0, x + 8.0);
+    h -= trenchT * 12.5;
+    const edgeR = Math.hypot(x, z);
+    h += smooth(56.0, 90.0, edgeR) * 10.5;
+    return h;
+  }
+
+  class AbyssMB {
+    constructor() { this.pos = []; this.norm = []; this.col = []; this.idx = []; }
+    vtx(px, py, pz, nx, ny, nz, r, g, b) {
+      const i = (this.pos.length / 3) | 0;
+      this.pos.push(px, py, pz);
+      const l = Math.hypot(nx, ny, nz) || 1;
+      this.norm.push(nx / l, ny / l, nz / l);
+      this.col.push(r, g, b);
+      return i;
+    }
+    tri(a, b, c) { this.idx.push(a, b, c); }
+    qd(a, b, c, d) { this.idx.push(a, b, c, a, c, d); }
+    tb(pts, radii, sides, colFn, capEnds) {
+      const rings = pts.length, bRng = [];
+      let upX = 0, upY = 1, upZ = 0;
+      for (let i = 0; i < rings; i++) {
+        const p = pts[i], pPrev = pts[Math.max(0, i - 1)], pNext = pts[Math.min(rings - 1, i + 1)];
+        let tx = pNext[0] - pPrev[0], ty = pNext[1] - pPrev[1], tz = pNext[2] - pPrev[2];
+        const tl = Math.hypot(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
+        if (Math.abs(tx * upX + ty * upY + tz * upZ) > .92) { upX = 1; upY = 0; upZ = 0; }
+        let bx = ty * upZ - tz * upY, by = tz * upX - tx * upZ, bz = tx * upY - ty * upX;
+        const bl = Math.hypot(bx, by, bz) || 1; bx /= bl; by /= bl; bz /= bl;
+        const nx0 = by * tz - bz * ty, ny0 = bz * tx - bx * tz, nz0 = bx * ty - by * tx;
+        const rx = Array.isArray(radii[i]) ? radii[i][0] : radii[i];
+        const ry = Array.isArray(radii[i]) ? radii[i][1] : radii[i];
+        const vf = i / Math.max(1, rings - 1), ringIdx = [];
+        for (let s = 0; s < sides; s++) {
+          const ang = (s / sides) * TAU, ca = Math.cos(ang), sa = Math.sin(ang);
+          const ox = bx * ca * rx + nx0 * sa * ry, oy = by * ca * rx + ny0 * sa * ry, oz = bz * ca * rx + nz0 * sa * ry;
+          const nrx = (bx * ca) / Math.max(.02, rx) + (nx0 * sa) / Math.max(.02, ry);
+          const nry = (by * ca) / Math.max(.02, rx) + (ny0 * sa) / Math.max(.02, ry);
+          const nrz = (bz * ca) / Math.max(.02, rx) + (nz0 * sa) / Math.max(.02, ry);
+          const c = colFn(vf, ang, p[0] + ox, p[1] + oy, p[2] + oz);
+          ringIdx.push(this.vtx(p[0] + ox, p[1] + oy, p[2] + oz, nrx, nry, nrz, c[0], c[1], c[2]));
+        }
+        bRng.push(ringIdx);
+      }
+      for (let i = 0; i < rings - 1; i++) for (let s = 0; s < sides; s++) {
+        const ns = (s + 1) % sides;
+        this.qd(bRng[i][s], bRng[i][ns], bRng[i + 1][ns], bRng[i + 1][s]);
+      }
+      if (capEnds && rings >= 2) {
+        const p0 = pts[0], pN = pts[rings - 1], c0 = colFn(0, 0, p0[0], p0[1], p0[2]), cN = colFn(1, 0, pN[0], pN[1], pN[2]);
+        const iS = this.vtx(p0[0], p0[1], p0[2], 0, -1, 0, c0[0], c0[1], c0[2]);
+        const iE = this.vtx(pN[0], pN[1], pN[2], 0, 1, 0, cN[0], cN[1], cN[2]);
+        for (let s = 0; s < sides; s++) {
+          const ns = (s + 1) % sides;
+          this.tri(iS, bRng[0][ns], bRng[0][s]);
+          this.tri(iE, bRng[rings - 1][s], bRng[rings - 1][ns]);
+        }
+      }
+    }
+    bx(cx, cy, cz, sx, sy, sz, rx, ry, rz, col) {
+      const cr = Math.cos(rx), sr = Math.sin(rx), cp = Math.cos(ry), sp = Math.sin(ry), cyw = Math.cos(rz), syw = Math.sin(rz);
+      const rot = (x, y, z) => {
+        const y1 = y * cr - z * sr, z1 = y * sr + z * cr;
+        const x2 = x * cp + z1 * sp, z2 = -x * sp + z1 * cp;
+        return [x2 * cyw - y1 * syw, x2 * syw + y1 * cyw, z2];
+      };
+      const faces = [
+        [[1, -1, -1], [1, 1, -1], [1, 1, 1], [1, -1, 1], [1, 0, 0]],
+        [[-1, -1, 1], [-1, 1, 1], [-1, 1, -1], [-1, -1, -1], [-1, 0, 0]],
+        [[-1, 1, -1], [-1, 1, 1], [1, 1, 1], [1, 1, -1], [0, 1, 0]],
+        [[-1, -1, 1], [-1, -1, -1], [1, -1, -1], [1, -1, 1], [0, -1, 0]],
+        [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1], [0, 0, 1]],
+        [[1, -1, -1], [-1, -1, -1], [-1, 1, -1], [1, 1, -1], [0, 0, -1]]
+      ];
+      for (const f of faces) {
+        const n = rot(f[4][0], f[4][1], f[4][2]), vi = [];
+        for (let k = 0; k < 4; k++) {
+          const p = rot(f[k][0] * sx * .5, f[k][1] * sy * .5, f[k][2] * sz * .5);
+          const nVar = .92 + .16 * abNoise3((cx + p[0]) * 1.4, (cy + p[1]) * 1.4, (cz + p[2]) * 1.4);
+          vi.push(this.vtx(cx + p[0], cy + p[1], cz + p[2], n[0], n[1], n[2], col[0] * nVar, col[1] * nVar, col[2] * nVar));
+        }
+        this.qd(vi[0], vi[1], vi[2], vi[3]);
+      }
+    }
+    calcN() {
+      const n = new Float32Array(this.pos.length), p = this.pos, idx = this.idx;
+      for (let i = 0; i < idx.length; i += 3) {
+        const ia = idx[i] * 3, ib = idx[i + 1] * 3, ic = idx[i + 2] * 3;
+        const abx = p[ib] - p[ia], aby = p[ib + 1] - p[ia + 1], abz = p[ib + 2] - p[ia + 2];
+        const acx = p[ic] - p[ia], acy = p[ic + 1] - p[ia + 1], acz = p[ic + 2] - p[ia + 2];
+        const nx = aby * acz - abz * acy, ny = abz * acx - abx * acz, nz = abx * acy - aby * acx;
+        n[ia] += nx; n[ia + 1] += ny; n[ia + 2] += nz;
+        n[ib] += nx; n[ib + 1] += ny; n[ib + 2] += nz;
+        n[ic] += nx; n[ic + 1] += ny; n[ic + 2] += nz;
+      }
+      for (let i = 0; i < n.length; i += 3) {
+        const l = Math.hypot(n[i], n[i + 1], n[i + 2]) || 1;
+        this.norm[i] = n[i] / l; this.norm[i + 1] = n[i + 1] / l; this.norm[i + 2] = n[i + 2] / l;
+      }
+    }
+    toGeo() {
+      const g = new T.BufferGeometry();
+      g.setAttribute("position", new T.Float32BufferAttribute(this.pos, 3));
+      g.setAttribute("normal", new T.Float32BufferAttribute(this.norm, 3));
+      g.setAttribute("color", new T.Float32BufferAttribute(this.col, 3));
+      g.setIndex(this.idx);
+      g.computeBoundingSphere();
+      return g;
+    }
+  }
+
+  function addAbyssRockBlob(mb, cx, cy, cz, rx, ry, rz, seed, tint) {
+    const lat = 8, lon = 12, rings = [];
+    for (let i = 0; i <= lat; i++) {
+      const phi = (i / lat) * Math.PI, sp = Math.sin(phi), cp = Math.cos(phi), row = [];
+      for (let j = 0; j < lon; j++) {
+        const theta = (j / lon) * TAU, dx = sp * Math.cos(theta), dy = cp, dz = sp * Math.sin(theta);
+        const n = abFbm3(dx * 1.6 + seed, dy * 1.6 - seed * .5, dz * 1.6 + seed * .3, 3);
+        const scale = 1.0 + n * .36 + Math.sin(dy * 7.0 + n * 4.0) * .06;
+        const shade = .88 + n * .25;
+        row.push(mb.vtx(cx + dx * rx * scale, cy + dy * ry * scale, cz + dz * rz * scale, dx, dy, dz, tint[0] * shade, tint[1] * shade, tint[2] * shade));
+      }
+      rings.push(row);
+    }
+    for (let i = 0; i < lat; i++) for (let j = 0; j < lon; j++) mb.qd(rings[i][j], rings[i + 1][j], rings[i + 1][(j + 1) % lon], rings[i][(j + 1) % lon]);
+  }
+
+  function mkAbyssWhaleGeo() {
+    const mb = new AbyssMB(), steps = 22, pts = [], rads = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      pts.push([-.9 - 2.65 * (t ** 1.08), -.6 + 6.45 * t, 4.2 - 1.85 * t + Math.sin(t * 2.2) * .25]);
+      rads.push([lerp(1.42, .62, t ** .72), lerp(1.18, .44, t ** .78)]);
+    }
+    const stoneCol = (vf, ang, wx, wy, wz) => {
+      const strata = abFbm3(wx * .55, wy * .95, wz * .55, 3);
+      const moss = smooth(0, 2.2, 2.2 - wy) * .35 + clamp(strata * .5 + .15, 0, .35);
+      const base = .48 + strata * .22;
+      return [lerp(base * .72, .16, moss), lerp(base * .88, .44, moss), lerp(base * 1.02, .48, moss)];
+    };
+    mb.tb(pts, rads, 20, stoneCol, true);
+    for (let i = 0; i < mb.pos.length; i += 3) {
+      const d = abFbm3(mb.pos[i] * .85, mb.pos[i + 1] * .85, mb.pos[i + 2] * .85, 3) * .20;
+      mb.pos[i] += mb.norm[i] * d; mb.pos[i + 1] += mb.norm[i + 1] * d; mb.pos[i + 2] += mb.norm[i + 2] * d;
+    }
+    const junc = [-3.65, 5.65, 2.35], spanSteps = 30, chStp = 14;
+    const cy = Math.cos(.26), sy = Math.sin(.26), cp = Math.cos(.62), sp = Math.sin(.62), cr = Math.cos(-.28), sr = Math.sin(-.28);
+    const flukeWorld = (lx, ly, lz) => {
+      const x1 = lx * cr - ly * sr, y1 = lx * sr + ly * cr;
+      const y2 = y1 * cp - lz * sp, z2 = y1 * sp + lz * cp;
+      return [junc[0] + x1 * cy + z2 * sy, junc[1] + y2, junc[2] - x1 * sy + z2 * cy];
+    };
+    const grid = [];
+    for (let is = -spanSteps; is <= spanSteps; is++) {
+      const s = is / spanSteps, absS = Math.abs(s), lxBase = s * 5.45;
+      const leadY = 1.05 * (1 - absS ** 1.45) + 1.85 * (absS ** 1.15);
+      const trailY = -.65 + 2.05 * (absS ** 1.38) + .58 * Math.exp(-Math.pow(s / .11, 2));
+      const archZ = -(absS ** 1.7) * .85, thickMax = lerp(.52, .075, absS ** .82) * (1 - .35 * Math.exp(-Math.pow(s / .09, 2)));
+      const ring = [];
+      for (let ic = 0; ic < chStp * 2; ic++) {
+        const upper = ic < chStp, u = upper ? ic / (chStp - 1) : 1 - (ic - chStp) / (chStp - 1);
+        const profile = 1.48 * (.2969 * Math.sqrt(Math.max(.001, u)) - .126 * u - .3516 * u * u + .2843 * u * u * u - .1015 * u * u * u * u);
+        const signZ = upper ? 1 : -1;
+        const wp = flukeWorld(lxBase, lerp(leadY, trailY, u), archZ + signZ * profile * thickMax);
+        const c = stoneCol(absS, u, wp[0], wp[1], wp[2]);
+        const barn = smooth(.55, .98, absS) * (1 - u) * .18;
+        ring.push(mb.vtx(wp[0], wp[1], wp[2], 0, signZ, 0, c[0] + barn, c[1] + barn, c[2] + barn));
+      }
+      grid.push(ring);
+    }
+    for (let i = 0; i < grid.length - 1; i++) for (let j = 0; j < chStp * 2; j++) {
+      const nj = (j + 1) % (chStp * 2);
+      mb.qd(grid[i][j], grid[i + 1][j], grid[i + 1][nj], grid[i][nj]);
+    }
+    const rng = seedRandom(0x774A1E), baseY = abSeabedH(-.9, 4.2);
+    for (let b = 0; b < 14; b++) {
+      const ang = (b / 14) * TAU + rng() * .35, dist = .95 + rng() * 1.85;
+      const bx = -1.0 + Math.cos(ang) * dist, bz = 4.1 + Math.sin(ang) * dist, rad = .55 + rng() * .85;
+      addAbyssRockBlob(mb, bx, abSeabedH(bx, bz) - rad * .32, bz, rad * 1.35, rad * (.48 + rng() * .32), rad * 1.15, 11 + b * 4.7, [.18, .38, .44]);
+    }
+    mb.calcN();
+    return mb.toGeo();
+  }
+
+  function mkAbyssShipGeo() {
+    const local = new AbyssMB(), wDrk = [.22, .16, .11], wMid = [.32, .24, .16], woodMoss = [.14, .32, .28];
+    const zSteps = 20, profSteps = 12, pGrd = [], sGrd = [];
+    for (let iz = 0; iz <= zSteps; iz++) {
+      const t = iz / zSteps, z = lerp(-9.2, 10.2, t);
+      const beam = Math.sin(Math.pow(clamp(t * 1.06, 0, 1), .68) * Math.PI) * 3.45 + (1 - t) * .85;
+      const sheerY = Math.pow(Math.abs(t - .42), 2) * 2.8 + (t < .22 ? (.22 - t) * 5.2 : 0);
+      const keelY = -2.35 + smooth(.75, 1, t) * 1.55;
+      const pCol = [], sCol = [];
+      for (let ip = 0; ip <= profSteps; ip++) {
+        const u = ip / profSteps, inBreach = t > .38 && t < .62 && u > .35, flare = Math.sin(u * Math.PI * .62);
+        const x = flare * beam * (inBreach ? .86 : 1), y = lerp(keelY, 1.65 + sheerY, u ** .86);
+        const algae = smooth(1.2, -2, y) * .55, plank = .9 + .1 * Math.sin(u * 38);
+        const c = [lerp(wMid[0], woodMoss[0], algae) * plank, lerp(wMid[1], woodMoss[1], algae) * plank, lerp(wMid[2], woodMoss[2], algae) * plank];
+        pCol.push(local.vtx(-x, y, z, -flare - .2, u - .5, 0, c[0], c[1], c[2]));
+        sCol.push(local.vtx(x, y, z, flare + .2, u - .5, 0, c[0], c[1], c[2]));
+      }
+      pGrd.push(pCol); sGrd.push(sCol);
+    }
+    for (let iz = 0; iz < zSteps; iz++) for (let ip = 0; ip < profSteps; ip++) {
+      local.qd(pGrd[iz][ip], pGrd[iz + 1][ip], pGrd[iz + 1][ip + 1], pGrd[iz][ip + 1]);
+      if (!(iz >= 7 && iz <= 12 && ip >= 5)) local.qd(sGrd[iz][ip], sGrd[iz][ip + 1], sGrd[iz + 1][ip + 1], sGrd[iz + 1][ip]);
+    }
+    local.bx(0, -2.45, .3, .42, .55, 19.2, 0, 0, 0, wDrk);
+    for (let r = 0; r < 13; r++) {
+      const t = (r + .5) / 13, z = lerp(-8.6, 9.2, t), beam = Math.sin(Math.pow(clamp(t * 1.06, 0, 1), .68) * Math.PI) * 3.38 + (1 - t) * .8;
+      const pts = [];
+      for (let k = -6; k <= 6; k++) {
+        const u = Math.abs(k) / 6;
+        pts.push([Math.sign(k) * Math.sin(u * Math.PI * .62) * beam, lerp(-2.25, 1.75 + Math.pow(Math.abs(t - .42), 2) * 2.5, u ** .86), z]);
+      }
+      local.tb(pts, new Array(pts.length).fill(.13), 5, () => wDrk, true);
+    }
+    local.bx(0, 1.4, -9.2, 3.6, 3.8, .35, -.18, 0, 0, wMid);
+    local.bx(0, 2.9, -7.2, 3.8, 1.8, 3.8, 0, 0, 0, wDrk);
+    local.tb([[0, 2.2, 8.8], [0, 3.6, 12.6], [0, 4.7, 15.8]], [.24, .17, .09], 7, () => wMid, true);
+    local.tb([[0, -2.1, -.4], [.1, 4.8, -.2], [.35, 10.6, .1]], [.34, .26, .16], 8, () => wMid, true);
+    local.tb([[0, -1.9, 5.2], [-.15, 3.6, 5.4], [-.3, 7.8, 5.7]], [.28, .21, .13], 7, () => wMid, true);
+    local.tb([[-3.8, 7.6, -.3], [.2, 8.1, -.05], [4.1, 7.1, .2]], [.10, .15, .10], 6, () => wDrk, true);
+    local.tb([[-2.9, 5.7, 5.3], [-.2, 5.9, 5.5], [2.7, 5.2, 5.8]], [.09, .13, .09], 6, () => wDrk, true);
+    local.calcN();
+    const shipPos = [-11.8, 12.6, -25.5];
+    const cy = Math.cos(.68), sy = Math.sin(.68), cp = Math.cos(-.16), sp = Math.sin(-.16), cr = Math.cos(.36), sr = Math.sin(.36);
+    const xform = (x, y, z) => {
+      const x1 = x * cr - y * sr, y1 = x * sr + y * cr, y2 = y1 * cp - z * sp, z2 = y1 * sp + z * cp;
+      return [x1 * cy + z2 * sy, y2, -x1 * sy + z2 * cy];
+    };
+    for (let i = 0; i < local.pos.length; i += 3) {
+      const p = xform(local.pos[i], local.pos[i + 1], local.pos[i + 2]);
+      const n = xform(local.norm[i], local.norm[i + 1], local.norm[i + 2]);
+      local.pos[i] = shipPos[0] + p[0]; local.pos[i + 1] = shipPos[1] + p[1]; local.pos[i + 2] = shipPos[2] + p[2];
+      local.norm[i] = n[0]; local.norm[i + 1] = n[1]; local.norm[i + 2] = n[2];
+    }
+    return local.toGeo();
+  }
+
+  function mkAbyssArchGeo() {
+    const mb = new AbyssMB(), steps = 28, pts = [], rads = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps, ang = t * Math.PI, spanX = 18.0 - Math.cos(ang) * 7.2;
+      const archY = Math.max(abSeabedH(spanX, -6.0) - .8, .2) + Math.sin(ang) * 9.2;
+      const archZ = -6.0 + Math.sin(t * TAU) * 1.15;
+      pts.push([spanX, archY, archZ]);
+      const r = 1.65 - Math.sin(ang) * .48 + .22 * Math.cos(t * 15);
+      rads.push([r * 1.18, r * .92]);
+    }
+    mb.tb(pts, rads, 14, (vf, ang, wx, wy, wz) => {
+      const n = abFbm3(wx * .5, wy * .5, wz * .5, 3), cT = smooth(2, 9, wy) * .22;
+      return [.24 + n * .16 + cT, .38 + n * .15, .48 + n * .16 + cT];
+    }, true);
+    mb.calcN();
+    return mb.toGeo();
+  }
+
+  function mkAbyssCoralGeo() {
+    const mb = new AbyssMB();
+    const branches = [
+      [[0, 0, 0], [.01, .28, 0], [-.14, .62, .03], [-.28, .96, .05], [-.36, 1.18, .06]],
+      [[.01, .24, 0], [.16, .58, -.02], [.32, .92, -.05], [.42, 1.14, -.06]],
+      [[-.09, .48, .02], [-.03, .82, -.06], [.03, 1.12, -.09]],
+      [[.11, .46, -.01], [.08, .80, .08], [.14, 1.08, .12]],
+      [[0, .16, 0], [-.20, .44, -.08], [-.38, .74, -.12], [-.46, .96, -.14]],
+      [[0, .18, 0], [.20, .42, .09], [.36, .70, .14], [.44, .92, .16]]
+    ];
+    for (const br of branches) mb.tb(br, br.map((_, idx) => lerp(.048, .016, idx / (br.length - 1))), 5, vf => [.72 + .28 * vf, .62 + .32 * vf, .80 + .20 * vf], true);
+    mb.calcN();
+    return mb.toGeo();
+  }
+
+  function mkAbyssSpongeGeo() {
+    const mb = new AbyssMB();
+    const tubes = [{ ox: 0, oz: 0, h: 1.0, r: .22, lx: .06, lz: .02 }, { ox: .24, oz: .14, h: .74, r: .16, lx: .14, lz: .08 }, { ox: -.20, oz: .16, h: .62, r: .15, lx: -.12, lz: .10 }];
+    for (const tb of tubes) {
+      const pts = [], rads = [];
+      for (let k = 0; k <= 5; k++) {
+        const t = k / 5;
+        pts.push([tb.ox + tb.lx * t * t, t * tb.h, tb.oz + tb.lz * t * t]);
+        rads.push(tb.r * (Math.sin(t * Math.PI * .82) * .35 + .75) * (k === 5 ? .78 : 1));
+      }
+      mb.tb(pts, rads, 8, vf => [.74 + .22 * vf, .70 + .24 * vf, .94], true);
+    }
+    mb.calcN();
+    return mb.toGeo();
+  }
+
+  function mkAbyssMantaGeo() {
+    const mb = new AbyssMB(), sxSteps = 12, szStp = 10, gTop = [], gBot = [];
+    for (let ix = -sxSteps; ix <= sxSteps; ix++) {
+      const s = ix / sxSteps, a = Math.abs(s);
+      const zF = .88 * Math.pow(1 - a, .72) - .32 * a, zB = -.85 * (1 - Math.pow(a, .65)) - .36 * a;
+      const thick = .15 * Math.pow(1 - a, 1.35) + .014, tR = [], bR = [];
+      for (let iz = 0; iz <= szStp; iz++) {
+        const u = iz / szStp, z = lerp(zF, zB, u), x = s * 1.85, foil = Math.sin(Math.pow(u, .65) * Math.PI) * thick;
+        const chev = smooth(.12, .35, a) * (1 - smooth(.38, .62, a)) * smooth(.55, .18, u) * .52;
+        tR.push(mb.vtx(x, foil, z, s * .15, 1, 0, lerp(.08, .55, chev), lerp(.16, .78, chev), lerp(.28, .92, chev)));
+        bR.push(mb.vtx(x, -foil * .62, z, s * .1, -1, 0, .72, .88, .96));
+      }
+      gTop.push(tR); gBot.push(bR);
+    }
+    for (let ix = 0; ix < sxSteps * 2; ix++) for (let iz = 0; iz < szStp; iz++) {
+      mb.qd(gTop[ix][iz], gTop[ix + 1][iz], gTop[ix + 1][iz + 1], gTop[ix][iz + 1]);
+      mb.qd(gBot[ix][iz], gBot[ix][iz + 1], gBot[ix + 1][iz + 1], gBot[ix + 1][iz]);
+    }
+    mb.tb([[0, 0, -.78], [0, -.02, -1.55], [0, -.04, -2.45]], [.045, .022, .007], 4, () => [.10, .20, .34], true);
+    mb.calcN();
+    return mb.toGeo();
+  }
+
+  function mkAbyssJellyGeo() {
+    const mb = new AbyssMB(), lat = 6, lon = 12, rings = [];
+    for (let i = 0; i <= lat; i++) {
+      const v = i / lat, ang = v * Math.PI * .58, r = Math.sin(ang) * .52, y = Math.cos(ang) * .42, row = [];
+      for (let j = 0; j < lon; j++) {
+        const th = (j / lon) * TAU;
+        row.push(mb.vtx(Math.cos(th) * r, y, Math.sin(th) * r, Math.cos(th) * Math.sin(ang), Math.cos(ang), Math.sin(th) * Math.sin(ang), .45, .86, 1.0));
+      }
+      rings.push(row);
+    }
+    for (let i = 0; i < lat; i++) for (let j = 0; j < lon; j++) mb.qd(rings[i][j], rings[i + 1][j], rings[i + 1][(j + 1) % lon], rings[i][(j + 1) % lon]);
+    for (let t = 0; t < 6; t++) {
+      const a = (t / 6) * TAU, rx = Math.cos(a) * .18, rz = Math.sin(a) * .18;
+      mb.tb([[rx * .5, .15, rz * .5], [rx, -.22, rz], [rx * 1.15, -.68, rz * 1.15], [rx * .9, -1.18, rz * .9]], [.032, .024, .016, .007], 4, () => [.76, .62, 1.0], false);
+    }
+    mb.calcN();
+    return mb.toGeo();
+  }
+
+  /* ---------- MONOLITH-3 + Abyssal Async Loader & Unified World Constructor ---------- */
+
+  const gameBillboardVertex = `
+attribute float aSeed;
+varying vec2 vUV;
+varying vec3 vBase;
+varying float vSeed;
+uniform float uTime;
+void main(){
+  vec3 root=instanceMatrix[3].xyz;
+  vec3 facing=normalize(vec3(cameraPosition.x-root.x,0.,cameraPosition.z-root.z));
+  vec3 right=vec3(facing.z,0.,-facing.x);
+  float width=length(instanceMatrix[0].xyz);
+  float height=length(instanceMatrix[1].xyz);
+  float sway=sin(uTime*1.11+root.x*.04+root.z*.03)*.021*uv.y*uv.y;
+  vec3 world=root+right*((position.x+sway)*width)+vec3(0.,uv.y*height,0.);
+  vUV=uv; vBase=root; vSeed=aSeed;
+  gl_Position=projectionMatrix*viewMatrix*vec4(world,1.);
+}`;
+
+  const gameBillboardFragment = `
+varying vec2 vUV;
+varying vec3 vBase;
+varying float vSeed;
+uniform sampler2D uCrowns;
+${noiseGLSL}
+${stormGLSL}
+void main(){
+  float species=floor(vSeed);
+  float seed=fract(vSeed);
+  vec2 tile=vec2(floor(seed*4.),11.-species);
+  vec4 sampleColor=texture2D(uCrowns,(tile+vUV*.972+.014)/vec2(4.,12.));
+  if(sampleColor.a<.32)discard;
+  float dist=length(cameraPosition-vBase);
+  float light=lightWindow(vBase.xz);
+  float filtered=1.+.19*step(3.5,uGlass);
+  float trunk=(.018+.27*pow(clamp(sampleColor.r/max(.16,sampleColor.a),0.,1.),1.5));
+  float value=trunk*(.34+.48*light+.39*vUV.y)*(.74+.44*seed)*filtered;
+  value*=.61+.39*smoothstep(80.,500.,dist);
+  value=mix(value,.16,(1.-exp(-dist*.00018))*.55);
+  gl_FragColor=vec4(vec3(paper(film(value))),1.);
+}`;
+
+  /* ---------- MONOLITH-3 Async Loader & World Constructor ---------- */
+  async function loadMonolithAssets(renderer) {
+    const loaderMsg = $("world-loader-msg");
+    if (loaderMsg) loaderMsg.textContent = "Fetching MONOLITH-3 USGS Grand Teton & Half Dome assets…";
+    const resp = await fetch("../MONOLITH-3.html");
+    if (!resp.ok) throw new Error(`Failed to fetch ../MONOLITH-3.html (${resp.status})`);
+    const htmlText = await resp.text();
+    if (loaderMsg) loaderMsg.textContent = "Decompressing elevation grids & lidar tree canopy…";
+    const doc = new DOMParser().parseFromString(htmlText, "text/html");
+    const assetMap = new Map();
+    for (const sc of doc.querySelectorAll('script[type="text/plain"][id]')) {
+      assetMap.set(sc.id, sc);
+    }
+    const asset = id => (assetMap.get(id)?.textContent || "").trim();
+    const rawBytes = text => Uint8Array.from(atob(text), v => v.charCodeAt(0));
+    async function inflate(text) {
+      const stream = new Blob([rawBytes(text)]).stream().pipeThrough(new DecompressionStream("deflate"));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    }
+    async function loadFloatAsset(id) {
+      const node = assetMap.get(id);
+      const text = node.textContent.trim();
+      const bytes = node.dataset.encoding === "deflate" ? await inflate(text) : rawBytes(text);
+      const aligned = bytes.byteOffset % 4 === 0 ? bytes : bytes.slice();
+      return new Float32Array(aligned.buffer, aligned.byteOffset, aligned.byteLength / 4);
+    }
+    async function loadImage(id) {
+      const img = new Image();
+      img.src = asset(id);
+      await img.decode();
+      return img;
+    }
+    function pixels(image) {
+      const c = document.createElement("canvas");
+      c.width = image.width; c.height = image.height;
+      const gx = c.getContext("2d", { willReadFrequently: true });
+      gx.drawImage(image, 0, 0);
+      return gx.getImageData(0, 0, image.width, image.height);
+    }
+    function makeGrid(width, height, values, bounds) {
+      const [west, east, south, north] = bounds;
+      return {
+        width, height, values, bounds,
+        at(x, z) {
+          const u = clamp((x - west) / (east - west), 0, 1) * (width - 1);
+          const v = clamp((z + north) / (north - south), 0, 1) * (height - 1);
+          const i = Math.min(width - 2, Math.floor(u)), j = Math.min(height - 2, Math.floor(v));
+          const p = u - i, q = v - j, k = j * width + i;
+          const a = values[k], b = values[k + 1], c = values[k + width], d = values[k + width + 1];
+          return p + q <= 1 ? a + (b - a) * p + (c - a) * q : d + (c - d) * (1 - p) + (b - d) * (1 - q);
+        }
+      };
+    }
+    function imageGrid(image, bounds) {
+      const { width, height, data } = pixels(image);
+      const values = new Float32Array(width * height);
+      for (let i = 0; i < values.length; i++) {
+        const j = i * 4;
+        values[i] = (data[j] * 256 + data[j + 1]) * .1 + data[j + 2] * .02 - 120;
+      }
+      return makeGrid(width, height, values, bounds);
+    }
+    function textureBounds(bounds) {
+      const [west, east, south, north] = bounds;
+      return new T.Vector4(west, -south, 1 / (east - west), -1 / (north - south));
+    }
+    function rasterMesh(at, bounds, columns, rows, { cuts = [], uvBounds = bounds } = {}) {
+      const [west, east, south, north] = bounds;
+      const p = new Float32Array(columns * rows * 3), uv = new Float32Array(columns * rows * 2);
+      const indices = new Uint32Array((columns - 1) * (rows - 1) * 6);
+      for (let j = 0, k = 0; j < rows; j++) {
+        const z = lerp(-north, -south, j / (rows - 1));
+        for (let i = 0; i < columns; i++, k++) {
+          const x = lerp(west, east, i / (columns - 1));
+          p[k * 3] = x; p[k * 3 + 1] = at(x, z); p[k * 3 + 2] = z;
+          uv[k * 2] = (x - uvBounds[0]) / (uvBounds[1] - uvBounds[0]);
+          uv[k * 2 + 1] = (-z - uvBounds[2]) / (uvBounds[3] - uvBounds[2]);
+        }
+      }
+      let used = 0;
+      for (let j = 0; j < rows - 1; j++) for (let i = 0; i < columns - 1; i++) {
+        const x = lerp(west, east, (i + .5) / (columns - 1));
+        const z = lerp(-north, -south, (j + .5) / (rows - 1));
+        if (cuts.some(cut => inside(cut, x, z))) continue;
+        const a = j * columns + i;
+        indices[used++] = a; indices[used++] = a + columns; indices[used++] = a + 1;
+        indices[used++] = a + 1; indices[used++] = a + columns; indices[used++] = a + columns + 1;
+      }
+      const geometry = new T.BufferGeometry();
+      geometry.setAttribute("position", new T.BufferAttribute(p, 3));
+      geometry.setAttribute("uv", new T.BufferAttribute(uv, 2));
+      geometry.setIndex(new T.BufferAttribute(indices.subarray(0, used), 1));
+      geometry.computeVertexNormals();
+      geometry.computeBoundingSphere();
+      return geometry;
+    }
+
+    const config = JSON.parse(asset("terrain-data"));
+    const survey = JSON.parse(asset("half-survey"));
+    const ids = [
+      "near-height", "far-height", "reach-height", "detail-height", "near-surface", "far-surface", "detail-surface",
+      "sky-plate", "flow", "gravel", "cobbles", "mountain-relief", "canopy", "geology", "rock", "ground", "scree",
+      "crowns", "half-ground", "half-relief", "prop-rock", "prop-ground"
+    ];
+    const coatIds = ["coat-side", "coat-top", "coat-front", "coat-rear", "coat-head"];
+
+    const [loaded, coatLoaded, coords, half, riverLevelData, crownPositions] = await Promise.all([
+      Promise.all(ids.map(loadImage)),
+      Promise.all(coatIds.map(loadImage)),
+      inflate(asset("flow-coordinates")),
+      inflate(survey.data),
+      loadFloatAsset("river-level"),
+      loadFloatAsset("crown-positions")
+    ]);
+
+    const images = {};
+    ids.forEach((id, i) => { images[id] = loaded[i]; });
+    const coatTextures = {
+      "coat_side.jpg": coatLoaded[0],
+      "coat_top.jpg": coatLoaded[1],
+      "coat_front.jpg": coatLoaded[2],
+      "coat_rear.jpg": coatLoaded[3],
+      "coat_head.jpg": coatLoaded[4]
+    };
+
+    function makeTex(name, repeat = false, packed = false) {
+      const t = new T.Texture(images[name]);
+      t.colorSpace = T.NoColorSpace;
+      t.wrapS = t.wrapT = repeat ? T.RepeatWrapping : T.ClampToEdgeWrapping;
+      t.generateMipmaps = !packed;
+      t.minFilter = packed ? T.LinearFilter : T.LinearMipmapLinearFilter;
+      t.magFilter = T.LinearFilter;
+      t.anisotropy = Math.min(6, renderer.capabilities.getMaxAnisotropy());
+      t.needsUpdate = true;
+      return t;
+    }
+    const tex = Object.fromEntries(ids.filter(id => !id.endsWith("height") || id === "reach-height").map(id => [
+      id, makeTex(id, id.startsWith("prop-") || ["rock", "ground", "scree", "cobbles"].includes(id), ["flow", "reach-height"].includes(id))
+    ]));
+    const U = name => ({ value: tex[name] });
+
+    const coordTexture = new T.DataTexture(coords, ...config.river.flowSize, T.RGBAFormat);
+    coordTexture.flipY = true;
+    coordTexture.minFilter = coordTexture.magFilter = T.LinearFilter;
+    coordTexture.needsUpdate = true;
+
+    const heights = Object.fromEntries(["detail", "reach", "near", "far"].map(k => [k, imageGrid(images[k + "-height"], config[k].bounds)]));
+    const [rw, rh] = config.river.grid;
+    const water = makeGrid(rw, rh, riverLevelData, config.river.bounds);
+    const riverMask = pixels(images.flow);
+    const covers = pixels(images.gravel);
+
+    const halfValues = new Float32Array(survey.size ** 2);
+    const halfBytes = new DataView(half.buffer, half.byteOffset, half.byteLength);
+    for (let i = 0; i < halfValues.length; i++) halfValues[i] = survey.meters * (survey.low + survey.range * halfBytes.getUint16(i * 2, true) / 65535);
+    const halfSize = survey.span * survey.meters / 2;
+    const halfCenter = survey.center * survey.meters;
+    const halfGrid = makeGrid(survey.size, survey.size, halfValues, [-halfSize, halfSize, -halfCenter - halfSize, -halfCenter + halfSize]);
+
+    // Match flight ground contact to the triangles drawn by the distant terrain mesh.
+    const farColumns = 295, farRows = 479;
+    const [west, east, south, north] = config.far.bounds;
+    const farSamples = new Float32Array(farColumns * farRows);
+    const tetonRange = { name: "Teton Range", x: 0, z: 0, y: -Infinity };
+    for (let row = 0; row < farRows; row++) {
+      const z = lerp(-north, -south, row / (farRows - 1));
+      for (let col = 0; col < farColumns; col++) {
+        const x = lerp(west, east, col / (farColumns - 1));
+        const y = heights.far.at(x, z);
+        farSamples[row * farColumns + col] = y;
+        if (y > tetonRange.y && inside(config.mountainRelief, x, z)) Object.assign(tetonRange, { x, y, z });
+      }
+    }
+    const farGround = makeGrid(farColumns, farRows, farSamples, config.far.bounds);
+    const ridgeMinZ = RIDGE_OZ + halfGrid.bounds[2], ridgeMaxZ = RIDGE_OZ + halfGrid.bounds[3];
+    const playableBounds = [
+      Math.min(west + 64, -2060), RIDGE_OX - halfGrid.bounds[0] - 64,
+      Math.max(-north, ridgeMinZ) + 64, Math.max(Math.min(-south, ridgeMaxZ) - 64, 1020)
+    ];
+    const tetonRawGround = (x, z) => {
+      for (const h of [heights.detail, heights.reach, heights.near]) if (inside(h.bounds, x, z)) return h.at(x, z);
+      return farGround.at(x, z);
+    };
+    const abyssLocalY = (ax, az) => ABYSS_BASE_Y + abSeabedH(ax, az) * 1.15;
+    const ahiyaGroundY = (x, z) => {
+      const lx = x - AHIYA_OX, lz = z - AHIYA_OZ;
+      // Sculpt Ahiya Highland Wadi (-1460,760), Ridge Cross-Beacon (-1610,590), Hill Archive (-1765,540), Daylight Compound (-1680,775)
+      const gBasalt = Math.exp(-((x + 1460) ** 2 + (z - 760) ** 2) / (95 * 95));
+      const gBeacon = Math.exp(-((x + 1610) ** 2 + (z - 590) ** 2) / (115 * 115));
+      const gHill = Math.exp(-((x + 1765) ** 2 + (z - 540) ** 2) / (105 * 105));
+      const gComp = Math.exp(-((x + 1680) ** 2 + (z - 775) ** 2) / (95 * 95));
+      const strata = abFbm2(lx * .018, lz * .018, 3) * 11.5 + Math.sin(lx * .045 + lz * .03) * 2.2;
+      const ridgeY = AHIYA_BASE_Y + strata + gBeacon * 48 + gHill * 39 + gComp * 14 - gBasalt * 4;
+      const wadiCut = Math.exp(-((lz - 70 - Math.sin(lx * .02) * 35) ** 2) / (32 * 32)) * 9.0 * (1 - gBeacon);
+      return ridgeY - wadiCut;
+    };
+    const tetonWithAbyss = (x, z) => {
+      let tg = tetonRawGround(x, z);
+      const ax = (x - ABYSS_OX) / ABYSS_SCALE, az = (z - ABYSS_OZ) / ABYSS_SCALE;
+      const ar = Math.hypot(ax, az);
+      if (ar < 88) {
+        const mask = 1 - smooth(52, 86, ar);
+        tg = lerp(tg, abyssLocalY(ax, az), mask);
+      }
+      const ahR = Math.hypot((x - AHIYA_OX) / 285, (z - AHIYA_OZ) / 260);
+      if (ahR < 1.15) {
+        const ahMask = 1 - smooth(.65, 1.15, ahR);
+        tg = lerp(tg, ahiyaGroundY(x, z), ahMask);
+      }
+      return tg;
+    };
+    function ridgeGround(x, z) {
+      const original = halfGrid.at(x, z);
+      const onPass = smooth(48, 61, x) * (1 - smooth(106, 120, x));
+      const gorge = smooth(-34, -31, z) * (1 - smooth(2.9, 5, z));
+      const shoulder = smooth(-12, -2, z) * (1 - smooth(18, 38, z));
+      const rootWall = 1 - smooth(-70.8, -68.5, z);
+      const stone = onPass * (.23 * Math.sin(.51 * x + .19 * z) * Math.sin(z * .35) + .12 * Math.sin(z * 1.62));
+      return original + onPass * (-12.5 * gorge + 4.4 * rootWall + shoulder * .44) + stone;
+    }
+    const ridgeWorldGround = (wx, wz) => RIDGE_OY + ridgeGround(RIDGE_OX - wx, RIDGE_OZ - wz);
+    const unifiedGround = (wx, wz) => {
+      if (wx <= 155) return tetonWithAbyss(wx, wz);
+      const rg = ridgeWorldGround(wx, wz);
+      if (wx >= 302) return rg;
+      return lerp(tetonWithAbyss(wx, wz), rg, smooth(155, 302, wx));
+    };
+    function maskAt(image, x, z, channel) {
+      if (!inside(config.river.bounds, x, z)) return 0;
+      const [left, right, south, north] = config.river.bounds;
+      const j = clamp(Math.floor((z + north) / (north - south) * image.height), 0, image.height - 1);
+      const i = clamp(Math.floor((x - left) / (right - left) * image.width), 0, image.width - 1);
+      return image.data[(j * image.width + i) * 4 + channel];
+    }
+    const wet = (x, z) => maskAt(riverMask, x, z, 2) * 160 / 255 - 32;
+
+    const time = { value: 8 }, glass = { value: 0 }, sun = { value: new T.Vector3(.31, .51, .802).normalize() };
+    const lighting = { uTime: time, uGlass: glass, sun };
+
+    const skyUniforms = {
+      ...lighting, uSky: U("sky-plate"), uSkyRight: { value: new T.Vector3() }, uSkyUp: { value: new T.Vector3() },
+      uSkyForward: { value: new T.Vector3() }, uSkyScale: { value: new T.Vector2() }, uSkyShift: { value: new T.Vector2() }
+    };
+    const makeSky = () => {
+      const sky = new T.Mesh(new T.PlaneGeometry(2, 2), new T.ShaderMaterial({
+        uniforms: skyUniforms, vertexShader: skyVertex, fragmentShader: viewSkyFragment, depthTest: false, depthWrite: false
+      }));
+      sky.frustumCulled = false;
+      sky.renderOrder = -1000;
+      return sky;
+    };
+    function updateSkyBasis(viewCam) {
+      viewCam.updateMatrixWorld();
+      skyUniforms.uSkyRight.value.setFromMatrixColumn(viewCam.matrixWorld, 0);
+      skyUniforms.uSkyUp.value.setFromMatrixColumn(viewCam.matrixWorld, 1);
+      viewCam.getWorldDirection(skyUniforms.uSkyForward.value);
+      const m = viewCam.projectionMatrix.elements;
+      skyUniforms.uSkyScale.value.set(1 / m[0], 1 / m[5]);
+      skyUniforms.uSkyShift.value.set(-m[8], -m[9]);
+    }
+    function makeRegionScene() {
+      const world = new T.Scene();
+      world.add(makeSky());
+      world.add(new T.HemisphereLight(0xf6f4ee, 0x3b3c39, 1.35));
+      const key = new T.DirectionalLight(0xfffaf0, 2.35);
+      key.position.set(110, 145, 75);
+      world.add(key);
+      return { world, light: key };
+    }
+
+    const tetons = makeRegionScene();
+    const ridgeAnchor = new T.Group();
+    ridgeAnchor.position.set(RIDGE_OX, RIDGE_OY, RIDGE_OZ);
+    ridgeAnchor.rotation.y = Math.PI;
+    tetons.world.add(ridgeAnchor);
+
+    const tetonMaterials = {
+      ...lighting, uUnlit: { value: 0 }, uSky: U("sky-plate"),
+      uRock: U("rock"), uGround: U("ground"), uScree: U("scree"), uCobbles: U("cobbles"),
+      uFlow: U("flow"), uGravel: U("gravel"), uCanopy: U("canopy"), uGeology: U("geology"),
+      uMountainRelief: U("mountain-relief"),
+      uGeoBounds: { value: textureBounds(config.far.bounds) }, uFlowBounds: { value: textureBounds(config.river.bounds) },
+      uCanopyBounds: { value: textureBounds(config.canopy.bounds) }, uMountainBounds: { value: textureBounds(config.mountainRelief) }
+    };
+    const trim = (box, n) => [box[0] + n, box[1] - n, box[2] + n, box[3] - n];
+    const eastSeamCut = [312, east + 1, -ridgeMaxZ, -ridgeMinZ];
+    function tetonLayer(k, width, height, cuts, texName, uvBounds, order) {
+      const layer = heights[k];
+      const mat = new T.ShaderMaterial({
+        uniforms: { ...tetonMaterials, uSurface: U(texName) },
+        vertexShader: meshVertex, fragmentShader: printTerrainFragment,
+        polygonOffset: order > 0, polygonOffsetFactor: -order, polygonOffsetUnits: -order
+      });
+      const m = new T.Mesh(rasterMesh(unifiedGround, layer.bounds, width, height, { cuts, uvBounds }), mat);
+      m.renderOrder = order;
+      tetons.world.add(m);
+    }
+    tetonLayer("far", farColumns, farRows, [trim(config.near.bounds, 120), eastSeamCut], "far-surface", config.far.bounds, 0);
+    tetonLayer("near", 340, 360, [trim(config.detail.bounds, 17), trim(config.reach.bounds, 19), eastSeamCut], "near-surface", config.near.bounds, 1);
+    tetonLayer("reach", 500, 207, [], "near-surface", config.near.bounds, 2);
+    tetonLayer("detail", 161, 161, [], "detail-surface", config.detail.bounds, 3);
+
+    const ridgeMaterial = new T.ShaderMaterial({
+      uniforms: {
+        ...lighting, uSky: U("sky-plate"), uGround: U("ground"), uRock: U("rock"), uScree: U("scree"),
+        uAerial: U("half-ground"), uRelief: U("half-relief"), uAerialBounds: { value: textureBounds([-3000, 3900, -600, 7200]) }
+      },
+      vertexShader: ridgeWorldVertex, fragmentShader: ridgeFragment, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2
+    });
+    function rasterRidgeWorldMesh(localAt, bounds, columns, rows, { cuts = [], minWx = 302 } = {}) {
+      const [west, east, south, north] = bounds;
+      const p = new Float32Array(columns * rows * 3), aLocal = new Float32Array(columns * rows * 3), uv = new Float32Array(columns * rows * 2);
+      const indices = new Uint32Array((columns - 1) * (rows - 1) * 6);
+      for (let j = 0, k = 0; j < rows; j++) {
+        const lz = lerp(-north, -south, j / (rows - 1));
+        for (let i = 0; i < columns; i++, k++) {
+          const lx = lerp(west, east, i / (columns - 1));
+          const wx = RIDGE_OX - lx, wz = RIDGE_OZ - lz;
+          p[k * 3] = wx; p[k * 3 + 1] = unifiedGround(wx, wz); p[k * 3 + 2] = wz;
+          aLocal[k * 3] = lx; aLocal[k * 3 + 1] = localAt(lx, lz); aLocal[k * 3 + 2] = lz;
+          uv[k * 2] = (lx - west) / (east - west);
+          uv[k * 2 + 1] = (-lz - south) / (north - south);
+        }
+      }
+      let used = 0;
+      for (let j = 0; j < rows - 1; j++) for (let i = 0; i < columns - 1; i++) {
+        const lx = lerp(west, east, (i + .5) / (columns - 1));
+        const lz = lerp(-north, -south, (j + .5) / (rows - 1));
+        if (RIDGE_OX - lx < minWx || cuts.some(cut => inside(cut, lx, lz))) continue;
+        const a = j * columns + i;
+        indices[used++] = a; indices[used++] = a + columns; indices[used++] = a + 1;
+        indices[used++] = a + 1; indices[used++] = a + columns; indices[used++] = a + columns + 1;
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute("position", new T.BufferAttribute(p, 3));
+      g.setAttribute("aLocal", new T.BufferAttribute(aLocal, 3));
+      g.setAttribute("uv", new T.BufferAttribute(uv, 2));
+      g.setIndex(new T.BufferAttribute(indices.subarray(0, used), 1));
+      g.computeVertexNormals();
+      g.computeBoundingSphere();
+      return g;
+    }
+    const ridgeLocal = [-135, 240, -110, 195];
+    const ridgeMid = [-680, 980, -700, 1120];
+    const addRidge = (geo, ord) => { const m = new T.Mesh(geo, ridgeMaterial); m.renderOrder = ord; tetons.world.add(m); };
+    addRidge(rasterRidgeWorldMesh(halfGrid.at, halfGrid.bounds, 455, 455, { cuts: [trim(ridgeMid, 35)], minWx: 300 }), 0);
+    addRidge(rasterRidgeWorldMesh(ridgeGround, ridgeMid, 240, 240, { cuts: [trim(ridgeLocal, 14)], minWx: 300 }), 1);
+    addRidge(rasterRidgeWorldMesh(ridgeGround, ridgeLocal, 198, 172, { minWx: 300 }), 2);
+
+    /* Snake River Planar Reflection + Flowing Surface */
+    const reflection = new T.WebGLRenderTarget(320, 240);
+    const mirror = new T.PerspectiveCamera();
+    const reflectionMatrix = new T.Matrix4();
+    const reflectionSize = new T.Vector2(320, 240);
+    const waterUniforms = {
+      ...tetonMaterials, uFlowCoordinates: { value: coordTexture }, uReachBed: U("reach-height"),
+      uReachBounds: { value: textureBounds(config.reach.bounds) }, uForward: { value: new T.Vector3(-1, 0, 0) },
+      uRight: { value: new T.Vector3(0, 0, -1) }, uUp: { value: new T.Vector3(0, 1, 0) },
+      uShift: { value: new T.Vector2() }, uTan: { value: .4 }, uAspect: { value: 1.4 }, uReflectionCamera: { value: reflectionMatrix },
+      uBankReflection: { value: reflection.texture }, uReflectionSize: { value: reflectionSize }
+    };
+    const stream = new T.Mesh(rasterMesh(water.at, water.bounds, 161, 175), new T.ShaderMaterial({
+      uniforms: waterUniforms, vertexShader: meshVertex, fragmentShader: riverFragment, alphaToCoverage: true
+    }));
+    stream.renderOrder = 4;
+    tetons.world.add(stream);
+
+    let lastReflection = -Infinity;
+    const reflectedEye = new T.Vector3(), plane = new T.Plane(), vec = new T.Vector4(), corner = new T.Vector4(), aim = new T.Vector3();
+    function renderReflection(clock, width, height, level, viewCam) {
+      if (clock - lastReflection < .16 && reflectedEye.distanceToSquared(viewCam.position) < 9.0) return;
+      lastReflection = clock;
+      reflectedEye.copy(viewCam.position);
+      const w = Math.min(420, Math.max(120, Math.floor(width * .45)));
+      const h = Math.max(90, Math.floor(w * height / Math.max(1, width)));
+      if (reflection.width !== w || reflection.height !== h) reflection.setSize(w, h);
+      reflectionSize.set(w, h);
+      mirror.position.set(viewCam.position.x, 2 * level - viewCam.position.y, viewCam.position.z);
+      viewCam.getWorldDirection(aim);
+      aim.y = -aim.y;
+      mirror.up.set(0, -1, 0);
+      mirror.lookAt(aim.add(mirror.position));
+      mirror.updateMatrixWorld();
+      mirror.projectionMatrix.copy(viewCam.projectionMatrix);
+      plane.setComponents(0, 1, 0, -level + .14);
+      plane.applyMatrix4(mirror.matrixWorldInverse);
+      vec.set(plane.normal.x, plane.normal.y, plane.normal.z, plane.constant);
+      const m = mirror.projectionMatrix.elements;
+      corner.set((Math.sign(vec.x) + m[8]) / m[0], (Math.sign(vec.y) + m[9]) / m[5], -1, (1 + m[10]) / m[14]);
+      vec.multiplyScalar(2 / vec.dot(corner));
+      m[2] = vec.x; m[6] = vec.y; m[10] = vec.z + 1; m[14] = vec.w;
+      reflectionMatrix.multiplyMatrices(mirror.projectionMatrix, mirror.matrixWorldInverse);
+      updateSkyBasis(mirror);
+      stream.visible = false;
+      renderer.setRenderTarget(reflection);
+      try { renderer.render(tetons.world, mirror); }
+      finally { stream.visible = true; renderer.setRenderTarget(null); }
+    }
+
+    /* MONOLITH-3 Props: Overlook Survey Deck, Forest/Grove Billboards, Boulders, Ford Riffles, Cloud Bridge & Iron Gate */
+    const metal = new T.MeshStandardMaterial({ color: 0xaaa59a, roughness: .42, metalness: .49 });
+    const iron = new T.MeshStandardMaterial({ color: 0x333532, roughness: .62, metalness: .64 });
+    const pale = new T.MeshStandardMaterial({ color: 0xc8c2b3, roughness: .86 });
+    const dark = new T.MeshStandardMaterial({ color: 0x232421, roughness: 1 });
+    const walnutMat = new T.MeshStandardMaterial({ color: 0x42403c, roughness: .62, map: tex["prop-ground"] });
+    const rockMaterial = new T.MeshStandardMaterial({ color: 0x7e7e7e, map: tex["prop-rock"], roughness: .93 });
+    const wood = new T.MeshStandardMaterial({ color: 0x505050, map: tex["prop-ground"], roughness: .88 });
+    const block = new T.BoxGeometry(1, 1, 1), ball = new T.SphereGeometry(1, 22, 16), cylinder = new T.CylinderGeometry(1, 1, 1, 14);
+    const ringGeo = new T.TorusGeometry(1, .09, 10, 40), boulderGeo = new T.IcosahedronGeometry(1, 1);
+    const addMesh = (grp, geo, mat, x, y, z, sx = 1, sy = 1, sz = 1) => {
+      const m = new T.Mesh(geo, mat); m.position.set(x, y, z); m.scale.set(sx, sy, sz); grp.add(m); return m;
+    };
+    const box = (grp, mat, x, y, z, sx, sy, sz) => addMesh(grp, block, mat, x, y, z, sx, sy, sz);
+    const rock = (grp, mat, x, y, z, sx, sy, sz, a = 0) => { const m = addMesh(grp, boulderGeo, mat, x, y, z, sx, sy, sz); m.rotation.y = a; return m; };
+
+    // Snake River Overlook Survey Deck + Ramp
+    const DECK_Y = 156.31;
+    const deckGroup = new T.Group();
+    tetons.world.add(deckGroup);
+    box(deckGroup, wood, -36.5, DECK_Y - .14, 1.35, 23.6, .24, 7.8);
+    for (let i = 0; i < 14; i++) box(deckGroup, walnutMat, -47.8 + i * 1.75, DECK_Y - .01, 1.35, .12, .03, 7.7);
+    for (const z of [-2.4, 5.1]) box(deckGroup, wood, -36.5, DECK_Y + .04, z, 23.6, .09, .16);
+    box(deckGroup, wood, -48.25, DECK_Y + .04, 1.35, .16, .09, 7.8);
+    for (const x of [-47.4, -40, -32.5, -25.4]) for (const z of [-2.1, 4.8]) {
+      const gy = tetonRawGround(x, z) - 1.2, h = Math.max(1, DECK_Y - gy);
+      box(deckGroup, iron, x, gy + h / 2, z, .26, h, .26);
+    }
+    const ramp = box(deckGroup, wood, -22.2, 155.8, 1.35, 5.5, .22, 7.6);
+    ramp.rotation.z = -.18;
+
+    // Instanced Trees (7,400+ Tetons + 4,400+ Half Dome in one world scene)
+    const random = seedRandom(77269);
+    function addTrees(worldParent, data) {
+      if (!data.length) return;
+      const g = new T.PlaneGeometry(1, 1);
+      const mat = new T.ShaderMaterial({
+        uniforms: { ...lighting, uSky: U("sky-plate"), uCrowns: U("crowns") },
+        vertexShader: gameBillboardVertex, fragmentShader: gameBillboardFragment, side: T.DoubleSide
+      });
+      const mesh = new T.InstancedMesh(g, mat, data.length);
+      const o = new T.Object3D(), seed = new Float32Array(data.length);
+      data.forEach(([x, y, z, h, w, mark], i) => {
+        o.position.set(x, y - .06, z); o.scale.set(w, h, 1); o.updateMatrix();
+        mesh.setMatrixAt(i, o.matrix); seed[i] = mark;
+      });
+      g.setAttribute("aSeed", new T.InstancedBufferAttribute(seed, 1));
+      mesh.computeBoundingSphere();
+      mesh.boundingSphere.radius += 25;
+      worldParent.add(mesh);
+    }
+
+    const forest = [];
+    for (let i = 0; i < crownPositions.length; i += 5) {
+      const [x, , z, raw, cover] = crownPositions.subarray(i, i + 5);
+      if (x > 290 || Math.hypot(x - ABYSS_OX, z - ABYSS_OZ) < 175 || Math.hypot(x - AHIYA_OX, z - AHIYA_OZ) < 230) continue;
+      if (wet(x, z) > .4 || random() < .19) continue;
+      if (x > -450 && x < -205 && Math.abs(z + 54) < 9) continue;
+      if (x > -120 && x < -12 && z > -180 && z < 15) continue;
+      const bar = maskAt(covers, x, z, 0) / 255;
+      if (bar > .29 && random() < .81) continue;
+      const h = Math.min(raw, 27) * (bar > .19 ? .43 : .86 + .13 * random());
+      const id = h > 10 ? (random() < .70 ? 0 : 3) : h > 6 ? (random() < .51 ? 10 : 6) : 8;
+      forest.push([x, unifiedGround(x, z), z, h, h * config.crownRatios[id] * (.71 + cover * .19), id + random() * .995]);
+    }
+    for (let i = 0; i < 7400; i++) {
+      const x = -720 + random() * 444, z = -168 + random() * 344;
+      const bar = maskAt(covers, x, z, 0) / 255;
+      if (bar < .08 || wet(x, z) > -1.6 || Math.abs(z + 55) < 4.5 || random() > (maskAt(covers, x, z, 1) / 255) * .48) continue;
+      const h = .40 + 4.3 * random() ** 1.4;
+      forest.push([x, unifiedGround(x, z), z, h, h * 1.38, 8 + random() * 1.98]);
+    }
+    addTrees(tetons.world, forest);
+
+    const grove = [];
+    for (let i = 0; i < 4400; i++) {
+      const lx = -2050 + random() * 2370, lz = -1970 + random() * 2200, wx = RIDGE_OX - lx, wz = RIDGE_OZ - lz;
+      if (wx < 312) continue;
+      const ly = ridgeGround(lx, lz);
+      if (ly > 700 || (lx > 58 && lx < 98 && lz > -102 && lz < 44)) continue;
+      const grade = Math.abs(ridgeGround(lx + 6, lz) - ly) + Math.abs(ridgeGround(lx, lz + 6) - ly);
+      if (grade > 6 || random() < .23) continue;
+      const h = 4.7 + 20 * random() ** 1.5;
+      grove.push([lx, ly, lz, h, h * (.48 + .31 * random()), (random() < .71 ? 0 : 10) + random() * 1.91]);
+    }
+    addTrees(ridgeAnchor, grove);
+
+    function stones(worldParent, ground, count, bounds, isTeton) {
+      const [x0, x1, z0, z1] = bounds;
+      const mesh = new T.InstancedMesh(boulderGeo, rockMaterial, count);
+      const o = new T.Object3D(), col = new T.Color();
+      let placed = 0, tries = 0;
+      while (placed < count && tries < count * 6) {
+        tries++;
+        const x = lerp(x0, x1, random()), z = lerp(z0, z1, random());
+        const s = .073 + (random() ** 3.3) * .84;
+        if (isTeton && (wet(x, z) > -.5 || (x > -52 && x < -14 && z > -10 && z < 12) || Math.hypot(x - ABYSS_OX, z - ABYSS_OZ) < 170 || Math.hypot(x - AHIYA_OX, z - AHIYA_OZ) < 230)) continue;
+        if (!isTeton && x > 67 && x < 83 && z > -32 && z < 5) continue;
+        o.position.set(x, ground(x, z) + s * .11, z);
+        o.rotation.set(random() * .62, random() * TAU, random() * .82);
+        o.scale.set(s * (1.16 + random() * .82), s * (.29 + random() * .55), s * (.81 + random() * .82));
+        o.updateMatrix();
+        mesh.setMatrixAt(placed, o.matrix);
+        col.setScalar(.42 + random() * .69);
+        mesh.setColorAt(placed, col);
+        placed++;
+      }
+      mesh.count = placed;
+      mesh.computeBoundingSphere();
+      worldParent.add(mesh);
+    }
+    stones(tetons.world, unifiedGround, 850, [-460, -200, -114, 22], true);
+    stones(tetons.world, unifiedGround, 1100, [-960, -15, -220, 230], true);
+    stones(ridgeAnchor, ridgeGround, 720, [37, 118, -119, 61], false);
+    stones(ridgeAnchor, ridgeGround, 950, [-280, 305, -340, 210], false);
+
+    /* Silver Ford & Half Dome Cloud Bridge */
+    const fordShader = new T.ShaderMaterial({
+      transparent: true, depthWrite: false, side: T.DoubleSide,
+      uniforms: { uTime: time, uCobbles: U("cobbles"), uFordSolid: { value: 1 }, uFordZone: { value: 7 } },
+      vertexShader: meshVertex,
+      fragmentShader: `
+        varying vec3 vWorld; varying vec2 vUV; uniform sampler2D uCobbles; uniform float uTime, uFordSolid, uFordZone;
+        ${noiseGLSL}
+        void main() {
+          vec2 p = vWorld.xz;
+          float chips = fbm(p * vec2(2.9, 4.2) + 7.3);
+          float edge = 1. - smoothstep(.39, .50, abs(vUV.y - .5) + .13 * (chips - .5));
+          float ends = smoothstep(.0, .06, vUV.x) * (1. - smoothstep(.94, 1., vUV.x));
+          float grit = texture2D(uCobbles, p * .82).r;
+          float flow = noise2(vec2(p.x * .93, p.y * 5. - uTime * 2.8));
+          float frost = .18 + .19 * grit + .12 * chips + .028 * (uFordZone - 5.);
+          float glare = .53 + .22 * pow(flow, 3.) + .05 * grit;
+          gl_FragColor = vec4(vec3(paper(clamp(mix(glare, frost, uFordSolid), 0., .97))), edge * ends * (.63 + .35 * uFordSolid));
+        }`
+    });
+    const fordPatch = new T.Mesh(rasterMesh((x, z) => water.at(x, z) + .11, [-360, -279, 50.5, 59.5], 106, 15), fordShader);
+    fordPatch.renderOrder = 8;
+    tetons.world.add(fordPatch);
+    const oxbowRiffle = new T.Mesh(rasterMesh((x, z) => water.at(x, z) + .11, [-585, -470, -182, -132], 64, 28), fordShader);
+    oxbowRiffle.renderOrder = 8;
+    tetons.world.add(oxbowRiffle);
+
+    const bridgeHeight = (x, z) => lerp(ridgeGround(x, -34), ridgeGround(x, 5.3), clamp((z + 34) / 39.3, 0, 1)) + .065;
+    const bridgeMat = new T.ShaderMaterial({
+      transparent: true, side: T.DoubleSide, depthWrite: false,
+      uniforms: { ...lighting, uRock: U("rock"), uCloudSolid: { value: 1 } },
+      vertexShader: meshVertex,
+      fragmentShader: `
+        varying vec3 vWorld; varying vec2 vUV; uniform sampler2D uRock; uniform float uTime, uCloudSolid;
+        ${noiseGLSL}
+        void main() {
+          float edge = 1. - smoothstep(.33, .50, abs(vUV.x - .5));
+          float stone = texture2D(uRock, vWorld.xz * .51).r;
+          float billow = fbm(vWorld.xz * .37 + vec2(uTime * .12, 0.));
+          float mass = (.046 + .17 * stone) * (.63 + .65 * billow);
+          gl_FragColor = vec4(vec3(paper(mix(.51 + .20 * billow, mass, uCloudSolid))), mix(.37, .96, uCloudSolid) * edge);
+        }`
+    });
+    const cloudBridge = new T.Mesh(rasterMesh(bridgeHeight, [70.5, 79.5, -5.3, 34], 18, 87), bridgeMat);
+    cloudBridge.renderOrder = 8;
+    ridgeAnchor.add(cloudBridge);
+
+    for (const [cx, cz] of [[-246, -54.8], [-518, 94], [-790, -35]]) {
+      const cy = unifiedGround(cx, cz), g = new T.Group();
+      g.position.set(cx, cy, cz); tetons.world.add(g);
+      rock(g, rockMaterial, 0, .19, 0, .55, .37, .45, .5);
+      addMesh(g, cylinder, metal, 0, 1.05, 0, .075, .42, .075);
+      const r = addMesh(g, ringGeo, metal, 0, 1.45, 0, .30, .30, .30); r.rotation.y = .7;
+    }
+    for (const [cx, cz] of [[75, 8], [75, -88], [220, -45]]) {
+      const cy = ridgeGround(cx, cz), g = new T.Group();
+      g.position.set(cx, cy, cz); ridgeAnchor.add(g);
+      rock(g, rockMaterial, 0, .19, 0, .55, .37, .45, .5);
+      addMesh(g, cylinder, metal, 0, 1.05, 0, .075, .42, .075);
+      const r = addMesh(g, ringGeo, metal, 0, 1.45, 0, .30, .30, .30); r.rotation.y = .7;
+    }
+
+    const gate = new T.Group();
+    gate.position.set(75, ridgeGround(75, -49), -49);
+    ridgeAnchor.add(gate);
+    for (const side of [-1, 1]) {
+      rock(gate, rockMaterial, side * 3.25, 1.58, 0, 1.23, 2.34, 1.4, .4);
+      box(gate, iron, side * 2.65, 1.56, 0, .19, 3.38, .19);
+    }
+
+    // Survey cairns at the Silver Ford posts for landmarks
+    for (const x of [-274, -367]) for (const z of [-60, -50]) {
+      const y = unifiedGround(x, z);
+      box(tetons.world, dark, x, y + .46, z, .14, .94, .14);
+      box(tetons.world, pale, x, y + .87, z, .185, .14, .184);
+    }
+
+    /* ---------- Build Abyssal Garden · Whale Fluke Sanctuary inside Unified World (West of Pueblo) ---------- */
+    const abyssGroup = new T.Group();
+    abyssGroup.position.set(ABYSS_OX, ABYSS_BASE_Y, ABYSS_OZ);
+    abyssGroup.scale.set(ABYSS_SCALE, 1.15, ABYSS_SCALE);
+    tetons.world.add(abyssGroup);
+
+    const abVertexMat = new T.MeshStandardMaterial({ vertexColors: true, roughness: .72, metalness: .06 });
+    const abWhale = new T.Mesh(mkAbyssWhaleGeo(), abVertexMat);
+    const abShip = new T.Mesh(mkAbyssShipGeo(), abVertexMat);
+    const abArch = new T.Mesh(mkAbyssArchGeo(), abVertexMat);
+    abyssGroup.add(abWhale, abShip, abArch);
+
+    // Animated Caustic Seabed Blanket over Whale Fluke Sanctuary (matches media_1794893283597_4a288d06.jpg)
+    const abCaustGeo = rasterMesh((ax, az) => abSeabedH(ax, az) + .14, [-78, 78, -78, 78], 84, 84);
+    const abCaustMat = new T.ShaderMaterial({
+      transparent: true, depthWrite: false,
+      uniforms: { uTime: time },
+      vertexShader: `varying vec3 vLocalP; void main() { vLocalP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+      fragmentShader: `
+        varying vec3 vLocalP; uniform float uTime;
+        float caustP(vec2 p, float t) {
+          mat2 m1 = mat2(.80, -.60, .60, .80), m2 = mat2(-.55, .835, -.835, -.55);
+          vec2 uv1 = m1 * p * .34 + vec2(t * .16, -t * .11), uv2 = m2 * p * .43 + vec2(-t * .13, t * .19);
+          vec2 s1 = sin(uv1 * 3.14159 + cos(uv1.yx * 2.7 + t * .8)), s2 = sin(uv2 * 3.14159 + sin(uv2.yx * 3.1 - t * .7));
+          float w = abs(s1.x * s1.y + s2.x * s2.y) * .5;
+          return pow(clamp(1. - abs(w - .32) * 3.1, 0., 1.), 3.4) * .85;
+        }
+        void main() {
+          float r = length(vLocalP.xz);
+          float fade = 1. - smoothstep(42., 74., r);
+          if (fade < .01) discard;
+          float c = caustP(vLocalP.xz * .75, uTime * 3.2);
+          float ripple = sin(vLocalP.x * 1.45 + vLocalP.z * .65) * .5 + .5;
+          vec3 sand = mix(vec3(.08, .38, .46), vec3(.18, .66, .74), ripple * .45);
+          vec3 col = sand + vec3(.38, .92, .96) * c * .82;
+          gl_FragColor = vec4(col, fade * .86);
+        }`
+    });
+    const abCaustMesh = new T.Mesh(abCaustGeo, abCaustMat);
+    abCaustMesh.renderOrder = 3;
+    abyssGroup.add(abCaustMesh);
+
+    // Overhead Sunlight Caustic Water Surface Canopy (above driving height!)
+    const abSurfMat = new T.ShaderMaterial({
+      transparent: true, depthWrite: false, side: T.DoubleSide,
+      uniforms: { uTime: time },
+      vertexShader: `varying vec2 vXZ; void main() { vXZ = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+      fragmentShader: `
+        varying vec2 vXZ; uniform float uTime;
+        void main() {
+          float r = length(vXZ);
+          float fade = 1. - smoothstep(55., 95., r);
+          float w = sin(vXZ.x * .35 + uTime * 2.4) * cos(vXZ.y * .32 - uTime * 1.9);
+          vec3 col = mix(vec3(.12, .56, .72), vec3(.58, .94, 1.), smoothstep(.1, .85, w));
+          gl_FragColor = vec4(col, fade * .28);
+        }`
+    });
+    const abSurf = new T.Mesh(new T.PlaneGeometry(195, 195), abSurfMat);
+    abSurf.rotation.x = -Math.PI / 2;
+    abSurf.position.set(0, (ABYSS_SURF_Y - ABYSS_BASE_Y) / 1.15, 0);
+    abSurf.renderOrder = 6;
+    abyssGroup.add(abSurf);
+
+    // Instanced Violet/Coral Reef Sponges & Branching Corals (as seen in Whale Fluke Sanctuary)
+    const abRng = seedRandom(0x4E1B2026);
+    const abCoralPalette = [[.36, .16, .78], [.62, .20, .64], [.82, .32, .42], [.18, .54, .68], [.44, .28, .88]];
+    const abHotspots = [[-6.8, 9.8], [-5.2, 7.6], [-8.4, 11.4], [5.8, 10.6], [7.6, 12.2], [4.4, 8.8], [18.0, -3.5], [15.2, -6.5], [-12.5, -21.0]];
+    const coralMesh = new T.InstancedMesh(mkAbyssCoralGeo(), abVertexMat, 180);
+    const spongeMesh = new T.InstancedMesh(mkAbyssSpongeGeo(), abVertexMat, 140);
+    const instObj = new T.Object3D(), instCol = new T.Color();
+    for (let i = 0; i < 320; i++) {
+      let ax, az;
+      if (i < 130) {
+        const hs = abHotspots[i % abHotspots.length];
+        ax = hs[0] + (abRng() - .5) * 9.0; az = hs[1] + (abRng() - .5) * 9.0;
+      } else {
+        const rr = Math.sqrt(abRng()) * 58.0, aa = abRng() * TAU;
+        ax = Math.cos(aa) * rr; az = Math.sin(aa) * rr;
+      }
+      if (Math.hypot(ax - .4, az - 8.2) < 5.2 || Math.hypot(ax - 7.5, az - 10.5) < 4.4) { ax += 6.0; }
+      const ay = abSeabedH(ax, az) - .06, sc = .55 + (abRng() ** 1.4) * 1.40;
+      instObj.position.set(ax, ay, az);
+      instObj.rotation.set((abRng() - .5) * .24, abRng() * TAU, (abRng() - .5) * .24);
+      instObj.scale.setScalar(sc);
+      instObj.updateMatrix();
+      const pal = abCoralPalette[(abRng() * abCoralPalette.length) | 0];
+      instCol.setRGB(pal[0], pal[1], pal[2]);
+      if (i < 180) { coralMesh.setMatrixAt(i, instObj.matrix); coralMesh.setColorAt(i, instCol); }
+      else { spongeMesh.setMatrixAt(i - 180, instObj.matrix); spongeMesh.setColorAt(i - 180, instCol); }
+    }
+    coralMesh.instanceMatrix.needsUpdate = spongeMesh.instanceMatrix.needsUpdate = true;
+    coralMesh.computeBoundingSphere(); spongeMesh.computeBoundingSphere();
+    abyssGroup.add(coralMesh, spongeMesh);
+
+    // Animated Manta Rays & Bioluminescent Jellyfish over the Whale Fluke Sanctuary
+    const mantaDefs = [
+      { cx: -6, cy: 13.8, cz: -8, rx: 14.5, rz: 12, speed: .15, phase: .4, scale: 1.55 },
+      { cx: -13.5, cy: 16.5, cz: -24, rx: 11, rz: 10.5, speed: -.13, phase: 2.3, scale: 1.35 },
+      { cx: 14, cy: 11.2, cz: -4, rx: 13, rz: 14, speed: .14, phase: 4.1, scale: 1.45 },
+      { cx: 2, cy: 18.2, cz: 4, rx: 18, rz: 15, speed: .11, phase: 1.2, scale: 1.70 },
+      { cx: 10, cy: 8.5, cz: -28, rx: 12, rz: 11, speed: -.14, phase: 5.0, scale: 1.40 },
+      { cx: 0, cy: 12.0, cz: 10, rx: 15, rz: 12, speed: .12, phase: 3.1, scale: 1.50 }
+    ];
+    const mantaMesh = new T.InstancedMesh(mkAbyssMantaGeo(), abVertexMat, mantaDefs.length);
+    abyssGroup.add(mantaMesh);
+
+    const jellyDefs = Array.from({ length: 22 }, (_, j) => {
+      const ax = (j < 12 ? -6 + abRng() * 32 : (abRng() - .5) * 52), az = -8 - abRng() * 32;
+      return { bx: ax, by: clamp(abSeabedH(ax, az) + 3.2 + abRng() * 8.5, 2, 18), bz: az, scale: .65 + abRng() * .75, phase: abRng() * TAU };
+    });
+    const jellyMat = new T.MeshStandardMaterial({ vertexColors: true, emissive: 0x1680ff, emissiveIntensity: .9, transparent: true, opacity: .82, roughness: .2 });
+    const jellyMesh = new T.InstancedMesh(mkAbyssJellyGeo(), jellyMat, jellyDefs.length);
+    abyssGroup.add(jellyMesh);
+
+    function abyssAnimate(nowSec) {
+      for (let i = 0; i < mantaDefs.length; i++) {
+        const m = mantaDefs[i], th = nowSec * m.speed + m.phase;
+        const x = m.cx + Math.cos(th) * m.rx, z = m.cz + Math.sin(th) * m.rz, y = m.cy + Math.sin(th * 2 + m.phase) * 1.45;
+        const vx = -Math.sin(th) * m.rx * m.speed, vz = Math.cos(th) * m.rz * m.speed, vy = Math.cos(th * 2 + m.phase) * 2 * m.speed * 1.45;
+        instObj.position.set(x, y, z);
+        instObj.rotation.set(-Math.atan2(vy, Math.hypot(vx, vz)), Math.atan2(vx, vz), clamp(-m.speed * 1.65 * Math.cos(th), -.35, .35), "YXZ");
+        instObj.scale.setScalar(m.scale);
+        instObj.updateMatrix();
+        mantaMesh.setMatrixAt(i, instObj.matrix);
+      }
+      mantaMesh.instanceMatrix.needsUpdate = true;
+      for (let j = 0; j < jellyDefs.length; j++) {
+        const jl = jellyDefs[j], ph = nowSec * 1.65 + jl.phase;
+        instObj.position.set(jl.bx + Math.sin(nowSec * .25 + jl.phase) * .85, jl.by + Math.sin(nowSec * .45 + jl.phase * 1.4) * .95 - Math.cos(ph) * .14, jl.bz + Math.cos(nowSec * .22 + jl.phase) * .85);
+        instObj.rotation.set(Math.sin(nowSec * .4 + jl.phase) * .14, jl.phase, 0);
+        instObj.scale.set(jl.scale * (1 + Math.sin(ph) * .12), jl.scale * (1 - Math.sin(ph) * .08), jl.scale * (1 + Math.sin(ph) * .12));
+        instObj.updateMatrix();
+        jellyMesh.setMatrixAt(j, instObj.matrix);
+      }
+      jellyMesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // Find dramatic high summits dynamically in Teton & Half Dome DEMs for instant Base-Jump launch!
+    let bestTetonPeak = { x: -180, z: -260, y: unifiedGround(-180, -260) };
+    for (let x = -480; x <= 60; x += 28) {
+      for (let z = -340; z <= 320; z += 28) {
+        const y = unifiedGround(x, z);
+        if (y > bestTetonPeak.y && Math.hypot(x + 260, z + 30) > 130) bestTetonPeak = { x, z, y };
+      }
+    }
+    let bestHalfDomeLocal = { x: -260, z: -30, y: ridgeGround(-260, -30) };
+    for (let lx = -540; lx <= -160; lx += 20) {
+      for (let lz = -220; lz <= 120; lz += 20) {
+        const ly = ridgeGround(lx, lz);
+        if (ly >= 320 && ly <= 540 && Math.hypot(lx - 75, lz + 15) < Math.hypot(bestHalfDomeLocal.x - 75, bestHalfDomeLocal.z + 15) + 80) {
+          if (ly > bestHalfDomeLocal.y || bestHalfDomeLocal.y < 300) bestHalfDomeLocal = { x: lx, z: lz, y: ly };
+        }
+      }
+    }
+    const bestHalfDomePeak = {
+      x: RIDGE_OX - bestHalfDomeLocal.x,
+      z: RIDGE_OZ - bestHalfDomeLocal.z,
+      y: RIDGE_OY + bestHalfDomeLocal.y
+    };
+
+    if (loaderMsg) loaderMsg.textContent = "Capturing 8×10 Filmstrip Trees, Wagon & Spatial Radio…";
+    return {
+      world: tetons.world, worldLight: tetons.light,
+      coatTextures, rawImages: images, time, glass, sun,
+      skyUniforms, waterUniforms, updateSkyBasis, renderReflection,
+      unifiedGround, tetonGround: tetonRawGround, ridgeGround,
+      water: (x, z) => water.at(x, z), wet,
+      fordPatch, bridgeMat, bridgeHeight: (wx, wz) => RIDGE_OY + bridgeHeight(RIDGE_OX - wx, RIDGE_OZ - wz), DECK_Y,
+      bestTetonPeak, bestHalfDomePeak, tetonRange, tetonMountainBounds: config.mountainRelief, playableBounds, abyssAnimate, stream
+    };
+  }
+
+  /* ---------- Core Catalog: 11 Zone Vantages Mapped to Real MONOLITH-3 Landmarks + 14 GPU Looks ---------- */
+  const ROMAN = ["0", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+  const LOOKS = [
+    { id: "embers", name: "LIGHT ALONE", zone: 0, trail: .88, desc: "Darkness pierced by drifting embers while keeping surface definition." },
+    { id: "set", name: "THE SET", zone: 1, trail: .36, desc: "High-definition 320-line phosphor monitor with slow sync sweep." },
+    { id: "cave", name: "WARM CAVE", zone: 2, trail: .72, desc: "Thermal heat vision blended with crisp stone relief." },
+    { id: "silhouette", name: "SILHOUETTE", zone: 3, trail: .22, desc: "Lit warm tissue paper, crisp ink shadows, and vermilion highlights." },
+    { id: "woodblock", name: "WOODBLOCK", zone: 4, trail: .15, desc: "Carved indigo, slate, cream, and rust woodcut blocks with surface grain." },
+    { id: "silver", name: "SILVER GELATIN", zone: 5, trail: .08, desc: "High-clarity Ansel Adams selenium-toned 8×10 silver print." },
+    { id: "card", name: "THE CARD", zone: 6, trail: .10, desc: "Cream archival stock hatched and cross-engraved by light." },
+    { id: "spray", name: "SPRAY WALL", zone: 7, trail: .82, desc: "Celluloid mural wall, white paper outlines, and dripping pigment." },
+    { id: "watercolour", name: "WATERCOLOUR", zone: 8, trail: .16, desc: "Pencil underdrawing washed with translucent pigment on paper." },
+    { id: "cyanotype", name: "CYANOTYPE", zone: 9, trail: .65, desc: "Brushed Prussian blue blueprint exposed to bright highland sun." },
+    { id: "glass", name: "GLASS", zone: 10, trail: .76, desc: "X-ray refraction tracing glowing contour edges over deep stone." },
+    { id: "risograph", name: "RISOGRAPH", zone: -1, trail: .12, desc: "Misregistered pink, yellow, and cobalt halftone drums on cream." },
+    { id: "inkwash", name: "INK WASH", zone: -1, trail: .16, desc: "Sumi-e ink dilutions on fibrous paper with red stone seal." },
+    { id: "jerikan", name: "CYAN JERIKAN", zone: -1, trail: .32, desc: "Silver-gelatin stone & burro with selective electric-cyan WiFi water & jerrycans." }
+  ];
+
+  const ZONES = [
+    { z: 0, region: "tetons", look: 0, refl: .05, name: "Overlook Rim Shadow", swatch: "#080809", x: -45, pz: 1.4, desc: "Let the rim disappear into black." },
+    { z: 1, region: "tetons", look: 1, refl: .11, name: "Upper Moraine Timber", swatch: "#15161a", x: -22, pz: -52, desc: "Keep the thinnest separation between trunks." },
+    { z: 2, region: "ridge", look: 2, refl: .18, name: "Half Dome Cloud Notch", swatch: "#262328", x: 545, pz: -16, desc: "Separate the notch from its cloud." },
+    { z: 3, region: "tetons", look: 3, refl: .27, name: "Bluff Switchback Pines", swatch: "#393734", x: -48, pz: -168, desc: "Hold thread and bark in open shadow." },
+    { z: 4, region: "tetons", look: 13, refl: .38, name: "Snake River Overlook", swatch: "#54524a", x: -20, pz: 1.4, desc: "Keep distant conifers distinct from the river." },
+    { z: 5, region: "tetons", look: 5, refl: .50, name: "Juniper Sage Bench", swatch: "#76746b", x: -162, pz: -112, desc: "Set the gray card beside the sage." },
+    { z: 6, region: "tetons", look: 6, refl: .64, name: "The Silver Ford", swatch: "#96948a", x: -248, pz: -55, desc: "Keep fibers in the raised ferry rope." },
+    { z: 7, region: "tetons", look: 7, refl: .74, name: "Cottonwood Oxbow Kiosk", swatch: "#b5b2a6", x: -518, pz: 94, desc: "Give linen shape where it catches light." },
+    { z: 8, region: "abyss", look: 8, refl: .83, name: "Abyssal Whale Fluke Sanctuary", swatch: "#cfcbb9", x: -1080, pz: -22, desc: "Hold a trace of spray above the fluke." },
+    { z: 9, region: "ridge", look: 9, refl: .90, name: "Half Dome East Apron", swatch: "#e4e3d8", x: 435, pz: 38, desc: "Let the brightest granite soften." },
+    { z: 10, region: "tetons", look: 10, refl: .96, name: "Far-Bank Highland Pueblo", swatch: "#f6f4ec", x: -780, pz: -35, desc: "Give one small area to bare paper." }
+  ];
+
+  const SONG_EPOCHS = [
+    { t0: 0,   t1: 45,  name: "I · Wellhead Awakening",    zone: 4, relayId: "switchback", hint: "Tune Z-IV Cyan Jerikan to bridge Overlook -> Switchback." },
+    { t0: 45,  t1: 94,  name: "II · Hooves on Cobble",    zone: 6, relayId: "ford",       hint: "Tune Z-VI Card across the Silver Ford riffles." },
+    { t0: 94,  t1: 140, name: "III · Kidase Under Awning", zone: 7, relayId: "oxbow",      hint: "Tune Z-VII Spray Wall through Cottonwood Oxbow." },
+    { t0: 140, t1: 186, name: "IV · Tezeta Ferric Drop",   zone: 10, relayId: "pueblo",    hint: "Tune Z-X Glass into the Highland Pueblo Sanctuary." },
+    { t0: 186, t1: 235, name: "V · Whale Fluke Tide",      zone: 8, relayId: "abyss",      hint: "Tune Z-VIII Watercolour west into the Abyssal Film Forest." },
+    { t0: 235, t1: 290, name: "VI · Cosmic Addis Summit",  zone: 9, relayId: "halfdome",   hint: "Tune Z-IX Cyanotype east across the Yosemite Pass to Half Dome." }
+  ];
+
+  const MODES = [
+    { id: "jerikan", label: "DONKEY WATER", sub: "Cyan Jerikan Sci-Fi", desc: "MONOLITH-3 silver-gelatin print transformed inside live WiFi water fields with selective electric-cyan jerrycans, rain & Filmstrip Forest." },
+    { id: "threshold", label: "THRESHOLD", sub: "Tonal + Depth Pull", desc: "All 11 Zone shaders populate tonal & depth bands across the Tetons and Half Dome while sharp focus pulls clarity." },
+    { id: "shells", label: "DEPTH SHELLS", sub: "Spatial Slides", desc: "Eleven concentric spatial Zone shaders sweep across 3D distance out toward the peaks." },
+    { id: "strata", label: "TONAL STRATA", sub: "11-Zone Bands", desc: "Filtered scene luminance routes terrain and granite cliffs into Zone shaders 0–X." }
+  ];
+
+  const STOPS = [
+    { name: "f/5.6", oct: .36, lock: 0 },
+    { name: "f/8", oct: .52, lock: .08 },
+    { name: "f/16", oct: .84, lock: .24 },
+    { name: "f/32", oct: 1.35, lock: .56 },
+    { name: "f/64", oct: 2.2, lock: .88 }
+  ];
+
+  const FILTERS = [
+    { name: "CLEAR", short: "Clear", rgb: [1, 1, 1], jerikan: 0 },
+    { name: "YELLOW #8", short: "Yellow", rgb: [1.14, 1.05, .42], jerikan: 0 },
+    { name: "ORANGE #15", short: "Orange", rgb: [1.26, .88, .24], jerikan: 0 },
+    { name: "RED #25", short: "Red", rgb: [1.45, .44, .18], jerikan: 0 },
+    { name: "GREEN #58", short: "Green", rgb: [.52, 1.32, .56], jerikan: 0 },
+    { name: "BLUE JERIKAN #47B", short: "Jerikan #47B", rgb: [1.02, 1.02, 1.18], jerikan: 1 }
+  ];
+
+  const LYRICS = [
+    [0, "Intro · Warm cassette tape wakes before the rooster."],
+    [12, "“Iron lever cracks before the rooster / My hands know the cold of it.”"],
+    [28, "“Cyan jerikan balanced on my shoulder blade / Stone steps climbing toward a blue-lit door.”"],
+    [45, "“Take this water from my well / Will you carry what I cannot.”"],
+    [62, "“Carry the cyan up the ridge with me / Hooves on cobble and the tape is turning.”"],
+    [94, "“Kidase hums beneath the kiosk awning / Static blooms across the dial.”"],
+    [118, "“My father dubbed his Tezeta onto ferric / Every slosh a metronome.”"],
+    [152, "“Carry the cyan up the ridge with me / Brass comes back and the crates are spinning.”"],
+    [186, "“Rope creaks · Wind holds its breath · The drums step out · And the basin fills.”"],
+    [220, "“Cosmic Addis Arkestra — carry WiFi water up to the Highland Pueblo.”"]
+  ];
+
+  const STORAGE_KEY = "donkey-water/night-post/3d-plates/1";
+  const urlParams = new URLSearchParams(location.search);
+  const urlMode = urlParams.get("mode");
+  const initModeIdx = urlMode && MODES.some(m => m.id === urlMode) ? MODES.findIndex(m => m.id === urlMode) : 0;
+  const rawCircuitParam = urlParams.get("circuit");
+  const initCircuitParam = rawCircuitParam === "ahiya" ? "ahiya" : rawCircuitParam === "west" ? "west" : "";
+  const skipIntroParam = urlParams.get("skipIntro") === "1";
+
+  /* ---------- WebAudio: 3D Spatial Donkey Panner + Air Lowpass + Beat Detector ---------- */
+  const audio = (() => {
+    let ctx = null, master = null, enabled = false, analyser = null, freqData = null, tapeConnected = false;
+    let panner = null, airFilter = null, spatialGain = null, directGain = null;
+    let spatialMode = true, distMeters = 5.0, falloffDb = 0, prevBass = 0, beatEnv = 0;
+    const bands12 = new Float32Array(12);
+    const clocks = [{ period: 1.0, acc: 0, ratio: 1.0, pan: -.45 }, { period: 1.37, acc: .35, ratio: 1.25, pan: 0 }, { period: 1.73, acc: .8, ratio: 1.5, pan: .45 }];
+    function ensure() {
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return false;
+        ctx = new AC(); master = ctx.createGain(); master.gain.value = .5; master.connect(ctx.destination);
+      }
+      if (ctx.state === "suspended") ctx.resume().catch(() => {});
+      return true;
+    }
+    function connectTape(el) {
+      if (tapeConnected || !el || !ensure()) return;
+      try {
+        const src = ctx.createMediaElementSource(el);
+        analyser = ctx.createAnalyser(); analyser.fftSize = 256; analyser.smoothingTimeConstant = .72;
+        freqData = new Uint8Array(analyser.frequencyBinCount);
+        airFilter = ctx.createBiquadFilter(); airFilter.type = "lowpass"; airFilter.frequency.value = 18000; airFilter.Q.value = .65;
+        panner = ctx.createPanner();
+        panner.panningModel = "HRTF"; panner.distanceModel = "inverse";
+        panner.refDistance = 7.5; panner.maxDistance = 420; panner.rolloffFactor = 1.35;
+        spatialGain = ctx.createGain(); spatialGain.gain.value = spatialMode ? 1.0 : 0.0;
+        directGain = ctx.createGain(); directGain.gain.value = spatialMode ? 0.0 : .85;
+        src.connect(analyser);
+        analyser.connect(airFilter); airFilter.connect(panner); panner.connect(spatialGain); spatialGain.connect(ctx.destination);
+        analyser.connect(directGain); directGain.connect(ctx.destination);
+        tapeConnected = true;
+      } catch {}
+    }
+    function setSpatialMode(on) {
+      spatialMode = !!on;
+      if (ctx && spatialGain && directGain) {
+        const t = ctx.currentTime;
+        spatialGain.gain.setTargetAtTime(spatialMode ? 1.0 : 0.0, t, .05);
+        directGain.gain.setTargetAtTime(spatialMode ? 0.0 : .85, t, .05);
+      }
+      return spatialMode;
+    }
+    function updateSpatial(camPos, camFwd, donkeyPos) {
+      distMeters = Math.hypot(donkeyPos.x - camPos.x, donkeyPos.y + 1.3 - camPos.y, donkeyPos.z - camPos.z);
+      if (spatialMode) {
+        const gainLinear = 7.5 / (7.5 + 1.35 * Math.max(0, distMeters - 7.5));
+        falloffDb = -Math.round(clamp(-20 * Math.log10(Math.max(.005, gainLinear)), 0, 44));
+      } else {
+        falloffDb = 0;
+      }
+      if (!ctx || !panner) return;
+      const t = ctx.currentTime;
+      const px = donkeyPos.x, py = donkeyPos.y + 1.35, pz = donkeyPos.z;
+      if (panner.positionX) {
+        panner.positionX.setTargetAtTime(px, t, .03);
+        panner.positionY.setTargetAtTime(py, t, .03);
+        panner.positionZ.setTargetAtTime(pz, t, .03);
+      } else panner.setPosition(px, py, pz);
+      const L = ctx.listener;
+      if (L) {
+        if (L.positionX) {
+          L.positionX.setTargetAtTime(camPos.x, t, .03);
+          L.positionY.setTargetAtTime(camPos.y, t, .03);
+          L.positionZ.setTargetAtTime(camPos.z, t, .03);
+          L.forwardX.setTargetAtTime(camFwd.x, t, .03);
+          L.forwardY.setTargetAtTime(camFwd.y, t, .03);
+          L.forwardZ.setTargetAtTime(camFwd.z, t, .03);
+          L.upX.setValueAtTime(0, t); L.upY.setValueAtTime(1, t); L.upZ.setValueAtTime(0, t);
+        } else {
+          L.setPosition(camPos.x, camPos.y, camPos.z);
+          L.setOrientation(camFwd.x, camFwd.y, camFwd.z, 0, 1, 0);
+        }
+      }
+      if (airFilter) {
+        const cutoff = spatialMode ? lerp(18000, 680, smooth(6, 175, distMeters)) : 18000;
+        airFilter.frequency.setTargetAtTime(cutoff, t, .06);
+      }
+    }
+    function sampleTape(dt = .016, nowSec = 0, isPlaying = false) {
+      let b = 0, mid = 0, hi = 0;
+      if (analyser && freqData) {
+        analyser.getByteFrequencyData(freqData);
+        for (let i = 0; i < 8; i++) b += freqData[i];
+        for (let i = 8; i < 28; i++) mid += freqData[i];
+        for (let i = 28; i < 64; i++) hi += freqData[i];
+        b /= 8 * 255; mid /= 20 * 255; hi /= 36 * 255;
+        for (let k = 0; k < 12; k++) {
+          let sum = 0, start = k * 4, end = start + 4;
+          for (let j = start; j < end; j++) sum += freqData[j];
+          bands12[k] = sum / (4 * 255);
+        }
+      }
+      if (isPlaying && b < .02) {
+        // Fallback 116 BPM 6/8 Addis rhythm envelope when WebAudio buffer is unstarted/headless
+        const beatPh = fract(nowSec * (116 / 60));
+        const kick = Math.exp(-beatPh * 5.2);
+        const off = Math.exp(-fract(beatPh + .5) * 6.5) * .65;
+        b = clamp(kick * .72 + off * .35, 0, 1);
+        mid = .25 + .45 * Math.exp(-fract(nowSec * (116 / 60) * 1.5) * 4.5);
+        hi = .18 + .4 * Math.exp(-fract(nowSec * (116 / 60) * 3.0) * 5.0);
+        for (let k = 0; k < 12; k++) {
+          const w = k < 4 ? b : k < 8 ? mid : hi;
+          bands12[k] = clamp(w * (.65 + .35 * Math.sin(nowSec * 9.5 + k * .9)), .06, .96);
+        }
+      }
+      const flux = Math.max(0, b - prevBass);
+      prevBass = lerp(prevBass, b, clamp(dt * 8, 0, 1));
+      if (flux > .06 || b > .68) beatEnv = Math.min(1.0, Math.max(beatEnv, b * 1.15));
+      beatEnv = Math.max(0, beatEnv - dt * 2.6);
+      const atten = spatialMode ? clamp(7.5 / (7.5 + 1.35 * Math.max(0, distMeters - 7.5)), .12, 1.0) : 1.0;
+      return { bass: b, mid, high: hi, beatPulse: clamp(beatEnv, 0, 1), spatialBeat: clamp(beatEnv * (.35 + .65 * atten), 0, 1), bands12, distMeters, falloffDb };
+    }
+    function tone(freq, dur, vol, type = "triangle", pan = 0, force = false) {
+      if ((!enabled && !force) || !ensure()) return;
+      const t0 = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+      const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+      o.type = type; o.frequency.setValueAtTime(freq, t0); o.frequency.exponentialRampToValueAtTime(Math.max(40, freq * .96), t0 + dur);
+      g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + .012); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+      if (p) { p.pan.value = pan; o.connect(g); g.connect(p); p.connect(master); } else { o.connect(g); g.connect(master); }
+      o.start(t0); o.stop(t0 + dur + .02);
+    }
+    return {
+      toggle() { enabled = !enabled; if (enabled) ensure(); return enabled; },
+      isOn: () => enabled, connectTape, sampleTape, setSpatialMode, isSpatial: () => spatialMode, updateSpatial,
+      getDistFalloff: () => ({ distMeters, falloffDb }),
+      shutter() { tone(190, .06, .18, "square", 0, true); setTimeout(() => tone(840, .04, .09, "triangle", 0, true), 35); },
+      pumpClank() { tone(138, .08, .22, "square", .1, true); setTimeout(() => tone(520, .14, .11, "sine", -.15, true), 60); setTimeout(() => tone(690, .18, .09, "sine", .15, true), 130); },
+      pourSplash(step) { tone(310 + step * 36, .14, .08, "sine", (step % 2 ? .22 : -.22), true); },
+      relayChime(isP) { (isP ? [293.66, 392, 440, 587.33, 783.99] : [293.66, 440, 587.33]).forEach((f, idx) => setTimeout(() => tone(f, .42, .12, "triangle", (idx - 1) * .25, true), idx * 95)); },
+      forestChime(g) { const b = 329.63 * Math.pow(1.06, g);[1, 1.25, 1.5, 2].forEach((m, idx) => setTimeout(() => tone(b * m, .48, .10, "sine", (idx - 1.5) * .22, true), idx * 75)); },
+      glideWhoosh() { tone(140, .42, .16, "sine", 0, true); setTimeout(() => tone(290, .35, .11, "triangle", 0, true), 80); },
+      playEightSecondTail() {
+        if (!ensure()) return;
+        // 0.2s Metallic camera latch click -> 1.6s wood board thud -> 3.8s breath -> 5.3-7.6s warm laugh formants
+        setTimeout(() => { tone(1850, .025, .20, "square", -.25, true); setTimeout(() => tone(920, .035, .12, "triangle", -.25, true), 35); }, 200);
+        setTimeout(() => { tone(78, .24, .26, "sine", .05, true); tone(122, .14, .18, "triangle", .05, true); }, 1550);
+        setTimeout(() => { tone(240, .65, .06, "sine", -.1, true); }, 3650);
+        [0, 320, 650, 1020, 1450].forEach((off, idx) => {
+          setTimeout(() => {
+            const f = [420, 490, 385, 520, 440][idx];
+            tone(f, .19, .11, "sine", .18, true);
+            setTimeout(() => tone(f * 1.18, .16, .08, "triangle", -.18, true), 70);
+          }, 5100 + off);
+        });
+      },
+      playHarmonyRehearsal() {
+        if (!ensure()) return;
+        // Stone chair scrape followed by 3-voice Ethiopian Tizita pentatonic harmony (including wrong-key entrance)
+        tone(165, .16, .16, "sawtooth", -.35, true);
+        setTimeout(() => tone(210, .14, .14, "sawtooth", -.30, true), 95);
+        const notes = [293.66, 349.23, 392.0, 440.0, 523.25];
+        setTimeout(() => {
+          tone(notes[1] * 0.94, .45, .11, "triangle", -.3, true); // cousin's charming flat early entrance
+          [0, 1, 2, 4].forEach((ni, idx) => setTimeout(() => tone(notes[ni], .65, .11, "sine", (idx - 1.5) * .2, true), 480 + idx * 340));
+          setTimeout(() => { tone(notes[0] * 2, .95, .12, "triangle", .25, true); tone(notes[2], .95, .10, "sine", -.25, true); }, 2100);
+        }, 420);
+      },
+      step(leg, gait) { if (enabled) tone((gait > 1 ? 128 : 92) + leg * 11, .055, gait > 1 ? .08 : .045, "triangle", leg % 2 ? .28 : -.28); },
+      tick(dt, zoneIdx) {
+        if (!enabled) return;
+        const baseFreq = 165 * Math.pow(2, zoneIdx * .07);
+        for (const c of clocks) { c.acc += dt; if (c.acc >= c.period) { c.acc -= c.period; tone(baseFreq * c.ratio, .34, .06, zoneIdx < 3 ? "sine" : "triangle", c.pan); } }
+      }
+    };
+  })();
+
+  /* ---------- Renderer & Post-Processing Pipeline ---------- */
+  const canvas = $("view");
+  const fieldLayoutQuery = matchMedia("(max-width: 860px), (orientation: portrait) and (max-width: 980px), (pointer: coarse)");
+  const forceFieldLayout = urlParams.get("mobile") === "1";
+  const useFieldLayout = () => forceFieldLayout || fieldLayoutQuery.matches;
+  document.body.classList.toggle("field-ui", useFieldLayout());
+  $("loader-retry").addEventListener("click", () => location.reload());
+  function showWorldFault(message, error) {
+    if (error) console.error("THRESHOLD MONOLITH-3:", error);
+    const loader = $("world-loader");
+    loader.classList.remove("fade-out");
+    loader.hidden = false;
+    $("world-loader-msg").textContent = message;
+    loader.querySelector(".loader-bar").hidden = true;
+    $("loader-actions").hidden = false;
+    $("loader-retry").focus();
+  }
+  let renderer;
+  try {
+    renderer = new T.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
+  } catch (error) {
+    showWorldFault("The 3D view could not start. Retry or return to the index.", error);
+    return;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.toneMapping = T.NoToneMapping;
+  let contextLost = false;
+  canvas.addEventListener("webglcontextlost", () => {
+    contextLost = true;
+    showWorldFault("The 3D view paused. Retry or return to the index.");
+  });
+
+  const NEAR = 0.35, FAR = 48000;
+  const camera = new T.PerspectiveCamera(47, 1, NEAR, FAR);
+  camera.rotation.order = "YXZ";
+  camera.up.set(0, 1, 0);
+
+  function applyLevelFPSCamera(x, y, z, yaw, pitch) {
+    camera.up.set(0, 1, 0);
+    camera.position.set(x, y, z);
+    camera.rotation.order = "YXZ";
+    camera.rotation.set(clamp(pitch, -.85, .85), yaw, 0);
+    camera.updateMatrixWorld();
+  }
+  function applyLevelChaseCamera(pos, target) {
+    camera.up.set(0, 1, 0);
+    camera.position.copy(pos);
+    camera.rotation.order = "YXZ";
+    camera.lookAt(target);
+    camera.rotation.z = 0;
+    camera.updateMatrixWorld();
+  }
+
+  /* Film-strip Textures */
+  const filmCanvas = document.createElement("canvas");
+  filmCanvas.width = 256; filmCanvas.height = 512;
+  const fctx = filmCanvas.getContext("2d");
+  fctx.fillStyle = "#161513"; fctx.fillRect(0, 0, 256, 512);
+  for (let row = 0; row < 16; row++) {
+    const y = row * 32 + 6;
+    fctx.fillStyle = "#efe9d8"; fctx.fillRect(10, y, 16, 18); fctx.fillRect(230, y, 16, 18);
+  }
+  for (let fr = 0; fr < 4; fr++) {
+    const y = fr * 128 + 12, g = fctx.createLinearGradient(42, y, 214, y + 104);
+    g.addColorStop(0, fr % 2 ? "#0d0d0d" : "#d8d4c8"); g.addColorStop(.5, "#747169"); g.addColorStop(1, fr % 2 ? "#e9e5da" : "#181817");
+    fctx.fillStyle = g; fctx.fillRect(42, y, 172, 104);
+  }
+  const filmTex = new T.CanvasTexture(filmCanvas);
+  filmTex.wrapS = filmTex.wrapT = T.RepeatWrapping;
+
+  const forestFilmTex = (() => {
+    const fc = document.createElement("canvas"); fc.width = 256; fc.height = 512;
+    const fx = fc.getContext("2d");
+    fx.fillStyle = "#0e1218"; fx.fillRect(0, 0, 256, 512);
+    for (let row = 0; row < 16; row++) {
+      const y = row * 32 + 6;
+      fx.fillStyle = row % 2 ? "#dcefff" : "#0058e8";
+      fx.fillRect(10, y, 17, 18); fx.fillRect(229, y, 17, 18);
+    }
+    for (let fr = 0; fr < 4; fr++) {
+      const y = fr * 128 + 12, g = fx.createLinearGradient(40, y, 216, y + 104);
+      g.addColorStop(0, "#0b1a36"); g.addColorStop(.5, fr % 2 ? "#1e66cc" : "#d6dce4"); g.addColorStop(1, "#0048cc");
+      fx.fillStyle = g; fx.fillRect(40, y, 176, 104);
+      fx.strokeStyle = "#0064ff"; fx.lineWidth = 3; fx.strokeRect(42, y + 2, 172, 100);
+    }
+    const t = new T.CanvasTexture(fc);
+    t.wrapS = t.wrapT = T.RepeatWrapping;
+    return t;
+  })();
+
+  /* Shared Materials (Low-green Cyan so selective Blue Jerikan #47B glows rich electric cyan) */
+  const jerikanMat = new T.MeshStandardMaterial({ color: 0x0066e8, emissive: 0x003ba8, emissiveIntensity: .68, roughness: .28, metalness: .06 });
+  const jerikanRibMat = new T.MeshStandardMaterial({ color: 0x004ec4, emissive: 0x002d8a, emissiveIntensity: .56, roughness: .34 });
+  const whiteCapMat = new T.MeshStandardMaterial({ color: 0xf4f4f0, roughness: .42 });
+  const strapMat = new T.MeshStandardMaterial({ color: 0x1e1b17, roughness: .72 });
+  const leatherMat = new T.MeshStandardMaterial({ color: 0x5c361c, roughness: .62 });
+  const sawWoodMat = new T.MeshStandardMaterial({ color: 0xb9986b, roughness: .74 });
+  const brassMat = new T.MeshStandardMaterial({ color: 0xcab070, roughness: .28, metalness: .82 });
+  const ropeHitchMat = new T.MeshStandardMaterial({ color: 0xc8b68c, roughness: .9 });
+  const antennaMat = new T.MeshStandardMaterial({ color: 0xe6e3d8, roughness: .25, metalness: .85 });
+  const beaconCyanMat = new T.MeshStandardMaterial({ color: 0x006eff, emissive: 0x0048dd, emissiveIntensity: 1.35, roughness: .16 });
+  const cyanWaterMat = new T.MeshStandardMaterial({ color: 0x006eff, emissive: 0x0052dd, emissiveIntensity: 1.05, roughness: .18, metalness: .08 });
+
+  const jerBodyGeo = (() => {
+    const s = new T.Shape(), a = .112, b = .172, r = .028;
+    s.moveTo(-a, -b - r); s.lineTo(a, -b - r); s.quadraticCurveTo(a + r, -b - r, a + r, -b);
+    s.lineTo(a + r, b); s.quadraticCurveTo(a + r, b + r, a, b + r); s.lineTo(-a, b + r);
+    s.quadraticCurveTo(-a - r, b + r, -a - r, b); s.lineTo(-a - r, -b); s.quadraticCurveTo(-a - r, -b - r, -a, -b - r);
+    const g = new T.ExtrudeGeometry(s, { depth: .15, bevelEnabled: true, bevelThickness: .018, bevelSize: .014, bevelSegments: 2 });
+    g.translate(0, 0, -.075);
+    return g;
+  })();
+  const jerRibGeo = new T.BoxGeometry(.18, .018, .014);
+  const jerSeamGeo = new T.BoxGeometry(.252, .36, .012);
+  const jerHandleGeo = new T.BoxGeometry(.155, .042, .052);
+  const jerSpoutGeo = new T.CylinderGeometry(.028, .036, .06, 12);
+  const jerCapGeo = new T.CylinderGeometry(.034, .034, .032, 12);
+
+  function makeJerikan(scale = 1) {
+    const g = new T.Group();
+    const b = new T.Mesh(jerBodyGeo, jerikanMat); b.position.y = .21; g.add(b);
+    const seam = new T.Mesh(jerSeamGeo, jerikanRibMat); seam.position.y = .21; g.add(seam);
+    for (const sgn of [-1, 1]) {
+      for (const ang of [.54, -.54]) {
+        const rb = new T.Mesh(jerRibGeo, jerikanRibMat);
+        rb.position.set(0, .205, sgn * .092); rb.rotation.z = ang; g.add(rb);
+      }
+    }
+    const h = new T.Mesh(jerHandleGeo, jerikanMat); h.position.set(-.032, .42, 0); g.add(h);
+    const sp = new T.Mesh(jerSpoutGeo, jerikanMat); sp.position.set(.082, .418, 0); sp.rotation.z = -.25; g.add(sp);
+    const cp = new T.Mesh(jerCapGeo, whiteCapMat); cp.position.set(.094, .45, 0); cp.rotation.z = -.25; g.add(cp);
+    g.scale.setScalar(scale);
+    return g;
+  }
+
+  const clearJerShellMat = new T.MeshStandardMaterial({ color: 0x3b4856, roughness: .22, metalness: .12, transparent: true, opacity: .44 });
+  const clearJerLiquidGeo = new T.BoxGeometry(.22, .32, .145);
+  clearJerLiquidGeo.translate(0, .16, 0);
+
+  function makeFillableJerikan(scale = 1, initialFill = 0, showChalk = false) {
+    const g = new T.Group();
+    const shell = new T.Mesh(jerBodyGeo, clearJerShellMat); shell.position.y = .21; g.add(shell);
+    const liqMat = cyanWaterMat.clone();
+    const liq = new T.Mesh(clearJerLiquidGeo, liqMat);
+    liq.position.set(0, .05, 0);
+    g.add(liq);
+    if (showChalk) {
+      // White chalk line at 20% height (4 L return reserve mark out of 20 L)
+      const chalkBand = new T.Mesh(new T.BoxGeometry(.248, .016, .178), whiteCapMat);
+      chalkBand.position.set(0, .05 + .32 * .20, 0);
+      g.add(chalkBand);
+    }
+    const h = new T.Mesh(jerHandleGeo, clearJerShellMat); h.position.set(-.032, .42, 0); g.add(h);
+    const sp = new T.Mesh(jerSpoutGeo, clearJerShellMat); sp.position.set(.082, .418, 0); sp.rotation.z = -.25; g.add(sp);
+    const cp = new T.Mesh(jerCapGeo, whiteCapMat); cp.position.set(.094, .45, 0); cp.rotation.z = -.25; g.add(cp);
+    g.scale.setScalar(scale);
+    const setFill = v => {
+      const f = clamp(v, 0, 1);
+      liq.visible = f > .02;
+      liq.scale.y = Math.max(.02, f);
+      g.userData.fill = f;
+    };
+    const setDull = dull => {
+      if (dull) {
+        liqMat.color.setHex(0x243b44); liqMat.emissive.setHex(0x0b161b); liqMat.emissiveIntensity = .25;
+      } else {
+        liqMat.color.setHex(0x0080ff); liqMat.emissive.setHex(0x0066ff); liqMat.emissiveIntensity = 1.65;
+      }
+    };
+    setFill(initialFill);
+    g.userData.setFill = setFill;
+    g.userData.setDull = setDull;
+    return g;
+  }
+
+  /* ---------- Ported 1940s Woody Station Wagon (Clean Collision-Free Cruiser + Open Roof Deck) ---------- */
+  function buildWagon() {
+    const woodBox = new T.BoxGeometry(1, 1, 1), ball = new T.SphereGeometry(1, 18, 12);
+    const coach = new T.MeshStandardMaterial({ color: 0x8e9597, roughness: .42, metalness: .18 });
+    const ash = new T.MeshStandardMaterial({ color: 0xc2a67a, roughness: .72 });
+    const walnut = new T.MeshStandardMaterial({ color: 0x5c3822, roughness: .78 });
+    const deckWood = new T.MeshStandardMaterial({ color: 0x9b805c, roughness: .82 });
+    const charcoal = new T.MeshStandardMaterial({ color: 0x262825, roughness: .82 });
+    const nickel = new T.MeshStandardMaterial({ color: 0xe6e4dc, roughness: .22, metalness: .86 });
+    const rubber = new T.MeshStandardMaterial({ color: 0x1c1c1a, roughness: .92 });
+    const sidewall = new T.MeshStandardMaterial({ color: 0x33322d, roughness: .88 });
+    const safetyGlass = new T.MeshStandardMaterial({ color: 0x2c3b46, roughness: .14, metalness: .35, transparent: true, opacity: .66 });
+    const amber = new T.MeshStandardMaterial({ color: 0xe8bc64, emissive: 0x5a4218, emissiveIntensity: .6, roughness: .2 });
+    const redLens = new T.MeshStandardMaterial({ color: 0xc93828, emissive: 0x501008, emissiveIntensity: .5, roughness: .25 });
+    const darkTailgate = new T.MeshStandardMaterial({ color: 0x4c3220, roughness: .78 });
+
+    const meshAt = (g, m, grp, x = 0, y = 0, z = 0) => { const o = new T.Mesh(g, m); o.position.set(x, y, z); grp.add(o); return o; };
+    const billet = (grp, m, x, y, z, w, h, l) => { const o = meshAt(woodBox, m, grp, x, y, z); o.scale.set(w, h, l); return o; };
+    const oval = (grp, m, x, y, z, w, h, l) => { const o = meshAt(ball, m, grp, x, y, z); o.scale.set(w, h, l); return o; };
+    const spar = (grp, m, a, b, r1, r2 = r1, sides = 8) => {
+      const p = new T.Vector3(...a), q = new T.Vector3(...b), off = q.clone().sub(p);
+      const t = meshAt(new T.CylinderGeometry(r2, r1, off.length(), sides, 1), m, grp);
+      t.position.copy(p).lerp(q, .5); t.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), off.normalize());
+      return t;
+    };
+    const pipe = (grp, m, pts, rad, seg = 20) => meshAt(new T.TubeGeometry(new T.CatmullRomCurve3(pts.map(p => new T.Vector3(...p))), seg, rad, 7, false), m, grp);
+    const loft = (grp, m, profs, sides = 28, segs = 22, flat = 1) => {
+      const spine = new T.CatmullRomCurve3(profs.map(([z, y, xr, yr]) => new T.Vector3(xr, yr, z)));
+      const levels = new T.CatmullRomCurve3(profs.map(([z, y]) => new T.Vector3(0, y, z)));
+      const p = [], uv = [], tri = [];
+      for (let j = 0; j <= segs; j++) {
+        const t = j / segs, pt = spine.getPoint(t), y = levels.getPoint(t).y;
+        for (let i = 0; i <= sides; i++) {
+          const th = (i / sides) * TAU, cnt = v => Math.sign(v) * (Math.abs(v) ** flat);
+          p.push(cnt(Math.cos(th)) * Math.max(.001, pt.x), y + cnt(Math.sin(th)) * Math.max(.001, pt.y), pt.z);
+          uv.push(i / sides, t);
+          if (j < segs && i < sides) {
+            const a = j * (sides + 1) + i;
+            if (profs[0][0] < profs[profs.length - 1][0]) tri.push(a, a + 1, a + sides + 1, a + 1, a + sides + 2, a + sides + 1);
+            else tri.push(a, a + sides + 1, a + 1, a + 1, a + sides + 1, a + sides + 2);
+          }
+        }
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute("position", new T.Float32BufferAttribute(p, 3)); g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
+      g.setIndex(tri); g.computeVertexNormals();
+      return meshAt(g, m, grp);
+    };
+    const roundedCase = (grp, m, x, y, z, w, h, l, r = .06) => {
+      const sh = new T.Shape(), a = w * .5 - r, b = h * .5 - r;
+      sh.moveTo(-a, -b - r); sh.lineTo(a, -b - r); sh.quadraticCurveTo(a + r, -b - r, a + r, -b);
+      sh.lineTo(a + r, b); sh.quadraticCurveTo(a + r, b + r, a, b + r); sh.lineTo(-a, b + r);
+      sh.quadraticCurveTo(-a - r, b + r, -a - r, b); sh.lineTo(-a - r, -b); sh.quadraticCurveTo(-a - r, -b - r, -a, -b - r);
+      const gm = new T.ExtrudeGeometry(sh, { depth: l, bevelEnabled: false, curveSegments: 4 }); gm.translate(0, 0, -l * .5);
+      return meshAt(gm, m, grp, x, y, z);
+    };
+    const panelSide = (grp, m, side, pts, thk) => {
+      const sh = new T.Shape(); pts.forEach(([x, y], i) => i ? sh.lineTo(x, y) : sh.moveTo(x, y)); sh.closePath();
+      const g = new T.ExtrudeGeometry(sh, { depth: thk, bevelEnabled: false, curveSegments: 4 });
+      g.rotateY(-Math.PI * .5); g.translate(thk * .5, 0, 0);
+      return meshAt(g, m, grp, side, 0, 0);
+    };
+    const makeWheel = (grp, x, y, z, front) => {
+      const mount = new T.Group(); mount.position.set(x, y, z); grp.add(mount);
+      const spin = new T.Group(); mount.add(spin);
+      const tire = meshAt(new T.TorusGeometry(.30, .091, 12, 30), rubber, spin); tire.rotation.y = Math.PI * .5; tire.scale.z = 1.22;
+      const dir = Math.sign(x);
+      for (const off of [-.047, .047]) {
+        const bead = meshAt(new T.TorusGeometry(.303, .051, 10, 28), sidewall, spin, off, 0, 0); bead.rotation.y = Math.PI * .5;
+      }
+      meshAt(new T.CylinderGeometry(.218, .218, .145, 24), charcoal, spin).rotation.z = Math.PI * .5;
+      oval(spin, nickel, dir * .097, 0, 0, .038, .145, .145);
+      oval(spin, coach, dir * .124, 0, 0, .019, .084, .084);
+      const ring = meshAt(new T.TorusGeometry(.183, .011, 6, 24), nickel, spin, dir * .077, 0, 0); ring.rotation.y = Math.PI * .5;
+      for (let i = 0; i < 24; i++) {
+        const ang = (i / 24) * TAU;
+        billet(spin, rubber, 0, .387 * Math.cos(ang), .387 * Math.sin(ang), .176, .014, .022).rotation.x = ang;
+      }
+      return { mount, spin, front, baseY: y };
+    };
+
+    const root = new T.Group();
+    const inner = new T.Group(); inner.rotation.y = Math.PI; root.add(inner);
+    const body = new T.Group(); inner.add(body);
+
+    loft(body, coach, [[-2.61, .72, .08, .07], [-2.5, .77, .72, .24], [-2.1, .83, .93, .38], [-1.47, .87, .98, .43],
+      [-.9, .88, .99, .45], [.1, .89, .97, .43], [1.1, .88, .96, .40], [1.99, .81, .94, .36], [2.44, .78, .75, .30], [2.59, .76, .016, .029]], 34, 30, .55);
+    loft(body, coach, [[-2.6, .91, .045, .026], [-2.46, 1.04, .43, .22], [-2.14, 1.14, .58, .215], [-1.65, 1.22, .62, .214],
+      [-1.15, 1.25, .68, .23], [-.79, 1.24, .69, .21]], 28, 22, .68);
+    loft(body, charcoal, [[-1.26, 1.35, .72, .048], [-1.04, 1.65, .76, .17], [-.77, 1.75, .83, .32], [-.38, 1.78, .85, .34], [.52, 1.80, .86, .34],
+      [1.43, 1.77, .85, .32], [2.04, 1.73, .78, .27], [2.33, 1.59, .70, .15], [2.48, 1.29, .67, .044]], 28, 28, .63);
+
+    for (const sgn of [-1, 1]) {
+      const x = sgn * .90;
+      panelSide(body, walnut, x + sgn * .031, [[-1.03, .59], [-1.18, 1.28], [-.66, 1.41], [1.97, 1.41], [2.35, 1.10], [2.36, .66]], .037);
+      for (const y of [.70, .91, 1.13, 1.365]) billet(body, ash, x + sgn * .018, y, .51, .068, .052, 3.28).rotation.x = -.016;
+      const win = [[-1.03, 1.38], [-.64, 1.91], [1.87, 1.90], [2.15, 1.75], [2.35, 1.41]];
+      panelSide(body, safetyGlass, x - sgn * .072, win, .035);
+      pipe(body, ash, win.concat([win[0]]).map(([z, y]) => [x - sgn * .051, y, z]), .030, 20);
+      for (const z of [-.96, .02, 1.08, 2.14]) {
+        const y = z === -.96 ? 1.43 : 1.57;
+        billet(body, ash, x + sgn * .010, y, z, .070, z === -.96 ? .80 : 1.16, .050).rotation.x = z === -.96 ? -.25 : z === 2.14 ? .30 : .007;
+      }
+      for (const z of [-.52, .52]) billet(body, nickel, x + sgn * .089, 1.23, z, .034, .038, .165).rotation.x = -.075;
+      loft(body, coach, [[-2.58, .68, .019, .035], [-2.40, .75, .211, .224], [-2.06, .78, .276, .32], [-1.66, .77, .285, .30],
+        [-1.27, .72, .237, .24], [-.94, .63, .14, .18], [-.57, .57, .03, .054]], 20, 18, .83).position.x = sgn * .73;
+      loft(body, coach, [[.55, .57, .013, .028], [.87, .64, .155, .156], [1.27, .73, .271, .274], [1.66, .76, .295, .312],
+        [2.12, .71, .254, .237], [2.48, .63, .139, .14], [2.58, .59, .016, .025]], 20, 18, .75).position.x = sgn * .735;
+      for (const h of [.52, .58, .64]) { billet(body, nickel, sgn * 1.00, h, -1.74, .029, .022, 1.32); billet(body, nickel, sgn * 1.01, h, 1.71, .028, .021, 1.46); }
+      oval(body, nickel, sgn * .66, .88, -2.36, .185, .187, .18);
+      oval(body, amber, sgn * .66, .88, -2.48, .129, .131, .073);
+      oval(body, redLens, sgn * .79, .65, 2.482, .051, .083, .046);
+      oval(body, nickel, sgn * 1.01, 1.43, -.95, .082, .063, .032);
+    }
+    roundedCase(body, darkTailgate, 0, 1.049, 2.426, 1.61, .600, .135, .145);
+    for (const y of [.84, 1.024, 1.205]) billet(body, ash, 0, y, 2.502, 1.43, .044, .052);
+    for (const x of [-.735, .735]) billet(body, ash, x, 1.062, 2.50, .050, .44, .064);
+    billet(body, nickel, 0, 1.248, 2.512, .218, .049, .038);
+    for (const sgn of [-1, 1]) {
+      billet(body, safetyGlass, sgn * .382, 1.615, -.946, .743, .405, .033).rotation.x = .59;
+      billet(body, safetyGlass, sgn * .376, 1.60, 2.22, .696, .344, .04).rotation.x = -.44;
+    }
+    billet(body, ash, 0, 1.62, 2.224, .067, .42, .088).rotation.x = -.44;
+    billet(body, nickel, 0, 1.59, -1.000, .038, .49, .05).rotation.x = .59;
+    for (let i = 0; i < 5; i++) {
+      const z = -2.35 + i * .173;
+      for (let k = -2; k <= 2; k++) billet(body, nickel, k * .072, 1.35 + i * .025, z, .016, .015, .167);
+      billet(body, nickel, 0, .60 + i * .062, -2.567 + i * .008, .99 - i * .031, .035, .050);
+    }
+    billet(body, nickel, 0, .467, -2.59, 1.77, .121, .17);
+    billet(body, nickel, 0, .446, 2.535, 1.85, .123, .19);
+    for (const s of [-1, 1]) {
+      billet(body, nickel, s * .58, .495, -2.658, .105, .245, .17);
+      billet(body, deckWood, s * .95, 2.37, .44, .090, .118, 3.65);
+      for (const z of [-1.06, .20, 1.65]) {
+        billet(body, nickel, s * .944, 1.885, z, .035, .84, .062);
+        billet(body, deckWood, s * .93, 2.36, z, .091, .367, .065);
+      }
+      spar(body, charcoal, [s * .946, 2.49, -1.39], [s * .946, 2.49, 2.29], .021);
+    }
+    for (let i = 0; i < 12; i++) billet(body, i % 3 ? deckWood : ash, (i - 5.5) * .153, 2.265, .43, .145, .065, 3.69);
+    for (const x of [-.87, -.40]) spar(body, charcoal, [x, .37, 2.62], [x, 2.29, 2.10], .031, .028);
+    for (let i = 0; i < 7; i++) {
+      const f = (i + .38) / 7;
+      spar(body, nickel, [-.87, lerp(.37, 2.29, f), lerp(2.62, 2.10, f)], [-.40, lerp(.37, 2.29, f), lerp(2.62, 2.10, f)], .023);
+    }
+    for (const sgn of [-1, 1]) {
+      for (const z of [-.95, 1.68]) {
+        const jc = makeJerikan(.96);
+        jc.position.set(sgn * .72, 2.30, z); jc.rotation.y = sgn * .18;
+        body.add(jc);
+      }
+    }
+    spar(body, antennaMat, [0, 2.28, -1.28], [0, 3.45, -1.28], .022, .010, 8);
+    const wagonBeacon = meshAt(new T.SphereGeometry(.092, 14, 10), beaconCyanMat, body, 0, 3.48, -1.28);
+    const roofStandSpot = new T.Object3D();
+    roofStandSpot.position.set(0, 2.30, -.15);
+    body.add(roofStandSpot);
+
+    const wheels = [
+      makeWheel(inner, -.862, .394, -1.71, true),
+      makeWheel(inner, .862, .394, -1.71, true),
+      makeWheel(inner, -.882, .394, 1.61, false),
+      makeWheel(inner, .882, .394, 1.61, false)
+    ];
+
+    return {
+      group: root, inner, chassis: body, wheels, beacon: wagonBeacon, roofStandSpot,
+      x: -15.5, z: 4.8, y: 155, heading: -Math.PI * .52, speed: 0, steerAngle: 0, pitch: 0, roll: 0,
+      get deckY() { return this.y + 2.30; }
+    };
+  }
+
+  /* ---------- Post-Process Shaders (Full 48 km Float Depth Range + WiFi Field) ---------- */
+  const rtScene = new T.WebGLRenderTarget(64, 64, { minFilter: T.LinearFilter, magFilter: T.LinearFilter, depthBuffer: true });
+  rtScene.depthTexture = new T.DepthTexture(64, 64);
+  rtScene.depthTexture.format = T.DepthFormat; rtScene.depthTexture.type = T.UnsignedIntType;
+  rtScene.depthTexture.minFilter = T.NearestFilter; rtScene.depthTexture.magFilter = T.NearestFilter;
+
+  let rtA = new T.WebGLRenderTarget(64, 64, { minFilter: T.LinearFilter, magFilter: T.LinearFilter, depthBuffer: false });
+  let rtB = rtA.clone();
+
+  const postScene = new T.Scene();
+  const postCam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const postQuad = new T.Mesh(new T.PlaneGeometry(2, 2), null);
+  postScene.add(postQuad);
+
+  const VS = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
+  const accMat = new T.ShaderMaterial({
+    uniforms: { tCur: { value: null }, tPrev: { value: null }, uDamp: { value: .30 } },
+    vertexShader: VS,
+    fragmentShader: `uniform sampler2D tCur, tPrev; uniform float uDamp; varying vec2 vUv;
+      void main(){ vec3 cur = texture2D(tCur, vUv).rgb; vec3 prv = texture2D(tPrev, vUv).rgb;
+        gl_FragColor = vec4(max(cur, prv * uDamp), 1.0); }`
+  });
+
+  const lookMat = new T.ShaderMaterial({
+    uniforms: {
+      tScene: { value: rtScene.texture },
+      tDepth: { value: rtScene.depthTexture },
+      tTrail: { value: rtA.texture },
+      tFilm: { value: filmTex },
+      uRes: { value: new T.Vector2(800, 600) },
+      uT: { value: 0 },
+      uNear: { value: NEAR },
+      uFar: { value: FAR },
+      uFocusDist: { value: 18.0 },
+      uDofOctaves: { value: .84 },
+      uTilt: { value: 0.0 },
+      uStrataLock: { value: .24 },
+      uFocusPulse: { value: 0.0 },
+      uRouteMode: { value: initModeIdx },
+      uSoloLook: { value: -1 },
+      uFocusLook: { value: 13 },
+      uFilter: { value: new T.Vector3(1.02, 1.02, 1.18) },
+      uJerikanFilter: { value: 1.0 },
+      uAudioBass: { value: 0.0 },
+      uAudioHigh: { value: 0.0 },
+      uBeatPulse: { value: 0.0 },
+      uLidarStrength: { value: 0.0 },
+      uResonantZone: { value: 4 },
+      uInAbyss: { value: 0.0 },
+      uAbyssCenter: { value: new T.Vector3(ABYSS_OX, ABYSS_BASE_Y, ABYSS_OZ) },
+      uInvProjView: { value: new T.Matrix4() },
+      uWifi: { value: Array.from({ length: 8 }, () => new T.Vector4(0, 0, 0, 0)) },
+      uWifiPing: { value: 0.0 }
+    },
+    vertexShader: VS,
+    fragmentShader: `
+      uniform sampler2D tScene, tDepth, tTrail, tFilm;
+      uniform vec2 uRes;
+      uniform float uT, uNear, uFar, uFocusDist, uDofOctaves, uTilt, uStrataLock, uFocusPulse, uJerikanFilter, uAudioBass, uAudioHigh, uBeatPulse, uLidarStrength, uWifiPing, uInAbyss;
+      uniform int uRouteMode, uSoloLook, uFocusLook, uResonantZone;
+      uniform vec3 uFilter, uAbyssCenter;
+      uniform mat4 uInvProjView;
+      uniform vec4 uWifi[8];
+      varying vec2 vUv;
+
+      float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float lum(vec3 c){ return clamp(dot(c * uFilter, vec3(0.30, 0.59, 0.11)), 0.0, 1.0); }
+      float n2(vec2 p){
+        vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(h(i), h(i + vec2(1., 0.)), f.x), mix(h(i + vec2(0., 1.)), h(i + vec2(1., 1.)), f.x), f.y);
+      }
+      float readDist(vec2 uv){
+        float zb = texture2D(tDepth, uv).x;
+        return (uNear * uFar) / max(0.0001, uFar - zb * (uFar - uNear));
+      }
+      float drip(vec2 uv){
+        float cx = floor(uv.x * uRes.x / 6.0);
+        if (h(vec2(cx, 7.0)) < 0.80) return 0.0;
+        float len = 0.04 + 0.16 * h(vec2(cx, 3.0)), m = 0.0;
+        for (int k = 1; k <= 5; k++) {
+          float lk = lum(texture2D(tScene, vec2(uv.x, min(1.0, uv.y + len * float(k) / 5.0))).rgb);
+          m = max(m, step(0.58, lk));
+        }
+        return m;
+      }
+
+      vec3 evalLook(int mode, vec2 uv, vec3 raw, vec3 silverBase, vec3 tr, float l, float ed, float vg) {
+        vec2 px = uv * uRes;
+        vec3 col;
+        if (mode == 0) {
+          float spk = smoothstep(0.992, 1.0, h(floor(px / 2.2) + floor(uT * 6.0) * 3.1));
+          vec3 em = mix(raw * 0.35, tr, 0.65) * smoothstep(0.14, 0.85, l);
+          col = mix(silverBase * 0.48, em * vec3(1.12, 0.68, 0.34) + spk * vec3(1.0, 0.75, 0.4), 0.72);
+        } else if (mode == 1) {
+          float rows = 320.0;
+          vec2 g = vec2(uv.x, (floor(uv.y * rows) + 0.5) / rows);
+          float ls = lum(texture2D(tScene, clamp(g, 0.0, 1.0)).rgb);
+          float line = 0.80 + 0.20 * sin(uv.y * rows * 6.2832);
+          float sweep = smoothstep(0.05, 0.0, abs(fract(uv.y - uT * 0.11) - 0.5) - 0.45) * 0.12;
+          col = mix(silverBase * 0.44, vec3(0.76, 0.92, 1.0) * (pow(ls * 1.25 + 0.04, 0.85) * line + sweep) * vg, 0.72);
+        } else if (mode == 2) {
+          float th = pow(clamp(l * 1.12, 0.0, 1.0), 0.82);
+          vec3 hm = th < 0.28 ? mix(vec3(0.08, 0.02, 0.14), vec3(0.45, 0.05, 0.48), th / 0.28)
+                  : th < 0.58 ? mix(vec3(0.45, 0.05, 0.48), vec3(0.92, 0.22, 0.08), (th - 0.28) / 0.30)
+                  : mix(vec3(0.92, 0.22, 0.08), vec3(1.0, 0.84, 0.30), (th - 0.58) / 0.42);
+          col = mix(hm, silverBase * 0.95, 0.34);
+        } else if (mode == 3) {
+          vec3 tissue = vec3(0.95, 0.84, 0.64) * (0.78 + 0.22 * vg);
+          float cut = 1.0 - smoothstep(0.16, 0.38, l);
+          vec3 sil = mix(tissue, vec3(0.11, 0.09, 0.10), cut);
+          sil = mix(sil, vec3(0.78, 0.14, 0.09), smoothstep(0.76, 0.92, l) * 0.65);
+          col = mix(sil, silverBase, 0.36);
+        } else if (mode == 4) {
+          float grain = n2(vec2(px.x / 120.0, px.y / 2.4)) * 0.6 + n2(vec2(px.x / 26.0, px.y / 1.4)) * 0.4;
+          vec3 indigo = vec3(0.14, 0.21, 0.32), slate = vec3(0.38, 0.48, 0.54), cream = vec3(0.90, 0.86, 0.75), rust = vec3(0.68, 0.35, 0.18);
+          float lq = l + (grain - 0.5) * 0.06;
+          vec3 wb = lq < 0.16 ? indigo : lq < 0.38 ? slate : lq < 0.72 ? cream : rust;
+          if (lq >= 0.16 && lq < 0.38) wb = mix(wb, indigo, step(0.62, fract((px.x + px.y) / 7.0)) * 0.36);
+          wb = mix(wb, indigo * 0.65, smoothstep(0.05, 0.15, ed));
+          col = mix(wb * (0.92 + 0.10 * grain), silverBase, 0.36) * (0.90 + 0.10 * vg);
+        } else if (mode == 5) {
+          return silverBase * (0.94 + 0.06 * vg);
+        } else if (mode == 6) {
+          vec2 gp = px / 5.2;
+          float a = fract(gp.x + gp.y), b = fract(gp.x - gp.y);
+          float ink = step(a, smoothstep(0.12, 0.80, 1.0 - l) * 0.82);
+          ink = max(ink, step(b, smoothstep(0.45, 0.96, 1.0 - l) * 0.72));
+          ink = max(ink, smoothstep(0.06, 0.18, ed));
+          vec3 crd = mix(vec3(0.93, 0.90, 0.82) * (0.86 + 0.14 * vg), vec3(0.12, 0.11, 0.13), ink * 0.84);
+          col = mix(crd, silverBase, 0.38);
+        } else if (mode == 7) {
+          float wn = n2(px / 95.0) * 0.6 + n2(px / 22.0) * 0.3 + h(floor(px / 2.0)) * 0.1;
+          float ml = smoothstep(0.06, 0.85, lum(texture2D(tFilm, uv).rgb));
+          vec3 wall = vec3(0.54, 0.51, 0.47) * (0.65 + 0.45 * wn) * (0.72 + 0.45 * ml);
+          float dr = drip(uv);
+          float edgeHalo = smoothstep(0.04, 0.14, ed);
+          vec3 paste = mix(silverBase.rgb, vec3(0.96, 0.94, 0.89), edgeHalo);
+          col = mix(mix(wall, paste, smoothstep(0.24, 0.62, l + edgeHalo * 0.45)), vec3(0.14, 0.12, 0.11), dr * 0.28);
+          col = mix(col, silverBase, 0.32);
+        } else if (mode == 8) {
+          float tooth = n2(px / 2.4) * 0.6 + n2(px / 6.5) * 0.4;
+          vec3 paper = vec3(0.96, 0.94, 0.89) * (0.94 + 0.08 * tooth);
+          vec3 wash = mix(vec3(0.42, 0.58, 0.74), vec3(0.86, 0.70, 0.52), l);
+          vec3 wc = mix(paper, paper * wash, (0.35 + 0.55 * (1.0 - l)) * (0.65 + 0.4 * tooth));
+          wc = mix(wc, vec3(0.26, 0.28, 0.32), smoothstep(0.04, 0.10, ed) * 0.52);
+          col = mix(wc, silverBase, 0.35);
+        } else if (mode == 9) {
+          float brush = n2(vec2(px.x / 3.0, px.y / 140.0)) * 0.5 + n2(px / 55.0) * 0.5;
+          vec2 q = abs(uv - 0.5) * 2.0;
+          float coat = smoothstep(0.99, 0.92, max(q.x, q.y) + (n2(px / 24.0) - 0.5) * 0.06);
+          float d = smoothstep(0.08, 0.92, silverBase.r + 0.06 * n2(px / 40.0));
+          vec3 cyano = mix(vec3(0.07, 0.24, 0.56) * (0.85 + 0.25 * brush), vec3(0.94, 0.97, 1.0), d);
+          col = mix(vec3(0.95, 0.94, 0.90), cyano, coat);
+        } else if (mode == 10) {
+          float distContour = smoothstep(0.88, 0.98, sin(readDist(uv) * 0.65));
+          vec3 xcol = vec3(0.82, 0.93, 1.0) * (smoothstep(0.02, 0.12, ed) * 1.25 + distContour * 0.22);
+          col = mix(silverBase * 0.52, xcol + mix(raw, tr, 0.55) * 0.36, 0.65);
+        } else if (mode == 11) {
+          vec3 rs = vec3(0.96, 0.93, 0.85);
+          float g1 = length(fract(px / 5.5) - 0.5) * 1.5;
+          float g2 = length(fract((mat2(0.966, 0.259, -0.259, 0.966) * px) / 5.5) - 0.5) * 1.5;
+          float g3 = length(fract((mat2(0.707, 0.707, -0.707, 0.707) * px) / 5.5) - 0.5) * 1.5;
+          rs *= mix(vec3(1.0), vec3(1.0, 0.34, 0.60), step(g1, smoothstep(0.15, 0.75, 1.0 - l) * 0.82));
+          rs *= mix(vec3(1.0), vec3(1.0, 0.86, 0.12), step(g2, smoothstep(0.25, 0.85, l) * 0.72));
+          rs *= mix(vec3(1.0), vec3(0.14, 0.34, 0.78), step(g3, smoothstep(0.1, 0.55, 1.0 - l) * 0.78));
+          rs *= mix(vec3(1.0), vec3(0.10, 0.09, 0.12), smoothstep(0.04, 0.15, ed) * 0.82);
+          col = mix(rs, silverBase, 0.36);
+        } else if (mode == 12) {
+          float fib = n2(vec2(px.x / 85.0, px.y / 2.2)) * 0.5 + n2(vec2(px.x / 3.0, px.y / 68.0)) * 0.5;
+          vec3 paper = vec3(0.95, 0.93, 0.87) * (0.94 + 0.08 * fib);
+          float dark = 1.0 - l;
+          float ink = smoothstep(0.22, 0.44, dark) * 0.25 + smoothstep(0.48, 0.72, dark) * 0.30 + smoothstep(0.76, 0.95, dark) * 0.32;
+          vec3 iw = paper * (1.0 - ink * (0.9 + 0.1 * fib));
+          vec2 sq = (uv - vec2(0.90, 0.14)) * vec2(uRes.x / uRes.y, 1.0);
+          float seal = step(max(abs(sq.x), abs(sq.y)), 0.032) * step(0.28, n2(px / 3.0));
+          col = mix(mix(iw, vec3(0.72, 0.10, 0.08), seal), silverBase, 0.36);
+        } else {
+          float flutter = step(0.992, h(vec2(floor(uv.y * 190.0), floor(uT * 11.0)))) * uAudioHigh * 0.22;
+          return silverBase * (0.95 + 0.05 * vg) + vec3(0.16, 0.72, 1.0) * flutter;
+        }
+        return col;
+      }
+
+      vec3 evalByFloat(float fz, vec2 uv, vec3 raw, vec3 silverBase, vec3 tr, float l, float ed, float vg) {
+        float cf = clamp(fz, 0.0, 10.0);
+        int i0 = int(floor(cf)), i1 = i0 < 10 ? i0 + 1 : 10;
+        vec3 a = evalLook(i0, uv, raw, silverBase, tr, l, ed, vg);
+        vec3 b = (i1 == i0) ? a : evalLook(i1, uv, raw, silverBase, tr, l, ed, vg);
+        return mix(a, b, smoothstep(0.15, 0.85, fract(cf)));
+      }
+
+      void main() {
+        vec2 uv = vUv, e = 1.0 / uRes;
+        float zb = texture2D(tDepth, uv).x;
+        float dist = (uNear * uFar) / max(0.0001, uFar - zb * (uFar - uNear));
+        float planeD = uFocusDist * exp((uv.y - 0.5) * uTilt * 2.0);
+        float coc = (log2(clamp(dist, uNear, uFar)) - log2(max(planeD, 0.5))) / max(0.14, uDofOctaves);
+
+        // Full 48 km depth precision: sky buffer stays cleared at 1.0, terrain peaks <= 0.999993
+        vec4 ndcPos = vec4(uv * 2.0 - 1.0, zb * 2.0 - 1.0, 1.0);
+        vec4 wp4 = uInvProjView * ndcPos;
+        vec3 wPos = wp4.xyz / max(0.00001, wp4.w);
+        float isGeo = step(zb, 0.999997) * step(dist, 2600.0);
+
+        float wifiField = 0.0;
+        float wifiEdge = 0.0;
+        float wifiWave = 0.0;
+        for (int i = 0; i < 8; i++) {
+          float rad = uWifi[i].w * (1.0 + 0.08 * uBeatPulse);
+          if (rad > 0.5) {
+            float dw = length(wPos.xz - uWifi[i].xz);
+            float f = smoothstep(rad, rad * 0.14, dw) * isGeo;
+            wifiField = max(wifiField, f);
+            float bnd = smoothstep(2.0, 0.0, abs(dw - rad)) * isGeo;
+            wifiEdge = max(wifiEdge, bnd);
+            float ringW = sin(dw * 0.72 - uT * 4.4 - uBeatPulse * 1.4);
+            wifiWave = max(wifiWave, f * smoothstep(0.90, 0.99, ringW) * (0.75 + 0.65 * uBeatPulse));
+          }
+        }
+        wifiField = clamp(wifiField * (1.0 + 0.35 * uWifiPing + 0.18 * uBeatPulse), 0.0, 1.0);
+
+        vec3 raw = texture2D(tScene, uv).rgb;
+        float rawL = clamp(dot(raw, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);
+        float l = lum(raw);
+        float maxC = max(raw.r, max(raw.g, raw.b));
+        float minC = min(raw.r, min(raw.g, raw.b));
+        float chroma = maxC - minC;
+        float abyssMask = (1.0 - smoothstep(145.0, 230.0, length(wPos.xz - uAbyssCenter.xz))) * isGeo;
+        float colorKeep = clamp(smoothstep(0.08, 0.28, chroma) * 0.92 + abyssMask * 0.68, 0.0, 0.96);
+
+        float rawX = dot(texture2D(tScene, uv + vec2(1.2, 0.0) * e).rgb, vec3(0.30, 0.59, 0.11))
+                   - dot(texture2D(tScene, uv - vec2(1.2, 0.0) * e).rgb, vec3(0.30, 0.59, 0.11));
+        float rawY = dot(texture2D(tScene, uv + vec2(0.0, 1.2) * e).rgb, vec3(0.30, 0.59, 0.11))
+                   - dot(texture2D(tScene, uv - vec2(0.0, 1.2) * e).rgb, vec3(0.30, 0.59, 0.11));
+        float ed = length(vec2(rawX, rawY)) * 2.5;
+        vec3 silverBase = raw;
+        vec3 tr = texture2D(tTrail, uv).rgb;
+        float vg = smoothstep(1.36, 0.34, length((uv - 0.5) * vec2(clamp(uRes.x / max(1.0, uRes.y), 0.78, 1.25), 1.0)) * 1.48);
+
+        float zoneEff = clamp(l + wifiField * 0.25, 0.0, 1.0);
+        vec3 outCol;
+        if (uSoloLook >= 0) {
+          outCol = evalLook(uSoloLook, uv, raw, silverBase, tr, zoneEff, ed, vg);
+        } else if (uRouteMode == 0) {
+          vec3 jk = evalLook(13, uv, raw, silverBase, tr, l, ed, vg);
+          vec3 fLook = evalLook(uFocusLook, uv, raw, silverBase, tr, zoneEff, ed, vg);
+          float focalBand = 1.0 - smoothstep(0.45, 1.15, abs(coc));
+          outCol = mix(jk, fLook, focalBand * 0.35 * (1.0 - colorKeep * 0.65));
+          float heroCut = smoothstep(2.4, 6.0, length(wPos.xz - uWifi[0].xz));
+          vec3 wifiWorld = mix(evalLook(9, uv, raw, silverBase, tr, zoneEff, ed, vg),
+                               evalLook(10, uv, raw, silverBase, tr, zoneEff, ed, vg),
+                               smoothstep(0.05, 0.25, ed) + 0.30 * sin(wPos.y * 0.25 + uT));
+          outCol = mix(outCol, mix(wifiWorld, vec3(0.04, 0.58, 0.98) * (0.45 + 0.72 * rawL), 0.28), wifiField * 0.72 * heroCut * (1.0 - colorKeep * 0.85));
+          float cyanWave = smoothstep(0.16, 0.0, abs(abs(coc) - 0.86)) * (0.10 + 0.72 * uFocusPulse);
+          outCol = mix(outCol, vec3(0.06, 0.78, 1.0), clamp(cyanWave * 0.50 + wifiWave * 0.55 * heroCut + wifiEdge * 0.88, 0.0, 0.92));
+        } else if (uRouteMode == 1) {
+          float zBand = clamp(zoneEff * 10.0 + coc * 2.1 + wifiField * 2.2, 0.0, 10.0);
+          vec3 strataCol = evalByFloat(zBand, uv, raw, silverBase, tr, zoneEff, ed, vg);
+          vec3 focalCol = evalLook(uFocusLook, uv, raw, silverBase, tr, zoneEff, ed, vg);
+          float sharp = 1.0 - smoothstep(0.45, 1.15, abs(coc));
+          outCol = mix(strataCol, focalCol, sharp * (1.0 - uStrataLock));
+          outCol = mix(outCol, raw, colorKeep * 0.55);
+          outCol = mix(outCol, vec3(0.06, 0.80, 1.0), clamp(wifiWave * 0.45 + wifiEdge * 0.82, 0.0, 0.88));
+        } else if (uRouteMode == 2) {
+          float shellZ = clamp(5.0 + coc * 2.4 + wifiField * 2.0, 0.0, 10.0);
+          outCol = evalByFloat(shellZ, uv, raw, silverBase, tr, zoneEff, ed, vg);
+          float bound = smoothstep(0.09, 0.0, abs(fract(shellZ + 0.5) - 0.5)) * (0.14 + 0.45 * uFocusPulse);
+          outCol = mix(outCol, vec3(0.10, 0.80, 1.0), clamp(bound + wifiWave * 0.45 + wifiEdge * 0.78, 0.0, 0.9));
+        } else {
+          outCol = evalByFloat(zoneEff * 10.0 + wifiField * 2.4, uv, raw, silverBase, tr, zoneEff, ed, vg);
+          outCol = mix(outCol, vec3(0.08, 0.78, 1.0), clamp(wifiWave * 0.45 + wifiEdge * 0.78, 0.0, 0.88));
+        }
+
+        if (uInAbyss > 0.02) {
+          float abHaze = (isGeo < 0.5) ? 0.92 : smoothstep(28.0, 125.0, dist) * 0.90;
+          vec3 abWater = mix(vec3(0.05, 0.34, 0.42), vec3(0.18, 0.74, 0.82), clamp(uv.y * 1.12, 0.0, 1.0));
+          outCol = mix(outCol, abWater, abHaze * uInAbyss);
+        }
+
+        if (uLidarStrength > 0.02 && isGeo > 0.5) {
+          float c1 = 1.0 - smoothstep(0.0, 0.045, abs(fract(wPos.y * 0.5) - 0.5));
+          float c5 = 1.0 - smoothstep(0.0, 0.032, abs(fract(wPos.y * 0.1) - 0.5));
+          vec2 lpGrid = fract(wPos.xz * 0.25) - 0.5;
+          float pts = (1.0 - smoothstep(0.04, 0.13, length(lpGrid))) * (1.0 - smoothstep(140.0, 420.0, dist));
+          float dDonkey = length(wPos.xz - uWifi[0].xz);
+          float radar = smoothstep(0.92, 0.995, sin(dDonkey * 0.28 - uT * 5.2 - uBeatPulse * 1.6)) * (0.45 + 0.55 * uBeatPulse);
+          float elevBand = 1.0 - smoothstep(0.0, 18.0, abs(wPos.y - (65.0 + float(uResonantZone) * 24.0)));
+          vec3 lidarCol = mix(vec3(0.04, 0.78, 1.0), vec3(0.45, 0.96, 1.0), c5);
+          float lidarMix = clamp((c1 * 0.24 + c5 * 0.58 + pts * 0.55 + radar * 0.45 + elevBand * 0.22) * uLidarStrength, 0.0, 0.86);
+          outCol = mix(outCol * (1.0 - 0.18 * uLidarStrength), lidarCol, lidarMix);
+        }
+
+        if (uJerikanFilter > 0.5 || uRouteMode == 0 || uSoloLook == 13) {
+          float maxRG = max(raw.r, raw.g);
+          float blueDom = (raw.b - maxRG) / max(raw.b, 0.035);
+          float cyanMask = smoothstep(0.24, 0.52, blueDom) * smoothstep(0.04, 0.12, raw.b) * (1.0 - abyssMask * 0.45);
+          float cyanShade = clamp(0.48 + 0.82 * raw.b - raw.r * 0.15, 0.44, 1.30);
+          vec3 cyanGlow = mix(vec3(0.0, 0.50, 0.96), vec3(0.32, 0.92, 1.0), smoothstep(0.16, 0.86, raw.b)) * cyanShade * (0.95 + 0.26 * max(uAudioBass, uBeatPulse));
+          outCol = mix(outCol, cyanGlow, cyanMask);
+        }
+
+        gl_FragColor = vec4(clamp(outCol, 0.0, 1.0), 1.0);
+      }
+    `
+  });
+
+  /* ---------- Async World Init & Full Expedition Loop ---------- */
+  async function boot() {
+    const mw = await loadMonolithAssets(renderer);
+
+    const state = {
+      ready: true,
+      region: "tetons",
+      x: -14.8, z: 0.8, y: 157.5,
+      yaw: Math.PI * .50,
+      pitch: -.05,
+      cartYawOffset: 0, cartPitchOffset: 0, chaseZoom: 9.2,
+      modeIdx: initModeIdx,
+      stopIdx: 2,
+      filterIdx: 5,
+      tilt: 0,
+      focusDist: 18.0,
+      soloLook: -1,
+      focusLook: 13,
+      drivingCart: false,
+      donkeyOnRoof: false,
+      roofMountT: 0,
+      roofJumpStart: new T.Vector3(),
+      gliding: false,
+      glideOpen: 0,
+      glide: { x: -48, y: 162, z: 1.35, heading: -Math.PI * .45, vy: 0, speed: 24, bank: 0, time: 0,
+        landing: false, cruising: false, waypoint: null },
+      riding: false,
+      leadMode: "lead",
+      gaitIdx: 0,
+      trayTab: null,
+      groundGlass: false,
+      ppcOn: true,
+      focusPulse: 0,
+      pumpFlow: .92,
+      pumpLeverPhase: 0,
+      wifiCharge: 1.0,
+      donkeyWater: 1.0,
+      donkeyCollapsed: false,
+      pourAnim: null,
+      danceTimer: 0,
+      lidarOn: false,
+      lidarStrength: 0,
+      songEpochIdx: 0,
+      resonantZone: 4,
+      zoneSynced: false,
+      nextRelayDist: 162,
+      nextRelayName: "Switchback",
+      nextRelayAzDeg: 0,
+      rigDeployed: false,
+      filledCans: 6,
+      totalCans: 72,
+      filmStripFrames: 12,
+      antennaElev: 158.0,
+      relElev: 92.5,
+      signalRadius: 120.0,
+      pingTimer: 0,
+      signalDbm: -34,
+      frameWifiPct: 50,
+      litRelays: 1,
+      coveragePct: 14,
+      unlockedGroves: 3,
+      unlockedTrees: 18,
+      meteredZone: 4,
+      currentZone: 4,
+      beatPulse: 0,
+      spatialAudio: true,
+      audioDistMeters: 5.0,
+      audioFalloffDb: 0,
+      introActive: !skipIntroParam,
+      introPhase: skipIntroParam ? "done" : "title",
+      introT: 0,
+      introShotIdx: -1,
+      bootMs: performance.now(),
+      savedModeBeforeIntro: initModeIdx,
+      plates: [],
+      chaseCamPos: new T.Vector3(-11, 160, 4),
+      chaseLookAt: new T.Vector3(-36, 156, 1.35)
+    };
+    document.body.classList.toggle("intro-active", state.introActive);
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      if (saved && Array.isArray(saved.plates)) state.plates = saved.plates;
+    } catch {}
+
+    function regionAt(x, z) {
+      if (x > 305) return "ridge";
+      if (Math.hypot(x - AHIYA_OX, z - AHIYA_OZ) < 320) return "ahiya";
+      if (Math.hypot(x - ABYSS_OX, z - ABYSS_OZ) < 200) return "abyss";
+      return "tetons";
+    }
+
+    function currentPlaceName() {
+      const reg = regionAt(state.x, state.z);
+      if (reg === "ahiya") {
+        let bestN = "Basalt Pump", bestD = 1e9;
+        for (const [id, sx, sz, nm] of [["basalt",-1460,760,"Basalt Pump"],["beacon",-1610,590,"Cross-Beacon Watch"],["hill",-1765,540,"Hill Archive"],["compound",-1680,775,"Daylight Compound"]]) {
+          const d = Math.hypot(state.x - sx, state.z - sz);
+          if (d < bestD) { bestD = d; bestN = nm; }
+        }
+        return bestN;
+      }
+      if (inside(mw.tetonMountainBounds, state.x, state.z)) return mw.tetonRange.name;
+      return ZONES[state.currentZone].name;
+    }
+
+    function groundAt(x, z) {
+      return mw.unifiedGround(x, z);
+    }
+
+    function driveSurfaceAt(x, z) {
+      const g = mw.unifiedGround(x, z);
+      // Yosemite Cloud Bridge (mapped to world coords wx=[540.5, 549.5], wz=[-34, 5.3])
+      if (x >= 540.2 && x <= 549.8 && z >= -34.2 && z <= 5.5) return Math.max(g, mw.bridgeHeight(x, z));
+      // Snake River Overlook Deck & East Ramp
+      if (x >= -48.6 && x <= -24.7 && z >= -2.7 && z <= 5.4) return Math.max(g, mw.DECK_Y);
+      if (x > -24.7 && x <= -19.2 && z >= -2.7 && z <= 5.4) {
+        const t = (x - (-24.7)) / 5.5;
+        return Math.max(g, lerp(mw.DECK_Y, g, smooth(0, 1, t)));
+      }
+      // Smooth River-Skimming Surface across Snake River channels (Collisions OFF!)
+      if (x < 280 && Math.hypot(x - ABYSS_OX, z - ABYSS_OZ) > 165 && mw.wet(x, z) > -0.5) {
+        return Math.max(g, mw.water(x, z) - 0.08);
+      }
+      return g;
+    }
+
+    function activeWorld() { return mw.world; }
+
+    function setRegion(next) {
+      state.region = next;
+      const btn = $("btn-region");
+      if (btn) {
+        btn.setAttribute("aria-pressed", String(next !== "tetons"));
+        btn.textContent = next === "ridge" ? "Shuttle → Abyss/Tetons (R)" : next === "abyss" ? "Shuttle → Half Dome (R)" : "World Shuttle (R)";
+      }
+    }
+
+    /* Shared Dynamic Actors Group inside the Unified World */
+    const actorRoot = new T.Group();
+    mw.world.add(actorRoot);
+    const hemiFill = new T.HemisphereLight(0xf6f4ee, 0x3b3c39, .55);
+    actorRoot.add(hemiFill);
+
+    /* Wagon + Mistletoe + Sawbuck Pack + Scion Pack Speakers + Donkey Glider Wing + Pour Streams */
+    const wagon = buildWagon();
+    actorRoot.add(wagon.group);
+    wagon.x = -23.0; wagon.z = 4.6;
+    wagon.y = driveSurfaceAt(wagon.x, wagon.z);
+    wagon.heading = -Math.PI * .52;
+    wagon.group.position.set(wagon.x, wagon.y, wagon.z);
+    wagon.group.rotation.y = wagon.heading;
+
+    const donkey = window.makeDonkey({
+      assetPath: "../donkey/",
+      textures: mw.coatTextures,
+      shells: useFieldLayout() ? 6 : 11,
+      monochrome: true,
+      contactShadow: true,
+      alwaysHalter: true
+    });
+    donkey.state.tireless = true;
+    actorRoot.add(donkey.group);
+    donkey.setCargo([
+      { name: "Cyan Jerikan L (20L)", kg: 12, slot: "L" },
+      { name: "Cyan Jerikan R (20L)", kg: 12, slot: "R" },
+      { name: "Scion WiFi Transceiver", kg: 8, slot: "T" }
+    ]);
+    for (const c of donkey.pack.children) if (c.isGroup) c.visible = false;
+
+    const donkeyRig = new T.Group();
+    donkey.pack.add(donkeyRig);
+    const addPackBar = (grp, a, b, r, mat) => {
+      const p = new T.Vector3(...a), q = new T.Vector3(...b), d = q.clone().sub(p);
+      const m = new T.Mesh(new T.CylinderGeometry(r, r, d.length(), 8), mat);
+      m.position.copy(p).lerp(q, .5);
+      m.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize());
+      grp.add(m); return m;
+    };
+    for (const zTree of [-.14, .22]) {
+      addPackBar(donkeyRig, [-.22, 1.06, zTree], [.18, 1.38, zTree], .017, sawWoodMat);
+      addPackBar(donkeyRig, [.22, 1.06, zTree], [-.18, 1.38, zTree], .017, sawWoodMat);
+    }
+    const speakerCones = [], saddleCans = [];
+    for (const sgn of [-1, 1]) {
+      addPackBar(donkeyRig, [sgn * .21, 1.14, -.21], [sgn * .21, 1.14, .29], .015, sawWoodMat);
+      const jc = makeFillableJerikan(1.06, 0, true);
+      jc.position.set(sgn * .305, .86, .04); jc.rotation.y = sgn * Math.PI * .5; jc.rotation.z = sgn * .12;
+      donkeyRig.add(jc);
+      saddleCans.push(jc);
+      const cb1 = new T.Mesh(new T.BoxGeometry(.024, .34, .036), leatherMat); cb1.position.set(sgn * .29, 1.04, -.04); cb1.rotation.z = sgn * .12; donkeyRig.add(cb1);
+      const cb2 = new T.Mesh(new T.BoxGeometry(.024, .34, .036), leatherMat); cb2.position.set(sgn * .29, 1.04, .12); cb2.rotation.z = sgn * .12; donkeyRig.add(cb2);
+      const cn = new T.Mesh(new T.BoxGeometry(.25, .036, .045), leatherMat); cn.position.set(sgn * .32, 1.01, .04); cn.rotation.z = sgn * .12; donkeyRig.add(cn);
+      const bk = new T.Mesh(new T.BoxGeometry(.032, .052, .056), brassMat); bk.position.set(sgn * .40, 1.01, .04); donkeyRig.add(bk);
+      const hPts = [new T.Vector3(sgn * .31, 1.24, .11), new T.Vector3(sgn * .20, 1.34, .09), new T.Vector3(sgn * .09, 1.30, .06)];
+      donkeyRig.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(hPts), 10, .013, 6, false), beaconCyanMat));
+      // Twin Brass Radio Speaker Horns on Scion Pack
+      const horn = new T.Mesh(new T.CylinderGeometry(.078, .032, .11, 12, 1, true), brassMat);
+      horn.position.set(sgn * .18, 1.36, -.10); horn.rotation.z = -sgn * .35; horn.rotation.x = .25;
+      donkeyRig.add(horn);
+      const sRing = new T.Mesh(new T.TorusGeometry(.085, .012, 8, 20), beaconCyanMat.clone());
+      sRing.position.set(sgn * .20, 1.38, -.12); sRing.rotation.y = sgn * .45;
+      donkeyRig.add(sRing); speakerCones.push(sRing);
+    }
+    const scionCase = new T.Mesh(new T.BoxGeometry(.24, .14, .34), strapMat); scionCase.position.set(0, 1.25, .04); donkeyRig.add(scionCase);
+    const scionCap = new T.Mesh(new T.BoxGeometry(.22, .04, .30), jerikanMat); scionCap.position.set(0, 1.33, .04); donkeyRig.add(scionCap);
+    const scionBar = new T.Mesh(new T.BoxGeometry(.18, .026, .04), beaconCyanMat); scionBar.position.set(0, 1.34, -.09); donkeyRig.add(scionBar);
+    const hitchPts = [
+      new T.Vector3(-.39, .96, -.04), new T.Vector3(-.28, 1.30, -.12), new T.Vector3(0, 1.36, .04),
+      new T.Vector3(.28, 1.30, .20), new T.Vector3(.39, .96, .12), new T.Vector3(.28, 1.30, -.12),
+      new T.Vector3(0, 1.36, .04), new T.Vector3(-.28, 1.30, .20), new T.Vector3(-.39, .96, -.04)
+    ];
+    donkeyRig.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(hitchPts), 28, .009, 6, false), ropeHitchMat));
+    const springCoil = new T.Mesh(new T.CylinderGeometry(.024, .024, .08, 8), brassMat); springCoil.position.set(-.04, 1.38, .08); donkeyRig.add(springCoil);
+    const whip = new T.Mesh(new T.CylinderGeometry(.007, .014, .72, 6), antennaMat); whip.position.set(-.04, 1.77, .08); donkeyRig.add(whip);
+    const donkeyBeacon = new T.Mesh(new T.SphereGeometry(.058, 12, 10), beaconCyanMat); donkeyBeacon.position.set(-.04, 2.15, .08); donkeyRig.add(donkeyBeacon);
+
+    // Animated Donkey Pouring Streams + Droplets (visible when pouring into cistern depots)
+    const pourGroup = new T.Group();
+    pourGroup.visible = false;
+    actorRoot.add(pourGroup);
+    const pourGeoL = new T.BufferGeometry(), pourGeoR = new T.BufferGeometry();
+    const pourPtsL = Array.from({ length: 16 }, () => new T.Vector3());
+    const pourPtsR = Array.from({ length: 16 }, () => new T.Vector3());
+    const pourLineMat = new T.MeshBasicMaterial({ color: 0x0088ff });
+    const pourArchGeo = new T.CylinderGeometry(.032, .048, 1, 8);
+    let pourMeshL = new T.Mesh(pourArchGeo, cyanWaterMat);
+    let pourMeshR = new T.Mesh(pourArchGeo, cyanWaterMat);
+    let pourMeshL2 = new T.Mesh(pourArchGeo, cyanWaterMat);
+    let pourMeshR2 = new T.Mesh(pourArchGeo, cyanWaterMat);
+    pourGroup.add(pourMeshL, pourMeshR, pourMeshL2, pourMeshR2);
+    const splashDropGeo = new T.SphereGeometry(.055, 8, 6);
+    const splashDrops = Array.from({ length: 18 }, () => {
+      const m = new T.Mesh(splashDropGeo, beaconCyanMat);
+      pourGroup.add(m); return m;
+    });
+
+    /* ---------- Sculpted 18-Cell Arched Electric-Cyan & Sprocket Film Paraglider Wing + Contrails ---------- */
+    const donkeyGlider = new T.Group();
+    donkeyGlider.position.set(0, 1.25, .04);
+    donkeyGlider.visible = false;
+    donkeyRig.add(donkeyGlider);
+    const sailDarkMat = new T.MeshStandardMaterial({ color: 0x0d549c, emissive: 0x062d5e, emissiveIntensity: .62, roughness: .38, side: T.DoubleSide });
+    const canopyCyanMat = new T.MeshStandardMaterial({ color: 0x24b4ff, emissive: 0x0c66db, emissiveIntensity: .88, roughness: .30, side: T.DoubleSide });
+    const sailFilmMat = new T.MeshStandardMaterial({ map: forestFilmTex, color: 0x16a2ff, emissive: 0x0c5ed6, emissiveIntensity: .92, roughness: .32, side: T.DoubleSide });
+    const seamMat = new T.MeshBasicMaterial({ color: 0x0a111a });
+    const riserCordMat = new T.MeshBasicMaterial({ color: 0x5c5344 });
+    const wingCellCount = 18, wingSpan = 6.2, halfSpan = wingSpan * .5, maxTheta = 1.08, radSpan = halfSpan / Math.sin(maxTheta);
+    const wingPt = (theta, cFrac, lift = 0) => {
+      const ch = 1.56 * Math.cos(theta * .68);
+      const leadZ = .56 - (1 - Math.cos(theta)) * .68;
+      return [Math.sin(theta) * radSpan, 1.02 + Math.cos(theta) * 1.98 + lift, leadZ - cFrac * ch];
+    };
+    const pushQuad = (arr, uvs, a, b, c, d, u0, u1, v0, v1) => {
+      arr.push(...a, ...b, ...c, ...b, ...d, ...c);
+      uvs.push(u0, v0, u1, v0, u0, v1, u1, v0, u1, v1, u0, v1);
+    };
+    for (let c = 0; c < wingCellCount; c++) {
+      const t0 = -maxTheta + (c / wingCellCount) * (2 * maxTheta);
+      const t1 = -maxTheta + ((c + 1) / wingCellCount) * (2 * maxTheta);
+      const tm = (t0 + t1) * .5;
+      const puff0 = .14 * Math.cos(t0 * .5), puff1 = .14 * Math.cos(t1 * .5), puffM = .20 * Math.cos(tm * .5);
+      const L0 = wingPt(t0, 0, 0), L1 = wingPt(t1, 0, 0), LM = wingPt(tm, 0, .03);
+      const C0 = wingPt(t0, .36, puff0), C1 = wingPt(t1, .36, puff1), CM = wingPt(tm, .36, puffM);
+      const T0 = wingPt(t0, 1.0, .01), T1 = wingPt(t1, 1.0, .01), TM = wingPt(tm, 1.0, .03);
+      const verts = [], uvs = [];
+      pushQuad(verts, uvs, L0, LM, C0, CM, 0, .5, 1, .64);
+      pushQuad(verts, uvs, LM, L1, CM, C1, .5, 1, 1, .64);
+      pushQuad(verts, uvs, C0, CM, T0, TM, 0, .5, .64, 0);
+      pushQuad(verts, uvs, CM, C1, TM, T1, .5, 1, .64, 0);
+      const g = new T.BufferGeometry();
+      g.setAttribute("position", new T.Float32BufferAttribute(verts, 3));
+      g.setAttribute("uv", new T.Float32BufferAttribute(uvs, 2));
+      g.computeVertexNormals();
+      const mat = (c >= 7 && c <= 10) ? sailFilmMat : (c % 2 === 0 ? canopyCyanMat : sailDarkMat);
+      donkeyGlider.add(new T.Mesh(g, mat));
+      addPackBar(donkeyGlider, L0, C0, .0055, seamMat);
+      addPackBar(donkeyGlider, C0, T0, .0055, seamMat);
+    }
+    // Outer end seam
+    addPackBar(donkeyGlider, wingPt(maxTheta, 0, 0), wingPt(maxTheta, 1, .01), .0055, seamMat);
+    // 16 taut suspension risers fanning from Mistletoe's saddle lugs across the curved canopy
+    for (const cIdx of [1, 3, 5, 7, 10, 12, 14, 16]) {
+      const th = -maxTheta + ((cIdx + .5) / wingCellCount) * (2 * maxTheta);
+      const lug = [cIdx >= 9 ? .28 : -.28, .08, .06];
+      addPackBar(donkeyGlider, lug, wingPt(th, .14, .06), .0045, riserCordMat);
+      addPackBar(donkeyGlider, lug, wingPt(th, .68, .05), .0045, riserCordMat);
+    }
+    const wingTipL = new T.Object3D(), wingTipR = new T.Object3D();
+    const tipLP = wingPt(-maxTheta, .45, 0), tipRP = wingPt(maxTheta, .45, 0);
+    wingTipL.position.set(tipLP[0], tipLP[1], tipLP[2]);
+    wingTipR.position.set(tipRP[0], tipRP[1], tipRP[2]);
+    donkeyGlider.add(wingTipL, wingTipR);
+
+    // Twin Cyan Wingtip Contrail Ribbons in World Space
+    const TRAIL_N = 30;
+    const makeContrail = () => {
+      const pos = new Float32Array(TRAIL_N * 3);
+      const geo = new T.BufferGeometry();
+      geo.setAttribute("position", new T.BufferAttribute(pos, 3));
+      const lineObj = new T.Line(geo, new T.LineBasicMaterial({ color: 0x007aff, transparent: true, opacity: .88 }));
+      lineObj.frustumCulled = false; lineObj.visible = false;
+      actorRoot.add(lineObj);
+      return { line: lineObj, pts: Array.from({ length: TRAIL_N }, () => new T.Vector3()), pos };
+    };
+    const contrailL = makeContrail(), contrailR = makeContrail();
+    const tmpTipL = new T.Vector3(), tmpTipR = new T.Vector3();
+
+    /* ---------- Actual Photographic Filmstrip Atlas (Live 3D Abyssal + MONOLITH-3 Renders & Sprockets) ---------- */
+    const filmAtlas = document.createElement("canvas");
+    filmAtlas.width = 1024; filmAtlas.height = 2048;
+    const faCtx = filmAtlas.getContext("2d");
+    faCtx.fillStyle = "#0e1014";
+    faCtx.fillRect(0, 0, 1024, 2048);
+
+    function drawFilmFrameCell(slotIdx, imgSource, label) {
+      const col = slotIdx % 2, row = Math.floor(slotIdx / 2) % 8;
+      const cx = col * 512, cy = row * 256;
+      faCtx.fillStyle = "#12151a";
+      faCtx.fillRect(cx, cy, 512, 256);
+      // Sprocket perforations along left & right rails
+      for (let s = 0; s < 8; s++) {
+        const py = cy + 12 + s * 30;
+        faCtx.fillStyle = "#06080c";
+        faCtx.fillRect(cx + 12, py, 26, 18);
+        faCtx.fillRect(cx + 474, py, 26, 18);
+        faCtx.strokeStyle = "#36b8ff";
+        faCtx.lineWidth = 1.5;
+        faCtx.strokeRect(cx + 12, py, 26, 18);
+        faCtx.strokeRect(cx + 474, py, 26, 18);
+      }
+      // Edge safety film print
+      faCtx.fillStyle = "#68d4ff";
+      faCtx.font = "700 11px monospace";
+      faCtx.fillText(`${String(slotIdx + 1).padStart(2, "0")}A  ·  ${label}`, cx + 56, cy + 18);
+      faCtx.strokeStyle = "#19a8ff";
+      faCtx.lineWidth = 2;
+      faCtx.strokeRect(cx + 54, cy + 26, 404, 214);
+      if (imgSource) faCtx.drawImage(imgSource, cx + 56, cy + 28, 400, 210);
+    }
+
+    const actualFilmTex = new T.CanvasTexture(filmAtlas);
+    actualFilmTex.wrapS = actualFilmTex.wrapT = T.RepeatWrapping;
+    actualFilmTex.anisotropy = Math.min(6, renderer.capabilities.getMaxAnisotropy());
+    let nextLiveFilmSlot = 12;
+    function splicePlateIntoFilmStrip(srcCanvas, label = "8×10 LIVE PLATE") {
+      drawFilmFrameCell(nextLiveFilmSlot, srcCanvas, label);
+      nextLiveFilmSlot = 12 + ((nextLiveFilmSlot - 11) % 4);
+      state.filmStripFrames = Math.min(16, state.filmStripFrames + 1);
+      actualFilmTex.needsUpdate = true;
+      sailFilmMat.map = actualFilmTex;
+      sailFilmMat.needsUpdate = true;
+    }
+
+    // Seed frames 8..11 with archival MONOLITH-3 & coat reference plates right away
+    const seedPlates = [
+      [mw.rawImages["near-surface"], "GRAND TETON LIDAR"],
+      [mw.rawImages["half-ground"], "HALF DOME SURVEY"],
+      [mw.rawImages["sky-plate"], "STORM BREAK PLATE"],
+      [mw.rawImages["coat-head"], "MISTLETOE 8×10"]
+    ];
+    seedPlates.forEach(([im, lbl], idx) => drawFilmFrameCell(8 + idx, im, lbl));
+    seedPlates.forEach(([im, lbl], idx) => drawFilmFrameCell(idx, im, lbl));
+    seedPlates.forEach(([im, lbl], idx) => drawFilmFrameCell(12 + idx, im, "ARCHIVE " + lbl));
+    actualFilmTex.needsUpdate = true;
+
+    function captureInitialFilmStripAtlas() {
+      const capW = 320, capH = 240;
+      const capRT = new T.WebGLRenderTarget(capW, capH, { minFilter: T.LinearFilter, magFilter: T.LinearFilter });
+      const capCam = new T.PerspectiveCamera(56, capW / capH, 0.35, 24000);
+      const pxBuf = new Uint8Array(capW * capH * 4);
+      const tmpC = document.createElement("canvas"); tmpC.width = capW; tmpC.height = capH;
+      const tctx = tmpC.getContext("2d");
+      const imgData = tctx.createImageData(capW, capH);
+      const prevTarget = renderer.getRenderTarget();
+
+      const shots = [
+        { pos: [-1076, 56.5, -12], look: [-1092, 57.5, -28], label: "WHALE FLUKE SANCTUARY" },
+        { pos: [-1092, 72.0, -64], look: [-1110, 68.0, -90], label: "SUNKEN GALLEON RIDGE" },
+        { pos: [-1044, 57.5, -24], look: [-1047, 58.0, -49], label: "CORAL CANYON ARCH" },
+        { pos: [-1086, 68.0, -18], look: [-1066, 63.0, -56], label: "MANTA RAY GLIDE" },
+        { pos: [-34, 159.0, 1.4],  look: [-420, 146.0, -25], label: "SNAKE RIVER OVERLOOK" },
+        { pos: [-754, 73.0, -32],  look: [-812, 71.0, -34],  label: "HIGHLAND PUEBLO DOOR" },
+        { pos: [520, 165.0, -22],  look: [880, 480.0, 0],    label: "HALF DOME CLOUD NOTCH" },
+        { pos: [-19.5, 157.8, 2.2],look: [-24.5, 156.4, 2.2],label: "WOODY WAGON & BURRO" }
+      ];
+
+      mw.abyssAnimate(4.2);
+      for (let i = 0; i < shots.length; i++) {
+        const sh = shots[i];
+        capCam.position.set(...sh.pos);
+        capCam.up.set(0, 1, 0);
+        capCam.lookAt(...sh.look);
+        capCam.updateMatrixWorld();
+        mw.updateSkyBasis(capCam);
+        renderer.setRenderTarget(capRT);
+        renderer.render(mw.world, capCam);
+        renderer.readRenderTargetPixels(capRT, 0, 0, capW, capH, pxBuf);
+        // Vertical flip from WebGL framebuffer to Canvas2D
+        for (let y = 0; y < capH; y++) {
+          const srcRow = (capH - 1 - y) * capW * 4, dstRow = y * capW * 4;
+          for (let x = 0; x < capW * 4; x++) imgData.data[dstRow + x] = pxBuf[srcRow + x];
+        }
+        tctx.putImageData(imgData, 0, 0);
+        drawFilmFrameCell(i, tmpC, sh.label);
+        if (i < 4) drawFilmFrameCell(12 + i, tmpC, "ABYSS " + sh.label);
+      }
+      renderer.setRenderTarget(prevTarget);
+      capRT.dispose();
+      actualFilmTex.needsUpdate = true;
+      sailFilmMat.map = actualFilmTex;
+      sailFilmMat.needsUpdate = true;
+      mw.updateSkyBasis(camera);
+    }
+
+    /* Unified World Props: Overlook Wellhead, Pueblo Plaza, 7 Cistern Depots (72 Fillable Jerrycans), 10 Kelp-Film Forest Groves, Flow Conduits & Summit Launch Decks */
+    const worldProps = new T.Group();
+    mw.world.add(worldProps);
+
+    const midRockMat = new T.MeshStandardMaterial({ color: 0x6c6b64, roughness: .88 });
+    const dryWaterMat = new T.MeshStandardMaterial({ color: 0x2a2926, roughness: .95 });
+    const relayRingMat = new T.LineBasicMaterial({ color: 0x0080ff, transparent: true, opacity: .86 });
+
+    // 1) Cast-Iron Wellhead Pump & Cyan Washbasin at Snake River Overlook
+    const well = (() => {
+      const wx = -22.2, wz = -6.2, wy = groundAt(wx, wz);
+      const g = new T.Group(); g.position.set(wx, wy, wz);
+      const concrete = new T.MeshStandardMaterial({ color: 0x5d5c57, roughness: .94 });
+      const ironMat = new T.MeshStandardMaterial({ color: 0x262626, roughness: .48, metalness: .68 });
+      const basinMat = new T.MeshStandardMaterial({ color: 0xbcb9b0, roughness: .65, side: T.DoubleSide });
+      const pad = new T.Mesh(new T.BoxGeometry(1.1, .28, .9), concrete); pad.position.set(0, .14, 0); g.add(pad);
+      const barrel = new T.Mesh(new T.CylinderGeometry(.13, .16, 1.05, 12), ironMat); barrel.position.set(0, .78, 0); g.add(barrel);
+      const cap = new T.Mesh(new T.CylinderGeometry(.17, .17, .12, 12), ironMat); cap.position.set(0, 1.30, 0); g.add(cap);
+      const spout = new T.Mesh(new T.CylinderGeometry(.048, .048, .42, 10), ironMat); spout.rotation.z = Math.PI / 2.4; spout.position.set(.22, .68, 0); g.add(spout);
+      const leverPivot = new T.Group(); leverPivot.position.set(0, 1.18, 0);
+      const leverArm = new T.Mesh(new T.BoxGeometry(.85, .045, .05), ironMat); leverArm.position.set(-.36, .16, 0); leverArm.rotation.z = -.32;
+      leverPivot.add(leverArm); g.add(leverPivot);
+      const hosePts = [new T.Vector3(.38, .58, 0), new T.Vector3(.75, .20, .35), new T.Vector3(1.15, .08, .85), new T.Vector3(1.55, .14, 1.32), new T.Vector3(1.75, .36, 1.62)];
+      g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(hosePts), 16, .042, 8, false), whiteCapMat));
+      const bx = 1.75, bz = 1.75;
+      const basin = new T.Mesh(new T.CylinderGeometry(.68, .50, .36, 20, 1, true), basinMat); basin.position.set(bx, .18, bz); g.add(basin);
+      const cyanPool = new T.Mesh(new T.CircleGeometry(.60, 20), cyanWaterMat); cyanPool.rotation.x = -Math.PI / 2; cyanPool.position.set(bx, .24, bz); g.add(cyanPool);
+      const stream = new T.Mesh(new T.CylinderGeometry(.032, .048, .55, 10), cyanWaterMat); stream.position.set(bx, .46, bz); g.add(stream);
+      const j1 = makeJerikan(1.0); j1.position.set(-.95, 0, .4); j1.rotation.y = .4; g.add(j1);
+      const j2 = makeJerikan(1.0); j2.position.set(-.88, 0, -.55); j2.rotation.y = -.5; g.add(j2);
+      worldProps.add(g);
+      return { x: wx, z: wz, y: wy, leverPivot, stream, pool: cyanPool };
+    })();
+
+    // 2) Far-Bank Highland Pueblo Plaza + Kiosk Awning + Blue-Lit Sanctuary Steps
+    const puebloDarkWinMat = new T.MeshStandardMaterial({ color: 0x101214, emissive: 0x001018, emissiveIntensity: .2 });
+    const puebloGlowWinMat = new T.MeshStandardMaterial({ color: 0x006eff, emissive: 0x0048dd, emissiveIntensity: 1.35, roughness: .2 });
+    const puebloWinMeshes = [], puebloDishes = [];
+    (() => {
+      const adobe1 = new T.MeshStandardMaterial({ color: 0x9b9689, roughness: .92 });
+      const adobe2 = new T.MeshStandardMaterial({ color: 0x7b776c, roughness: .94 });
+      const vigaWood = new T.MeshStandardMaterial({ color: 0x3b3328, roughness: .88 });
+      const PuebloHouses = [
+        [-770, -20, 5.2, 3.8, 4.6, .35, true], [-768, -42, 4.8, 3.4, 4.2, -.2, false], [-782, -16, 5.8, 4.2, 4.8, .12, true],
+        [-796, -24, 6.2, 4.8, 5.2, -.45, true], [-798, -44, 5.4, 3.9, 4.6, .55, false], [-784, -48, 4.9, 3.3, 4.4, -.12, true],
+        [-764, -32, 4.6, 3.2, 4.2, .7, false], [-804, -35, 5.5, 4.0, 4.5, .25, false], [-792, -56, 5.1, 4.3, 4.6, .18, true],
+        [-772, -52, 4.4, 3.1, 4.0, -.42, false], [-808, -22, 5.6, 4.5, 4.8, .62, true], [-776, -12, 4.8, 3.4, 4.2, -.15, false],
+        [-790, -10, 4.7, 3.6, 4.1, .31, false], [-775, -60, 5.0, 3.8, 4.3, -.55, true]
+      ];
+      for (const [hx, hz, w, h, d, ry, twoStory] of PuebloHouses) {
+        const hy = groundAt(hx, hz);
+        const grp = new T.Group(); grp.position.set(hx, hy, hz); grp.rotation.y = ry;
+        const body = new T.Mesh(new T.BoxGeometry(w, h, d), twoStory ? adobe1 : adobe2);
+        body.position.y = h * .5 - .2; grp.add(body);
+        for (let i = -1; i <= 1; i++) {
+          const vig = new T.Mesh(new T.CylinderGeometry(.09, .09, d + .9, 6), vigaWood);
+          vig.rotation.x = Math.PI / 2; vig.position.set(i * w * .28, h - .65, 0); grp.add(vig);
+        }
+        if (twoStory) {
+          const top = new T.Mesh(new T.BoxGeometry(w * .62, h * .68, d * .64), adobe2);
+          top.position.set(-.3, h + h * .34 - .25, .2); grp.add(top);
+          const pole = new T.Mesh(new T.CylinderGeometry(.04, .05, 1.4, 6), antennaMat);
+          pole.position.set(.4, h + h * .68 + .4, -.3); grp.add(pole);
+          const orb = new T.Mesh(new T.SphereGeometry(.14, 10, 8), puebloDarkWinMat);
+          orb.position.set(.4, h + h * .68 + 1.15, -.3); grp.add(orb);
+          puebloDishes.push(orb);
+        }
+        for (const sgn of [-1, 1]) {
+          const win = new T.Mesh(new T.BoxGeometry(.78, .92, .12), puebloDarkWinMat);
+          win.position.set(sgn * w * .24, h * .48, d * .5 + .03); grp.add(win); puebloWinMeshes.push(win);
+        }
+        const door = new T.Mesh(new T.BoxGeometry(1.1, 1.9, .14), puebloDarkWinMat);
+        door.position.set(0, .95, d * .5 + .03); grp.add(door); puebloWinMeshes.push(door);
+        worldProps.add(grp);
+      }
+
+      // Sanctuary Steps & Blue-Lit Door on Far-Bank Terrace
+      const sx = -812, sz = -34, sy = groundAt(sx, sz);
+      const dg = new T.Group(); dg.position.set(sx, sy, sz); dg.rotation.y = Math.PI * .5;
+      const stMat = new T.MeshStandardMaterial({ color: 0x3b3b3c, roughness: .92 });
+      for (let i = 0; i < 8; i++) {
+        const st = new T.Mesh(new T.BoxGeometry(3.4, .28, .75), stMat); st.position.set(0, .14 + i * .26, 3.6 - i * .58); dg.add(st);
+      }
+      const lintel = new T.Mesh(new T.BoxGeometry(4.2, .9, 1.4), stMat); lintel.position.set(0, 5.4, -.5); dg.add(lintel);
+      for (const s of [-1.7, 1.7]) { const c = new T.Mesh(new T.BoxGeometry(.85, 5.2, 1.3), stMat); c.position.set(s, 2.6, -.5); dg.add(c); }
+      const bdoor = new T.Mesh(new T.BoxGeometry(2.5, 4.4, .28), beaconCyanMat); bdoor.position.set(0, 2.5, -.5); dg.add(bdoor);
+      worldProps.add(dg);
+
+      // Kiosk Awning at Cottonwood Oxbow (-514, 90)
+      const kx = -514, kz = 90, ky = groundAt(kx, kz);
+      const kg = new T.Group(); kg.position.set(kx, ky, kz); kg.rotation.y = 1.1;
+      const stall = new T.Mesh(new T.BoxGeometry(3.8, 2.4, 2.4), adobe2); stall.position.y = 1.15; kg.add(stall);
+      const awning = new T.Mesh(new T.BoxGeometry(4.4, .12, 2.9), adobe1); awning.position.set(0, 2.52, .85); awning.rotation.x = .24; kg.add(awning);
+      const deck = new T.Mesh(new T.BoxGeometry(1.0, .34, .45), beaconCyanMat); deck.position.set(0, 1.22, 1.18); kg.add(deck);
+      for (const [cx, cz, ry] of [[-1.5, 1.4, .2], [1.4, 1.3, -.4]]) {
+        const cj = makeJerikan(.92); cj.position.set(cx, 0, cz); cj.rotation.y = ry; kg.add(cj);
+      }
+      worldProps.add(kg);
+    })();
+
+    /* ---------- 2086 Night Post Production Sets, Moving-Picture Projector & Ahiya Highlands ---------- */
+    const cinemaCanvas = document.createElement("canvas");
+    cinemaCanvas.width = 512; cinemaCanvas.height = 384;
+    const cinCtx = cinemaCanvas.getContext("2d");
+    const cinemaTex = new T.CanvasTexture(cinemaCanvas);
+    cinemaTex.colorSpace = T.NoColorSpace;
+    const cinemaMat = new T.MeshStandardMaterial({
+      map: cinemaTex, emissiveMap: cinemaTex, emissive: 0xd8f8ff, emissiveIntensity: .92,
+      roughness: .65, side: T.DoubleSide
+    });
+    const npSpinFans = [];
+    let oxbowSheetFront = null, oxbowSheetRear = null, oxbowWindBase = null, oxbowScreenSpot = null;
+    let npScreeningMode = null, npScreenTimer = 0, npLastCinFrame = -1;
+
+    function draw2086CinemaFrame(tSec, activeReel) {
+      const W = 512, H = 384, c = cinCtx;
+      c.fillStyle = "#0e1516";
+      c.fillRect(0, 0, W, H);
+      // Sprocket frame perforations left & right
+      c.fillStyle = "#f2ede2";
+      for (let py = 12; py < H; py += 28) {
+        c.fillRect(10, py, 14, 16);
+        c.fillRect(W - 24, py, 14, 16);
+      }
+      const gx = 34, gy = 18, gw = W - 68, gh = H - 36;
+      c.save();
+      c.beginPath(); c.rect(gx, gy, gw, gh); c.clip();
+      const reel = activeReel || "WF-08";
+      if (reel === "WF-08") {
+        // The Wedding at Silver Ford: ferry docking, bride turns toward 8x10 lens, dropped shoe into river ripple
+        const grd = c.createLinearGradient(0, gy, 0, gy + gh);
+        grd.addColorStop(0, "#3a4548"); grd.addColorStop(.52, "#19292e"); grd.addColorStop(1, "#09181e");
+        c.fillStyle = grd; c.fillRect(gx, gy, gw, gh);
+        // Glinting river ripples
+        c.strokeStyle = "rgba(107, 232, 220, 0.52)";
+        for (let r = 0; r < 9; r++) {
+          const ry = gy + gh * .56 + r * 14;
+          const xOff = Math.sin(tSec * 2.2 + r) * 24;
+          c.lineWidth = r % 2 === 0 ? 2 : 1;
+          c.beginPath(); c.moveTo(gx + 20 + xOff, ry); c.lineTo(gx + gw - 30 + xOff, ry); c.stroke();
+        }
+        // Timber ferry bow sliding into dock
+        const cycle = (tSec % 10);
+        const ferryX = gx + Math.min(185, 65 + cycle * 26);
+        c.fillStyle = "#222b2e";
+        c.fillRect(ferryX - 85, gy + gh * .46, 170, 32);
+        // Raised wet ferry rope line
+        c.strokeStyle = "#4de6dc"; c.lineWidth = 2.5;
+        c.beginPath(); c.moveTo(gx, gy + gh * .45); c.quadraticCurveTo(gx + gw * .5, gy + gh * .54, gx + gw, gy + gh * .44); c.stroke();
+        // Bride silhouette in white linen facing camera lens
+        c.fillStyle = "#f2ede2";
+        c.beginPath(); c.arc(ferryX, gy + gh * .33, 14, 0, TAU); c.fill();
+        c.fillRect(ferryX - 18, gy + gh * .37, 36, 48);
+        // Falling shoe splash at t % 10 in [5..8]
+        if (cycle > 4.8 && cycle < 7.6) {
+          const drop = (cycle - 4.8) / 2.2;
+          c.fillStyle = "#eab965";
+          c.fillRect(ferryX + 26, gy + gh * .48 + drop * 45, 11, 7);
+          c.strokeStyle = "#6be8dc"; c.lineWidth = 2;
+          c.beginPath(); c.ellipse(ferryX + 31, gy + gh * .66, 8 + drop * 28, 3 + drop * 8, 0, 0, TAU); c.stroke();
+        }
+        // Final 8 seconds cut to black after camera set down
+        if (cycle >= 8.2) {
+          c.fillStyle = "rgba(8, 12, 13, 0.94)";
+          c.fillRect(gx, gy, gw, gh);
+          c.fillStyle = "#6be8dc"; c.font = "600 15px ui-monospace, monospace";
+          c.fillText("TAIL +08.0s · AUDIO ONLY ON FAMILY PHONE", gx + 36, gy + gh * .5);
+        }
+      } else if (reel === "AR-03") {
+        c.fillStyle = "#162022"; c.fillRect(gx, gy, gw, gh);
+        // Musicians + scraping chair waveforms
+        c.strokeStyle = "#6be8dc"; c.lineWidth = 2;
+        c.beginPath();
+        for (let x = 0; x < gw; x += 6) {
+          const amp = 22 * Math.sin(x * .06 + tSec * 6.5) * Math.cos(x * .02 - tSec * 2.1);
+          if (x === 0) c.moveTo(gx + x, gy + gh * .5 + amp); else c.lineTo(gx + x, gy + gh * .5 + amp);
+        }
+        c.stroke();
+        c.fillStyle = "#f2ede2"; c.font = "600 14px ui-monospace, monospace";
+        c.fillText("AR–03 · THREE REHEARSAL TAKES · AUNT ANSWERS", gx + 28, gy + gh - 24);
+      } else {
+        // REC PPC monitor feed / Ahiya night trail
+        c.fillStyle = "#0b1416"; c.fillRect(gx, gy, gw, gh);
+        c.strokeStyle = "rgba(77, 230, 220, 0.85)"; c.lineWidth = 2;
+        c.strokeRect(gx + 24, gy + 24, gw - 48, gh - 48);
+        c.fillStyle = "#4de6dc";
+        c.beginPath(); c.arc(gx + gw * .5 + Math.sin(tSec * .9) * 58, gy + gh * .52, 18 + Math.sin(tSec * 4) * 3, 0, TAU); c.fill();
+        c.fillStyle = "#f2ede2"; c.font = "700 13px ui-monospace, monospace";
+        c.fillText("REC PPC · 01:01:25:00 · AHIYA RELAY", gx + 36, gy + 46);
+      }
+      // Authentic film grain hairline
+      c.fillStyle = "rgba(242, 237, 226, 0.14)";
+      c.fillRect(gx + ((Math.sin(tSec * 19.3) * .5 + .5) * gw), gy, 1, gh);
+      c.restore();
+      cinemaTex.needsUpdate = true;
+    }
+    draw2086CinemaFrame(0, "WF-08");
+
+    function make2086Figure(coatHex, hasPhone = false, hasCup = false, heightScl = 1.0) {
+      const g = new T.Group();
+      const coatMat = new T.MeshStandardMaterial({ color: coatHex, roughness: .84 });
+      const headMat = new T.MeshStandardMaterial({ color: 0x3b2a22, roughness: .75 });
+      const body = new T.Mesh(new T.CylinderGeometry(.17, .25, .95, 10), coatMat); body.position.y = .72; g.add(body);
+      const legs = new T.Mesh(new T.CylinderGeometry(.13, .11, .45, 8), leatherMat); legs.position.y = .22; g.add(legs);
+      const head = new T.Mesh(new T.SphereGeometry(.14, 12, 10), headMat); head.position.y = 1.34; g.add(head);
+      if (hasPhone) {
+        const ph = new T.Mesh(new T.BoxGeometry(.09, .14, .02), beaconCyanMat);
+        ph.position.set(0, 1.02, .26); ph.rotation.x = -.52; g.add(ph);
+      }
+      if (hasCup) {
+        const cup = new T.Mesh(new T.CylinderGeometry(.055, .042, .11, 10), whiteCapMat);
+        cup.position.set(0, .94, .22); g.add(cup);
+      }
+      g.scale.setScalar(heightScl);
+      return g;
+    }
+
+    (() => {
+      const woodMat = new T.MeshStandardMaterial({ color: 0x5d442b, roughness: .88 });
+      const stoneMat = new T.MeshStandardMaterial({ color: 0x2d3234, roughness: .92 });
+      const linenMat = new T.MeshStandardMaterial({ color: 0xeee9dd, roughness: .94, side: T.DoubleSide });
+      const glassWireMat = new T.MeshStandardMaterial({ color: 0xc2e6df, emissive: 0x32625b, emissiveIntensity: .65, transparent: true, opacity: .62, roughness: .22 });
+      const officeWarmMat = new T.MeshStandardMaterial({ color: 0xf7e1b6, emissive: 0xe3b972, emissiveIntensity: .88, roughness: .4 });
+
+      // 1) Overlook Wellhead 2086 Props: Imani & June (small with cup) + BOTH WAYS plaque
+      const oy = groundAt(-22.2, -6.2);
+      const imani = make2086Figure(0x283230, false, false, 1.02); imani.position.set(-20.4, oy, -7.2); imani.rotation.y = .9; worldProps.add(imani);
+      const june = make2086Figure(0x40443e, false, true, .76); june.position.set(-19.5, oy, -6.0); june.rotation.y = .5; worldProps.add(june);
+
+      // 2) Silver Ford: Ferry Posts, Taut Wet Ferry Rope, Etta & Ferrymen
+      const fy = groundAt(-248, -55);
+      const etta = make2086Figure(0x3a322c, false, false, .98); etta.position.set(-244.5, fy, -53.2); etta.rotation.y = -.7; worldProps.add(etta);
+      const ferry1 = make2086Figure(0x2b2d30, false, false, 1.0); ferry1.position.set(-252, driveSurfaceAt(-252, -52), -52); worldProps.add(ferry1);
+      const ferry2 = make2086Figure(0x2e2a26, false, false, 1.0); ferry2.position.set(-241, driveSurfaceAt(-241, -60), -60); worldProps.add(ferry2);
+      const post1 = new T.Mesh(new T.CylinderGeometry(.14, .18, 3.2, 8), woodMat); post1.position.set(-255, driveSurfaceAt(-255, -54) + 1.5, -54); worldProps.add(post1);
+      const post2 = new T.Mesh(new T.CylinderGeometry(.14, .18, 3.2, 8), woodMat); post2.position.set(-236, driveSurfaceAt(-236, -64) + 1.5, -64); worldProps.add(post2);
+      const ropeCrv = new T.CatmullRomCurve3([
+        new T.Vector3(-255, post1.position.y + 1.1, -54),
+        new T.Vector3(-245.5, Math.min(post1.position.y, post2.position.y) + .5, -59),
+        new T.Vector3(-236, post2.position.y + 1.1, -64)
+      ]);
+      worldProps.add(new T.Mesh(new T.TubeGeometry(ropeCrv, 20, .035, 6, false), cyanWaterMat));
+
+      // 3) Cottonwood Oxbow Cinema Yard: Twin Billowing Linen Sheets + Root Bowl + Speaker Box + Awning Bench
+      const oxY = groundAt(-510, 96);
+      const oxGrp = new T.Group(); oxGrp.position.set(-510, oxY, 96); oxGrp.rotation.y = .45;
+      for (const sx of [-2.4, 2.4]) {
+        const pF = new T.Mesh(new T.CylinderGeometry(.07, .09, 4.4, 8), woodMat); pF.position.set(sx, 2.1, 0); oxGrp.add(pF);
+        const pB = new T.Mesh(new T.CylinderGeometry(.07, .09, 4.4, 8), woodMat); pB.position.set(sx, 2.1, -1.85); oxGrp.add(pB);
+      }
+      const shGeoF = new T.PlaneGeometry(4.5, 2.9, 8, 6);
+      oxbowWindBase = Float32Array.from(shGeoF.attributes.position.array);
+      oxbowSheetFront = new T.Mesh(shGeoF, cinemaMat); oxbowSheetFront.position.set(0, 2.45, 0); oxGrp.add(oxbowSheetFront);
+      oxbowSheetRear = new T.Mesh(new T.PlaneGeometry(4.5, 2.9, 4, 4), cinemaMat); oxbowSheetRear.position.set(0, 2.45, -1.85); oxGrp.add(oxbowSheetRear);
+      const spkBox = new T.Mesh(new T.BoxGeometry(.65, .48, .44), woodMat); spkBox.position.set(1.3, .24, 1.4); oxGrp.add(spkBox);
+      const rootBowl = new T.Mesh(new T.CylinderGeometry(.55, .42, .28, 16, 1, true), linenMat); rootBowl.position.set(-2.9, .14, 1.1); oxGrp.add(rootBowl);
+      const rootPool = new T.Mesh(new T.CircleGeometry(.50, 16), cyanWaterMat); rootPool.rotation.x = -Math.PI / 2; rootPool.position.set(-2.9, .20, 1.1); oxGrp.add(rootPool);
+      const chair = new T.Mesh(new T.BoxGeometry(.55, .48, .55), woodMat); chair.position.set(-1.1, .24, 2.5); oxGrp.add(chair);
+      const nellBin = new T.Mesh(new T.BoxGeometry(.9, .75, .65), woodMat); nellBin.position.set(2.8, .38, 2.0); oxGrp.add(nellBin);
+      worldProps.add(oxGrp);
+
+      // 4) Highland Pueblo Registry House & Fenced Cooling Yard (Three Dividing Hoses + Wire-Glass Window + Witness Chair)
+      const py = groundAt(-776, -30);
+      const pGrp = new T.Group(); pGrp.position.set(-776, py, -30); pGrp.rotation.y = .3;
+      const coolRack = new T.Mesh(new T.BoxGeometry(4.6, 2.6, 3.2), stoneMat); coolRack.position.set(-3.2, 1.3, -2.5); pGrp.add(coolRack);
+      for (const fx of [-4.2, -2.2]) {
+        const fan = new T.Mesh(new T.BoxGeometry(.95, .14, .18), beaconCyanMat);
+        fan.position.set(fx, 2.1, -.85); pGrp.add(fan); npSpinFans.push(fan);
+      }
+      const regHouse = new T.Mesh(new T.BoxGeometry(3.8, 2.9, 3.0), stoneMat); regHouse.position.set(2.4, 1.45, -2.2); pGrp.add(regHouse);
+      const regGlow = new T.Mesh(new T.BoxGeometry(2.1, 1.2, .12), officeWarmMat); regGlow.position.set(2.4, 1.55, -.68); pGrp.add(regGlow);
+      const regGlass = new T.Mesh(new T.PlaneGeometry(2.2, 1.3), glassWireMat); regGlass.position.set(2.4, 1.55, -.60); pGrp.add(regGlass);
+      const witnessChair = new T.Mesh(new T.BoxGeometry(.56, .52, .56), woodMat); witnessChair.position.set(1.2, .26, .45); pGrp.add(witnessChair);
+      // Three visible dividing hoses from the intake manifold
+      const hMatCool = cyanWaterMat;
+      for (const [hx, hz, rad] of [[-3.2, -1.2, .08], [-.5, 2.4, .04], [2.4, 3.1, .045]]) {
+        const hCrv = new T.CatmullRomCurve3([new T.Vector3(0, .35, 1.0), new T.Vector3(hx * .5, .12, hz * .5), new T.Vector3(hx, .14, hz)]);
+        pGrp.add(new T.Mesh(new T.TubeGeometry(hCrv, 14, rad, 6, false), hMatCool));
+      }
+      worldProps.add(pGrp);
+
+      // 5) Whale Fluke Wreck Comedy Sheet & Two Chairs + Half Dome East Apron Seep Pump + Teton High Cairn
+      const fY = groundAt(-1070, -28);
+      const fSheet = new T.Mesh(new T.PlaneGeometry(4.2, 2.6), cinemaMat);
+      fSheet.position.set(-1070, fY + 2.3, -28); fSheet.rotation.y = .45; worldProps.add(fSheet);
+      for (const s of [-1.2, 1.2]) {
+        const ch = new T.Mesh(new T.BoxGeometry(.55, .50, .55), woodMat);
+        ch.position.set(-1068 + s, fY + .25, -25.5); worldProps.add(ch);
+      }
+      const apY = groundAt(435, 34);
+      const seepPump = new T.Mesh(new T.CylinderGeometry(.12, .15, 1.15, 10), stoneMat);
+      seepPump.position.set(438, apY + .55, 34); worldProps.add(seepPump);
+      const tcY = groundAt(mw.tetonRange.x, mw.tetonRange.z);
+      const tcCairn = new T.Mesh(new T.ConeGeometry(.85, 1.65, 7), stoneMat);
+      tcCairn.position.set(mw.tetonRange.x, tcY + .8, mw.tetonRange.z); worldProps.add(tcCairn);
+      const tcBox = new T.Mesh(new T.BoxGeometry(.55, .36, .42), beaconCyanMat);
+      tcBox.position.set(mw.tetonRange.x + .9, tcY + .18, mw.tetonRange.z + .5); worldProps.add(tcBox);
+
+      // 6) AHIYA HIGHLANDS CIRCUIT (Basalt Pump, Cross-Beacon Watch, Hill Archive, Daylight Compound)
+      // 6a) Basalt Pump (-1460, 760)
+      const by = groundAt(-1460, 760);
+      const bGrp = new T.Group(); bGrp.position.set(-1460, by, 760);
+      for (let i = 0; i < 6; i++) {
+        const col = new T.Mesh(new T.BoxGeometry(.9, 1.2 + (i % 3) * .6, .9), stoneMat);
+        col.position.set(Math.cos(i * 1.05) * 3.8, .55, Math.sin(i * 1.05) * 3.8); bGrp.add(col);
+      }
+      const bPump = new T.Mesh(new T.CylinderGeometry(.13, .17, 1.25, 10), stoneMat); bPump.position.set(0, .62, 0); bGrp.add(bPump);
+      const bThread = new T.Mesh(new T.TorusGeometry(.16, .018, 6, 16), new T.MeshBasicMaterial({ color: 0xff5a5a }));
+      bThread.rotation.x = Math.PI / 2; bThread.position.set(0, .82, 0); bGrp.add(bThread);
+      const bTrough = new T.Mesh(new T.BoxGeometry(2.1, .34, .85), stoneMat); bTrough.position.set(1.6, .18, .6); bGrp.add(bTrough);
+      const bWater = new T.Mesh(new T.PlaneGeometry(1.85, .68), cyanWaterMat); bWater.rotation.x = -Math.PI / 2; bWater.position.set(1.6, .37, .6); bGrp.add(bWater);
+      for (const [fx, fz] of [[-1.9, 1.8], [-2.7, 1.2], [-1.5, 2.5]]) {
+        const youth = make2086Figure(0x1b2126, true, false, .88);
+        youth.position.set(fx, 0, fz); youth.rotation.y = .7; bGrp.add(youth);
+      }
+      worldProps.add(bGrp);
+
+      // 6b) Cross-Beacon Watch (-1610, 590) - Congregation High Wall + White Sky Beam + Aunt
+      const bcy = groundAt(-1610, 590);
+      const bcGrp = new T.Group(); bcGrp.position.set(-1610, bcy, 590);
+      const congWall = new T.Mesh(new T.BoxGeometry(9.0, 4.6, 1.2), stoneMat); congWall.position.y = 2.2; bcGrp.add(congWall);
+      const crossMast = new T.Mesh(new T.CylinderGeometry(.07, .09, 4.5, 8), antennaMat); crossMast.position.set(0, 6.2, 0); bcGrp.add(crossMast);
+      const crossBar = new T.Mesh(new T.BoxGeometry(2.4, .12, .12), antennaMat); crossBar.position.set(0, 7.3, 0); bcGrp.add(crossBar);
+      const whiteBeam = new T.Mesh(new T.CylinderGeometry(1.1, .28, 56, 12, 1, true),
+        new T.MeshBasicMaterial({ color: 0xf6f9ff, transparent: true, opacity: .34, side: T.DoubleSide, depthWrite: false }));
+      whiteBeam.position.set(0, 35, 0); bcGrp.add(whiteBeam);
+      const aunt = make2086Figure(0x3a2e28, false, false, .96); aunt.position.set(-2.2, 0, 2.0); bcGrp.add(aunt);
+      const auntStool = new T.Mesh(new T.CylinderGeometry(.25, .28, .44, 10), woodMat); auntStool.position.set(-2.9, .22, 2.0); bcGrp.add(auntStool);
+      worldProps.add(bcGrp);
+
+      // 6c) Hill Archive (-1765, 540) - Cooling Fans + Staffed REC PPC Window + 9 L Exchanger
+      const hy = groundAt(-1765, 540);
+      const hGrp = new T.Group(); hGrp.position.set(-1765, hy, 540);
+      const archBldg = new T.Mesh(new T.BoxGeometry(7.6, 3.8, 5.2), stoneMat); archBldg.position.y = 1.85; hGrp.add(archBldg);
+      const archWinGlow = new T.Mesh(new T.PlaneGeometry(4.4, 1.9), officeWarmMat); archWinGlow.position.set(0, 1.9, 2.62); hGrp.add(archWinGlow);
+      const archMon = new T.Mesh(new T.PlaneGeometry(2.1, 1.25), cinemaMat); archMon.position.set(0, 1.95, 2.68); hGrp.add(archMon);
+      const op1 = make2086Figure(0x1f282c, false, false, .95); op1.position.set(-1.3, 0, 3.2); op1.rotation.y = 2.8; hGrp.add(op1);
+      const op2 = make2086Figure(0x272a2e, false, false, .94); op2.position.set(1.4, 0, 3.2); op2.rotation.y = -2.8; hGrp.add(op2);
+      for (const fx of [-2.4, 2.4]) {
+        const hFan = new T.Mesh(new T.BoxGeometry(1.1, .16, .20), beaconCyanMat);
+        hFan.position.set(fx, 3.2, 2.66); hGrp.add(hFan); npSpinFans.push(hFan);
+      }
+      worldProps.add(hGrp);
+
+      // 6d) Daylight Compound (-1680, 775) - Terraced Courtyard + Pegged Sheet + Singer Stool + Clay Tap
+      const cy = groundAt(-1680, 775);
+      const cGrp = new T.Group(); cGrp.position.set(-1680, cy, 775);
+      for (const [wx, wz, ww, wd] of [[-4.8, 0, .5, 8], [4.8, 0, .5, 8], [0, -4.2, 9.6, .5]]) {
+        const wM = new T.Mesh(new T.BoxGeometry(ww, 2.4, wd), woodMat); wM.position.set(wx, 1.2, wz); cGrp.add(wM);
+      }
+      const cSheet = new T.Mesh(new T.PlaneGeometry(4.6, 2.7), cinemaMat); cSheet.position.set(0, 2.2, -3.7); cGrp.add(cSheet);
+      const cTap = new T.Mesh(new T.CylinderGeometry(.42, .32, .25, 14), linenMat); cTap.position.set(2.2, .12, 1.5); cGrp.add(cTap);
+      const cPool = new T.Mesh(new T.CircleGeometry(.36, 14), cyanWaterMat); cPool.rotation.x = -Math.PI / 2; cPool.position.set(2.2, .26, 1.5); cGrp.add(cPool);
+      const cStool = new T.Mesh(new T.CylinderGeometry(.26, .30, .46, 10), woodMat); cStool.position.set(-1.6, .23, -.5); cGrp.add(cStool);
+      worldProps.add(cGrp);
+    })();
+
+    // 3) 7 Cistern Relays & 72 Fillable Jerrycans across the Entire Unified World
+    function makeTerrainRing(radius, segs, mat, parentGrp) {
+      const pts = new Float32Array((segs + 1) * 3);
+      const geo = new T.BufferGeometry(); geo.setAttribute("position", new T.BufferAttribute(pts, 3));
+      const line = new T.Line(geo, mat); line.frustumCulled = false; parentGrp.add(line);
+      return { line, pts, segs, radius };
+    }
+    function updateTerrainRing(ring, cx, cz, yOff = .28) {
+      const { pts, segs, radius } = ring;
+      for (let i = 0; i <= segs; i++) {
+        const a = (i / segs) * TAU, x = cx + Math.cos(a) * radius, z = cz + Math.sin(a) * radius;
+        pts[i * 3] = x; pts[i * 3 + 1] = driveSurfaceAt(x, z) + yOff; pts[i * 3 + 2] = z;
+      }
+      ring.line.geometry.attributes.position.needsUpdate = true;
+    }
+
+    const beaconPillarGeo = new T.CylinderGeometry(.24, .58, 48, 8, 1, true);
+    const beaconPillarMat = new T.MeshBasicMaterial({ color: 0x0088ff, transparent: true, opacity: .34, side: T.DoubleSide, depthWrite: false });
+
+    const relayDefs = [
+      { id: "wellhead",   name: "Overlook Wellhead",         x: -22.2,  z: -6.2,  cans: 6,  lit: true },
+      { id: "switchback", name: "Moraine Switchback Cistern", x: -48,    z: -168,  cans: 8,  lit: false },
+      { id: "ford",       name: "Silver Ford Relay",          x: -248,   z: -55,   cans: 10, lit: false },
+      { id: "oxbow",      name: "Cottonwood Oxbow Kiosk",     x: -518,   z: 94,    cans: 12, lit: false },
+      { id: "pueblo",     name: "Highland Pueblo Plaza",      x: -780,   z: -35,   cans: 20, lit: false },
+      { id: "abyss",      name: "Whale Fluke Cistern",        x: -1072,  z: -26,   cans: 8,  lit: false },
+      { id: "halfdome",   name: "Half Dome East Apron Relay", x: 435,    z: 38,    cans: 8,  lit: false }
+    ];
+    const relays = [];
+    for (let i = 0; i < relayDefs.length; i++) {
+      const d = relayDefs[i], gy = driveSurfaceAt(d.x, d.z);
+      const grp = new T.Group(); grp.position.set(d.x, gy, d.z);
+      let poolMesh = null, beaconRing = null, arcLine = null, beaconCol = null;
+      const cans = [];
+      if (i > 0) {
+        const plinth = new T.Mesh(new T.CylinderGeometry(4.15, 4.95, 3.2, 24), midRockMat);
+        plinth.position.y = -1.56; grp.add(plinth);
+        const wall = new T.Mesh(new T.CylinderGeometry(1.75, 1.98, .58, 22, 1, true), midRockMat); wall.position.y = .30; grp.add(wall);
+        const base = new T.Mesh(new T.CircleGeometry(1.75, 22), dryWaterMat); base.rotation.x = -Math.PI / 2; base.position.y = .06; grp.add(base);
+        poolMesh = new T.Mesh(new T.CircleGeometry(1.66, 22), d.lit ? cyanWaterMat : dryWaterMat);
+        poolMesh.rotation.x = -Math.PI / 2; poolMesh.position.y = d.lit ? .44 : .08; grp.add(poolMesh);
+        const mast = new T.Mesh(new T.CylinderGeometry(.055, .075, 4.4, 8), antennaMat); mast.position.set(1.8, 2.1, 0); grp.add(mast);
+        beaconRing = new T.Mesh(new T.TorusGeometry(.56, .07, 8, 24), d.lit ? beaconCyanMat : dryWaterMat);
+        beaconRing.rotation.x = Math.PI / 2; beaconRing.position.set(1.8, 4.3, 0); grp.add(beaconRing);
+        beaconCol = new T.Mesh(beaconPillarGeo, beaconPillarMat);
+        beaconCol.position.set(0, 24, 0); beaconCol.visible = !d.lit; grp.add(beaconCol);
+      }
+      // Ring & tiered racks of Fillable Translucent Jerrycans seated cleanly on depot terrace
+      for (let c = 0; c < d.cans; c++) {
+        const ringIdx = c < 10 ? 0 : 1, ringCount = Math.min(10, d.cans - ringIdx * 10);
+        const ang = ((c - ringIdx * 10) / Math.max(1, ringCount)) * TAU + ringIdx * .3;
+        const rad = i === 0 ? 2.1 : (ringIdx === 0 ? 2.55 : 3.45);
+        const jx = Math.cos(ang) * rad, jz = Math.sin(ang) * rad;
+        const jy = i === 0 ? (driveSurfaceAt(d.x + jx, d.z + jz) - gy) : .05;
+        const jc = makeFillableJerikan(1.05, d.lit ? 1 : 0);
+        jc.position.set(jx, jy, jz); jc.rotation.y = -ang + Math.PI * .5;
+        grp.add(jc); cans.push(jc);
+      }
+      worldProps.add(grp);
+      const covRing = makeTerrainRing(d.id === "pueblo" ? 38 : 28, 48, relayRingMat, worldProps);
+      updateTerrainRing(covRing, d.x, d.z, .25);
+      covRing.line.visible = d.lit;
+      if (i > 0) {
+        const prev = i === 6 ? relayDefs[0] : relayDefs[i - 1], py = driveSurfaceAt(prev.x, prev.z);
+        const curve = new T.CatmullRomCurve3([
+          new T.Vector3(prev.x, py + 4.2, prev.z),
+          new T.Vector3((prev.x + d.x) * .5, Math.max(py, gy) + 32, (prev.z + d.z) * .5),
+          new T.Vector3(d.x, gy + 4.2, d.z)
+        ]);
+        arcLine = new T.Mesh(new T.TubeGeometry(curve, 24, .11, 6, false), beaconCyanMat);
+        arcLine.visible = d.lit; worldProps.add(arcLine);
+      }
+      relays.push({ ...d, y: gy, group: grp, poolMesh, beaconRing, beaconCol, covRing, arcLine, cans });
+    }
+
+    // 4) 10 Kelp-Film Forest Groves with Actual Filmstrip Fronds & Hanging 8x10 Contact Banners
+    const forestGroveDefs = [
+      { id: 0, region: "tetons", name: "Overlook Rim Film Grove",       x: -34,   z: -26,  minRelAlt: 15,  trees: 4, unlocked: true },
+      { id: 1, region: "tetons", name: "Bluff Switchback Kelp Stand",   x: -64,   z: -146, minRelAlt: 42,  trees: 5, unlocked: false },
+      { id: 2, region: "tetons", name: "Moraine Bench Ribbon Wood",     x: -150,  z: -84,  minRelAlt: 68,  trees: 5, unlocked: false },
+      { id: 3, region: "tetons", name: "Silver Ford Island Canopy",     x: -240,  z: -32,  minRelAlt: 88,  trees: 5, unlocked: false },
+      { id: 4, region: "tetons", name: "Cottonwood Oxbow Film Forest",  x: -494,  z: 76,   minRelAlt: 102, trees: 5, unlocked: false },
+      { id: 5, region: "tetons", name: "Cathedral Pueblo High Wood",    x: -754,  z: -18,  minRelAlt: 118, trees: 5, unlocked: false },
+      { id: 6, region: "abyss",  name: "Whale Fluke Filmstrip Cathedral", x: -1070, z: -18,  minRelAlt: 0,   trees: 7, unlocked: true },
+      { id: 7, region: "abyss",  name: "Galleon Arch Kelp Cinema",      x: -1104, z: -48,  minRelAlt: 0,   trees: 7, unlocked: true },
+      { id: 8, region: "ridge",  name: "Half Dome Cloud Notch Stand",   x: 560,   z: 12,   minRelAlt: 24,  trees: 5, unlocked: false },
+      { id: 9, region: "ridge",  name: "Half Dome East Apron Forest",   x: 435,   z: 22,   minRelAlt: 85,  trees: 5, unlocked: false }
+    ];
+    const forestGroves = [];
+    const filmTreeStipes = [], filmTreeFronds = [], filmBanners = [];
+    const stipeProtoGeo = new T.CylinderGeometry(.11, .28, 18.5, 7);
+    stipeProtoGeo.translate(0, 9.25, 0);
+    const bladeProtoGeo = new T.PlaneGeometry(1.35, 5.4, 1, 6);
+    bladeProtoGeo.translate(0, -2.7, 0);
+    const frondAwakeMat = new T.MeshStandardMaterial({ map: actualFilmTex, emissiveMap: actualFilmTex, emissive: 0xb8ecff, emissiveIntensity: .56, roughness: .40, side: T.DoubleSide });
+    const frondDormantMat = new T.MeshStandardMaterial({ map: filmTex, color: 0x3b3e42, roughness: .75, side: T.DoubleSide });
+    const bannerGeo = new T.PlaneGeometry(2.15, 10.4, 1, 5);
+    bannerGeo.translate(0, -5.2, 0);
+
+    for (let gIdx = 0; gIdx < forestGroveDefs.length; gIdx++) {
+      const def = forestGroveDefs[gIdx], gy = groundAt(def.x, def.z);
+      const grp = new T.Group(); grp.position.set(def.x, gy, def.z);
+      const meshes = [], tips = [], fronds = [], banners = [];
+      for (let t = 0; t < def.trees; t++) {
+        const a = (t / def.trees) * TAU + gIdx * .55, r = 2.6 + (t % 2) * 3.8;
+        const tx = Math.cos(a) * r, tz = Math.sin(a) * r;
+        const localY = groundAt(def.x + tx, def.z + tz) - gy;
+        const targetH = def.region === "abyss" ? 1.15 + (t % 3) * .24 : .92 + (t % 3) * .20;
+        const treeAnchor = new T.Group();
+        treeAnchor.position.set(tx, localY - .15, tz);
+        const stipe = new T.Mesh(stipeProtoGeo, strapMat);
+        treeAnchor.add(stipe);
+        // Spiral photographic filmstrip kelp fronds hanging gracefully off upper trunk
+        const fCount = def.region === "abyss" ? 12 : 8;
+        for (let f = 0; f < fCount; f++) {
+          const frac = .20 + .76 * (f / fCount);
+          const az = f * 2.39996 + t * .9;
+          const blade = new T.Mesh(bladeProtoGeo, def.unlocked ? frondAwakeMat : frondDormantMat);
+          blade.position.set(0, frac * 18.5, 0);
+          blade.rotation.set(.95 + (1 - frac) * .35, az, 0, "YXZ");
+          treeAnchor.add(blade);
+          fronds.push({ mesh: blade, az, basePitch: .95 + (1 - frac) * .35, phase: f * .65 + t });
+        }
+        // Hanging vertical 8x10 contact-print banner across viewer height
+        if (def.region === "abyss" || t % 2 === 0) {
+          const ban = new T.Mesh(bannerGeo, def.unlocked ? frondAwakeMat : frondDormantMat);
+          ban.position.set(Math.cos(a) * 1.12, 11.4, Math.sin(a) * 1.12);
+          ban.rotation.y = a + Math.PI * .35;
+          treeAnchor.add(ban);
+          banners.push(ban); filmBanners.push(ban);
+        }
+        treeAnchor.scale.setScalar(def.unlocked ? targetH : .22);
+        grp.add(treeAnchor);
+        meshes.push({ mesh: treeAnchor, phase: t * 1.1 + gIdx * .7, targetH });
+        const orb = new T.Mesh(new T.OctahedronGeometry(.42, 0), def.unlocked ? beaconCyanMat : strapMat);
+        orb.position.set(tx, localY + (def.unlocked ? targetH : .22) * 18.5 + .45, tz);
+        grp.add(orb); tips.push(orb);
+      }
+      worldProps.add(grp);
+      forestGroves.push({ ...def, y: gy, grow: def.unlocked ? 1.0 : .22, grp, meshes, tips, fronds, banners, awakeMat: frondAwakeMat, dormantMat: frondDormantMat });
+    }
+
+    // 5) Song-Zone Flow & Signal Path Conduits (Best Route Up the Ridge & Into Abyssal/Half Dome)
+    const FLOW_SEGMENTS = [
+      { id: "switchback", epochIdx: 0, zone: 4, pts: [[-22.2, -6.2], [-34, -68], [-48, -168]] },
+      { id: "ford",       epochIdx: 1, zone: 6, pts: [[-48, -168], [-150, -108], [-248, -55]] },
+      { id: "oxbow",      epochIdx: 2, zone: 7, pts: [[-248, -55], [-380, 12], [-518, 94]] },
+      { id: "pueblo",     epochIdx: 3, zone: 10, pts: [[-518, 94], [-660, 42], [-780, -35]] },
+      { id: "abyss",      epochIdx: 4, zone: 8, pts: [[-780, -35], [-940, -30], [-1072, -26]] },
+      { id: "halfdome",   epochIdx: 5, zone: 9, pts: [[-22.2, -6.2], [115, 8], [260, 22], [435, 38], [545, -16]] }
+    ];
+    const flowConduits = [], flowChevrons = [];
+    const chevGeo = new T.ConeGeometry(.38, .95, 6);
+    chevGeo.rotateX(Math.PI / 2);
+    for (const seg of FLOW_SEGMENTS) {
+      const samplePts = [];
+      for (let k = 0; k < seg.pts.length - 1; k++) {
+        const [x0, z0] = seg.pts[k], [x1, z1] = seg.pts[k + 1];
+        for (let s = 0; s < 14; s++) {
+          const u = s / 14, px = lerp(x0, x1, u), pz = lerp(z0, z1, u);
+          samplePts.push(new T.Vector3(px, driveSurfaceAt(px, pz) + .22, pz));
+        }
+      }
+      const [lx, lz] = seg.pts[seg.pts.length - 1];
+      samplePts.push(new T.Vector3(lx, driveSurfaceAt(lx, lz) + .22, lz));
+      const curve = new T.CatmullRomCurve3(samplePts);
+      const tubeMat = new T.MeshBasicMaterial({ color: 0x0080ff, transparent: true, opacity: .35 });
+      const tube = new T.Mesh(new T.TubeGeometry(curve, 56, .13, 6, false), tubeMat);
+      worldProps.add(tube);
+      const chevs = [];
+      for (let c = 0; c < 5; c++) {
+        const cm = new T.Mesh(chevGeo, beaconCyanMat.clone());
+        worldProps.add(cm); chevs.push({ mesh: cm, offset: c / 5 });
+        flowChevrons.push(cm);
+      }
+      flowConduits.push({ ...seg, curve, tube, mat: tubeMat, chevs });
+    }
+
+    // 6) Deployable 3D Mahogany & Brass 8×10 Field Camera on Tripod (KeyB / #btn-rig)
+    const fieldRigGroup = (() => {
+      const g = new T.Group(); g.visible = false;
+      const mahog = new T.MeshStandardMaterial({ color: 0x6b2f16, roughness: .55 });
+      const bellows = new T.MeshStandardMaterial({ color: 0x16181c, roughness: .85 });
+      for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * TAU;
+        addPackBar(g, [Math.cos(a) * .45, 0, Math.sin(a) * .45], [0, 1.15, 0], .024, sawWoodMat);
+      }
+      const bed = new T.Mesh(new T.BoxGeometry(.44, .06, .58), mahog); bed.position.set(0, 1.18, 0); g.add(bed);
+      const rearStd = new T.Mesh(new T.BoxGeometry(.42, .38, .05), mahog); rearStd.position.set(0, 1.38, -.20); g.add(rearStd);
+      const frontStd = new T.Mesh(new T.BoxGeometry(.34, .32, .05), mahog); frontStd.position.set(0, 1.36, .18); g.add(frontStd);
+      const bel = new T.Mesh(new T.BoxGeometry(.30, .28, .36), bellows); bel.position.set(0, 1.36, -.01); g.add(bel);
+      const lens = new T.Mesh(new T.CylinderGeometry(.085, .078, .10, 16), brassMat);
+      lens.rotation.x = Math.PI / 2; lens.position.set(0, 1.36, .24); g.add(lens);
+      const glassOrb = new T.Mesh(new T.CylinderGeometry(.068, .068, .02, 16), beaconCyanMat);
+      glassOrb.rotation.x = Math.PI / 2; glassOrb.position.set(0, 1.36, .295); g.add(glassOrb);
+      worldProps.add(g);
+      return g;
+    })();
+
+    // 7) 4 Summit Base-Jump Launch Decks across Unified World
+    const SUMMITS = [
+      {
+        id: "overlook_jump", region: "tetons", name: "Overlook Cliff Base-Jump (+162 m)",
+        x: -48.0, z: 1.35, boostY: 4.5, heading: -Math.PI * .52,
+        note: "Leap straight off Adams’s 1942 Overlook rail over the Snake River bend!"
+      },
+      {
+        id: "teton_high_jump", region: "tetons", name: "High Teton Moraine Summit (+" + Math.round(mw.bestTetonPeak.y + 18) + " m)",
+        x: mw.bestTetonPeak.x, z: mw.bestTetonPeak.z, boostY: 28,
+        heading: Math.atan2(-260 - mw.bestTetonPeak.x, -40 - mw.bestTetonPeak.z),
+        note: "High-altitude rim above the entire Jackson Hole Snake River valley."
+      },
+      {
+        id: "halfdome_jump", region: "ridge", name: "Half Dome Granite Summit (+" + Math.round(mw.bestHalfDomePeak.y + 22) + " m)",
+        x: mw.bestHalfDomePeak.x, z: mw.bestHalfDomePeak.z, boostY: 26,
+        heading: Math.atan2(545 - mw.bestHalfDomePeak.x, -8 - mw.bestHalfDomePeak.z),
+        note: "High Sierra granite shoulder gliding over the Half Dome Cloud Bridge."
+      },
+      {
+        id: "abyss_jump", region: "abyss", name: "Abyssal Whale Fluke Rim (+122 m)",
+        x: -975, z: -35, boostY: 24,
+        heading: Math.atan2(-1085 + 975, 0),
+        note: "Soar over the Whale Fluke Sanctuary, sunken galleon, and kelp-film cathedral!"
+      }
+    ];
+    for (const sm of SUMMITS) {
+      const sy = driveSurfaceAt(sm.x, sm.z);
+      const pad = new T.Group(); pad.position.set(sm.x, sy, sm.z); pad.rotation.y = sm.heading;
+      const deck = new T.Mesh(new T.BoxGeometry(3.2, .25, 6.2), sawWoodMat); deck.position.set(0, .2, 1.5); deck.rotation.x = -.14; pad.add(deck);
+      for (const sx of [-1.45, 1.45]) {
+        const b = new T.Mesh(new T.CylinderGeometry(.05, .05, 1.8, 8), antennaMat); b.position.set(sx, 1.0, 4.2); pad.add(b);
+        const orb = new T.Mesh(new T.SphereGeometry(.14, 10, 8), beaconCyanMat); orb.position.set(sx, 1.95, 4.2); pad.add(orb);
+      }
+      worldProps.add(pad);
+    }
+
+    /* Live Donkey WiFi Rings + Expanding 3D Wavefronts + Lead Rope */
+    const donkeyRings = [
+      makeTerrainRing(1.0, 48, new T.LineBasicMaterial({ color: 0x0088ff, transparent: true, opacity: .90 }), actorRoot),
+      makeTerrainRing(1.0, 56, new T.LineBasicMaterial({ color: 0x0066ff, transparent: true, opacity: .72 }), actorRoot),
+      makeTerrainRing(1.0, 64, new T.LineBasicMaterial({ color: 0x0048ee, transparent: true, opacity: .52 }), actorRoot)
+    ];
+    const waveArcs = [];
+    const waveRingPts = [];
+    for (let s = 0; s < 64; s++) { const a = (s / 64) * TAU; waveRingPts.push(Math.cos(a), 0, Math.sin(a)); }
+    const waveRingGeo = new T.BufferGeometry();
+    waveRingGeo.setAttribute("position", new T.Float32BufferAttribute(waveRingPts, 3));
+    for (let i = 0; i < 4; i++) {
+      const m = new T.LineLoop(waveRingGeo, new T.LineBasicMaterial({ color: 0x0088ff, transparent: true, opacity: .82 }));
+      actorRoot.add(m); waveArcs.push({ mesh: m, phase: i / 4 });
+    }
+
+    const ropePts = new Float32Array(13 * 3);
+    const ropeGeo = new T.BufferGeometry(); ropeGeo.setAttribute("position", new T.BufferAttribute(ropePts, 3));
+    const leadRope = new T.Line(ropeGeo, new T.LineBasicMaterial({ color: 0xcbb182, transparent: true, opacity: .85 }));
+    leadRope.frustumCulled = false; actorRoot.add(leadRope);
+
+    /* ---------- WiFi-Bounded Cyan Water Rain (Falls ONLY Where WiFi Donkey Water Reaches!) ---------- */
+    const RAIN_N = 420;
+    const rainPos = new Float32Array(RAIN_N * 6);
+    const rainX = new Float32Array(RAIN_N), rainY = new Float32Array(RAIN_N), rainZ = new Float32Array(RAIN_N), rainSpd = new Float32Array(RAIN_N);
+    const rainGeo = new T.BufferGeometry(); rainGeo.setAttribute("position", new T.BufferAttribute(rainPos, 3));
+    const rainMesh = new T.LineSegments(rainGeo, new T.LineBasicMaterial({ color: 0x006eff, transparent: true, opacity: .88 }));
+    rainMesh.frustumCulled = false;
+    actorRoot.add(rainMesh);
+
+    const activeEmitters = [];
+    function sampleWifiEmitters() {
+      activeEmitters.length = 0;
+      activeEmitters.push({ x: donkey.state.x, z: donkey.state.z, y: donkey.group.position.y + 2.2, r: state.signalRadius });
+      for (const r of relays) if (r.lit) activeEmitters.push({ x: r.x, z: r.z, y: r.y + 2.5, r: r.id === "pueblo" ? 38 : 28 });
+      for (const g of forestGroves) if (g.unlocked) activeEmitters.push({ x: g.x, z: g.z, y: g.y + 8.0, r: 26 * g.grow });
+      return activeEmitters;
+    }
+    function inWifiReach(x, z, emitters) {
+      for (let i = 0; i < emitters.length; i++) {
+        const em = emitters[i];
+        const dx = x - em.x, dz = z - em.z;
+        if (dx * dx + dz * dz <= em.r * em.r * .94) return true;
+      }
+      return false;
+    }
+    function respawnRaindrop(i, emitters) {
+      const localEms = emitters.filter((em, idx) => idx === 0 || Math.hypot(em.x - donkey.state.x, em.z - donkey.state.z) < 420);
+      const useDonkey = localEms.length <= 1 || Math.random() < .72;
+      const em = useDonkey ? localEms[0] : localEms[1 + Math.floor(Math.random() * (localEms.length - 1))];
+      const ang = Math.random() * TAU, rad = Math.sqrt(Math.random()) * em.r * .90;
+      const rx = em.x + Math.cos(ang) * rad, rz = em.z + Math.sin(ang) * rad;
+      const surf = driveSurfaceAt(rx, rz);
+      rainX[i] = rx; rainZ[i] = rz;
+      rainY[i] = Math.max(surf, em.y) + 5 + Math.random() * 26;
+      rainSpd[i] = 12 + Math.random() * 7;
+    }
+    function initRain() {
+      const em = sampleWifiEmitters();
+      for (let i = 0; i < RAIN_N; i++) {
+        respawnRaindrop(i, em);
+        const surf = driveSurfaceAt(rainX[i], rainZ[i]);
+        rainY[i] = surf + Math.random() * Math.max(12, rainY[i] - surf);
+      }
+    }
+
+    donkey.place(-26.0, -1.2, -Math.PI * .45, (x, z) => driveSurfaceAt(x, z));
+    donkey.update(.016, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, (x, z) => driveSurfaceAt(x, z));
+    donkey.state.onStep = (leg, gait) => audio.step(leg, gait);
+    state.y = driveSurfaceAt(state.x, state.z) + 1.68;
+    captureInitialFilmStripAtlas();
+
+    /* ---------- Step Wedge & HUD ---------- */
+    const wedgeEl = $("step-wedge");
+    ZONES.forEach(Z => {
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "swatch";
+      btn.style.background = Z.swatch; btn.style.color = Z.z < 5 ? "#f1eee6" : "#141512";
+      btn.textContent = ROMAN[Z.z];
+      btn.title = `Zone ${ROMAN[Z.z]} · ${Z.name} (${LOOKS[Z.look].name}) — Click focuses, double-click travels`;
+      let clickTimer = null;
+      btn.addEventListener("click", ev => {
+        if (ev.shiftKey) { teleportZone(Z.z); return; }
+        clearTimeout(clickTimer);
+        clickTimer = setTimeout(() => {
+          const d = clamp(Math.hypot(Z.x - camera.position.x, Z.pz - camera.position.z), 1.4, 900);
+          state.focusDist = d; state.focusLook = Z.look; state.focusPulse = 1.0; updateHUD();
+          toast(`Focus racked to Zone ${ROMAN[Z.z]} · ${Z.name} (${d.toFixed(1)} m)`);
+        }, 170);
+      });
+      btn.addEventListener("dblclick", () => { clearTimeout(clickTimer); teleportZone(Z.z); });
+      wedgeEl.appendChild(btn);
+    });
+
+    let fieldNotice = "", fieldNoticeUntil = 0;
+    function toast(msg, shortMessage = msg) {
+      if (state.introActive) return;
+      if (useFieldLayout()) {
+        fieldNotice = shortMessage;
+        fieldNoticeUntil = performance.now() + 3400;
+        updateFieldNotice();
+        return;
+      }
+      const t = $("toast"); t.textContent = msg; t.hidden = false;
+      clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 3400);
+    }
+    const formatMMSS = sec => { const s = Math.max(0, Math.floor(sec)); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
+    const fmtElev = v => `${v >= 0 ? "+" : ""}${v.toFixed(1)}m`;
+
+    function updateFocusKnobVisual() {
+      const k = clamp((Math.log(state.focusDist) - Math.log(1.2)) / (Math.log(900) - Math.log(1.2)), 0, 1);
+      $("focus-knob").style.setProperty("--ang", lerp(-140, 140, k).toFixed(1) + "deg");
+      $("focus-knob").setAttribute("aria-valuenow", state.focusDist.toFixed(1));
+    }
+
+    function drawRadioViz(bands12, beatPulse) {
+      const cv = $("radio-viz");
+      if (!cv) return;
+      const g = cv.getContext("2d");
+      const w = cv.width, h = cv.height;
+      g.clearRect(0, 0, w, h);
+      g.fillStyle = "rgba(6, 12, 18, 0.9)";
+      g.fillRect(0, 0, w, h);
+      const bw = Math.floor((w - 14) / 12);
+      for (let i = 0; i < 12; i++) {
+        const v = clamp(bands12[i] || .06, .06, 1.0);
+        const bh = Math.max(2, Math.round(v * (h - 4)));
+        g.fillStyle = beatPulse > .45 ? "#54ecff" : (i < 4 ? "#008cff" : "#18b4ff");
+        g.fillRect(2 + i * (bw + 1), h - 2 - bh, bw, bh);
+      }
+    }
+
+    function activeEpochInfo(curT, nowSec) {
+      const t = audioEl.paused && audioEl.currentTime === 0 ? ((nowSec * 11) % 280) : curT;
+      let idx = SONG_EPOCHS.findIndex(e => t >= e.t0 && t < e.t1);
+      if (idx < 0) idx = 0;
+      return { idx, ep: SONG_EPOCHS[idx], trackTime: t };
+    }
+
+    function updateDesktopHUD(m, fl, Z) {
+      const activeLook = state.soloLook >= 0 ? LOOKS[state.soloLook] : LOOKS[state.focusLook];
+      const rTag = state.region === "ridge" ? "YOSEMITE HALF DOME" : state.region === "abyss" ? "ABYSSAL FLUKE SANCTUARY" : "GRAND TETON";
+      $("zone-title").textContent = `Zone ${ROMAN[Z.z]} · ${currentPlaceName()}`;
+      const flight = state.glide.landing ? "LANDING" : state.donkeyOnRoof ? "WAGON FLIGHT" : "GLIDE";
+      const veh = state.gliding ? `${flight} ${Math.round(state.glide.speed)} m/s (${state.glide.vy >= 0 ? "+" : ""}${state.glide.vy.toFixed(1)} vy) · `
+                : state.drivingCart ? `CRUISER WAGON ${Math.abs(wagon.speed).toFixed(1)} m/s (ROOF BURRO) · `
+                : state.riding ? "RIDING MISTLETOE · " : "";
+      $("hud-sub").textContent = `${rTag} · ${veh}${m.label} · FOCUS ${state.focusDist.toFixed(1)} m · ${fl.name}`;
+      $("focus-dist-val").textContent = `${state.focusDist.toFixed(1)} m`;
+      $("focus-look-val").textContent = state.soloLook >= 0 ? `SOLO · ${activeLook.name}` : `FOCUS · ${activeLook.name}`;
+      $("wedge-caption").textContent = `${rTag} · Meter Z-${ROMAN[state.meteredZone]} · WiFi ${state.frameWifiPct}% · Alt ${fmtElev(state.antennaElev)} · Forest ${state.unlockedGroves}/${forestGroves.length}`;
+      $("ppc-wifi").textContent = `(((•))) ${state.signalDbm} dBm · FRAME ${state.frameWifiPct}% · ALT ${fmtElev(state.antennaElev)} · FOREST ${state.unlockedGroves}/${forestGroves.length}`;
+      if ($("finder-pct")) $("finder-pct").textContent = `IN-FRAME WIFI ${state.frameWifiPct}%`;
+      if ($("finder-alt")) $("finder-alt").textContent = `ALT ${fmtElev(state.antennaElev)} · FOREST ${state.unlockedGroves}/${forestGroves.length}`;
+      if ($("finder-bar")) $("finder-bar").style.width = `${clamp(state.frameWifiPct, 4, 100)}%`;
+      if ($("cam-frame-tag")) $("cam-frame-tag").textContent = `8×10 WIFI SURVEY · ${state.frameWifiPct}% IN FRAME · ALT ${fmtElev(state.antennaElev)}`;
+
+      // Survival Hydration, Jerrycans & Song-Zone Resonance Strip
+      const wp = $("water-pill"), wf = $("water-bar-fill"), wv = $("water-val"), ta = $("thirst-alert");
+      const wPct = Math.round(state.donkeyWater * 100);
+      if (wp && wf && wv) {
+        wf.style.width = `${wPct}%`;
+        wv.textContent = state.donkeyCollapsed ? "COLLAPSED!" : `${wPct}%`;
+        wp.classList.toggle("warn", !state.donkeyCollapsed && state.donkeyWater < .30);
+        wp.classList.toggle("dead", state.donkeyCollapsed || state.donkeyWater <= .01);
+      }
+      if (ta) ta.hidden = !state.donkeyCollapsed && state.donkeyWater >= .22;
+
+      const cp = $("cans-pill");
+      if (cp) {
+        const dirs = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"];
+        const dIdx = ((Math.round((state.nextRelayAzDeg / 45)) % 8) + 8) % 8;
+        cp.textContent = state.nextRelayDist < 9999
+          ? `CANS ${state.filledCans}/${state.totalCans} · ${state.nextRelayName.split(" ")[0]} ${Math.round(state.nextRelayDist)}m ${dirs[dIdx]}`
+          : `CANS ${state.filledCans}/${state.totalCans} · ALL LIT`;
+      }
+      const rp = $("res-pill"), ep = SONG_EPOCHS[state.songEpochIdx];
+      if (rp && ep) {
+        rp.classList.toggle("synced", state.zoneSynced);
+        rp.textContent = state.zoneSynced
+          ? `RESONANT Z-${ROMAN[state.resonantZone]} SYNCED · BOOST ON`
+          : `${ep.name.split("·")[0].trim()} -> Z-${ROMAN[state.resonantZone]} · [T] SYNC`;
+      }
+
+      if ($("tape-spatial-btn")) {
+        $("tape-spatial-btn").setAttribute("aria-pressed", String(state.spatialAudio));
+        $("tape-spatial-btn").textContent = state.spatialAudio ? "3D BURRO TX" : "CABIN";
+      }
+      if ($("tape-falloff")) {
+        $("tape-falloff").textContent = `${state.audioDistMeters.toFixed(1)}m · ${state.audioFalloffDb} dB`;
+      }
+
+      const lastCard = $("last-plate-card");
+      if (lastCard) {
+        if (state.plates.length) {
+          const lp = state.plates[state.plates.length - 1];
+          lastCard.hidden = false; $("last-plate-img").src = lp.dataUrl;
+          $("last-plate-lbl").innerHTML = `<strong>#${lp.id} · ${lp.frameWifiPct ?? 0}% WIFI</strong><span>Z-${lp.roman} · Inspect</span>`;
+        } else lastCard.hidden = true;
+      }
+
+      $("btn-cart").setAttribute("aria-pressed", String(state.drivingCart));
+      $("btn-cart").textContent = state.drivingCart ? "Exit Wagon (C)" : "Drive Wagon (C)";
+      $("btn-cart").hidden = state.gliding && state.donkeyOnRoof;
+      if ($("btn-glide")) {
+        $("btn-glide").setAttribute("aria-pressed", String(state.gliding));
+        $("btn-glide").textContent = `${glideActionLabel()} (J)`;
+      }
+      $("btn-teton-cruise").hidden = !state.glide.cruising && !canCruiseTetons();
+      $("btn-teton-cruise").textContent = state.glide.cruising ? "Stop cruise" : "Fly to Tetons";
+      $("btn-ride").setAttribute("aria-pressed", String(state.riding));
+      if ($("btn-dance")) $("btn-dance").setAttribute("aria-pressed", String(state.danceTimer > 0));
+      if ($("btn-lidar")) $("btn-lidar").setAttribute("aria-pressed", String(state.lidarOn));
+      if ($("btn-sync-zone")) $("btn-sync-zone").setAttribute("aria-pressed", String(state.zoneSynced));
+      if ($("btn-rig")) $("btn-rig").setAttribute("aria-pressed", String(state.rigDeployed));
+      $("btn-jerikan").setAttribute("aria-pressed", String(fl.jerikan === 1));
+      $("btn-ppc").setAttribute("aria-pressed", String(state.ppcOn));
+      $("ppc-hud").hidden = !state.ppcOn;
+
+      const swans = wedgeEl.querySelectorAll(".swatch"), capSet = new Set(state.plates.map(p => p.zone));
+      swans.forEach((b, idx) => {
+        b.classList.toggle("active", idx === state.meteredZone);
+        b.classList.toggle("captured", capSet.has(idx));
+        b.classList.toggle("resonant", idx === state.resonantZone);
+      });
+      updateFocusKnobVisual();
+    }
+
+    function updateHUD() {
+      const st = STOPS[state.stopIdx], fl = FILTERS[state.filterIdx];
+      if (useFieldLayout()) updateFieldHUD();
+      else updateDesktopHUD(MODES[state.modeIdx], fl, ZONES[state.currentZone]);
+      renderNpHUD();
+      const u = lookMat.uniforms;
+      u.uFocusDist.value = state.focusDist; u.uDofOctaves.value = st.oct; u.uTilt.value = state.tilt;
+      u.uStrataLock.value = st.lock; u.uRouteMode.value = state.modeIdx; u.uSoloLook.value = state.soloLook;
+      u.uFocusLook.value = state.focusLook; u.uFilter.value.set(fl.rgb[0], fl.rgb[1], fl.rgb[2]);
+      u.uJerikanFilter.value = fl.jerikan;
+      u.uResonantZone.value = state.resonantZone;
+      u.uLidarStrength.value = state.lidarStrength;
+    }
+
+    /* ---------- 2086 Night Post Pure Engine & Cross-Tab Ledger Bridge ---------- */
+    const npBundle = window.NIGHT_POST_BUNDLE;
+    const npWorld = npBundle.world;
+    const npEngine = npBundle.NightPost(npWorld);
+    const NP_STATE_KEY = "donkey-water/night-post/1";
+    const NP_STATIONS = {
+      overlook:   { x: -14.8,   z: 0.8,   yaw: Math.PI * .50, donkeyX: -26.0, donkeyZ: -1.2, donkeyH: -Math.PI * .45 },
+      switchback: { x: -40.0,   z: -157,  yaw: .63 },
+      ford:       { x: -236.5,  z: -46.5, yaw: .72 },
+      oxbow:      { x: -504.5,  z: 106.5, yaw: .48 },
+      plaza:      { x: -772.5,  z: -19.5, yaw: .32 },
+      fluke:      { x: -1064.0, z: -18.5, yaw: .56 },
+      apron:      { x: 428.0,   z: 43.0,  yaw: -.83 },
+      tetons:     { x: mw.tetonRange.x + 9, z: mw.tetonRange.z + 9, yaw: .785 },
+      basalt:     { x: -1453.0, z: 769.0, yaw: .66 },
+      beacon:     { x: -1603.0, z: 601.0, yaw: .57 },
+      hill:       { x: -1765.0, z: 552.5, yaw: .00 },
+      compound:   { x: -1679.0, z: 783.5, yaw: .09 }
+    };
+
+    let npState = (() => {
+      let st = null;
+      try {
+        const raw = JSON.parse(localStorage.getItem(NP_STATE_KEY) || "null");
+        if (raw && npEngine.validate(raw)) st = raw;
+      } catch {}
+      if (!st) st = npEngine.start();
+      if ((initCircuitParam === "ahiya" || initCircuitParam === "west") && st.active !== initCircuitParam) {
+        st = npEngine.switchRoute(st, initCircuitParam);
+      }
+      return st;
+    })();
+    let npPendingConfirm = "", npDispTab = "ledger";
+    const npCarrier = () => npEngine.carrier(npState);
+    const npCharter = () => npEngine.charter(npState);
+
+    function saveNpState() {
+      try { localStorage.setItem(NP_STATE_KEY, JSON.stringify(npState)); } catch {}
+    }
+
+    function closeScreeningCard() {
+      npScreeningMode = null;
+      if ($("np-screening-card")) $("np-screening-card").hidden = true;
+    }
+
+    function placeAtNpStation(stationId) {
+      const st = NP_STATIONS[stationId];
+      if (!st) return;
+      if (state.gliding) landGlide(false);
+      if (state.pourAnim) { pourGroup.visible = false; state.pourAnim = null; }
+      state.riding = false; state.drivingCart = false; state.donkeyOnRoof = false;
+      [state.x, state.z] = worldBoundsClamp(st.x, st.z);
+      state.y = driveSurfaceAt(state.x, state.z) + 1.68;
+      state.yaw = st.yaw; state.pitch = -.04;
+      state.region = regionAt(state.x, state.z);
+      const fwdX = -Math.sin(st.yaw), fwdZ = -Math.cos(st.yaw), rgtX = Math.cos(st.yaw), rgtZ = -Math.sin(st.yaw);
+      const dx = st.donkeyX ?? (state.x + fwdX * 5.2 + rgtX * 1.85);
+      const dz = st.donkeyZ ?? (state.z + fwdZ * 5.2 + rgtZ * 1.85);
+      const dh = st.donkeyH ?? (st.yaw - 1.15);
+      donkey.place(dx, dz, dh, (x, z) => driveSurfaceAt(x, z));
+      applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
+    }
+
+    addEventListener("storage", e => {
+      if (e.key !== NP_STATE_KEY || !e.newValue) return;
+      try {
+        const next = JSON.parse(e.newValue);
+        if (npEngine.validate(next) && next.rev >= npState.rev) {
+          npState = next;
+          renderNpHUD();
+          if ($("np-dispatch-modal") && !$("np-dispatch-modal").hidden) renderNpDispatch();
+        }
+      } catch {}
+    });
+
+    function moveToStation(stationId) {
+      const st = NP_STATIONS[stationId];
+      if (!st) return;
+      const prevPlace = npCarrier().place;
+      const targetPl = npWorld.places[stationId];
+      if (targetPl && targetPl.circuit !== npState.active) {
+        npState = npEngine.switchRoute(npState, targetPl.circuit);
+      }
+      if (npState.routes[npState.active].place !== stationId) {
+        npState = JSON.parse(JSON.stringify(npState));
+        npState.routes[npState.active].place = stationId;
+        if (!npState.routes[npState.active].visited.includes(stationId)) npState.routes[npState.active].visited.push(stationId);
+        npState.rev++;
+        saveNpState();
+      }
+      if (stationId !== prevPlace || (stationId !== "oxbow" && stationId !== "compound")) {
+        closeScreeningCard();
+      }
+      placeAtNpStation(stationId);
+      initRain(); sampleMeter(); updateHUD(); renderFrame(performance.now() * .001);
+    }
+
+    function openScreeningCard(mode, cueText) {
+      const card = $("np-screening-card");
+      if (!card) return;
+      npScreeningMode = mode;
+      npScreenTimer = .001;
+      const isWest = npState.active === "west";
+      setText("np-prog-head", isWest ? "COTTONWOOD OXBOW / PROGRAM CARD" : "DAYLIGHT COMPOUND / PROGRAM CARD");
+      setText("np-prog-reel", isWest ? "WF–08 / SILVER FORD" : "AR–03 / AHIYA NIGHT");
+      setText("np-prog-sheet", isWest ? "Wedding through the fallen shoe" : "Aunt’s live answer with root-bowl backing");
+      setText("np-prog-earphone", isWest ? "Tail, eight seconds · family listening" : "Three rehearsal takes · cousin’s entrance");
+      setText("np-prog-custody", isWest ? "Etta · return via Cottonwood Oxbow" : "Aunt · household copy on Rahel’s phone");
+      setText("np-prog-cue", cueText || npCharter().tailWords[0]);
+      card.hidden = false;
+    }
+
+    function runNpAction(actionId, confirmed = false) {
+      const opts = npEngine.options(npState);
+      const chosen = opts.find(o => o.id === actionId);
+      if (!chosen) return { ok: false, reason: "Action unavailable at this stop" };
+      if (!chosen.enabled) { toast(chosen.reason || "Cannot perform action right now"); return { ok: false, reason: chosen.reason }; }
+      if (!confirmed && (actionId === "overdraw" || actionId === "release" || actionId === "handoff")) {
+        npPendingConfirm = actionId;
+        const bar = $("np-confirm-bar");
+        if (bar) {
+          setText("np-confirm-msg", actionId === "overdraw"
+            ? "Draw below chalk? This closes the well for two handoffs."
+            : actionId === "release"
+              ? "Give entire 20 L can to yard? Wet-only copies will clear."
+              : "Close local shift and replenish rested wells?");
+          bar.hidden = false;
+          return { ok: false, confirm: true };
+        }
+      }
+      npPendingConfirm = "";
+      if ($("np-confirm-bar")) $("np-confirm-bar").hidden = true;
+      const res = npEngine.act(npState, actionId);
+      npState = res.state;
+      saveNpState();
+
+      // Trigger rich 3D/WebAudio feedback per NightPost verb
+      const verb = actionId.split(":")[0], arg = actionId.split(":")[1];
+      if (verb === "pump" || verb === "overdraw") { state.pumpFlow = 1.0; state.donkeyWater = 1.0; state.donkeyCollapsed = false; audio.pumpClank(); }
+      else if (verb === "water") { state.donkeyWater = 1.0; state.donkeyCollapsed = false; triggerDance(2.2, true); }
+      else if (verb === "screen") { openScreeningCard(npState.active === "west" ? "WF-08" : "AR-03", npCarrier().log.at(-1)?.text); audio.relayChime(true); }
+      else if (verb === "listen") {
+        openScreeningCard(npState.active === "west" ? "WF-08" : "AR-03", npCharter().tailWords[0]);
+        if (npState.active === "west") audio.playEightSecondTail(); else audio.playHarmonyRehearsal();
+      }
+      else if (verb === "aerial") {
+        for (const id of npCarrier().awake) {
+          const gIdx = Math.max(0, Number(id.slice(1)) - 1);
+          if (forestGroves[gIdx]) unlockForestGrove(forestGroves[gIdx]);
+        }
+      }
+      else if (verb === "go" && arg && NP_STATIONS[arg]) {
+        closeScreeningCard();
+        placeAtNpStation(arg);
+        initRain();
+      } else if (verb === "land" && NP_STATIONS[npCarrier().place]) {
+        closeScreeningCard();
+        moveToStation(npCarrier().place);
+      } else if (verb === "takeoff" || verb === "handoff") {
+        closeScreeningCard();
+      }
+      updateHUD();
+      if ($("np-dispatch-modal") && !$("np-dispatch-modal").hidden) renderNpDispatch();
+      toast(res.text, chosen.label);
+      return res;
+    }
+
+    function switchNpCircuit(targetKey) {
+      const nextKey = targetKey || (npState.active === "west" ? "ahiya" : "west");
+      if (nextKey === npState.active) return;
+      closeScreeningCard();
+      npState = npEngine.switchRoute(npState, nextKey);
+      saveNpState();
+      const destStop = npCarrier().place;
+      if (NP_STATIONS[destStop]) moveToStation(destStop);
+      else updateHUD();
+      if ($("np-dispatch-modal") && !$("np-dispatch-modal").hidden) renderNpDispatch();
+      toast(`Switched to ${npCharter().name} (${npCharter().carrier})`, npCharter().carrier);
+    }
+
+    function renderNpHUD() {
+      const c = npCarrier(), q = npCharter(), opts = npEngine.options(npState);
+      const pl = npWorld.places[c.place] || npWorld.places.overlook;
+      const clk = npEngine.clock(c.watch), freeL = npEngine.free(c);
+      if ($("np-route-tag")) setText("np-route-tag", `${q.name.toUpperCase()} · ${q.carrier.toUpperCase()} & ${q.animal.toUpperCase()}`);
+      if ($("np-watch-clock")) setText("np-watch-clock", `SHIFT ${c.day} · WATCH ${String(c.watch).padStart(2, "0")}/18 · ${clk} · STR ${c.strength}/6`);
+      if ($("np-switch-btn")) setText("np-switch-btn", npState.active === "west" ? "⇄ Ahiya (Rahel)" : "⇄ West (Imani)");
+      if ($("np-can-readout")) setText("np-can-readout", `${c.liters}/20 L ABOARD (${c.reserve} L CHALK · ${freeL} L FREE)`);
+      const wInfo = c.wells[c.place], wDef = npWorld.wells[c.place];
+      if ($("np-well-readout")) setText("np-well-readout", wInfo ? `WELL ${wInfo.stock}/${wDef.capacity} L (FLOOR ${wDef.floor} L${wInfo.resting ? " · RESTING" : ""})` : pl.name.toUpperCase());
+      if ($("np-can-fill")) {
+        $("np-can-fill").style.width = `${clamp((c.liters / 20) * 100, 0, 100)}%`;
+        $("np-can-fill").classList.toggle("dull", c.liters <= 0);
+      }
+      const chipsEl = $("np-cargo-chips");
+      if (chipsEl) {
+        const chips = [];
+        for (const wItem of c.wet) chips.push(`<span class="np-chip">Wet: ${wItem}</span>`);
+        for (const pItem of c.phone) chips.push(`<span class="np-chip phone">Phone: ${pItem}</span>`);
+        if (c.flags.permit) chips.push(`<span class="np-chip done">Permit</span>`);
+        if (c.flags.cooled) chips.push(`<span class="np-chip done">Cooled 9L</span>`);
+        if (c.flags.shown) chips.push(`<span class="np-chip done">Screened</span>`);
+        if (c.flags.listened) chips.push(`<span class="np-chip done">Listened</span>`);
+        if (c.flags.filed) chips.push(`<span class="np-chip done">Filed</span>`);
+        if (!chips.length) {
+          chips.push(c.liters > 0
+            ? `<span class="np-chip empty">${c.liters} L water aboard · ${freeL} L spendable above ${c.reserve} L chalk</span>`
+            : `<span class="np-chip empty">Dry saddle can · draw at marked well</span>`);
+        }
+        chipsEl.innerHTML = chips.join("");
+      }
+      const actBar = $("np-actions-bar");
+      if (actBar && !useFieldLayout()) {
+        const prio = opts.filter(o => o.enabled && o.id !== "expose" && !o.id.startsWith("go:"));
+        const navs = opts.filter(o => o.id.startsWith("go:") && o.enabled).slice(0, 3);
+        const list = [...prio.slice(0, 5), ...navs];
+        actBar.innerHTML = list.map((o, idx) =>
+          `<button type="button" class="np-act ${idx === 0 && !o.id.startsWith("go:") ? "primary" : ""}" data-np-act="${o.id}" title="${o.detail || o.label}">${o.label}</button>`
+        ).join("");
+        actBar.querySelectorAll("[data-np-act]").forEach(btn => btn.addEventListener("click", () => runNpAction(btn.dataset.npAct)));
+      }
+    }
+
+    function renderNpDispatch() {
+      const c = npCarrier(), q = npCharter(), pl = npWorld.places[c.place] || npWorld.places.overlook;
+      setText("np-disp-title", `${q.name} · ${pl.name} (Shift ${c.day} · ${npEngine.clock(c.watch)})`);
+      if ($("np-disp-img") && npBundle.art[pl.image]) $("np-disp-img").src = npBundle.art[pl.image];
+      setText("np-disp-caption", pl.caption || pl.name);
+      setText("np-disp-look", pl.look || pl.summary);
+      document.querySelectorAll("[data-np-tab]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.npTab === npDispTab)));
+      const body = $("np-disp-body");
+      if (!body) return;
+      if (npDispTab === "ledger") {
+        const L = c.ledger, sum = c.liters + L.cooling + L.tap + L.screen + L.animal + L.flight;
+        body.innerHTML = `
+          <p class="tray-note">${npEngine.target(npState)[1]}</p>
+          <table class="np-stat-table">
+            <thead><tr><th>Drawn</th><th>Aboard</th><th>Cooling</th><th>Public Tap</th><th>Grove</th><th>Animal</th><th>Flight</th></tr></thead>
+            <tbody><tr><td>${L.drawn} L</td><td>${c.liters} L</td><td>${L.cooling} L</td><td>${L.tap} L</td><td>${L.screen} L</td><td>${L.animal} L</td><td>${L.flight} L</td></tr></tbody>
+          </table>
+          <p class="tray-note">Conservation Check: ${L.drawn} L drawn == ${sum} L accounted (${npEngine.validate(npState) ? "VALID" : "MISMATCH"}). Custodian: ${q.keeper} · Record: ${q.record}.</p>
+          <div class="chip-grid">
+            ${npEngine.options(npState).filter(o => o.enabled).map(o => `<button type="button" class="chip" data-disp-act="${o.id}">${o.label}</button>`).join("")}
+            <button type="button" class="chip" id="np-cycle-watch">Advance Watch (+1)</button>
+          </div>`;
+        body.querySelectorAll("[data-disp-act]").forEach(b => b.addEventListener("click", () => runNpAction(b.dataset.dispAct)));
+        if ($("np-cycle-watch")) $("np-cycle-watch").addEventListener("click", () => {
+          npState = JSON.parse(JSON.stringify(npState));
+          const rc = npState.routes[npState.active];
+          rc.watch = (rc.watch + 2) % 18;
+          npState.rev++; saveNpState(); updateHUD(); renderNpDispatch();
+        });
+      } else if (npDispTab === "log") {
+        body.innerHTML = c.log.slice().reverse().slice(0, 12).map(e => `
+          <div class="np-log-item"><small>Shift ${e.day} · ${npEngine.clock(e.watch)} · ${npWorld.places[e.place]?.name || e.place} · ${e.verb}</small>${e.text}</div>`
+        ).join("");
+      } else if (npDispTab === "law") {
+        body.innerHTML = npWorld.law.map(([t, d]) => `<div class="np-log-item"><small>${t}</small>${d}</div>`).join("");
+      } else {
+        body.innerHTML = c.plates.length
+          ? c.plates.slice().reverse().map(p => `<div class="np-log-item"><small>Zone ${npWorld.zones[p.zone]?.zone || p.zone} · ${npWorld.places[p.place]?.name || p.place}</small>Maker: ${p.maker} · Shift ${p.day}</div>`).join("")
+          : `<p class="tray-note">No 8×10 field plates recorded on this circuit yet. Press Space or Expose 8×10.</p>`;
+      }
+    }
+
+    function openNpDispatch(open, tab) {
+      const modal = $("np-dispatch-modal");
+      if (!modal) return;
+      if (tab) npDispTab = tab;
+      modal.hidden = open === undefined ? !modal.hidden : !open;
+      if (!modal.hidden) renderNpDispatch();
+    }
+    if ($("np-dispatch-btn")) $("np-dispatch-btn").addEventListener("click", () => openNpDispatch(true));
+    if ($("field-dispatch-btn")) $("field-dispatch-btn").addEventListener("click", () => openNpDispatch(true));
+    if ($("np-disp-close")) $("np-disp-close").addEventListener("click", () => openNpDispatch(false));
+    document.querySelectorAll("[data-np-tab]").forEach(btn => btn.addEventListener("click", () => { npDispTab = btn.dataset.npTab; renderNpDispatch(); }));
+    if ($("np-switch-btn")) $("np-switch-btn").addEventListener("click", () => switchNpCircuit());
+    if ($("field-switch-btn")) $("field-switch-btn").addEventListener("click", () => switchNpCircuit());
+    if ($("np-confirm-yes")) $("np-confirm-yes").addEventListener("click", () => { if (npPendingConfirm) runNpAction(npPendingConfirm, true); });
+    if ($("np-confirm-no")) $("np-confirm-no").addEventListener("click", () => { npPendingConfirm = ""; if ($("np-confirm-bar")) $("np-confirm-bar").hidden = true; });
+    if ($("np-prog-close")) $("np-prog-close").addEventListener("click", closeScreeningCard);
+    saveNpState();
+
+    function renderTray() {
+      const tray = $("rack-tray"), tab = state.trayTab;
+      if (useFieldLayout()) {
+        state.trayTab = null;
+        tray.hidden = true;
+        return;
+      }
+      ["mode", "look", "lens", "burro"].forEach(k => $("sp-" + k).setAttribute("aria-pressed", String(tab === k)));
+      if (!tab) { tray.hidden = true; return; }
+      tray.hidden = false;
+
+      if (tab === "mode") {
+        tray.innerHTML = `
+          <div class="tray-head"><h2>Focus Pull Mode &amp; Summits</h2><button type="button" class="chip" id="tr-close">Done</button></div>
+          <p class="tray-note">${MODES[state.modeIdx].desc}</p>
+          <button type="button" class="chip wide" id="md-replay">▶ Replay Cinematic Prologue</button>
+          <div class="chip-grid">${MODES.map((m, i) => `<button type="button" class="chip wide" data-mode="${i}" aria-pressed="${state.modeIdx === i}">${m.label} — ${m.sub}</button>`).join("")}</div>
+          <div class="sec-label">Summit Base-Jump Launches (J)</div>
+          <div class="chip-grid">${SUMMITS.map((s, idx) => `<button type="button" class="chip wide" data-summit="${idx}">${s.name}</button>`).join("")}</div>
+          <div class="sec-label">Unified World Zone Vantages</div>
+          <div class="chip-grid">${ZONES.map(z => `<button type="button" class="chip" data-tp="${z.z}">Z-${ROMAN[z.z]} ${z.name}</button>`).join("")}</div>`;
+        $("md-replay").onclick = () => { state.trayTab = null; renderTray(); startPrologue(); };
+        tray.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { state.modeIdx = +b.dataset.mode; state.focusPulse = 1; renderTray(); updateHUD(); });
+        tray.querySelectorAll("[data-summit]").forEach(b => b.onclick = () => { launchSummit(+b.dataset.summit); renderTray(); });
+        tray.querySelectorAll("[data-tp]").forEach(b => b.onclick = () => teleportZone(+b.dataset.tp));
+      } else if (tab === "look") {
+        const targetName = state.soloLook >= 0 ? `SOLO FULL: ${LOOKS[state.soloLook].name}` : `AT FOCUS: ${LOOKS[state.focusLook].name}`;
+        tray.innerHTML = `
+          <div class="tray-head"><h2>Look Rack (14 Shaders)</h2><button type="button" class="chip" id="tr-close">Done</button></div>
+          <p class="tray-note">${targetName}</p>
+          <button type="button" class="chip wide" id="lk-all" aria-pressed="${state.soloLook < 0}">All Zone Modes Active (Disable Solo)</button>
+          <div class="chip-grid">${LOOKS.map((L, idx) => `<button type="button" class="chip" data-solo="${idx}" aria-pressed="${state.soloLook === idx || (state.soloLook < 0 && state.focusLook === idx)}">${L.zone >= 0 ? "Z-" + ROMAN[L.zone] + " · " : ""}${L.name}</button>`).join("")}</div>`;
+        $("lk-all").onclick = () => { state.soloLook = -1; renderTray(); updateHUD(); };
+        tray.querySelectorAll("[data-solo]").forEach(b => b.onclick = () => {
+          const idx = +b.dataset.solo; state.soloLook = state.soloLook === idx ? -1 : idx;
+          if (state.soloLook < 0) state.focusLook = idx;
+          renderTray(); updateHUD();
+        });
+      } else if (tab === "lens") {
+        tray.innerHTML = `
+          <div class="tray-head"><h2>8×10 Optical Standard</h2><button type="button" class="chip" id="tr-close">Done</button></div>
+          <div class="sec-label">Aperture Stop</div>
+          <div class="chip-grid">${STOPS.map((s, i) => `<button type="button" class="chip" data-stop="${i}" aria-pressed="${state.stopIdx === i}">${s.name}</button>`).join("")}</div>
+          <div class="sec-label">Scheimpflug Front Tilt</div>
+          <div class="chip-grid">
+            <button type="button" class="chip" data-tilt="-0.32" aria-pressed="${state.tilt < -0.1}">Near-Far Tilt (−)</button>
+            <button type="button" class="chip" data-tilt="0" aria-pressed="${Math.abs(state.tilt) < 0.05}">Level (0°)</button>
+            <button type="button" class="chip" data-tilt="0.32" aria-pressed="${state.tilt > 0.1}">Reverse Tilt (+)</button>
+          </div>
+          <div class="sec-label">Optical Filter Glass (1–6)</div>
+          <div class="chip-grid">${FILTERS.map((f, i) => `<button type="button" class="chip" data-flt="${i}" aria-pressed="${state.filterIdx === i}">${f.short}</button>`).join("")}</div>
+          <button type="button" class="chip wide" id="gg-tgl" aria-pressed="${state.groundGlass}">Ground-Glass Dark Cloth (G)</button>`;
+        tray.querySelectorAll("[data-stop]").forEach(b => b.onclick = () => { state.stopIdx = +b.dataset.stop; state.focusPulse = .8; renderTray(); updateHUD(); });
+        tray.querySelectorAll("[data-tilt]").forEach(b => b.onclick = () => { state.tilt = +b.dataset.tilt; renderTray(); updateHUD(); });
+        tray.querySelectorAll("[data-flt]").forEach(b => b.onclick = () => { state.filterIdx = +b.dataset.flt; renderTray(); updateHUD(); });
+        $("gg-tgl").onclick = () => { state.groundGlass = !state.groundGlass; document.body.classList.toggle("ground-glass", state.groundGlass); renderTray(); };
+      } else if (tab === "burro") {
+        const m = donkey.mind, ds = donkey.state;
+        const bar = (lbl, v) => `<div class="mind-bar"><span>${lbl}</span><i><em style="width:${Math.round(v * 100)}%"></em></i><b>${Math.round(v * 100)}%</b></div>`;
+        tray.innerHTML = `
+          <div class="tray-head"><h2>Wagon, Glider &amp; Mistletoe</h2><button type="button" class="chip" id="tr-close">Done</button></div>
+          <p class="tray-note">Alt ${fmtElev(state.antennaElev)} · Cans ${state.filledCans}/${state.totalCans} · Forest ${state.unlockedGroves}/${forestGroves.length} · Burro Water ${Math.round(state.donkeyWater * 100)}%.</p>
+          <div class="chip-grid">
+            <button type="button" class="chip" id="br-cart" aria-pressed="${state.drivingCart}" ${state.gliding && state.donkeyOnRoof ? "hidden" : ""}>${state.drivingCart ? "Exit Wagon (C)" : "Drive Wagon (C)"}</button>
+            <button type="button" class="chip" id="br-glide" aria-pressed="${state.gliding}">${glideActionLabel()} (J)</button>
+            <button type="button" class="chip" id="br-ride" aria-pressed="${state.riding}">${state.riding ? "Dismount (V)" : "Ride Mistletoe (V)"}</button>
+            <button type="button" class="chip" id="br-region">World Shuttle (R)</button>
+            <button type="button" class="chip" id="br-pour">Pour / Deliver (F)</button>
+            <button type="button" class="chip" id="br-pump">Water / Pump (P)</button>
+            <button type="button" class="chip" id="br-dance">Eskista Dance (K)</button>
+            <button type="button" class="chip" id="br-lidar">Lidar Flow (L)</button>
+          </div>
+          <div class="sec-label">Summit Base-Jump Drops</div>
+          <div class="chip-grid">${SUMMITS.map((s, idx) => `<button type="button" class="chip wide" data-summit="${idx}">${s.name}</button>`).join("")}</div>
+          <div class="sec-label">Hydration, Signal &amp; Burro</div>
+          ${bar("Burro Water", state.donkeyWater)}
+          ${bar("WiFi Water", state.wifiCharge)}
+          ${bar("Jerrycans", state.filledCans / state.totalCans)}
+          ${bar("Forest Unlocks", state.unlockedGroves / forestGroves.length)}
+          ${bar("Trust", m.trust)}
+          ${bar("Energy", ds.stamina)}
+          <div class="chip-grid">
+            <button type="button" class="chip" id="br-feed">Feed Oats</button>
+            <button type="button" class="chip" id="br-soothe">Soothe</button>
+            <button type="button" class="chip" id="br-bray">Bray</button>
+          </div>`;
+        $("br-cart").onclick = () => { toggleCart(); renderTray(); };
+        $("br-glide").onclick = () => { toggleGlide(); renderTray(); };
+        $("br-ride").onclick = () => { toggleRide(); renderTray(); };
+        $("br-region").onclick = () => { toggleRegion(); renderTray(); };
+        $("br-pour").onclick = () => { pourWifi(); renderTray(); };
+        $("br-pump").onclick = () => { pumpWell(); renderTray(); };
+        $("br-dance").onclick = () => { triggerDance(); renderTray(); };
+        $("br-lidar").onclick = () => { toggleLidar(); renderTray(); };
+        tray.querySelectorAll("[data-summit]").forEach(b => b.onclick = () => { launchSummit(+b.dataset.summit); renderTray(); });
+        $("br-feed").onclick = () => { donkey.feed(); toast("Mistletoe munches oats gratefully."); renderTray(); };
+        $("br-soothe").onclick = () => { donkey.soothe(); toast("A steady hand on Mistletoe’s shoulder."); renderTray(); };
+        $("br-bray").onclick = () => { donkey.bray(); toast("Mistletoe brays across the canyon."); };
+      }
+      const cls = $("tr-close"); if (cls) cls.onclick = () => { state.trayTab = null; renderTray(); };
+    }
+
+    ["mode", "look", "lens", "burro"].forEach(k => $("sp-" + k).addEventListener("click", () => { state.trayTab = state.trayTab === k ? null : k; renderTray(); }));
+    $("sp-clocks").addEventListener("click", () => {
+      toggleClocks();
+    });
+
+    /* Cassette Deck + Spatial Radio Controls */
+    const audioEl = $("jerikan-audio");
+    function toggleClocks() {
+      const on = audio.toggle();
+      $("sp-clocks").setAttribute("aria-pressed", String(on));
+      toast(on ? "Three Clocks WebAudio engaged." : "Three Clocks muted.", on ? "Clocks on" : "Clocks muted");
+      updateHUD();
+    }
+    function syncTapeUI() {
+      const playing = !audioEl.paused && !audioEl.ended;
+      $("tape-btn").setAttribute("aria-pressed", String(playing));
+      $("tape-btn").textContent = playing ? "❚❚ Pause Tape" : "▶ Play Tape";
+      document.body.classList.toggle("tape-playing", playing);
+      updateHUD();
+    }
+    for (const event of ["play", "pause", "ended", "emptied"]) audioEl.addEventListener(event, syncTapeUI);
+    audioEl.addEventListener("error", () => {
+      syncTapeUI();
+      toast("Tape unavailable. Select Play to retry.", "Tape unavailable. Retry Play.");
+    });
+    function toggleTape() {
+      audio.connectTape(audioEl);
+      if (audioEl.paused) {
+        if (audioEl.error) audioEl.load();
+        audioEl.play().catch(error => {
+          if (error.name === "AbortError") return;
+          syncTapeUI();
+          toast("Tape unavailable. Select Play to retry.", "Tape unavailable. Retry Play.");
+        });
+      } else {
+        audioEl.pause();
+      }
+    }
+    $("tape-btn").addEventListener("click", toggleTape);
+
+    function toggleSpatialAudio() {
+      state.spatialAudio = audio.setSpatialMode(!state.spatialAudio);
+      updateHUD();
+      toast(state.spatialAudio ? "3D Donkey Pack Speaker TX (distance attenuation ON)." : "Cabin Stereo Monitor (direct full volume).",
+        state.spatialAudio ? "Burro speakers" : "Cabin stereo");
+    }
+    if ($("tape-spatial-btn")) $("tape-spatial-btn").addEventListener("click", toggleSpatialAudio);
+
+    function seekTape(sec, play = true) {
+      const dur = Number.isFinite(audioEl.duration) ? audioEl.duration : 283;
+      audioEl.currentTime = clamp(sec, 0, dur - .2);
+      if (play && audioEl.paused) toggleTape();
+      updateHUD();
+    }
+    if ($("tape-scrub")) {
+      $("tape-scrub").addEventListener("click", e => {
+        const rect = $("tape-scrub").getBoundingClientRect();
+        const frac = clamp((e.clientX - rect.left) / Math.max(1, rect.width), 0, 1);
+        const dur = Number.isFinite(audioEl.duration) ? audioEl.duration : 283;
+        seekTape(frac * dur);
+      });
+    }
+
+    /* ---------- Expedition Actions: Pouring, Fillable Jerrycans, Eskista Dance, Lidar, Resonance, Rig ---------- */
+    function recomputeFilledCans() {
+      let sum = 0, total = 0;
+      for (const r of relays) {
+        total += r.cans.length;
+        for (const jc of r.cans) sum += (jc.userData.fill || 0) >= .95 ? 1 : 0;
+      }
+      state.filledCans = sum;
+      state.totalCans = total;
+    }
+
+    function finishRelayIgnition(r) {
+      if (r.lit) return;
+      r.lit = true;
+      for (const jc of r.cans) jc.userData.setFill(1);
+      recomputeFilledCans();
+      if (r.poolMesh) { r.poolMesh.material = cyanWaterMat; r.poolMesh.position.y = .42; }
+      if (r.beaconRing) r.beaconRing.material = beaconCyanMat;
+      if (r.beaconCol) r.beaconCol.visible = false;
+      if (r.covRing) r.covRing.line.visible = true;
+      if (r.arcLine) r.arcLine.visible = true;
+      state.wifiCharge = 1.0;
+      state.donkeyWater = 1.0;
+      state.donkeyCollapsed = false;
+      donkey.state.collapsed = false; donkey.state.downWant = false; donkey.state.stamina = 1.0;
+      state.litRelays = relays.filter(x => x.lit).length;
+      state.coveragePct = Math.round((state.litRelays / relays.length) * 100);
+      if (r.id === "pueblo") {
+        for (const m of puebloWinMeshes) m.material = puebloGlowWinMat;
+        for (const d of puebloDishes) d.material = beaconCyanMat;
+        audio.relayChime(true);
+        toast(`PUEBLO SANCTUARY LIT · ${r.cans.length} Jerrycans filled (${state.filledCans}/${state.totalCans})! Mistletoe dances!`);
+      } else {
+        audio.relayChime(false);
+        toast(`${r.name} filled (${r.cans.length} jerrycans · ${state.filledCans}/${state.totalCans})!`);
+      }
+      triggerDance(5.2, true);
+      updateHUD();
+    }
+
+    let interruptedRelay = null;
+    function startPourAnim(r) {
+      if (!r || r.lit || state.pourAnim) return;
+      if (state.donkeyCollapsed || state.donkeyWater <= .05) {
+        toast("Mistletoe has no water to pour! Press P to give emergency water first.", "Give Mistletoe water first.");
+        return;
+      }
+      interruptedRelay = null;
+      state.pourAnim = {
+        relay: r, t: 0, dur: 3.2, lastChime: -1,
+        fills: r.cans.map(c => c.userData.fill || 0),
+        poolMaterial: r.poolMesh?.material,
+        poolY: r.poolMesh?.position.y
+      };
+      audio.pourSplash(0);
+      toast(`Mistletoe bows at ${r.name} — pouring cyan WiFi water & filling ${r.cans.length} jerrycans!`, "Filling jerrycans");
+    }
+
+    function stopPour() {
+      const pour = state.pourAnim;
+      if (!pour) return;
+      const r = pour.relay;
+      r.cans.forEach((can, index) => can.userData.setFill(pour.fills[index]));
+      if (r.poolMesh) {
+        r.poolMesh.material = pour.poolMaterial;
+        r.poolMesh.position.y = pour.poolY;
+      }
+      pourGroup.visible = false;
+      state.pourAnim = null;
+      interruptedRelay = r;
+      recomputeFilledCans();
+      toast("Pour stopped. Tap Pour to retry.");
+      updateHUD();
+    }
+
+    function triggerDance(dur = 5.2, silentToast = false) {
+      if (state.danceTimer > 0 && !silentToast) {
+        state.danceTimer = 0;
+        toast("Dance stopped");
+        updateHUD();
+        return;
+      }
+      if (state.donkeyCollapsed) { toast("Give Mistletoe water first (P)!"); return; }
+      state.danceTimer = dur;
+      if (state.danceTimer > 0) {
+        donkey.soothe(); donkey.bray();
+        audio.relayChime(false);
+        if (!silentToast) toast("Mistletoe dances the 6/8 Cosmic Addis Eskista!", "Mistletoe dancing");
+      }
+      updateHUD();
+    }
+    if ($("btn-dance")) $("btn-dance").addEventListener("click", () => triggerDance());
+
+    function toggleLidar() {
+      state.lidarOn = !state.lidarOn;
+      state.lidarStrength = state.lidarOn ? 1.0 : 0.0;
+      updateHUD();
+      toast(state.lidarOn ? "3D USGS Lidar + Song-Zone Flow Path ON (1m/5m contours & signal guide)." : "Lidar Contours OFF.",
+        state.lidarOn ? "Lidar on" : "Lidar off");
+    }
+    if ($("btn-lidar")) $("btn-lidar").addEventListener("click", toggleLidar);
+
+    function syncResonantZone() {
+      const zIdx = state.resonantZone;
+      const Z = ZONES[clamp(zIdx, 0, 10)];
+      state.meteredZone = zIdx;
+      state.focusLook = Z.look;
+      state.zoneSynced = true;
+      state.focusPulse = 1.0;
+      audio.forestChime(zIdx);
+      updateHUD();
+      toast(`Tuned to Song Epoch ${SONG_EPOCHS[state.songEpochIdx].name} (Zone ${ROMAN[zIdx]}) — Conduit Boost ACTIVE!`, `Synced to Zone ${ROMAN[zIdx]}`);
+    }
+    if ($("btn-sync-zone")) $("btn-sync-zone").addEventListener("click", syncResonantZone);
+    if ($("res-pill")) $("res-pill").addEventListener("click", syncResonantZone);
+
+    function deployRig() {
+      state.rigDeployed = !state.rigDeployed;
+      fieldRigGroup.visible = state.rigDeployed;
+      if (state.rigDeployed) {
+        const fx = -Math.sin(state.yaw), fz = -Math.cos(state.yaw);
+        const rxOff = Math.cos(state.yaw), rzOff = -Math.sin(state.yaw);
+        const rx = state.x + fx * 3.1 + rxOff * 1.45, rz = state.z + fz * 3.1 + rzOff * 1.45;
+        fieldRigGroup.position.set(rx, driveSurfaceAt(rx, rz), rz);
+        fieldRigGroup.rotation.y = state.yaw + Math.PI - .32;
+        toast("8×10 Mahogany & Brass Field Camera set on tripod!", "8×10 rig deployed");
+      } else toast("8×10 Field Camera packed.", "8×10 rig packed");
+      updateHUD();
+    }
+    if ($("btn-rig")) $("btn-rig").addEventListener("click", deployRig);
+
+    function unlockForestGrove(g) {
+      if (g.unlocked) return;
+      g.unlocked = true;
+      for (const fr of g.fronds) fr.mesh.material = g.awakeMat;
+      for (const b of g.banners) b.material = g.awakeMat;
+      for (const tip of g.tips) tip.material = beaconCyanMat;
+      state.unlockedGroves = forestGroves.filter(x => x.unlocked).length;
+      state.unlockedTrees = forestGroves.reduce((s, x) => s + (x.unlocked ? x.trees : 0), 0);
+      audio.forestChime(g.id);
+      toast(`SIGNAL +${Math.round(state.relElev)}m UNLOCKED "${g.name}" (${state.unlockedGroves}/${forestGroves.length} Film Forest)!`,
+        `Forest unlocked · ${state.unlockedGroves}/${forestGroves.length}`);
+      updateHUD();
+    }
+
+    function checkForestUnlocks() {
+      for (const g of forestGroves) {
+        if (g.unlocked) continue;
+        const dist = Math.hypot(g.x - donkey.state.x, g.z - donkey.state.z);
+        if (state.relElev >= g.minRelAlt && dist <= state.signalRadius * 1.45) unlockForestGrove(g);
+      }
+    }
+
+    function pingSignal() {
+      state.pingTimer = 4.2; state.focusPulse = 1.0;
+      audio.relayChime(false); checkForestUnlocks();
+      toast(`High-Altitude WiFi Signal Ping! Alt ${fmtElev(state.antennaElev)} · Range ${Math.round(state.signalRadius * 1.25)} m.`,
+        `Ping · ${Math.round(state.signalRadius * 1.25)} m range`);
+    }
+
+    function findPourTarget() {
+      let closest = null, bestD = 44;
+      for (const r of relays) {
+        if (r.lit) continue;
+        const d = Math.min(Math.hypot(r.x - state.x, r.z - state.z), Math.hypot(r.x - donkey.state.x, r.z - donkey.state.z));
+        if (d < bestD) { bestD = d; closest = r; }
+      }
+      return closest;
+    }
+
+    function pourWifi() {
+      const closest = findPourTarget();
+      if (closest) startPourAnim(closest);
+      else if (Math.hypot(well.x - state.x, well.z - state.z) < 22) { pumpWell(); pingSignal(); }
+      else pingSignal();
+    }
+    $("btn-pour").addEventListener("click", pourWifi);
+
+    function pumpWell() {
+      state.pumpFlow = 1.0; state.pumpLeverPhase = .01; state.wifiCharge = 1.0;
+      state.donkeyWater = 1.0;
+      state.donkeyCollapsed = false;
+      donkey.state.collapsed = false; donkey.state.downWant = false; donkey.state.stamina = 1.0;
+      audio.pumpClank(); donkey.feed(); donkey.soothe();
+      updateHUD();
+      toast("Cyan WiFi Water fills Mistletoe & her 20L jerrycans (100% Hydrated)!", "Mistletoe hydrated · 100%");
+      if (state.trayTab === "burro") renderTray();
+    }
+    $("btn-pump").addEventListener("click", pumpWell);
+    if ($("btn-revive-water")) $("btn-revive-water").addEventListener("click", pumpWell);
+
+    function toggleCart() {
+      if (state.donkeyCollapsed && !state.drivingCart) { toast("Mistletoe collapsed from thirst — press P to give water first!"); return; }
+      if (state.gliding && state.donkeyOnRoof) { toggleGlide(); return; }
+      state.riding = false;
+      if (state.gliding) clearGlide();
+      state.drivingCart = !state.drivingCart;
+      if (state.drivingCart) {
+        state.cartYawOffset = 0; state.cartPitchOffset = 0;
+        state.donkeyOnRoof = true; state.roofMountT = 0;
+        state.roofJumpStart.set(donkey.state.x, donkey.group.position.y, donkey.state.z);
+        state.chaseCamPos.copy(camera.position);
+        state.chaseLookAt.set(wagon.x, wagon.y + 1.8, wagon.z);
+        toast("Cruiser Woody (Collisions OFF) · Mistletoe on roof-deck! Drive continuously anywhere — no fences!", "Mistletoe on roof deck");
+      } else {
+        wagon.speed = 0; state.donkeyOnRoof = false;
+        const dx = wagon.x + Math.cos(wagon.heading) * 2.8, dz = wagon.z - Math.sin(wagon.heading) * 2.8;
+        state.x = dx; state.z = dz; state.y = driveSurfaceAt(dx, dz) + 1.68;
+        state.yaw = wagon.heading + Math.PI; state.pitch = -.05;
+        donkey.place(wagon.x - Math.cos(wagon.heading) * 2.4, wagon.z + Math.sin(wagon.heading) * 2.4, wagon.heading, (x, z) => driveSurfaceAt(x, z));
+        toast("Parked Cruiser Woody — Mistletoe hops down.", "Wagon parked");
+      }
+      updateHUD();
+    }
+    $("btn-cart").addEventListener("click", toggleCart);
+
+    function clearGlide() {
+      state.gliding = false;
+      state.glideOpen = 0;
+      Object.assign(state.glide, { landing: false, cruising: false, waypoint: null });
+      donkeyGlider.visible = false;
+      contrailL.line.visible = false;
+      contrailR.line.visible = false;
+    }
+
+    function glideActionLabel() {
+      if (state.gliding) return state.donkeyOnRoof ? (state.glide.landing ? "Cancel landing" : "Land") : "Fold wing";
+      return state.drivingCart ? "Take off" : "Base jump / Glide";
+    }
+
+    function canCruiseTetons() {
+      const g = state.glide;
+      return state.gliding && !g.landing && !state.donkeyCollapsed &&
+        Math.hypot(mw.tetonRange.x - g.x, mw.tetonRange.z - g.z) > TETON_ARRIVAL_DISTANCE;
+    }
+
+    function toggleTetonCruise() {
+      if (!state.gliding) return;
+      const g = state.glide;
+      if (g.cruising) {
+        g.cruising = false;
+        toast("Cruise stopped · manual flight");
+      } else {
+        if (!canCruiseTetons()) return;
+        g.cruising = true;
+        g.waypoint = mw.tetonRange;
+        if (useFieldLayout()) {
+          releaseFieldInputs();
+          showFieldTool("map");
+        }
+        toast("Cruising to the Teton Range");
+      }
+      updateHUD();
+    }
+
+    function landGlide(announce = true) {
+      const g = state.glide, withWagon = state.donkeyOnRoof;
+      g.y = driveSurfaceAt(g.x, g.z);
+      g.vy = 0;
+      clearGlide();
+      state.x = g.x; state.z = g.z; state.y = g.y + (withWagon ? 2.0 : 1.65);
+      state.yaw = g.heading + Math.PI; state.pitch = -.05;
+      state.drivingCart = withWagon;
+      state.riding = !withWagon;
+      if (withWagon) {
+        Object.assign(wagon, { x: g.x, y: g.y, z: g.z, heading: g.heading, speed: 0, pitch: 0, roll: 0, steerAngle: 0 });
+        wagon.group.position.set(wagon.x, wagon.y, wagon.z);
+        wagon.group.rotation.set(0, wagon.heading, 0, "YXZ");
+        state.roofMountT = 1;
+        poseRoofRider(0);
+      } else {
+        donkey.place(g.x, g.z, g.heading, driveSurfaceAt);
+      }
+      if (announce) {
+        toast(withWagon ? "Wagon on the ground · Mistletoe aboard" : "Touchdown · mounted");
+        updateHUD();
+      }
+    }
+
+    function toggleGlide(customLaunch = null) {
+      if (state.donkeyCollapsed) { toast("Mistletoe needs water before flying! Press P."); return; }
+      if (state.gliding && !customLaunch) {
+        if (!state.donkeyOnRoof) { landGlide(); return; }
+        state.glide.landing = !state.glide.landing;
+        state.glide.cruising = false;
+        if (useFieldLayout()) releaseFieldInputs();
+        toast(state.glide.landing ? "Landing · steer to choose your spot" : "Landing canceled");
+        updateHUD();
+        return;
+      }
+      const withWagon = state.drivingCart || (state.gliding && state.donkeyOnRoof);
+      const launch = customLaunch ?? (withWagon ? wagon : donkey.state);
+      const { x: gx, z: gz } = launch;
+      const groundY = driveSurfaceAt(gx, gz);
+      const startY = customLaunch ? groundY + customLaunch.boostY : withWagon ? Math.max(wagon.y, groundY + 1.8) :
+        Math.max(donkey.group.position.y + 3.2, groundY + 4.8);
+      const hdg = customLaunch?.heading ?? (withWagon ? wagon.heading : state.yaw + Math.PI);
+      const rel = startY - groundY;
+      clearGlide();
+      state.drivingCart = false; state.donkeyOnRoof = withWagon; state.riding = false;
+      state.gliding = true; state.cartYawOffset = 0; state.cartPitchOffset = 0;
+      Object.assign(state.glide, {
+        x: gx, y: startY, z: gz, heading: hdg,
+        speed: customLaunch ? 29 : withWagon ? clamp(wagon.speed, 22, 35) : 25,
+        vy: withWagon ? 13 : customLaunch ? 3.5 : rel > 10 ? -1.8 : 11.5,
+        bank: 0, time: 0
+      });
+      state.x = gx; state.z = gz;
+      if (withWagon) {
+        // Summit launches can relocate the craft. Keep the rider on its deck during that move.
+        if (customLaunch) state.roofMountT = 1;
+        poseGlider(0);
+      }
+      donkeyGlider.scale.setScalar(0);
+      donkeyGlider.visible = true;
+      for (const p of contrailL.pts) p.set(gx, startY + 2.5, gz);
+      for (const p of contrailR.pts) p.set(gx, startY + 2.5, gz);
+      const back = withWagon ? 12 : 8;
+      const height = withWagon ? 5.0 : 3.4;
+      state.chaseCamPos.set(gx - Math.sin(hdg) * back, startY + height, gz - Math.cos(hdg) * back);
+      state.chaseLookAt.set(gx + Math.sin(hdg) * 14, startY + (withWagon ? 3.2 : 1.2), gz + Math.cos(hdg) * 14);
+      audio.glideWhoosh();
+      const airborne = withWagon ? "Wagon airborne · Mistletoe aboard" : "Wing open";
+      toast(customLaunch ? `${customLaunch.name} · ${airborne}` : `${airborne} · W dive · S climb · Shift lift`, airborne);
+      updateHUD();
+    }
+    if ($("btn-glide")) $("btn-glide").addEventListener("click", () => toggleGlide());
+    $("btn-teton-cruise").addEventListener("click", toggleTetonCruise);
+
+    function launchSummit(idx) {
+      const sm = SUMMITS[clamp(idx, 0, SUMMITS.length - 1)];
+      setRegion(sm.region);
+      state.currentZone = sm.region === "ridge" ? 9 : sm.region === "abyss" ? 8 : 4;
+      toggleGlide(sm);
+      initRain();
+    }
+
+    function teleportZone(zoneIdx) {
+      const Z = ZONES[clamp(zoneIdx, 0, 10)];
+      state.riding = false; state.drivingCart = false; state.donkeyOnRoof = false;
+      clearGlide();
+      setRegion(regionAt(Z.x, Z.pz));
+      state.x = Z.x - 4.5; state.z = Z.pz + 4.5;
+      state.y = driveSurfaceAt(state.x, state.z) + 1.68;
+      state.yaw = Math.atan2(-(Z.x - state.x), -(Z.pz - state.z));
+      state.pitch = -.04; state.cartYawOffset = 0; state.cartPitchOffset = 0;
+      state.focusDist = 18.0; state.focusLook = Z.look; state.focusPulse = 1.0;
+      wagon.x = Z.x + 6.5; wagon.z = Z.pz - 5.5; wagon.y = driveSurfaceAt(wagon.x, wagon.z);
+      wagon.heading = state.yaw + Math.PI; wagon.speed = 0;
+      wagon.group.position.set(wagon.x, wagon.y, wagon.z); wagon.group.rotation.set(0, wagon.heading, 0, "YXZ");
+      donkey.place(Z.x - 1.5, Z.pz + 2.5, state.yaw + Math.PI, (x, z) => driveSurfaceAt(x, z));
+      applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
+      initRain(); updateHUD();
+      toast(`Arrived at Zone ${ROMAN[Z.z]} · ${Z.name}`, `Arrived · Zone ${ROMAN[Z.z]}`);
+    }
+
+    function toggleRegion() {
+      if (state.region === "tetons") teleportZone(8); // Abyssal Whale Fluke Sanctuary
+      else if (state.region === "abyss") teleportZone(9); // Yosemite Half Dome
+      else teleportZone(4); // Tetons Overlook
+    }
+    if ($("btn-region")) $("btn-region").addEventListener("click", toggleRegion);
+
+    function toggleRide() {
+      if (state.donkeyCollapsed && !state.riding) { toast("Mistletoe collapsed from thirst — press P to give water!"); return; }
+      if (state.gliding) { toggleGlide(); return; }
+      if (state.drivingCart) { state.drivingCart = false; state.donkeyOnRoof = false; }
+      if (!state.riding && Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z) > 12) {
+        donkey.place(state.x + 1.8, state.z + 1.8, state.yaw + Math.PI, (x, z) => driveSurfaceAt(x, z));
+      }
+      state.riding = !state.riding; state.leadMode = "lead"; donkey.state.tethered = false;
+      state.cartYawOffset = 0; state.cartPitchOffset = 0;
+      if (state.riding) {
+        const hdg = donkey.state.heading;
+        state.chaseCamPos.set(donkey.state.x - Math.sin(hdg) * 5.4, donkey.group.position.y + 2.4, donkey.state.z - Math.cos(hdg) * 5.4);
+        state.chaseLookAt.set(donkey.state.x + Math.sin(hdg) * 8, donkey.group.position.y + 1.35, donkey.state.z + Math.cos(hdg) * 8);
+      } else {
+        state.x = donkey.state.x - Math.cos(donkey.state.heading) * 1.4;
+        state.z = donkey.state.z + Math.sin(donkey.state.heading) * 1.4;
+        state.y = driveSurfaceAt(state.x, state.z) + 1.68;
+        state.yaw = donkey.state.heading + Math.PI;
+        state.pitch = -.05;
+        applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
+      }
+      updateHUD();
+      toast(state.riding ? "Mounted Mistletoe (3rd-Person Trail Cam) — WASD ride, J Base-Jump!" : "Dismounted.",
+        state.riding ? "Mounted Mistletoe" : "Dismounted");
+    }
+    $("btn-ride").addEventListener("click", toggleRide);
+
+    $("btn-jerikan").addEventListener("click", () => { state.filterIdx = state.filterIdx === 5 ? 0 : 5; updateHUD(); if (state.trayTab === "lens") renderTray(); });
+    $("btn-ppc").addEventListener("click", () => { state.ppcOn = !state.ppcOn; updateHUD(); });
+    if ($("last-plate-card")) $("last-plate-card").addEventListener("click", () => openPlateBox());
+
+    const invProjView = new T.Matrix4(), projView = new T.Matrix4();
+    function renderFrame(nowSec) {
+      const w = renderer.domElement.width, h = renderer.domElement.height;
+      // 18-Watch Atmospheric Lighting Curve (18:00 Dusk -> Midnight Indigo -> 06:00 Morning Light)
+      const wHour = npCarrier().watch / 18;
+      const dayLight = wHour < .25 ? lerp(.82, .42, wHour / .25) : wHour < .68 ? .38 : lerp(.38, 1.0, (wHour - .68) / .32);
+      mw.time.value = 8 + nowSec * .08;
+      mw.glass.value = state.filterIdx;
+      mw.worldLight.intensity = 2.35 * (state.region === "ahiya" ? dayLight * .78 : dayLight * .95);
+      hemiFill.intensity = .55 * dayLight;
+      mw.worldLight.position.copy(mw.sun.value).multiplyScalar(100);
+      mw.abyssAnimate(nowSec);
+      for (const fan of npSpinFans) fan.rotation.y += .18;
+      // Animate Oxbow double-sheet breeze lift on bottom-left corner (Page 20)
+      if (oxbowSheetFront && oxbowWindBase) {
+        const pos = oxbowSheetFront.geometry.attributes.position.array;
+        const gust = Math.max(0, Math.sin(nowSec * .95)) * .55;
+        for (let i = 0; i < pos.length; i += 3) {
+          const ox = oxbowWindBase[i], oy = oxbowWindBase[i + 1];
+          const corner = smooth(1.0, -2.2, ox) * smooth(.8, -1.4, oy);
+          pos[i + 2] = oxbowWindBase[i + 2] - corner * (gust * .85 + Math.sin(nowSec * 3.4 + ox) * .12);
+        }
+        oxbowSheetFront.geometry.attributes.position.needsUpdate = true;
+      }
+      const cinFrame = Math.floor(nowSec * 24);
+      if (cinFrame !== npLastCinFrame) {
+        npLastCinFrame = cinFrame;
+        draw2086CinemaFrame(nowSec, npScreeningMode || (state.region === "ahiya" ? "AHIYA" : npState.active === "ahiya" ? "AR-03" : "WF-08"));
+      }
+
+      if (Math.abs(camera.position.x + 480) < 920 && Math.abs(camera.position.z) < 620) {
+        const refY = mw.water(clamp(camera.position.x, -1620, -240), clamp(camera.position.z, -400, 400));
+        mw.renderReflection(nowSec, w, h, refY, camera);
+      }
+      mw.updateSkyBasis(camera);
+      mw.waterUniforms.uForward.value.copy(mw.skyUniforms.uSkyForward.value);
+      mw.waterUniforms.uRight.value.copy(mw.skyUniforms.uSkyRight.value);
+      mw.waterUniforms.uUp.value.copy(mw.skyUniforms.uSkyUp.value);
+      mw.waterUniforms.uTan.value = Math.tan(camera.fov * Math.PI / 360);
+      mw.waterUniforms.uAspect.value = camera.aspect;
+
+      renderer.setRenderTarget(rtScene);
+      renderer.render(activeWorld(), camera);
+
+      const lookInfo = LOOKS[state.soloLook >= 0 ? state.soloLook : state.focusLook];
+      accMat.uniforms.tCur.value = rtScene.texture;
+      accMat.uniforms.tPrev.value = rtA.texture;
+      accMat.uniforms.uDamp.value = state.soloLook >= 0 ? lookInfo.trail : .25;
+      postQuad.material = accMat;
+      renderer.setRenderTarget(rtB);
+      renderer.render(postScene, postCam);
+      [rtA, rtB] = [rtB, rtA];
+
+      projView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      invProjView.copy(projView).invert();
+      lookMat.uniforms.uInvProjView.value.copy(invProjView);
+      lookMat.uniforms.uInAbyss.value = smooth(185, 115, Math.hypot(camera.position.x - ABYSS_OX, camera.position.z - ABYSS_OZ));
+      lookMat.uniforms.uWifiPing.value = state.pingTimer > 0 ? smooth(0, 1.5, state.pingTimer) : 0;
+
+      const uW = lookMat.uniforms.uWifi.value;
+      uW[0].set(donkey.state.x, donkey.group.position.y + 2.2, donkey.state.z, state.signalRadius);
+      const nearRelays = relays.filter(r => r.lit).sort((a, b) =>
+        Math.hypot(a.x - camera.position.x, a.z - camera.position.z) - Math.hypot(b.x - camera.position.x, b.z - camera.position.z));
+      for (let i = 0; i < 5; i++) {
+        const r = nearRelays[i];
+        if (r) uW[i + 1].set(r.x, r.y + 2.0, r.z, r.id === "pueblo" ? 38.0 : 28.0);
+        else uW[i + 1].set(0, 0, 0, 0);
+      }
+      const nearGroves = forestGroves.filter(g => g.unlocked).sort((a, b) =>
+        Math.hypot(a.x - camera.position.x, a.z - camera.position.z) - Math.hypot(b.x - camera.position.x, b.z - camera.position.z));
+      for (let k = 0; k < 2; k++) {
+        const g = nearGroves[k];
+        if (g) uW[6 + k].set(g.x, g.y + 8.0, g.z, 26.0 * g.grow);
+        else uW[6 + k].set(0, 0, 0, 0);
+      }
+
+      lookMat.uniforms.tTrail.value = rtA.texture;
+      lookMat.uniforms.uRes.value.set(w, h);
+      postQuad.material = lookMat;
+      renderer.setRenderTarget(null);
+      renderer.render(postScene, postCam);
+    }
+
+    function captureBounds(width, height) {
+      const aspect = height > width ? 4 / 5 : 5 / 4;
+      const margin = useFieldLayout() ? .84 : 1;
+      const w = Math.round(Math.min(width, height * aspect) * margin);
+      const h = Math.round(Math.min(height, width / aspect) * margin);
+      return { x: Math.round((width - w) / 2), y: Math.round((height - h) / 2), w, h };
+    }
+
+    const tmpRayDir = new T.Vector3(), tmpSample = new T.Vector3();
+    function computeFrameWifiPct() {
+      const emitters = sampleWifiEmitters();
+      const bounds = captureBounds(canvas.width, canvas.height);
+      const spanX = useFieldLayout() ? .92 * bounds.w / Math.max(1, canvas.width) : .68;
+      const spanY = useFieldLayout() ? .92 * bounds.h / Math.max(1, canvas.height) : .68;
+      let sum = 0, count = 0;
+      const ox = camera.position.x, oy = camera.position.y, oz = camera.position.z;
+      for (let gy = 0; gy < 4; gy++) {
+        for (let gx = 0; gx < 5; gx++) {
+          const ndcX = lerp(-spanX, spanX, gx / 4), ndcY = lerp(-spanY, spanY, gy / 3);
+          tmpSample.set(ndcX, ndcY, .5).unproject(camera);
+          tmpRayDir.copy(tmpSample).sub(camera.position).normalize();
+          let hitX = ox + tmpRayDir.x * 110, hitZ = oz + tmpRayDir.z * 110;
+          for (let st = 6; st <= 260; st += 16) {
+            const sx = ox + tmpRayDir.x * st, sy = oy + tmpRayDir.y * st, sz = oz + tmpRayDir.z * st;
+            if (sy <= driveSurfaceAt(sx, sz) + .35) { hitX = sx; hitZ = sz; break; }
+          }
+          let cov = 0;
+          for (const em of emitters) cov = Math.max(cov, smooth(em.r, em.r * .14, Math.hypot(hitX - em.x, hitZ - em.z)));
+          sum += cov; count++;
+        }
+      }
+      return clamp(Math.round((sum / count) * 100), 0, 100);
+    }
+
+    function nearestUnlitRelay(x, z) {
+      let relay = null, distance = Infinity;
+      for (const candidate of relays) {
+        if (candidate.lit) continue;
+        const range = Math.hypot(candidate.x - x, candidate.z - z);
+        if (range < distance) { relay = candidate; distance = range; }
+      }
+      return { relay, distance };
+    }
+
+    function sampleMeter() {
+      const dir = new T.Vector3(); camera.getWorldDirection(dir);
+      let hitP = null;
+      for (let st = 4; st <= 480; st += 12) {
+        const sx = camera.position.x + dir.x * st, sy = camera.position.y + dir.y * st, sz = camera.position.z + dir.z * st;
+        if (sy <= driveSurfaceAt(sx, sz) + .25) { hitP = { x: sx, y: sy, z: sz }; break; }
+      }
+      if (hitP && !state.zoneSynced) {
+        const base = state.region === "ridge" ? 148.0 : state.region === "abyss" ? 48.0 : 65.5;
+        const elev = clamp((hitP.y - base) / 220, .05, .96);
+        const fl = FILTERS[state.filterIdx];
+        state.meteredZone = clamp(Math.round(elev * (fl.rgb[0] * .3 + fl.rgb[1] * .59 + fl.rgb[2] * .11) * 10), 0, 10);
+      } else if (!state.zoneSynced) state.meteredZone = 8;
+
+      state.region = regionAt(state.x, state.z);
+      let bestZ = ZONES[4], bestD = 1e9;
+      for (const Z of ZONES) {
+        if (Z.region !== state.region) continue;
+        const d = Math.hypot(Z.x - state.x, Z.pz - state.z);
+        if (d < bestD) { bestD = d; bestZ = Z; }
+      }
+      state.currentZone = bestZ.z;
+
+      const floorY = state.region === "ridge" ? 148.0 : state.region === "abyss" ? 48.0 : 65.5;
+      state.antennaElev = donkey.group.position.y + 2.35;
+      state.relElev = Math.max(0, state.antennaElev - floorY);
+      const pingBoost = state.pingTimer > 0 ? 1.25 : 1.0;
+      const syncBoost = state.zoneSynced ? 55 : 0;
+      state.signalRadius = clamp((28 + Math.min(220, state.relElev * 1.25) + syncBoost) * (.72 + .28 * state.wifiCharge) * pingBoost, 24, 245);
+
+      const dM = Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z);
+      state.signalDbm = Math.round(clamp(-30 - dM * .35 + Math.min(28, state.relElev * .18), -90, -24));
+      state.litRelays = relays.filter(r => r.lit).length;
+      state.coveragePct = Math.round((state.litRelays / relays.length) * 100);
+      state.unlockedGroves = forestGroves.filter(g => g.unlocked).length;
+      state.unlockedTrees = forestGroves.reduce((s, g) => s + (g.unlocked ? g.trees : 0), 0);
+      state.frameWifiPct = computeFrameWifiPct();
+      recomputeFilledCans();
+
+      // Closest unlit cistern relay bearing for Delivery Compass
+      const { relay: nextR, distance: nextD } = nearestUnlitRelay(state.x, state.z);
+      if (nextR) {
+        state.nextRelayDist = nextD; state.nextRelayName = nextR.name;
+        const targetYaw = Math.atan2(-(nextR.x - state.x), -(nextR.z - state.z));
+        state.nextRelayAzDeg = ((targetYaw - state.yaw) * 180) / Math.PI;
+      } else { state.nextRelayDist = 9999; state.nextRelayName = "Complete"; }
+    }
+
+    function exposePlate() {
+      if (contextLost) return;
+      audio.shutter();
+      if (useFieldLayout()) {
+        exposedUntil = performance.now() + 450;
+      } else {
+        const fl = $("flash"); fl.classList.remove("go"); void fl.offsetWidth; fl.classList.add("go");
+      }
+      sampleMeter(); renderFrame(performance.now() * .001);
+      const portrait = canvas.height > canvas.width;
+      const tmp = document.createElement("canvas"), cw = portrait ? 512 : 640, ch = portrait ? 640 : 512;
+      tmp.width = cw; tmp.height = ch;
+      const tx = tmp.getContext("2d");
+      const crop = captureBounds(canvas.width, canvas.height);
+      tx.drawImage(canvas, crop.x, crop.y, crop.w, crop.h, 0, 0, cw, ch);
+      splicePlateIntoFilmStrip(tmp, currentPlaceName().slice(0, 14).toUpperCase());
+      tx.fillStyle = "rgba(10, 15, 22, 0.80)"; tx.fillRect(0, ch - 34, cw, 34);
+      tx.fillStyle = "#22d0ff"; tx.font = "700 13px Inter, system-ui, sans-serif";
+      tx.fillText(`WIFI IN-FRAME ${state.frameWifiPct}%  ·  ${state.signalDbm} dBm`, 16, ch - 12);
+      tx.fillStyle = "#f1eee6"; tx.textAlign = "right"; tx.font = "600 12px Inter, system-ui, sans-serif";
+      const rName = state.region === "ridge" ? "HALF DOME" : state.region === "abyss" ? "ABYSSAL" : "TETONS";
+      tx.fillText(`${rName}  ·  Z-${ROMAN[state.meteredZone]}  ·  ALT ${fmtElev(state.antennaElev)}`, cw - 16, ch - 12);
+      tx.textAlign = "left";
+
+      const plate = {
+        id: (state.plates.at(-1)?.id ?? 0) + 1, zone: state.meteredZone, roman: ROMAN[state.meteredZone],
+        place: currentPlaceName(), region: state.region,
+        mode: MODES[state.modeIdx].label, look: LOOKS[state.soloLook >= 0 ? state.soloLook : state.focusLook].name,
+        focus: state.focusDist.toFixed(1) + " m", stop: STOPS[state.stopIdx].name,
+        signalDbm: state.signalDbm, frameWifiPct: state.frameWifiPct, coveragePct: state.coveragePct,
+        antennaElev: +state.antennaElev.toFixed(1), unlockedGroves: state.unlockedGroves,
+        dataUrl: tmp.toDataURL("image/jpeg", .86)
+      };
+      state.plates.push(plate);
+      plateIndex = -1;
+      // Record plate onto active 2086 Night Post circuit log as well
+      const curNp = npCarrier();
+      if (!curNp.plates.some(p => p.place === curNp.place && p.zone === plate.zone)) {
+        curNp.plates.push({ id: plate.id, place: curNp.place, zone: plate.zone, day: curNp.day, maker: npCharter().carrier });
+        npState.rev++; saveNpState();
+      }
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ plates: state.plates.slice(-22) }));
+        plateStorageFault = false;
+      } catch {
+        plateStorageFault = true;
+      }
+      updateHUD();
+      if (plateStorageFault) toast("Plate in this session. Download to keep it.");
+      else toast(`8×10 Plate #${plate.id} Spliced Onto Film Trees! · IN-FRAME WIFI ${plate.frameWifiPct}%`,
+        `Plate #${plate.id} · ${plate.frameWifiPct}% WiFi`);
+    }
+    $("expose-btn").addEventListener("click", exposePlate);
+
+    function openPlateBox() {
+      if (useFieldLayout()) {
+        selectFieldBand(fieldGroups.findIndex(group => group.name === "Plates"));
+        return;
+      }
+      const box = $("platebox"), grid = $("pl-grid"), big = $("pl-big"), note = $("pl-note");
+      const got = new Set(state.plates.map(p => p.zone));
+      note.textContent = `${state.plates.length} Plate(s) · ${got.size}/11 Zones · Film Forest ${state.unlockedGroves}/${forestGroves.length} · Jerrycans ${state.filledCans}/${state.totalCans}.`;
+      big.hidden = true;
+      grid.innerHTML = state.plates.length ? state.plates.slice().reverse().map((p, index) => `
+        <button type="button" class="pl-card" data-pid="${state.plates.length - 1 - index}">
+          <img src="${p.dataUrl}" alt="Zone ${p.roman} plate">
+          <small><strong>#${p.id} · WIFI ${p.frameWifiPct ?? 0}%</strong> (${p.place})<br>Alt ${fmtElev(p.antennaElev ?? 0)} · Forest ${p.unlockedGroves ?? 1}/${forestGroves.length}</small>
+        </button>`).join("") : `<p class="tray-note">No coverage plates exposed yet. Press Space or click Expose 8×10.</p>`;
+      grid.querySelectorAll("[data-pid]").forEach(btn => {
+        btn.onclick = () => { const p = state.plates[+btn.dataset.pid]; if (p) { big.src = p.dataUrl; big.hidden = false; } };
+      });
+      box.hidden = false;
+    }
+    $("sp-plates").addEventListener("click", openPlateBox);
+    $("pl-close").addEventListener("click", () => { $("platebox").hidden = true; });
+
+    /* ---------- 2-Stage Live 3D Cinematic Intro Choreography ---------- */
+    const INTRO_DURATION = 13.6;
+    const startPlayerY = driveSurfaceAt(-14.8, 0.8) + 1.68;
+    const startYaw = Math.PI * .50, startPitch = -.05;
+    const endLookX = -14.8 - Math.sin(startYaw) * Math.cos(startPitch) * 20;
+    const endLookY = startPlayerY + Math.sin(startPitch) * 20;
+    const endLookZ = 0.8 - Math.cos(startYaw) * Math.cos(startPitch) * 20;
+    const yWell = well.y, yDonkey = driveSurfaceAt(-26.0, -1.2);
+
+    const INTRO_SHOTS = [
+      {
+        t0: 0.0, t1: 3.4,
+        fromPos: [-19.2, yWell + 1.32, -8.4], toPos: [-18.4, yWell + 1.48, -6.4],
+        fromLook: [well.x + .85, yWell + .38, well.z + .85], toLook: [well.x + .55, yWell + .68, well.z + .55],
+        focus0: 2.6, focus1: 3.4, modeIdx: 0,
+        kicker: "ACT I · THE WELLHEAD",
+        line: "“Iron lever cracks before the rooster — take this cyan WiFi water from my well.”",
+        onEnter() { state.pumpFlow = 1.0; state.pumpLeverPhase = .02; audio.pumpClank(); }
+      },
+      {
+        t0: 3.4, t1: 6.8,
+        fromPos: [-23.1, yDonkey + 1.28, -3.5], toPos: [-21.6, yDonkey + 1.62, 1.9],
+        fromLook: [-26.0, yDonkey + 1.15, -1.1], toLook: [-24.6, yDonkey + 1.35, 1.4],
+        focus0: 3.2, focus1: 4.8, modeIdx: 0,
+        kicker: "ACT II · MISTLETOE & THE SCION PACK",
+        line: "“Cyan jerikan balanced on my shoulder blade — hooves on cobble and the tape is turning.”",
+        onEnter() { state.focusPulse = 1.0; audio.relayChime(false); }
+      },
+      {
+        t0: 6.8, t1: 10.4,
+        fromPos: [-28.0, 165.0, 14.0], toPos: [-42.0, 189.0, -12.0],
+        fromLook: [-180.0, 128.0, -35.0], toLook: [-320.0, 145.0, -18.0],
+        focus0: 42.0, focus1: 185.0, modeIdx: 1,
+        kicker: "ACT III · ELEVEN TONAL WORLDS",
+        line: "“You don’t take a photograph, you make it — Tetons, Abyssal Reef & Half Dome in one world.”",
+        onEnter() { state.pingTimer = 3.8; state.focusPulse = 1.0; }
+      },
+      {
+        t0: 10.4, t1: INTRO_DURATION,
+        fromPos: [-8.2, 165.5, 5.4], toPos: [-14.8, startPlayerY, 0.8],
+        fromLook: [-34.0, 157.0, 0.4], toLook: [endLookX, endLookY, endLookZ],
+        focus0: 28.0, focus1: 18.0, modeIdx: state.savedModeBeforeIntro,
+        kicker: "ACT IV · SNAKE RIVER OVERLOOK",
+        line: "“Carry the cyan up the ridge with me — keep Mistletoe hydrated across every depot.”",
+        onEnter() { state.modeIdx = state.savedModeBeforeIntro; state.focusPulse = .85; }
+      }
+    ];
+
+    function syncIntroUI() {
+      document.body.classList.toggle("intro-active", state.introActive);
+      if (state.introActive) releaseFieldInputs();
+      const sec = $("cinema-intro"), tStage = $("cinema-title-stage"), mStage = $("cinema-montage-stage");
+      if (sec) sec.hidden = !state.introActive;
+      if (tStage) tStage.hidden = !state.introActive || state.introPhase !== "title";
+      if (mStage) mStage.hidden = !state.introActive || state.introPhase !== "montage";
+    }
+
+    function resetOverlookScene() {
+      setRegion("tetons");
+      state.drivingCart = false; state.donkeyOnRoof = false; state.riding = false;
+      clearGlide();
+      wagon.x = -23.0; wagon.z = 4.6; wagon.y = driveSurfaceAt(wagon.x, wagon.z);
+      wagon.heading = -Math.PI * .52; wagon.speed = 0;
+      wagon.group.position.set(wagon.x, wagon.y, wagon.z); wagon.group.rotation.set(0, wagon.heading, 0, "YXZ");
+      donkey.place(-26.0, -1.2, -Math.PI * .45, (x, z) => driveSurfaceAt(x, z));
+      state.x = -14.8; state.z = 0.8; state.y = startPlayerY;
+      state.yaw = startYaw; state.pitch = startPitch;
+      applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
+      initRain();
+    }
+
+    function startPrologue() {
+      state.savedModeBeforeIntro = state.modeIdx;
+      resetOverlookScene();
+      state.introActive = true;
+      state.introPhase = "montage";
+      state.introT = 0;
+      state.introShotIdx = -1;
+      syncIntroUI();
+      if (audioEl.paused) toggleTape();
+    }
+
+    function finishIntro(keepCurrentPose = false) {
+      if (!state.introActive) return;
+      state.introActive = false;
+      state.introPhase = "done";
+      state.modeIdx = state.savedModeBeforeIntro;
+      if (!keepCurrentPose) {
+        state.focusDist = 18.0;
+        placeAtNpStation(npCarrier().place || "overlook");
+      }
+      syncIntroUI();
+      updateHUD();
+      toast("Snake River Overlook · WASD move · C drive Woody · J Base-Jump · K Dance · L Lidar!", "Drag the view to look");
+    }
+
+    if ($("intro-roll")) $("intro-roll").addEventListener("click", startPrologue);
+    if ($("intro-skip")) $("intro-skip").addEventListener("click", () => finishIntro(false));
+    if ($("intro-ahiya")) $("intro-ahiya").addEventListener("click", () => {
+      finishIntro(false);
+      switchNpCircuit("ahiya");
+    });
+    if ($("intro-jump")) $("intro-jump").addEventListener("click", () => {
+      if (audioEl.paused) toggleTape();
+      finishIntro(true);
+      launchSummit(0);
+    });
+    if ($("montage-skip")) $("montage-skip").addEventListener("click", () => finishIntro(false));
+
+    /* ---------- Mobile viewfinder controls ---------- */
+    const cycle = (index, count, step) => ((index + step) % count + count) % count;
+    const opticsKeys = ["focusDist", "focusLook", "modeIdx", "filterIdx", "stopIdx", "tilt", "soloLook", "groundGlass", "chaseZoom", "ppcOn"];
+    const labels = {
+      walk: ["On foot", "Move", "", "", "Run"],
+      ride: ["Mounted", "Ride", "", "", "Trot"],
+      drive: ["Wagon", "Drive", "Fwd", "Reverse", "Turbo"],
+      glide: ["Glide", "Steer", "Dive", "Climb", "Lift"]
+    };
+    const vehicleLabels = { walk: "Drive", drive: "Park", ride: "Dismount" };
+    const fieldStick = $("field-stick");
+    const fieldHoldButtons = [...document.querySelectorAll("[data-field-key]")];
+    const heldPointers = new Map();
+    const heldButtons = new Set();
+    let stickPointer = null, stickX = 0, stickY = 0;
+    let fieldMotion = "", fieldSettingIndex = 0;
+    let opticsUndo = null, armedTravel = null, armedUntil = 0, exposedUntil = 0;
+    let plateIndex = -1, fieldPlateURL = "", fieldPlateSource = "", plateStorageFault = false;
+    const destinations = [0, 4, 0];
+    const shortZones = ["Rim shadow", "Moraine", "Cloud notch", "Bluff pines", "Overlook", "Sage bench", "Silver Ford", "Oxbow", "Reef", "East apron", "Pueblo"];
+    const shortSummits = ["Overlook", "Moraine", "Half Dome", "Reef"];
+    const tiltStops = [-.32, 0, .32];
+    const dotElements = (id, count) => Array.from({length: count}, () => $(id).appendChild(document.createElement("i")));
+    const wifiDots = dotElements("field-wifi-scale", 5);
+    const toolDots = dotElements("field-tool-dots", 6);
+    const canTravel = () => !state.gliding && !state.pourAnim;
+    const canMount = () => !state.donkeyCollapsed && !state.pourAnim;
+    const canStartMotion = () => canMount() && !state.gliding && !state.drivingCart;
+    const canDance = () => state.danceTimer > 0 || canStartMotion();
+    const currentMotion = () => state.gliding ? "glide" : state.drivingCart ? "drive" : state.riding ? "ride" : "walk";
+    const fieldZone = () => ZONES[destinations[1]];
+    const fieldSummit = () => SUMMITS[destinations[2]];
+    const selectedFieldPlate = () => plateIndex < 0 ? state.plates.length - 1 : plateIndex;
+    const setText = (id, value) => { if ($(id).textContent !== value) $(id).textContent = value; };
+
+    function setOptics(property, value) {
+      if (state[property] === value) return;
+      opticsUndo = Object.fromEntries(opticsKeys.map(key => [key, state[key]]));
+      state[property] = value;
+      applyFieldOptics();
+    }
+    function applyFieldOptics() {
+      state.focusPulse = .85;
+      document.body.classList.toggle("ground-glass", state.groundGlass);
+      updateHUD();
+    }
+    function travelWithConfirmation(key, label, run) {
+      if (armedTravel === key && performance.now() <= armedUntil) {
+        armedTravel = null;
+        releaseFieldInputs();
+        run();
+      } else {
+        armedTravel = key;
+        armedUntil = performance.now() + 3400;
+        toast(`Tap again · ${label}`);
+      }
+    }
+    const changeStep = (property, list, dir) => setOptics(property, cycle(state[property], list.length, dir));
+    const fieldTravel = (key, label, run) => () => travelWithConfirmation(key, label(), run);
+    const fieldGroups = [
+      { band: 4, name: "Lens", settings: [
+        { name: "Focus", value: () => `${state.focusDist.toFixed(1)} m`, step: d => setOptics("focusDist", clamp(state.focusDist * 1.16 ** d, 1.2, 900)) },
+        { name: "Aperture", value: () => STOPS[state.stopIdx].name, step: d => changeStep("stopIdx", STOPS, d) },
+        { name: "Front tilt", value: () => state.tilt < -.08 ? "Near–far" : state.tilt > .08 ? "Reverse" : "Level", step: d => {
+          const index = state.tilt < -.08 ? 0 : state.tilt > .08 ? 2 : 1;
+          setOptics("tilt", tiltStops[cycle(index, 3, d)]);
+        } },
+        { name: "Filter", value: () => state.filterIdx === 5 ? "#47B" : FILTERS[state.filterIdx].short, step: d => changeStep("filterIdx", FILTERS, d) },
+        { name: "Cloth", value: () => state.groundGlass ? "Open cloth" : "Close cloth", run: () => setOptics("groundGlass", !state.groundGlass) },
+        { name: "8×10 rig", value: () => state.rigDeployed ? "Pack tripod" : "Set tripod", run: deployRig },
+        { name: "Framing", value: () => state.ppcOn ? "Hide guides" : "Show guides", run: () => setOptics("ppcOn", !state.ppcOn) },
+        { name: "Chase zoom", value: () => `${state.chaseZoom.toFixed(1)} m`, show: () => currentMotion() !== "walk",
+          step: d => setOptics("chaseZoom", clamp(state.chaseZoom * 1.12 ** d, 4.5, 22)) }
+      ] },
+      { band: 1, name: "Look", settings: [
+        { name: "Shader", value: () => state.soloLook < 0 ? "All zones" : LOOKS[state.soloLook].name,
+          step: d => setOptics("soloLook", cycle(state.soloLook + 1, LOOKS.length + 1, d) - 1) }
+      ] },
+      { band: 6, name: "Mode", settings: [
+        { name: "Render", value: () => MODES[state.modeIdx].label, step: d => changeStep("modeIdx", MODES, d) },
+        { name: "Focus zone", value: () => `Z‑${ROMAN[destinations[0]]}`, step: d => { destinations[0] = cycle(destinations[0], ZONES.length, d); },
+          detail: () => ZONES[destinations[0]].name,
+          run: () => {
+            const z = ZONES[destinations[0]];
+            const before = Object.fromEntries(opticsKeys.map(key => [key, state[key]]));
+            state.focusDist = clamp(Math.hypot(z.x - camera.position.x, z.pz - camera.position.z), 1.4, 900);
+            state.focusLook = z.look;
+            opticsUndo = before;
+            applyFieldOptics();
+            toast(`Focus · Zone ${ROMAN[z.z]}`);
+          } },
+        { name: "Travel zone", value: () => `${ROMAN[destinations[1]]} · ${shortZones[destinations[1]]}`, detail: () => fieldZone().name,
+          step: d => { destinations[1] = cycle(destinations[1], ZONES.length, d); },
+          show: canTravel, confirm: true, run: fieldTravel("Travel zone", () => shortZones[destinations[1]], () => teleportZone(destinations[1])) },
+        { name: "Summit jump", value: () => shortSummits[destinations[2]], detail: () => fieldSummit().name,
+          step: d => { destinations[2] = cycle(destinations[2], SUMMITS.length, d); },
+          show: () => canTravel() && canMount(), confirm: true,
+          run: fieldTravel("Summit jump", () => fieldSummit().name, () => launchSummit(destinations[2])) },
+        { name: "Glider", value: () => "Unfurl wing", show: canStartMotion, run: () => toggleGlide() },
+        { name: "Wagon", value: () => "Drive", show: canStartMotion, run: toggleCart },
+        { name: "Shuttle", value: () => state.region === "tetons" ? "To Reef" : state.region === "abyss" ? "To Half Dome" : "To Tetons",
+          show: canTravel, confirm: true, run: fieldTravel("Shuttle", () => "Shuttle", toggleRegion) },
+        { name: "Lidar", value: () => state.lidarOn ? "Lidar off" : "Lidar on", run: toggleLidar },
+        { name: "Prologue", value: () => "Replay", show: canTravel, confirm: true, run: fieldTravel("Prologue", () => "Replay", startPrologue) }
+      ] },
+      { band: 2, name: "Burro", settings: [
+        { name: "Mount", value: () => state.riding ? "Dismount" : "Ride", show: canStartMotion, run: toggleRide },
+        { name: "Burro water", value: () => `Pump · ${Math.round(state.donkeyWater * 100)}%`, run: pumpWell },
+        { name: "WiFi water", value: () => `${Math.round(state.wifiCharge * 100)}%` },
+        { name: "Trust", value: () => `Soothe · ${Math.round(donkey.mind.trust * 100)}%`, run: () => { donkey.soothe(); toast("Mistletoe soothed"); } },
+        { name: "Energy", value: () => `Feed · ${Math.round(donkey.state.stamina * 100)}%`, run: () => { donkey.feed(); toast("Mistletoe fed"); } },
+        { name: "Bray", value: () => "Call", run: () => { donkey.bray(); toast("Mistletoe brayed"); } },
+        { name: "Dance", value: () => state.danceTimer > 0 ? "Stop dance" : "Eskista", show: canDance, run: () => triggerDance() },
+        { name: "Pour", value: () => state.pourAnim ? "Stop pour" : "Deliver",
+          show: () => !!state.pourAnim || (canMount() && !!findPourTarget()), run: () => state.pourAnim ? stopPour() : pourWifi() },
+        { name: "Delivery", value: () => `${state.filledCans}/${state.totalCans} cans` },
+        { name: "Forest", value: () => `${state.unlockedGroves}/${forestGroves.length} groves` },
+        { name: "Signal", value: () => `${Math.round(state.signalRadius)} m · ${state.signalDbm} dBm` },
+        { name: "WiFi", value: () => "Ping", run: pingSignal }
+      ] },
+      { band: 3, name: "Clocks", settings: [
+        { name: "Three clocks", value: () => audio.isOn() ? "Mute" : "Play", run: toggleClocks },
+        { name: "Tape", value: () => audioEl.paused ? "Play tape" : "Pause tape", run: toggleTape },
+        { name: "Cue ±10 s", value: () => formatMMSS(audioEl.currentTime || 0), step: d => seekTape((audioEl.currentTime || 0) + d * 10, false) },
+        { name: "Source", value: () => state.spatialAudio ? "3D burro" : "Cabin", run: toggleSpatialAudio },
+        { name: "Resonance", value: () => `Sync Z‑${ROMAN[state.resonantZone]}`, run: syncResonantZone }
+      ] },
+      { band: 5, name: "Plates", settings: [
+        { name: "Inspect", plate: "inspect" },
+        { name: "Download", plate: "download", show: () => state.plates.length > 0 },
+        { name: "Coverage", value: () => `${new Set(state.plates.map(p => p.zone)).size}/11 zones`, show: () => state.plates.length > 0 }
+      ] }
+    ].sort((a, b) => a.band - b.band);
+    let fieldToolIndex = fieldGroups.findIndex(group => group.name === "Lens");
+    const fieldBandPicker = $("field-band-picker");
+    const fieldBandToggle = $("field-band-toggle");
+    const fieldLens = $("field-lens");
+    const fieldMap = $("field-map");
+    const fieldMapToggle = $("field-map-toggle");
+    const fieldMapCanvas = $("field-map-canvas");
+    const fieldBandButtons = [...fieldBandPicker.querySelectorAll("[data-field-band]")];
+
+    function showFieldTool(view) {
+      const active = document.activeElement;
+      const returnFocus = (view !== "bands" && fieldBandPicker.contains(active)) ||
+        (view !== "dial" && fieldLens.contains(active));
+      fieldBandPicker.hidden = view !== "bands";
+      fieldLens.hidden = view !== "dial";
+      fieldMap.hidden = view !== "map";
+      $("field-tools").toggleAttribute("data-view", view !== "dial");
+      fieldBandToggle.setAttribute("aria-expanded", String(view === "bands"));
+      fieldMapToggle.setAttribute("aria-expanded", String(view === "map"));
+      armedTravel = null;
+      if (returnFocus) (view === "map" ? fieldMapToggle : fieldBandToggle).focus({ preventScroll: true });
+    }
+
+    function selectFieldBand(index) {
+      fieldToolIndex = index;
+      fieldSettingIndex = 0;
+      showFieldTool("dial");
+      const band = fieldGroups[index].band;
+      fieldBandButtons.forEach(button => button.setAttribute("aria-pressed", String(Number(button.dataset.fieldBand) === band)));
+      updateHUD();
+    }
+    fieldBandButtons.forEach(button => button.addEventListener("click", () => {
+      const index = fieldGroups.findIndex(group => group.band === Number(button.dataset.fieldBand));
+      selectFieldBand(index);
+    }));
+
+    const mapRange = 224, reliefCell = 8, reliefSnap = 64;
+    const reliefRange = mapRange + reliefSnap / 2 + reliefCell;
+    const reliefCells = reliefRange * 2 / reliefCell;
+    const compass = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    let mapContext, relief, reliefX, reliefZ;
+
+    function drawFieldRelief(ctx, x, z) {
+      // Reuse the same world-aligned samples while the map pans inside a tile.
+      const left = Math.round(x / reliefSnap) * reliefSnap - reliefRange;
+      const top = Math.round(z / reliefSnap) * reliefSnap - reliefRange;
+      if (!relief) {
+        relief = document.createElement("canvas");
+        relief.width = relief.height = reliefCells;
+      }
+      if (left !== reliefX || top !== reliefZ) {
+        const terrain = relief.getContext("2d");
+        if (!terrain) return;
+        const heights = new Float32Array(reliefCells ** 2);
+        for (let row = 0; row < reliefCells; row++) {
+          for (let col = 0; col < reliefCells; col++) {
+            heights[row * reliefCells + col] = groundAt(left + (col + .5) * reliefCell, top + (row + .5) * reliefCell);
+          }
+        }
+        const image = terrain.createImageData(reliefCells, reliefCells);
+        for (let row = 0; row < reliefCells; row++) {
+          for (let col = 0; col < reliefCells; col++) {
+            const index = row * reliefCells + col, h = heights[index];
+            const west = col ? heights[index - 1] : h, north = row ? heights[index - reliefCells] : h;
+            const contour = Math.abs(h - 12 * Math.round(h / 12)) < 1.2 ? 12 : 0;
+            const tone = clamp(57 + (west - h) * 2.1 + (north - h) * 1.25 - contour, 24, 110);
+            const water = mw.wet(left + (col + .5) * reliefCell, top + (row + .5) * reliefCell) > -.5;
+            const pixel = index * 4;
+            image.data[pixel] = water ? 19 : tone * .82;
+            image.data[pixel + 1] = water ? 67 : tone;
+            image.data[pixel + 2] = water ? 83 : tone * 1.14;
+            image.data[pixel + 3] = 255;
+          }
+        }
+        terrain.putImageData(image, 0, 0);
+        reliefX = left;
+        reliefZ = top;
+      }
+      const span = mapRange * 2 / reliefCell, size = fieldMapCanvas.width;
+      ctx.drawImage(relief, (x - mapRange - left) / reliefCell, (z - mapRange - top) / reliefCell, span, span, 0, 0, size, size);
+    }
+
+    function updateFieldMap(motion) {
+      const pose = motion === "drive" ? wagon : motion === "glide" ? state.glide : motion === "ride" ? donkey.state : state;
+      const { x, z } = pose;
+      const waypoint = motion === "glide" ? state.glide.waypoint : null;
+      const { relay, distance: relayDistance } = nearestUnlitRelay(x, z);
+      const target = waypoint ?? relay;
+      const distance = waypoint ? Math.hypot(waypoint.x - x, waypoint.z - z) : relayDistance;
+      const bearing = target ? Math.atan2(target.x - x, z - target.z) : 0;
+      const direction = compass[cycle(0, compass.length, Math.round(bearing * 4 / Math.PI))];
+      const delivery = `${state.filledCans}/${state.totalCans} cans`;
+      setText("field-map-relay", target?.name ?? "All relays lit");
+      const rangeLabel = distance < .5 ? "At relay" : `${Math.round(distance)} m ${direction}`;
+      if (waypoint) {
+        const range = distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${Math.round(distance)} m`;
+        setText("field-map-route", distance <= TETON_ARRIVAL_DISTANCE ? "Over summit" : `${range} ${direction}`);
+      } else {
+        setText("field-map-route", target ? `${rangeLabel} · ${delivery}` : delivery);
+      }
+
+      if (mapContext === undefined) mapContext = fieldMapCanvas.getContext("2d");
+      if (!mapContext) return;
+      const ctx = mapContext, size = fieldMapCanvas.width, mid = size / 2, inset = mid - 27;
+      const scale = mid / mapRange;
+      ctx.clearRect(0, 0, size, size);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(mid, mid, mid - 2, 0, TAU);
+      ctx.clip();
+      ctx.fillStyle = "#152b33";
+      ctx.fillRect(0, 0, size, size);
+      drawFieldRelief(ctx, x, z);
+      ctx.strokeStyle = "#b2eef088";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      for (const relay of relays) {
+        if (relay === target) continue;
+        const dx = (relay.x - x) * scale, dz = (relay.z - z) * scale;
+        if (Math.hypot(dx, dz) > inset) continue;
+        ctx.beginPath();
+        ctx.arc(mid + dx, mid + dz, 4, 0, TAU);
+        ctx.strokeStyle = "#b2eef0";
+        ctx.lineWidth = 1.6;
+        if (relay.lit) { ctx.fillStyle = "#b2eef0"; ctx.fill(); }
+        else ctx.stroke();
+      }
+      if (target) {
+        const range = Math.min(distance * scale, inset);
+        const px = mid + Math.sin(bearing) * range, py = mid - Math.cos(bearing) * range;
+        ctx.strokeStyle = "#ffe0a3";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([3, 5]);
+        ctx.beginPath(); ctx.moveTo(mid, mid); ctx.lineTo(px, py); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#ffe0a3";
+        ctx.beginPath(); ctx.moveTo(px, py - 7); ctx.lineTo(px + 7, py);
+        ctx.lineTo(px, py + 7); ctx.lineTo(px - 7, py); ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = "#e9fafa";
+      ctx.textAlign = "center";
+      ctx.font = "600 18px IBM Plex Mono, monospace";
+      ctx.fillText("N", mid, 22);
+      ctx.translate(mid, mid);
+      ctx.rotate(pose === state ? -state.yaw : Math.PI - pose.heading);
+      ctx.strokeStyle = "#101920";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(9, 10);
+      ctx.lineTo(0, 6); ctx.lineTo(-9, 10); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+
+    const nearbyActions = {
+      stopPour: { label: "Stop pour", run: stopPour },
+      water: { label: "Give water", run: pumpWell },
+      stopDance: { label: "Stop dance", run: () => triggerDance() },
+      pour: { label: "Pour", run: pourWifi },
+      pump: { label: "Pump", run: pumpWell },
+      takeoff: { label: "Take off", run: () => toggleGlide() },
+      tetonCruise: { label: "Fly to Tetons", run: toggleTetonCruise },
+      stopCruise: { label: "Stop cruise", run: toggleTetonCruise },
+      jump: { label: "Base jump", run: () => toggleGlide() },
+      ride: { label: "Ride", run: toggleRide }
+    };
+
+    function fieldContext(motion) {
+      if (motion === "glide" && state.glide.cruising) return nearbyActions.stopCruise;
+      if (state.pourAnim) return nearbyActions.stopPour;
+      if (state.donkeyCollapsed || state.donkeyWater < .22) return nearbyActions.water;
+      if (state.danceTimer > 0) return nearbyActions.stopDance;
+      if (motion === "drive") return nearbyActions.takeoff;
+      if (motion === "glide" && canCruiseTetons()) return nearbyActions.tetonCruise;
+      if (motion === "ride" && state.relElev > 35 && canStartMotion()) return nearbyActions.jump;
+      if (motion !== "walk") return null;
+      if (findPourTarget()) return nearbyActions.pour;
+      if (Math.hypot(well.x - state.x, well.z - state.z) < 22) return nearbyActions.pump;
+      if (Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z) < 12) return nearbyActions.ride;
+      return null;
+    }
+
+    function fieldSettings() {
+      return fieldGroups[fieldToolIndex].settings.filter(s => !s.show || s.show());
+    }
+    function fieldSetting(settings = fieldSettings()) {
+      return settings[fieldSettingIndex % settings.length];
+    }
+    function stepFieldValue(direction) {
+      const setting = fieldSetting();
+      armedTravel = null;
+      if (setting.plate && state.plates.length) {
+        plateIndex = cycle(selectedFieldPlate(), state.plates.length, direction);
+      } else setting.step?.(direction);
+      updateHUD();
+    }
+    function syncFieldPlate(plate, operation) {
+      const link = $("field-plate-link");
+      link.hidden = !plate;
+      if (!plate) return;
+      if (fieldPlateSource !== plate.dataUrl) {
+        if (fieldPlateURL) URL.revokeObjectURL(fieldPlateURL);
+        const encoded = plate.dataUrl.split(",")[1];
+        const bytes = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+        fieldPlateURL = URL.createObjectURL(new Blob([bytes], {type: "image/jpeg"}));
+        fieldPlateSource = plate.dataUrl;
+        $("field-plate-thumb").src = plate.dataUrl;
+        link.href = fieldPlateURL;
+      }
+      if (operation === "download") link.download = `monolith-plate-${plate.id}.jpg`;
+      else link.removeAttribute("download");
+      const name = operation === "download" ? "Save plate" : "Open plate";
+      link.setAttribute("aria-label", `${name} ${plate.id}, Zone ${plate.roman}, ${plate.place}`);
+      setText("field-plate-caption", `#${plate.id} · ${plate.roman}`);
+    }
+    function updateFieldNotice() {
+      const notice = $("field-notice");
+      let msg = "";
+      if (state.introActive) {
+        if (state.introPhase === "montage" && state.introShotIdx >= 0) msg = INTRO_SHOTS[state.introShotIdx].kicker;
+      } else if (state.donkeyCollapsed) msg = "Mistletoe needs water";
+      else if (state.donkeyWater < .22) msg = `Burro water · ${Math.round(state.donkeyWater * 100)}%`;
+      else if (state.pourAnim) msg = `Pouring · ${Math.round(state.pourAnim.t / state.pourAnim.dur * 100)}%`;
+      else if (performance.now() < fieldNoticeUntil) msg = fieldNotice;
+      else if (plateStorageFault) msg = "Plate in session · download to keep";
+      else {
+        const c = npCarrier();
+        msg = `${npCharter().carrier} · ${c.liters}/20 L (${c.reserve}L chalk) · ${npEngine.clock(c.watch)}`;
+      }
+      setText("field-notice", msg);
+      notice.toggleAttribute("data-warning", !state.introActive && state.donkeyWater < .22);
+    }
+    function updateFieldHUD() {
+      const motion = currentMotion();
+      const [label, stickName, pitchUp, pitchDown, boost] = labels[motion];
+      const landing = motion === "glide" && state.glide.landing;
+      if (fieldMotion !== motion) {
+        fieldMotion = motion;
+        releaseFieldInputs();
+        setText("field-stick-name", stickName);
+        setText("field-boost", boost);
+        $("field-boost").setAttribute("aria-label", `Hold to ${boost.toLowerCase()}`);
+        if ((motion === "drive" || motion === "glide") && !state.introActive) showFieldTool("map");
+      }
+      setText("field-stick-up", landing ? "" : pitchUp);
+      setText("field-stick-down", landing ? "" : pitchDown);
+      $("field-boost").hidden = landing;
+      const stickLabel = `${stickName}. Drag or use arrow keys.${motion === "glide" && !landing ? " Up to dive, down to climb." : ""}`;
+      if (fieldStick.getAttribute("aria-label") !== stickLabel) fieldStick.setAttribute("aria-label", stickLabel);
+      let status = label;
+      if (motion === "drive") status = `${label} · ${Math.abs(wagon.speed).toFixed(1)} m/s`;
+      if (motion === "glide") {
+        const flight = landing ? "Landing" : state.donkeyOnRoof ? "Wagon flight" : label;
+        status = `${flight} · ${fmtElev(state.antennaElev)}`;
+      }
+      setText("field-place", state.introActive ? "Donkey Water" : currentPlaceName());
+      setText("field-state", state.introActive ? (state.introPhase === "montage" ? "Prologue" : "Grand Teton") :
+        status);
+      $("field-wifi").hidden = state.introActive;
+      setText("field-wifi-value", `WiFi ${state.frameWifiPct}%`);
+      wifiDots.forEach((dot, i) => dot.toggleAttribute("data-lit", state.frameWifiPct > i * 20));
+      $("field-pause").hidden = audioEl.paused;
+      $("field-undo").hidden = state.introActive || !opticsUndo;
+      $("field-progress").hidden = !state.introActive || state.introPhase !== "montage";
+      $("field-progress").value = clamp(state.introT / INTRO_DURATION, 0, 1);
+      for (const id of ["field-enter", "field-prologue", "field-summit"]) $(id).hidden = state.introPhase !== "title";
+      $("field-skip").hidden = state.introPhase !== "montage";
+      updateFieldNotice();
+      document.body.classList.toggle("field-no-guides", !state.ppcOn);
+      if (state.introActive) return;
+
+      setText("field-vehicle", motion === "glide" ? glideActionLabel() : vehicleLabels[motion]);
+      $("field-vehicle").hidden = motion === "walk" && !canStartMotion();
+      $("field-brake").hidden = !state.drivingCart;
+      if (!fieldMap.hidden) updateFieldMap(motion);
+      const context = fieldContext(motion);
+      $("field-context").hidden = !context;
+      setText("field-context", context?.label ?? "");
+      $("field-context").toggleAttribute("data-rescue", context === nearbyActions.water);
+      $("field-expose").toggleAttribute("data-exposed", performance.now() < exposedUntil);
+      const lastPlate = state.plates.at(-1), orb = $("field-orb-img");
+      orb.hidden = !lastPlate;
+      if (lastPlate && orb.getAttribute("src") !== lastPlate.dataUrl) orb.src = lastPlate.dataUrl;
+
+      const settings = fieldSettings(), setting = fieldSetting(settings);
+      const plate = setting.plate && state.plates[selectedFieldPlate()];
+      const adjustable = !!setting.step || (!!plate && state.plates.length > 1);
+      const apply = $("field-apply"), value = $("field-value");
+      const armed = setting.confirm && armedTravel === setting.name && performance.now() < armedUntil;
+      const group = fieldGroups[fieldToolIndex];
+      setText("field-tool-name", group.name);
+      setText("field-band-code", `B${group.band}`);
+      fieldBandToggle.setAttribute("aria-label", `${group.name}, band ${group.band}. Choose a control.`);
+      toolDots.forEach((dot, i) => dot.toggleAttribute("data-lit", i === fieldToolIndex));
+      setText("field-setting-name", setting.name);
+      $("field-setting-next").disabled = settings.length < 2;
+      $("field-setting-next").setAttribute("aria-label", settings.length < 2 ? setting.name : `${setting.name}. Tap or swipe to change setting.`);
+      $("field-lens").toggleAttribute("data-measure", ["Focus", "Aperture", "Chase zoom"].includes(setting.name));
+      const indexMark = $("field-dial-index");
+      indexMark.hidden = !adjustable;
+      const fractions = {
+        Focus: Math.log(state.focusDist / 1.2) / Math.log(900 / 1.2),
+        Aperture: state.stopIdx / (STOPS.length - 1),
+        "Front tilt": (state.tilt + .35) / .7,
+        Filter: state.filterIdx / (FILTERS.length - 1),
+        Render: state.modeIdx / (MODES.length - 1),
+        Shader: (state.soloLook + 1) / LOOKS.length,
+        "Chase zoom": (state.chaseZoom - 4.5) / 17.5,
+        "Focus zone": destinations[0] / (ZONES.length - 1),
+        "Travel zone": destinations[1] / (ZONES.length - 1),
+        "Summit jump": destinations[2] / (SUMMITS.length - 1),
+        "Cue ±10 s": Number.isFinite(audioEl.duration) && audioEl.duration > 0 ? audioEl.currentTime / audioEl.duration : 0,
+        Inspect: selectedFieldPlate() / Math.max(1, state.plates.length - 1),
+        Download: selectedFieldPlate() / Math.max(1, state.plates.length - 1)
+      };
+      indexMark.style.setProperty("--dial-angle", `${-95 + 190 * (fractions[setting.name] ?? .5)}deg`);
+      $("field-choice").toggleAttribute("data-wide", !adjustable);
+      $("field-value-prev").hidden = $("field-value-next").hidden = !adjustable;
+      $("field-value-prev").setAttribute("aria-label", `Previous ${setting.name.toLowerCase()}`);
+      $("field-value-next").setAttribute("aria-label", `Next ${setting.name.toLowerCase()}`);
+      value.hidden = !!setting.run || !!plate;
+      value.disabled = !setting.step;
+      value.toggleAttribute("data-turn", !!setting.step);
+      if (!value.hidden) {
+        setText("field-value", setting.value?.() ?? "No plates");
+        value.setAttribute("aria-label", `${setting.name} ${value.textContent}${setting.step ? ". Tap or drag to adjust." : ""}`);
+      }
+      apply.hidden = !setting.run;
+      apply.toggleAttribute("data-armed", !!armed);
+      if (setting.run) {
+        setText("field-apply", armed ? "Confirm" : setting.value());
+        apply.setAttribute("aria-label", `${armed ? "Confirm " : ""}${setting.name}: ${setting.detail?.() ?? setting.value()}`);
+      }
+      syncFieldPlate(plate, setting.plate);
+    }
+
+    function releaseFieldInputs() {
+      stickPointer = null;
+      setStick(0, 0);
+      for (const button of fieldHoldButtons) button.removeAttribute("data-held");
+      heldPointers.clear();
+      heldButtons.clear();
+    }
+    const fieldClick = (id, handler) => $(id).addEventListener("click", handler);
+    fieldClick("field-value-prev", () => stepFieldValue(-1));
+    fieldClick("field-value-next", () => stepFieldValue(1));
+    fieldClick("field-apply", () => { fieldSetting().run?.(); updateHUD(); });
+    fieldClick("field-pause", () => audioEl.pause());
+    fieldClick("field-undo", () => {
+      if (!opticsUndo) return;
+      Object.assign(state, opticsUndo);
+      opticsUndo = null;
+      applyFieldOptics();
+      toast("Camera adjustment restored");
+    });
+    fieldClick("field-vehicle", () => {
+      if (state.gliding) toggleGlide();
+      else if (state.drivingCart) toggleCart();
+      else if (state.riding) toggleRide();
+      else if (canStartMotion()) toggleCart();
+    });
+    fieldClick("field-map-toggle", () => {
+      showFieldTool(fieldMap.hidden ? "map" : "dial");
+      updateHUD();
+    });
+    fieldClick("field-context", () => fieldContext(currentMotion())?.run());
+    fieldClick("field-expose", exposePlate);
+    fieldClick("field-enter", () => finishIntro(false));
+    fieldClick("field-prologue", startPrologue);
+    fieldClick("field-summit", () => $("intro-jump").click());
+    fieldClick("field-skip", () => finishIntro(false));
+
+    let dialPointer = null;
+    function bindFieldTurn(id, step, tap = () => step(1)) {
+      const key = $(id);
+      let skipClick = false;
+      key.setAttribute("data-turn", "");
+      key.addEventListener("pointerdown", e => {
+        if (e.button !== 0 || dialPointer || key.disabled) return;
+        dialPointer = { key, id: e.pointerId, start: e.clientX };
+        skipClick = false;
+        key.setPointerCapture(e.pointerId);
+      });
+      const isDialPointer = e => dialPointer?.key === key && dialPointer.id === e.pointerId;
+      key.addEventListener("pointerup", e => {
+        if (!isDialPointer(e)) return;
+        const delta = e.clientX - dialPointer.start;
+        dialPointer = null;
+        skipClick = Math.abs(delta) >= 14;
+        if (skipClick && !key.disabled) step(Math.sign(delta) * Math.max(1, Math.floor(Math.abs(delta) / 28)));
+      });
+      for (const type of ["pointercancel", "lostpointercapture"]) {
+        key.addEventListener(type, e => { if (isDialPointer(e)) dialPointer = null; });
+      }
+      key.addEventListener("click", e => {
+        if (!key.disabled && (!skipClick || e.detail === 0)) tap();
+        skipClick = false;
+      });
+      key.addEventListener("keydown", e => {
+        if (key.disabled || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        step(e.key === "ArrowLeft" ? -1 : 1);
+      });
+    }
+    bindFieldTurn("field-band-toggle", step => selectFieldBand(cycle(fieldToolIndex, fieldGroups.length, step)),
+      () => showFieldTool(fieldBandPicker.hidden ? "bands" : "dial"));
+    bindFieldTurn("field-setting-next", step => {
+      fieldSettingIndex = cycle(fieldSettingIndex, fieldSettings().length, step);
+      armedTravel = null;
+      updateHUD();
+    });
+    bindFieldTurn("field-value", stepFieldValue);
+
+    function setStick(x, y) {
+      stickX = x; stickY = y;
+      fieldStick.style.setProperty("--stick-x", `${x * 28}px`);
+      fieldStick.style.setProperty("--stick-y", `${y * 28}px`);
+    }
+    function moveStick(event) {
+      const {left, top, width, height} = fieldStick.getBoundingClientRect();
+      const dx = event.clientX - left - width / 2, dy = event.clientY - top - height / 2;
+      const dist = Math.hypot(dx, dy);
+      const scale = dist > 7 ? 1 / Math.max(31, dist) : 0;
+      setStick(dx * scale, dy * scale);
+    }
+    fieldStick.addEventListener("pointerdown", e => {
+      if (stickPointer !== null || e.button !== 0 || state.introActive) return;
+      stickPointer = e.pointerId;
+      armedTravel = null;
+      fieldStick.setPointerCapture(e.pointerId);
+      moveStick(e);
+    });
+    fieldStick.addEventListener("pointermove", e => { if (stickPointer === e.pointerId) moveStick(e); });
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+      fieldStick.addEventListener(type, e => {
+        if (stickPointer !== e.pointerId) return;
+        stickPointer = null;
+        setStick(0, 0);
+      });
+    }
+    for (const button of fieldHoldButtons) {
+      button.addEventListener("pointerdown", e => {
+        if (e.button !== 0 || state.introActive) return;
+        heldPointers.set(e.pointerId, button);
+        button.setAttribute("data-held", "");
+        button.setPointerCapture(e.pointerId);
+      });
+      for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) button.addEventListener(type, e => {
+        heldPointers.delete(e.pointerId);
+        if (![...heldPointers.values()].includes(button) && !heldButtons.has(button)) button.removeAttribute("data-held");
+      });
+      button.addEventListener("keydown", e => {
+        if (!["Space", "Enter"].includes(e.code)) return;
+        e.preventDefault();
+        heldButtons.add(button);
+        button.setAttribute("data-held", "");
+      });
+      for (const type of ["keyup", "blur"]) button.addEventListener(type, e => {
+        if (type === "keyup" && !["Space", "Enter"].includes(e.code)) return;
+        heldButtons.delete(button);
+        if (![...heldPointers.values()].includes(button)) button.removeAttribute("data-held");
+      });
+    }
+    const fieldHeld = code => fieldHoldButtons.some(button => button.dataset.fieldKey === code &&
+      (heldButtons.has(button) || [...heldPointers.values()].includes(button)));
+
+    /* ---------- Input Handling ---------- */
+    const keys = Object.create(null);
+    addEventListener("keydown", e => {
+      if (contextLost || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.target instanceof Element &&
+          (e.target.closest("input,textarea,select") || (["Space", "Enter"].includes(e.code) && e.target.closest("a,button")))) return;
+      if (state.introActive) {
+        if (e.code === "Escape") { e.preventDefault(); finishIntro(false); return; }
+        if (state.introPhase === "title" && performance.now() - state.bootMs > 450 && ["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp"].includes(e.code)) {
+          finishIntro(false);
+        } else if (e.code === "Enter" || e.code === "Space") {
+          e.preventDefault();
+          if (state.introPhase === "title") startPrologue();
+          else finishIntro(false);
+          return;
+        }
+      }
+      if (e.code === "Escape" && armedTravel) {
+        armedTravel = null;
+        toast("Travel canceled");
+        updateHUD();
+        return;
+      }
+      if (e.code === "Escape" && (!fieldBandPicker.hidden || !fieldMap.hidden)) {
+        e.preventDefault();
+        showFieldTool("dial");
+        return;
+      }
+      keys[e.code] = true;
+      if (e.code === "BracketLeft") { state.focusDist = clamp(state.focusDist * .86, 1.2, 900); state.focusPulse = 1; updateHUD(); }
+      else if (e.code === "BracketRight") { state.focusDist = clamp(state.focusDist * 1.16, 1.2, 900); state.focusPulse = 1; updateHUD(); }
+      else if (e.code === "KeyC" && !e.repeat) toggleCart();
+      else if (e.code === "KeyJ" && !e.repeat) toggleGlide();
+      else if (e.code === "KeyR") toggleRegion();
+      else if (e.code === "KeyV" && !e.repeat) toggleRide();
+      else if (e.code === "KeyP") pumpWell();
+      else if (e.code === "KeyF") pourWifi();
+      else if (e.code === "KeyK") triggerDance();
+      else if (e.code === "KeyL") toggleLidar();
+      else if (e.code === "KeyM") openNpDispatch();
+      else if (e.code === "Tab") { e.preventDefault(); switchNpCircuit(); }
+      else if (e.code === "KeyT") syncResonantZone();
+      else if (e.code === "KeyB") deployRig();
+      else if (e.code === "KeyH") { state.ppcOn = !state.ppcOn; updateHUD(); }
+      else if (e.code === "KeyG") { state.groundGlass = !state.groundGlass; document.body.classList.toggle("ground-glass", state.groundGlass); }
+      else if (e.code === "Space") { e.preventDefault(); exposePlate(); }
+      else if (e.code === "KeyQ") { state.tilt = clamp(state.tilt - .16, -.35, .35); updateHUD(); }
+      else if (e.code === "KeyE") { state.tilt = clamp(state.tilt + .16, -.35, .35); updateHUD(); }
+      else if (e.code >= "Digit1" && e.code <= "Digit6") { state.filterIdx = +e.code.slice(5) - 1; updateHUD(); }
+    });
+    addEventListener("keyup", e => { keys[e.code] = false; });
+
+    let lookPointer = null, lastPX = 0, lastPY = 0;
+    canvas.addEventListener("pointerdown", e => {
+      if (lookPointer !== null || e.button !== 0 || state.introActive || contextLost) return;
+      if (!fieldBandPicker.hidden) showFieldTool("dial");
+      lookPointer = e.pointerId;
+      lastPX = e.clientX;
+      lastPY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener("pointermove", e => {
+      if (lookPointer !== e.pointerId) return;
+      const dx = e.clientX - lastPX, dy = e.clientY - lastPY;
+      lastPX = e.clientX; lastPY = e.clientY;
+      if (state.drivingCart || state.gliding || state.riding) {
+        state.cartYawOffset = clamp(state.cartYawOffset - dx * .0045, -1.8, 1.8);
+        state.cartPitchOffset = clamp(state.cartPitchOffset - dy * .0035, -.45, .45);
+      } else {
+        state.yaw -= dx * .0045;
+        state.pitch = clamp(state.pitch - dy * .0038, -.82, .82);
+      }
+    });
+    for (const event of ["pointerup", "pointercancel", "lostpointercapture"]) {
+      canvas.addEventListener(event, e => { if (lookPointer === e.pointerId) lookPointer = null; });
+    }
+
+    canvas.addEventListener("wheel", e => {
+      e.preventDefault();
+      if (state.drivingCart || state.gliding || state.riding) {
+        state.chaseZoom = clamp(state.chaseZoom * (e.deltaY > 0 ? 1.08 : 0.92), 4.5, 22.0);
+      } else {
+        state.focusDist = clamp(state.focusDist * (e.deltaY > 0 ? 1.09 : 0.917), 1.2, 900);
+        state.focusPulse = 1.0; updateHUD();
+      }
+    }, { passive: false });
+
+    const knobEl = $("focus-knob");
+    let dragKnob = false, knobX0 = 0, knobF0 = 18;
+    knobEl.addEventListener("pointerdown", e => { dragKnob = true; knobX0 = e.clientX; knobF0 = state.focusDist; knobEl.setPointerCapture(e.pointerId); e.stopPropagation(); });
+    knobEl.addEventListener("pointermove", e => {
+      if (!dragKnob) return;
+      state.focusDist = clamp(knobF0 * Math.exp((e.clientX - knobX0) * .014), 1.2, 900);
+      state.focusPulse = 1.0; updateHUD();
+    });
+    addEventListener("pointerup", () => { dragKnob = false; });
+
+    function clearInput() {
+      lookPointer = null;
+      dragKnob = false;
+      dialPointer = null;
+      for (const key of Object.keys(keys)) delete keys[key];
+      releaseFieldInputs();
+    }
+    addEventListener("blur", clearInput);
+    canvas.addEventListener("webglcontextlost", clearInput);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) clearInput(); });
+    fieldLayoutQuery.addEventListener("change", resize);
+
+    let renderWidth = 0, renderHeight = 0;
+    function resize() {
+      const fieldLayout = useFieldLayout();
+      const layoutChanged = camera.userData.fieldLayout !== fieldLayout;
+      if (layoutChanged) {
+        document.body.classList.toggle("field-ui", fieldLayout);
+        clearInput();
+        if (fieldLayout) {
+          state.trayTab = null;
+          $("rack-tray").hidden = $("platebox").hidden = true;
+        } else {
+          showFieldTool("dial");
+        }
+        updateHUD();
+      }
+      const width = Math.max(2, canvas.clientWidth), height = Math.max(2, canvas.clientHeight);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (renderWidth === width && renderHeight === height && !layoutChanged && renderer.getPixelRatio() === dpr) return;
+      renderWidth = width; renderHeight = height;
+      camera.userData.fieldLayout = fieldLayout;
+      if (renderer.getPixelRatio() !== dpr) renderer.setPixelRatio(dpr);
+      const w = Math.floor(width * dpr), h = Math.floor(height * dpr);
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      const portraitBoost = clamp(Math.pow(1.05 / Math.max(.40, camera.aspect), .68), 1, 1.56);
+      camera.fov = clamp(2 * Math.atan(Math.tan(47 * Math.PI / 360) * portraitBoost) * 180 / Math.PI, 47, 72);
+      camera.updateProjectionMatrix();
+      rtScene.setSize(w, h); rtA.setSize(w, h); rtB.setSize(w, h);
+      const crop = captureBounds(width, height), frame = $("cam-frame");
+      frame.style.setProperty("--crop-width", `${crop.w}px`);
+      frame.style.setProperty("--crop-height", `${crop.h}px`);
+    }
+    addEventListener("resize", resize);
+    new ResizeObserver(resize).observe(canvas);
+    resize();
+
+    /* ---------- Simulation Loop: Unified Open World + Spatial Audio + Flow Puzzle + Hydration + Pour & Eskista Dance ---------- */
+    const donkeyHand = new T.Vector3(), halterOut = new T.Vector3(), roofWorldPos = new T.Vector3();
+    const tmpCamPos = new T.Vector3(), tmpCamLook = new T.Vector3(), tmpCamFwd = new T.Vector3();
+    let lastT = null, meterClock = 0;
+
+    function worldBoundsClamp(x, z) {
+      const [minX, maxX, minZ, maxZ] = mw.playableBounds;
+      return [clamp(x, minX, maxX), clamp(z, minZ, maxZ)];
+    }
+
+    function poseRoofRider(dt, pitch = 0, roll = 0) {
+      wagon.roofStandSpot.getWorldPosition(roofWorldPos);
+      state.roofMountT = Math.min(1, state.roofMountT + dt * 2.8);
+      const hop = smooth(0, 1, state.roofMountT), arc = Math.sin(state.roofMountT * Math.PI) * 1.35;
+      const x = lerp(state.roofJumpStart.x, roofWorldPos.x, hop);
+      const y = lerp(state.roofJumpStart.y, roofWorldPos.y, hop) + arc;
+      const z = lerp(state.roofJumpStart.z, roofWorldPos.z, hop);
+      donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, () => y);
+      Object.assign(donkey.state, { x, y, z, heading: wagon.heading });
+      donkey.group.position.set(x, y, z);
+      donkey.group.rotation.set(pitch, wagon.heading, roll, "YXZ");
+    }
+
+    function poseGlider(dt) {
+      const g = state.glide;
+      const pitch = clamp(-g.vy * .022, -.42, .32), roll = -g.bank;
+      if (state.donkeyOnRoof) {
+        Object.assign(wagon, { x: g.x, y: g.y, z: g.z, heading: g.heading, speed: g.speed });
+        wagon.group.position.set(g.x, g.y, g.z);
+        wagon.group.rotation.set(pitch, g.heading, roll, "YXZ");
+        wagon.chassis.position.y = 0;
+        wagon.chassis.rotation.set(0, 0, 0);
+        poseRoofRider(dt, pitch, roll);
+      } else {
+        donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 0, drop: 0 }, () => g.y + .22);
+        Object.assign(donkey.state, { x: g.x, y: g.y, z: g.z, heading: g.heading });
+        donkey.group.position.set(g.x, g.y, g.z);
+        donkey.group.rotation.set(pitch, g.heading, roll, "YXZ");
+      }
+      donkey.group.updateMatrixWorld(true);
+    }
+
+    function stepGlide(dt, pitchInput, steer, lift, flowSpeedMult) {
+      const g = state.glide;
+      if (g.cruising && (lift || Math.abs(steer) > .2 || Math.abs(pitchInput) > .2)) {
+        g.cruising = false;
+        toast("Cruise stopped · manual flight");
+      }
+      const surface = driveSurfaceAt(g.x, g.z), clearance = g.y - surface;
+      let speed, vertical;
+      if (g.cruising) {
+        const dx = g.waypoint.x - g.x, dz = g.waypoint.z - g.z;
+        const error = Math.atan2(dx, dz) - g.heading;
+        const angle = Math.atan2(Math.sin(error), Math.cos(error));
+        steer = clamp(-angle * 1.8, -1, 1);
+        const cruiseSpeed = lerp(32, 240, smooth(25, 250, clearance));
+        speed = Math.min(cruiseSpeed, Math.max(16, Math.hypot(dx, dz) * .45)) * Math.max(.14, Math.cos(angle));
+        vertical = clamp((g.waypoint.y + 170 - g.y) * .9, -28, 58);
+      } else if (g.landing) {
+        speed = clamp(3 + clearance * .045, 3, 13);
+        vertical = -clamp(2 + clearance * .25, 2, 64);
+      } else if (state.donkeyOnRoof && g.time < .8) {
+        speed = 24;
+        vertical = 13;
+      } else {
+        speed = (lift ? lerp(38, 150, smooth(85, 460, clearance)) : pitchInput > .14 ? 46 : pitchInput < -.14 ? 18 : 27) * flowSpeedMult;
+        vertical = lift ? lerp(11.5, 35, smooth(45, 240, clearance)) : pitchInput > .14 ? -15.5 : pitchInput < -.14 ? 9.5 : -2.6;
+        const ceiling = Math.max(mw.tetonRange.y + 400, surface + 140);
+        if (vertical > 0) vertical = Math.min(vertical, Math.max(0, ceiling - g.y));
+      }
+
+      g.time += dt;
+      const turnRate = lerp(1.75, .45, smooth(45, 235, g.speed));
+      g.heading -= steer * turnRate * dt;
+      g.bank = lerp(g.bank, steer * (state.donkeyOnRoof ? .32 : .46), 1 - Math.exp(-dt * 8));
+      g.speed = lerp(g.speed, speed, 1 - Math.exp(-dt * (g.cruising ? 2.8 : 5)));
+      g.vy = lerp(g.vy, vertical, 1 - Math.exp(-dt * 4.5));
+      g.y += g.vy * dt;
+
+      const [x, z] = worldBoundsClamp(g.x + Math.sin(g.heading) * g.speed * dt, g.z + Math.cos(g.heading) * g.speed * dt);
+      const nextGround = driveSurfaceAt(x, z);
+      let contact = surface;
+      if (g.cruising && g.vy > 0 && g.y < nextGround + 8) {
+        g.speed = 0;
+      } else {
+        g.x = x;
+        g.z = z;
+        contact = nextGround;
+      }
+      if (g.y <= contact + .45 && g.time > .45) { landGlide(); return false; }
+      g.y = Math.max(g.y, contact + .45);
+      if (g.cruising && Math.hypot(g.waypoint.x - g.x, g.waypoint.z - g.z) <= TETON_ARRIVAL_DISTANCE) {
+        g.cruising = false;
+        g.speed = Math.min(g.speed, 27);
+        toast("Teton Range reached");
+      }
+      return true;
+    }
+
+    function step(dt) {
+      const fwdInput = clamp((keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - stickY, -1, 1);
+      const sideInput = clamp((keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + stickX, -1, 1);
+      const turbo = keys.ShiftLeft || keys.ShiftRight || fieldHeld("ShiftLeft");
+      const brakeInput = keys.KeyX || fieldHeld("KeyX");
+      const nowSec = performance.now() * .001;
+      const portPull = camera.aspect < .85 ? 1.38 : 1;
+      const portLift = camera.aspect < .85 ? .85 : 0;
+
+      if (state.pingTimer > 0) state.pingTimer = Math.max(0, state.pingTimer - dt);
+
+      // Check proximity to active Song-Resonant Flow Conduit for movement/hydration boost
+      const epInfo = activeEpochInfo(audioEl.currentTime || 0, nowSec);
+      if (state.songEpochIdx !== epInfo.idx) {
+        state.songEpochIdx = epInfo.idx;
+        state.resonantZone = epInfo.ep.zone;
+        state.zoneSynced = (state.meteredZone === state.resonantZone);
+      }
+      const activeConduit = flowConduits[state.songEpochIdx];
+      let onResonantPath = false;
+      if (activeConduit) {
+        for (let k = 0; k < activeConduit.pts.length - 1; k++) {
+          const [ax, az] = activeConduit.pts[k], [bx, bz] = activeConduit.pts[k + 1];
+          const abx = bx - ax, abz = bz - az, l2 = abx * abx + abz * abz || 1;
+          const u = clamp(((state.x - ax) * abx + (state.z - az) * abz) / l2, 0, 1);
+          if (Math.hypot(state.x - (ax + abx * u), state.z - (az + abz * u)) < 26) { onResonantPath = true; break; }
+        }
+      }
+      const flowSpeedMult = (onResonantPath || state.zoneSynced) ? 1.35 : 1.0;
+
+      // Audio Analysis & Beat Pulse
+      const sp = audio.sampleTape(dt, nowSec, !audioEl.paused);
+      state.beatPulse = lerp(state.beatPulse, Math.max(sp.spatialBeat, audioEl.paused ? 0 : sp.beatPulse), clamp(dt * 12, 0, 1));
+      lookMat.uniforms.uAudioBass.value = lerp(lookMat.uniforms.uAudioBass.value, sp.bass, clamp(dt * 10, 0, 1));
+      lookMat.uniforms.uAudioHigh.value = lerp(lookMat.uniforms.uAudioHigh.value, sp.high, clamp(dt * 10, 0, 1));
+      lookMat.uniforms.uBeatPulse.value = state.beatPulse;
+      lookMat.uniforms.uT.value = nowSec;
+      state.focusPulse = Math.max(0, state.focusPulse - dt * 1.4);
+      lookMat.uniforms.uFocusPulse.value = state.focusPulse;
+      if (!useFieldLayout()) drawRadioViz(sp.bands12, state.beatPulse);
+
+      if (state.introActive) {
+        donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, (x, z) => driveSurfaceAt(x, z));
+        if (state.introPhase === "title") {
+          const orb = nowSec * .085;
+          tmpCamPos.set(-8.0 + Math.cos(orb) * 6.5, 171.5 + Math.sin(orb * .7) * 2.2, 2.0 + Math.sin(orb) * 19.0);
+          tmpCamLook.set(-68.0, 140.0, -4.0);
+          applyLevelChaseCamera(tmpCamPos, tmpCamLook);
+          state.focusDist = 26.0;
+        } else if (state.introPhase === "montage") {
+          state.introT += dt;
+          if (state.introT >= INTRO_DURATION) {
+            finishIntro(false);
+          } else {
+            let idx = INTRO_SHOTS.findIndex(s => state.introT >= s.t0 && state.introT < s.t1);
+            if (idx < 0) idx = INTRO_SHOTS.length - 1;
+            const s = INTRO_SHOTS[idx];
+            if (state.introShotIdx !== idx) {
+              state.introShotIdx = idx;
+              state.modeIdx = s.modeIdx;
+              if (s.onEnter) s.onEnter();
+              if ($("cinema-shot-kicker")) $("cinema-shot-kicker").textContent = s.kicker;
+              if ($("cinema-shot-line")) $("cinema-shot-line").textContent = s.line;
+            }
+            const u = smooth(0, 1, clamp((state.introT - s.t0) / Math.max(.01, s.t1 - s.t0), 0, 1));
+            tmpCamPos.set(lerp(s.fromPos[0], s.toPos[0], u), lerp(s.fromPos[1], s.toPos[1], u), lerp(s.fromPos[2], s.toPos[2], u));
+            tmpCamLook.set(lerp(s.fromLook[0], s.toLook[0], u), lerp(s.fromLook[1], s.toLook[1], u), lerp(s.fromLook[2], s.toLook[2], u));
+            applyLevelChaseCamera(tmpCamPos, tmpCamLook);
+            state.focusDist = lerp(s.focus0, s.focus1, u);
+            if ($("cinema-shot-bar")) $("cinema-shot-bar").style.width = `${clamp((state.introT / INTRO_DURATION) * 100, 0, 100)}%`;
+          }
+        }
+      } else if (state.gliding) {
+        if (stepGlide(dt, fwdInput, sideInput, turbo, flowSpeedMult)) {
+          const g = state.glide, withWagon = state.donkeyOnRoof;
+          state.glideOpen = lerp(state.glideOpen, 1, 1 - Math.exp(-dt * 11));
+          donkeyGlider.scale.setScalar(state.glideOpen);
+          poseGlider(dt);
+
+          wingTipL.getWorldPosition(tmpTipL);
+          wingTipR.getWorldPosition(tmpTipR);
+          contrailL.line.visible = contrailR.line.visible = true;
+          contrailL.pts.pop(); contrailL.pts.unshift(tmpTipL.clone());
+          contrailR.pts.pop(); contrailR.pts.unshift(tmpTipR.clone());
+          for (let i = 0; i < TRAIL_N; i++) {
+            const pL = contrailL.pts[i], pR = contrailR.pts[i];
+            contrailL.pos[i * 3] = pL.x; contrailL.pos[i * 3 + 1] = pL.y; contrailL.pos[i * 3 + 2] = pL.z;
+            contrailR.pos[i * 3] = pR.x; contrailR.pos[i * 3 + 1] = pR.y; contrailR.pos[i * 3 + 2] = pR.z;
+          }
+          contrailL.line.geometry.attributes.position.needsUpdate = true;
+          contrailR.line.geometry.attributes.position.needsUpdate = true;
+
+          const camDist = state.chaseZoom * (withWagon ? 1.34 : .82) * portPull;
+          const lookHdg = g.heading + state.cartYawOffset;
+          const camX = g.x - Math.sin(lookHdg) * camDist, camZ = g.z - Math.cos(lookHdg) * camDist;
+          const camY = g.y + (withWagon ? 5.5 : 3.0) + portLift + state.cartPitchOffset * 4.5;
+          tmpCamPos.set(camX, Math.max(driveSurfaceAt(camX, camZ) + 1.8, camY), camZ);
+          tmpCamLook.set(g.x + Math.sin(g.heading) * 14, g.y + (withWagon ? 3.3 : 1.1 + portLift * .88), g.z + Math.cos(g.heading) * 14);
+          const follow = lerp(9.5, 32, smooth(45, 240, g.speed));
+          state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * follow));
+          state.chaseLookAt.lerp(tmpCamLook, 1 - Math.exp(-dt * (follow + 1.5)));
+          applyLevelChaseCamera(state.chaseCamPos, state.chaseLookAt);
+          state.x = g.x; state.z = g.z; state.y = g.y;
+          state.yaw = lookHdg + Math.PI;
+        }
+      } else if (state.drivingCart) {
+        /* --- CRUISER WOODY STATION WAGON (PHYSICS & COLLISIONS OFF + SUSPENSION SPRING) --- */
+        const targetSpeed = (brakeInput ? 0 : fwdInput > .08 ? clamp(fwdInput, .35, 1) * (turbo ? 42.0 : 25.0) : fwdInput < -.08 ? fwdInput * 15.0 : 0) * flowSpeedMult;
+        const accelRate = (Math.abs(fwdInput) <= .08 || brakeInput) ? 9.5 : 6.8;
+        wagon.speed = lerp(wagon.speed, targetSpeed, 1 - Math.exp(-dt * accelRate));
+        if (Math.abs(wagon.speed) < .06 && Math.abs(fwdInput) <= .08) wagon.speed = 0;
+
+        const revFlip = (fwdInput < 0 && wagon.speed < -.5) ? -1 : 1;
+        wagon.heading -= sideInput * revFlip * 1.85 * dt;
+        wagon.steerAngle = lerp(wagon.steerAngle, -sideInput * .38, 1 - Math.exp(-dt * 12));
+
+        [wagon.x, wagon.z] = worldBoundsClamp(wagon.x + Math.sin(wagon.heading) * wagon.speed * dt, wagon.z + Math.cos(wagon.heading) * wagon.speed * dt);
+        const surfY = driveSurfaceAt(wagon.x, wagon.z);
+        wagon.y = lerp(wagon.y, surfY, 1 - Math.exp(-dt * 18));
+
+        const sinH = Math.sin(wagon.heading), cosH = Math.cos(wagon.heading);
+        const fH = driveSurfaceAt(wagon.x + sinH * 1.65, wagon.z + cosH * 1.65);
+        const rH = driveSurfaceAt(wagon.x - sinH * 1.65, wagon.z - cosH * 1.65);
+        wagon.pitch = lerp(wagon.pitch, clamp(Math.atan2(fH - rH, 3.30) * .65, -.16, .16), 1 - Math.exp(-dt * 12));
+        wagon.roll = lerp(wagon.roll, clamp(-sideInput * Math.min(1, Math.abs(wagon.speed) / 20) * .045, -.05, .05), 1 - Math.exp(-dt * 10));
+
+        wagon.group.position.set(wagon.x, wagon.y, wagon.z);
+        wagon.group.rotation.y = wagon.heading;
+        wagon.chassis.position.y = Math.sin(nowSec * 9.5) * .018 * clamp(Math.abs(wagon.speed) / 20, 0, 1);
+        wagon.chassis.rotation.x = wagon.pitch;
+        wagon.chassis.rotation.z = wagon.roll;
+
+        for (const w of wagon.wheels) {
+          w.mount.position.y = .394;
+          w.spin.rotation.x -= (wagon.speed * dt) / .394;
+          if (w.front) w.mount.rotation.y = wagon.steerAngle;
+        }
+
+        poseRoofRider(dt);
+
+        const lookHdg = wagon.heading + state.cartYawOffset, wZoom = state.chaseZoom * portPull;
+        const camX = wagon.x - Math.sin(lookHdg) * wZoom, camZ = wagon.z - Math.cos(lookHdg) * wZoom;
+        tmpCamPos.set(camX, Math.max(driveSurfaceAt(camX, camZ) + 2.0, wagon.y + 4.35 + portLift + state.cartPitchOffset * 4.2), camZ);
+        tmpCamLook.set(wagon.x + Math.sin(wagon.heading) * 10, wagon.y + 2.4, wagon.z + Math.cos(wagon.heading) * 10);
+        state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * 9.5));
+        state.chaseLookAt.lerp(tmpCamLook, 1 - Math.exp(-dt * 11));
+        applyLevelChaseCamera(state.chaseCamPos, state.chaseLookAt);
+        state.x = wagon.x; state.z = wagon.z; state.y = wagon.y + 2.0;
+        state.yaw = lookHdg + Math.PI;
+      } else if (state.riding) {
+        /* --- 3RD-PERSON LEVEL TRAIL CAMERA RIDING MISTLETOE (FIXES SIDEWAYS VIEW) --- */
+        const stepFn = (x, z) => driveSurfaceAt(x, z);
+        const effThrottle = state.donkeyCollapsed ? 0 : fwdInput;
+        donkey.update(dt, { throttle: effThrottle, steer: -sideInput, pace: turbo ? 2 : state.gaitIdx, near: 0, drop: 0 }, stepFn);
+        [donkey.state.x, donkey.state.z] = worldBoundsClamp(donkey.state.x, donkey.state.z);
+        donkey.group.position.set(donkey.state.x, donkey.state.y, donkey.state.z);
+
+        const aheadX = donkey.state.x + Math.sin(donkey.state.heading) * 2.5, aheadZ = donkey.state.z + Math.cos(donkey.state.heading) * 2.5;
+        if (!state.donkeyCollapsed && donkey.group.position.y - driveSurfaceAt(aheadX, aheadZ) > 4.5 && fwdInput > .15) {
+          toggleGlide({ x: donkey.state.x, z: donkey.state.z, boostY: 2.0, heading: donkey.state.heading, name: "Cliff Edge Auto-Launch!" });
+        } else {
+          const lookHdg = donkey.state.heading + state.cartYawOffset;
+          const distBack = 5.4 * portPull * (useFieldLayout() ? state.chaseZoom / 9.2 : 1);
+          const camX = donkey.state.x - Math.sin(lookHdg) * distBack, camZ = donkey.state.z - Math.cos(lookHdg) * distBack;
+          tmpCamPos.set(camX, Math.max(driveSurfaceAt(camX, camZ) + 1.5, donkey.group.position.y + 2.35 + portLift * .7 + state.cartPitchOffset * 2.6), camZ);
+          tmpCamLook.set(donkey.state.x + Math.sin(donkey.state.heading) * 8.0, donkey.group.position.y + 1.35, donkey.state.z + Math.cos(donkey.state.heading) * 8.0);
+          state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * 11));
+          state.chaseLookAt.lerp(tmpCamLook, 1 - Math.exp(-dt * 13));
+          applyLevelChaseCamera(state.chaseCamPos, state.chaseLookAt);
+          state.x = donkey.state.x; state.z = donkey.state.z; state.y = donkey.group.position.y + 1.65;
+          state.yaw = lookHdg + Math.PI;
+        }
+      } else {
+        /* --- ON FOOT (COLLISIONS OFF) + LEADING MISTLETOE --- */
+        const speed = (turbo ? 16.0 : 7.5) * flowSpeedMult;
+        const sx = Math.sin(state.yaw), cz = Math.cos(state.yaw);
+        [state.x, state.z] = worldBoundsClamp(state.x + (-sx * fwdInput + cz * sideInput) * speed * dt, state.z + (-cz * fwdInput - sx * sideInput) * speed * dt);
+        state.y = lerp(state.y, driveSurfaceAt(state.x, state.z) + 1.68, 1 - Math.exp(-dt * 14));
+        const dx = state.x - donkey.state.x, dz = state.z - donkey.state.z, dist = Math.hypot(dx, dz);
+        const stepFn = (x, z) => driveSurfaceAt(x, z);
+        if (state.donkeyCollapsed || state.pourAnim) {
+          donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, stepFn);
+        } else if (state.leadMode === "lead" && dist > 3.6) {
+          const want = Math.atan2(dx, dz), df = Math.atan2(Math.sin(want - donkey.state.heading), Math.cos(want - donkey.state.heading));
+          donkey.update(dt, { throttle: clamp((dist - 3.0) * .55, 0, 1), steer: clamp(df * 1.4, -1, 1), pace: dist > 10 ? 1 : 0, near: 1, drop: 0 }, stepFn);
+        } else {
+          donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: dist < 3.5 ? 1 : 0, drop: 0 }, stepFn);
+        }
+        applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
+      }
+
+      /* --- Animated Pouring & Sequential Jerrycan Filling + Eskista Dance --- */
+      if (state.pourAnim) {
+        const pa = state.pourAnim, r = pa.relay;
+        pa.t += dt;
+        const p = clamp(pa.t / pa.dur, 0, 1);
+        const aimAng = Math.atan2(r.x - donkey.state.x, r.z - donkey.state.z);
+        donkey.state.heading = lerp(donkey.state.heading, aimAng, clamp(dt * 8, 0, 1));
+        donkey.group.rotation.y = donkey.state.heading;
+        donkey.group.rotation.x += Math.sin(p * Math.PI) * .28;
+        donkeyRig.rotation.x = Math.sin(p * Math.PI) * .16;
+
+        pourGroup.visible = true;
+        const basinPos = new T.Vector3(r.x, r.y + .35, r.z);
+        const sinH = Math.sin(donkey.state.heading), cosH = Math.cos(donkey.state.heading);
+        const spoutL = new T.Vector3(donkey.state.x - cosH * .38 + sinH * .32, donkey.group.position.y + 1.05, donkey.state.z + sinH * .38 + cosH * .32);
+        const spoutR = new T.Vector3(donkey.state.x + cosH * .38 + sinH * .32, donkey.group.position.y + 1.05, donkey.state.z - sinH * .38 + cosH * .32);
+        const midL = spoutL.clone().lerp(basinPos, .5).add(new T.Vector3(0, .55, 0));
+        const midR = spoutR.clone().lerp(basinPos, .5).add(new T.Vector3(0, .55, 0));
+        const aimTube = (m, a, b) => {
+          const dv = b.clone().sub(a), l = Math.max(.08, dv.length());
+          m.position.copy(a).lerp(b, .5); m.scale.set(1, l, 1);
+          m.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), dv.normalize());
+        };
+        aimTube(pourMeshL, spoutL, midL);
+        aimTube(pourMeshR, spoutR, midR);
+        aimTube(pourMeshL2, midL, basinPos);
+        aimTube(pourMeshR2, midR, basinPos);
+        // Update pool & sequentially fill depot's jerrycans!
+        if (r.poolMesh) { r.poolMesh.material = cyanWaterMat; r.poolMesh.position.y = lerp(.08, .42, p); }
+        const nC = r.cans.length;
+        for (let ci = 0; ci < nC; ci++) {
+          const cf = clamp((p * (nC + 1) - ci), 0, 1);
+          r.cans[ci].userData.setFill(cf);
+        }
+        const cIdx = Math.floor(p * 6);
+        if (cIdx > pa.lastChime) { pa.lastChime = cIdx; audio.pourSplash(cIdx); }
+        for (let si = 0; si < splashDrops.length; si++) {
+          const spPh = fract(nowSec * 2.4 + si / splashDrops.length);
+          const srcPt = si % 2 ? midL : midR;
+          const pt = srcPt.clone().lerp(basinPos, spPh);
+          pt.y += Math.sin(spPh * Math.PI) * .45;
+          splashDrops[si].position.copy(pt);
+        }
+        if (pa.t >= pa.dur) {
+          pourGroup.visible = false;
+          donkeyRig.rotation.x = 0;
+          state.pourAnim = null;
+          finishRelayIgnition(r);
+        }
+      } else {
+        pourGroup.visible = false;
+        donkeyRig.rotation.x = lerp(donkeyRig.rotation.x, 0, clamp(dt * 8, 0, 1));
+      }
+
+      state.danceTimer = Math.max(0, state.danceTimer - dt);
+      if (state.danceTimer > 0 && !state.donkeyCollapsed && !state.drivingCart && !state.gliding) {
+        const ph = nowSec * 9.8; // 6/8 Cosmic Addis Eskista tempo
+        donkey.group.position.y += Math.abs(Math.sin(ph)) * .22;
+        donkey.group.rotation.y += Math.sin(ph * .5) * .36;
+        donkey.group.rotation.z += Math.sin(ph) * .16;
+        donkeyRig.rotation.z = Math.sin(ph * 2.0) * .18;
+        donkeyRig.rotation.y = Math.cos(ph) * .14;
+      } else {
+        donkeyRig.rotation.z = lerp(donkeyRig.rotation.z, 0, clamp(dt * 8, 0, 1));
+        donkeyRig.rotation.y = lerp(donkeyRig.rotation.y, 0, clamp(dt * 8, 0, 1));
+      }
+
+      /* --- Donkey Hydration Survival ("the donkey must have water or it will die") --- */
+      const nearWell = Math.hypot(well.x - donkey.state.x, well.z - donkey.state.z) < 16;
+      const inRiver = donkey.state.x < 280 && mw.wet(donkey.state.x, donkey.state.z) > -1.2;
+      const inAbyssSanctuary = Math.hypot(donkey.state.x - ABYSS_OX, donkey.state.z - ABYSS_OZ) < 175;
+      const nearLitCistern = relays.some(r => r.lit && Math.hypot(r.x - donkey.state.x, r.z - donkey.state.z) < 24);
+      if (nearWell || inRiver || inAbyssSanctuary || nearLitCistern || onResonantPath || !!state.pourAnim) {
+        if (!state.donkeyCollapsed) state.donkeyWater = clamp(state.donkeyWater + dt * .42, 0, 1);
+      } else if (!state.introActive && !state.donkeyCollapsed) {
+        const moveEffort = state.gliding ? .0035 :
+          (state.drivingCart || Math.abs(donkey.state.speed) > 1.2 || fwdInput !== 0) ? .011 : .0045;
+        state.donkeyWater = clamp(state.donkeyWater - moveEffort * dt, 0, 1);
+      }
+      if (state.donkeyWater <= 0 && !state.donkeyCollapsed) {
+        if (state.gliding) landGlide(false);
+        state.donkeyCollapsed = true;
+        donkey.state.collapsed = true;
+        donkey.state.downWant = true;
+        donkey.state.stamina = .05;
+        state.riding = false; state.drivingCart = false; state.donkeyOnRoof = false;
+        wagon.speed = 0;
+        applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
+        toast("EMERGENCY: Mistletoe collapsed from thirst! Press P to give water!", "Mistletoe needs water");
+        updateHUD();
+      } else if (state.donkeyCollapsed && state.donkeyWater > .25) {
+        state.donkeyCollapsed = false;
+        donkey.state.collapsed = false;
+        donkey.state.downWant = false;
+        donkey.state.stamina = 1.0;
+        updateHUD();
+      }
+
+      /* --- Update 3D Spatial Donkey Radio & Speaker Cones --- */
+      camera.getWorldDirection(tmpCamFwd);
+      audio.updateSpatial(camera.position, tmpCamFwd, donkey.group.position);
+      const fo = audio.getDistFalloff();
+      state.audioDistMeters = fo.distMeters;
+      state.audioFalloffDb = fo.falloffDb;
+      for (const sc of speakerCones) {
+        const scScl = 1.0 + state.beatPulse * .42;
+        sc.scale.setScalar(scScl);
+        sc.material.emissiveIntensity = .9 + state.beatPulse * 1.4;
+      }
+
+      /* Elevation & Live WiFi Field */
+      state.region = regionAt(donkey.state.x, donkey.state.z);
+      const floorY = state.region === "ridge" ? 148.0 : state.region === "abyss" ? 48.0 : 65.5;
+      state.antennaElev = donkey.group.position.y + 2.35;
+      state.relElev = Math.max(0, state.antennaElev - floorY);
+      const pingBoost = state.pingTimer > 0 ? 1.25 : 1.0;
+      const syncBoost = state.zoneSynced ? 55 : 0;
+      state.signalRadius = clamp((28 + Math.min(220, state.relElev * 1.25) + syncBoost) * (.72 + .28 * state.wifiCharge) * pingBoost, 24, 245);
+
+      checkForestUnlocks();
+      for (const g of forestGroves) {
+        g.grow = lerp(g.grow, g.unlocked ? 1.0 : .22, 1 - Math.exp(-dt * 2.2));
+        for (let t = 0; t < g.meshes.length; t++) {
+          const item = g.meshes[t];
+          const scl = g.grow * item.targetH;
+          item.mesh.scale.setScalar(scl);
+          item.mesh.rotation.z = g.unlocked ? .035 * Math.sin(nowSec * .9 + item.phase) : 0;
+          if (g.tips[t]) { g.tips[t].position.y = scl * 18.5 + .45; g.tips[t].rotation.y = nowSec * (g.unlocked ? 1.8 : .4); }
+        }
+        if (g.unlocked) {
+          for (const fr of g.fronds) {
+            fr.mesh.rotation.x = fr.basePitch + Math.sin(nowSec * 1.85 + fr.phase) * (.08 + .07 * state.beatPulse);
+            fr.mesh.rotation.z = Math.cos(nowSec * 1.35 + fr.phase * 1.4) * .06;
+          }
+          for (let b = 0; b < g.banners.length; b++) {
+            g.banners[b].rotation.x = Math.sin(nowSec * 1.15 + b * 1.3) * .05;
+          }
+        }
+      }
+
+      // Animate Song-Resonant Flow Conduits & Chevrons
+      for (const fc of flowConduits) {
+        const isRes = fc.epochIdx === state.songEpochIdx;
+        fc.mat.opacity = isRes ? (.52 + .35 * state.beatPulse + (state.zoneSynced ? .18 : 0)) : (state.lidarOn ? .42 : .16);
+        fc.mat.color.setHex(isRes ? (state.zoneSynced ? 0x54ecff : 0x18b4ff) : 0x0052cc);
+        for (const ch of fc.chevs) {
+          const u = fract(nowSec * (isRes ? .18 : .08) + ch.offset);
+          const pos = fc.curve.getPointAt(u), tan = fc.curve.getTangentAt(u);
+          ch.mesh.position.copy(pos);
+          ch.mesh.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), tan);
+          const s = isRes ? (1.25 + .45 * state.beatPulse) : .85;
+          ch.mesh.scale.setScalar(s);
+        }
+      }
+
+      // Auto-pour when arriving right beside an unlit cistern with free water above the 4 L chalk mark
+      if (!state.pourAnim && !state.donkeyCollapsed && npCarrier().liters > npCarrier().reserve) {
+        if (interruptedRelay && Math.hypot(interruptedRelay.x - donkey.state.x, interruptedRelay.z - donkey.state.z) >= 8) interruptedRelay = null;
+        for (const r of relays) {
+          if (r.lit || r === interruptedRelay) continue;
+          if (Math.hypot(r.x - donkey.state.x, r.z - donkey.state.z) < 6.0) { startPourAnim(r); break; }
+        }
+      }
+
+      // Live Donkey WiFi Rings & Expanding 3D Wavefront Arcs pulsed by the Song Beat!
+      const beatMul = 1.0 + state.beatPulse * .28;
+      donkeyRings[0].radius = state.signalRadius * .28 * beatMul;
+      donkeyRings[1].radius = state.signalRadius * .62 * beatMul;
+      donkeyRings[2].radius = state.signalRadius * beatMul;
+      for (const rg of donkeyRings) updateTerrainRing(rg, donkey.state.x, donkey.state.z, .25);
+      for (const wv of waveArcs) {
+        const p = fract(nowSec * (.42 + state.beatPulse * .35) + wv.phase);
+        const rad = lerp(1.0, Math.min(28.0, state.signalRadius * .48 * beatMul), p);
+        wv.mesh.position.set(donkey.state.x, donkey.group.position.y + 2.0 + p * 2.1, donkey.state.z);
+        wv.mesh.scale.set(rad, 1, rad);
+        wv.mesh.material.opacity = (1 - p) * clamp(.75 + state.beatPulse * .35, 0, 1) * (.6 + .4 * state.wifiCharge);
+      }
+      whip.rotation.z = Math.sin(nowSec * 3.1) * (.08 + .08 * state.beatPulse);
+
+      if (state.pumpFlow > .05) {
+        state.pumpFlow = Math.max(.22, state.pumpFlow - dt * .04);
+        state.pumpLeverPhase += dt * 4.5;
+        well.leverPivot.rotation.z = Math.sin(state.pumpLeverPhase) * .35 * smooth(.22, .65, state.pumpFlow);
+      }
+      well.stream.visible = state.pumpFlow > .25;
+      well.stream.scale.set(state.pumpFlow, 1, state.pumpFlow);
+      well.pool.position.y = .21 + Math.sin(nowSec * 4.0) * .012;
+
+      /* --- WIFI WATER RAIN FALLS STRICTLY INSIDE ACTIVE WIFI DONKEY REACH (BEAT-PULSED!) --- */
+      const emitters = sampleWifiEmitters();
+      const rainBeatSpd = 1.0 + state.beatPulse * 1.15;
+      const rainLen = .85 + state.beatPulse * 1.35;
+      for (let i = 0; i < RAIN_N; i++) {
+        rainY[i] -= rainSpd[i] * rainBeatSpd * dt;
+        const surf = driveSurfaceAt(rainX[i], rainZ[i]);
+        if (rainY[i] < surf || !inWifiReach(rainX[i], rainZ[i], emitters)) respawnRaindrop(i, emitters);
+        const rx = rainX[i], ry = rainY[i], rz = rainZ[i], base = i * 6;
+        rainPos[base] = rx; rainPos[base + 1] = ry; rainPos[base + 2] = rz;
+        rainPos[base + 3] = rx; rainPos[base + 4] = ry + rainLen; rainPos[base + 5] = rz;
+      }
+      rainGeo.attributes.position.needsUpdate = true;
+
+      leadRope.visible = !state.riding && !state.drivingCart && !state.gliding && !state.donkeyCollapsed;
+      if (leadRope.visible) {
+        donkey.halterRing(halterOut);
+        donkeyHand.set(state.x + Math.cos(state.yaw) * .35, state.y - .42, state.z - Math.sin(state.yaw) * .35);
+        const posArr = ropeGeo.attributes.position.array, sag = clamp(halterOut.distanceTo(donkeyHand) * .14, .1, 1.1);
+        for (let i = 0; i <= 12; i++) {
+          const u = i / 12;
+          posArr[i * 3] = lerp(donkeyHand.x, halterOut.x, u);
+          posArr[i * 3 + 1] = lerp(donkeyHand.y, halterOut.y, u) - Math.sin(u * Math.PI) * sag;
+          posArr[i * 3 + 2] = lerp(donkeyHand.z, halterOut.z, u);
+        }
+        ropeGeo.attributes.position.needsUpdate = true;
+      }
+
+      // Sync 2086 Mistletoe 20L chalk-marked saddle cans + screening cues + station proximity
+      const npC = npCarrier();
+      const canFrac = clamp(npC.liters / 20, 0, 1);
+      for (const sc of saddleCans) { sc.userData.setFill(canFrac); sc.userData.setDull(npC.liters <= 0); }
+      if (npScreeningMode && $("np-prog-cue")) {
+        npScreenTimer += dt;
+        const tails = npCharter().tailWords;
+        const idx = clamp(Math.floor((npScreenTimer % 8.4) / 2.8), 0, tails.length - 1);
+        setText("np-prog-cue", `“${tails[idx]}”`);
+      }
+      if (!state.introActive && !state.gliding && npC.phase === "ground") {
+        let nearId = null, bestD = 32;
+        for (const [sid, pos] of Object.entries(NP_STATIONS)) {
+          if (npWorld.places[sid]?.circuit !== npState.active) continue;
+          const d = Math.hypot(state.x - pos.x, state.z - pos.z);
+          if (d < bestD) { bestD = d; nearId = sid; }
+        }
+        if (nearId && nearId !== npC.place) {
+          if (nearId !== "oxbow" && nearId !== "compound") closeScreeningCard();
+          npC.place = nearId;
+          if (!npC.visited.includes(nearId)) npC.visited.push(nearId);
+          npState.rev++; saveNpState();
+        }
+      }
+
+      meterClock += dt;
+      if (meterClock > .12) {
+        meterClock = 0; sampleMeter();
+        $("thought").textContent = state.donkeyCollapsed
+          ? "ALERT · Mistletoe collapsed from dehydration — press P to give emergency water!"
+          : state.pourAnim
+            ? `Pouring cyan WiFi water at ${state.pourAnim.relay.name} (${state.pourAnim.relay.cans.length} jerrycans filling)…`
+            : state.glide.cruising
+              ? `Teton Range · ${(Math.hypot(mw.tetonRange.x - state.x, mw.tetonRange.z - state.z) / 1000).toFixed(1)} km`
+              : state.gliding
+                ? `${state.donkeyOnRoof ? "Wagon flight · Mistletoe aboard" : "Mistletoe gliding"} · Alt ${fmtElev(state.antennaElev)}`
+                : state.donkeyOnRoof
+                  ? `Cruiser Woody (No Collisions/Fences) · Cans ${state.filledCans}/${state.totalCans} · Next ${state.nextRelayName.split(" ")[0]} ${Math.round(state.nextRelayDist)}m.`
+                  : `Unified World (${state.region === "ridge" ? "Half Dome" : state.region === "abyss" ? "Abyssal Sanctuary" : "Grand Teton"}) · Song ${SONG_EPOCHS[state.songEpochIdx].hint}`;
+        if (!useFieldLayout() && (!audioEl.paused || audioEl.currentTime > 0)) {
+          const curT = audioEl.currentTime, dur = Number.isFinite(audioEl.duration) ? audioEl.duration : 283;
+          $("tape-time").textContent = `${formatMMSS(curT)} / ${formatMMSS(dur)}`;
+          if ($("tape-fill")) $("tape-fill").style.width = `${clamp((curT / dur) * 100, 0, 100)}%`;
+          $("ppc-timecode").textContent = `01:${String(12 + Math.floor(curT / 60)).padStart(2, "0")}:${String(Math.floor(curT % 60)).padStart(2, "0")}`;
+          let line = LYRICS[0][1]; for (const [ts, txt] of LYRICS) if (curT >= ts) line = txt;
+          $("lyric-line").textContent = line;
+        } else if (!useFieldLayout()) $("ppc-timecode").textContent = `01:14:${String(17 + (Math.floor(nowSec) % 42)).padStart(2, "0")}`;
+        updateHUD();
+      }
+      audio.tick(dt, state.meteredZone);
+    }
+
+    if (!state.introActive) placeAtNpStation(npCarrier().place || "overlook");
+    initRain();
+    syncIntroUI();
+    step(.016);
+    sampleMeter();
+    updateHUD();
+    renderFrame(.016);
+    document.body.classList.add("field-ready");
+    const loaderEl = $("world-loader");
+    if (loaderEl && !contextLost) {
+      loaderEl.classList.add("fade-out");
+      setTimeout(() => { if (!contextLost) loaderEl.hidden = true; }, 580);
+    }
+
+    function loop(now) {
+      if (contextLost) return;
+      if (lastT === null) lastT = now - 16;
+      const dt = clamp((now - lastT) / 1000, .001, .05); lastT = now;
+      step(dt); renderFrame(now * .001); requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    window.__nightPost = window.__zones = {
+      isReady: () => state.ready,
+      stepOnce: dt => { step(dt || .05); sampleMeter(); updateHUD(); renderFrame(performance.now() * .001); },
+      getState: () => {
+        const emitters = sampleWifiEmitters();
+        let rainOutsideWifi = 0;
+        for (let i = 0; i < RAIN_N; i++) if (!inWifiReach(rainX[i], rainZ[i], emitters)) rainOutsideWifi++;
+        const rollDeg = +(camera.rotation.z * 180 / Math.PI).toFixed(3);
+        const npC = npCarrier();
+        return {
+          ready: true,
+          circuit: npState.active,
+          carrier: npCharter().carrier,
+          place: npC.place,
+          watch: npC.watch,
+          clock: npEngine.clock(npC.watch),
+          day: npC.day,
+          liters: npC.liters,
+          reserve: npC.reserve,
+          freeLiters: npEngine.free(npC),
+          strength: npC.strength,
+          wet: [...npC.wet],
+          phone: [...npC.phone],
+          flags: { ...npC.flags },
+          ledger: { ...npC.ledger },
+          ledgerValid: npEngine.validate(npState),
+          screeningActive: Boolean(npScreeningMode),
+          dispatchOpen: Boolean($("np-dispatch-modal") && !$("np-dispatch-modal").hidden),
+          introActive: state.introActive,
+          introPhase: state.introPhase,
+          introShotIdx: state.introShotIdx,
+          region: state.region,
+          mode: MODES[state.modeIdx].id,
+          soloLook: state.soloLook,
+          focusLook: LOOKS[state.focusLook].id,
+          focusDist: state.focusDist,
+          stop: STOPS[state.stopIdx].name,
+          filter: FILTERS[state.filterIdx].name,
+          currentZone: state.currentZone,
+          meteredZone: state.meteredZone,
+          x: +state.x.toFixed(2), z: +state.z.toFixed(2), y: +state.y.toFixed(2),
+          groundY: +groundAt(state.x, state.z).toFixed(2),
+          cameraRollDeg: rollDeg,
+          mobileUI: useFieldLayout(),
+          fov: +camera.fov.toFixed(1),
+          dpr: renderer.getPixelRatio(),
+          fieldBand: fieldGroups[fieldToolIndex].name,
+          fieldSetting: fieldSetting().name,
+          bandPickerOpen: !fieldBandPicker.hidden,
+          wagon: { x: wagon.x, z: wagon.z, y: wagon.y, speed: wagon.speed, steerAngle: wagon.steerAngle, roll: wagon.roll, pitch: +wagon.pitch.toFixed(3) },
+          donkeyOnRoof: state.donkeyOnRoof,
+          gliding: state.gliding,
+          glide: { x: state.glide.x, y: state.glide.y, z: state.glide.z, speed: +state.glide.speed.toFixed(1), vy: +state.glide.vy.toFixed(1),
+            withWagon: state.gliding && state.donkeyOnRoof, landing: state.glide.landing, cruising: state.glide.cruising },
+          drivingCart: state.drivingCart,
+          riding: state.riding,
+          donkeyWater: +state.donkeyWater.toFixed(3),
+          donkeyCollapsed: state.donkeyCollapsed,
+          pouring: !!state.pourAnim,
+          dancing: state.danceTimer > 0,
+          filledCans: state.filledCans,
+          totalCans: state.totalCans,
+          lidarOn: state.lidarOn,
+          songEpoch: state.songEpochIdx,
+          resonantZone: state.resonantZone,
+          zoneSynced: state.zoneSynced,
+          spatialAudio: state.spatialAudio,
+          audioDistMeters: +state.audioDistMeters.toFixed(1),
+          audioFalloffDb: state.audioFalloffDb,
+          beatPulse: +state.beatPulse.toFixed(2),
+          filmStripFrames: state.filmStripFrames,
+          rigDeployed: state.rigDeployed,
+          antennaElev: +state.antennaElev.toFixed(1),
+          relElev: +state.relElev.toFixed(1),
+          signalRadius: +state.signalRadius.toFixed(1),
+          frameWifiPct: state.frameWifiPct,
+          unlockedGroves: state.unlockedGroves,
+          totalGroves: forestGroves.length,
+          unlockedTrees: state.unlockedTrees,
+          rainCount: RAIN_N,
+          rainOutsideWifi,
+          signalDbm: state.signalDbm,
+          litRelays: state.litRelays,
+          totalRelays: relays.length,
+          coveragePct: state.coveragePct,
+          plates: state.plates.length,
+          audioReady: audioEl.readyState >= 1
+        };
+      },
+      getRelays: () => relays.map(r => ({ id: r.id, name: r.name, lit: r.lit, cans: r.cans.length, filled: r.cans.filter(c => (c.userData.fill || 0) >= .95).length })),
+      getForest: () => forestGroves.map(g => ({ id: g.id, region: g.region, name: g.name, minRelAlt: g.minRelAlt, unlocked: g.unlocked })),
+      getSummits: () => SUMMITS.map(s => ({ id: s.id, region: s.region, name: s.name, x: s.x, z: s.z })),
+      setMode: id => { const i = MODES.findIndex(m => m.id === id); if (i >= 0) { state.modeIdx = i; state.focusPulse = 1; updateHUD(); if (state.trayTab) renderTray(); } },
+      setFocus: m => { state.focusDist = clamp(m, 1.2, 900); state.focusPulse = 1; updateHUD(); },
+      setStop: i => { state.stopIdx = clamp(i, 0, STOPS.length - 1); updateHUD(); if (state.trayTab) renderTray(); },
+      setFilter: i => { state.filterIdx = clamp(i, 0, FILTERS.length - 1); updateHUD(); if (state.trayTab) renderTray(); },
+      setSoloLook: id => { state.soloLook = id ? LOOKS.findIndex(l => l.id === id) : -1; updateHUD(); if (state.trayTab) renderTray(); },
+      setDonkeyWater: v => {
+        state.donkeyWater = clamp(v, 0, 1);
+        if (state.donkeyWater <= 0) {
+          state.donkeyCollapsed = true; donkey.state.collapsed = true; donkey.state.downWant = true; donkey.state.stamina = .05;
+        }
+        updateHUD();
+      },
+      lookAtDonkey: () => {
+        if (state.gliding) landGlide(false);
+        const dx = donkey.state.x, dz = donkey.state.z;
+        state.riding = false; state.drivingCart = false; state.donkeyOnRoof = false;
+        state.x = dx - 2.6; state.z = dz + 2.2; state.y = driveSurfaceAt(state.x, state.z) + 1.6;
+        state.yaw = Math.atan2(-(dx - state.x), -(dz - state.z));
+        state.pitch = -.05; state.focusDist = 4.0;
+        applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
+        sampleMeter(); updateHUD();
+      },
+      moveTo: (wx, wz, yaw = Math.PI * .5) => {
+        if (state.gliding) landGlide(false);
+        state.riding = false; state.drivingCart = false; state.donkeyOnRoof = false;
+        [state.x, state.z] = worldBoundsClamp(wx, wz);
+        state.y = driveSurfaceAt(state.x, state.z) + 1.68;
+        state.yaw = yaw; state.pitch = -.05;
+        donkey.place(state.x + 2.2, state.z - 1.2, yaw + Math.PI, (x, z) => driveSurfaceAt(x, z));
+        applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
+        initRain(); sampleMeter(); updateHUD(); renderFrame(performance.now() * .001);
+      },
+      exposePlate, teleportZone, toggleRide, toggleCart, toggleGlide, launchSummit, toggleRegion,
+      pumpWell, pourWifi, pingSignal, toggleTape, toggleLidar, syncResonantZone, triggerDance, toggleSpatialAudio, deployRig, seekTape,
+      getOptions: () => npEngine.options(npState),
+      act: runNpAction,
+      switchCircuit: switchNpCircuit,
+      moveToStation,
+      setWatch: w => { npCarrier().watch = clamp(Math.round(w), 0, 18); npState.rev++; saveNpState(); updateHUD(); renderFrame(performance.now() * .001); },
+      openDispatch: openNpDispatch,
+      reset: (circuit = "west") => {
+        closeScreeningCard();
+        npState = circuit === "ahiya" ? npEngine.switchRoute(npEngine.start(), "ahiya") : npEngine.start();
+        saveNpState();
+        moveToStation(npCarrier().place || "overlook");
+      },
+      setTouchStick: (fx, fy) => setStick(clamp(fx, -1, 1), -clamp(fy, -1, 1)),
+      playIntro: startPrologue, skipIntro: () => finishIntro(false)
+    };
+  }
+
+  boot().catch(err => {
+    showWorldFault("The expedition could not load. Retry or return to the index.", err);
+  });
+})();

@@ -1,0 +1,912 @@
+{
+  "title": "Donkey Water · Night Post",
+  "year": 2086,
+  "edition": 1,
+  "locale": "en",
+  "author": "A text game in Watson Hartsoe’s Donkey Water / Ahiya Area Network",
+  "limits": {
+    "capacity": 20,
+    "reserve": 4,
+    "watches": 18,
+    "maxStrength": 6,
+    "restGain": 3,
+    "emergencyLiters": 4,
+    "overdraftShifts": 2,
+    "cooling": 9,
+    "tap": 4,
+    "screen": 3
+  },
+  "circuits": {
+    "west": {
+      "name": "Western Basin",
+      "carrier": "Imani",
+      "animal": "Mistletoe",
+      "home": "overlook",
+      "permission": "ford",
+      "hub": "plaza",
+      "yard": "oxbow",
+      "flight": true,
+      "request": "The last eight seconds",
+      "record": "WF–08",
+      "sender": "June",
+      "keeper": "Etta",
+      "publicTitle": "The wedding at Silver Ford",
+      "privateTitle": "Eight seconds after the shoe",
+      "returnTitle": "Ruth’s camera credit",
+      "intro": "June knows where the bride loses her shoe. Her mother left the camera running afterward. There are eight more seconds on the hill master. June wants to hear them.",
+      "opening": "June’s wedding film ends when the bride drops her shoe. “Mum left the camera running,” she says, winding one earphone around her thumb. Mistletoe waits under the cold pump.",
+      "publicDesc": "The bride steps off the ferry. A shoe falls through the boards. In the front row the bride, now an old woman, raises her own foot a second before it happens.",
+      "privateDesc": "A thumbnail against a latch. A breath close to the microphone. A laugh from farther down the ferry. June turns her phone face down to listen again.",
+      "returnDesc": "Tess takes June’s correction. The catalog now names Ruth as camera operator. A separate space stays open for the voice at the end.",
+      "permissionText": "Etta signs two slips. The yard may see the wedding through the falling shoe. June may keep the last eight seconds on her own phone. Etta offers to witness the household claim as well.",
+      "coolText": "Tess takes nine liters on the clean side of the exchanger. The inner rack comes up. Ruth’s reel appears under a blank maker’s name.",
+      "dockText": "The dock keeps the family tail separate from the public edit. Two slips travel under the same can strap. Tess seals the cap before Imani lifts it.",
+      "tailWords": [
+        "A thumbnail finds the camera latch.",
+        "A breath lands very close.",
+        "A second laugh comes from down the boards."
+      ],
+      "replyLine": "“Put down that she made the picture. Leave a space for who was laughing.”",
+      "storyEnd": "Ruth is credited on the next yard print. The voice on the last eight seconds remains for the family to name."
+    },
+    "ahiya": {
+      "name": "Ahiya Highlands",
+      "carrier": "Rahel",
+      "animal": "Saba’s gray donkey",
+      "home": "basalt",
+      "permission": "beacon",
+      "hub": "hill",
+      "yard": "compound",
+      "flight": false,
+      "request": "The chair in the harmony",
+      "record": "AR–03",
+      "sender": "Rahel’s aunt",
+      "keeper": "Rahel’s aunt",
+      "publicTitle": "The verse with a live answer",
+      "privateTitle": "Three rehearsal takes",
+      "returnTitle": "A second harmony from the yard",
+      "intro": "Rahel can tell her cousin’s recording by a chair scraping just before the first note. Her aunt wants the three rehearsal takes back. She will sing the answer herself if the compound gives her a night.",
+      "opening": "Saba unties the chalk from the lower pump. Rahel wants the rehearsal her cousin recorded on the far side of the ridge. She knows the take by the sound of a chair scraping before the first note.",
+      "publicDesc": "Her aunt sings the answer in the flesh while the approved backing plays from the root bowl. Someone catches the wrong-key entrance and sings it back. The whole yard knows that take.",
+      "privateDesc": "Rahel passes her aunt the earphone. In the third take a chair scrapes stone. She knows at once which cousin sat where. The aunt keeps a listening copy on her own phone.",
+      "returnDesc": "The hill keeper files the aunt’s new answer beside the cousin’s first take. Both names stay with the rehearsal, and only their households receive the listening copies.",
+      "permissionText": "At the white wall the aunt grants household listening. She will allow the backing at one public performance if she can sing the answer there herself.",
+      "coolText": "The hill keeper opens the inner rack. Nine liters pass into the clean cooling branch. Three versions of the same verse turn up in the catalog.",
+      "dockText": "The hill keeper writes the listening takes and the permitted backing to the saddle water. The sealed lacquer label names the aunt as custodian.",
+      "tailWords": [
+        "A chair leg scrapes the floor.",
+        "A cousin comes in early on the held note.",
+        "The aunt hums a second line over the first."
+      ],
+      "replyLine": "“Keep the wrong one too. That’s the only one where we all came in together.”",
+      "storyEnd": "Two versions of the harmony can now come home. A future public performance will need the aunt’s leave again."
+    }
+  },
+  "places": {
+    "overlook": {
+      "circuit": "west",
+      "name": "Overlook Wellhead",
+      "land": "Western Basin · Rim",
+      "image": "saddle",
+      "summary": "The pump keeper has chalked a white line across the can. Four liters belong to the animal and the return.",
+      "look": "The casting says HAND PUMP. Somebody has scratched two smaller words into the handle. BOTH WAYS. A girl in the yard is holding a cup in exactly the way grown people hold a microphone.",
+      "caption": "Mistletoe at the lower pump",
+      "altitude": 20,
+      "map": [
+        74,
+        44
+      ]
+    },
+    "switchback": {
+      "circuit": "west",
+      "name": "Moraine Switchback Cistern",
+      "land": "Western Basin · Moraine",
+      "image": "saddle",
+      "summary": "A wooden trough sits in the lee of the bluff. The relief keeper has hung the resting animals’ names beside the wage book.",
+      "look": "A mended saddle pad is drying inside out. From the cut in the road you can make out five loops of perforated film against the lighter pines. A stallholder chalks the price of meal onto a box.",
+      "caption": "The pack-frame repair yard",
+      "altitude": 48,
+      "map": [
+        64,
+        16
+      ]
+    },
+    "ford": {
+      "circuit": "west",
+      "name": "Silver Ford Relay",
+      "land": "Western Basin · River landing",
+      "image": "village",
+      "summary": "Etta keeps the key to the wedding master on a length of cotton. She is sitting where the old ferry rope once met the bank.",
+      "look": "One ferryman points to the wet post. His brother points to a stone some distance away. From the camera’s height the two landmarks line up. An enamel bowl has taken root on the island.",
+      "caption": "The landing below the survey camera",
+      "altitude": 94,
+      "map": [
+        48,
+        40
+      ]
+    },
+    "oxbow": {
+      "circuit": "west",
+      "name": "Cottonwood Oxbow Kiosk",
+      "land": "Western Basin · Film grove",
+      "image": "grove",
+      "summary": "Two sheets hang at different depths. The cup, the root bowl and June’s phone all wait on the same bench.",
+      "look": "Etta bound a damaged reel along a young cottonwood shoot. Three wet seasons later the shoot put out a leaf with square holes along its edge. A baker has a price slip for the far bank.",
+      "caption": "The public sheet and the family awning",
+      "altitude": 108,
+      "map": [
+        54,
+        82
+      ]
+    },
+    "plaza": {
+      "circuit": "west",
+      "name": "Highland Pueblo Plaza",
+      "land": "Western Basin · Archive intake",
+      "image": "window",
+      "summary": "Tess can see the coolant gauge in the reflection of June’s empty cup. The archive dock and the household tap face the same line.",
+      "look": "Behind the wire glass, a hose knocks twice. The registrar has a line for a deed holder. She keeps the rest of the page blank for guardians who bring their own witness.",
+      "caption": "Public water and the archive intake",
+      "altitude": 124,
+      "map": [
+        32,
+        52
+      ]
+    },
+    "fluke": {
+      "circuit": "west",
+      "name": "Whale Fluke Cistern",
+      "land": "Western Basin · Abyssal sheet",
+      "image": "grove",
+      "summary": "The roofs give way to the ribs of a wreck. Between them the projectionist stretches a strip of cloth wide enough for two endings.",
+      "look": "Two screenings went out on the tide. Both poles kept their seats. The film keeper has a comedy in two captions and two wooden chairs for people who remember the joke differently.",
+      "caption": "Film drying between the ribs",
+      "altitude": 8,
+      "map": [
+        13,
+        30
+      ]
+    },
+    "apron": {
+      "circuit": "west",
+      "name": "Half Dome East Apron",
+      "land": "Western Basin · Granite shelf",
+      "image": "village",
+      "summary": "A second licensed pump draws from a narrow seep. A retired keeper wants the missing angle of a brass float recorded.",
+      "look": "The keeper can free the float with half a turn of her wrist. In the old film her sleeve covers her hand. She has left a flat place on the shelf for a new camera.",
+      "caption": "The east pump and the granite shelf",
+      "altitude": 90,
+      "map": [
+        91,
+        64
+      ]
+    },
+    "tetons": {
+      "circuit": "west",
+      "name": "Teton Range Landing",
+      "land": "Western Basin · High landing",
+      "image": "flight",
+      "summary": "The survey cairn throws a short shadow. The road below bends out of sight well before the next gleam of water.",
+      "look": "On the roof deck the tripod holes sit under the saddle cradle. Looking down, you can count three valleys by the turns a carrier would have to make. The cairn holds a dry dispatch box.",
+      "caption": "Woody and Mistletoe above the pass",
+      "altitude": 190,
+      "map": [
+        83,
+        13
+      ]
+    },
+    "basalt": {
+      "circuit": "ahiya",
+      "name": "Basalt Pump",
+      "land": "Ahiya · Lower pump",
+      "image": "convoy",
+      "summary": "Saba listens for the short stroke before she opens the valve. A clean line of chalk marks the well’s reserve.",
+      "look": "The wind between pump strokes sounds like somebody breathing in to sing. In the handle’s shadow a piece of thread marks the height of the last entirely public draw.",
+      "caption": "Rahel meets the pack below the ridge",
+      "altitude": 16,
+      "map": [
+        20,
+        73
+      ]
+    },
+    "beacon": {
+      "circuit": "ahiya",
+      "name": "Cross-Beacon Watch",
+      "land": "Ahiya · Night ridge",
+      "image": "convoy",
+      "summary": "The congregation lends its high wall to the watch. Different people give the beam different names.",
+      "look": "Rahel’s aunt has folded a rehearsal sheet into her pocket. She lets people hear an early entrance in the wrong key if they will listen to what the other singer did next.",
+      "caption": "The ridge above the night convoy",
+      "altitude": 85,
+      "map": [
+        43,
+        24
+      ]
+    },
+    "hill": {
+      "circuit": "ahiya",
+      "name": "Hill Archive",
+      "land": "Ahiya · Upper intake",
+      "image": "desk",
+      "summary": "One operator logs the crossing. Another clears a space on the shelf for the returning rehearsal. The fans carry on between sightings.",
+      "look": "A map can tell the operator where a can was seen. To learn who sang the lower voice she needs a recording and someone who knows the family. Saba’s signed gauge reading lies under the keyboard.",
+      "caption": "The radio desk at the hill master",
+      "altitude": 71,
+      "map": [
+        75,
+        22
+      ]
+    },
+    "compound": {
+      "circuit": "ahiya",
+      "name": "Daylight Compound",
+      "land": "Ahiya · Unloading yard",
+      "image": "village",
+      "summary": "Two people take the handles before the pack frame comes away. The phones go dark in the direct morning sun.",
+      "look": "A clay bowl sits beside the household tap. There is a stool for a singer under the awning. Somebody has pegged an ordinary sheet between the walls for tonight’s backing reel.",
+      "caption": "The unloading yard at first light",
+      "altitude": 24,
+      "map": [
+        79,
+        76
+      ]
+    }
+  },
+  "roads": [
+    {
+      "a": "overlook",
+      "b": "switchback",
+      "watches": 1
+    },
+    {
+      "a": "switchback",
+      "b": "ford",
+      "watches": 1
+    },
+    {
+      "a": "ford",
+      "b": "oxbow",
+      "watches": 1
+    },
+    {
+      "a": "oxbow",
+      "b": "plaza",
+      "watches": 1
+    },
+    {
+      "a": "plaza",
+      "b": "fluke",
+      "watches": 2
+    },
+    {
+      "a": "overlook",
+      "b": "apron",
+      "watches": 2
+    },
+    {
+      "a": "apron",
+      "b": "tetons",
+      "watches": 2
+    },
+    {
+      "a": "basalt",
+      "b": "beacon",
+      "watches": 1
+    },
+    {
+      "a": "beacon",
+      "b": "hill",
+      "watches": 1
+    },
+    {
+      "a": "hill",
+      "b": "compound",
+      "watches": 1
+    },
+    {
+      "a": "compound",
+      "b": "basalt",
+      "watches": 2
+    }
+  ],
+  "wells": {
+    "overlook": {
+      "stock": 32,
+      "capacity": 40,
+      "floor": 12,
+      "recharge": 6
+    },
+    "apron": {
+      "stock": 29,
+      "capacity": 36,
+      "floor": 9,
+      "recharge": 5
+    },
+    "basalt": {
+      "stock": 30,
+      "capacity": 38,
+      "floor": 10,
+      "recharge": 6
+    }
+  },
+  "groves": [
+    {
+      "id": "g1",
+      "name": "Overlook Rim Film Grove",
+      "station": "overlook",
+      "trees": 4,
+      "open": true,
+      "height": 0,
+      "bearing": "Overlook · 23 m NW",
+      "program": "The pump keeper’s first test roll"
+    },
+    {
+      "id": "g2",
+      "name": "Bluff Switchback Kelp Stand",
+      "station": "switchback",
+      "trees": 5,
+      "open": false,
+      "height": 42,
+      "bearing": "Switchback · 27 m SW",
+      "program": "Saddle repairs in close-up"
+    },
+    {
+      "id": "g3",
+      "name": "Moraine Bench Ribbon Wood",
+      "station": "ford",
+      "trees": 5,
+      "open": false,
+      "height": 68,
+      "bearing": "Silver Ford · 102 m E",
+      "program": "Two cuts of the same thaw"
+    },
+    {
+      "id": "g4",
+      "name": "Silver Ford Island Canopy",
+      "station": "ford",
+      "trees": 5,
+      "open": false,
+      "height": 88,
+      "bearing": "Silver Ford · 24 m S",
+      "program": "The wedding at the ferry"
+    },
+    {
+      "id": "g5",
+      "name": "Cottonwood Oxbow Film Forest",
+      "station": "oxbow",
+      "trees": 5,
+      "open": false,
+      "height": 102,
+      "bearing": "Oxbow · 30 m NE",
+      "program": "A double bill chosen by the yard"
+    },
+    {
+      "id": "g6",
+      "name": "Cathedral Pueblo High Wood",
+      "station": "plaza",
+      "trees": 5,
+      "open": false,
+      "height": 118,
+      "bearing": "Plaza · 31 m SE",
+      "program": "Voices naming the old streets"
+    },
+    {
+      "id": "g7",
+      "name": "Whale Fluke Filmstrip Cathedral",
+      "station": "fluke",
+      "trees": 7,
+      "open": true,
+      "height": 0,
+      "bearing": "Whale Fluke · 8 m S",
+      "program": "The drowned hall, heard empty"
+    },
+    {
+      "id": "g8",
+      "name": "Galleon Arch Kelp Cinema",
+      "station": "fluke",
+      "trees": 7,
+      "open": true,
+      "height": 0,
+      "bearing": "Whale Fluke · 39 m NW",
+      "program": "A comedy dubbed on two shores"
+    },
+    {
+      "id": "g9",
+      "name": "Half Dome Cloud Notch Stand",
+      "station": "apron",
+      "trees": 5,
+      "open": false,
+      "height": 24,
+      "bearing": "East Apron · 128 m E",
+      "program": "A pilot’s cloud and shadow tests"
+    },
+    {
+      "id": "g10",
+      "name": "Half Dome East Apron Forest",
+      "station": "apron",
+      "trees": 5,
+      "open": false,
+      "height": 85,
+      "bearing": "East Apron · 16 m N",
+      "program": "The same cliff in three prints"
+    }
+  ],
+  "zones": [
+    {
+      "zone": "0",
+      "terrain": "Overlook Rim Shadow"
+    },
+    {
+      "zone": "I",
+      "terrain": "Upper Moraine Timber"
+    },
+    {
+      "zone": "II",
+      "terrain": "Half Dome Cloud Notch"
+    },
+    {
+      "zone": "III",
+      "terrain": "Bluff Switchback Pines"
+    },
+    {
+      "zone": "IV",
+      "terrain": "Snake River Overlook"
+    },
+    {
+      "zone": "V",
+      "terrain": "Juniper Sage Bench"
+    },
+    {
+      "zone": "VI",
+      "terrain": "The Silver Ford"
+    },
+    {
+      "zone": "VII",
+      "terrain": "Cottonwood Oxbow Kiosk"
+    },
+    {
+      "zone": "VIII",
+      "terrain": "Abyssal Whale Fluke Sanctuary"
+    },
+    {
+      "zone": "IX",
+      "terrain": "Half Dome East Apron"
+    },
+    {
+      "zone": "X",
+      "terrain": "Far-Bank Highland Pueblo"
+    }
+  ],
+  "people": [
+    [
+      "Imani",
+      "A western saddle mechanic and June’s guardian. She hears a split in the pack frame before she sees water at the seam."
+    ],
+    [
+      "June",
+      "Ruth’s daughter. She wants to hear the end of her mother’s film and decide what can be played outside the family."
+    ],
+    [
+      "Etta",
+      "Print keeper at Silver Ford. She can license the wedding and witness June’s household claim."
+    ],
+    [
+      "Tess",
+      "Cooling operator at the plaza. She records public water and rack water on two different slips."
+    ],
+    [
+      "Saba",
+      "Keeper of the basalt pump. She can close the intake even when the remote map shows a full tank."
+    ],
+    [
+      "Rahel",
+      "Sound runner on the night route. She knows the singers by the chairs they move before a take."
+    ],
+    [
+      "The aunt",
+      "Custodian of three rehearsal takes. She can grant listening at home and sing a single public answer in person."
+    ],
+    [
+      "Mistletoe",
+      "A living carrier. The wet saddle keeps the recording legible in motion, including on Woody’s roof. Her western namesake traveled into the Sierra with Ansel Adams and Francis Holman."
+    ]
+  ],
+  "law": [
+    [
+      "Water and WiFi",
+      "A live can holds up to 20 L. A donkey keeps its moving recording in order. A dry can loses its traveling copies. An approved recording saved on its recipient’s phone survives."
+    ],
+    [
+      "At a marked pump",
+      "A routine draw stops at the well’s reserve. An emergency draw below the line closes that well for at least two local shift changes and until its level recovers. Cisterns receive water. Only wells produce it."
+    ],
+    [
+      "The return mark",
+      "The first four liters aboard are set aside for travel and animal care. Cooling, the public tap and the grove draw from the water above that mark. An explicit emergency release can empty the whole can."
+    ],
+    [
+      "Flight",
+      "Imani and Mistletoe fly together in Woody. A local flight drinks 1 L. A direct crossing to or from the far Teton landing drinks 2 L. Select a destination and then land. Roads remain passable on a dry return."
+    ],
+    [
+      "Time and care",
+      "A shift has 18 watches. A road leg uses its posted time and one measure of strength per watch. Rest restores three strength. A drink from the can restores all six. At the last watch there is always a handoff, including a safe landing."
+    ],
+    [
+      "Two circuits",
+      "Time advances on the active circuit. Switching hands opens the other carrier’s log at their own stop. Wells, people, letters and saddle water stay where they were."
+    ],
+    [
+      "A print and its custody",
+      "A custodian grants the cut for the public sheet and the take for a named listener. The private recording stays under the awning. A credit or correction travels in a wet can back to the original rack."
+    ],
+    [
+      "The photographic line",
+      "Adams’s Sierra pack burro and roof-mounted camera deck return in the fictional flying Woody. A field plate records the maker, stop and exposure zone. A film tree can show a local plate once it is awake."
+    ]
+  ],
+  "origin": [
+    {
+      "title": "DONKEY WATER SCIFI",
+      "url": "https://youtu.be/ZZlDs10FCZk"
+    },
+    {
+      "title": "THRESHOLD / zones",
+      "url": "https://hartswf0.github.io/make-photo/zones/"
+    },
+    {
+      "title": "The Ansel Adams Gallery / timeline",
+      "url": "https://www.anseladams.com/pages/ansel-adams-timeline"
+    }
+  ],
+  "storyGrammar": [
+    [
+      "LOOK",
+      "Read the place, its witnesses and available equipment. Reading a room costs no time."
+    ],
+    [
+      "PUMP / OVERDRAW",
+      "Fill at a marked well. An emergency draw has a separate confirmation and a lasting cost."
+    ],
+    [
+      "GO <stop>",
+      "Walk a connected road with the animal and the live cargo."
+    ],
+    [
+      "TAKE OFF / FLY <stop> / LAND",
+      "Lift off in Woody in the west, commit the wet travel cost, then land with the donkey and the can."
+    ],
+    [
+      "ASK / COOL / COPY",
+      "See the custodian, fund the clean rack branch, then dock the saddle and take the licensed cuts."
+    ],
+    [
+      "WATER / REST / TAP",
+      "Water the animal, rest at a stop or allocate water to households."
+    ],
+    [
+      "AERIAL / SCREEN / LISTEN / FILE",
+      "Wake local film trees, exhibit only the licensed cut, leave the household copy on its recipient’s phone and return the correction."
+    ],
+    [
+      "EXPOSE / PROJECT",
+      "Make a field plate and hang it on a frond where a projection is permitted."
+    ],
+    [
+      "MAP / JOURNAL / BOOK",
+      "Read the atlas, turn transcript or worldtext. Each view preserves the active place."
+    ],
+    [
+      "HANDOFF / SWITCH",
+      "Close the local watch or take up the other circuit. The well remembers what was drawn."
+    ]
+  ],
+  "starts": {
+    "west": "overlook",
+    "ahiya": "basalt"
+  },
+  "sidePost": {
+    "west": {
+      "from": "oxbow",
+      "to": "switchback",
+      "name": "The baker’s price slip",
+      "ask": "Nell needs the current meal price before she bakes tomorrow’s order.",
+      "reply": "Six measures a sack, marked with this morning’s date.",
+      "delivered": "Nell writes the dated price on her flour bin. The chalk survives after the can is empty."
+    },
+    "ahiya": {
+      "from": "basalt",
+      "to": "beacon",
+      "name": "Three sounds from one room",
+      "ask": "The children challenge the ridge crew to name a rasping sound.",
+      "reply": "The ridge team guesses a cooling fan. Rahel’s cousin wagers it was a spoon on a washboard.",
+      "delivered": "The children turn over a washboard and laugh. They set aside three sounds for the next run."
+    }
+  },
+  "transitionTable": [
+    {
+      "verb": "pump",
+      "requires": "at well, open, can has space, stock above floor",
+      "effects": "transfer min(can space, well stock − floor); top up return water to 4 L",
+      "watches": 1
+    },
+    {
+      "verb": "overdraw",
+      "requires": "at open well exactly at its floor, space aboard, player confirms",
+      "effects": "draw min(4, can space, stock); close the well for two local handoffs and until stock exceeds floor",
+      "watches": 1
+    },
+    {
+      "verb": "go:<stop>",
+      "requires": "ground, adjacent road, enough watches and animal strength",
+      "effects": "move both carrier and can; spend the edge time and the same strength",
+      "watches": "edge.watches"
+    },
+    {
+      "verb": "launch",
+      "requires": "western ground stop, live water, positive strength, watch available",
+      "effects": "put Woody, Mistletoe and the can in the air",
+      "watches": 0
+    },
+    {
+      "verb": "fly:<stop>",
+      "requires": "airborne, different western stop, 1 L available or 2 L for the far Tetons",
+      "effects": "set destination; spend travel water from reserve first; reduce strength by one; require landing",
+      "watches": 1
+    },
+    {
+      "verb": "land",
+      "requires": "air or crossing",
+      "effects": "land at the destination or return to the departure dock with the cargo",
+      "watches": 0
+    },
+    {
+      "verb": "rest",
+      "requires": "ground, strength below six",
+      "effects": "restore up to three strength",
+      "watches": 1
+    },
+    {
+      "verb": "water",
+      "requires": "ground, at least one liter, strength below six",
+      "effects": "spend one liter beginning with the reserve; restore full strength",
+      "watches": 1
+    },
+    {
+      "verb": "ask",
+      "requires": "at the custodian, first receipt",
+      "effects": "license separate household and public cuts",
+      "watches": 1
+    },
+    {
+      "verb": "invite",
+      "requires": "Ahiya beacon, permit granted, invitation open",
+      "effects": "aunt accepts the single public performance at the compound",
+      "watches": 1
+    },
+    {
+      "verb": "cool",
+      "requires": "at the archive, cooler not yet supplied for this order, at least 9 free liters",
+      "effects": "move 9 L to the clean cooling ledger; open the master rack",
+      "watches": 1
+    },
+    {
+      "verb": "copy",
+      "requires": "at archive, live water, cooling and permission, an outstanding cut",
+      "effects": "load outstanding licensed cuts into wet storage",
+      "watches": 1
+    },
+    {
+      "verb": "tap",
+      "requires": "at a public tap, at least four free liters, new local shift",
+      "effects": "give four liters to the household line and obtain its receipt",
+      "watches": 1
+    },
+    {
+      "verb": "release",
+      "requires": "at a public tap with water, player confirms",
+      "effects": "release entire can; discard wet-only copies; preserve authorized phone copies",
+      "watches": 1
+    },
+    {
+      "verb": "aerial",
+      "requires": "at a dormant western grove, wet can, local antenna height meets threshold",
+      "effects": "wake each reachable local grove; retain it across shifts",
+      "watches": 1
+    },
+    {
+      "verb": "expose",
+      "requires": "ground, new stop and zone combination",
+      "effects": "record plate, maker, place, zone and shift",
+      "watches": 1
+    },
+    {
+      "verb": "project",
+      "requires": "active grove or Ahiya compound, owned plate, unshown here, one free liter",
+      "effects": "hang latest field exposure and transfer one liter to the reader",
+      "watches": 1
+    },
+    {
+      "verb": "screen",
+      "requires": "licensed public cut in wet storage, correct yard, three free liters; grove awake in west or aunt invited in Ahiya",
+      "effects": "transfer three liters to the root bowl; record one public showing",
+      "watches": 1
+    },
+    {
+      "verb": "listen",
+      "requires": "named yard, unreceived household cut on saddle",
+      "effects": "recipient keeps a phone copy; leave reply in phone and wet water; remove delivered private take from saddle",
+      "watches": 1
+    },
+    {
+      "verb": "reply",
+      "requires": "named yard, family heard its cut, reply still outstanding, live can",
+      "effects": "copy the family phone’s reply back to wet storage",
+      "watches": 1
+    },
+    {
+      "verb": "file",
+      "requires": "at source archive, family heard its cut, return reply aboard, open request",
+      "effects": "file the requested credit or second take; preserve the old master",
+      "watches": 1
+    },
+    {
+      "verb": "witness",
+      "requires": "western registry, Etta’s permission and witness offer, unentered claim",
+      "effects": "enter Imani as June’s guardian; spend two watches",
+      "watches": 2
+    },
+    {
+      "verb": "mail / mailanswer / mailreturn",
+      "requires": "meet the requester, respondent and requester again on their own circuit, with a live letter",
+      "effects": "carry an outgoing request and return a dated answer",
+      "watches": 1
+    },
+    {
+      "verb": "handoff",
+      "requires": "ground, player confirms",
+      "effects": "preserve location and cargo; start the next local shift; replenish local wells up to capacity; recover strength",
+      "watches": 0
+    },
+    {
+      "verb": "switch",
+      "requires": "the other circuit exists",
+      "effects": "change perspective; keep both sets of liters, permissions, local time and messages in place",
+      "watches": 0
+    }
+  ],
+  "entities": [
+    "circuit",
+    "carrier",
+    "donkey",
+    "saddle can",
+    "return reserve",
+    "well",
+    "relay",
+    "Woody",
+    "archive",
+    "wet copy",
+    "phone copy",
+    "custodian",
+    "film grove",
+    "field plate",
+    "dispatch slip"
+  ],
+  "invariants": [
+    "0 <= reserve <= min(4, liters) <= 20",
+    "drawn == aboard + cooling + public tap + grove + animal + flight",
+    "liters == 0 implies all wet copies clear",
+    "reading or changing perspective spends zero water and zero watches",
+    "a household take never enters the public screening action"
+  ],
+  "initialState": {
+    "schema": 1,
+    "rev": 0,
+    "active": "west",
+    "routes": {
+      "west": {
+        "place": "overlook",
+        "phase": "ground",
+        "dest": null,
+        "day": 1,
+        "watch": 0,
+        "strength": 6,
+        "liters": 0,
+        "reserve": 0,
+        "wet": [],
+        "phone": [],
+        "flags": {},
+        "wells": {
+          "overlook": {
+            "stock": 32,
+            "closed": 0,
+            "resting": false
+          },
+          "apron": {
+            "stock": 29,
+            "closed": 0,
+            "resting": false
+          }
+        },
+        "zone": 5,
+        "plates": [],
+        "visited": [
+          "overlook"
+        ],
+        "awake": [
+          "g1",
+          "g7",
+          "g8"
+        ],
+        "projected": [],
+        "side": 0,
+        "lastTap": 0,
+        "ledger": {
+          "drawn": 0,
+          "cooling": 0,
+          "tap": 0,
+          "screen": 0,
+          "animal": 0,
+          "flight": 0
+        },
+        "log": [
+          {
+            "day": 1,
+            "watch": 0,
+            "place": "overlook",
+            "verb": "Shift opened",
+            "text": "June’s wedding film ends when the bride drops her shoe. “Mum left the camera running,” she says, winding one earphone around her thumb. Mistletoe waits under the cold pump."
+          }
+        ],
+        "handovers": 0
+      },
+      "ahiya": {
+        "place": "basalt",
+        "phase": "ground",
+        "dest": null,
+        "day": 1,
+        "watch": 0,
+        "strength": 6,
+        "liters": 0,
+        "reserve": 0,
+        "wet": [],
+        "phone": [],
+        "flags": {},
+        "wells": {
+          "basalt": {
+            "stock": 30,
+            "closed": 0,
+            "resting": false
+          }
+        },
+        "zone": 5,
+        "plates": [],
+        "visited": [
+          "basalt"
+        ],
+        "awake": [],
+        "projected": [],
+        "side": 0,
+        "lastTap": 0,
+        "ledger": {
+          "drawn": 0,
+          "cooling": 0,
+          "tap": 0,
+          "screen": 0,
+          "animal": 0,
+          "flight": 0
+        },
+        "log": [
+          {
+            "day": 1,
+            "watch": 0,
+            "place": "basalt",
+            "verb": "Shift opened",
+            "text": "Saba unties the chalk from the lower pump. Rahel wants the rehearsal her cousin recorded on the far side of the ridge. She knows the take by the sound of a chair scraping before the first note."
+          }
+        ],
+        "handovers": 0
+      }
+    }
+  }
+}

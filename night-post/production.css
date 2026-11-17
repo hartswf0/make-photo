@@ -1,0 +1,436 @@
+/* DONKEY WATER, 2086 · NIGHT POST (Ahiya Area Network) Production Design */
+:root {
+  --bg: #0d1716;
+  --panel: rgba(13, 23, 22, 0.92);
+  --paper: #f2ede2;
+  --muted: rgba(242, 237, 226, 0.76);
+  --teal: #116760;
+  --aqua: #6be8dc;
+  --cyan: #4de6dc;
+  --cyan-soft: rgba(77, 230, 220, 0.20);
+  --brass: #eab965;
+  --amber: #eab965;
+  --rule: rgba(242, 237, 226, 0.22);
+}
+
+#cinema-title-stage {
+  background: radial-gradient(ellipse at center, rgba(11, 20, 19, 0.72) 0%, rgba(11, 20, 19, 0) 84%);
+}
+.cinema-btn.primary {
+  background: var(--aqua);
+  border-color: var(--aqua);
+  color: #071918;
+  box-shadow: 0 4px 24px rgba(77, 230, 220, 0.36);
+}
+.cinema-btn.primary:hover { background: #9bf5ec; }
+.cinema-btn.link-btn { text-decoration: none; display: inline-flex; align-items: center; }
+
+/* 2086 Night Post Carrier, Watch Clock & 20L Chalk Reserve Panel inside #top-left */
+#top-left {
+  max-width: min(510px, calc(100vw - 120px));
+  max-height: calc(100vh - 118px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  gap: 4px;
+}
+#top-left::-webkit-scrollbar { display: none; }
+#zone-title { margin: 1px 0 0 !important; font-size: clamp(18px, 2.1vw, 24px) !important; line-height: 1.08 !important; }
+#hud-sub { margin: 0 !important; font-size: 9.5px !important; }
+#thought { margin: 0 !important; font-size: 13px !important; line-height: 1.15 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 500px; }
+#tape-bar { padding: 5px 8px !important; gap: 3px !important; }
+#tape-bar:has(#tape-btn[aria-pressed="false"]) #lyric-line { display: none; }
+#lyric-line { font-size: 12px !important; }
+#expedition-strip { gap: 4px !important; }
+#expedition-strip .exp-pill { padding: 3px 7px !important; font-size: 9px !important; }
+#quick-bar { gap: 4px !important; }
+#quick-bar .qpill { padding: 3px 7px !important; font-size: 9px !important; }
+#keys { bottom: 12px !important; padding: 5px 8px !important; font-size: 9.5px !important; line-height: 1.3 !important; }
+body.field-ui #field-dispatch-btn,
+body.field-ui #field-switch-btn { width: auto; padding: 0 5px; white-space: nowrap; }
+#plate h1#zone-title {
+  color: var(--paper);
+}
+
+#np-carrier-bar {
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: rgba(13, 24, 23, 0.90);
+  border: 1px solid rgba(107, 232, 220, 0.40);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  max-width: 505px;
+}
+.np-route-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+#np-route-tag {
+  font: 700 10.5px/1.1 Inter, system-ui, sans-serif;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--aqua);
+}
+#np-watch-clock {
+  font: 600 10px/1.15 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--paper);
+  opacity: .88;
+  font-variant-numeric: tabular-nums;
+}
+.np-route-btns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+.np-mini-btn {
+  font: 600 9.5px/1 Inter, system-ui, sans-serif;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(234, 185, 101, 0.48);
+  background: rgba(20, 32, 30, 0.85);
+  color: var(--paper);
+  text-decoration: none;
+  cursor: pointer;
+}
+.np-mini-btn:hover { border-color: var(--aqua); color: var(--aqua); }
+.np-mini-btn.aqua {
+  border-color: var(--aqua);
+  background: rgba(17, 103, 96, 0.42);
+  color: #e6fffa;
+}
+
+/* 20 L Jerrycan Gauge with 4 L Chalk Reserve Mark */
+#np-can-meter {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: rgba(12, 21, 20, 0.88);
+  border: 1px solid rgba(242, 237, 226, 0.24);
+  max-width: 505px;
+}
+.np-can-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font: 600 10px/1.1 ui-monospace, "SF Mono", Menlo, monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+#np-well-readout { color: var(--amber); }
+.np-can-track {
+  position: relative;
+  height: 11px;
+  border-radius: 999px;
+  background: rgba(242, 237, 226, 0.12);
+  border: 1px solid rgba(242, 237, 226, 0.22);
+  overflow: visible;
+}
+#np-can-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #116760 0%, #4de6dc 65%, #9afaf1 100%);
+  transition: width .22s ease;
+}
+#np-can-fill.dull {
+  background: #35474b;
+}
+#np-chalk-mark {
+  position: absolute;
+  left: 20%;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: #ffffff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.85);
+}
+#np-chalk-mark::after {
+  content: "4L CHALK";
+  position: absolute;
+  left: 4px;
+  top: -1px;
+  font: 700 8px/1 ui-monospace, monospace;
+  color: #ffffff;
+  letter-spacing: .08em;
+  white-space: nowrap;
+  text-shadow: 0 1px 4px #000;
+}
+#np-cargo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.np-chip {
+  font: 600 9px/1 Inter, system-ui, sans-serif;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: rgba(17, 103, 96, 0.34);
+  border: 1px solid rgba(107, 232, 220, 0.45);
+  color: #d9fffb;
+}
+.np-chip.phone {
+  background: rgba(234, 185, 101, 0.18);
+  border-color: rgba(234, 185, 101, 0.55);
+  color: #ffe8bd;
+}
+.np-chip.done {
+  background: rgba(242, 237, 226, 0.14);
+  border-color: rgba(242, 237, 226, 0.38);
+  color: var(--paper);
+}
+.np-chip.empty {
+  background: transparent;
+  border-color: rgba(242, 237, 226, 0.16);
+  color: var(--muted);
+}
+
+/* Contextual Station Action Deck & Confirmation */
+#np-actions-bar {
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-width: 540px;
+}
+.np-act {
+  font: 600 9px/1 Inter, system-ui, sans-serif;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(107, 232, 220, 0.45);
+  background: rgba(13, 26, 25, 0.86);
+  color: #e9fffd;
+  cursor: pointer;
+}
+.np-act:hover:not(:disabled) {
+  background: var(--aqua);
+  border-color: var(--aqua);
+  color: #071918;
+}
+.np-act.primary {
+  background: var(--aqua);
+  border-color: var(--aqua);
+  color: #071918;
+}
+.np-act.warn {
+  border-color: rgba(234, 185, 101, 0.72);
+  color: #ffe5b3;
+}
+.np-act:disabled {
+  opacity: .42;
+  cursor: default;
+}
+
+#np-confirm-bar {
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border-radius: 7px;
+  background: rgba(65, 22, 16, 0.94);
+  border: 1px solid #f59b65;
+  color: #fff2e8;
+  font: 600 10.5px/1.3 Inter, system-ui, sans-serif;
+  max-width: 520px;
+}
+#np-confirm-bar[hidden] { display: none; }
+
+/* Page 20 Program Card & Private 8-Second Earphone Overlay */
+#np-screening-card {
+  position: fixed;
+  right: max(86px, calc(env(safe-area-inset-right) + 78px));
+  top: max(54px, calc(env(safe-area-inset-top) + 44px));
+  width: min(360px, calc(100vw - 110px));
+  padding: 13px 15px;
+  border-radius: 9px;
+  background: rgba(11, 20, 19, 0.94);
+  border: 1px solid var(--aqua);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.72);
+  z-index: 19;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#np-screening-card[hidden] { display: none; }
+.np-prog-kicker {
+  font: 700 9.5px/1 ui-monospace, monospace;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--aqua);
+}
+.np-prog-table {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 4px 10px;
+  font-size: 11.5px;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 7px 0;
+}
+.np-prog-table span {
+  font: 600 9.5px/1.3 ui-monospace, monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+#np-prog-cue {
+  margin: 0;
+  font: italic 400 17px/1.25 "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  color: #dffcf9;
+}
+
+/* Carrier's Dispatch Book & 2086 Concept Plates Modal */
+#np-dispatch-modal {
+  position: fixed;
+  inset: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+  margin: auto;
+  max-width: 960px;
+  max-height: 88vh;
+  background: rgba(12, 22, 21, 0.97);
+  border: 1px solid rgba(107, 232, 220, 0.44);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 28;
+  overflow-y: auto;
+  touch-action: pan-y;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.85);
+}
+#np-dispatch-modal[hidden] { display: none; }
+#np-dispatch-modal header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 10px;
+}
+#np-dispatch-modal h2 {
+  margin: 0;
+  font: 400 clamp(22px, 3vw, 28px)/1.05 "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  letter-spacing: .04em;
+  color: var(--paper);
+}
+.np-disp-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.np-disp-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 360px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.np-plate-frame {
+  background: #091110;
+  border: 1px solid var(--brass-dim);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.np-plate-frame img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+.np-plate-meta {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.np-plate-meta strong {
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--aqua);
+}
+.np-plate-meta p {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.np-disp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.np-stat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.np-stat-table th,
+.np-stat-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(242, 237, 226, 0.14);
+  text-align: left;
+}
+.np-stat-table th {
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.np-log-item {
+  padding: 7px 0;
+  border-top: 1px solid rgba(242, 237, 226, 0.14);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.np-log-item small {
+  display: block;
+  font: 600 10px/1.2 ui-monospace, monospace;
+  color: var(--aqua);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+@media (max-width: 780px) {
+  .np-disp-grid { grid-template-columns: 1fr; }
+}
+
+/* Keep mobile viewfinder clean while exposing 2086 Night Post tools & Dispatch modal cleanly */
+body.field-ui #np-screening-card {
+  left: 12px;
+  right: 12px;
+  top: max(68px, calc(env(safe-area-inset-top) + 60px));
+  width: auto;
+  z-index: 24;
+}
+body.field-ui #np-dispatch-modal {
+  display: flex !important;
+  inset: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom)) 8px;
+}
+body.field-ui #np-dispatch-modal[hidden] { display: none !important; }

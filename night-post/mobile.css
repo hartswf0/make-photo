@@ -1,0 +1,513 @@
+#viewfinder { display: contents; }
+.field-corner { display: none; }
+.loader-actions:not([hidden]) { display: flex; gap: 8px; }
+
+.field-key {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 3px 5px;
+  border: 1px solid #727b70;
+  border-radius: 5px;
+  background: #16211f;
+  color: #f4eddb;
+  font: 600 12px/1.15 Inter, system-ui, sans-serif;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.field-key:focus-visible { outline: 2px solid #b1f7fa; outline-offset: 2px; }
+.field-key[hidden] { display: none !important; }
+
+body.field-ui {
+  --ice: #b2eef0;
+  --amber: #f5d291;
+  --glass: #161d22d9;
+  --etch: #c3d3d58f;
+  --instrument: 550 11px/1.15 "IBM Plex Mono", ui-monospace, monospace;
+  --engraving: 400 12px/1.1 "Instrument Serif", Georgia, serif;
+  --rim-x: 12px;
+  --rim-y: 12px;
+  --top: calc(var(--rim-y) + env(safe-area-inset-top));
+  --bottom: calc(var(--rim-y) + env(safe-area-inset-bottom));
+  --left: calc(var(--rim-x) + env(safe-area-inset-left));
+  --right: calc(var(--rim-x) + env(safe-area-inset-right));
+  position: relative;
+  touch-action: auto;
+  height: 100vh;
+  height: 100dvh;
+  color: #fff2d7;
+  background: #071717;
+}
+body.field-ui #top-left,
+body.field-ui #reel-col,
+body.field-ui #rack-tray,
+body.field-ui #platebox,
+body.field-ui #focus-dock,
+body.field-ui #wedge-wrap,
+body.field-ui #keys,
+body.field-ui #toast,
+body.field-ui #thirst-alert,
+body.field-ui #ppc-hud,
+body.field-ui #cam-frame-tag,
+body.field-ui #flash,
+body.field-ui #cinema-intro,
+body.field-ui .letterbox,
+body.field-ui:not(.ground-glass) #cloth { display: none !important; }
+
+body.field-ui #viewfinder {
+  display: block;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+body.field-ui #view {
+  position: absolute;
+  touch-action: none;
+}
+body.field-ui #viewfinder::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 188px 142px at 0 0, #10131eb3, transparent),
+    radial-gradient(ellipse 175px 150px at 100% 0, #10131e69, transparent),
+    radial-gradient(ellipse 142px 124px at 0 100%, #0a121e90, transparent),
+    radial-gradient(ellipse 147px 154px at 100% 100%, #0a121e90, transparent);
+}
+body.field-ui #cloth { position: absolute; }
+body.field-ui #reticle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-color: #ffe3a79e;
+  box-shadow: 0 0 0 1px #17262688;
+}
+body.field-ui #reticle::after, body.field-ui.intro-active #reticle, body.field-ui.intro-active #cam-frame { display: none; }
+body.field-ui #cam-frame {
+  position: absolute;
+  width: var(--crop-width, 80%);
+  height: var(--crop-height, 45%);
+  border: 0;
+  box-shadow: none;
+}
+body.field-ui #cam-frame::before, body.field-ui #cam-frame::after {
+  inset: 0;
+  border-color: #b3f1eda6;
+  border-width: 1px;
+  filter: drop-shadow(0 0 1px #071717);
+}
+body.field-ui #cam-frame::before {
+  border-style: solid none;
+  mask: linear-gradient(90deg, #000 14px, transparent 14px, transparent calc(100% - 14px), #000 calc(100% - 14px));
+}
+body.field-ui #cam-frame::after {
+  border-style: none solid;
+  mask: linear-gradient(#000 14px, transparent 14px, transparent calc(100% - 14px), #000 calc(100% - 14px));
+}
+body.field-ui.field-no-guides :is(#reticle, #cam-frame) { display: none; }
+
+body.field-ui .field-corner {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  text-shadow: 0 1px 2px #030b0b, 0 0 5px #030b0b, 0 0 9px #030b0b;
+}
+body.field-ui:not(.field-ready) .field-corner { visibility: hidden; }
+body.field-ui .field-corner .field-key {
+  pointer-events: auto;
+  touch-action: manipulation;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  font: var(--instrument);
+  text-shadow: inherit;
+  text-transform: uppercase;
+}
+body.field-ui .field-corner .field-key:active,
+body.field-ui .field-key[data-held],
+body.field-ui .field-key[data-armed] {
+  color: var(--amber);
+  text-shadow: 0 0 7px #edb960, 0 1px 2px #030b0b;
+}
+body.field-ui .field-key[data-field-key], body.field-ui #field-stick, body.field-ui .field-key[data-turn] {
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+body.field-ui #field-status {
+  top: var(--top);
+  left: var(--left);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: 5px;
+  width: min(calc(50vw - 20px), 215px);
+}
+body.field-ui .field-links { display: flex; gap: 1px; }
+body.field-ui .field-links .field-key { display: grid; place-items: center; font-size: 10px; }
+body.field-ui #field-place {
+  margin: 0;
+  font: 400 clamp(15px, 4.25vw, 20px)/1.06 "Instrument Serif", Georgia, serif;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  overflow-wrap: break-word;
+}
+body.field-ui #field-state, body.field-ui #field-wifi, body.field-ui #field-notice { margin: 0; font: var(--instrument); }
+body.field-ui #field-state { font: var(--engraving); letter-spacing: .11em; text-transform: uppercase; }
+body.field-ui #field-wifi { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; color: var(--ice); }
+body.field-ui #field-wifi[hidden], body.field-ui #field-notice:empty { display: none; }
+body.field-ui #field-wifi-scale, body.field-ui #field-tool-dots { display: inline-flex; justify-content: center; gap: 4px; }
+body.field-ui #field-wifi-scale i, body.field-ui #field-tool-dots i {
+  width: 4px;
+  height: 4px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: .55;
+}
+body.field-ui #field-wifi-scale i[data-lit], body.field-ui #field-tool-dots i[data-lit] {
+  background: currentColor;
+  opacity: 1;
+  box-shadow: 0 0 4px currentColor;
+}
+body.field-ui #field-notice {
+  color: #ffe2aa;
+  overflow-wrap: anywhere;
+}
+body.field-ui #field-notice[data-warning] { color: #ffab96; }
+body.field-ui #field-progress { width: 100%; height: 5px; accent-color: var(--ice); }
+
+body.field-ui #field-tools {
+  --ring: 116px;
+  top: var(--top);
+  right: var(--right);
+  display: grid;
+  justify-items: center;
+  width: min(calc(50vw - 12px), 172px);
+  color: #fff2d7;
+}
+body.field-ui #field-tool-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  width: 100%;
+}
+body.field-ui #field-band-toggle {
+  display: grid;
+  justify-self: end;
+  grid-template-columns: auto auto auto;
+  align-content: center;
+  gap: 3px 5px;
+  min-width: 90px;
+  padding-top: 8px;
+  font: var(--engraving);
+  letter-spacing: .11em;
+}
+body.field-ui #field-band-code { color: var(--ice); }
+body.field-ui #field-tool-dots { display: flex; grid-column: 1 / -1; color: var(--amber); }
+body.field-ui .field-band-chevron { color: var(--amber); }
+body.field-ui #field-band-toggle[aria-expanded="true"] .field-band-chevron { transform: rotate(180deg); }
+body.field-ui #field-map-toggle { color: var(--ice); }
+body.field-ui #field-map-toggle::before {
+  content: "";
+  display: block;
+  width: 5px;
+  height: 5px;
+  margin: 0 auto 4px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+body.field-ui #field-map-toggle[aria-expanded="true"]::before {
+  background: currentColor;
+  box-shadow: 0 0 5px currentColor;
+}
+body.field-ui #field-map:not([hidden]) {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  width: 100%;
+  margin: 0;
+}
+body.field-ui #field-map-canvas {
+  width: 100px;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #06141bb0;
+}
+body.field-ui #field-map figcaption {
+  text-align: center;
+  overflow-wrap: anywhere;
+  font: var(--instrument);
+}
+body.field-ui #field-map figcaption span { display: block; }
+body.field-ui #field-map-relay { color: var(--amber); }
+body.field-ui #field-map-route { color: var(--ice); }
+body.field-ui #field-band-picker:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(44px, 1fr));
+  gap: 2px;
+  width: 100%;
+}
+body.field-ui #field-band-picker .field-key {
+  color: #fff2d7;
+  border: 1px solid #c3d3d57d;
+  background: #1a232aaa;
+  border-radius: 50%;
+  font: var(--engraving);
+}
+body.field-ui #field-band-picker .field-key span {
+  display: block;
+  margin-bottom: 1px;
+  color: var(--ice);
+  font: var(--instrument);
+  font-size: 9px;
+}
+body.field-ui #field-band-picker .field-key[aria-pressed="true"] { border-color: var(--amber); }
+body.field-ui #field-lens[hidden],
+body.field-ui #field-tools[data-view]::before,
+body.field-ui #field-tools[data-view]::after { display: none; }
+body.field-ui #field-lens {
+  display: grid;
+  justify-items: center;
+  width: 100%;
+}
+body.field-ui #field-tools::before, body.field-ui #field-tools::after, body.field-ui #field-dial-index {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: var(--ring);
+  height: var(--ring);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+body.field-ui #field-tools::before {
+  border: 1px solid #ede5ca96;
+  background: radial-gradient(circle, #161d24a1 56%, #c4af8d5e 62%, #303943ba 66%, #d5c8a6a1 69%, #1018207a 71%);
+  box-shadow: 0 2px 8px #07080a58, inset 0 1px 3px #e5dfc797;
+}
+body.field-ui #field-tools::after {
+  width: calc(var(--ring) - 17px);
+  height: calc(var(--ring) - 17px);
+  border: 1px solid #cdcbb852;
+}
+body.field-ui #field-dial-index {
+  background:
+    conic-gradient(from var(--dial-angle, 39deg), #ffdc94 0 3deg, transparent 3deg),
+    repeating-conic-gradient(#e0e2d480 0deg 1deg, transparent 1deg 8deg);
+  mask: radial-gradient(circle, transparent 58%, #000 59% 67%, transparent 68%);
+}
+body.field-ui #field-dial-index[hidden] { display: none; }
+body.field-ui #field-setting-next {
+  max-width: var(--ring);
+  width: 100%;
+  font: var(--engraving);
+  letter-spacing: .09em;
+}
+body.field-ui #field-setting-next:disabled { opacity: 1; pointer-events: none; }
+body.field-ui #field-choice {
+  min-height: 44px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+}
+body.field-ui .field-corner .field-adjust { color: var(--amber); font: 400 19px/1 Georgia, serif; }
+body.field-ui #field-choice :is(#field-value, #field-apply, #field-plate-link) {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #fff2d7;
+}
+body.field-ui #field-choice[data-wide] :is(#field-value, #field-apply, #field-plate-link) {
+  grid-column: 1 / -1;
+  width: var(--ring);
+  justify-self: center;
+}
+body.field-ui #field-value { padding-bottom: 9px; cursor: default; }
+body.field-ui #field-value[data-turn] { cursor: ew-resize; }
+body.field-ui #field-value[disabled] { opacity: 1; pointer-events: none; }
+body.field-ui #field-lens[data-measure] #field-value {
+  font: italic 400 clamp(16px, 5.2vw, 23px)/1 "Instrument Serif", Georgia, serif;
+  text-transform: none;
+  white-space: nowrap;
+}
+body.field-ui #field-plate-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 10px;
+}
+body.field-ui #field-plate-thumb { width: 25px; aspect-ratio: 5/4; object-fit: cover; border-radius: 2px; }
+body.field-ui #field-value-prev { grid-column: 1; }
+body.field-ui #field-value-next { grid-column: 3; grid-row: 1; }
+
+body.field-ui #field-move {
+  left: var(--left);
+  bottom: var(--bottom);
+  display: grid;
+  grid-template-columns: 84px 44px;
+  grid-template-rows: 44px 50px;
+  align-items: end;
+  color: var(--ice);
+}
+body.field-ui #field-stick {
+  position: relative;
+  grid-area: 1 / 1 / span 2;
+  width: 84px;
+  height: 84px;
+  touch-action: none;
+  border: 1px solid var(--etch);
+  background: radial-gradient(circle, #071d286b 41%, #1c35435c 73%);
+  box-shadow: inset 0 0 10px #91dadb28;
+  user-select: none;
+}
+body.field-ui #field-stick::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px dashed var(--etch);
+  border-radius: 50%;
+}
+body.field-ui #field-stick-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+  margin: -7.5px;
+  border: 1px solid #cefffb;
+  border-radius: 50%;
+  background: #89d7dfb5;
+  box-shadow: 0 0 8px #7bd8d877;
+  transform: translate(var(--stick-x, 0), var(--stick-y, 0));
+  pointer-events: none;
+}
+body.field-ui #field-stick-up, body.field-ui #field-stick-down, body.field-ui #field-stick-name {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  pointer-events: none;
+  font-size: 9px;
+}
+body.field-ui #field-stick-up { top: 10px; }
+body.field-ui #field-stick-down { bottom: 22px; }
+body.field-ui #field-stick-name { bottom: 7px; letter-spacing: .06em; }
+body.field-ui #field-boost { grid-area: 1 / 2; }
+body.field-ui #field-boost::before {
+  content: "◦";
+  display: block;
+  font: 650 21px/.8 system-ui, sans-serif;
+}
+
+body.field-ui #field-actions, body.field-ui #field-intro {
+  right: var(--right);
+  bottom: var(--bottom);
+  width: min(calc(50vw - 14px), 162px);
+  display: grid;
+  justify-items: end;
+  color: #fff0d5;
+}
+body.field-ui .field-latches {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 0 3px;
+  padding-right: 5px;
+}
+body.field-ui .field-latches .field-key { width: 68px; }
+body.field-ui .field-latches .field-key::before {
+  content: "";
+  display: block;
+  margin: 0 auto 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 5px var(--amber);
+}
+body.field-ui #field-context[data-rescue] { color: #ffba8d; }
+body.field-ui #field-context[data-rescue]::before { background: currentColor; box-shadow: 0 0 5px currentColor; }
+body.field-ui #field-expose {
+  display: grid;
+  width: 90px;
+  justify-items: center;
+  gap: 5px;
+  color: var(--amber);
+  font: var(--engraving);
+  letter-spacing: .08em;
+  white-space: nowrap;
+}
+body.field-ui #field-orb {
+  position: relative;
+  display: grid;
+  width: 66px;
+  height: 66px;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid #ffe7b1dd;
+  background: radial-gradient(circle at 42% 37%, #f0d297c7, #957349ac 35%, #433327ca 50%, #ebc07a94 64%, #2b251cd6 74%);
+  box-shadow: inset 0 0 0 2px #745032a9, inset 0 0 12px #edd09b70, 0 0 10px #bb8d484d;
+}
+body.field-ui #field-orb::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid #ffe6adb0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+body.field-ui #field-orb-img {
+  width: 49px;
+  height: 49px;
+  object-fit: cover;
+  border-radius: 50%;
+  opacity: .86;
+  mask-image: radial-gradient(circle, #000 44%, #0009 58%, transparent 71%);
+}
+body.field-ui #field-expose:active #field-orb, body.field-ui #field-expose[data-exposed] #field-orb {
+  border-color: #fff5d5;
+  box-shadow: inset 0 0 14px #ffdf9b, 0 0 17px #edb859a6;
+}
+body.field-ui #field-intro { grid-template: repeat(3, 44px) / minmax(0, 1fr); justify-items: stretch; }
+body.field-ui #field-intro .field-key { border: 1px solid var(--etch); border-radius: 4px; background: var(--glass); }
+body.field-ui #field-prologue { grid-row: 1; }
+body.field-ui #field-summit { grid-row: 2; }
+body.field-ui #field-enter, body.field-ui #field-skip { grid-row: 3; color: var(--amber); }
+body.field-ui:not(.intro-active) #field-intro,
+body.field-ui.intro-active :is(#field-tools, #field-move, #field-actions) { display: none; }
+
+@media (orientation: landscape) {
+  body.field-ui { --rim-x: 14px; }
+  body.field-ui #field-status { width: min(25vw, 190px); }
+  body.field-ui #field-place { font-size: clamp(15px, 2.5vw, 20px); }
+}
+@media (orientation: landscape) and (max-height: 300px) {
+  body.field-ui #field-map:not([hidden]) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+  body.field-ui #field-map-canvas {
+    grid-area: 1 / 2;
+    width: clamp(56px, calc(100dvh - 174px), 76px);
+  }
+  body.field-ui #field-map figcaption { grid-area: 1 / 1; text-align: right; }
+  body.field-ui #field-actions {
+    width: min(42vw, 244px);
+    grid-template-columns: 1fr 90px;
+    align-items: end;
+  }
+  body.field-ui #field-orb { width: 54px; height: 54px; }
+  body.field-ui #field-orb-img { width: 39px; height: 39px; }
+}
