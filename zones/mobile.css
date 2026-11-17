@@ -193,8 +193,14 @@ body.field-ui #field-tools {
   width: min(calc(50vw - 12px), 172px);
   color: #fff2d7;
 }
+body.field-ui #field-tool-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  width: 100%;
+}
 body.field-ui #field-band-toggle {
   display: grid;
+  justify-self: end;
   grid-template-columns: auto auto auto;
   align-content: center;
   gap: 3px 5px;
@@ -207,6 +213,42 @@ body.field-ui #field-band-code { color: var(--ice); }
 body.field-ui #field-tool-dots { display: flex; grid-column: 1 / -1; color: var(--amber); }
 body.field-ui .field-band-chevron { color: var(--amber); }
 body.field-ui #field-band-toggle[aria-expanded="true"] .field-band-chevron { transform: rotate(180deg); }
+body.field-ui #field-map-toggle { color: var(--ice); }
+body.field-ui #field-map-toggle::before {
+  content: "";
+  display: block;
+  width: 5px;
+  height: 5px;
+  margin: 0 auto 4px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+body.field-ui #field-map-toggle[aria-expanded="true"]::before {
+  background: currentColor;
+  box-shadow: 0 0 5px currentColor;
+}
+body.field-ui #field-map:not([hidden]) {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  width: 100%;
+  margin: 0;
+}
+body.field-ui #field-map-canvas {
+  width: 100px;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #06141bb0;
+}
+body.field-ui #field-map figcaption {
+  text-align: center;
+  overflow-wrap: anywhere;
+  font: var(--instrument);
+}
+body.field-ui #field-map figcaption span { display: block; }
+body.field-ui #field-map-relay { color: var(--amber); }
+body.field-ui #field-map-route { color: var(--ice); }
 body.field-ui #field-band-picker:not([hidden]) {
   display: grid;
   grid-template-columns: repeat(3, minmax(44px, 1fr));
@@ -229,8 +271,8 @@ body.field-ui #field-band-picker .field-key span {
 }
 body.field-ui #field-band-picker .field-key[aria-pressed="true"] { border-color: var(--amber); }
 body.field-ui #field-lens[hidden],
-body.field-ui #field-tools[data-bands]::before,
-body.field-ui #field-tools[data-bands]::after { display: none; }
+body.field-ui #field-tools[data-view]::before,
+body.field-ui #field-tools[data-view]::after { display: none; }
 body.field-ui #field-lens {
   display: grid;
   justify-items: center;
@@ -452,6 +494,15 @@ body.field-ui.intro-active :is(#field-tools, #field-move, #field-actions) { disp
   body.field-ui #field-place { font-size: clamp(15px, 2.5vw, 20px); }
 }
 @media (orientation: landscape) and (max-height: 300px) {
+  body.field-ui #field-map:not([hidden]) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+  body.field-ui #field-map-canvas {
+    grid-area: 1 / 2;
+    width: clamp(56px, calc(100dvh - 174px), 76px);
+  }
+  body.field-ui #field-map figcaption { grid-area: 1 / 1; text-align: right; }
   body.field-ui #field-actions {
     width: min(42vw, 244px);
     grid-template-columns: 1fr 90px;

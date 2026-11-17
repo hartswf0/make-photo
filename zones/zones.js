@@ -4013,6 +4013,16 @@ void main(){
       return clamp(Math.round((sum / count) * 100), 0, 100);
     }
 
+    function nearestUnlitRelay(x, z) {
+      let relay = null, distance = Infinity;
+      for (const candidate of relays) {
+        if (candidate.lit) continue;
+        const range = Math.hypot(candidate.x - x, candidate.z - z);
+        if (range < distance) { relay = candidate; distance = range; }
+      }
+      return { relay, distance };
+    }
+
     function sampleMeter() {
       const dir = new T.Vector3(); camera.getWorldDirection(dir);
       let hitP = null;
@@ -4052,12 +4062,7 @@ void main(){
       recomputeFilledCans();
 
       // Closest unlit cistern relay bearing for Delivery Compass
-      let nextR = null, nextD = 1e9;
-      for (const r of relays) {
-        if (r.lit) continue;
-        const d = Math.hypot(r.x - state.x, r.z - state.z);
-        if (d < nextD) { nextD = d; nextR = r; }
-      }
+      const { relay: nextR, distance: nextD } = nearestUnlitRelay(state.x, state.z);
       if (nextR) {
         state.nextRelayDist = nextD; state.nextRelayName = nextR.name;
         const targetYaw = Math.atan2(-(nextR.x - state.x), -(nextR.z - state.z));
@@ -4251,6 +4256,7 @@ void main(){
       drive: ["Wagon", "Drive", "Fwd", "Reverse", "Turbo"],
       glide: ["Glide", "Steer", "Dive", "Climb", "Lift"]
     };
+    const vehicleLabels = { walk: "Drive", drive: "Park", glide: "Fold wing", ride: "Dismount" };
     const fieldStick = $("field-stick");
     const fieldHoldButtons = [...document.querySelectorAll("[data-field-key]")];
     const heldPointers = new Map();
@@ -4377,22 +4383,30 @@ void main(){
     let fieldToolIndex = fieldGroups.findIndex(group => group.name === "Lens");
     const fieldBandPicker = $("field-band-picker");
     const fieldBandToggle = $("field-band-toggle");
+    const fieldLens = $("field-lens");
+    const fieldMap = $("field-map");
+    const fieldMapToggle = $("field-map-toggle");
+    const fieldMapCanvas = $("field-map-canvas");
     const fieldBandButtons = [...fieldBandPicker.querySelectorAll("[data-field-band]")];
 
-    function setFieldBandOpen(open) {
-      const returnFocus = !open && fieldBandPicker.contains(document.activeElement);
-      fieldBandPicker.hidden = !open;
-      $("field-lens").hidden = open;
-      $("field-tools").toggleAttribute("data-bands", open);
-      fieldBandToggle.setAttribute("aria-expanded", String(open));
+    function showFieldTool(view) {
+      const active = document.activeElement;
+      const returnFocus = (view !== "bands" && fieldBandPicker.contains(active)) ||
+        (view !== "dial" && fieldLens.contains(active));
+      fieldBandPicker.hidden = view !== "bands";
+      fieldLens.hidden = view !== "dial";
+      fieldMap.hidden = view !== "map";
+      $("field-tools").toggleAttribute("data-view", view !== "dial");
+      fieldBandToggle.setAttribute("aria-expanded", String(view === "bands"));
+      fieldMapToggle.setAttribute("aria-expanded", String(view === "map"));
       armedTravel = null;
-      if (returnFocus) fieldBandToggle.focus({ preventScroll: true });
+      if (returnFocus) (view === "map" ? fieldMapToggle : fieldBandToggle).focus({ preventScroll: true });
     }
 
     function selectFieldBand(index) {
       fieldToolIndex = index;
       fieldSettingIndex = 0;
-      setFieldBandOpen(false);
+      showFieldTool("dial");
       const band = fieldGroups[index].band;
       fieldBandButtons.forEach(button => button.setAttribute("aria-pressed", String(Number(button.dataset.fieldBand) === band)));
       updateHUD();
@@ -4401,6 +4415,115 @@ void main(){
       const index = fieldGroups.findIndex(group => group.band === Number(button.dataset.fieldBand));
       selectFieldBand(index);
     }));
+
+    const mapRange = 224, reliefCell = 8, reliefSnap = 64;
+    const reliefRange = mapRange + reliefSnap / 2 + reliefCell;
+    const reliefCells = reliefRange * 2 / reliefCell;
+    const compass = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    let mapContext, relief, reliefX, reliefZ;
+
+    function drawFieldRelief(ctx, x, z) {
+      // Reuse the same world-aligned samples while the map pans inside a tile.
+      const left = Math.round(x / reliefSnap) * reliefSnap - reliefRange;
+      const top = Math.round(z / reliefSnap) * reliefSnap - reliefRange;
+      if (!relief) {
+        relief = document.createElement("canvas");
+        relief.width = relief.height = reliefCells;
+      }
+      if (left !== reliefX || top !== reliefZ) {
+        const terrain = relief.getContext("2d");
+        if (!terrain) return;
+        const heights = new Float32Array(reliefCells ** 2);
+        for (let row = 0; row < reliefCells; row++) {
+          for (let col = 0; col < reliefCells; col++) {
+            heights[row * reliefCells + col] = groundAt(left + (col + .5) * reliefCell, top + (row + .5) * reliefCell);
+          }
+        }
+        const image = terrain.createImageData(reliefCells, reliefCells);
+        for (let row = 0; row < reliefCells; row++) {
+          for (let col = 0; col < reliefCells; col++) {
+            const index = row * reliefCells + col, h = heights[index];
+            const west = col ? heights[index - 1] : h, north = row ? heights[index - reliefCells] : h;
+            const contour = Math.abs(h - 12 * Math.round(h / 12)) < 1.2 ? 12 : 0;
+            const tone = clamp(57 + (west - h) * 2.1 + (north - h) * 1.25 - contour, 24, 110);
+            const water = mw.wet(left + (col + .5) * reliefCell, top + (row + .5) * reliefCell) > -.5;
+            const pixel = index * 4;
+            image.data[pixel] = water ? 19 : tone * .82;
+            image.data[pixel + 1] = water ? 67 : tone;
+            image.data[pixel + 2] = water ? 83 : tone * 1.14;
+            image.data[pixel + 3] = 255;
+          }
+        }
+        terrain.putImageData(image, 0, 0);
+        reliefX = left;
+        reliefZ = top;
+      }
+      const span = mapRange * 2 / reliefCell, size = fieldMapCanvas.width;
+      ctx.drawImage(relief, (x - mapRange - left) / reliefCell, (z - mapRange - top) / reliefCell, span, span, 0, 0, size, size);
+    }
+
+    function updateFieldMap(motion) {
+      const pose = motion === "drive" ? wagon : motion === "glide" ? state.glide : motion === "ride" ? donkey.state : state;
+      const { x, z } = pose;
+      const { relay: target, distance } = nearestUnlitRelay(x, z);
+      const bearing = target ? Math.atan2(target.x - x, z - target.z) : 0;
+      const direction = compass[cycle(0, compass.length, Math.round(bearing * 4 / Math.PI))];
+      const delivery = `${state.filledCans}/${state.totalCans} cans`;
+      setText("field-map-relay", target?.name ?? "All relays lit");
+      const rangeLabel = distance < .5 ? "At relay" : `${Math.round(distance)} m ${direction}`;
+      setText("field-map-route", target ? `${rangeLabel} · ${delivery}` : delivery);
+
+      if (mapContext === undefined) mapContext = fieldMapCanvas.getContext("2d");
+      if (!mapContext) return;
+      const ctx = mapContext, size = fieldMapCanvas.width, mid = size / 2, inset = mid - 27;
+      const scale = mid / mapRange;
+      ctx.clearRect(0, 0, size, size);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(mid, mid, mid - 2, 0, TAU);
+      ctx.clip();
+      ctx.fillStyle = "#152b33";
+      ctx.fillRect(0, 0, size, size);
+      drawFieldRelief(ctx, x, z);
+      ctx.strokeStyle = "#b2eef088";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      for (const relay of relays) {
+        if (relay === target) continue;
+        const dx = (relay.x - x) * scale, dz = (relay.z - z) * scale;
+        if (Math.hypot(dx, dz) > inset) continue;
+        ctx.beginPath();
+        ctx.arc(mid + dx, mid + dz, 4, 0, TAU);
+        ctx.strokeStyle = "#b2eef0";
+        ctx.lineWidth = 1.6;
+        if (relay.lit) { ctx.fillStyle = "#b2eef0"; ctx.fill(); }
+        else ctx.stroke();
+      }
+      if (target) {
+        const range = Math.min(distance * scale, inset);
+        const px = mid + Math.sin(bearing) * range, py = mid - Math.cos(bearing) * range;
+        ctx.strokeStyle = "#ffe0a3";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([3, 5]);
+        ctx.beginPath(); ctx.moveTo(mid, mid); ctx.lineTo(px, py); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#ffe0a3";
+        ctx.beginPath(); ctx.moveTo(px, py - 7); ctx.lineTo(px + 7, py);
+        ctx.lineTo(px, py + 7); ctx.lineTo(px - 7, py); ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = "#e9fafa";
+      ctx.textAlign = "center";
+      ctx.font = "600 18px IBM Plex Mono, monospace";
+      ctx.fillText("N", mid, 22);
+      ctx.translate(mid, mid);
+      ctx.rotate(pose === state ? -state.yaw : Math.PI - pose.heading);
+      ctx.strokeStyle = "#101920";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(9, 10);
+      ctx.lineTo(0, 6); ctx.lineTo(-9, 10); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
 
     const nearbyActions = {
       stopPour: { label: "Stop pour", run: stopPour },
@@ -4482,10 +4605,12 @@ void main(){
         setText("field-boost", boost);
         fieldStick.setAttribute("aria-label", `${stickName}. Drag or use arrow keys.${motion === "glide" ? " Up to dive, down to climb." : ""}`);
         $("field-boost").setAttribute("aria-label", `Hold to ${boost.toLowerCase()}`);
+        if (motion === "drive" && !state.introActive) showFieldTool("map");
       }
       setText("field-place", state.introActive ? "Donkey Water" : ZONES[state.currentZone].name);
       setText("field-state", state.introActive ? (state.introPhase === "montage" ? "Prologue" : "Grand Teton") :
-        (motion === "glide" ? `${label} · ${fmtElev(state.antennaElev)}` : label));
+        (motion === "glide" ? `${label} · ${fmtElev(state.antennaElev)}` :
+          motion === "drive" ? `${label} · ${Math.abs(wagon.speed).toFixed(1)} m/s` : label));
       $("field-wifi").hidden = state.introActive;
       setText("field-wifi-value", `WiFi ${state.frameWifiPct}%`);
       wifiDots.forEach((dot, i) => dot.toggleAttribute("data-lit", state.frameWifiPct > i * 20));
@@ -4499,9 +4624,10 @@ void main(){
       document.body.classList.toggle("field-no-guides", !state.ppcOn);
       if (state.introActive) return;
 
-      setText("field-vehicle", state.gliding ? "Fold wing" : state.drivingCart ? "Park" : "Dismount");
-      $("field-vehicle").hidden = motion === "walk";
+      setText("field-vehicle", vehicleLabels[motion]);
+      $("field-vehicle").hidden = motion === "walk" && !canStartMotion();
       $("field-brake").hidden = !state.drivingCart;
+      if (!fieldMap.hidden) updateFieldMap(motion);
       const context = fieldContext(motion);
       $("field-context").hidden = !context;
       setText("field-context", context?.label ?? "");
@@ -4586,6 +4712,11 @@ void main(){
       if (state.gliding) toggleGlide();
       else if (state.drivingCart) toggleCart();
       else if (state.riding) toggleRide();
+      else if (canStartMotion()) toggleCart();
+    });
+    fieldClick("field-map-toggle", () => {
+      showFieldTool(fieldMap.hidden ? "map" : "dial");
+      updateHUD();
     });
     fieldClick("field-context", () => fieldContext(currentMotion())?.run());
     fieldClick("field-expose", exposePlate);
@@ -4628,7 +4759,7 @@ void main(){
       });
     }
     bindFieldTurn("field-band-toggle", step => selectFieldBand(cycle(fieldToolIndex, fieldGroups.length, step)),
-      () => setFieldBandOpen(fieldBandPicker.hidden));
+      () => showFieldTool(fieldBandPicker.hidden ? "bands" : "dial"));
     bindFieldTurn("field-setting-next", step => {
       fieldSettingIndex = cycle(fieldSettingIndex, fieldSettings().length, step);
       armedTravel = null;
@@ -4712,9 +4843,9 @@ void main(){
         updateHUD();
         return;
       }
-      if (e.code === "Escape" && !fieldBandPicker.hidden) {
+      if (e.code === "Escape" && (!fieldBandPicker.hidden || !fieldMap.hidden)) {
         e.preventDefault();
-        setFieldBandOpen(false);
+        showFieldTool("dial");
         return;
       }
       keys[e.code] = true;
@@ -4742,7 +4873,7 @@ void main(){
     let lookPointer = null, lastPX = 0, lastPY = 0;
     canvas.addEventListener("pointerdown", e => {
       if (lookPointer !== null || e.button !== 0 || state.introActive || contextLost) return;
-      if (!fieldBandPicker.hidden) setFieldBandOpen(false);
+      if (!fieldBandPicker.hidden) showFieldTool("dial");
       lookPointer = e.pointerId;
       lastPX = e.clientX;
       lastPY = e.clientY;
@@ -4807,7 +4938,7 @@ void main(){
           state.trayTab = null;
           $("rack-tray").hidden = $("platebox").hidden = true;
         } else {
-          setFieldBandOpen(false);
+          showFieldTool("dial");
         }
         updateHUD();
       }

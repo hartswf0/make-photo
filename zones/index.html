@@ -1229,7 +1229,7 @@
       #focus-knob i { height: 22px; margin-top: -22px; }
     }
   </style>
-  <link rel="stylesheet" href="./mobile.css?v=454f4434d6b8">
+  <link rel="stylesheet" href="./mobile.css?v=2d6f9b5a0ef4">
 </head>
 <body>
   <audio id="jerikan-audio" src="./cyan-jerikan.ogg" loop preload="auto"></audio>
@@ -1255,13 +1255,16 @@
   </header>
 
   <div id="field-tools" class="field-corner" role="group" aria-label="Expedition tool controls">
-    <button class="field-key" type="button" id="field-band-toggle" aria-expanded="false" aria-controls="field-band-picker"
-      aria-label="Lens band. Choose another control.">
-      <span id="field-band-code" aria-hidden="true">B4</span>
-      <span id="field-tool-name" aria-live="polite">Lens</span>
-      <span class="field-band-chevron" aria-hidden="true">⌄</span>
-      <span id="field-tool-dots" aria-hidden="true"></span>
-    </button>
+    <div id="field-tool-head">
+      <button class="field-key" type="button" id="field-band-toggle" aria-expanded="false" aria-controls="field-band-picker"
+        aria-label="Lens band. Choose another control.">
+        <span id="field-band-code" aria-hidden="true">B4</span>
+        <span id="field-tool-name" aria-live="polite">Lens</span>
+        <span class="field-band-chevron" aria-hidden="true">⌄</span>
+        <span id="field-tool-dots" aria-hidden="true"></span>
+      </button>
+      <button class="field-key" type="button" id="field-map-toggle" aria-expanded="false" aria-controls="field-map">Map</button>
+    </div>
     <div id="field-band-picker" role="group" aria-label="Viewfinder control bands" hidden>
       <button class="field-key" type="button" data-field-band="6" aria-pressed="false"><span aria-hidden="true">B6</span>Mode</button>
       <button class="field-key" type="button" data-field-band="1" aria-pressed="false"><span aria-hidden="true">B1</span>Look</button>
@@ -1285,6 +1288,13 @@
         </a>
       </div>
     </div>
+    <figure id="field-map" aria-label="North-up minimap" hidden>
+      <canvas id="field-map-canvas" width="192" height="192" aria-hidden="true"></canvas>
+      <figcaption>
+        <span id="field-map-relay"></span>
+        <span id="field-map-route"></span>
+      </figcaption>
+    </figure>
   </div>
 
   <div id="field-move" class="field-corner" role="group" aria-label="Movement controls">
@@ -1487,6 +1497,6 @@
   <script src="../field-plates/fonts.js"></script>
   <script src="../field-plates/three.js"></script>
   <script src="../donkey/donkey.js"></script>
-  <script src="./zones.js?v=94f1688c542a"></script>
+  <script src="./zones.js?v=f270ecf277a0"></script>
 </body>
 </html>
