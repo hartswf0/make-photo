@@ -2,17 +2,234 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#151613">
-  <meta name="description" content="Play MONOLITH, a first-person survey expedition from Snake River to Half Dome.">
-  <title>MONOLITH</title>
-  <meta http-equiv="refresh" content="0; url=./MONOLITH.html">
+  <meta name="description" content="After Ansel Adams: interactive 8×10 survey expeditions across Grand Teton, Yosemite, and the Pack Donkey trails.">
+  <link rel="icon" href="data:,">
+  <title>make-photo · Field Expeditions</title>
   <style>
-    body { color-scheme: dark; background: #151613; color: #e9e7df; font: 18px system-ui, sans-serif; margin: 3rem; }
-    a { color: inherit; }
+    :root {
+      --bg: #151613;
+      --surface: #1d1e19;
+      --surface-hover: #25261f;
+      --paper: #f1eee6;
+      --muted: rgba(241, 238, 230, .68);
+      --brass: #cbb182;
+      --rule: rgba(203, 177, 130, .26);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: radial-gradient(circle at 50% 0%, #22231c 0%, var(--bg) 62%);
+      color: var(--paper);
+      font: 400 16px/1.55 Inter, system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: clamp(28px, 6vw, 64px) clamp(18px, 4vw, 32px) 56px;
+    }
+    header {
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 22px;
+      margin-bottom: 28px;
+    }
+    .kicker {
+      margin: 0 0 8px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--brass);
+    }
+    h1 {
+      margin: 0;
+      font: 400 clamp(32px, 5vw, 48px)/1.05 "Iowan Old Style", Georgia, serif;
+      letter-spacing: .04em;
+    }
+    .subtitle {
+      margin: 12px 0 0;
+      max-width: 66ch;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 20px 22px;
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      text-decoration: none;
+      color: inherit;
+      transition: background .16s ease, border-color .16s ease, transform .16s ease;
+    }
+    .card:hover, .card:focus-visible {
+      background: var(--surface-hover);
+      border-color: var(--brass);
+      transform: translateY(-1px);
+      outline: none;
+    }
+    .card.featured {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #21221b 0%, #191a15 100%);
+      border-color: rgba(203, 177, 130, .48);
+    }
+    .tag {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--brass);
+    }
+    .card h2 {
+      margin: 6px 0 8px;
+      font: 400 24px/1.15 "Iowan Old Style", Georgia, serif;
+      letter-spacing: .02em;
+    }
+    .card p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(241, 238, 230, .1);
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--paper);
+    }
+    .sublinks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--brass);
+      text-decoration: none;
+    }
+    .pill:hover, .pill:focus-visible {
+      border-color: var(--brass);
+      background: rgba(203, 177, 130, .12);
+      outline: none;
+    }
+    .multi-card {
+      cursor: default;
+    }
+    .multi-card:hover {
+      transform: none;
+    }
+    footer {
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(241, 238, 230, .1);
+      font-size: 12px;
+      color: rgba(241, 238, 230, .52);
+    }
   </style>
 </head>
 <body>
-  <main><a href="./MONOLITH.html">Play MONOLITH</a></main>
+  <main>
+    <header>
+      <p class="kicker">make-photo · Ansel Adams Zone System Studies</p>
+      <h1>Field Expeditions</h1>
+      <p class="subtitle">“You don’t take a photograph, you make it.” Haul 8×10 plates by pack burro or woody station wagon and sculpt Grand Teton and Yosemite terrain across eleven tonal zones.</p>
+    </header>
+
+    <section class="grid" aria-label="Playable experiences">
+      <a class="card featured" href="./MONOLITH-3.html">
+        <div>
+          <span class="tag">Open World · Grand Teton &amp; Yosemite</span>
+          <h2>MONOLITH III · Open World &amp; Mistletoe</h2>
+          <p>Walk directly off Snake River Overlook down the Bluff Switchback Trail to the Snake River, Oxbow, and Far-Bank Terrace, or explore Half Dome’s East Granite Apron and Zone notch. Lead, tether, pack, or ride Mistletoe (the procedural 25-bone burro), deploy the 8×10 view camera anywhere, and review contact prints in the Expedition Map.</p>
+        </div>
+        <div class="meta">
+          <span>Single-file build · 21.1 MB</span>
+          <span>Enter Expedition →</span>
+        </div>
+      </a>
+
+      <a class="card" href="./field-plates/">
+        <div>
+          <span class="tag">Expedition · Wagon &amp; Burro</span>
+          <h2>Field Plates</h2>
+          <p>Interactive Yosemite and Teton photography expedition with the woody photographic wagon, deployable 8×10 field camera, Zone filtering, and shared procedural Mistletoe.</p>
+        </div>
+        <div class="meta">
+          <span>./field-plates/</span>
+          <span>Launch →</span>
+        </div>
+      </a>
+
+      <div class="card multi-card">
+        <div>
+          <span class="tag">Levels · Pack Burro Simulation</span>
+          <h2>Pack Donkey</h2>
+          <p>Haul balanced Left, Top, and Right panniers to the cairn and expose plates by hand before evening fades. Mistletoe reacts to steepness, load balance, hunger, fear, and trust across walk, trot, canter, and gallop.</p>
+        </div>
+        <div>
+          <div class="sublinks">
+            <a class="pill" href="./donkey/">Tuolumne Meadow →</a>
+            <a class="pill" href="./donkey/?level=pass">Granite Pass →</a>
+          </div>
+          <div class="meta" style="margin-top:12px;">
+            <span>./donkey/</span>
+            <span>2 Levels</span>
+          </div>
+        </div>
+      </div>
+
+      <a class="card" href="./MONOLITH.html">
+        <div>
+          <span class="tag">Original Study · 11 Zones</span>
+          <h2>MONOLITH</h2>
+          <p>Original first-person tonal survey from Snake River Overlook across the silver ford to the Sierra granite notch above Half Dome.</p>
+        </div>
+        <div class="meta">
+          <span>./MONOLITH.html</span>
+          <span>Launch →</span>
+        </div>
+      </a>
+
+      <a class="card" href="./donkey/example.html">
+        <div>
+          <span class="tag">Technical Study · Three.js</span>
+          <h2>Donkey Study</h2>
+          <p>Minimal standalone sandbox demonstrating the procedural 25-bone rigged <code>makeDonkey()</code> model walking in a circle on a flat horizon.</p>
+        </div>
+        <div class="meta">
+          <span>./donkey/example.html</span>
+          <span>Open →</span>
+        </div>
+      </a>
+    </section>
+
+    <footer>
+      Controls inside expeditions: WASD / Arrows move · Click to lock pointer · E interact · F spot meter · M map &amp; plates · C 8×10 camera · P pack &amp; mind · 1–5 optical filters.
+    </footer>
+  </main>
 </body>
 </html>
