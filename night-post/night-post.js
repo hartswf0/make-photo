@@ -2328,15 +2328,15 @@ void main(){
         vec2 px = uv * uRes;
         vec3 col;
         if (mode == 0) {
-          float spk = smoothstep(0.992, 1.0, h(floor(px / 2.2) + floor(uT * 6.0) * 3.1));
+          float spk = smoothstep(0.996, 1.0, h(floor(px / 2.6))) * (0.45 + 0.35 * sin(uT * 0.9 + px.x * 0.1));
           vec3 em = mix(raw * 0.35, tr, 0.65) * smoothstep(0.14, 0.85, l);
           col = mix(silverBase * 0.48, em * vec3(1.12, 0.68, 0.34) + spk * vec3(1.0, 0.75, 0.4), 0.72);
         } else if (mode == 1) {
           float rows = 320.0;
           vec2 g = vec2(uv.x, (floor(uv.y * rows) + 0.5) / rows);
           float ls = lum(texture2D(tScene, clamp(g, 0.0, 1.0)).rgb);
-          float line = 0.80 + 0.20 * sin(uv.y * rows * 6.2832);
-          float sweep = smoothstep(0.05, 0.0, abs(fract(uv.y - uT * 0.11) - 0.5) - 0.45) * 0.12;
+          float line = 0.86 + 0.14 * sin(uv.y * rows * 6.2832);
+          float sweep = smoothstep(0.05, 0.0, abs(fract(uv.y - uT * 0.04) - 0.5) - 0.45) * 0.04;
           col = mix(silverBase * 0.44, vec3(0.76, 0.92, 1.0) * (pow(ls * 1.25 + 0.04, 0.85) * line + sweep) * vg, 0.72);
         } else if (mode == 2) {
           float th = pow(clamp(l * 1.12, 0.0, 1.0), 0.82);
@@ -2415,8 +2415,7 @@ void main(){
           float seal = step(max(abs(sq.x), abs(sq.y)), 0.032) * step(0.28, n2(px / 3.0));
           col = mix(mix(iw, vec3(0.72, 0.10, 0.08), seal), silverBase, 0.36);
         } else {
-          float flutter = step(0.992, h(vec2(floor(uv.y * 190.0), floor(uT * 11.0)))) * uAudioHigh * 0.22;
-          return silverBase * (0.95 + 0.05 * vg) + vec3(0.16, 0.72, 1.0) * flutter;
+          return silverBase * (0.95 + 0.05 * vg);
         }
         return col;
       }
@@ -2446,18 +2445,18 @@ void main(){
         float wifiEdge = 0.0;
         float wifiWave = 0.0;
         for (int i = 0; i < 8; i++) {
-          float rad = uWifi[i].w * (1.0 + 0.08 * uBeatPulse);
+          float rad = uWifi[i].w * (1.0 + 0.015 * uBeatPulse);
           if (rad > 0.5) {
             float dw = length(wPos.xz - uWifi[i].xz);
             float f = smoothstep(rad, rad * 0.14, dw) * isGeo;
             wifiField = max(wifiField, f);
             float bnd = smoothstep(2.0, 0.0, abs(dw - rad)) * isGeo;
             wifiEdge = max(wifiEdge, bnd);
-            float ringW = sin(dw * 0.72 - uT * 4.4 - uBeatPulse * 1.4);
-            wifiWave = max(wifiWave, f * smoothstep(0.90, 0.99, ringW) * (0.75 + 0.65 * uBeatPulse));
+            float ringW = sin(dw * 0.36 - uT * 0.65);
+            wifiWave = max(wifiWave, f * smoothstep(0.92, 0.995, ringW) * 0.14);
           }
         }
-        wifiField = clamp(wifiField * (1.0 + 0.35 * uWifiPing + 0.18 * uBeatPulse), 0.0, 1.0);
+        wifiField = clamp(wifiField * (1.0 + 0.10 * uWifiPing + 0.04 * uBeatPulse), 0.0, 1.0);
 
         vec3 raw = texture2D(tScene, uv).rgb;
         float rawL = clamp(dot(raw, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);
@@ -2491,8 +2490,8 @@ void main(){
                                evalLook(10, uv, raw, silverBase, tr, zoneEff, ed, vg),
                                smoothstep(0.05, 0.25, ed) + 0.30 * sin(wPos.y * 0.25 + uT));
           outCol = mix(outCol, mix(wifiWorld, vec3(0.04, 0.58, 0.98) * (0.45 + 0.72 * rawL), 0.28), wifiField * 0.72 * heroCut * (1.0 - colorKeep * 0.85));
-          float cyanWave = smoothstep(0.16, 0.0, abs(abs(coc) - 0.86)) * (0.10 + 0.72 * uFocusPulse);
-          outCol = mix(outCol, vec3(0.06, 0.78, 1.0), clamp(cyanWave * 0.50 + wifiWave * 0.55 * heroCut + wifiEdge * 0.88, 0.0, 0.92));
+          float cyanWave = smoothstep(0.16, 0.0, abs(abs(coc) - 0.86)) * (0.06 + 0.16 * uFocusPulse);
+          outCol = mix(outCol, vec3(0.06, 0.78, 1.0), clamp(cyanWave * 0.35 + wifiWave * heroCut + wifiEdge * 0.34, 0.0, 0.62));
         } else if (uRouteMode == 1) {
           float zBand = clamp(zoneEff * 10.0 + coc * 2.1 + wifiField * 2.2, 0.0, 10.0);
           vec3 strataCol = evalByFloat(zBand, uv, raw, silverBase, tr, zoneEff, ed, vg);
@@ -2500,15 +2499,15 @@ void main(){
           float sharp = 1.0 - smoothstep(0.45, 1.15, abs(coc));
           outCol = mix(strataCol, focalCol, sharp * (1.0 - uStrataLock));
           outCol = mix(outCol, raw, colorKeep * 0.55);
-          outCol = mix(outCol, vec3(0.06, 0.80, 1.0), clamp(wifiWave * 0.45 + wifiEdge * 0.82, 0.0, 0.88));
+          outCol = mix(outCol, vec3(0.06, 0.80, 1.0), clamp(wifiWave + wifiEdge * 0.34, 0.0, 0.62));
         } else if (uRouteMode == 2) {
           float shellZ = clamp(5.0 + coc * 2.4 + wifiField * 2.0, 0.0, 10.0);
           outCol = evalByFloat(shellZ, uv, raw, silverBase, tr, zoneEff, ed, vg);
-          float bound = smoothstep(0.09, 0.0, abs(fract(shellZ + 0.5) - 0.5)) * (0.14 + 0.45 * uFocusPulse);
-          outCol = mix(outCol, vec3(0.10, 0.80, 1.0), clamp(bound + wifiWave * 0.45 + wifiEdge * 0.78, 0.0, 0.9));
+          float bound = smoothstep(0.09, 0.0, abs(fract(shellZ + 0.5) - 0.5)) * (0.08 + 0.18 * uFocusPulse);
+          outCol = mix(outCol, vec3(0.10, 0.80, 1.0), clamp(bound + wifiWave + wifiEdge * 0.34, 0.0, 0.62));
         } else {
           outCol = evalByFloat(zoneEff * 10.0 + wifiField * 2.4, uv, raw, silverBase, tr, zoneEff, ed, vg);
-          outCol = mix(outCol, vec3(0.08, 0.78, 1.0), clamp(wifiWave * 0.45 + wifiEdge * 0.78, 0.0, 0.88));
+          outCol = mix(outCol, vec3(0.08, 0.78, 1.0), clamp(wifiWave + wifiEdge * 0.34, 0.0, 0.62));
         }
 
         if (uInAbyss > 0.02) {
@@ -2523,7 +2522,7 @@ void main(){
           vec2 lpGrid = fract(wPos.xz * 0.25) - 0.5;
           float pts = (1.0 - smoothstep(0.04, 0.13, length(lpGrid))) * (1.0 - smoothstep(140.0, 420.0, dist));
           float dDonkey = length(wPos.xz - uWifi[0].xz);
-          float radar = smoothstep(0.92, 0.995, sin(dDonkey * 0.28 - uT * 5.2 - uBeatPulse * 1.6)) * (0.45 + 0.55 * uBeatPulse);
+          float radar = smoothstep(0.94, 0.995, sin(dDonkey * 0.24 - uT * 0.75)) * 0.18;
           float elevBand = 1.0 - smoothstep(0.0, 18.0, abs(wPos.y - (65.0 + float(uResonantZone) * 24.0)));
           vec3 lidarCol = mix(vec3(0.04, 0.78, 1.0), vec3(0.45, 0.96, 1.0), c5);
           float lidarMix = clamp((c1 * 0.24 + c5 * 0.58 + pts * 0.55 + radar * 0.45 + elevBand * 0.22) * uLidarStrength, 0.0, 0.86);
@@ -2535,7 +2534,7 @@ void main(){
           float blueDom = (raw.b - maxRG) / max(raw.b, 0.035);
           float cyanMask = smoothstep(0.24, 0.52, blueDom) * smoothstep(0.04, 0.12, raw.b) * (1.0 - abyssMask * 0.45);
           float cyanShade = clamp(0.48 + 0.82 * raw.b - raw.r * 0.15, 0.44, 1.30);
-          vec3 cyanGlow = mix(vec3(0.0, 0.50, 0.96), vec3(0.32, 0.92, 1.0), smoothstep(0.16, 0.86, raw.b)) * cyanShade * (0.95 + 0.26 * max(uAudioBass, uBeatPulse));
+          vec3 cyanGlow = mix(vec3(0.0, 0.50, 0.96), vec3(0.32, 0.92, 1.0), smoothstep(0.16, 0.86, raw.b)) * cyanShade * (0.92 + 0.04 * uBeatPulse);
           outCol = mix(outCol, cyanGlow, cyanMask);
         }
 
@@ -3058,99 +3057,99 @@ void main(){
       worldProps.add(kg);
     })();
 
-    /* ---------- 2086 Night Post Production Sets, Moving-Picture Projector & Ahiya Highlands ---------- */
+    /* ---------- 2086 Night Post Production Sets, Calm 16:9 Moving-Picture Cloth & In-World Cinema ---------- */
     const cinemaCanvas = document.createElement("canvas");
-    cinemaCanvas.width = 512; cinemaCanvas.height = 384;
+    cinemaCanvas.width = 768; cinemaCanvas.height = 432;
     const cinCtx = cinemaCanvas.getContext("2d");
     const cinemaTex = new T.CanvasTexture(cinemaCanvas);
     cinemaTex.colorSpace = T.NoColorSpace;
     const cinemaMat = new T.MeshStandardMaterial({
-      map: cinemaTex, emissiveMap: cinemaTex, emissive: 0xd8f8ff, emissiveIntensity: .92,
-      roughness: .65, side: T.DoubleSide
+      map: cinemaTex, emissiveMap: cinemaTex, emissive: 0xdcf4ef, emissiveIntensity: .72,
+      roughness: .82, side: T.DoubleSide
     });
-    const npSpinFans = [];
+    const npSpinFans = [], inWorldScreens = [];
     let oxbowSheetFront = null, oxbowSheetRear = null, oxbowWindBase = null, oxbowScreenSpot = null;
     let npScreeningMode = null, npScreenTimer = 0, npLastCinFrame = -1;
+    let inWorldVideoMode = null, customClothVideo = null, customClothTex = null, customVideoBlob = "";
+
+    const NP_REEL_META = [
+      ["overlook", "OVERLOOK WELLHEAD · 4 L CHALK MARK"],
+      ["ford",     "WF–08 · THE WEDDING AT SILVER FORD"],
+      ["oxbow",    "COTTONWOOD OXBOW · EIGHT-SECOND TAIL"],
+      ["plaza",    "HIGHLAND PUEBLO · REGISTRY & COOLING YARD"],
+      ["basalt",   "AHIYA BASALT PUMP · GLOWING PHONES"],
+      ["hill",     "HILL ARCHIVE · REC PPC MONITOR"],
+      ["compound", "DAYLIGHT COMPOUND · AR–03 REHEARSAL"]
+    ];
+    const npReelSlides = NP_REEL_META.map(([artKey, caption]) => {
+      const img = new Image();
+      const src = window.NIGHT_POST_BUNDLE?.art?.[artKey];
+      if (src) img.src = src;
+      return { img, caption, key: artKey };
+    });
+
+    function drawCoverImg(c, img, gx, gy, gw, gh, tNorm) {
+      if (!img || !img.complete || !(img.naturalWidth || img.width)) return false;
+      const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+      const zoom = 1.04 + 0.04 * Math.sin(tNorm * Math.PI);
+      const scale = Math.max(gw / iw, gh / ih) * zoom;
+      const dw = iw * scale, dh = ih * scale;
+      const dx = gx + (gw - dw) * (0.5 + 0.04 * Math.cos(tNorm * TAU));
+      const dy = gy + (gh - dh) * 0.5;
+      c.drawImage(img, dx, dy, dw, dh);
+      return true;
+    }
 
     function draw2086CinemaFrame(tSec, activeReel) {
-      const W = 512, H = 384, c = cinCtx;
+      const W = 768, H = 432, c = cinCtx;
       c.fillStyle = "#0e1516";
       c.fillRect(0, 0, W, H);
-      // Sprocket frame perforations left & right
-      c.fillStyle = "#f2ede2";
-      for (let py = 12; py < H; py += 28) {
-        c.fillRect(10, py, 14, 16);
-        c.fillRect(W - 24, py, 14, 16);
+      // Calm static 35mm sprocket rails on left & right borders
+      c.fillStyle = "rgba(242, 237, 226, 0.72)";
+      for (let py = 14; py < H - 14; py += 30) {
+        c.fillRect(10, py, 14, 17);
+        c.fillRect(W - 24, py, 14, 17);
       }
-      const gx = 34, gy = 18, gw = W - 68, gh = H - 36;
+      const gx = 34, gy = 16, gw = W - 68, gh = H - 32;
       c.save();
       c.beginPath(); c.rect(gx, gy, gw, gh); c.clip();
-      const reel = activeReel || "WF-08";
-      if (reel === "WF-08") {
-        // The Wedding at Silver Ford: ferry docking, bride turns toward 8x10 lens, dropped shoe into river ripple
-        const grd = c.createLinearGradient(0, gy, 0, gy + gh);
-        grd.addColorStop(0, "#3a4548"); grd.addColorStop(.52, "#19292e"); grd.addColorStop(1, "#09181e");
-        c.fillStyle = grd; c.fillRect(gx, gy, gw, gh);
-        // Glinting river ripples
-        c.strokeStyle = "rgba(107, 232, 220, 0.52)";
-        for (let r = 0; r < 9; r++) {
-          const ry = gy + gh * .56 + r * 14;
-          const xOff = Math.sin(tSec * 2.2 + r) * 24;
-          c.lineWidth = r % 2 === 0 ? 2 : 1;
-          c.beginPath(); c.moveTo(gx + 20 + xOff, ry); c.lineTo(gx + gw - 30 + xOff, ry); c.stroke();
-        }
-        // Timber ferry bow sliding into dock
-        const cycle = (tSec % 10);
-        const ferryX = gx + Math.min(185, 65 + cycle * 26);
-        c.fillStyle = "#222b2e";
-        c.fillRect(ferryX - 85, gy + gh * .46, 170, 32);
-        // Raised wet ferry rope line
-        c.strokeStyle = "#4de6dc"; c.lineWidth = 2.5;
-        c.beginPath(); c.moveTo(gx, gy + gh * .45); c.quadraticCurveTo(gx + gw * .5, gy + gh * .54, gx + gw, gy + gh * .44); c.stroke();
-        // Bride silhouette in white linen facing camera lens
-        c.fillStyle = "#f2ede2";
-        c.beginPath(); c.arc(ferryX, gy + gh * .33, 14, 0, TAU); c.fill();
-        c.fillRect(ferryX - 18, gy + gh * .37, 36, 48);
-        // Falling shoe splash at t % 10 in [5..8]
-        if (cycle > 4.8 && cycle < 7.6) {
-          const drop = (cycle - 4.8) / 2.2;
-          c.fillStyle = "#eab965";
-          c.fillRect(ferryX + 26, gy + gh * .48 + drop * 45, 11, 7);
-          c.strokeStyle = "#6be8dc"; c.lineWidth = 2;
-          c.beginPath(); c.ellipse(ferryX + 31, gy + gh * .66, 8 + drop * 28, 3 + drop * 8, 0, 0, TAU); c.stroke();
-        }
-        // Final 8 seconds cut to black after camera set down
-        if (cycle >= 8.2) {
-          c.fillStyle = "rgba(8, 12, 13, 0.94)";
-          c.fillRect(gx, gy, gw, gh);
-          c.fillStyle = "#6be8dc"; c.font = "600 15px ui-monospace, monospace";
-          c.fillText("TAIL +08.0s · AUDIO ONLY ON FAMILY PHONE", gx + 36, gy + gh * .5);
-        }
-      } else if (reel === "AR-03") {
-        c.fillStyle = "#162022"; c.fillRect(gx, gy, gw, gh);
-        // Musicians + scraping chair waveforms
-        c.strokeStyle = "#6be8dc"; c.lineWidth = 2;
-        c.beginPath();
-        for (let x = 0; x < gw; x += 6) {
-          const amp = 22 * Math.sin(x * .06 + tSec * 6.5) * Math.cos(x * .02 - tSec * 2.1);
-          if (x === 0) c.moveTo(gx + x, gy + gh * .5 + amp); else c.lineTo(gx + x, gy + gh * .5 + amp);
-        }
-        c.stroke();
-        c.fillStyle = "#f2ede2"; c.font = "600 14px ui-monospace, monospace";
-        c.fillText("AR–03 · THREE REHEARSAL TAKES · AUNT ANSWERS", gx + 28, gy + gh - 24);
-      } else {
-        // REC PPC monitor feed / Ahiya night trail
-        c.fillStyle = "#0b1416"; c.fillRect(gx, gy, gw, gh);
-        c.strokeStyle = "rgba(77, 230, 220, 0.85)"; c.lineWidth = 2;
-        c.strokeRect(gx + 24, gy + 24, gw - 48, gh - 48);
-        c.fillStyle = "#4de6dc";
-        c.beginPath(); c.arc(gx + gw * .5 + Math.sin(tSec * .9) * 58, gy + gh * .52, 18 + Math.sin(tSec * 4) * 3, 0, TAU); c.fill();
-        c.fillStyle = "#f2ede2"; c.font = "700 13px ui-monospace, monospace";
-        c.fillText("REC PPC · 01:01:25:00 · AHIYA RELAY", gx + 36, gy + 46);
+      const hold = 8.5, xfade = 2.4;
+      const idx = Math.floor(tSec / hold) % npReelSlides.length;
+      const nextIdx = (idx + 1) % npReelSlides.length;
+      const localT = tSec % hold;
+      const mix = localT > hold - xfade ? (localT - (hold - xfade)) / xfade : 0;
+      const cur = npReelSlides[idx], nxt = npReelSlides[nextIdx];
+      c.fillStyle = "#122120";
+      c.fillRect(gx, gy, gw, gh);
+      const drewCur = drawCoverImg(c, cur.img, gx, gy, gw, gh, localT / hold);
+      if (!drewCur && mw.rawImages["near-surface"]) {
+        drawCoverImg(c, mw.rawImages["near-surface"], gx, gy, gw, gh, localT / hold);
       }
-      // Authentic film grain hairline
-      c.fillStyle = "rgba(242, 237, 226, 0.14)";
-      c.fillRect(gx + ((Math.sin(tSec * 19.3) * .5 + .5) * gw), gy, 1, gh);
+      if (mix > 0.001 && nxt.img.complete && nxt.img.naturalWidth) {
+        c.save();
+        c.globalAlpha = smooth(0, 1, mix);
+        drawCoverImg(c, nxt.img, gx, gy, gw, gh, 0);
+        c.restore();
+      }
+      // Gentle vignette & bottom subtitle bar (no blackout strobe or scratch line)
+      const grad = c.createLinearGradient(0, gy + gh - 74, 0, gy + gh);
+      grad.addColorStop(0, "rgba(8, 14, 14, 0)");
+      grad.addColorStop(1, "rgba(8, 14, 14, 0.88)");
+      c.fillStyle = grad;
+      c.fillRect(gx, gy + gh - 74, gw, 74);
+
+      const reelTag = activeReel || "WF-08";
+      let lyric = "";
+      const aEl = $("jerikan-audio");
+      if (aEl && (!aEl.paused || aEl.currentTime > 0)) {
+        for (const [ts, txt] of LYRICS) if (aEl.currentTime >= ts) lyric = txt;
+      }
+      c.fillStyle = "#6be8dc";
+      c.font = "700 13px ui-monospace, monospace";
+      c.fillText(`${reelTag} · ${cur.caption}`, gx + 14, gy + gh - 30);
+      c.fillStyle = "#f2ede2";
+      c.font = "500 15px Georgia, serif";
+      c.fillText(lyric || "Cyan Jerikan Over Cosmic Addis · Field Projection Cloth", gx + 14, gy + gh - 10);
       c.restore();
       cinemaTex.needsUpdate = true;
     }
@@ -3182,10 +3181,33 @@ void main(){
       const glassWireMat = new T.MeshStandardMaterial({ color: 0xc2e6df, emissive: 0x32625b, emissiveIntensity: .65, transparent: true, opacity: .62, roughness: .22 });
       const officeWarmMat = new T.MeshStandardMaterial({ color: 0xf7e1b6, emissive: 0xe3b972, emissiveIntensity: .88, roughness: .4 });
 
-      // 1) Overlook Wellhead 2086 Props: Imani & June (small with cup) + BOTH WAYS plaque
+      // 1) Overlook Wellhead 2086 Props: Imani & June (small with cup) + 3D Timber Field Cinema Screen
       const oy = groundAt(-22.2, -6.2);
       const imani = make2086Figure(0x283230, false, false, 1.02); imani.position.set(-20.4, oy, -7.2); imani.rotation.y = .9; worldProps.add(imani);
       const june = make2086Figure(0x40443e, false, true, .76); june.position.set(-19.5, oy, -6.0); june.rotation.y = .5; worldProps.add(june);
+
+      const ovScrY = groundAt(-28.5, -0.8);
+      const ovScrGrp = new T.Group();
+      ovScrGrp.position.set(-28.5, ovScrY, -0.8);
+      ovScrGrp.rotation.y = 1.53;
+      for (const px of [-2.55, 2.55]) {
+        const post = new T.Mesh(new T.CylinderGeometry(.085, .105, 4.1, 8), woodMat);
+        post.position.set(px, 2.0, -.05); ovScrGrp.add(post);
+      }
+      const ovCross = new T.Mesh(new T.BoxGeometry(5.35, .14, .16), woodMat);
+      ovCross.position.set(0, 3.68, -.05); ovScrGrp.add(ovCross);
+      const ovFoot = new T.Mesh(new T.BoxGeometry(5.2, .12, .14), woodMat);
+      ovFoot.position.set(0, .72, -.05); ovScrGrp.add(ovFoot);
+      const ovBack = new T.Mesh(new T.BoxGeometry(4.92, 2.82, .05), stoneMat);
+      ovBack.position.set(0, 2.20, -.04); ovScrGrp.add(ovBack);
+      const ovCloth = new T.Mesh(new T.PlaneGeometry(4.80, 2.70), cinemaMat);
+      ovCloth.position.set(0, 2.20, 0); ovScrGrp.add(ovCloth);
+      const ovProj = new T.Mesh(new T.BoxGeometry(.48, .34, .62), stoneMat);
+      ovProj.position.set(-.4, .35, 3.8); ovScrGrp.add(ovProj);
+      const ovLens = new T.Mesh(new T.CylinderGeometry(.09, .09, .18, 10), beaconCyanMat);
+      ovLens.rotation.x = Math.PI * .5; ovLens.position.set(-.4, .42, 3.45); ovScrGrp.add(ovLens);
+      worldProps.add(ovScrGrp);
+      inWorldScreens.push({ id: "overlook", label: "Snake River Overlook Screen", mesh: ovCloth, w: 4.80, h: 2.70, stand: { x: -19.5, z: -0.4, yaw: 1.68 } });
 
       // 2) Silver Ford: Ferry Posts, Taut Wet Ferry Rope, Etta & Ferrymen
       const fy = groundAt(-248, -55);
@@ -3208,10 +3230,11 @@ void main(){
         const pF = new T.Mesh(new T.CylinderGeometry(.07, .09, 4.4, 8), woodMat); pF.position.set(sx, 2.1, 0); oxGrp.add(pF);
         const pB = new T.Mesh(new T.CylinderGeometry(.07, .09, 4.4, 8), woodMat); pB.position.set(sx, 2.1, -1.85); oxGrp.add(pB);
       }
-      const shGeoF = new T.PlaneGeometry(4.5, 2.9, 8, 6);
+      const shGeoF = new T.PlaneGeometry(4.5, 2.53, 8, 6);
       oxbowWindBase = Float32Array.from(shGeoF.attributes.position.array);
       oxbowSheetFront = new T.Mesh(shGeoF, cinemaMat); oxbowSheetFront.position.set(0, 2.45, 0); oxGrp.add(oxbowSheetFront);
-      oxbowSheetRear = new T.Mesh(new T.PlaneGeometry(4.5, 2.9, 4, 4), cinemaMat); oxbowSheetRear.position.set(0, 2.45, -1.85); oxGrp.add(oxbowSheetRear);
+      oxbowSheetRear = new T.Mesh(new T.PlaneGeometry(4.5, 2.53, 4, 4), cinemaMat); oxbowSheetRear.position.set(0, 2.45, -1.85); oxGrp.add(oxbowSheetRear);
+      inWorldScreens.push({ id: "oxbow", label: "Cottonwood Oxbow Double Linen Screen", mesh: oxbowSheetFront, w: 4.5, h: 2.53, stand: { x: -504.5, z: 106.5, yaw: 0.48 } });
       const spkBox = new T.Mesh(new T.BoxGeometry(.65, .48, .44), woodMat); spkBox.position.set(1.3, .24, 1.4); oxGrp.add(spkBox);
       const rootBowl = new T.Mesh(new T.CylinderGeometry(.55, .42, .28, 16, 1, true), linenMat); rootBowl.position.set(-2.9, .14, 1.1); oxGrp.add(rootBowl);
       const rootPool = new T.Mesh(new T.CircleGeometry(.50, 16), cyanWaterMat); rootPool.rotation.x = -Math.PI / 2; rootPool.position.set(-2.9, .20, 1.1); oxGrp.add(rootPool);
@@ -3241,8 +3264,9 @@ void main(){
 
       // 5) Whale Fluke Wreck Comedy Sheet & Two Chairs + Half Dome East Apron Seep Pump + Teton High Cairn
       const fY = groundAt(-1070, -28);
-      const fSheet = new T.Mesh(new T.PlaneGeometry(4.2, 2.6), cinemaMat);
+      const fSheet = new T.Mesh(new T.PlaneGeometry(4.2, 2.36), cinemaMat);
       fSheet.position.set(-1070, fY + 2.3, -28); fSheet.rotation.y = .45; worldProps.add(fSheet);
+      inWorldScreens.push({ id: "fluke", label: "Whale Fluke Wreck Screen", mesh: fSheet, w: 4.2, h: 2.36, stand: { x: -1064.0, z: -18.5, yaw: 0.56 } });
       for (const s of [-1.2, 1.2]) {
         const ch = new T.Mesh(new T.BoxGeometry(.55, .50, .55), woodMat);
         ch.position.set(-1068 + s, fY + .25, -25.5); worldProps.add(ch);
@@ -3293,7 +3317,8 @@ void main(){
       const hGrp = new T.Group(); hGrp.position.set(-1765, hy, 540);
       const archBldg = new T.Mesh(new T.BoxGeometry(7.6, 3.8, 5.2), stoneMat); archBldg.position.y = 1.85; hGrp.add(archBldg);
       const archWinGlow = new T.Mesh(new T.PlaneGeometry(4.4, 1.9), officeWarmMat); archWinGlow.position.set(0, 1.9, 2.62); hGrp.add(archWinGlow);
-      const archMon = new T.Mesh(new T.PlaneGeometry(2.1, 1.25), cinemaMat); archMon.position.set(0, 1.95, 2.68); hGrp.add(archMon);
+      const archMon = new T.Mesh(new T.PlaneGeometry(2.24, 1.26), cinemaMat); archMon.position.set(0, 1.95, 2.68); hGrp.add(archMon);
+      inWorldScreens.push({ id: "hill", label: "Hill Archive REC PPC Monitor", mesh: archMon, w: 2.24, h: 1.26, stand: { x: -1765.0, z: 552.5, yaw: 0.00 } });
       const op1 = make2086Figure(0x1f282c, false, false, .95); op1.position.set(-1.3, 0, 3.2); op1.rotation.y = 2.8; hGrp.add(op1);
       const op2 = make2086Figure(0x272a2e, false, false, .94); op2.position.set(1.4, 0, 3.2); op2.rotation.y = -2.8; hGrp.add(op2);
       for (const fx of [-2.4, 2.4]) {
@@ -3308,7 +3333,8 @@ void main(){
       for (const [wx, wz, ww, wd] of [[-4.8, 0, .5, 8], [4.8, 0, .5, 8], [0, -4.2, 9.6, .5]]) {
         const wM = new T.Mesh(new T.BoxGeometry(ww, 2.4, wd), woodMat); wM.position.set(wx, 1.2, wz); cGrp.add(wM);
       }
-      const cSheet = new T.Mesh(new T.PlaneGeometry(4.6, 2.7), cinemaMat); cSheet.position.set(0, 2.2, -3.7); cGrp.add(cSheet);
+      const cSheet = new T.Mesh(new T.PlaneGeometry(4.6, 2.59), cinemaMat); cSheet.position.set(0, 2.2, -3.7); cGrp.add(cSheet);
+      inWorldScreens.push({ id: "compound", label: "Daylight Compound Pegged Sheet", mesh: cSheet, w: 4.6, h: 2.59, stand: { x: -1679.0, z: 783.5, yaw: 0.09 } });
       const cTap = new T.Mesh(new T.CylinderGeometry(.42, .32, .25, 14), linenMat); cTap.position.set(2.2, .12, 1.5); cGrp.add(cTap);
       const cPool = new T.Mesh(new T.CircleGeometry(.36, 14), cyanWaterMat); cPool.rotation.x = -Math.PI / 2; cPool.position.set(2.2, .26, 1.5); cGrp.add(cPool);
       const cStool = new T.Mesh(new T.CylinderGeometry(.26, .30, .46, 10), woodMat); cStool.position.set(-1.6, .23, -.5); cGrp.add(cStool);
@@ -3678,7 +3704,7 @@ void main(){
       for (let i = 0; i < 12; i++) {
         const v = clamp(bands12[i] || .06, .06, 1.0);
         const bh = Math.max(2, Math.round(v * (h - 4)));
-        g.fillStyle = beatPulse > .45 ? "#54ecff" : (i < 4 ? "#008cff" : "#18b4ff");
+        g.fillStyle = i < 4 ? "#1c96c5" : "#4de6dc";
         g.fillRect(2 + i * (bw + 1), h - 2 - bh, bw, bh);
       }
     }
@@ -4078,7 +4104,157 @@ void main(){
       }
     }
 
+    /* ---------- In-World 3D Cinema Screen Projection & Mode Control ---------- */
+    const iwCssEl = $("inworld-css3d"), iwCardEl = $("inworld-yt-card"), iwYtEl = $("inworld-yt-iframe");
+    const iwBarEl = $("inworld-video-bar");
+    const iwMatDiv = new T.Matrix4(), iwMatViewCss = new T.Matrix4(), iwMatTotal = new T.Matrix4();
+    const iwCenter = new T.Vector3(), iwViewPt = new T.Vector3(), iwNormal = new T.Vector3(), iwToCam = new T.Vector3();
+    let activeScreenId = "overlook";
+
+    function findTargetCinemaScreen(preferredId) {
+      if (preferredId) {
+        const exact = inWorldScreens.find(s => s.id === preferredId);
+        if (exact) return exact;
+      }
+      let best = inWorldScreens[0], bestD = 1e9;
+      for (const s of inWorldScreens) {
+        s.mesh.getWorldPosition(iwCenter);
+        const d = Math.hypot(iwCenter.x - state.x, iwCenter.z - state.z);
+        if (d < bestD) { bestD = d; best = s; }
+      }
+      return bestD < 220 ? best : (inWorldScreens.find(s => s.id === npCarrier().place) || inWorldScreens[0]);
+    }
+
+    function focusCinemaScreen(scr) {
+      if (!scr || !scr.stand) return;
+      if (state.gliding) landGlide(false);
+      if (state.drivingCart) toggleCart();
+      state.riding = false; state.donkeyOnRoof = false;
+      const mobOv = useFieldLayout() && scr.id === "overlook";
+      [state.x, state.z] = worldBoundsClamp(mobOv ? -17.5 : scr.stand.x, mobOv ? -0.4 : scr.stand.z);
+      state.y = driveSurfaceAt(state.x, state.z) + 1.68;
+      state.yaw = mobOv ? 1.53 : scr.stand.yaw; state.pitch = -.02;
+      state.region = regionAt(state.x, state.z);
+      const fwdX = -Math.sin(state.yaw), fwdZ = -Math.cos(state.yaw);
+      const rgtX = Math.cos(state.yaw), rgtZ = -Math.sin(state.yaw);
+      donkey.place(state.x + fwdX * 4.2 + rgtX * 2.2, state.z + fwdZ * 4.2 + rgtZ * 2.2, state.yaw + .45, (x, z) => driveSurfaceAt(x, z));
+      applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
+      activeScreenId = scr.id;
+      initRain(); sampleMeter(); updateHUD();
+    }
+
+    function syncInWorldBarButtons() {
+      if ($("iwv-mode-yt")) $("iwv-mode-yt").setAttribute("aria-pressed", String(inWorldVideoMode === "youtube"));
+      if ($("iwv-mode-cloth")) $("iwv-mode-cloth").setAttribute("aria-pressed", String(inWorldVideoMode === "cloth" || inWorldVideoMode === "mp4"));
+    }
+
+    function toggleInWorldVideo(open, mode = "youtube", screenId = "") {
+      const turnOn = open === undefined ? !inWorldVideoMode : Boolean(open);
+      if (!turnOn) {
+        inWorldVideoMode = null;
+        if (iwCssEl) iwCssEl.hidden = true;
+        if (iwYtEl) iwYtEl.src = "";
+        if (iwBarEl) iwBarEl.hidden = true;
+        if (customClothVideo) { customClothVideo.pause(); }
+        cinemaMat.map = cinemaTex; cinemaMat.emissiveMap = cinemaTex; cinemaMat.needsUpdate = true;
+        syncInWorldBarButtons();
+        updateHUD();
+        return;
+      }
+      if ($("np-dispatch-modal")) $("np-dispatch-modal").hidden = true;
+      if (state.introActive) finishIntro(true);
+      inWorldVideoMode = mode;
+      const scr = findTargetCinemaScreen(screenId);
+      focusCinemaScreen(scr);
+      if (iwBarEl) iwBarEl.hidden = false;
+      if (mode === "youtube") {
+        if (!audioEl.paused) audioEl.pause();
+        if (customClothVideo) customClothVideo.pause();
+        cinemaMat.map = cinemaTex; cinemaMat.emissiveMap = cinemaTex; cinemaMat.needsUpdate = true;
+        if (iwYtEl && !iwYtEl.src.includes("ZZlDs10FCZk")) {
+          iwYtEl.src = "https://www.youtube.com/embed/ZZlDs10FCZk?rel=0&playsinline=1";
+        }
+        toast(`Projected on ${scr.label} · Move or look around freely (Y to toggle)`, scr.label);
+      } else if (mode === "cloth") {
+        if (iwCssEl) iwCssEl.hidden = true;
+        if (iwYtEl) iwYtEl.src = "";
+        if (customClothVideo) customClothVideo.pause();
+        cinemaMat.map = cinemaTex; cinemaMat.emissiveMap = cinemaTex; cinemaMat.needsUpdate = true;
+        if (audioEl.paused) toggleTape();
+        toast(`3D Linen Cloth Reel + C60 Spatial Song at ${scr.label}`, scr.label);
+      }
+      syncInWorldBarButtons();
+      renderFrame(performance.now() * .001);
+    }
+
+    function loadCustomClothVideo(file) {
+      if (!file) return;
+      if (!customClothVideo) {
+        customClothVideo = document.createElement("video");
+        customClothVideo.playsInline = true; customClothVideo.loop = true; customClothVideo.crossOrigin = "anonymous";
+        customClothTex = new T.VideoTexture(customClothVideo);
+        customClothTex.colorSpace = T.NoColorSpace;
+      }
+      if (customVideoBlob) URL.revokeObjectURL(customVideoBlob);
+      customVideoBlob = URL.createObjectURL(file);
+      customClothVideo.src = customVideoBlob;
+      customClothVideo.play().catch(() => {});
+      if (!audioEl.paused) audioEl.pause();
+      if (iwCssEl) iwCssEl.hidden = true;
+      if (iwYtEl) iwYtEl.src = "";
+      inWorldVideoMode = "mp4";
+      cinemaMat.map = customClothTex; cinemaMat.emissiveMap = customClothTex; cinemaMat.needsUpdate = true;
+      const scr = findTargetCinemaScreen();
+      focusCinemaScreen(scr);
+      if (iwBarEl) iwBarEl.hidden = false;
+      syncInWorldBarButtons();
+      toast(`Playing ${file.name} on 3D World Cinema Screens`, file.name);
+      renderFrame(performance.now() * .001);
+    }
+
+    function syncInWorldCss3d() {
+      if (!iwCssEl || !iwCardEl) return;
+      if (inWorldVideoMode !== "youtube" || state.introActive || ($("np-dispatch-modal") && !$("np-dispatch-modal").hidden)) {
+        iwCssEl.hidden = true;
+        return;
+      }
+      const scr = findTargetCinemaScreen(activeScreenId);
+      if (!scr) { iwCssEl.hidden = true; return; }
+      activeScreenId = scr.id;
+      camera.updateMatrixWorld();
+      scr.mesh.updateMatrixWorld();
+      scr.mesh.getWorldPosition(iwCenter);
+      iwViewPt.copy(iwCenter).applyMatrix4(camera.matrixWorldInverse);
+      iwNormal.set(0, 0, 1).transformDirection(scr.mesh.matrixWorld);
+      iwToCam.subVectors(camera.position, iwCenter).normalize();
+      if (iwViewPt.z > -1.0 || iwCenter.distanceTo(camera.position) > 95 || iwNormal.dot(iwToCam) < 0.08) {
+        iwCssEl.hidden = true;
+        return;
+      }
+      const cssW = Math.max(2, canvas.clientWidth || innerWidth);
+      const cssH = Math.max(2, canvas.clientHeight || innerHeight);
+      const fovPx = 0.5 / Math.tan(T.MathUtils.degToRad(camera.fov * 0.5)) * cssH;
+      const sW = scr.w / 640, sH = scr.h / 360;
+      iwMatDiv.set(sW, 0, 0, -320 * sW, 0, -sH, 0, 180 * sH, 0, 0, 1, 0, 0, 0, 0, 1);
+      iwMatViewCss.set(1, 0, 0, cssW * 0.5, 0, -1, 0, cssH * 0.5, 0, 0, 1, fovPx, 0, 0, 0, 1);
+      iwMatTotal.multiplyMatrices(iwMatViewCss, camera.matrixWorldInverse).multiply(scr.mesh.matrixWorld).multiply(iwMatDiv);
+      const e = iwMatTotal.elements;
+      iwCssEl.hidden = false;
+      iwCssEl.style.perspective = `${fovPx.toFixed(2)}px`;
+      iwCardEl.style.transform = `matrix3d(${e.map(v => (Math.abs(v) < 1e-7 ? 0 : +v.toFixed(6))).join(",")})`;
+    }
+
+    if ($("iwv-mode-yt")) $("iwv-mode-yt").addEventListener("click", () => toggleInWorldVideo(true, "youtube", activeScreenId));
+    if ($("iwv-mode-cloth")) $("iwv-mode-cloth").addEventListener("click", () => toggleInWorldVideo(true, "cloth", activeScreenId));
+    if ($("iwv-file")) $("iwv-file").addEventListener("change", e => loadCustomClothVideo(e.target.files?.[0]));
+    if ($("iwv-focus")) $("iwv-focus").addEventListener("click", () => { focusCinemaScreen(findTargetCinemaScreen()); renderFrame(performance.now() * .001); });
+    if ($("iwv-close")) $("iwv-close").addEventListener("click", () => toggleInWorldVideo(false));
+
     function openNpDispatch(open, tab) {
+      if (tab === "video") {
+        toggleInWorldVideo(true, "youtube");
+        return;
+      }
       const modal = $("np-dispatch-modal");
       if (!modal) return;
       if (tab) npDispTab = tab;
@@ -4088,11 +4264,15 @@ void main(){
     }
     if ($("np-dispatch-btn")) $("np-dispatch-btn").addEventListener("click", () => openNpDispatch(true));
     if ($("field-dispatch-btn")) $("field-dispatch-btn").addEventListener("click", () => openNpDispatch(true));
-    if ($("intro-video")) $("intro-video").addEventListener("click", () => openNpDispatch(true, "video"));
-    if ($("tape-video-btn")) $("tape-video-btn").addEventListener("click", () => openNpDispatch(true, "video"));
-    if ($("field-video-btn")) $("field-video-btn").addEventListener("click", () => openNpDispatch(true, "video"));
+    if ($("intro-video")) $("intro-video").addEventListener("click", () => toggleInWorldVideo(true, "youtube"));
+    if ($("tape-video-btn")) $("tape-video-btn").addEventListener("click", () => toggleInWorldVideo(true, "youtube"));
+    if ($("field-video-btn")) $("field-video-btn").addEventListener("click", () => toggleInWorldVideo(true, "youtube"));
     if ($("np-disp-close")) $("np-disp-close").addEventListener("click", () => openNpDispatch(false));
-    document.querySelectorAll("[data-np-tab]").forEach(btn => btn.addEventListener("click", () => { npDispTab = btn.dataset.npTab; renderNpDispatch(); }));
+    document.querySelectorAll("[data-np-tab]").forEach(btn => btn.addEventListener("click", () => {
+      if (btn.dataset.npTab === "video") { toggleInWorldVideo(true, "youtube"); return; }
+      npDispTab = btn.dataset.npTab;
+      renderNpDispatch();
+    }));
     if ($("np-switch-btn")) $("np-switch-btn").addEventListener("click", () => switchNpCircuit());
     if ($("field-switch-btn")) $("field-switch-btn").addEventListener("click", () => switchNpCircuit());
     if ($("np-confirm-yes")) $("np-confirm-yes").addEventListener("click", () => { if (npPendingConfirm) runNpAction(npPendingConfirm, true); });
@@ -4672,21 +4852,24 @@ void main(){
       mw.worldLight.position.copy(mw.sun.value).multiplyScalar(100);
       mw.abyssAnimate(nowSec);
       for (const fan of npSpinFans) fan.rotation.y += .18;
-      // Animate Oxbow double-sheet breeze lift on bottom-left corner (Page 20)
+      // Animate Oxbow double-sheet gentle breeze lift (stays flat during CSS3D YouTube projection)
       if (oxbowSheetFront && oxbowWindBase) {
         const pos = oxbowSheetFront.geometry.attributes.position.array;
-        const gust = Math.max(0, Math.sin(nowSec * .95)) * .55;
+        const flat = inWorldVideoMode === "youtube" && activeScreenId === "oxbow";
+        const gust = flat ? 0 : Math.max(0, Math.sin(nowSec * .65)) * .14;
         for (let i = 0; i < pos.length; i += 3) {
           const ox = oxbowWindBase[i], oy = oxbowWindBase[i + 1];
           const corner = smooth(1.0, -2.2, ox) * smooth(.8, -1.4, oy);
-          pos[i + 2] = oxbowWindBase[i + 2] - corner * (gust * .85 + Math.sin(nowSec * 3.4 + ox) * .12);
+          pos[i + 2] = oxbowWindBase[i + 2] - (flat ? 0 : corner * (gust + Math.sin(nowSec * 1.4 + ox) * .04));
         }
         oxbowSheetFront.geometry.attributes.position.needsUpdate = true;
       }
-      const cinFrame = Math.floor(nowSec * 24);
-      if (cinFrame !== npLastCinFrame) {
-        npLastCinFrame = cinFrame;
-        draw2086CinemaFrame(nowSec, npScreeningMode || (state.region === "ahiya" ? "AHIYA" : npState.active === "ahiya" ? "AR-03" : "WF-08"));
+      if (inWorldVideoMode !== "mp4") {
+        const cinFrame = Math.floor(nowSec * 15);
+        if (cinFrame !== npLastCinFrame) {
+          npLastCinFrame = cinFrame;
+          draw2086CinemaFrame(nowSec, npScreeningMode || (state.region === "ahiya" ? "AHIYA" : npState.active === "ahiya" ? "AR-03" : "WF-08"));
+        }
       }
 
       if (Math.abs(camera.position.x + 480) < 920 && Math.abs(camera.position.z) < 620) {
@@ -4740,6 +4923,7 @@ void main(){
       postQuad.material = lookMat;
       renderer.setRenderTarget(null);
       renderer.render(postScene, postCam);
+      syncInWorldCss3d();
     }
 
     function captureBounds(width, height) {
@@ -5657,6 +5841,7 @@ void main(){
       else if (e.code === "KeyF") pourWifi();
       else if (e.code === "KeyK") triggerDance();
       else if (e.code === "KeyL") toggleLidar();
+      else if (e.code === "KeyY" && !e.repeat) toggleInWorldVideo();
       else if (e.code === "KeyM") openNpDispatch();
       else if (e.code === "Tab") { e.preventDefault(); switchNpCircuit(); }
       else if (e.code === "KeyT") syncResonantZone();
@@ -6158,9 +6343,9 @@ void main(){
       state.audioDistMeters = fo.distMeters;
       state.audioFalloffDb = fo.falloffDb;
       for (const sc of speakerCones) {
-        const scScl = 1.0 + state.beatPulse * .42;
+        const scScl = 1.0 + state.beatPulse * .06;
         sc.scale.setScalar(scScl);
-        sc.material.emissiveIntensity = .9 + state.beatPulse * 1.4;
+        sc.material.emissiveIntensity = .82 + state.beatPulse * .12;
       }
 
       /* Elevation & Live WiFi Field */
@@ -6196,14 +6381,14 @@ void main(){
       // Animate Song-Resonant Flow Conduits & Chevrons
       for (const fc of flowConduits) {
         const isRes = fc.epochIdx === state.songEpochIdx;
-        fc.mat.opacity = isRes ? (.52 + .35 * state.beatPulse + (state.zoneSynced ? .18 : 0)) : (state.lidarOn ? .42 : .16);
+        fc.mat.opacity = isRes ? (.48 + (state.zoneSynced ? .14 : 0)) : (state.lidarOn ? .36 : .14);
         fc.mat.color.setHex(isRes ? (state.zoneSynced ? 0x54ecff : 0x18b4ff) : 0x0052cc);
         for (const ch of fc.chevs) {
           const u = fract(nowSec * (isRes ? .18 : .08) + ch.offset);
           const pos = fc.curve.getPointAt(u), tan = fc.curve.getTangentAt(u);
           ch.mesh.position.copy(pos);
           ch.mesh.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), tan);
-          const s = isRes ? (1.25 + .45 * state.beatPulse) : .85;
+          const s = isRes ? 1.15 : .85;
           ch.mesh.scale.setScalar(s);
         }
       }
@@ -6217,18 +6402,18 @@ void main(){
         }
       }
 
-      // Live Donkey WiFi Rings & Expanding 3D Wavefront Arcs pulsed by the Song Beat!
-      const beatMul = 1.0 + state.beatPulse * .28;
+      // Calm Donkey WiFi Rings & Slow Mist Arcs
+      const beatMul = 1.0 + state.beatPulse * .04;
       donkeyRings[0].radius = state.signalRadius * .28 * beatMul;
       donkeyRings[1].radius = state.signalRadius * .62 * beatMul;
       donkeyRings[2].radius = state.signalRadius * beatMul;
       for (const rg of donkeyRings) updateTerrainRing(rg, donkey.state.x, donkey.state.z, .25);
       for (const wv of waveArcs) {
-        const p = fract(nowSec * (.42 + state.beatPulse * .35) + wv.phase);
+        const p = fract(nowSec * .12 + wv.phase);
         const rad = lerp(1.0, Math.min(28.0, state.signalRadius * .48 * beatMul), p);
         wv.mesh.position.set(donkey.state.x, donkey.group.position.y + 2.0 + p * 2.1, donkey.state.z);
         wv.mesh.scale.set(rad, 1, rad);
-        wv.mesh.material.opacity = (1 - p) * clamp(.75 + state.beatPulse * .35, 0, 1) * (.6 + .4 * state.wifiCharge);
+        wv.mesh.material.opacity = (1 - p) * .18 * (.6 + .4 * state.wifiCharge);
       }
       whip.rotation.z = Math.sin(nowSec * 3.1) * (.08 + .08 * state.beatPulse);
 
@@ -6241,10 +6426,10 @@ void main(){
       well.stream.scale.set(state.pumpFlow, 1, state.pumpFlow);
       well.pool.position.y = .21 + Math.sin(nowSec * 4.0) * .012;
 
-      /* --- WIFI WATER RAIN FALLS STRICTLY INSIDE ACTIVE WIFI DONKEY REACH (BEAT-PULSED!) --- */
+      /* --- WIFI WATER RAIN FALLS STRICTLY INSIDE ACTIVE WIFI DONKEY REACH --- */
       const emitters = sampleWifiEmitters();
-      const rainBeatSpd = 1.0 + state.beatPulse * 1.15;
-      const rainLen = .85 + state.beatPulse * 1.35;
+      const rainBeatSpd = 1.0 + state.beatPulse * .10;
+      const rainLen = .92;
       for (let i = 0; i < RAIN_N; i++) {
         rainY[i] -= rainSpd[i] * rainBeatSpd * dt;
         const surf = driveSurfaceAt(rainX[i], rainZ[i]);
@@ -6371,6 +6556,8 @@ void main(){
           ledgerValid: npEngine.validate(npState),
           screeningActive: Boolean(npScreeningMode),
           dispatchOpen: Boolean($("np-dispatch-modal") && !$("np-dispatch-modal").hidden),
+          inWorldVideoMode,
+          activeScreenId,
           introActive: state.introActive,
           introPhase: state.introPhase,
           introShotIdx: state.introShotIdx,
@@ -6475,6 +6662,7 @@ void main(){
       moveToStation,
       setWatch: w => { npCarrier().watch = clamp(Math.round(w), 0, 18); npState.rev++; saveNpState(); updateHUD(); renderFrame(performance.now() * .001); },
       openDispatch: openNpDispatch,
+      toggleInWorldVideo,
       reset: (circuit = "west") => {
         closeScreeningCard();
         npState = circuit === "ahiya" ? npEngine.switchRoute(npEngine.start(), "ahiya") : npEngine.start();

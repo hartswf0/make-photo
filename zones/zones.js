@@ -2268,15 +2268,15 @@ void main(){
         vec2 px = uv * uRes;
         vec3 col;
         if (mode == 0) {
-          float spk = smoothstep(0.992, 1.0, h(floor(px / 2.2) + floor(uT * 6.0) * 3.1));
+          float spk = smoothstep(0.996, 1.0, h(floor(px / 2.6))) * (0.45 + 0.35 * sin(uT * 0.9 + px.x * 0.1));
           vec3 em = mix(raw * 0.35, tr, 0.65) * smoothstep(0.14, 0.85, l);
           col = mix(silverBase * 0.48, em * vec3(1.12, 0.68, 0.34) + spk * vec3(1.0, 0.75, 0.4), 0.72);
         } else if (mode == 1) {
           float rows = 320.0;
           vec2 g = vec2(uv.x, (floor(uv.y * rows) + 0.5) / rows);
           float ls = lum(texture2D(tScene, clamp(g, 0.0, 1.0)).rgb);
-          float line = 0.80 + 0.20 * sin(uv.y * rows * 6.2832);
-          float sweep = smoothstep(0.05, 0.0, abs(fract(uv.y - uT * 0.11) - 0.5) - 0.45) * 0.12;
+          float line = 0.86 + 0.14 * sin(uv.y * rows * 6.2832);
+          float sweep = smoothstep(0.05, 0.0, abs(fract(uv.y - uT * 0.04) - 0.5) - 0.45) * 0.04;
           col = mix(silverBase * 0.44, vec3(0.76, 0.92, 1.0) * (pow(ls * 1.25 + 0.04, 0.85) * line + sweep) * vg, 0.72);
         } else if (mode == 2) {
           float th = pow(clamp(l * 1.12, 0.0, 1.0), 0.82);
@@ -2355,8 +2355,7 @@ void main(){
           float seal = step(max(abs(sq.x), abs(sq.y)), 0.032) * step(0.28, n2(px / 3.0));
           col = mix(mix(iw, vec3(0.72, 0.10, 0.08), seal), silverBase, 0.36);
         } else {
-          float flutter = step(0.992, h(vec2(floor(uv.y * 190.0), floor(uT * 11.0)))) * uAudioHigh * 0.22;
-          return silverBase * (0.95 + 0.05 * vg) + vec3(0.16, 0.72, 1.0) * flutter;
+          return silverBase * (0.95 + 0.05 * vg);
         }
         return col;
       }
@@ -2386,18 +2385,18 @@ void main(){
         float wifiEdge = 0.0;
         float wifiWave = 0.0;
         for (int i = 0; i < 8; i++) {
-          float rad = uWifi[i].w * (1.0 + 0.08 * uBeatPulse);
+          float rad = uWifi[i].w * (1.0 + 0.015 * uBeatPulse);
           if (rad > 0.5) {
             float dw = length(wPos.xz - uWifi[i].xz);
             float f = smoothstep(rad, rad * 0.14, dw) * isGeo;
             wifiField = max(wifiField, f);
             float bnd = smoothstep(2.0, 0.0, abs(dw - rad)) * isGeo;
             wifiEdge = max(wifiEdge, bnd);
-            float ringW = sin(dw * 0.72 - uT * 4.4 - uBeatPulse * 1.4);
-            wifiWave = max(wifiWave, f * smoothstep(0.90, 0.99, ringW) * (0.75 + 0.65 * uBeatPulse));
+            float ringW = sin(dw * 0.36 - uT * 0.65);
+            wifiWave = max(wifiWave, f * smoothstep(0.92, 0.995, ringW) * 0.14);
           }
         }
-        wifiField = clamp(wifiField * (1.0 + 0.35 * uWifiPing + 0.18 * uBeatPulse), 0.0, 1.0);
+        wifiField = clamp(wifiField * (1.0 + 0.10 * uWifiPing + 0.04 * uBeatPulse), 0.0, 1.0);
 
         vec3 raw = texture2D(tScene, uv).rgb;
         float rawL = clamp(dot(raw, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);
@@ -2431,8 +2430,8 @@ void main(){
                                evalLook(10, uv, raw, silverBase, tr, zoneEff, ed, vg),
                                smoothstep(0.05, 0.25, ed) + 0.30 * sin(wPos.y * 0.25 + uT));
           outCol = mix(outCol, mix(wifiWorld, vec3(0.04, 0.58, 0.98) * (0.45 + 0.72 * rawL), 0.28), wifiField * 0.72 * heroCut * (1.0 - colorKeep * 0.85));
-          float cyanWave = smoothstep(0.16, 0.0, abs(abs(coc) - 0.86)) * (0.10 + 0.72 * uFocusPulse);
-          outCol = mix(outCol, vec3(0.06, 0.78, 1.0), clamp(cyanWave * 0.50 + wifiWave * 0.55 * heroCut + wifiEdge * 0.88, 0.0, 0.92));
+          float cyanWave = smoothstep(0.16, 0.0, abs(abs(coc) - 0.86)) * (0.06 + 0.16 * uFocusPulse);
+          outCol = mix(outCol, vec3(0.06, 0.78, 1.0), clamp(cyanWave * 0.35 + wifiWave * heroCut + wifiEdge * 0.34, 0.0, 0.62));
         } else if (uRouteMode == 1) {
           float zBand = clamp(zoneEff * 10.0 + coc * 2.1 + wifiField * 2.2, 0.0, 10.0);
           vec3 strataCol = evalByFloat(zBand, uv, raw, silverBase, tr, zoneEff, ed, vg);
@@ -2440,15 +2439,15 @@ void main(){
           float sharp = 1.0 - smoothstep(0.45, 1.15, abs(coc));
           outCol = mix(strataCol, focalCol, sharp * (1.0 - uStrataLock));
           outCol = mix(outCol, raw, colorKeep * 0.55);
-          outCol = mix(outCol, vec3(0.06, 0.80, 1.0), clamp(wifiWave * 0.45 + wifiEdge * 0.82, 0.0, 0.88));
+          outCol = mix(outCol, vec3(0.06, 0.80, 1.0), clamp(wifiWave + wifiEdge * 0.34, 0.0, 0.62));
         } else if (uRouteMode == 2) {
           float shellZ = clamp(5.0 + coc * 2.4 + wifiField * 2.0, 0.0, 10.0);
           outCol = evalByFloat(shellZ, uv, raw, silverBase, tr, zoneEff, ed, vg);
-          float bound = smoothstep(0.09, 0.0, abs(fract(shellZ + 0.5) - 0.5)) * (0.14 + 0.45 * uFocusPulse);
-          outCol = mix(outCol, vec3(0.10, 0.80, 1.0), clamp(bound + wifiWave * 0.45 + wifiEdge * 0.78, 0.0, 0.9));
+          float bound = smoothstep(0.09, 0.0, abs(fract(shellZ + 0.5) - 0.5)) * (0.08 + 0.18 * uFocusPulse);
+          outCol = mix(outCol, vec3(0.10, 0.80, 1.0), clamp(bound + wifiWave + wifiEdge * 0.34, 0.0, 0.62));
         } else {
           outCol = evalByFloat(zoneEff * 10.0 + wifiField * 2.4, uv, raw, silverBase, tr, zoneEff, ed, vg);
-          outCol = mix(outCol, vec3(0.08, 0.78, 1.0), clamp(wifiWave * 0.45 + wifiEdge * 0.78, 0.0, 0.88));
+          outCol = mix(outCol, vec3(0.08, 0.78, 1.0), clamp(wifiWave + wifiEdge * 0.34, 0.0, 0.62));
         }
 
         if (uInAbyss > 0.02) {
@@ -2463,7 +2462,7 @@ void main(){
           vec2 lpGrid = fract(wPos.xz * 0.25) - 0.5;
           float pts = (1.0 - smoothstep(0.04, 0.13, length(lpGrid))) * (1.0 - smoothstep(140.0, 420.0, dist));
           float dDonkey = length(wPos.xz - uWifi[0].xz);
-          float radar = smoothstep(0.92, 0.995, sin(dDonkey * 0.28 - uT * 5.2 - uBeatPulse * 1.6)) * (0.45 + 0.55 * uBeatPulse);
+          float radar = smoothstep(0.94, 0.995, sin(dDonkey * 0.24 - uT * 0.75)) * 0.18;
           float elevBand = 1.0 - smoothstep(0.0, 18.0, abs(wPos.y - (65.0 + float(uResonantZone) * 24.0)));
           vec3 lidarCol = mix(vec3(0.04, 0.78, 1.0), vec3(0.45, 0.96, 1.0), c5);
           float lidarMix = clamp((c1 * 0.24 + c5 * 0.58 + pts * 0.55 + radar * 0.45 + elevBand * 0.22) * uLidarStrength, 0.0, 0.86);
@@ -2475,7 +2474,7 @@ void main(){
           float blueDom = (raw.b - maxRG) / max(raw.b, 0.035);
           float cyanMask = smoothstep(0.24, 0.52, blueDom) * smoothstep(0.04, 0.12, raw.b) * (1.0 - abyssMask * 0.45);
           float cyanShade = clamp(0.48 + 0.82 * raw.b - raw.r * 0.15, 0.44, 1.30);
-          vec3 cyanGlow = mix(vec3(0.0, 0.50, 0.96), vec3(0.32, 0.92, 1.0), smoothstep(0.16, 0.86, raw.b)) * cyanShade * (0.95 + 0.26 * max(uAudioBass, uBeatPulse));
+          vec3 cyanGlow = mix(vec3(0.0, 0.50, 0.96), vec3(0.32, 0.92, 1.0), smoothstep(0.16, 0.86, raw.b)) * cyanShade * (0.92 + 0.04 * uBeatPulse);
           outCol = mix(outCol, cyanGlow, cyanMask);
         }
 
@@ -2987,6 +2986,96 @@ void main(){
       worldProps.add(kg);
     })();
 
+    /* ---------- In-World 3D Timber Cinema Screens & Calm Crossfade Film Cloth ---------- */
+    const cinemaCanvas = document.createElement("canvas");
+    cinemaCanvas.width = 768; cinemaCanvas.height = 432;
+    const cinCtx = cinemaCanvas.getContext("2d");
+    const cinemaTex = new T.CanvasTexture(cinemaCanvas);
+    cinemaTex.colorSpace = T.NoColorSpace;
+    const cinemaMat = new T.MeshStandardMaterial({
+      map: cinemaTex, emissiveMap: cinemaTex, emissive: 0xdcf4ef, emissiveIntensity: .72,
+      roughness: .82, side: T.DoubleSide
+    });
+    const inWorldScreens = [];
+    let npLastCinFrame = -1, inWorldVideoMode = null, customClothVideo = null, customClothTex = null, customVideoBlob = "";
+
+    const znReelSlides = [
+      [mw.rawImages["near-surface"], "GRAND TETON · SNAKE RIVER OVERLOOK"],
+      [mw.rawImages["half-ground"],  "YOSEMITE · HALF DOME EAST APRON"],
+      [mw.rawImages["sky-plate"],    "CLOUD NOTCH · CYAN JERIKAN SURVEY"],
+      [mw.rawImages["coat-head"],    "MISTLETOE · 20 L WATER CARRIER"]
+    ];
+    function drawCoverImg(c, img, gx, gy, gw, gh, tNorm) {
+      if (!img || !img.complete || !(img.naturalWidth || img.width)) return false;
+      const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+      const zoom = 1.04 + 0.04 * Math.sin(tNorm * Math.PI);
+      const scale = Math.max(gw / iw, gh / ih) * zoom;
+      const dw = iw * scale, dh = ih * scale;
+      c.drawImage(img, gx + (gw - dw) * (0.5 + 0.04 * Math.cos(tNorm * TAU)), gy + (gh - dh) * 0.5, dw, dh);
+      return true;
+    }
+    function drawInWorldCinemaFrame(tSec) {
+      const W = 768, H = 432, c = cinCtx;
+      c.fillStyle = "#0e1516";
+      c.fillRect(0, 0, W, H);
+      c.fillStyle = "rgba(242, 237, 226, 0.72)";
+      for (let py = 14; py < H - 14; py += 30) { c.fillRect(10, py, 14, 17); c.fillRect(W - 24, py, 14, 17); }
+      const gx = 34, gy = 16, gw = W - 68, gh = H - 32;
+      c.save(); c.beginPath(); c.rect(gx, gy, gw, gh); c.clip();
+      const hold = 8.5, xfade = 2.4;
+      const idx = Math.floor(tSec / hold) % znReelSlides.length;
+      const nextIdx = (idx + 1) % znReelSlides.length;
+      const localT = tSec % hold;
+      const mix = localT > hold - xfade ? (localT - (hold - xfade)) / xfade : 0;
+      const cur = znReelSlides[idx], nxt = znReelSlides[nextIdx];
+      c.fillStyle = "#122120"; c.fillRect(gx, gy, gw, gh);
+      drawCoverImg(c, cur[0], gx, gy, gw, gh, localT / hold);
+      if (mix > 0.001 && nxt[0]) {
+        c.save(); c.globalAlpha = smooth(0, 1, mix);
+        drawCoverImg(c, nxt[0], gx, gy, gw, gh, 0);
+        c.restore();
+      }
+      const grad = c.createLinearGradient(0, gy + gh - 74, 0, gy + gh);
+      grad.addColorStop(0, "rgba(8, 14, 14, 0)"); grad.addColorStop(1, "rgba(8, 14, 14, 0.88)");
+      c.fillStyle = grad; c.fillRect(gx, gy + gh - 74, gw, 74);
+      let lyric = "";
+      const aEl = $("jerikan-audio");
+      if (aEl && (!aEl.paused || aEl.currentTime > 0)) {
+        for (const [ts, txt] of LYRICS) if (aEl.currentTime >= ts) lyric = txt;
+      }
+      c.fillStyle = "#6be8dc"; c.font = "700 13px ui-monospace, monospace";
+      c.fillText(cur[1], gx + 14, gy + gh - 30);
+      c.fillStyle = "#f2ede2"; c.font = "500 15px Georgia, serif";
+      c.fillText(lyric || "Cyan Jerikan Over Cosmic Addis · In-World Field Screen", gx + 14, gy + gh - 10);
+      c.restore();
+      cinemaTex.needsUpdate = true;
+    }
+    drawInWorldCinemaFrame(0);
+
+    (() => {
+      const woodMat = new T.MeshStandardMaterial({ color: 0x5d442b, roughness: .88 });
+      const stoneMat = new T.MeshStandardMaterial({ color: 0x2d3234, roughness: .92 });
+      for (const [id, label, sx, sz, rotY, sw, sh, stand] of [
+        ["overlook", "Snake River Overlook Screen", -28.5, -0.8, 1.53, 4.8, 2.7, { x: -19.5, z: -0.4, yaw: 1.68 }],
+        ["oxbow",    "Cottonwood Oxbow Screen",     -509,  95,  .45,  4.5, 2.53, { x: -504.5, z: 106.5, yaw: .48 }],
+        ["pueblo",   "Highland Pueblo Screen",      -775,  -28, .30,  4.5, 2.53, { x: -772.5, z: -19.5, yaw: .32 }],
+        ["fluke",    "Whale Fluke Screen",         -1070,  -28, .45,  4.2, 2.36, { x: -1064, z: -18.5, yaw: .56 }]
+      ]) {
+        const sy = groundAt(sx, sz), g = new T.Group();
+        g.position.set(sx, sy, sz); g.rotation.y = rotY;
+        const pxOff = sw * .5 + .15;
+        for (const px of [-pxOff, pxOff]) {
+          const post = new T.Mesh(new T.CylinderGeometry(.085, .105, sh + 1.4, 8), woodMat);
+          post.position.set(px, (sh + 1.4) * .5 - .1, -.05); g.add(post);
+        }
+        const top = new T.Mesh(new T.BoxGeometry(sw + .55, .14, .16), woodMat); top.position.set(0, sh + .88, -.05); g.add(top);
+        const back = new T.Mesh(new T.BoxGeometry(sw + .12, sh + .12, .05), stoneMat); back.position.set(0, sh * .5 + .85, -.04); g.add(back);
+        const cloth = new T.Mesh(new T.PlaneGeometry(sw, sh), cinemaMat); cloth.position.set(0, sh * .5 + .85, 0); g.add(cloth);
+        worldProps.add(g);
+        inWorldScreens.push({ id, label, mesh: cloth, w: sw, h: sh, stand });
+      }
+    })();
+
     // 3) 7 Cistern Relays & 72 Fillable Jerrycans across the Entire Unified World
     function makeTerrainRing(radius, segs, mat, parentGrp) {
       const pts = new Float32Array((segs + 1) * 3);
@@ -3350,7 +3439,7 @@ void main(){
       for (let i = 0; i < 12; i++) {
         const v = clamp(bands12[i] || .06, .06, 1.0);
         const bh = Math.max(2, Math.round(v * (h - 4)));
-        g.fillStyle = beatPulse > .45 ? "#54ecff" : (i < 4 ? "#008cff" : "#18b4ff");
+        g.fillStyle = i < 4 ? "#1c96c5" : "#4de6dc";
         g.fillRect(2 + i * (bw + 1), h - 2 - bh, bw, bh);
       }
     }
@@ -4030,6 +4119,13 @@ void main(){
       mw.glass.value = state.filterIdx;
       mw.worldLight.position.copy(mw.sun.value).multiplyScalar(100);
       mw.abyssAnimate(nowSec);
+      if (inWorldVideoMode !== "mp4") {
+        const cinFrame = Math.floor(nowSec * 15);
+        if (cinFrame !== npLastCinFrame) {
+          npLastCinFrame = cinFrame;
+          drawInWorldCinemaFrame(nowSec);
+        }
+      }
 
       if (Math.abs(camera.position.x + 480) < 920 && Math.abs(camera.position.z) < 620) {
         const refY = mw.water(clamp(camera.position.x, -1620, -240), clamp(camera.position.z, -400, 400));
@@ -4082,6 +4178,7 @@ void main(){
       postQuad.material = lookMat;
       renderer.setRenderTarget(null);
       renderer.render(postScene, postCam);
+      syncInWorldCss3d();
     }
 
     function captureBounds(width, height) {
@@ -4352,6 +4449,154 @@ void main(){
       launchSummit(0);
     });
     if ($("montage-skip")) $("montage-skip").addEventListener("click", () => finishIntro(false));
+
+    /* ---------- In-World 3D Cinema Screen Projection & Mode Control ---------- */
+    const iwCssEl = $("inworld-css3d"), iwCardEl = $("inworld-yt-card"), iwYtEl = $("inworld-yt-iframe");
+    const iwBarEl = $("inworld-video-bar");
+    const iwMatDiv = new T.Matrix4(), iwMatViewCss = new T.Matrix4(), iwMatTotal = new T.Matrix4();
+    const iwCenter = new T.Vector3(), iwViewPt = new T.Vector3(), iwNormal = new T.Vector3(), iwToCam = new T.Vector3();
+    let activeScreenId = "overlook";
+
+    function findTargetCinemaScreen(preferredId) {
+      if (preferredId) {
+        const exact = inWorldScreens.find(s => s.id === preferredId);
+        if (exact) return exact;
+      }
+      let best = inWorldScreens[0], bestD = 1e9;
+      for (const s of inWorldScreens) {
+        s.mesh.getWorldPosition(iwCenter);
+        const d = Math.hypot(iwCenter.x - state.x, iwCenter.z - state.z);
+        if (d < bestD) { bestD = d; best = s; }
+      }
+      return bestD < 220 ? best : inWorldScreens[0];
+    }
+
+    function focusCinemaScreen(scr) {
+      if (!scr || !scr.stand) return;
+      if (state.gliding) landGlide(false);
+      if (state.drivingCart) toggleCart();
+      state.riding = false; state.donkeyOnRoof = false;
+      const mobOv = useFieldLayout() && scr.id === "overlook";
+      [state.x, state.z] = worldBoundsClamp(mobOv ? -17.5 : scr.stand.x, mobOv ? -0.4 : scr.stand.z);
+      state.y = driveSurfaceAt(state.x, state.z) + 1.68;
+      state.yaw = mobOv ? 1.53 : scr.stand.yaw; state.pitch = -.02;
+      state.region = regionAt(state.x, state.z);
+      const fwdX = -Math.sin(state.yaw), fwdZ = -Math.cos(state.yaw);
+      const rgtX = Math.cos(state.yaw), rgtZ = -Math.sin(state.yaw);
+      donkey.place(state.x + fwdX * 4.2 + rgtX * 2.2, state.z + fwdZ * 4.2 + rgtZ * 2.2, state.yaw + .45, (x, z) => driveSurfaceAt(x, z));
+      applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
+      activeScreenId = scr.id;
+      initRain(); sampleMeter(); updateHUD();
+    }
+
+    function syncInWorldBarButtons() {
+      if ($("iwv-mode-yt")) $("iwv-mode-yt").setAttribute("aria-pressed", String(inWorldVideoMode === "youtube"));
+      if ($("iwv-mode-cloth")) $("iwv-mode-cloth").setAttribute("aria-pressed", String(inWorldVideoMode === "cloth" || inWorldVideoMode === "mp4"));
+    }
+
+    function toggleInWorldVideo(open, mode = "youtube", screenId = "") {
+      const turnOn = open === undefined ? !inWorldVideoMode : Boolean(open);
+      if (!turnOn) {
+        inWorldVideoMode = null;
+        if (iwCssEl) iwCssEl.hidden = true;
+        if (iwYtEl) iwYtEl.src = "";
+        if (iwBarEl) iwBarEl.hidden = true;
+        if (customClothVideo) customClothVideo.pause();
+        cinemaMat.map = cinemaTex; cinemaMat.emissiveMap = cinemaTex; cinemaMat.needsUpdate = true;
+        syncInWorldBarButtons();
+        updateHUD();
+        return;
+      }
+      if (state.introActive) finishIntro(true);
+      inWorldVideoMode = mode;
+      const scr = findTargetCinemaScreen(screenId);
+      focusCinemaScreen(scr);
+      if (iwBarEl) iwBarEl.hidden = false;
+      if (mode === "youtube") {
+        if (!audioEl.paused) audioEl.pause();
+        if (customClothVideo) customClothVideo.pause();
+        cinemaMat.map = cinemaTex; cinemaMat.emissiveMap = cinemaTex; cinemaMat.needsUpdate = true;
+        if (iwYtEl && !iwYtEl.src.includes("ZZlDs10FCZk")) {
+          iwYtEl.src = "https://www.youtube.com/embed/ZZlDs10FCZk?rel=0&playsinline=1";
+        }
+        toast(`Projected on ${scr.label} · Move or look around freely (Y to toggle)`, scr.label);
+      } else if (mode === "cloth") {
+        if (iwCssEl) iwCssEl.hidden = true;
+        if (iwYtEl) iwYtEl.src = "";
+        if (customClothVideo) customClothVideo.pause();
+        cinemaMat.map = cinemaTex; cinemaMat.emissiveMap = cinemaTex; cinemaMat.needsUpdate = true;
+        if (audioEl.paused) toggleTape();
+        toast(`3D Linen Cloth Reel + C60 Spatial Song at ${scr.label}`, scr.label);
+      }
+      syncInWorldBarButtons();
+      renderFrame(performance.now() * .001);
+    }
+
+    function loadCustomClothVideo(file) {
+      if (!file) return;
+      if (!customClothVideo) {
+        customClothVideo = document.createElement("video");
+        customClothVideo.playsInline = true; customClothVideo.loop = true; customClothVideo.crossOrigin = "anonymous";
+        customClothTex = new T.VideoTexture(customClothVideo);
+        customClothTex.colorSpace = T.NoColorSpace;
+      }
+      if (customVideoBlob) URL.revokeObjectURL(customVideoBlob);
+      customVideoBlob = URL.createObjectURL(file);
+      customClothVideo.src = customVideoBlob;
+      customClothVideo.play().catch(() => {});
+      if (!audioEl.paused) audioEl.pause();
+      if (iwCssEl) iwCssEl.hidden = true;
+      if (iwYtEl) iwYtEl.src = "";
+      inWorldVideoMode = "mp4";
+      cinemaMat.map = customClothTex; cinemaMat.emissiveMap = customClothTex; cinemaMat.needsUpdate = true;
+      const scr = findTargetCinemaScreen();
+      focusCinemaScreen(scr);
+      if (iwBarEl) iwBarEl.hidden = false;
+      syncInWorldBarButtons();
+      toast(`Playing ${file.name} on 3D World Cinema Screens`, file.name);
+      renderFrame(performance.now() * .001);
+    }
+
+    function syncInWorldCss3d() {
+      if (!iwCssEl || !iwCardEl) return;
+      if (inWorldVideoMode !== "youtube" || state.introActive) {
+        iwCssEl.hidden = true;
+        return;
+      }
+      const scr = findTargetCinemaScreen(activeScreenId);
+      if (!scr) { iwCssEl.hidden = true; return; }
+      activeScreenId = scr.id;
+      camera.updateMatrixWorld();
+      scr.mesh.updateMatrixWorld();
+      scr.mesh.getWorldPosition(iwCenter);
+      iwViewPt.copy(iwCenter).applyMatrix4(camera.matrixWorldInverse);
+      iwNormal.set(0, 0, 1).transformDirection(scr.mesh.matrixWorld);
+      iwToCam.subVectors(camera.position, iwCenter).normalize();
+      if (iwViewPt.z > -1.0 || iwCenter.distanceTo(camera.position) > 95 || iwNormal.dot(iwToCam) < 0.08) {
+        iwCssEl.hidden = true;
+        return;
+      }
+      const cssW = Math.max(2, canvas.clientWidth || innerWidth);
+      const cssH = Math.max(2, canvas.clientHeight || innerHeight);
+      const fovPx = 0.5 / Math.tan(T.MathUtils.degToRad(camera.fov * 0.5)) * cssH;
+      const sW = scr.w / 640, sH = scr.h / 360;
+      iwMatDiv.set(sW, 0, 0, -320 * sW, 0, -sH, 0, 180 * sH, 0, 0, 1, 0, 0, 0, 0, 1);
+      iwMatViewCss.set(1, 0, 0, cssW * 0.5, 0, -1, 0, cssH * 0.5, 0, 0, 1, fovPx, 0, 0, 0, 1);
+      iwMatTotal.multiplyMatrices(iwMatViewCss, camera.matrixWorldInverse).multiply(scr.mesh.matrixWorld).multiply(iwMatDiv);
+      const e = iwMatTotal.elements;
+      iwCssEl.hidden = false;
+      iwCssEl.style.perspective = `${fovPx.toFixed(2)}px`;
+      iwCardEl.style.transform = `matrix3d(${e.map(v => (Math.abs(v) < 1e-7 ? 0 : +v.toFixed(6))).join(",")})`;
+    }
+
+    if ($("intro-video")) $("intro-video").addEventListener("click", () => toggleInWorldVideo(true, "youtube"));
+    if ($("tape-video-btn")) $("tape-video-btn").addEventListener("click", () => toggleInWorldVideo(true, "youtube"));
+    if ($("field-video-btn")) $("field-video-btn").addEventListener("click", () => toggleInWorldVideo(true, "youtube"));
+    if ($("iwv-mode-yt")) $("iwv-mode-yt").addEventListener("click", () => toggleInWorldVideo(true, "youtube", activeScreenId));
+    if ($("iwv-mode-cloth")) $("iwv-mode-cloth").addEventListener("click", () => toggleInWorldVideo(true, "cloth", activeScreenId));
+    if ($("iwv-file")) $("iwv-file").addEventListener("change", e => loadCustomClothVideo(e.target.files?.[0]));
+    if ($("iwv-focus")) $("iwv-focus").addEventListener("click", () => { focusCinemaScreen(findTargetCinemaScreen()); renderFrame(performance.now() * .001); });
+    if ($("iwv-close")) $("iwv-close").addEventListener("click", () => toggleInWorldVideo(false));
 
     /* ---------- Mobile viewfinder controls ---------- */
     const cycle = (index, count, step) => ((index + step) % count + count) % count;
@@ -4987,6 +5232,7 @@ void main(){
       else if (e.code === "KeyF") pourWifi();
       else if (e.code === "KeyK") triggerDance();
       else if (e.code === "KeyL") toggleLidar();
+      else if (e.code === "KeyY" && !e.repeat) toggleInWorldVideo();
       else if (e.code === "KeyT") syncResonantZone();
       else if (e.code === "KeyB") deployRig();
       else if (e.code === "KeyH") { state.ppcOn = !state.ppcOn; updateHUD(); }
@@ -5524,14 +5770,14 @@ void main(){
       // Animate Song-Resonant Flow Conduits & Chevrons
       for (const fc of flowConduits) {
         const isRes = fc.epochIdx === state.songEpochIdx;
-        fc.mat.opacity = isRes ? (.52 + .35 * state.beatPulse + (state.zoneSynced ? .18 : 0)) : (state.lidarOn ? .42 : .16);
+        fc.mat.opacity = isRes ? (.48 + (state.zoneSynced ? .14 : 0)) : (state.lidarOn ? .36 : .14);
         fc.mat.color.setHex(isRes ? (state.zoneSynced ? 0x54ecff : 0x18b4ff) : 0x0052cc);
         for (const ch of fc.chevs) {
           const u = fract(nowSec * (isRes ? .18 : .08) + ch.offset);
           const pos = fc.curve.getPointAt(u), tan = fc.curve.getTangentAt(u);
           ch.mesh.position.copy(pos);
           ch.mesh.quaternion.setFromUnitVectors(new T.Vector3(0, 0, 1), tan);
-          const s = isRes ? (1.25 + .45 * state.beatPulse) : .85;
+          const s = isRes ? 1.15 : .85;
           ch.mesh.scale.setScalar(s);
         }
       }
@@ -5545,18 +5791,18 @@ void main(){
         }
       }
 
-      // Live Donkey WiFi Rings & Expanding 3D Wavefront Arcs pulsed by the Song Beat!
-      const beatMul = 1.0 + state.beatPulse * .28;
+      // Calm Donkey WiFi Rings & Slow Mist Arcs
+      const beatMul = 1.0 + state.beatPulse * .04;
       donkeyRings[0].radius = state.signalRadius * .28 * beatMul;
       donkeyRings[1].radius = state.signalRadius * .62 * beatMul;
       donkeyRings[2].radius = state.signalRadius * beatMul;
       for (const rg of donkeyRings) updateTerrainRing(rg, donkey.state.x, donkey.state.z, .25);
       for (const wv of waveArcs) {
-        const p = fract(nowSec * (.42 + state.beatPulse * .35) + wv.phase);
+        const p = fract(nowSec * .12 + wv.phase);
         const rad = lerp(1.0, Math.min(28.0, state.signalRadius * .48 * beatMul), p);
         wv.mesh.position.set(donkey.state.x, donkey.group.position.y + 2.0 + p * 2.1, donkey.state.z);
         wv.mesh.scale.set(rad, 1, rad);
-        wv.mesh.material.opacity = (1 - p) * clamp(.75 + state.beatPulse * .35, 0, 1) * (.6 + .4 * state.wifiCharge);
+        wv.mesh.material.opacity = (1 - p) * .18 * (.6 + .4 * state.wifiCharge);
       }
       whip.rotation.z = Math.sin(nowSec * 3.1) * (.08 + .08 * state.beatPulse);
 
@@ -5569,10 +5815,10 @@ void main(){
       well.stream.scale.set(state.pumpFlow, 1, state.pumpFlow);
       well.pool.position.y = .21 + Math.sin(nowSec * 4.0) * .012;
 
-      /* --- WIFI WATER RAIN FALLS STRICTLY INSIDE ACTIVE WIFI DONKEY REACH (BEAT-PULSED!) --- */
+      /* --- WIFI WATER RAIN FALLS STRICTLY INSIDE ACTIVE WIFI DONKEY REACH --- */
       const emitters = sampleWifiEmitters();
-      const rainBeatSpd = 1.0 + state.beatPulse * 1.15;
-      const rainLen = .85 + state.beatPulse * 1.35;
+      const rainBeatSpd = 1.0 + state.beatPulse * .10;
+      const rainLen = .92;
       for (let i = 0; i < RAIN_N; i++) {
         rainY[i] -= rainSpd[i] * rainBeatSpd * dt;
         const surf = driveSurfaceAt(rainX[i], rainZ[i]);
@@ -5713,7 +5959,9 @@ void main(){
           totalRelays: relays.length,
           coveragePct: state.coveragePct,
           plates: state.plates.length,
-          audioReady: audioEl.readyState >= 1
+          audioReady: audioEl.readyState >= 1,
+          inWorldVideoMode,
+          activeScreenId
         };
       },
       getRelays: () => relays.map(r => ({ id: r.id, name: r.name, lit: r.lit, cans: r.cans.length, filled: r.cans.filter(c => (c.userData.fill || 0) >= .95).length })),
@@ -5753,6 +6001,7 @@ void main(){
       },
       exposePlate, teleportZone, toggleRide, toggleCart, toggleGlide, launchSummit, toggleRegion,
       pumpWell, pourWifi, pingSignal, toggleTape, toggleLidar, syncResonantZone, triggerDance, toggleSpatialAudio, deployRig, seekTape,
+      toggleInWorldVideo,
       setTouchStick: (fx, fy) => setStick(clamp(fx, -1, 1), -clamp(fy, -1, 1)),
       playIntro: startPrologue, skipIntro: () => finishIntro(false)
     };

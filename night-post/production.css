@@ -465,3 +465,86 @@ body.field-ui #np-dispatch-modal {
   inset: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom)) 8px;
 }
 body.field-ui #np-dispatch-modal[hidden] { display: none !important; }
+
+/* In-World 3D Perspective Cinema Layer & Calm Control Pill */
+#inworld-css3d {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+  perspective-origin: 50% 50%;
+}
+#inworld-css3d[hidden], #inworld-video-bar[hidden] { display: none !important; }
+#inworld-yt-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 640px;
+  height: 360px;
+  transform-origin: 0 0;
+  pointer-events: auto;
+  background: #060b0b;
+  box-shadow: 0 0 24px rgba(77, 230, 220, 0.18);
+}
+#inworld-yt-card iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+#inworld-video-bar {
+  position: fixed;
+  left: 50%;
+  top: max(12px, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  z-index: 19;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(11, 20, 19, 0.88);
+  border: 1px solid rgba(107, 232, 220, 0.42);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: auto;
+  max-width: calc(100vw - 24px);
+}
+.iwv-btn {
+  font: 600 9.5px/1 Inter, system-ui, sans-serif;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(242, 237, 226, 0.25);
+  background: rgba(18, 30, 29, 0.85);
+  color: #f2ede2;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.iwv-btn[aria-pressed="true"] {
+  background: #6be8dc;
+  border-color: #6be8dc;
+  color: #071918;
+}
+.iwv-btn input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+body.field-ui #inworld-video-bar {
+  top: auto;
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 118px);
+  border-radius: 12px;
+  gap: 4px;
+  padding: 5px 8px;
+  max-width: calc(100vw - 28px);
+}
+body.field-ui .iwv-btn {
+  padding: 4px 7px;
+  font-size: 9px;
+}
