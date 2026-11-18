@@ -132,7 +132,8 @@ body.field-ui .field-corner .field-key {
 }
 body.field-ui .field-corner .field-key:active,
 body.field-ui .field-key[data-held],
-body.field-ui .field-key[data-armed] {
+body.field-ui .field-key[data-armed],
+body.field-ui #field-reverse[aria-pressed="true"] {
   color: var(--amber);
   text-shadow: 0 0 7px #edb960, 0 1px 2px #030b0b;
 }
@@ -404,6 +405,18 @@ body.field-ui #field-stick-up, body.field-ui #field-stick-down, body.field-ui #f
 body.field-ui #field-stick-up { top: 10px; }
 body.field-ui #field-stick-down { bottom: 22px; }
 body.field-ui #field-stick-name { bottom: 7px; letter-spacing: .06em; }
+body.field-ui #field-stick[data-cruise] { border-color: #f5d291b8; }
+body.field-ui #field-stick[data-cruise] #field-stick-dot {
+  border-color: #ffe7b3;
+  background: #f5d291cc;
+  box-shadow: 0 0 9px #edb960aa;
+}
+body.field-ui #field-stick[data-cruise="-1"] #field-stick-down,
+body.field-ui #field-stick[data-cruise="1"] #field-stick-up {
+  color: var(--amber);
+  font-weight: 700;
+  text-shadow: 0 0 7px #edb960, 0 1px 2px #030b0b;
+}
 body.field-ui #field-boost { grid-area: 1 / 2; }
 body.field-ui #field-boost::before {
   content: "◦";

@@ -2502,6 +2502,7 @@ void main(){
       soloLook: -1,
       focusLook: 13,
       drivingCart: false,
+      wagonCruise: 0,
       donkeyOnRoof: false,
       roofMountT: 0,
       roofJumpStart: new T.Vector3(),
@@ -3456,8 +3457,9 @@ void main(){
       const rTag = state.region === "ridge" ? "YOSEMITE HALF DOME" : state.region === "abyss" ? "ABYSSAL FLUKE SANCTUARY" : "GRAND TETON";
       $("zone-title").textContent = `Zone ${ROMAN[Z.z]} · ${currentPlaceName()}`;
       const flight = state.glide.landing ? "LANDING" : state.donkeyOnRoof ? "WAGON FLIGHT" : "GLIDE";
+      const wagonRev = wagon.speed < -.3 || state.wagonCruise < 0;
       const veh = state.gliding ? `${flight} ${Math.round(state.glide.speed)} m/s (${state.glide.vy >= 0 ? "+" : ""}${state.glide.vy.toFixed(1)} vy) · `
-                : state.drivingCart ? `CRUISER WAGON ${Math.abs(wagon.speed).toFixed(1)} m/s (ROOF BURRO) · `
+                : state.drivingCart ? `CRUISER WAGON${wagonRev ? " REV" : ""} ${Math.abs(wagon.speed).toFixed(1)} m/s (ROOF BURRO) · `
                 : state.riding ? "RIDING MISTLETOE · " : "";
       $("hud-sub").textContent = `${rTag} · ${veh}${m.label} · FOCUS ${state.focusDist.toFixed(1)} m · ${fl.name}`;
       $("focus-dist-val").textContent = `${state.focusDist.toFixed(1)} m`;
@@ -3516,6 +3518,11 @@ void main(){
       $("btn-cart").setAttribute("aria-pressed", String(state.drivingCart));
       $("btn-cart").textContent = state.drivingCart ? "Exit Wagon (C)" : "Drive Wagon (C)";
       $("btn-cart").hidden = state.gliding && state.donkeyOnRoof;
+      if ($("btn-reverse")) {
+        $("btn-reverse").hidden = !state.drivingCart;
+        $("btn-reverse").setAttribute("aria-pressed", String(state.drivingCart && state.wagonCruise < 0));
+        $("btn-reverse").textContent = state.wagonCruise < 0 ? "Stop Reverse" : "Reverse";
+      }
       if ($("btn-glide")) {
         $("btn-glide").setAttribute("aria-pressed", String(state.gliding));
         $("btn-glide").textContent = `${glideActionLabel()} (J)`;
@@ -3913,6 +3920,7 @@ void main(){
       if (state.donkeyCollapsed && !state.drivingCart) { toast("Mistletoe collapsed from thirst — press P to give water first!"); return; }
       if (state.gliding && state.donkeyOnRoof) { toggleGlide(); return; }
       state.riding = false;
+      state.wagonCruise = 0;
       if (state.gliding) clearGlide();
       state.drivingCart = !state.drivingCart;
       if (state.drivingCart) {
@@ -3930,9 +3938,19 @@ void main(){
         donkey.place(wagon.x - Math.cos(wagon.heading) * 2.4, wagon.z + Math.sin(wagon.heading) * 2.4, wagon.heading, (x, z) => driveSurfaceAt(x, z));
         toast("Parked Cruiser Woody — Mistletoe hops down.", "Wagon parked");
       }
+      syncStickVisual();
+      sampleMeter();
       updateHUD();
     }
     $("btn-cart").addEventListener("click", toggleCart);
+    if ($("btn-reverse")) $("btn-reverse").addEventListener("click", () => {
+      if (!state.drivingCart && canStartMotion()) toggleCart();
+      if (!state.drivingCart) return;
+      setWagonCruise(state.wagonCruise === -1 ? 0 : -1);
+      toast(state.wagonCruise < 0
+        ? "Reverse drive engaged — backing up! Click Stop Reverse, Brake (X), or W/S to cancel."
+        : "Reverse stopped.");
+    });
 
     function clearGlide() {
       state.gliding = false;
@@ -3981,6 +3999,7 @@ void main(){
       state.x = g.x; state.z = g.z; state.y = g.y + (withWagon ? 2.0 : 1.65);
       state.yaw = g.heading + Math.PI; state.pitch = -.05;
       state.drivingCart = withWagon;
+      state.wagonCruise = 0;
       state.riding = !withWagon;
       if (withWagon) {
         Object.assign(wagon, { x: g.x, y: g.y, z: g.z, heading: g.heading, speed: 0, pitch: 0, roll: 0, steerAngle: 0 });
@@ -4017,7 +4036,7 @@ void main(){
       const hdg = customLaunch?.heading ?? (withWagon ? wagon.heading : state.yaw + Math.PI);
       const rel = startY - groundY;
       clearGlide();
-      state.drivingCart = false; state.donkeyOnRoof = withWagon; state.riding = false;
+      state.drivingCart = false; state.wagonCruise = 0; state.donkeyOnRoof = withWagon; state.riding = false;
       state.gliding = true; state.cartYawOffset = 0; state.cartPitchOffset = 0;
       Object.assign(state.glide, {
         x: gx, y: startY, z: gz, heading: hdg,
@@ -4057,7 +4076,7 @@ void main(){
 
     function teleportZone(zoneIdx) {
       const Z = ZONES[clamp(zoneIdx, 0, 10)];
-      state.riding = false; state.drivingCart = false; state.donkeyOnRoof = false;
+      state.riding = false; state.drivingCart = false; state.wagonCruise = 0; state.donkeyOnRoof = false;
       clearGlide();
       setRegion(regionAt(Z.x, Z.pz));
       state.x = Z.x - 4.5; state.z = Z.pz + 4.5;
@@ -4084,7 +4103,7 @@ void main(){
     function toggleRide() {
       if (state.donkeyCollapsed && !state.riding) { toast("Mistletoe collapsed from thirst — press P to give water!"); return; }
       if (state.gliding) { toggleGlide(); return; }
-      if (state.drivingCart) { state.drivingCart = false; state.donkeyOnRoof = false; }
+      if (state.drivingCart) { state.drivingCart = false; state.wagonCruise = 0; state.donkeyOnRoof = false; }
       if (!state.riding && Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z) > 12) {
         donkey.place(state.x + 1.8, state.z + 1.8, state.yaw + Math.PI, (x, z) => driveSurfaceAt(x, z));
       }
@@ -4215,6 +4234,23 @@ void main(){
       return clamp(Math.round((sum / count) * 100), 0, 100);
     }
 
+    function activeForwardVec(motion) {
+      if (motion === "walk") return { fx: -Math.sin(state.yaw), fz: -Math.cos(state.yaw) };
+      const pose = motion === "drive" ? wagon : motion === "glide" ? state.glide : donkey.state;
+      const lookHdg = pose.heading + state.cartYawOffset;
+      return { fx: Math.sin(lookHdg), fz: Math.cos(lookHdg) };
+    }
+    function relativeBearing(dx, dz, fx, fz) {
+      const rightM = -dx * fz + dz * fx;
+      const aheadM = dx * fx + dz * fz;
+      const relRad = Math.atan2(rightM, aheadM);
+      return { rightM, aheadM, relRad, relDeg: relRad * 180 / Math.PI };
+    }
+    function turnCueFromDeg(deg) {
+      const cues = ["↑ Ahead", "↗ Right", "→ Right", "↘ Back-R", "↓ Behind", "↙ Back-L", "← Left", "↖ Left"];
+      return cues[((Math.round(deg / 45) % 8) + 8) % 8];
+    }
+
     function nearestUnlitRelay(x, z) {
       let relay = null, distance = Infinity;
       for (const candidate of relays) {
@@ -4264,13 +4300,14 @@ void main(){
       state.frameWifiPct = computeFrameWifiPct();
       recomputeFilledCans();
 
-      // Closest unlit cistern relay bearing for Delivery Compass
+      // Closest unlit cistern relay bearing relative to active view forward
       const { relay: nextR, distance: nextD } = nearestUnlitRelay(state.x, state.z);
       if (nextR) {
+        const navMotion = state.gliding ? "glide" : state.drivingCart ? "drive" : state.riding ? "ride" : "walk";
+        const { fx, fz } = activeForwardVec(navMotion);
         state.nextRelayDist = nextD; state.nextRelayName = nextR.name;
-        const targetYaw = Math.atan2(-(nextR.x - state.x), -(nextR.z - state.z));
-        state.nextRelayAzDeg = ((targetYaw - state.yaw) * 180) / Math.PI;
-      } else { state.nextRelayDist = 9999; state.nextRelayName = "Complete"; }
+        state.nextRelayAzDeg = relativeBearing(nextR.x - state.x, nextR.z - state.z, fx, fz).relDeg;
+      } else { state.nextRelayDist = 9999; state.nextRelayName = "Complete"; state.nextRelayAzDeg = 0; }
     }
 
     function exposePlate() {
@@ -4402,7 +4439,7 @@ void main(){
 
     function resetOverlookScene() {
       setRegion("tetons");
-      state.drivingCart = false; state.donkeyOnRoof = false; state.riding = false;
+      state.drivingCart = false; state.wagonCruise = 0; state.donkeyOnRoof = false; state.riding = false;
       clearGlide();
       wagon.x = -23.0; wagon.z = 4.6; wagon.y = driveSurfaceAt(wagon.x, wagon.z);
       wagon.heading = -Math.PI * .52; wagon.speed = 0;
@@ -4475,7 +4512,7 @@ void main(){
       if (!scr || !scr.stand) return;
       if (state.gliding) landGlide(false);
       if (state.drivingCart) toggleCart();
-      state.riding = false; state.donkeyOnRoof = false;
+      state.wagonCruise = 0; state.riding = false; state.donkeyOnRoof = false;
       const mobOv = useFieldLayout() && scr.id === "overlook";
       [state.x, state.z] = worldBoundsClamp(mobOv ? -17.5 : scr.stand.x, mobOv ? -0.4 : scr.stand.z);
       state.y = driveSurfaceAt(state.x, state.z) + 1.68;
@@ -4612,7 +4649,7 @@ void main(){
     const fieldHoldButtons = [...document.querySelectorAll("[data-field-key]")];
     const heldPointers = new Map();
     const heldButtons = new Set();
-    let stickPointer = null, stickX = 0, stickY = 0;
+    let stickPointer = null, stickTap = null, stickX = 0, stickY = 0;
     let fieldMotion = "", fieldSettingIndex = 0;
     let opticsUndo = null, armedTravel = null, armedUntil = 0, exposedUntil = 0;
     let plateIndex = -1, fieldPlateURL = "", fieldPlateSource = "", plateStorageFault = false;
@@ -4773,7 +4810,7 @@ void main(){
     const compass = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
     let mapContext, relief, reliefX, reliefZ;
 
-    function drawFieldRelief(ctx, x, z) {
+    function drawFieldRelief(ctx, x, z, fx, fz) {
       // Reuse the same world-aligned samples while the map pans inside a tile.
       const left = Math.round(x / reliefSnap) * reliefSnap - reliefRange;
       const top = Math.round(z / reliefSnap) * reliefSnap - reliefRange;
@@ -4809,33 +4846,49 @@ void main(){
         reliefX = left;
         reliefZ = top;
       }
-      const span = mapRange * 2 / reliefCell, size = fieldMapCanvas.width;
-      ctx.drawImage(relief, (x - mapRange - left) / reliefCell, (z - mapRange - top) / reliefCell, span, span, 0, 0, size, size);
+      const span = mapRange * 2 / reliefCell, size = fieldMapCanvas.width, mid = size / 2;
+      ctx.save();
+      ctx.translate(mid, mid);
+      ctx.rotate(Math.atan2(-fx, -fz));
+      ctx.drawImage(relief, (x - mapRange - left) / reliefCell, (z - mapRange - top) / reliefCell, span, span, -mid, -mid, size, size);
+      ctx.restore();
     }
 
     function updateFieldMap(motion) {
       const pose = motion === "drive" ? wagon : motion === "glide" ? state.glide : motion === "ride" ? donkey.state : state;
       const { x, z } = pose;
+      const { fx, fz } = activeForwardVec(motion);
       const waypoint = motion === "glide" ? state.glide.waypoint : null;
       const { relay, distance: relayDistance } = nearestUnlitRelay(x, z);
       const target = waypoint ?? relay;
       const distance = waypoint ? Math.hypot(waypoint.x - x, waypoint.z - z) : relayDistance;
+      const rel = target ? relativeBearing(target.x - x, target.z - z, fx, fz) : { rightM: 0, aheadM: 0, relRad: 0, relDeg: 0 };
       const bearing = target ? Math.atan2(target.x - x, z - target.z) : 0;
       const direction = compass[cycle(0, compass.length, Math.round(bearing * 4 / Math.PI))];
+      const cue = turnCueFromDeg(rel.relDeg);
       const delivery = `${state.filledCans}/${state.totalCans} cans`;
       setText("field-map-relay", target?.name ?? "All relays lit");
-      const rangeLabel = distance < .5 ? "At relay" : `${Math.round(distance)} m ${direction}`;
+      const rangeLabel = distance < .5 ? "At relay" : `${Math.round(distance)} m ${cue}`;
       if (waypoint) {
         const range = distance >= 1000 ? `${(distance / 1000).toFixed(1)} km` : `${Math.round(distance)} m`;
-        setText("field-map-route", distance <= TETON_ARRIVAL_DISTANCE ? "Over summit" : `${range} ${direction}`);
+        setText("field-map-route", distance <= TETON_ARRIVAL_DISTANCE ? "Over summit" : `${range} ${cue} (${direction})`);
       } else {
         setText("field-map-route", target ? `${rangeLabel} · ${delivery}` : delivery);
       }
 
+      const size = fieldMapCanvas.width, mid = size / 2, inset = mid - 27, scale = mid / mapRange;
+      if (target) {
+        const range = Math.min(distance * scale, inset);
+        state.mapTargetPx = +(mid + Math.sin(rel.relRad) * range).toFixed(1);
+        state.mapTargetPy = +(mid - Math.cos(rel.relRad) * range).toFixed(1);
+        state.mapTargetRelDeg = +rel.relDeg.toFixed(1);
+      } else {
+        state.mapTargetPx = null; state.mapTargetPy = null; state.mapTargetRelDeg = null;
+      }
+
       if (mapContext === undefined) mapContext = fieldMapCanvas.getContext("2d");
       if (!mapContext) return;
-      const ctx = mapContext, size = fieldMapCanvas.width, mid = size / 2, inset = mid - 27;
-      const scale = mid / mapRange;
+      const ctx = mapContext;
       ctx.clearRect(0, 0, size, size);
       ctx.save();
       ctx.beginPath();
@@ -4843,25 +4896,25 @@ void main(){
       ctx.clip();
       ctx.fillStyle = "#152b33";
       ctx.fillRect(0, 0, size, size);
-      drawFieldRelief(ctx, x, z);
+      drawFieldRelief(ctx, x, z, fx, fz);
       ctx.strokeStyle = "#b2eef088";
       ctx.lineWidth = 3;
       ctx.stroke();
 
-      for (const relay of relays) {
-        if (relay === target) continue;
-        const dx = (relay.x - x) * scale, dz = (relay.z - z) * scale;
-        if (Math.hypot(dx, dz) > inset) continue;
+      for (const cand of relays) {
+        if (cand === target) continue;
+        const rb = relativeBearing(cand.x - x, cand.z - z, fx, fz);
+        const mx = rb.rightM * scale, my = -rb.aheadM * scale;
+        if (Math.hypot(mx, my) > inset) continue;
         ctx.beginPath();
-        ctx.arc(mid + dx, mid + dz, 4, 0, TAU);
+        ctx.arc(mid + mx, mid + my, 4, 0, TAU);
         ctx.strokeStyle = "#b2eef0";
         ctx.lineWidth = 1.6;
-        if (relay.lit) { ctx.fillStyle = "#b2eef0"; ctx.fill(); }
+        if (cand.lit) { ctx.fillStyle = "#b2eef0"; ctx.fill(); }
         else ctx.stroke();
       }
       if (target) {
-        const range = Math.min(distance * scale, inset);
-        const px = mid + Math.sin(bearing) * range, py = mid - Math.cos(bearing) * range;
+        const px = state.mapTargetPx, py = state.mapTargetPy;
         ctx.strokeStyle = "#ffe0a3";
         ctx.lineWidth = 2;
         ctx.setLineDash([3, 5]);
@@ -4871,16 +4924,27 @@ void main(){
         ctx.beginPath(); ctx.moveTo(px, py - 7); ctx.lineTo(px + 7, py);
         ctx.lineTo(px, py + 7); ctx.lineTo(px - 7, py); ctx.closePath(); ctx.fill();
       }
+      const rN = mid - 15;
       ctx.fillStyle = "#e9fafa";
       ctx.textAlign = "center";
-      ctx.font = "600 18px IBM Plex Mono, monospace";
-      ctx.fillText("N", mid, 22);
+      ctx.textBaseline = "middle";
+      ctx.font = "600 16px IBM Plex Mono, monospace";
+      ctx.fillText("N", mid - fx * rN, mid + fz * rN);
+      ctx.textBaseline = "alphabetic";
+
+      const noseX = pose === state ? -Math.sin(state.yaw) : Math.sin(pose.heading);
+      const noseZ = pose === state ? -Math.cos(state.yaw) : Math.cos(pose.heading);
+      const noseRel = relativeBearing(noseX, noseZ, fx, fz).relRad;
       ctx.translate(mid, mid);
-      ctx.rotate(pose === state ? -state.yaw : Math.PI - pose.heading);
+      ctx.rotate(noseRel);
       ctx.strokeStyle = "#101920";
       ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(9, 10);
       ctx.lineTo(0, 6); ctx.lineTo(-9, 10); ctx.closePath(); ctx.fill(); ctx.stroke();
+      if (motion === "drive" && (wagon.speed < -.3 || state.wagonCruise < 0)) {
+        ctx.fillStyle = "#f5d291";
+        ctx.beginPath(); ctx.moveTo(0, 21); ctx.lineTo(-5, 13); ctx.lineTo(5, 13); ctx.closePath(); ctx.fill();
+      }
       ctx.restore();
     }
 
@@ -4976,7 +5040,10 @@ void main(){
       const stickLabel = `${stickName}. Drag or use arrow keys.${motion === "glide" && !landing ? " Up to dive, down to climb." : ""}`;
       if (fieldStick.getAttribute("aria-label") !== stickLabel) fieldStick.setAttribute("aria-label", stickLabel);
       let status = label;
-      if (motion === "drive") status = `${label} · ${Math.abs(wagon.speed).toFixed(1)} m/s`;
+      if (motion === "drive") {
+        const drvTag = wagon.speed < -.3 || state.wagonCruise < 0 ? "Reverse" : state.wagonCruise > 0 ? "Cruise" : label;
+        status = `${drvTag} · ${Math.abs(wagon.speed).toFixed(1)} m/s`;
+      }
       if (motion === "glide") {
         const flight = landing ? "Landing" : state.donkeyOnRoof ? "Wagon flight" : label;
         status = `${flight} · ${fmtElev(state.antennaElev)}`;
@@ -5000,6 +5067,11 @@ void main(){
       setText("field-vehicle", motion === "glide" ? glideActionLabel() : vehicleLabels[motion]);
       $("field-vehicle").hidden = motion === "walk" && !canStartMotion();
       $("field-brake").hidden = !state.drivingCart;
+      if ($("field-reverse")) {
+        $("field-reverse").hidden = !state.drivingCart;
+        $("field-reverse").setAttribute("aria-pressed", String(state.drivingCart && state.wagonCruise < 0));
+        setText("field-reverse", state.wagonCruise < 0 ? "Stop rev" : "Reverse");
+      }
       if (!fieldMap.hidden) updateFieldMap(motion);
       const context = fieldContext(motion);
       $("field-context").hidden = !context;
@@ -5064,6 +5136,8 @@ void main(){
 
     function releaseFieldInputs() {
       stickPointer = null;
+      stickTap = null;
+      state.wagonCruise = 0;
       setStick(0, 0);
       for (const button of fieldHoldButtons) button.removeAttribute("data-held");
       heldPointers.clear();
@@ -5086,6 +5160,16 @@ void main(){
       else if (state.drivingCart) toggleCart();
       else if (state.riding) toggleRide();
       else if (canStartMotion()) toggleCart();
+    });
+    if ($("field-reverse")) fieldClick("field-reverse", () => {
+      if (!state.drivingCart && canStartMotion()) toggleCart();
+      if (!state.drivingCart) return;
+      setWagonCruise(state.wagonCruise === -1 ? 0 : -1);
+      toast(state.wagonCruise < 0 ? "Reverse engaged · backing toward camera" : "Reverse stopped",
+        state.wagonCruise < 0 ? "Reverse engaged" : "Reverse off");
+    });
+    fieldClick("field-brake", () => {
+      if (state.wagonCruise !== 0) { setWagonCruise(0); wagon.speed = 0; }
     });
     fieldClick("field-map-toggle", () => {
       showFieldTool(fieldMap.hidden ? "map" : "dial");
@@ -5140,21 +5224,53 @@ void main(){
     });
     bindFieldTurn("field-value", stepFieldValue);
 
+    function syncStickVisual() {
+      if (stickPointer !== null) return;
+      const c = state.drivingCart ? state.wagonCruise : 0;
+      if (c !== 0) {
+        fieldStick.dataset.cruise = String(c);
+        fieldStick.style.setProperty("--stick-x", "0px");
+        fieldStick.style.setProperty("--stick-y", `${-c * 22}px`);
+      } else {
+        delete fieldStick.dataset.cruise;
+        fieldStick.style.setProperty("--stick-x", "0px");
+        fieldStick.style.setProperty("--stick-y", "0px");
+      }
+    }
+    function setWagonCruise(next) {
+      const c = state.drivingCart ? clamp(Math.round(next), -1, 1) : 0;
+      if (state.wagonCruise === c) { syncStickVisual(); return; }
+      state.wagonCruise = c;
+      syncStickVisual();
+      updateHUD();
+    }
     function setStick(x, y) {
       stickX = x; stickY = y;
+      if (stickPointer === null && x === 0 && y === 0) { syncStickVisual(); return; }
       fieldStick.style.setProperty("--stick-x", `${x * 28}px`);
       fieldStick.style.setProperty("--stick-y", `${y * 28}px`);
     }
     function moveStick(event) {
       const {left, top, width, height} = fieldStick.getBoundingClientRect();
       const dx = event.clientX - left - width / 2, dy = event.clientY - top - height / 2;
+      if (stickTap) {
+        stickTap.maxMove = Math.max(stickTap.maxMove, Math.hypot(event.clientX - stickTap.x0, event.clientY - stickTap.y0));
+        if (state.drivingCart && state.wagonCruise !== 0 && stickTap.maxMove >= 14) {
+          if (state.wagonCruise < 0 && dy < -10) { state.wagonCruise = 0; delete fieldStick.dataset.cruise; }
+          else if (state.wagonCruise > 0 && dy > 10) { state.wagonCruise = 0; delete fieldStick.dataset.cruise; }
+        }
+      }
       const dist = Math.hypot(dx, dy);
       const scale = dist > 7 ? 1 / Math.max(31, dist) : 0;
-      setStick(dx * scale, dy * scale);
+      let nx = dx * scale, ny = dy * scale;
+      if (state.drivingCart && state.wagonCruise < 0 && dy >= -10) ny = Math.max(ny, .78);
+      else if (state.drivingCart && state.wagonCruise > 0 && dy <= 10) ny = Math.min(ny, -.78);
+      setStick(nx, ny);
     }
     fieldStick.addEventListener("pointerdown", e => {
       if (stickPointer !== null || e.button !== 0 || state.introActive) return;
       stickPointer = e.pointerId;
+      stickTap = { t0: performance.now(), x0: e.clientX, y0: e.clientY, maxMove: 0 };
       armedTravel = null;
       fieldStick.setPointerCapture(e.pointerId);
       moveStick(e);
@@ -5163,8 +5279,26 @@ void main(){
     for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
       fieldStick.addEventListener(type, e => {
         if (stickPointer !== e.pointerId) return;
+        const tap = stickTap;
+        stickTap = null;
         stickPointer = null;
-        setStick(0, 0);
+        stickX = 0; stickY = 0;
+        if (type === "pointerup" && tap && state.drivingCart && (performance.now() - tap.t0 < 420) && tap.maxMove < 14) {
+          const { top, height } = fieldStick.getBoundingClientRect();
+          const dy = e.clientY - (top + height / 2);
+          if (dy > 8) {
+            setWagonCruise(state.wagonCruise === -1 ? 0 : -1);
+            toast(state.wagonCruise < 0 ? "Reverse engaged · backing toward camera" : "Reverse stopped",
+              state.wagonCruise < 0 ? "Reverse engaged" : "Reverse off");
+          } else if (dy < -8) {
+            setWagonCruise(state.wagonCruise === 1 ? 0 : 1);
+            toast(state.wagonCruise > 0 ? "Forward cruise engaged" : "Cruise stopped",
+              state.wagonCruise > 0 ? "Forward cruise" : "Cruise off");
+          } else {
+            setWagonCruise(0);
+          }
+        }
+        syncStickVisual();
       });
     }
     for (const button of fieldHoldButtons) {
@@ -5222,6 +5356,9 @@ void main(){
         return;
       }
       keys[e.code] = true;
+      if (state.wagonCruise !== 0 && ["KeyW", "KeyS", "ArrowUp", "ArrowDown", "KeyX"].includes(e.code)) {
+        setWagonCruise(0);
+      }
       if (e.code === "BracketLeft") { state.focusDist = clamp(state.focusDist * .86, 1.2, 900); state.focusPulse = 1; updateHUD(); }
       else if (e.code === "BracketRight") { state.focusDist = clamp(state.focusDist * 1.16, 1.2, 900); state.focusPulse = 1; updateHUD(); }
       else if (e.code === "KeyC" && !e.repeat) toggleCart();
@@ -5437,10 +5574,13 @@ void main(){
     }
 
     function step(dt) {
-      const fwdInput = clamp((keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - stickY, -1, 1);
+      const manualFwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - stickY;
+      const brakeInput = keys.KeyX || fieldHeld("KeyX");
+      if (brakeInput && state.wagonCruise !== 0) setWagonCruise(0);
+      const cruiseFwd = (state.drivingCart && !brakeInput && Math.abs(manualFwd) <= .08) ? state.wagonCruise : 0;
+      const fwdInput = clamp(Math.abs(manualFwd) > .08 ? manualFwd : cruiseFwd, -1, 1);
       const sideInput = clamp((keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + stickX, -1, 1);
       const turbo = keys.ShiftLeft || keys.ShiftRight || fieldHeld("ShiftLeft");
-      const brakeInput = keys.KeyX || fieldHeld("KeyX");
       const nowSec = performance.now() * .001;
       const portPull = camera.aspect < .85 ? 1.38 : 1;
       const portLift = camera.aspect < .85 ? .85 : 0;
@@ -5543,7 +5683,9 @@ void main(){
         }
       } else if (state.drivingCart) {
         /* --- CRUISER WOODY STATION WAGON (PHYSICS & COLLISIONS OFF + SUSPENSION SPRING) --- */
-        const targetSpeed = (brakeInput ? 0 : fwdInput > .08 ? clamp(fwdInput, .35, 1) * (turbo ? 42.0 : 25.0) : fwdInput < -.08 ? fwdInput * 15.0 : 0) * flowSpeedMult;
+        const targetSpeed = (brakeInput ? 0
+          : fwdInput > .08 ? clamp(fwdInput, .35, 1) * (turbo ? 42.0 : 25.0)
+          : fwdInput < -.08 ? -clamp(-fwdInput, .55, 1) * (turbo ? 26.0 : 17.5) : 0) * flowSpeedMult;
         const accelRate = (Math.abs(fwdInput) <= .08 || brakeInput) ? 9.5 : 6.8;
         wagon.speed = lerp(wagon.speed, targetSpeed, 1 - Math.exp(-dt * accelRate));
         if (Math.abs(wagon.speed) < .06 && Math.abs(fwdInput) <= .08) wagon.speed = 0;
@@ -5576,12 +5718,19 @@ void main(){
 
         poseRoofRider(dt);
 
-        const lookHdg = wagon.heading + state.cartYawOffset, wZoom = state.chaseZoom * portPull;
+        if (lookPointer === null && Math.abs(wagon.speed) > .5) {
+          state.cartYawOffset = lerp(state.cartYawOffset, 0, 1 - Math.exp(-dt * 2.4));
+        }
+        const revAmt = smooth(-.2, -14.0, wagon.speed);
+        const lookHdg = wagon.heading + state.cartYawOffset;
+        const wZoom = Math.max(5.0, state.chaseZoom * portPull - revAmt * 2.6);
+        const lookAhead = lerp(10.0, 3.8, revAmt);
+        const followRate = lerp(9.5, 5.4, revAmt);
         const camX = wagon.x - Math.sin(lookHdg) * wZoom, camZ = wagon.z - Math.cos(lookHdg) * wZoom;
         tmpCamPos.set(camX, Math.max(driveSurfaceAt(camX, camZ) + 2.0, wagon.y + 4.35 + portLift + state.cartPitchOffset * 4.2), camZ);
-        tmpCamLook.set(wagon.x + Math.sin(wagon.heading) * 10, wagon.y + 2.4, wagon.z + Math.cos(wagon.heading) * 10);
-        state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * 9.5));
-        state.chaseLookAt.lerp(tmpCamLook, 1 - Math.exp(-dt * 11));
+        tmpCamLook.set(wagon.x + Math.sin(wagon.heading) * lookAhead, wagon.y + 2.4, wagon.z + Math.cos(wagon.heading) * lookAhead);
+        state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * followRate));
+        state.chaseLookAt.lerp(tmpCamLook, 1 - Math.exp(-dt * (followRate + 1.5)));
         applyLevelChaseCamera(state.chaseCamPos, state.chaseLookAt);
         state.x = wagon.x; state.z = wagon.z; state.y = wagon.y + 2.0;
         state.yaw = lookHdg + Math.PI;
@@ -5712,7 +5861,7 @@ void main(){
         donkey.state.collapsed = true;
         donkey.state.downWant = true;
         donkey.state.stamina = .05;
-        state.riding = false; state.drivingCart = false; state.donkeyOnRoof = false;
+        state.riding = false; state.drivingCart = false; state.wagonCruise = 0; state.donkeyOnRoof = false;
         wagon.speed = 0;
         applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
         toast("EMERGENCY: Mistletoe collapsed from thirst! Press P to give water!", "Mistletoe needs water");
@@ -5922,7 +6071,12 @@ void main(){
           fieldBand: fieldGroups[fieldToolIndex].name,
           fieldSetting: fieldSetting().name,
           bandPickerOpen: !fieldBandPicker.hidden,
-          wagon: { x: wagon.x, z: wagon.z, y: wagon.y, speed: wagon.speed, steerAngle: wagon.steerAngle, roll: wagon.roll, pitch: +wagon.pitch.toFixed(3) },
+          wagon: { x: wagon.x, z: wagon.z, y: wagon.y, heading: +wagon.heading.toFixed(4), speed: wagon.speed, steerAngle: wagon.steerAngle, roll: wagon.roll, pitch: +wagon.pitch.toFixed(3) },
+          wagonCruise: state.wagonCruise,
+          nextRelayAzDeg: +state.nextRelayAzDeg.toFixed(1),
+          mapTargetPx: state.mapTargetPx ?? null,
+          mapTargetPy: state.mapTargetPy ?? null,
+          mapTargetRelDeg: state.mapTargetRelDeg ?? null,
           donkeyOnRoof: state.donkeyOnRoof,
           gliding: state.gliding,
           glide: { x: state.glide.x, y: state.glide.y, z: state.glide.z, speed: +state.glide.speed.toFixed(1), vy: +state.glide.vy.toFixed(1),

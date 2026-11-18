@@ -1230,7 +1230,7 @@
       #focus-knob i { height: 22px; margin-top: -22px; }
     }
   </style>
-  <link rel="stylesheet" href="./mobile.css?v=2d6f9b5a0ef4">
+  <link rel="stylesheet" href="./mobile.css?v=revmap2026a">
   <style>
     body.field-ui .field-links { flex-wrap: wrap; gap: 2px 4px; max-width: 100%; }
     body.field-ui #field-video-btn { width: auto; padding: 0 5px; white-space: nowrap; }
@@ -1375,7 +1375,7 @@
         </a>
       </div>
     </div>
-    <figure id="field-map" aria-label="North-up minimap" hidden>
+    <figure id="field-map" aria-label="Heading-up minimap" hidden>
       <canvas id="field-map-canvas" width="192" height="192" aria-hidden="true"></canvas>
       <figcaption>
         <span id="field-map-relay"></span>
@@ -1396,6 +1396,7 @@
 
   <div id="field-actions" class="field-corner" role="group" aria-label="Live actions">
     <div class="field-latches">
+      <button class="field-key" type="button" id="field-reverse" aria-pressed="false" aria-label="Toggle reverse drive" hidden>Reverse</button>
       <button class="field-key" type="button" id="field-brake" data-field-key="KeyX" aria-label="Hold wagon brake" hidden>Brake</button>
       <button class="field-key" type="button" id="field-vehicle" hidden></button>
       <button class="field-key" type="button" id="field-context" hidden></button>
@@ -1511,6 +1512,7 @@
 
     <div id="quick-bar">
       <button type="button" class="qpill" id="btn-cart" aria-pressed="false">Drive Wagon (C)</button>
+      <button type="button" class="qpill" id="btn-reverse" aria-pressed="false" hidden>Reverse</button>
       <button type="button" class="qpill cyan" id="btn-glide" aria-pressed="false">Base Jump / Glide (J)</button>
       <button type="button" class="qpill cyan" id="btn-teton-cruise" hidden>Fly to Tetons</button>
       <button type="button" class="qpill" id="btn-ride" aria-pressed="false">Ride (V)</button>
@@ -1595,6 +1597,6 @@
   <script src="../field-plates/fonts.js"></script>
   <script src="../field-plates/three.js"></script>
   <script src="../donkey/donkey.js"></script>
-  <script src="./zones.js?v=fede58bd7bc1"></script>
+  <script src="./zones.js?v=revmap2026a"></script>
 </body>
 </html>
