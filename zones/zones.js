@@ -2933,73 +2933,9 @@ void main(){
       return { x: wx, z: wz, y: wy, leverPivot, stream, pool: cyanPool };
     })();
 
-    // 2) Far-Bank Highland Pueblo Plaza + Kiosk Awning + Blue-Lit Sanctuary Steps
+    /* ---------- In-World 3D Timber Cinema Screens, Calm Crossfade Film Cloth & Handcrafted 2086 Architecture ---------- */
     const puebloDarkWinMat = new T.MeshStandardMaterial({ color: 0x101214, emissive: 0x001018, emissiveIntensity: .2 });
     const puebloGlowWinMat = new T.MeshStandardMaterial({ color: 0x006eff, emissive: 0x0048dd, emissiveIntensity: 1.35, roughness: .2 });
-    const puebloWinMeshes = [], puebloDishes = [];
-    (() => {
-      const adobe1 = new T.MeshStandardMaterial({ color: 0x9b9689, roughness: .92 });
-      const adobe2 = new T.MeshStandardMaterial({ color: 0x7b776c, roughness: .94 });
-      const vigaWood = new T.MeshStandardMaterial({ color: 0x3b3328, roughness: .88 });
-      const PuebloHouses = [
-        [-770, -20, 5.2, 3.8, 4.6, .35, true], [-768, -42, 4.8, 3.4, 4.2, -.2, false], [-782, -16, 5.8, 4.2, 4.8, .12, true],
-        [-796, -24, 6.2, 4.8, 5.2, -.45, true], [-798, -44, 5.4, 3.9, 4.6, .55, false], [-784, -48, 4.9, 3.3, 4.4, -.12, true],
-        [-764, -32, 4.6, 3.2, 4.2, .7, false], [-804, -35, 5.5, 4.0, 4.5, .25, false], [-792, -56, 5.1, 4.3, 4.6, .18, true],
-        [-772, -52, 4.4, 3.1, 4.0, -.42, false], [-808, -22, 5.6, 4.5, 4.8, .62, true], [-776, -12, 4.8, 3.4, 4.2, -.15, false],
-        [-790, -10, 4.7, 3.6, 4.1, .31, false], [-775, -60, 5.0, 3.8, 4.3, -.55, true]
-      ];
-      for (const [hx, hz, w, h, d, ry, twoStory] of PuebloHouses) {
-        const hy = groundAt(hx, hz);
-        const grp = new T.Group(); grp.position.set(hx, hy, hz); grp.rotation.y = ry;
-        const body = new T.Mesh(new T.BoxGeometry(w, h, d), twoStory ? adobe1 : adobe2);
-        body.position.y = h * .5 - .2; grp.add(body);
-        for (let i = -1; i <= 1; i++) {
-          const vig = new T.Mesh(new T.CylinderGeometry(.09, .09, d + .9, 6), vigaWood);
-          vig.rotation.x = Math.PI / 2; vig.position.set(i * w * .28, h - .65, 0); grp.add(vig);
-        }
-        if (twoStory) {
-          const top = new T.Mesh(new T.BoxGeometry(w * .62, h * .68, d * .64), adobe2);
-          top.position.set(-.3, h + h * .34 - .25, .2); grp.add(top);
-          const pole = new T.Mesh(new T.CylinderGeometry(.04, .05, 1.4, 6), antennaMat);
-          pole.position.set(.4, h + h * .68 + .4, -.3); grp.add(pole);
-          const orb = new T.Mesh(new T.SphereGeometry(.14, 10, 8), puebloDarkWinMat);
-          orb.position.set(.4, h + h * .68 + 1.15, -.3); grp.add(orb);
-          puebloDishes.push(orb);
-        }
-        for (const sgn of [-1, 1]) {
-          const win = new T.Mesh(new T.BoxGeometry(.78, .92, .12), puebloDarkWinMat);
-          win.position.set(sgn * w * .24, h * .48, d * .5 + .03); grp.add(win); puebloWinMeshes.push(win);
-        }
-        const door = new T.Mesh(new T.BoxGeometry(1.1, 1.9, .14), puebloDarkWinMat);
-        door.position.set(0, .95, d * .5 + .03); grp.add(door); puebloWinMeshes.push(door);
-        worldProps.add(grp);
-      }
-
-      // Sanctuary Steps & Blue-Lit Door on Far-Bank Terrace
-      const sx = -812, sz = -34, sy = groundAt(sx, sz);
-      const dg = new T.Group(); dg.position.set(sx, sy, sz); dg.rotation.y = Math.PI * .5;
-      const stMat = new T.MeshStandardMaterial({ color: 0x3b3b3c, roughness: .92 });
-      for (let i = 0; i < 8; i++) {
-        const st = new T.Mesh(new T.BoxGeometry(3.4, .28, .75), stMat); st.position.set(0, .14 + i * .26, 3.6 - i * .58); dg.add(st);
-      }
-      const lintel = new T.Mesh(new T.BoxGeometry(4.2, .9, 1.4), stMat); lintel.position.set(0, 5.4, -.5); dg.add(lintel);
-      for (const s of [-1.7, 1.7]) { const c = new T.Mesh(new T.BoxGeometry(.85, 5.2, 1.3), stMat); c.position.set(s, 2.6, -.5); dg.add(c); }
-      const bdoor = new T.Mesh(new T.BoxGeometry(2.5, 4.4, .28), beaconCyanMat); bdoor.position.set(0, 2.5, -.5); dg.add(bdoor);
-      worldProps.add(dg);
-
-      // Kiosk Awning at Cottonwood Oxbow (-514, 90)
-      const kx = -514, kz = 90, ky = groundAt(kx, kz);
-      const kg = new T.Group(); kg.position.set(kx, ky, kz); kg.rotation.y = 1.1;
-      const stall = new T.Mesh(new T.BoxGeometry(3.8, 2.4, 2.4), adobe2); stall.position.y = 1.15; kg.add(stall);
-      const awning = new T.Mesh(new T.BoxGeometry(4.4, .12, 2.9), adobe1); awning.position.set(0, 2.52, .85); awning.rotation.x = .24; kg.add(awning);
-      const deck = new T.Mesh(new T.BoxGeometry(1.0, .34, .45), beaconCyanMat); deck.position.set(0, 1.22, 1.18); kg.add(deck);
-      for (const [cx, cz, ry] of [[-1.5, 1.4, .2], [1.4, 1.3, -.4]]) {
-        const cj = makeJerikan(.92); cj.position.set(cx, 0, cz); cj.rotation.y = ry; kg.add(cj);
-      }
-      worldProps.add(kg);
-    })();
-
-    /* ---------- In-World 3D Timber Cinema Screens & Calm Crossfade Film Cloth ---------- */
     const cinemaCanvas = document.createElement("canvas");
     cinemaCanvas.width = 768; cinemaCanvas.height = 432;
     const cinCtx = cinemaCanvas.getContext("2d");
@@ -3009,7 +2945,6 @@ void main(){
       map: cinemaTex, emissiveMap: cinemaTex, emissive: 0xdcf4ef, emissiveIntensity: .72,
       roughness: .82, side: T.DoubleSide
     });
-    const inWorldScreens = [];
     let npLastCinFrame = -1, inWorldVideoMode = null, customClothVideo = null, customClothTex = null, customVideoBlob = "";
 
     const znReelSlides = [
@@ -3065,29 +3000,12 @@ void main(){
     }
     drawInWorldCinemaFrame(0);
 
-    (() => {
-      const woodMat = new T.MeshStandardMaterial({ color: 0x5d442b, roughness: .88 });
-      const stoneMat = new T.MeshStandardMaterial({ color: 0x2d3234, roughness: .92 });
-      for (const [id, label, sx, sz, rotY, sw, sh, stand] of [
-        ["overlook", "Snake River Overlook Screen", -28.5, -0.8, 1.53, 4.8, 2.7, { x: -19.5, z: -0.4, yaw: 1.68 }],
-        ["oxbow",    "Cottonwood Oxbow Screen",     -509,  95,  .45,  4.5, 2.53, { x: -504.5, z: 106.5, yaw: .48 }],
-        ["pueblo",   "Highland Pueblo Screen",      -775,  -28, .30,  4.5, 2.53, { x: -772.5, z: -19.5, yaw: .32 }],
-        ["fluke",    "Whale Fluke Screen",         -1070,  -28, .45,  4.2, 2.36, { x: -1064, z: -18.5, yaw: .56 }]
-      ]) {
-        const sy = groundAt(sx, sz), g = new T.Group();
-        g.position.set(sx, sy, sz); g.rotation.y = rotY;
-        const pxOff = sw * .5 + .15;
-        for (const px of [-pxOff, pxOff]) {
-          const post = new T.Mesh(new T.CylinderGeometry(.085, .105, sh + 1.4, 8), woodMat);
-          post.position.set(px, (sh + 1.4) * .5 - .1, -.05); g.add(post);
-        }
-        const top = new T.Mesh(new T.BoxGeometry(sw + .55, .14, .16), woodMat); top.position.set(0, sh + .88, -.05); g.add(top);
-        const back = new T.Mesh(new T.BoxGeometry(sw + .12, sh + .12, .05), stoneMat); back.position.set(0, sh * .5 + .85, -.04); g.add(back);
-        const cloth = new T.Mesh(new T.PlaneGeometry(sw, sh), cinemaMat); cloth.position.set(0, sh * .5 + .85, 0); g.add(cloth);
-        worldProps.add(g);
-        inWorldScreens.push({ id, label, mesh: cloth, w: sw, h: sh, stand });
-      }
-    })();
+    const arch = window.buildWorldArchitecture(T, {
+      worldProps, groundAt, driveSurfaceAt, donkey, mw,
+      cinemaMat, cyanWaterMat, beaconCyanMat, puebloDarkWinMat, antennaMat,
+      makeJerikan, hasNightPostSets: false
+    });
+    const { puebloWinMeshes, puebloDishes, inWorldScreens } = arch;
 
     // 3) 7 Cistern Relays & 72 Fillable Jerrycans across the Entire Unified World
     function makeTerrainRing(radius, segs, mat, parentGrp) {
@@ -4154,6 +4072,7 @@ void main(){
       mw.glass.value = state.filterIdx;
       mw.worldLight.position.copy(mw.sun.value).multiplyScalar(100);
       mw.abyssAnimate(nowSec);
+      arch.updateArchitecture(nowSec);
       if (inWorldVideoMode !== "mp4") {
         const cinFrame = Math.floor(nowSec * 15);
         if (cinFrame !== npLastCinFrame) {

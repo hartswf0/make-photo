@@ -348,7 +348,7 @@
       state.donkeyOnRoof = false;
       state.lidarOn = false;
       state.lidarStrength = 0;
-      state.soloLook = -1;
+      state.soloLook = 13; // CYAN JERIKAN: crisp 2086 silver-gelatin print + selective living cyan water
       state.modeIdx = 0;
       state.filterIdx = 5;
       if (donkeyGlider) donkeyGlider.visible = false;
@@ -359,35 +359,49 @@
       state.pourAnim = null;
     }
 
-    /* ---------- 9-ACT EXPLAINER TRAILER (76 SECONDS) ---------- */
+    /* ---------- 9-ACT EXPLAINER TRAILER (76 SECONDS) — FRAMED DIRECTLY ON THE 2086 WORLD BIBLE PLATES ---------- */
     const TRAILER_DURATION = 76.0;
+    const packTouchPt = new T.Vector3();
     const TRAILER_SHOTS = [
       {
         id: "act1_wellhead", t0: 0, t1: 8.5,
-        kicker: "ACT I · THE WELLHEAD & 20L CHALK LAW",
-        title: "Living Cyan WiFi Water",
-        explain: "Pump 20 L of living cyan water at the Overlook Wellhead (P). It carries local WiFi & cinema reels — 4 L below the chalk mark belong to Mistletoe's survival.",
+        kicker: "ACT I · THE SADDLE WINDOW & 20L CHALK LAW",
+        title: "Imani, June & Mistletoe at the Dawn Pump",
+        explain: "Pump 20 L of living cyan water at the Overlook Wellhead (P). Mistletoe's canvas panniers carry local WiFi & cinema reels — 4 L below the chalk mark belong to her survival.",
         quote: "“Iron lever cracks before the rooster — Mum left the camera running eight more seconds.”",
         setup() {
           clearStageEffects();
           setRegion("tetons");
           state.pumpFlow = 1.0;
-          state.focusDist = 5.5;
-          donkey.place(-24.8, -4.4, 1.15, driveSurfaceAt);
-          stageWagonAt(-28.5, 4.4, -Math.PI * 0.52, false);
-          placeActor("imani", -22.85, -6.05, 1.35, "pump", "PUMPING 20L · 4L CHALK");
-          placeActor("june", -20.2, -4.8, -1.95, "listen", "WF-08 · 8s AFTER THE SHOE");
+          state.focusDist = 3.2;
+          // Open gravel earth south of Overlook deck: Mistletoe, Imani & June facing toward the lens (`saddle.jpg`!)
+          donkey.place(-20.95, -11.4, 0.24, driveSurfaceAt);
+          stageWagonAt(-29.5, 4.8, -Math.PI * 0.52, false);
+          // Imani right beside Mistletoe's +X flank (0.62 m away -> natural bent elbows!), open duster & wrench belt facing lens!
+          placeActor("imani", -20.18, -11.42, 0.12, "touchPack", "");
+          placeActor("june", -19.34, -11.55, 0.04, "holdCup", "");
+          placeActor("witness_tomas", -22.85, -6.05, 1.42, "pump", "");
           initRain();
           audio.pumpClank();
         },
         step(u, dt, nowSec) {
           state.pumpFlow = 1.0;
           donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, driveSurfaceAt);
-          cast?.byId?.imani?.update(dt, nowSec, { pose: "pump", carryCan: false, beatPulse: state.beatPulse });
-          cast?.byId?.june?.update(dt, nowSec, { pose: "listen", beatPulse: state.beatPulse, lookAt: donkey.group.position });
-          const wy = driveSurfaceAt(-22.2, -6.2);
-          safeCamPos(lerp(-17.2, -18.4, u), wy + lerp(1.55, 2.05, u), lerp(-8.8, -2.4, u), 1.35);
-          camLook.set(-22.4, wy + 1.05, -5.4);
+          const dh = donkey.state.heading;
+          const sideX = Math.cos(dh), sideZ = -Math.sin(dh);
+          const fwdX = Math.sin(dh), fwdZ = Math.cos(dh);
+          packTouchPt.set(
+            donkey.state.x + sideX * 0.38 + fwdX * 0.06,
+            donkey.group.position.y + 0.94,
+            donkey.state.z + sideZ * 0.38 + fwdZ * 0.06
+          );
+          cast?.byId?.imani?.update(dt, nowSec, { pose: "touchPack", packTarget: packTouchPt, beatPulse: state.beatPulse, lookAt: donkey.group.position });
+          cast?.byId?.june?.update(dt, nowSec, { pose: "holdCup", beatPulse: state.beatPulse, lookAt: camera.position });
+          cast?.byId?.witness_tomas?.update(dt, nowSec, { pose: "pump", pumpPhase: state.pumpLeverPhase, beatPulse: state.beatPulse });
+          // Low-angle 8x10 composition recreating World Bible Page 1 (`saddle.jpg`)!
+          const dy = donkey.group.position.y;
+          safeCamPos(lerp(-20.25, -19.85, u), dy + lerp(0.92, 1.18, u), lerp(-8.45, -8.75, u), 0.72);
+          camLook.set(lerp(-20.22, -20.05, u), dy + lerp(0.96, 1.12, u), -11.42);
         }
       },
       {
@@ -399,39 +413,40 @@
         setup() {
           clearStageEffects();
           setRegion("tetons");
-          state.focusDist = 6.2;
+          state.focusDist = 5.2;
           state.pingTimer = 4.0;
           donkey.place(-28.0, 0.6, -1.52, driveSurfaceAt);
-          placeActor("imani", -27.8, 2.0, -1.52, "walk", "CARRYING CYAN UP THE RIDGE");
-          placeActor("june", -23.5, -1.8, -1.4, "wave", "KEEP MISTLETOE WATERED!");
+          placeActor("imani", -27.8, 1.75, -1.52, "walk", "");
+          placeActor("june", -26.8, 2.35, -1.52, "walk", "");
         },
         step(u, dt, nowSec) {
           const x = lerp(-26.5, -39.5, u), z = lerp(0.8, 1.3, u);
           donkey.place(x, z, -1.54, driveSurfaceAt);
           donkey.update(dt, { throttle: 0.65, steer: 0, pace: 0, near: 1, drop: 0 }, driveSurfaceAt);
-          const im = placeActor("imani", x + 0.35, z + 1.35, -1.54, "walk", "3D SPATIAL RADIO");
+          const im = placeActor("imani", x + 0.35, z + 1.15, -1.54, "walk", "");
+          const jn = placeActor("june", x + 1.15, z + 1.75, -1.54, "walk", "");
           im?.update(dt, nowSec, { pose: "walk", carryCan: true, beatPulse: state.beatPulse });
-          cast?.byId?.june?.update(dt, nowSec, { pose: "wave", beatPulse: state.beatPulse });
+          jn?.update(dt, nowSec, { pose: "walk", beatPulse: state.beatPulse });
           const dy = donkey.group.position.y;
-          safeCamPos(x + lerp(5.4, 3.8, u), dy + lerp(1.8, 2.5, u), z + lerp(4.6, 5.8, u), 1.45);
-          camLook.set(x - 0.6, dy + 1.25, z + 0.4);
+          safeCamPos(x - lerp(4.2, 3.4, u), dy + lerp(1.45, 1.85, u), z + lerp(3.4, 4.2, u), 1.25);
+          camLook.set(x + 0.2, dy + 1.22, z + 0.85);
         }
       },
       {
         id: "act3_woody_radar", t0: 17.0, t1: 25.5,
         kicker: "ACT III · CRUISER WOODY & HEADING-UP RADAR",
         title: "Drive or Reverse Anywhere — Zero Fences",
-        explain: "Hop into the 1940s Woody (C) with Mistletoe on the roof-deck. Tap Reverse to back toward the screen, or follow the heading-up radar & glowing song conduits.",
+        explain: "Hop into the 1940s Woody (C) with Mistletoe on the roof-deck. Tap Reverse to back toward the screen, or cruise Moraine Switchback past Nell's bakery oven.",
         quote: "“Carry the cyan up the ridge with me · Every slosh a metronome.”",
         setup() {
           clearStageEffects();
           setRegion("tetons");
           state.focusDist = 11.0;
           stageWagonAt(-25.0, -12.0, -2.85, true);
-          placeActor("nell", -44.2, -163.5, 0.65, "wave", "SWITCHBACK DEPOT AHEAD!");
+          placeActor("nell", -45.4, -164.6, 0.65, "wave", "");
+          placeActor("kaleb", -51.2, -166.4, 1.15, "idle", "");
         },
         step(u, dt, nowSec) {
-          // First 28%: crisp reverse demonstration toward camera; then forward cruise down switchback!
           let wx, wz, hdg, spd;
           if (u < 0.28) {
             const r = smooth(0, 0.28, u);
@@ -456,39 +471,43 @@
           cast?.byId?.nell?.update(dt, nowSec, { pose: "wave", beatPulse: state.beatPulse });
           const sinH = Math.sin(hdg), cosH = Math.cos(hdg);
           const distBack = u < 0.28 ? lerp(9.2, 6.4, u / 0.28) : 9.4;
-          safeCamPos(wx - sinH * distBack + 2.1, wagon.y + 3.9, wz - cosH * distBack, 1.8);
+          safeCamPos(wx - sinH * distBack + 2.1, wagon.y + 3.8, wz - cosH * distBack, 1.8);
           camLook.set(wx + sinH * 5.0, wagon.y + 2.1, wz + cosH * 5.0);
         }
       },
       {
         id: "act4_pour_jerrycans", t0: 25.5, t1: 34.0,
-        kicker: "ACT IV · 7 CISTERNS & 72 FILLABLE JERRYCANS",
-        title: "Deliver Cyan Water & Ignite the Basin",
-        explain: "Arrive at any dry cistern relay and pour (F). Twin cyan arcs fill every depot jerrycan in sequence and light permanent WiFi & rain domes across the valley.",
+        kicker: "ACT IV · SILVER FORD FERRY & 72 JERRYCANS",
+        title: "Etta, the Ferrymen & Cistern Ignition",
+        explain: "At Silver Ford, the two ferrymen brothers check the chalked flood post while Etta signs custody slips — pouring (F) fills every depot jerrycan in sequence.",
         quote: "“Etta signs two slips: the wedding for the yard sheet, the last eight seconds for June.”",
         setup() {
           clearStageEffects();
           setRegion("tetons");
-          state.focusDist = 7.5;
+          state.focusDist = 6.2;
           const ford = relays.find(r => r.id === "ford") || relays[2];
-          donkey.place(ford.x + 3.4, ford.z + 2.8, -2.25, driveSurfaceAt);
-          placeActor("imani", ford.x + 2.2, ford.z + 3.8, -2.45, "pour", "POURING SILVER FORD CANS");
-          placeActor("etta", ford.x + 4.2, ford.z - 2.6, -1.15, "wave", "ETTA · TWO CUSTODY SLIPS");
+          donkey.place(ford.x + 2.8, ford.z + 2.5, -2.25, driveSurfaceAt);
+          placeActor("imani", ford.x + 1.8, ford.z + 3.2, -2.45, "pour", "");
+          placeActor("etta", ford.x + 3.4, ford.z - 1.9, -1.10, "wave", "");
+          placeActor("ferry_bekele", -252.2, -52.4, 1.85, "pointPost", "");
+          placeActor("ferry_tadesse", -241.5, -59.2, -2.25, "idle", "");
           audio.pourSplash(1);
         },
         step(u, dt, nowSec) {
           const ford = relays.find(r => r.id === "ford") || relays[2];
           donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, driveSurfaceAt);
           cast?.byId?.imani?.update(dt, nowSec, { pose: "pour", beatPulse: state.beatPulse });
-          cast?.byId?.etta?.update(dt, nowSec, { pose: u > 0.65 ? "dance" : "wave", beatPulse: state.beatPulse });
+          cast?.byId?.etta?.update(dt, nowSec, { pose: "wave", beatPulse: state.beatPulse });
+          cast?.byId?.ferry_bekele?.update(dt, nowSec, { pose: "pointPost", beatPulse: state.beatPulse });
+          cast?.byId?.ferry_tadesse?.update(dt, nowSec, { pose: "idle", beatPulse: state.beatPulse });
           if (ford) {
             if (ford.poolMesh) ford.poolMesh.position.y = lerp(0.10, 0.44, u);
             const nC = ford.cans.length;
             for (let i = 0; i < nC; i++) ford.cans[i].userData.setFill(clamp(u * (nC + 1) - i, 0, 1));
           }
-          const ang = lerp(0.55, 1.85, u), rad = lerp(8.8, 6.8, u);
-          safeCamPos(ford.x + Math.cos(ang) * rad, ford.y + lerp(2.6, 3.6, u), ford.z + Math.sin(ang) * rad, 1.5);
-          camLook.set(ford.x + 0.8, ford.y + 0.95, ford.z + 0.8);
+          const ang = lerp(0.45, 1.55, u), rad = lerp(6.8, 5.4, u);
+          safeCamPos(ford.x + Math.cos(ang) * rad, ford.y + lerp(1.9, 2.6, u), ford.z + Math.sin(ang) * rad, 1.35);
+          camLook.set(ford.x + 0.8, ford.y + 1.15, ford.z + 0.4);
         }
       },
       {
@@ -500,7 +519,8 @@
         setup() {
           clearStageEffects();
           setRegion("tetons");
-          state.modeIdx = 1; // THRESHOLD Tonal + Depth Pull
+          state.soloLook = -1; // Unlock 11 Tonal Zone shaders specifically for Act V!
+          state.modeIdx = 1;
           state.lidarOn = true;
           state.lidarStrength = 0.85;
           state.focusDist = 24.0;
@@ -511,8 +531,8 @@
             fieldRigGroup.visible = true;
           }
           donkey.place(-36.2, -0.8, -1.45, driveSurfaceAt);
-          placeActor("imani", ox + 0.1, oz + 0.72, -1.55, "camera", "EXPOSING 8×10 ZONE PLATE");
-          placeActor("june", -31.6, -1.2, -1.75, "listen", "11 LIVING TONAL ZONES");
+          placeActor("imani", ox + 0.1, oz + 0.72, -1.55, "camera", "");
+          placeActor("june", -32.2, 0.4, -1.75, "holdCup", "");
           audio.shutter();
         },
         step(u, dt, nowSec) {
@@ -520,17 +540,17 @@
           state.focusDist = lerp(8.0, 165.0, smooth(0.15, 0.85, u));
           donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, driveSurfaceAt);
           cast?.byId?.imani?.update(dt, nowSec, { pose: "camera", carryCan: false, beatPulse: state.beatPulse });
-          cast?.byId?.june?.update(dt, nowSec, { pose: "listen", beatPulse: state.beatPulse });
+          cast?.byId?.june?.update(dt, nowSec, { pose: "holdCup", beatPulse: state.beatPulse });
           const base = driveSurfaceAt(-33.5, 2.0);
-          safeCamPos(lerp(-28.2, -29.8, u), base + lerp(1.9, 2.7, u), lerp(5.2, -2.2, u), 1.45);
-          camLook.set(-44.0, base + 1.4, -0.5);
+          safeCamPos(lerp(-29.2, -30.5, u), base + lerp(1.65, 2.35, u), lerp(4.2, -1.6, u), 1.35);
+          camLook.set(-42.0, base + 1.35, 0.2);
         }
       },
       {
         id: "act6_glider_forest", t0: 42.5, t1: 51.0,
-        kicker: "ACT VI · WINGED WOODY & KELP-FILM FOREST",
-        title: "Soar Off Cliffs to Wake 35mm Filmstrip Trees",
-        explain: "Base-jump or fly the winged Woody (J, Shift for thermal lift). Reaching altitude thresholds wakes all 10 Kelp-Film Groves so your 8×10 plates hang from their fronds!",
+        kicker: "ACT VI · WINGED WOODY & COOLING VALLEY FLIGHT",
+        title: "Soar Over the Cooling Reservoir & Wake 10 Film Groves",
+        explain: "Fly the winged Woody (J, Shift for thermal lift) above the highland river & concrete cooling facility to wake all 10 living 35mm Kelp-Film Forest groves!",
         quote: "“Three wet seasons later the cottonwood shoot put out a leaf with square sprocket holes.”",
         setup() {
           clearStageEffects();
@@ -544,141 +564,164 @@
           audio.glideWhoosh();
         },
         step(u, dt, nowSec) {
-          const gx = lerp(-58, -238, u), gz = lerp(-12, -36, u);
-          const gy = Math.max(driveSurfaceAt(gx, gz) + 26, lerp(176, 152, u));
-          const hdg = -1.68 + Math.sin(u * Math.PI) * 0.18;
-          Object.assign(state.glide, { x: gx, y: gy, z: gz, heading: hdg, speed: 46, vy: -2.2, bank: Math.sin(u * TAU) * 0.16 });
+          const gx = lerp(-690, -764, u), gz = lerp(-8, -22, u);
+          const gy = Math.max(driveSurfaceAt(gx, gz) + 22, lerp(112, 92, u));
+          const hdg = -1.72 + Math.sin(u * Math.PI) * 0.14;
+          Object.assign(state.glide, { x: gx, y: gy, z: gz, heading: hdg, speed: 44, vy: -2.0, bank: Math.sin(u * TAU) * 0.14 });
           poseGlider(dt);
           seatImaniInWagon();
           cast?.byId?.imani?.update(dt, nowSec, { pose: "drive", carryCan: false, beatPulse: state.beatPulse });
           const sinH = Math.sin(hdg), cosH = Math.cos(hdg);
-          safeCamPos(gx - sinH * 13.5 + cosH * 5.2, gy + 5.2, gz - cosH * 13.5 - sinH * 5.2, 2.5);
-          camLook.set(gx + sinH * 8.0, gy + 1.8, gz + cosH * 8.0);
+          safeCamPos(gx - sinH * 12.8 + cosH * 4.8, gy + 4.8, gz - cosH * 12.8 - sinH * 4.8, 2.2);
+          camLook.set(gx + sinH * 9.0, gy - 1.2, gz + cosH * 9.0);
         }
       },
       {
-        id: "act7_abyss_halfdome", t0: 51.0, t1: 59.5,
-        kicker: "ACT VII · ONE CONTINUOUS MULTIVERSE",
-        title: "Abyssal Whale Fluke Reef & Yosemite Half Dome",
-        explain: "Cross seamlessly — or shuttle (R) — from Jackson Hole underwater into the sunken Galleon & Whale Fluke Kelp Cinema, and east across the Half Dome Cloud Bridge.",
-        quote: "“Between the ribs of a wreck, the projectionist stretches cloth wide enough for two endings.”",
+        id: "act7_cottonwood_grove", t0: 51.0, t1: 59.5,
+        kicker: "ACT VII · COTTONWOOD OXBOW ROOT-BOWL & GROVE SCREEN",
+        title: "Pouring into the Living Roots · Shading the Beam",
+        explain: "At Cottonwood Oxbow, Makeda kneels to pour living cyan water into the gnarled cottonwood root-bowl while Etta shades a projected face on pegged forest linen.",
+        quote: "“Put down that Ruth made the picture. Leave a space for who was laughing.”",
         setup() {
           clearStageEffects();
-          setRegion("abyss");
-          state.focusDist = 14.0;
-          donkey.place(-1071.0, -21.5, 0.72, driveSurfaceAt);
-          placeActor("imani", -1069.2, -20.2, 0.62, "walk", "WHALE FLUKE SANCTUARY");
-          placeActor("dawit", -1067.2, -23.4, -0.85, "wave", "TWO ENDINGS BETWEEN THE RIBS");
-          placeActor("ruth_keeper", 431.4, 34.8, -0.75, "wave", "HALF DOME EAST APRON");
-          initRain();
-        },
-        step(u, dt, nowSec) {
-          if (u < 0.56) {
-            setRegion("abyss");
-            const k = u / 0.56;
-            donkey.place(-1071.0, -21.5, 0.72, driveSurfaceAt);
-            donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, driveSurfaceAt);
-            cast?.byId?.imani?.update(dt, nowSec, { pose: "idle", carryCan: true, beatPulse: state.beatPulse });
-            cast?.byId?.dawit?.update(dt, nowSec, { pose: "wave", beatPulse: state.beatPulse });
-            const ay = driveSurfaceAt(-1070, -22);
-            safeCamPos(lerp(-1056, -1061, k), ay + lerp(5.8, 3.4, k), lerp(-8, -32, k), 1.6);
-            camLook.set(-1072, ay + 4.5, -24);
-          } else {
-            setRegion("ridge");
-            const k = (u - 0.56) / 0.44;
-            donkey.place(434.0, 39.5, -0.85, driveSurfaceAt);
-            donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, driveSurfaceAt);
-            placeActor("imani", 432.5, 37.8, -0.8, "wave", "YOSEMITE GRANITE SHELF");
-            cast?.byId?.imani?.update(dt, nowSec, { pose: "wave", carryCan: true, beatPulse: state.beatPulse });
-            cast?.byId?.ruth_keeper?.update(dt, nowSec, { pose: "wave", beatPulse: state.beatPulse });
-            const hy = driveSurfaceAt(435, 38);
-            safeCamPos(lerp(421, 426, k), hy + lerp(4.8, 3.2, k), lerp(49, 28, k), 1.6);
-            camLook.set(444, hy + 5.5, 30);
-          }
-        }
-      },
-      {
-        id: "act8_screening_custody", t0: 59.5, t1: 68.0,
-        kicker: hasAhiya ? "ACT VIII · AHIYA NIGHT POST & AR–03" : "ACT VIII · COTTONWOOD OXBOW & THE 8-SECOND TAIL",
-        title: hasAhiya ? "Rahel, Saba & The Aunt's Live Harmony" : "Public Linen Sheet vs. Private Family Earphone",
-        explain: hasAhiya
-          ? "Switch circuits (Tab) to walk Ahiya Highlands with Rahel & Saba — licensing AR-03 at Cross-Beacon so her Aunt sings the live answer at Daylight Compound."
-          : "Project films in-world on timber-hung linen screens (Y). Public cuts play on the yard cloth while June keeps the private 8-second tail in her earphone.",
-        quote: hasAhiya
-          ? "“Keep the wrong take too — that’s the only one where we all came in together.”"
-          : "“Put down that Ruth made the picture. Leave a space for who was laughing.”",
-        setup() {
-          clearStageEffects();
-          if (hasAhiya) {
-            setRegion("ahiya");
-            donkey.place(-1677.5, 782.0, 0.25, driveSurfaceAt);
-            placeActor("rahel", -1676.8, 784.2, -2.6, "listen", "CHAIR SCRAPE BEFORE TAKE 3");
-            placeActor("aunt", -1674.8, 779.6, 0.35, "sing", "LIVE ANSWER AT COMPOUND");
-            placeActor("saba", -1679.2, 784.8, 2.4, "idle", "4L RESERVE INTACT");
-          } else {
-            setRegion("tetons");
-            donkey.place(-507.0, 102.5, -2.7, driveSurfaceAt);
-            placeActor("imani", -505.8, 103.5, -2.75, "idle", "WF-08 · RUTH CREDITED");
-            placeActor("june", -507.6, 100.8, -2.65, "listen", "LISTENING · 8s TAIL");
-            placeActor("makeda", -511.2, 97.4, 0.48, "sing", "OXBOW PUBLIC SCREENING");
-          }
+          setRegion("tetons");
+          state.focusDist = 4.6;
+          donkey.place(-506.4, 102.6, -2.6, driveSurfaceAt);
+          placeActor("makeda", -511.25, 98.45, 1.85, "kneelPour", "");
+          placeActor("etta", -508.55, 97.15, -1.65, "shadeScreen", "");
+          placeActor("old_bride", -509.8, 98.8, -2.68, "seatedWatch", "");
+          placeActor("hood_watcher_1", -506.9, 97.2, -0.45, "idle", "");
+          placeActor("june", -507.8, 100.4, -2.65, "listen", "");
           initRain();
         },
         step(u, dt, nowSec) {
           donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, driveSurfaceAt);
+          cast?.byId?.makeda?.update(dt, nowSec, { pose: "kneelPour", beatPulse: state.beatPulse });
+          cast?.byId?.etta?.update(dt, nowSec, { pose: "shadeScreen", beatPulse: state.beatPulse });
+          cast?.byId?.old_bride?.update(dt, nowSec, { pose: "seatedWatch", beatPulse: state.beatPulse });
+          cast?.byId?.hood_watcher_1?.update(dt, nowSec, { pose: "idle", beatPulse: state.beatPulse });
+          cast?.byId?.june?.update(dt, nowSec, { pose: "listen", beatPulse: state.beatPulse });
+          const oy = driveSurfaceAt(-510, 98.2);
+          // Unobstructed lateral glide from kneeling Makeda's glowing root-bowl across Etta & the pegged forest sheets (`grove.jpg`!)
+          safeCamPos(lerp(-509.4, -506.6, u), oy + lerp(1.18, 1.68, u), lerp(101.4, 101.2, u), 1.02);
+          camLook.set(lerp(-511.6, -509.2, u), oy + lerp(0.88, 1.72, u), lerp(98.1, 96.2, u));
+        }
+      },
+      {
+        id: "act8_registry_and_ahiya", t0: 59.5, t1: 68.0,
+        kicker: hasAhiya ? "ACT VIII · WIRE-GLASS REGISTRY & AHIYA NIGHT ROUTE" : "ACT VIII · HIGHLAND PUEBLO YARD & WIRE-GLASS REGISTRY",
+        title: hasAhiya ? "Splitter Hoses, Glowing Night Phones & REC PPC Desk" : "Stone Houses, Three Dividing Hoses & Tess's Window",
+        explain: hasAhiya
+          ? "At Highland Pueblo, three splitter hoses feed cooling, cup & cinema; across Ahiya Highlands, glowing phones light the night convoy under the Hill Archive REC PPC monitor."
+          : "In Highland Pueblo's stone-and-corrugated yard, villagers queue beside clotheslines and dividing cyan hoses while Tess stamps the ledger behind wire glass.",
+        quote: hasAhiya
+          ? "“Keep the wrong take too — that’s the only one where we all came in together.”"
+          : "“Three branches visible from one yard: cooling tank, public cup, and cinema bowl.”",
+        setup() {
+          clearStageEffects();
+          setRegion("tetons");
+          state.focusDist = 5.0;
+          donkey.place(-777.2, -26.4, 2.85, driveSurfaceAt);
+          placeActor("imani", -776.4, -27.3, 2.85, "walk", "");
+          placeActor("tess", -773.3, -31.8, 0.30, "clerkWindow", "");
+          // Queue villagers facing across the yard toward the donkey & manifold (`village.jpg`!)
+          placeActor("queue_1", -773.4, -28.8, -1.35, "queueWait", "");
+          placeActor("queue_2", -773.8, -27.7, -1.45, "queueWait", "");
+          placeActor("queue_3", -774.2, -26.6, -1.52, "queueWait", "");
+          placeActor("queue_4", -774.6, -25.5, -1.60, "queueWait", "");
           if (hasAhiya) {
-            cast?.byId?.rahel?.update(dt, nowSec, { pose: "listen", beatPulse: state.beatPulse });
-            cast?.byId?.aunt?.update(dt, nowSec, { pose: "sing", beatPulse: state.beatPulse });
-            cast?.byId?.saba?.update(dt, nowSec, { pose: "idle", beatPulse: state.beatPulse });
-            const cy = driveSurfaceAt(-1677, 782);
-            safeCamPos(lerp(-1671.5, -1673.0, u), cy + lerp(2.2, 2.8, u), lerp(788.5, 786.0, u), 1.5);
-            camLook.set(-1677.0, cy + 1.8, 778.0);
+            placeActor("rahel", -1455.2, 761.2, 0.08, "convoyPhoneWalk", "");
+            placeActor("escort_yared", -1456.0, 761.0, 0.10, "convoyPhoneWalk", "");
+            placeActor("ppc_op_male", -1765.85, 541.55, Math.PI * 0.86, "deskWrite", "");
+            placeActor("ppc_op_female", -1764.15, 541.55, -Math.PI * 0.86, "deskNotes", "");
+          }
+          initRain();
+        },
+        step(u, dt, nowSec) {
+          if (!hasAhiya || u < 0.50) {
+            setRegion("tetons");
+            const k = hasAhiya ? (u / 0.50) : u;
+            donkey.place(-777.2, lerp(-25.4, -28.4, k), 2.85, driveSurfaceAt);
+            donkey.update(dt, { throttle: 0.45, steer: 0, pace: 0, near: 1, drop: 0 }, driveSurfaceAt);
+            const im = placeActor("imani", -776.4, lerp(-26.3, -29.3, k), 2.85, "walk", "");
+            im?.update(dt, nowSec, { pose: "walk", carryCan: true, beatPulse: state.beatPulse });
+            cast?.byId?.tess?.update(dt, nowSec, { pose: "clerkWindow", beatPulse: state.beatPulse });
+            for (const qid of ["queue_1", "queue_2", "queue_3", "queue_4"]) {
+              cast?.byId?.[qid]?.update(dt, nowSec, { pose: "queueWait", beatPulse: state.beatPulse, lookAt: donkey.group.position });
+            }
+            const py = driveSurfaceAt(-775.8, -26.5);
+            if (k < 0.62) {
+              // Wide village yard composition (`village.jpg`!): 3-branch hoses + tin mug foreground, stone houses, queue, cooling plant & Tetons!
+              const v = k / 0.62;
+              safeCamPos(lerp(-775.8, -775.2, v), py + lerp(1.55, 1.95, v), lerp(-22.2, -23.5, v), 1.25);
+              camLook.set(-776.2, py + 1.35, -30.5);
+            } else {
+              // Intimate wire-glass Registry window shot looking past counter & sample cup at Tess (`window.jpg`!)
+              const w = (k - 0.62) / 0.38;
+              const wy = driveSurfaceAt(-776.0, -30.0);
+              safeCamPos(lerp(-772.9, -773.45, w), wy + 1.48, -29.45, 1.15);
+              camLook.set(-773.3, wy + 1.44, -32.0);
+            }
+          } else if (u < 0.78) {
+            // Ahiya Night Convoy on flat basalt plateau (boots & hooves cleanly on ground!): Rahel & Yared with upward blue phone glow (`convoy.jpg`!)
+            setRegion("ahiya");
+            const k = (u - 0.50) / 0.28;
+            const dz = lerp(760.2, 763.2, k);
+            donkey.place(-1454.35, dz, 0.06, driveSurfaceAt);
+            donkey.update(dt, { throttle: 0.55, steer: 0, pace: 0, near: 1, drop: 0 }, driveSurfaceAt);
+            const rh = placeActor("rahel", -1455.25, dz + 0.42, 0.06, "convoyPhoneWalk", "");
+            const yr = placeActor("escort_yared", -1456.05, dz + 0.28, 0.08, "convoyPhoneWalk", "");
+            rh?.update(dt, nowSec, { pose: "convoyPhoneWalk", beatPulse: state.beatPulse });
+            yr?.update(dt, nowSec, { pose: "convoyPhoneWalk", beatPulse: state.beatPulse });
+            const ay = driveSurfaceAt(-1455.2, dz);
+            safeCamPos(-1455.15, ay + 1.18, dz + 2.75, 0.95);
+            camLook.set(-1455.15, ay + 1.08, dz + 0.15);
           } else {
-            cast?.byId?.imani?.update(dt, nowSec, { pose: "idle", carryCan: true, beatPulse: state.beatPulse });
-            cast?.byId?.june?.update(dt, nowSec, { pose: "listen", beatPulse: state.beatPulse });
-            cast?.byId?.makeda?.update(dt, nowSec, { pose: "sing", beatPulse: state.beatPulse });
-            const oy = driveSurfaceAt(-508, 99);
-            safeCamPos(lerp(-501.5, -503.8, u), oy + lerp(2.1, 2.7, u), lerp(107.8, 105.0, u), 1.5);
-            camLook.set(-509.0, oy + 2.0, 95.0);
+            // Hill Archive `REC PPC` Desk: Daniel & Hanna logging at the monitor cubicle (`desk.jpg`!)
+            setRegion("ahiya");
+            cast?.byId?.ppc_op_male?.update(dt, nowSec, { pose: "deskWrite", beatPulse: state.beatPulse });
+            cast?.byId?.ppc_op_female?.update(dt, nowSec, { pose: "deskNotes", beatPulse: state.beatPulse });
+            const hy = driveSurfaceAt(-1765, 540);
+            const k = (u - 0.78) / 0.22;
+            safeCamPos(lerp(-1765.18, -1764.82, k), hy + 1.46, 542.95, 1.18);
+            camLook.set(-1765.0, hy + 1.48, 540.1);
           }
         }
       },
       {
         id: "act9_eskista_finale", t0: 68.0, t1: TRAILER_DURATION,
         kicker: "ACT IX · COSMIC ADDIS ESKISTA FINALE",
-        title: "Highland Pueblo Sanctuary · Dance, Shoot & Record",
+        title: "Highland Pueblo Village · Dance, Shoot & Record",
         explain: "Deliver all 72 jerrycans to light the Highland Pueblo blue door, press K to dance Eskista with the cast, or tap ● Rec Video below to export your own Machinima!",
         quote: "“Cosmic Addis Arkestra — carry WiFi water up to the Highland Pueblo!”",
         setup() {
           clearStageEffects();
           setRegion("tetons");
-          state.focusDist = 9.0;
-          const px = -779.0, pz = -33.5;
-          donkey.place(px, pz, 0.55, driveSurfaceAt);
-          placeActor("imani", px - 2.1, pz + 2.1, 0.65, "dance", "ESKISTA AT THE PUEBLO!");
-          placeActor("june", px + 1.9, pz + 2.2, -0.55, "dance", "RUTH'S CAMERA LIVES ON");
-          placeActor("etta", px - 3.2, pz - 0.4, 1.25, "dance", "SILVER FORD WITNESSED");
-          placeActor("tess", px + 3.0, pz - 0.3, -1.25, "dance", "ARCHIVE & TAP OPEN");
-          if (hasAhiya) {
-            placeActor("rahel", px - 1.2, pz - 2.6, 2.8, "dance", "AHIYA & WEST UNITED");
-            placeActor("aunt", px + 1.4, pz - 2.5, -2.8, "dance", "COSMIC ADDIS ARKESTRA");
-          }
+          state.focusDist = 7.5;
+          const px = -776.5, pz = -26.5;
+          donkey.place(px, pz, 0.45, driveSurfaceAt);
+          placeActor("imani", px - 1.6, pz + 1.7, 0.55, "eskista", "");
+          placeActor("june", px + 1.4, pz + 1.8, -0.45, "eskista", "");
+          placeActor("etta", px - 2.6, pz + 0.2, 1.15, "eskista", "");
+          placeActor("makeda", px + 2.5, pz + 0.3, -1.15, "eskista", "");
+          placeActor("queue_1", px - 1.2, pz - 1.8, 2.6, "eskista", "");
+          placeActor("queue_2", px + 1.3, pz - 1.7, -2.6, "eskista", "");
           initRain();
           audio.relayChime(true);
         },
         step(u, dt, nowSec) {
-          const px = -779.0, pz = -33.5;
+          const px = -776.5, pz = -26.5;
           donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, driveSurfaceAt);
-          const ph = nowSec * 9.8;
-          donkey.group.position.y = driveSurfaceAt(px, pz) + Math.abs(Math.sin(ph)) * 0.20;
-          donkey.group.rotation.y = 0.55 + Math.sin(ph * 0.5) * 0.32;
-          for (const id of ["imani", "june", "etta", "tess", "rahel", "aunt"]) {
-            cast?.byId?.[id]?.update(dt, nowSec, { pose: "dance", carryCan: id === "imani", beatPulse: Math.max(0.45, state.beatPulse) });
+          const ph = nowSec * 9.6;
+          donkey.group.position.y = driveSurfaceAt(px, pz) + Math.abs(Math.sin(ph)) * 0.14;
+          donkey.group.rotation.y = 0.45 + Math.sin(ph * 0.5) * 0.24;
+          for (const id of ["imani", "june", "etta", "makeda", "queue_1", "queue_2"]) {
+            cast?.byId?.[id]?.update(dt, nowSec, { pose: "eskista", beatPulse: Math.max(0.45, state.beatPulse) });
           }
           const py = driveSurfaceAt(px, pz);
-          const ang = lerp(-0.55, 0.75, u), rad = lerp(7.8, 11.2, u);
-          safeCamPos(px + Math.sin(ang) * rad, py + lerp(2.2, 4.4, u), pz + Math.cos(ang) * rad, 1.5);
-          camLook.set(px - 0.5, py + 1.45, pz);
+          const ang = lerp(-0.45, 0.65, u), rad = lerp(5.6, 8.8, u);
+          safeCamPos(px + Math.sin(ang) * rad, py + lerp(1.75, 3.15, u), pz + Math.cos(ang) * rad, 1.35);
+          camLook.set(px - 0.4, py + 1.42, pz - 0.5);
         }
       }
     ];
@@ -686,18 +729,17 @@
     /* ---------- FULL-SONG MACHINIMA MUSIC VIDEO (283 SECONDS / 04:43) ---------- */
     const MV_DURATION = 283.0;
     const MV_SHOTS = [
-      { t0: 0,   t1: 12,  kicker: "EPOCH I · WELLHEAD AWAKENING", title: "Cassette Dawn Over Jackson Hole", actIdx: 0 },
-      { t0: 12,  t1: 28,  kicker: "EPOCH I · WELLHEAD AWAKENING", title: "Iron Lever Before the Rooster", actIdx: 0, camAlt: 1 },
+      { t0: 0,   t1: 14,  kicker: "EPOCH I · WELLHEAD AWAKENING", title: "Imani, June & Mistletoe's Cyan Saddle Window", actIdx: 0 },
+      { t0: 14,  t1: 28,  kicker: "EPOCH I · WELLHEAD AWAKENING", title: "Iron Lever Before the Rooster", actIdx: 0, camAlt: 1 },
       { t0: 28,  t1: 45,  kicker: "EPOCH I · SHOULDER JERIKAN", title: "Cyan Jerikan Balanced on My Shoulder Blade", actIdx: 1 },
       { t0: 45,  t1: 62,  kicker: "EPOCH II · HOOVES ON COBBLE", title: "Cruiser Woody Down Moraine Switchback", actIdx: 2 },
-      { t0: 62,  t1: 94,  kicker: "EPOCH II · SILVER FORD RELAY", title: "Pouring Living Water for Etta's Ferry", actIdx: 3 },
-      { t0: 94,  t1: 118, kicker: "EPOCH III · KIDASE UNDER AWNING", title: "Cottonwood Oxbow Linen Sheet & Earphone", actIdx: 7 },
+      { t0: 62,  t1: 94,  kicker: "EPOCH II · SILVER FORD RELAY", title: "Etta, the Ferrymen & Cistern Ignition", actIdx: 3 },
+      { t0: 94,  t1: 118, kicker: "EPOCH III · COTTONWOOD OXBOW", title: "Pouring into the Living Roots · Shading the Beam", actIdx: 6 },
       { t0: 118, t1: 140, kicker: "EPOCH III · TEZETA ONTO FERRIC", title: "8×10 Tonal Strata & Lidar Ridge Scan", actIdx: 4 },
-      { t0: 140, t1: 165, kicker: "EPOCH IV · FERRIC DROP", title: "Winged Woody Over the Kelp-Film Forest", actIdx: 5 },
-      { t0: 165, t1: 186, kicker: "EPOCH IV · BRASS COMES BACK", title: "Highland Pueblo Eskista Circle", actIdx: 8 },
-      { t0: 186, t1: 220, kicker: "EPOCH V · WHALE FLUKE TIDE", title: "Abyssal Galleon & Underwater Film Cathedral", actIdx: 6, subRange: [0, 0.52] },
-      { t0: 220, t1: 252, kicker: "EPOCH VI · COSMIC ADDIS SUMMIT", title: "Half Dome Granite Shelf & Cloud Bridge", actIdx: 6, subRange: [0.58, 1.0] },
-      { t0: 252, t1: MV_DURATION, kicker: "EPOCH VI · ARKESTRA FINALE", title: "All Cast Eskista Under Cyan Rain", actIdx: 8 }
+      { t0: 140, t1: 165, kicker: "EPOCH IV · FERRIC DROP", title: "Winged Woody Over the Cooling Reservoir", actIdx: 5 },
+      { t0: 165, t1: 196, kicker: "EPOCH IV · HIGHLAND PUEBLO", title: "Stone Houses, Splitter Hoses & Registry Window", actIdx: 7, subRange: [0, 0.50] },
+      { t0: 196, t1: 232, kicker: "EPOCH V · NIGHT POST CONVOY", title: hasAhiya ? "Glowing Phones & Hill Archive REC PPC" : "Cottonwood Oxbow Double Linen Projection", actIdx: hasAhiya ? 7 : 6, subRange: hasAhiya ? [0.50, 1.0] : [0.2, 1.0] },
+      { t0: 232, t1: MV_DURATION, kicker: "EPOCH VI · ARKESTRA FINALE", title: "All Cast Eskista in Highland Pueblo", actIdx: 8 }
     ];
 
     function activeTimeline() {
