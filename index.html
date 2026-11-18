@@ -143,6 +143,23 @@
     .multi-card:hover {
       transform: none;
     }
+    .video-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--rule);
+      background: #0b0e0d;
+      margin-top: 12px;
+    }
+    .video-frame iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
     footer {
       margin-top: 32px;
       padding-top: 16px;
@@ -169,14 +186,42 @@
         </div>
         <div>
           <div class="sublinks">
-            <a class="pill" href="./night-post/">3D Night Post · Western Basin →</a>
-            <a class="pill" href="./night-post/?circuit=ahiya">Ahiya Highlands by Night →</a>
+            <a class="pill" href="./night-post/index.html">3D Night Post · Western Basin →</a>
+            <a class="pill" href="./night-post/index.html?circuit=ahiya">Ahiya Highlands by Night →</a>
             <a class="pill" href="./night-post/companion.html">Companion Ledger &amp; Text Game →</a>
             <a class="pill" href="./night-post/world-bible.pdf" target="_blank" rel="noopener">2086 World Bible PDF →</a>
           </div>
           <div class="meta" style="margin-top:12px;">
-            <span>./night-post/ · Dual Circuits + Moving-Picture Linen Projector + WebAudio Tail</span>
+            <span>./night-post/index.html · Dual Circuits + Moving-Picture Linen Projector + WebAudio Tail</span>
             <span>2086 Canon</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card featured multi-card">
+        <div>
+          <span class="tag">DONKEY WATER SCIFI · Official Music Video &amp; Screening Room</span>
+          <h2>Cyan Jerikan Over Cosmic Addis · Music Video</h2>
+          <p>Watch the <strong>DONKEY WATER SCIFI</strong> music video inline, or open the Screening Room for the lossless <code>./zones/cyan-jerikan.ogg</code> radio master, time-synced lyrics, local <code>.mp4</code>/<code>.mov</code> zero-limit playback, and HLS segmentation for GitHub Pages.</p>
+          <div class="video-frame">
+            <iframe loading="lazy"
+              src="https://www.youtube.com/embed/ZZlDs10FCZk?rel=0&playsinline=1"
+              title="DONKEY WATER SCIFI — Watson Hartsoe"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen></iframe>
+          </div>
+        </div>
+        <div>
+          <div class="sublinks">
+            <a class="pill" href="./music-video.html">Open Screening Room &amp; Lyrics →</a>
+            <a class="pill" href="https://www.youtube.com/watch?v=ZZlDs10FCZk" target="_blank" rel="noopener">Watch on YouTube ↗</a>
+            <a class="pill" href="./night-post/index.html">Play 2086 Night Post →</a>
+            <a class="pill" href="./zones/index.html">Play Zones Sci-Fi →</a>
+          </div>
+          <div class="meta" style="margin-top:12px;">
+            <span>./music-video.html · 16:9 Cinema Frame + OGG Deck + HLS / Local Loader</span>
+            <span>92 BPM · D Tizita</span>
           </div>
         </div>
       </div>
@@ -189,14 +234,14 @@
         </div>
         <div>
           <div class="sublinks">
-            <a class="pill" href="./zones/">Donkey Water Sci-Fi →</a>
-            <a class="pill" href="./zones/?mode=jerikan">Cyan Jerikan #47B →</a>
-            <a class="pill" href="./zones/?mode=threshold">Hybrid Focus Pull →</a>
-            <a class="pill" href="./zones/?mode=shells">Depth Shells →</a>
-            <a class="pill" href="./zones/?mode=strata">11 Tonal Strata →</a>
+            <a class="pill" href="./zones/index.html">Donkey Water Sci-Fi →</a>
+            <a class="pill" href="./zones/index.html?mode=jerikan">Cyan Jerikan #47B →</a>
+            <a class="pill" href="./zones/index.html?mode=threshold">Hybrid Focus Pull →</a>
+            <a class="pill" href="./zones/index.html?mode=shells">Depth Shells →</a>
+            <a class="pill" href="./zones/index.html?mode=strata">11 Tonal Strata →</a>
           </div>
           <div class="meta" style="margin-top:12px;">
-            <span>./zones/ · 14 Shaders + Soundtrack</span>
+            <span>./zones/index.html · 14 Shaders + Soundtrack</span>
             <span>Zones 0–X</span>
           </div>
         </div>
@@ -214,14 +259,14 @@
         </div>
       </a>
 
-      <a class="card" href="./field-plates/">
+      <a class="card" href="./field-plates/index.html">
         <div>
           <span class="tag">Expedition · Wagon &amp; Burro</span>
           <h2>Field Plates</h2>
           <p>Interactive Yosemite and Teton photography expedition with the woody photographic wagon, deployable 8×10 field camera, Zone filtering, and shared procedural Mistletoe.</p>
         </div>
         <div class="meta">
-          <span>./field-plates/</span>
+          <span>./field-plates/index.html</span>
           <span>Launch →</span>
         </div>
       </a>
@@ -234,11 +279,11 @@
         </div>
         <div>
           <div class="sublinks">
-            <a class="pill" href="./donkey/">Tuolumne Meadow →</a>
-            <a class="pill" href="./donkey/?level=pass">Granite Pass →</a>
+            <a class="pill" href="./donkey/index.html">Tuolumne Meadow →</a>
+            <a class="pill" href="./donkey/index.html?level=pass">Granite Pass →</a>
           </div>
           <div class="meta" style="margin-top:12px;">
-            <span>./donkey/</span>
+            <span>./donkey/index.html</span>
             <span>2 Levels</span>
           </div>
         </div>

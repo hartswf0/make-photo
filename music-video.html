@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0d1716">
+  <meta name="description" content="DONKEY WATER SCIFI — Cyan Jerikan Over Cosmic Addis music video, C60 master audio deck, synced lyrics, and HLS/local large-video screening room.">
+  <link rel="icon" type="image/svg+xml" href="./night-post/favicon.svg">
+  <link rel="alternate icon" href="./favicon.ico">
+  <title>DONKEY WATER SCIFI · Music Video &amp; Screening Room</title>
+  <style>
+    :root {
+      --bg: #0d1716;
+      --surface: #122120;
+      --panel: rgba(16, 30, 29, 0.92);
+      --paper: #f2ede2;
+      --muted: rgba(242, 237, 226, 0.74);
+      --teal: #116760;
+      --aqua: #6be8dc;
+      --amber: #eab965;
+      --rule: rgba(107, 232, 220, 0.28);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: radial-gradient(circle at 50% 0%, #152b28 0%, var(--bg) 68%);
+      color: var(--paper);
+      font: 400 15px/1.55 Inter, system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: clamp(18px, 4vw, 40px) clamp(14px, 3.5vw, 28px) 52px;
+    }
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+    }
+    .kicker {
+      margin: 0;
+      font: 700 11px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--aqua);
+    }
+    h1 {
+      margin: 0;
+      font: 400 clamp(28px, 4.5vw, 44px)/1.06 "Iowan Old Style", Georgia, serif;
+      letter-spacing: .03em;
+    }
+    .subtitle {
+      margin: 0;
+      max-width: 72ch;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .nav-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(234, 185, 101, 0.45);
+      background: rgba(13, 24, 23, 0.86);
+      color: var(--paper);
+      text-decoration: none;
+      font: 600 11px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .pill:hover, .pill:focus-visible {
+      border-color: var(--aqua);
+      color: var(--aqua);
+      outline: none;
+    }
+    .pill.primary {
+      background: var(--aqua);
+      border-color: var(--aqua);
+      color: #071918;
+    }
+    .pill.primary:hover { background: #9bf5ec; color: #071918; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 9px;
+      padding: 15px 17px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .cinema-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 7px;
+      overflow: hidden;
+      background: #060a09;
+      border: 1px solid rgba(107, 232, 220, 0.35);
+    }
+    .cinema-frame iframe,
+    .cinema-frame video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #000;
+    }
+    .cinema-frame [hidden] { display: none !important; }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .file-label {
+      position: relative;
+      overflow: hidden;
+    }
+    .file-label input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    #stream-status {
+      font: 600 11px/1.3 ui-monospace, "SF Mono", Menlo, monospace;
+      color: var(--aqua);
+      letter-spacing: .06em;
+    }
+    .url-loader {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .url-loader input {
+      flex: 1 1 220px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(242, 237, 226, 0.24);
+      background: rgba(8, 15, 14, 0.85);
+      color: var(--paper);
+      font: 500 12px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+    }
+
+    h2 {
+      margin: 0;
+      font: 400 20px/1.15 "Iowan Old Style", Georgia, serif;
+      color: var(--paper);
+    }
+    .deck audio {
+      width: 100%;
+      height: 36px;
+    }
+    .meta-line {
+      font: 600 10.5px/1.3 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--amber);
+    }
+    .lyrics-box {
+      max-height: 410px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 4px;
+    }
+    .stanza {
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(242, 237, 226, 0.12);
+      background: rgba(8, 15, 14, 0.55);
+      cursor: pointer;
+      transition: border-color .15s ease, background .15s ease;
+    }
+    .stanza:hover { border-color: rgba(107, 232, 220, 0.45); }
+    .stanza.active {
+      border-color: var(--aqua);
+      background: rgba(17, 103, 96, 0.34);
+    }
+    .stanza small {
+      display: block;
+      font: 700 9.5px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: 3px;
+    }
+    .stanza p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--paper);
+    }
+
+    .bypass-card {
+      margin-top: 18px;
+    }
+    .bypass-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+    }
+    .bypass-item {
+      padding: 10px 12px;
+      border-radius: 7px;
+      background: rgba(7, 14, 13, 0.72);
+      border: 1px solid rgba(242, 237, 226, 0.16);
+    }
+    .bypass-item h3 {
+      margin: 0 0 6px;
+      font: 600 12px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--aqua);
+    }
+    .bypass-item p {
+      margin: 0 0 6px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    code, pre {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      color: #dffcf9;
+    }
+    pre {
+      margin: 6px 0 0;
+      padding: 8px 10px;
+      border-radius: 5px;
+      background: #060b0a;
+      border: 1px solid rgba(107, 232, 220, 0.22);
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="kicker">DONKEY WATER SCIFI · SCREENING ROOM &amp; FIELD TEST HUB</p>
+      <h1>Cyan Jerikan Over Cosmic Addis</h1>
+      <p class="subtitle">Official <strong>DONKEY WATER SCIFI</strong> music video cut paired with the lossless spatial-radio OGG master, time-synced lyrics, and zero-limit local / HLS playback for GitHub Pages.</p>
+      <nav class="nav-pills" aria-label="Direct HTML Test Routes">
+        <a class="pill" href="./index.html">‹ Field Index (.html)</a>
+        <a class="pill primary" href="./night-post/index.html">▶ 2086 Night Post (.html)</a>
+        <a class="pill" href="./night-post/index.html?circuit=ahiya">☾ Ahiya Highlands (.html)</a>
+        <a class="pill" href="./night-post/companion.html">Ledger Companion (.html)</a>
+        <a class="pill" href="./zones/index.html">Zones Sci-Fi (.html)</a>
+        <a class="pill" href="./MONOLITH-3.html">MONOLITH-3 (.html)</a>
+      </nav>
+    </header>
+
+    <div class="layout">
+      <section class="card" aria-label="Music Video Player">
+        <div class="cinema-frame">
+          <iframe id="yt-player"
+            src="https://www.youtube.com/embed/ZZlDs10FCZk?rel=0&playsinline=1"
+            title="DONKEY WATER SCIFI — Watson Hartsoe"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen></iframe>
+          <video id="local-video" controls playsinline hidden></video>
+        </div>
+
+        <div class="controls-row">
+          <a class="pill" href="https://www.youtube.com/watch?v=ZZlDs10FCZk" target="_blank" rel="noopener">Open on YouTube ↗</a>
+          <label class="pill file-label" title="Preview any size .mp4, .mov, or .webm straight from disk with no upload">
+            Load Local .mp4 / .mov (Any Size)
+            <input type="file" id="local-file-input" accept="video/*">
+          </label>
+          <button type="button" class="pill" id="btn-back-yt" hidden>Switch Back to YouTube Cut</button>
+        </div>
+
+        <form class="url-loader" id="stream-form">
+          <input type="url" id="stream-url-input" placeholder="Optional: paste ?hls=./video/cut/playlist.m3u8 or Release .mp4 URL">
+          <button type="submit" class="pill">Load Stream / MP4</button>
+        </form>
+        <div id="stream-status">Source: YouTube official stream (<code>ZZlDs10FCZk</code>) · Pair with <code>?hls=</code> or <code>?mp4=</code> for self-hosted cuts.</div>
+      </section>
+
+      <aside class="card deck" aria-label="Master Track and Synced Lyrics">
+        <h2>C60 Ferric Dub &amp; Lyrics</h2>
+        <div class="meta-line">92 BPM · D Tizita Minor · 04:43 · ./zones/cyan-jerikan.ogg</div>
+        <audio id="ost-audio" controls preload="metadata" src="./zones/cyan-jerikan.ogg"></audio>
+        <div class="lyrics-box" id="lyrics-box">
+          <div class="stanza active" data-time="0">
+            <small>[00:00 · Instrumental Intro]</small>
+            <p>Iron lever primes in the dark · Begena buzz &amp; cast-iron drip</p>
+          </div>
+          <div class="stanza" data-time="14">
+            <small>[00:14 · Verse 1]</small>
+            <p>Iron lever cracks before the rooster / My hands know the cold of it / Cyan jerikan balanced on my shoulder blade / Stone steps climbing toward a blue-lit door / Water finds the seam and slips</p>
+          </div>
+          <div class="stanza" data-time="45">
+            <small>[00:45 · Pre-Chorus]</small>
+            <p>Take this water from my well / Will you carry what I cannot / Take this water from my well</p>
+          </div>
+          <div class="stanza" data-time="62">
+            <small>[01:02 · Chorus]</small>
+            <p>Carry the cyan up the ridge with me / Carry the cyan up the ridge / Hooves on cobble and the tape is turning / Carry the cyan up the ridge with me</p>
+          </div>
+          <div class="stanza" data-time="94">
+            <small>[01:34 · Verse 2]</small>
+            <p>Kidase hums beneath the kiosk awning / Static blooms across the dial / My father dubbed his Tezeta onto ferric / Wound the spool by hand at dusk / Every slosh a metronome</p>
+          </div>
+          <div class="stanza" data-time="152">
+            <small>[02:32 · Chorus]</small>
+            <p>Carry the cyan up the ridge with me / Brass comes back and the crates are spinning / Carry the cyan up the ridge with me</p>
+          </div>
+          <div class="stanza" data-time="186">
+            <small>[03:06 · Bridge &amp; Finale]</small>
+            <p>Rope creaks · Wind holds its breath · The drums step out · And the basin fills / Carry the cyan up the ridge</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <section class="card bypass-card" aria-label="Bypassing File Size Limits">
+      <h2>Getting Past the 25 MB / 100 MB File Limit on GitHub Pages</h2>
+      <div class="bypass-grid">
+        <div class="bypass-item">
+          <h3>1. Slice Video Into 4-Second HLS Chunks (Pages-Native)</h3>
+          <p>GitHub blocks files &ge; 100 MB in Git (and 25 MB on web upload). Slice any large <code>.mp4</code>/<code>.mov</code> into ~2–4 MB <code>.ts</code> segments with <a href="./scripts/slice_hls_video.sh" style="color:var(--aqua)"><code>scripts/slice_hls_video.sh</code></a>, commit the folder, and open it with <code>?hls=</code>:</p>
+          <pre>./scripts/slice_hls_video.sh ~/Movies/donkey-water.mp4 video/cut
+# Then test:
+music-video.html?hls=./video/cut/playlist.m3u8</pre>
+        </div>
+        <div class="bypass-item">
+          <h3>2. GitHub Releases (Single MP4 up to 2 GB)</h3>
+          <p>Keep the repo slim by attaching the full <code>.mp4</code> to a GitHub Release on <code>hartswf0/make-photo</code>, or using YouTube embed, and load via URL query:</p>
+          <pre>gh release create v1.0-video ~/Movies/cut.mp4 --title "Cut"
+# Then pass: ?mp4=&lt;release-asset-url&gt;</pre>
+        </div>
+        <div class="bypass-item">
+          <h3>3. Large Single-File HTML (External Assets + Split Data)</h3>
+          <p>Why <code>night-post/</code> and <code>zones/</code> stay under 1 MB of HTML: load shared textures, Three.js, and <code>MONOLITH-3.html</code> assets relatively instead of base64-inlining everything into one monolith file. Chat attachments also don't need re-uploading when files already live in <code>~/Downloads</code> or this repo — just cite the path with <code>@[...]</code>.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const yt = document.getElementById("yt-player");
+      const vid = document.getElementById("local-video");
+      const backBtn = document.getElementById("btn-back-yt");
+      const status = document.getElementById("stream-status");
+      const fileInput = document.getElementById("local-file-input");
+      const form = document.getElementById("stream-form");
+      const urlInput = document.getElementById("stream-url-input");
+      const audioEl = document.getElementById("ost-audio");
+      const stanzas = [...document.querySelectorAll(".stanza")];
+      let blobUrl = "";
+      let hlsInstance = null;
+
+      function showYouTube() {
+        if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+        vid.pause();
+        vid.removeAttribute("src");
+        vid.hidden = true;
+        yt.hidden = false;
+        backBtn.hidden = true;
+        status.textContent = "Source: YouTube official stream (ZZlDs10FCZk).";
+      }
+
+      function playMediaUrl(src, label) {
+        if (!src) return;
+        if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+        yt.hidden = true;
+        vid.hidden = false;
+        backBtn.hidden = false;
+        const isHls = /\.m3u8(\?|$)/i.test(src);
+        if (isHls && !vid.canPlayType("application/vnd.apple.mpegurl")) {
+          status.textContent = `Loading HLS player for ${label}...`;
+          const s = document.createElement("script");
+          s.src = "https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js";
+          s.onload = () => {
+            if (window.Hls && window.Hls.isSupported()) {
+              hlsInstance = new window.Hls();
+              hlsInstance.loadSource(src);
+              hlsInstance.attachMedia(vid);
+              status.textContent = `Source (HLS): ${label}`;
+            } else {
+              vid.src = src;
+              status.textContent = `Source: ${label}`;
+            }
+          };
+          s.onerror = () => { status.textContent = "Could not load hls.js from jsDelivr; open in Safari or pass ?mp4=."; };
+          document.head.appendChild(s);
+        } else {
+          vid.src = src;
+          status.textContent = `Source: ${label}`;
+        }
+      }
+
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
+        blobUrl = URL.createObjectURL(file);
+        playMediaUrl(blobUrl, `Local file (${file.name}, ${(file.size / 1e6).toFixed(1)} MB)`);
+        vid.play().catch(() => {});
+      });
+
+      form.addEventListener("submit", e => {
+        e.preventDefault();
+        const u = urlInput.value.trim();
+        if (u) playMediaUrl(u, u);
+      });
+      backBtn.addEventListener("click", showYouTube);
+
+      function syncStanzas(t) {
+        let activeIdx = 0;
+        stanzas.forEach((s, i) => { if (t >= Number(s.dataset.time || 0)) activeIdx = i; });
+        stanzas.forEach((s, i) => s.classList.toggle("active", i === activeIdx));
+      }
+      stanzas.forEach(s => {
+        s.addEventListener("click", () => {
+          const t = Number(s.dataset.time || 0);
+          syncStanzas(t);
+          audioEl.currentTime = t;
+          audioEl.play().catch(() => {});
+        });
+      });
+      audioEl.addEventListener("timeupdate", () => syncStanzas(audioEl.currentTime));
+
+      const params = new URLSearchParams(location.search);
+      const hlsParam = params.get("hls");
+      const mp4Param = params.get("mp4");
+      if (hlsParam) {
+        urlInput.value = hlsParam;
+        playMediaUrl(hlsParam, hlsParam);
+      } else if (mp4Param) {
+        urlInput.value = mp4Param;
+        playMediaUrl(mp4Param, mp4Param);
+      }
+    })();
+  </script>
+</body>
+</html>

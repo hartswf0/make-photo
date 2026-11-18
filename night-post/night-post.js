@@ -4018,13 +4018,33 @@ void main(){
 
     function renderNpDispatch() {
       const c = npCarrier(), q = npCharter(), pl = npWorld.places[c.place] || npWorld.places.overlook;
-      setText("np-disp-title", `${q.name} · ${pl.name} (Shift ${c.day} · ${npEngine.clock(c.watch)})`);
+      if ($("np-dispatch-modal")) $("np-dispatch-modal").dataset.tab = npDispTab;
+      setText("np-disp-title", npDispTab === "video"
+        ? "DONKEY WATER SCIFI · Cyan Jerikan Over Cosmic Addis"
+        : `${q.name} · ${pl.name} (Shift ${c.day} · ${npEngine.clock(c.watch)})`);
       if ($("np-disp-img") && npBundle.art[pl.image]) $("np-disp-img").src = npBundle.art[pl.image];
       setText("np-disp-caption", pl.caption || pl.name);
       setText("np-disp-look", pl.look || pl.summary);
       document.querySelectorAll("[data-np-tab]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.npTab === npDispTab)));
       const body = $("np-disp-body");
       if (!body) return;
+      if (npDispTab === "video") {
+        if (!audioEl.paused) audioEl.pause();
+        body.innerHTML = `
+          <div class="np-video-wrap">
+            <iframe
+              src="https://www.youtube.com/embed/ZZlDs10FCZk?rel=0&playsinline=1"
+              title="DONKEY WATER SCIFI Music Video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allowfullscreen></iframe>
+          </div>
+          <div class="chip-grid" style="margin-top:8px;">
+            <a class="chip" href="../music-video.html" style="text-decoration:none;">Open Full Screening Room &amp; Lyrics ↗</a>
+            <a class="chip" href="https://www.youtube.com/watch?v=ZZlDs10FCZk" target="_blank" rel="noopener" style="text-decoration:none;">Watch on YouTube ↗</a>
+          </div>`;
+        return;
+      }
       if (npDispTab === "ledger") {
         const L = c.ledger, sum = c.liters + L.cooling + L.tap + L.screen + L.animal + L.flight;
         body.innerHTML = `
@@ -4064,9 +4084,13 @@ void main(){
       if (tab) npDispTab = tab;
       modal.hidden = open === undefined ? !modal.hidden : !open;
       if (!modal.hidden) renderNpDispatch();
+      else if (npDispTab === "video" && $("np-disp-body")) $("np-disp-body").innerHTML = "";
     }
     if ($("np-dispatch-btn")) $("np-dispatch-btn").addEventListener("click", () => openNpDispatch(true));
     if ($("field-dispatch-btn")) $("field-dispatch-btn").addEventListener("click", () => openNpDispatch(true));
+    if ($("intro-video")) $("intro-video").addEventListener("click", () => openNpDispatch(true, "video"));
+    if ($("tape-video-btn")) $("tape-video-btn").addEventListener("click", () => openNpDispatch(true, "video"));
+    if ($("field-video-btn")) $("field-video-btn").addEventListener("click", () => openNpDispatch(true, "video"));
     if ($("np-disp-close")) $("np-disp-close").addEventListener("click", () => openNpDispatch(false));
     document.querySelectorAll("[data-np-tab]").forEach(btn => btn.addEventListener("click", () => { npDispTab = btn.dataset.npTab; renderNpDispatch(); }));
     if ($("np-switch-btn")) $("np-switch-btn").addEventListener("click", () => switchNpCircuit());

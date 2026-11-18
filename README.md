@@ -1,6 +1,20 @@
 # make-photo
 After Ansel Adams ("You don’t take a photograph, you make it"): haul 8×10 plates by burro or woody roof-deck and sculpt living worlds across 11 tonal zones.
 
+Live GitHub Pages `.html` test URLs (`https://hartswf0.github.io/make-photo/...`):
+- [`index.html`](https://hartswf0.github.io/make-photo/index.html) — Expedition hub & inline Music Video embed
+- [`night-post/index.html`](https://hartswf0.github.io/make-photo/night-post/index.html) — **DONKEY WATER, 2086 · Night Post** (Western Basin)
+- [`night-post/index.html?circuit=ahiya`](https://hartswf0.github.io/make-photo/night-post/index.html?circuit=ahiya) — **Ahiya Highlands** by night (Rahel)
+- [`night-post/companion.html`](https://hartswf0.github.io/make-photo/night-post/companion.html) — Turn-based Dispatch Ledger companion (syncs with 3D game via `localStorage`)
+- [`music-video.html`](https://hartswf0.github.io/make-photo/music-video.html) — **DONKEY WATER SCIFI** Music Video Screening Room, C60 OGG deck, lyrics & HLS/local `.mp4` loader
+- [`zones/index.html`](https://hartswf0.github.io/make-photo/zones/index.html) — **THRESHOLD · Donkey Water Sci-Fi** (`Zones 0–X` / Blue Jerikan #47B)
+- [`MONOLITH-3.html`](https://hartswf0.github.io/make-photo/MONOLITH-3.html) — Single-file Grand Teton & Yosemite open world (`21.1 MB`)
+- [`field-plates/index.html`](https://hartswf0.github.io/make-photo/field-plates/index.html) & [`donkey/index.html`](https://hartswf0.github.io/make-photo/donkey/index.html) — Field Plates & Pack Donkey levels
+
+### Getting Past File-Size Limits (Video & Single-File HTML)
+- **Large video (GitHub 25 MB web / 100 MB Git limit)**: run [`scripts/slice_hls_video.sh`](./scripts/slice_hls_video.sh) to segment any large `.mp4`/`.mov` into `< 4 MB` 4-second HLS `.ts` chunks + `playlist.m3u8` and play via `music-video.html?hls=./video/cut/playlist.m3u8`, upload a full `.mp4` (`<= 2 GB`) to a GitHub Release (`?mp4=<release-asset-url>`), or load directly from disk inside `music-video.html` with zero upload.
+- **Large HTML bundles**: keep external textures, audio, and Three.js modular (`night-post/`, `zones/`) instead of base64-inlining everything into one file.
+
 ## DONKEY WATER, 2086 · Night Post (Ahiya Area Network)
 
 [`night-post/`](./night-post/) builds the 2086 film and production-design edition atop the `MONOLITH-3` / `zones/` 3D engine and syncs two-way over `localStorage` (`donkey-water/night-post/1`) with the turn-based [`companion.html`](./night-post/companion.html) ledger and [`world-bible.pdf`](./night-post/world-bible.pdf):
