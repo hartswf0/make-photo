@@ -1004,6 +1004,25 @@
         seg: 28,
         disp: (r, sa, ca, v) => 1 + 0.038 * Math.sin(v * 22 + sa * 3)
       }), wrapMat));
+    } else if (hairStyle === "turban") {
+      // Coiled highland elder turban (kf12_01m12s_draped_elders_procession.jpg!)
+      const turbMat = new T.MeshStandardMaterial({
+        color: spec.wrapHex !== undefined ? spec.wrapHex : 0x5c5548,
+        roughness: 0.92,
+        map: assets.shammaTex,
+        bumpMap: assets.shammaTex,
+        bumpScale: 0.028
+      });
+      const tRings = refineRings([
+        { p: [0, 1.618, -0.012], w: 0.092, f: 0.096, b: 0.112, e: 0.88 },
+        { p: [0, 1.668, -0.008], w: 0.104, f: 0.110, b: 0.122, e: 0.86 },
+        { p: [0, 1.722, -0.014], w: 0.096, f: 0.102, b: 0.114, e: 0.88 },
+        { p: [0, 1.762, -0.020], w: 0.048, f: 0.052, b: 0.062, e: 0.94 }
+      ], 2);
+      headAnchor.add(new T.Mesh(loftY(T, tRings, {
+        seg: 30,
+        disp: (r, sa, ca, v) => 1 + 0.052 * Math.sin(v * 28 + sa * 2.0)
+      }), turbMat));
     } else if (hairStyle === "feltHat" || hairStyle === "hood") {
       if (hairStyle === "feltHat") {
         const hatMat = new T.MeshStandardMaterial({ color: spec.hatHex || 0x2f2923, roughness: 0.88, bumpMap: assets.oilskinTex, bumpScale: 0.02 });
@@ -1034,6 +1053,34 @@
           gog.position.set(s * 0.031, 1.616, 0.093);
           headAnchor.add(gog);
         }
+      }
+    }
+
+    // Optional sculpted trimmed beard & mustache (kf12 & kf15 highland fathers/elders!)
+    if (spec.beard) {
+      const beardRings = refineRings([
+        { p: [0, 1.502, 0.042], w: 0.036, f: 0.046, b: 0.020, e: 0.90 },
+        { p: [0, 1.526, 0.024], w: 0.066, f: 0.082, b: 0.035, e: 0.88 },
+        { p: [0, 1.558, 0.014], w: 0.074, f: 0.086, b: 0.025, e: 0.88 }
+      ], 2);
+      const bGeo = loftOpenGarment(T, beardRings, {
+        seg: 20, a0: -1.35, a1: 1.35, thick: 0.009,
+        fold: (r, u, v) => 0.005 * vnoise(u * 22, v * 16)
+      });
+      headAnchor.add(new T.Mesh(bGeo, hairMat));
+      const stache = new T.Mesh(new T.TorusGeometry(0.024, 0.0055, 6, 14, Math.PI * 0.88), hairMat);
+      stache.position.set(0, 1.564, 0.090);
+      stache.rotation.set(Math.PI * 0.62, 0, Math.PI * 0.06);
+      headAnchor.add(stache);
+    }
+
+    // Optional woven cyan-indigo tibeb chest/shoulder trim (kf15 child tunic!)
+    if (spec.tibebTrim) {
+      const tibMat = new T.MeshStandardMaterial({ color: 0x245c78, roughness: 0.86, bumpMap: assets.shammaTex, bumpScale: 0.02 });
+      for (const s of [-1, 1]) {
+        const band = new T.Mesh(roundedBox(T, 0.038, 0.24, 0.245, 0.008, 2), tibMat);
+        band.position.set(s * 0.082 * build, 0.035, 0.005);
+        bones[B_CHEST].add(band);
       }
     }
 
@@ -1445,6 +1492,79 @@
     cardProp.rotation.set(0.35, 0.2, 0);
     bones[B_HAND_L].add(cardProp);
 
+    // 6. Embossed-X 20 L Two-Handed Jerrycan + Churning Cyan Pour Stream (ZZlDs10FCZk t=7s kf04 & 01:45 kf14!)
+    const twoHandCanProp = new T.Group();
+    twoHandCanProp.visible = false;
+    let twoHandStream = null;
+    {
+      const canShellMat = new T.MeshPhysicalMaterial({
+        color: 0xdce8ec, roughness: 0.32, transmission: 0.28, transparent: true, opacity: 0.90
+      });
+      const body = new T.Mesh(roundedBox(T, 0.19, 0.36, 0.27, 0.032, 2), canShellMat);
+      twoHandCanProp.add(body);
+      // Inner glowing living-cyan 20 L fill
+      const innerLiq = new T.Mesh(roundedBox(T, 0.168, 0.24, 0.248, 0.022, 1), assets.cyanWaterMat);
+      innerLiq.position.y = -0.04;
+      twoHandCanProp.add(innerLiq);
+      // Signature embossed 'X' stiffening ribs on both flanks (kf05, kf14, kf15!)
+      for (const sx of [-1, 1]) {
+        for (const rz of [-0.62, 0.62]) {
+          const rib = new T.Mesh(roundedBox(T, 0.012, 0.24, 0.022, 0.004, 1), canShellMat);
+          rib.position.set(sx * 0.096, -0.01, 0);
+          rib.rotation.x = rz;
+          twoHandCanProp.add(rib);
+        }
+      }
+      // Molded top handle + threaded blue cap spout
+      const hdl = new T.Mesh(roundedBox(T, 0.036, 0.044, 0.14, 0.010, 1), canShellMat);
+      hdl.position.set(0, 0.20, -0.02);
+      twoHandCanProp.add(hdl);
+      const spout = new T.Mesh(new T.CylinderGeometry(0.028, 0.030, 0.042, 12), assets.penBlueMat);
+      spout.position.set(0, 0.20, 0.088);
+      spout.rotation.x = 0.25;
+      twoHandCanProp.add(spout);
+      const pPts = [
+        new T.Vector3(0, 0.21, 0.105),
+        new T.Vector3(0, 0.08, 0.26),
+        new T.Vector3(0, -0.18, 0.36),
+        new T.Vector3(0, -0.56, 0.42)
+      ];
+      twoHandStream = new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pPts), 16, 0.022, 8, false), assets.cyanWaterMat);
+      twoHandCanProp.add(twoHandStream);
+    }
+    group.add(twoHandCanProp);
+
+    // 7. Braided Sisal Lashing Rope Loop (Elder carrier untying/cinching in kf15 & Character Sheet 2!)
+    const ropeProp = new T.Group();
+    ropeProp.visible = false;
+    {
+      const sisalMat = new T.MeshStandardMaterial({ color: 0xb9a886, roughness: 0.94, bumpMap: assets.twillTex, bumpScale: 0.03 });
+      const loopPts = [
+        new T.Vector3( 0.12, 0.02, 0),
+        new T.Vector3( 0.04, 0.04, 0.04),
+        new T.Vector3(-0.04, 0.03, 0.03),
+        new T.Vector3(-0.12, 0.01, 0),
+        new T.Vector3(-0.08, -0.22, 0.02),
+        new T.Vector3( 0.09, -0.24, -0.01)
+      ];
+      ropeProp.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(loopPts), 18, 0.009, 6, false), sisalMat));
+    }
+    group.add(ropeProp);
+
+    // 8. Handheld VHF Dispatch Radio (Hill Archive operator kf08!)
+    const radioProp = new T.Group();
+    radioProp.visible = false;
+    {
+      const rBody = new T.Mesh(roundedBox(T, 0.038, 0.105, 0.052, 0.006, 1), assets.phoneBodyMat);
+      radioProp.add(rBody);
+      const rAnt = new T.Mesh(new T.CylinderGeometry(0.0035, 0.005, 0.13, 6), assets.ironDarkMat);
+      rAnt.position.set(0, 0.11, 0.012);
+      radioProp.add(rAnt);
+    }
+    bones[B_HAND_R].add(radioProp);
+    radioProp.position.set(0, -0.055, 0.032);
+    radioProp.rotation.x = 0.55;
+
     // Contact shadow on ground
     const shadowMesh = new T.Mesh(
       new T.PlaneGeometry(0.68, 0.68),
@@ -1465,7 +1585,20 @@
     label.sprite.position.set(0, 1.92, 0);
     group.add(label.sprite);
 
-    /* --- 8. State & Biomechanical Update + 2-Bone IK --- */
+    /* --- 8. State, Spring-Damped Micro-Life (from donkey.js!) & 2-Bone IK --- */
+    const MOODS = {
+      calm:      { label: "Calm",          f: (mt, P, c) => { P.lid = 0.04; P.roll = 0.025 * Math.sin(c * 0.6); } },
+      focus:     { label: "Focused",       f: (mt, P, c) => { P.lid = -0.10; P.neck = 0.06; P.head = 0.04; P.eyeX = 0.18 * Math.sin(c * 0.8); } },
+      strain20kg:{ label: "20 kg Effort",  f: (mt, P, c) => { P.lid = 0.18; P.jaw = 0.14 + 0.05 * Math.sin(c * 3.2); P.neck = 0.12; P.roll = -0.09; P.clav = 0.10; } },
+      converse:  { label: "Speaking",      f: (mt, P, c) => { P.jaw = 0.08 + 0.18 * Math.max(0, Math.sin(c * 6.8)) * Math.max(0, Math.sin(c * 1.7)); P.roll = 0.05 * Math.sin(c * 1.3); P.yaw = 0.08 * Math.sin(c * 0.9); } },
+      listen:    { label: "Listening",     f: (mt, P, c) => { P.roll = 0.10; P.lid = 0.12; P.head = -0.04; P.yaw = 0.06 * Math.sin(c * 0.5); } },
+      rejoice:   { label: "Joyful Groove", f: (mt, P, c) => { P.lid = -0.06; P.jaw = 0.12 + 0.06 * Math.sin(c * 4.8); P.roll = 0.08 * Math.sin(c * 2.4); } }
+    };
+    const SPRING = { neck: [58, 0.62], head: [72, 0.58], yaw: [64, 0.64], roll: [68, 0.56], clav: [85, 0.52] };
+    const F = { lid: 0, jaw: 0, neck: 0, head: 0, yaw: 0, roll: 0, clav: 0, eyeX: 0, eyeY: 0 };
+    const T_ = Object.assign({}, F);
+    const V = { neck: 0, head: 0, yaw: 0, roll: 0, clav: 0 };
+
     const state = {
       id: spec.id || "npc",
       name: spec.name || "Villager",
@@ -1478,10 +1611,16 @@
       z: spec.z || 0,
       heading: spec.heading || 0,
       pose: spec.pose || "idle",
+      mood: spec.mood || "calm",
+      moodT: 0,
       speech: spec.speech || "",
       phase: (spec.phase || 0) + hash((spec.x || 1) * 3.7 + (spec.z || 2) * 1.9) * TAU,
       blink: 0,
       nextBlink: 1.5 + hash((spec.x || 3) * 7.1) * 4.0,
+      nextSaccade: 0.8 + hash((spec.z || 5) * 4.3) * 2.5,
+      saccadeX: 0,
+      saccadeY: 0,
+      breathPh: hash((spec.x || 2) * 9.1) * TAU,
       lookYaw: 0,
       lookPitch: 0
     };
@@ -1529,21 +1668,54 @@
       const surfaceAt = opts.surfaceAt || lastSurfaceAt;
       const t = nowSec + state.phase;
 
-      // Natural blinking
+      const sDt = clamp(dt, 0.001, 0.05);
+      state.moodT += sDt;
+      // Autonomous eye saccades (eyes dart slightly before head turns, just like living gaze!)
+      if (nowSec > state.nextSaccade) {
+        state.saccadeX = (hash(nowSec * 2.3 + state.phase) - 0.5) * 0.42;
+        state.saccadeY = (hash(nowSec * 5.1 + state.phase) - 0.5) * 0.22;
+        state.nextSaccade = nowSec + 1.1 + hash(nowSec * 3.7 + state.phase) * 2.9;
+      }
+
+      // Natural blinking + mood lid target
       if (nowSec > state.nextBlink) {
         state.blink = 1.0;
         state.nextBlink = nowSec + 2.2 + hash(nowSec * 1.7 + state.phase) * 4.6;
       }
-      state.blink = Math.max(0, state.blink - dt * 7.2);
+      state.blink = Math.max(0, state.blink - sDt * 7.2);
+
+      // Evaluate active facial/postural mood + second-order SPRING physics (ported from donkey.js!)
+      const activeMoodId = opts.mood || (pose === "heaveSaddle20kg" || pose === "basinPour20kg" ? "strain20kg"
+        : pose === "eskista" || pose === "dance" ? "rejoice"
+        : pose === "sing" ? "converse"
+        : pose === "listen" || pose === "phoneGlow" ? "listen" : state.mood);
+      const moodDef = MOODS[activeMoodId] || MOODS.calm;
+      for (const k in F) T_[k] = 0;
+      moodDef.f(state.moodT, T_, t);
+      T_.eyeX += state.saccadeX;
+      T_.eyeY += state.saccadeY;
+
+      for (const k in F) {
+        const sp = SPRING[k];
+        if (sp) {
+          V[k] += ((T_[k] - F[k]) * sp[0] - V[k] * 2 * Math.sqrt(sp[0]) * sp[1]) * sDt;
+          F[k] += V[k] * sDt;
+        } else {
+          F[k] = lerp(F[k], T_[k], 1 - Math.exp(-sDt * 12));
+        }
+      }
+
       const shut = Math.sin(state.blink * Math.PI);
       for (const L of lids) {
-        L.uLid.rotation.x = -0.32 + shut * 0.85;
-        L.lLid.rotation.x = 0.14 - shut * 0.26;
+        L.uLid.rotation.x = clamp(-0.32 + F.lid * 0.55 + shut * 0.85, -0.48, 0.62);
+        L.lLid.rotation.x = clamp(0.14 - F.lid * 0.20 - shut * 0.26, -0.22, 0.28);
+        L.eye.rotation.y = -Math.PI * 0.5 + F.eyeX * 0.38;
+        L.eye.rotation.z = F.eyeY * 0.28;
       }
 
       // Smooth head look tracking
-      let wantYaw = Math.sin(t * 0.55) * 0.14;
-      let wantPitch = Math.sin(t * 0.42 + 1.1) * 0.04;
+      let wantYaw = Math.sin(t * 0.55) * 0.14 + state.saccadeX * 0.28;
+      let wantPitch = Math.sin(t * 0.42 + 1.1) * 0.04 + state.saccadeY * 0.22;
       if (opts.lookAt) {
         const dx = opts.lookAt.x - state.x, dz = opts.lookAt.z - state.z;
         const dist = Math.hypot(dx, dz);
@@ -1555,7 +1727,7 @@
           wantPitch = clamp(-Math.atan2(dy, dist), -0.42, 0.45);
         }
       }
-      const lk = 1 - Math.exp(-dt * 5.5);
+      const lk = 1 - Math.exp(-sDt * 5.2);
       state.lookYaw = lerp(state.lookYaw, wantYaw, lk);
       state.lookPitch = lerp(state.lookPitch, wantPitch, lk);
 
@@ -1563,8 +1735,11 @@
       for (const b of bones) {
         b.position.copy(b.userData.rest);
         b.rotation.set(0, 0, 0);
+        b.scale.set(1, 1, 1);
       }
-      const breath = Math.sin(t * 2.1);
+      const effortRate = (pose === "heaveSaddle20kg" || pose === "basinPour20kg" || pose === "pump" || pose === "eskista") ? 3.8 : 2.05;
+      state.breathPh += sDt * effortRate;
+      const breath = Math.sin(state.breathPh);
 
       // Default foot targets (standing hip-width on terrain) & arm targets
       let pelDrop = 0, pelSwayX = 0, pelFwdZ = 0;
@@ -1590,6 +1765,9 @@
       carryCanProp.visible = Boolean(opts.carryCan);
       penProp.visible = false;
       cardProp.visible = false;
+      twoHandCanProp.visible = false;
+      ropeProp.visible = false;
+      radioProp.visible = false;
 
       if (pose === "walk" || pose === "convoyPhoneWalk") {
         const wPh = nowSec * 4.8 + state.phase;
@@ -1733,14 +1911,78 @@
           penProp.visible = true;
           state.lookPitch = 0.36;
         } else {
-          // Looking up at REC PPC monitor while holding dispatch notes & pen (desk.jpg right!)
+          // Looking up at REC PPC monitor + periodically lifting handheld VHF radio to mouth/chin (kf08 00:36!)
+          const callCycle = (t * 0.22) % 1.0;
+          const onCall = smooth(0.52, 0.64, callCycle) * (1 - smooth(0.88, 0.96, callCycle));
           localTargetL.set( 0.12, 0.86, 0.30);
-          localTargetR.set(-0.10, 0.82, 0.32);
-          curlL = 0.60; curlR = 0.78;
+          localTargetR.set(lerp(-0.10, -0.09, onCall), lerp(0.82, 1.18, onCall), lerp(0.32, 0.25, onCall));
+          curlL = 0.60; curlR = 0.84;
           cardProp.visible = true;
-          penProp.visible = true;
-          state.lookPitch = -0.08 + 0.06 * Math.sin(t * 0.8);
+          penProp.visible = onCall < 0.3;
+          radioProp.visible = onCall >= 0.3;
+          if (onCall > 0.5) jawOpen = 0.14 + 0.14 * Math.max(0, Math.sin(t * 8.5));
+          state.lookPitch = lerp(-0.08 + 0.05 * Math.sin(t * 0.8), -0.02, onCall);
         }
+      } else if (pose === "basinPour20kg") {
+        // ZZlDs10FCZk &t=7s (kf04) + Motion Sheet Strip 2 (frames 11-13): Two-handed 20kg jerrycan pour into ground basin!
+        const tip = 0.5 + 0.5 * Math.sin(t * 1.15);
+        pelDrop = -0.11 - 0.03 * tip;
+        pelFwdZ = -0.06; // hip counterbalance behind 20 kg forward load!
+        spinePitch = 0.28 + 0.08 * tip;
+        spineRoll = -0.05;
+        fLx = hipX + 0.04; fLz = 0.14;
+        fRx = -hipX - 0.04; fRz = -0.14;
+        // Left hand grips top molded handle; right hand cups bottom-rear corner to tip spout!
+        localTargetL.set( 0.04, 0.99 - 0.04 * tip, 0.38);
+        localTargetR.set(-0.11, 0.86 + 0.07 * tip, 0.30);
+        curlL = 0.88; curlR = 0.76;
+        twoHandCanProp.visible = true;
+        twoHandCanProp.position.set(-0.02, 0.82, 0.38);
+        twoHandCanProp.rotation.set(0.68 + 0.24 * tip, 0.08, 0);
+        if (twoHandStream) {
+          twoHandStream.visible = true;
+          const sp = 0.88 + 0.16 * Math.sin(nowSec * 9.2);
+          twoHandStream.scale.set(sp, 1, sp);
+        }
+        state.lookPitch = 0.38;
+      } else if (pose === "heaveSaddle20kg") {
+        // ZZlDs10FCZk 01:45 (kf14) & 01:53 (kf15): Lifting/lowering 20 kg embossed-X jerrycan from wooden sawbuck!
+        const lift = 0.5 + 0.5 * Math.sin(t * 1.05);
+        pelDrop = lerp(-0.16, -0.05, lift);
+        spinePitch = lerp(0.24, 0.06, lift);
+        spineRoll = -0.08; // spine leans away from heavy 20 kg mass!
+        clavLiftL = 0.12; clavLiftR = 0.12;
+        fLx = hipX + 0.05; fLz = 0.12;
+        fRx = -hipX - 0.05; fRz = -0.10;
+        const cy = lerp(0.84, 1.14, lift);
+        localTargetL.set( 0.08, cy + 0.14, 0.34);
+        localTargetR.set(-0.12, cy - 0.08, 0.34);
+        curlL = 0.88; curlR = 0.82;
+        twoHandCanProp.visible = true;
+        twoHandCanProp.position.set(-0.02, cy, 0.38);
+        twoHandCanProp.rotation.set(-0.12, 0.22, -0.08);
+        if (twoHandStream) twoHandStream.visible = false;
+        state.lookPitch = lerp(0.26, 0.05, lift);
+      } else if (pose === "childReceive20kg") {
+        // ZZlDs10FCZk 01:53 (kf15): Child stepping forward reaching both hands up onto the 20L jerrycan handle!
+        const reach = 0.5 + 0.5 * Math.sin(t * 1.05);
+        pelDrop = -0.03;
+        spinePitch = -0.05;
+        localTargetL.set( 0.09, 1.12 + 0.06 * reach, 0.34);
+        localTargetR.set(-0.09, 1.10 + 0.06 * reach, 0.34);
+        curlL = 0.65; curlR = 0.65;
+        state.lookPitch = -0.22;
+      } else if (pose === "tieRope") {
+        // ZZlDs10FCZk 01:48 & Character Sheet 2 inset: Elder carrier cinching/untying braided sisal lashing rope!
+        const pull = Math.sin(t * 2.2);
+        pelDrop = -0.04;
+        spinePitch = 0.14 + 0.04 * pull;
+        localTargetL.set( 0.11 - 0.03 * pull, 1.08 + 0.02 * pull, 0.32);
+        localTargetR.set(-0.10 + 0.03 * pull, 1.05 - 0.03 * pull, 0.34);
+        curlL = 0.84; curlR = 0.84;
+        ropeProp.visible = true;
+        ropeProp.position.set(0, 1.05, 0.33);
+        state.lookPitch = 0.28;
       } else if (pose === "seatedWatch") {
         // Seated old bride / witness in wooden yard chair watching cinema cloth (Page 2 & 20!)
         pelDrop = -0.38;
@@ -1848,7 +2090,7 @@
         }
       }
 
-      // Apply pelvis, spine, chest, clavicles, neck, head, jaw & coat-tail bones
+      // Apply pelvis, spine, chest (with ribcage breathing scale!), clavicles, spring-damped neck/head/jaw & coat-tail bones
       bones[B_PELVIS].position.set(
         bind[B_PELVIS][0] + pelSwayX,
         bind[B_PELVIS][1] + pelDrop,
@@ -1857,13 +2099,14 @@
       bones[B_PELVIS].rotation.set(spinePitch * 0.25, spineYaw * 0.5, -spineRoll * 0.5);
       bones[B_SPINE].rotation.set(spinePitch * 0.55, spineYaw * 0.6, spineRoll);
       bones[B_CHEST].rotation.set(chestPitch + spinePitch * 0.35, chestYaw, spineRoll * 0.4);
+      bones[B_CHEST].scale.set(1 + 0.012 * breath, 1, 1 + 0.016 * breath);
 
-      bones[B_CLAV_L].rotation.set(0, -clavFwdL,  clavLiftL);
-      bones[B_CLAV_R].rotation.set(0,  clavFwdR, -clavLiftR);
+      bones[B_CLAV_L].rotation.set(0, -clavFwdL,  clavLiftL + F.clav);
+      bones[B_CLAV_R].rotation.set(0,  clavFwdR, -clavLiftR - F.clav);
 
-      bones[B_NECK].rotation.set(state.lookPitch * 0.42 - spinePitch * 0.35, state.lookYaw * 0.42, 0);
-      bones[B_HEAD].rotation.set(state.lookPitch * 0.58 - spinePitch * 0.25, state.lookYaw * 0.58, Math.sin(t * 0.5) * 0.03);
-      bones[B_JAW].rotation.set(jawOpen * 0.38, 0, 0);
+      bones[B_NECK].rotation.set(state.lookPitch * 0.42 - spinePitch * 0.35 + F.neck, state.lookYaw * 0.42 + F.yaw * 0.4, F.roll * 0.3);
+      bones[B_HEAD].rotation.set(state.lookPitch * 0.58 - spinePitch * 0.25 + F.head, state.lookYaw * 0.58 + F.yaw * 0.6, Math.sin(t * 0.5) * 0.025 + F.roll);
+      bones[B_JAW].rotation.set(Math.max(jawOpen, F.jaw) * 0.38, 0, 0);
 
       // Coat-tail / shawl breeze & stride follow
       const breeze = 0.05 + 0.04 * Math.sin(nowSec * 1.9 + state.phase);
@@ -1933,7 +2176,11 @@
     }
 
     place(state.x, state.z, state.heading, null);
-    return { group, bones, skeleton, state, label, place, setSpeech, update };
+    return {
+      group, bones, skeleton, state, label, place, setSpeech, update,
+      moods: Object.keys(MOODS).map(k => ({ id: k, label: MOODS[k].label })),
+      setMood(id) { if (MOODS[id]) { state.mood = id; state.moodT = 0; } }
+    };
   }
 
   /* ---------- Full Canonical 22-Character Cast Across West Expedition & Ahiya Highlands ---------- */
@@ -1950,14 +2197,14 @@
       id: "june", name: "June", role: "Young Listener · Chipped Cup",
       x: -23.4, z: -3.2, heading: 1.65, scale: 0.76, build: 0.96, fem: 0.55,
       skinHex: 0x3f291e, hair: "shortLocs", hairHex: 0x161311,
-      outer: "parka", coatHex: 0x3d413b, shirtHex: 0x52554e, trouserHex: 0x2b2e2d,
-      patchedKnees: true, pose: "holdCup"
+      outer: "parka", coatHex: 0x3d413b, shirtHex: 0x9b8f7a, trouserHex: 0x2b2e2d,
+      tibebTrim: true, patchedKnees: true, pose: "holdCup"
     },
     {
       id: "witness_tomas", name: "Tomas", role: "Dawn Pump Witness · 4 L Chalk",
       x: -20.2, z: -7.8, heading: -0.95, scale: 1.01, build: 1.04, fem: 0.15,
-      skinHex: 0x4b3325, hair: "feltHat", hatHex: 0x2a2520,
-      outer: "duster", coatHex: 0x36332e, shirtHex: 0x4a463f, trouserHex: 0x252728,
+      skinHex: 0x4b3325, hair: "turban", wrapHex: 0x625a4c, beard: true, hairHex: 0x1a1715,
+      outer: "shamma", coatHex: 0xa8a090, shirtHex: 0x4a463f, trouserHex: 0x252728,
       queueHasCan: true, pose: "queueWait"
     },
 
@@ -1988,7 +2235,7 @@
     {
       id: "ferry_bekele", name: "Bekele", role: "Elder Ferryman · Wet Post Gauge",
       x: -252.2, z: -52.4, heading: 1.85, scale: 1.02, build: 1.08, fem: 0.10,
-      skinHex: 0x422c20, hair: "feltHat", hatHex: 0x252320,
+      skinHex: 0x422c20, hair: "feltHat", hatHex: 0x252320, beard: true, hairHex: 0x24201d,
       outer: "duster", coatHex: 0x2d3234, shirtHex: 0x3e4447, trouserHex: 0x222528,
       pose: "pointPost"
     },
@@ -2060,11 +2307,11 @@
       queueHasCan: true, pose: "queueWait"
     },
     {
-      id: "queue_4", name: "Berhanu", role: "Highland Drover · Lower Yard",
-      x: -776.3, z: -25.2, heading: -2.62, scale: 1.02, build: 1.05, fem: 0.12,
-      skinHex: 0x3f291d, hair: "feltHat", hatHex: 0x2b2621,
-      outer: "duster", coatHex: 0x323634, shirtHex: 0x454844, trouserHex: 0x232627,
-      pose: "queueWait"
+      id: "queue_4", name: "Berhanu", role: "Highland Elder · Sisal Rope & Can",
+      x: -776.3, z: -25.2, heading: -2.62, scale: 1.02, build: 1.05, fem: 0.10,
+      skinHex: 0x3f291d, hair: "turban", wrapHex: 0x585246, beard: true, hairHex: 0x1d1a18,
+      outer: "shamma", coatHex: 0xb2aa9a, shirtHex: 0x5a5044, trouserHex: 0x232627,
+      pose: "tieRope"
     },
 
     // 6. ABYSSAL WHALE FLUKE & HALF DOME EAST APRON

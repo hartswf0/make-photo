@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#d9d5cb">
+  <meta name="description" content="Donkey Water 3D Study Plate Workbench: side-by-side sculpting, motion & architectural study comparing live 3D humans, props and buildings against ZZlDs10FCZk keyframes and orthographic turnaround sheets.">
+  <title>Donkey Water · People, Architecture &amp; Keyframe Study Workbench</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="alternate icon" href="../favicon.ico">
+  <style>
+    :root {
+      --paper: #d9d5cb;
+      --ink: #191815;
+      --night: #141615;
+      --cream: #f2eee4;
+      --cyan: #1cb8d4;
+      --cyan-bright: #4ee8ff;
+      --border-light: rgba(25, 24, 21, 0.22);
+      --border-dark: rgba(242, 238, 228, 0.26);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%; overflow: hidden;
+      background: var(--paper); color: var(--ink);
+      font: 13px/1.38 Inter, system-ui, -apple-system, sans-serif;
+      -webkit-user-select: none; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body.night-mode { background: var(--night); color: var(--cream); }
+
+    #stage-wrap {
+      position: fixed; inset: 0; right: 420px;
+      transition: right 0.24s ease;
+    }
+    body.drawer-closed #stage-wrap { right: 0; }
+    #view {
+      width: 100%; height: 100%; display: block;
+      touch-action: none; cursor: grab;
+    }
+    #view:active { cursor: grabbing; }
+
+    /* Top-left Study Plate Header (modeled directly on /donkey/index.html) */
+    .plate-head {
+      position: fixed;
+      left: max(18px, env(safe-area-inset-left));
+      top: max(14px, env(safe-area-inset-top));
+      max-width: min(500px, calc(100vw - 460px));
+      pointer-events: none;
+      z-index: 6;
+    }
+    body.drawer-closed .plate-head { max-width: min(560px, calc(100vw - 36px)); }
+    .eyebrow {
+      margin: 0 0 4px;
+      font: 600 10px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      opacity: 0.72;
+    }
+    .plate-head h1 {
+      margin: 0;
+      font: 400 clamp(22px, 3vw, 31px)/1.06 "Instrument Serif", "Iowan Old Style", Georgia, serif;
+      letter-spacing: 0.04em;
+    }
+    .plate-meta {
+      margin: 6px 0 0;
+      font: 600 10.5px/1.3 Inter, sans-serif;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      opacity: 0.78;
+    }
+    .plate-note {
+      margin: 6px 0 0;
+      font: italic 400 14.5px/1.32 "Instrument Serif", Georgia, serif;
+      opacity: 0.92;
+    }
+    .nav-links {
+      margin-top: 9px; display: flex; gap: 6px; flex-wrap: wrap; pointer-events: auto;
+    }
+    .nav-links a {
+      font: 600 10px/1 Inter, sans-serif;
+      letter-spacing: 0.10em; text-transform: uppercase;
+      text-decoration: none; padding: 6px 10px; border-radius: 999px;
+      border: 1px solid currentColor; color: inherit; opacity: 0.8;
+    }
+    .nav-links a:hover { opacity: 1; }
+
+    /* Bottom Control Bar on Stage */
+    .stage-bar {
+      position: fixed;
+      left: max(14px, env(safe-area-inset-left));
+      right: calc(420px + 14px);
+      bottom: max(12px, env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; gap: 7px;
+      z-index: 7; pointer-events: none;
+      transition: right 0.24s ease;
+    }
+    body.drawer-closed .stage-bar { right: max(14px, env(safe-area-inset-right)); }
+    .pill-row {
+      display: flex; flex-wrap: wrap; gap: 5px; align-items: center; pointer-events: auto;
+    }
+    .pill {
+      font: 600 10px/1 Inter, system-ui, sans-serif;
+      letter-spacing: 0.09em; text-transform: uppercase;
+      padding: 8px 11px; min-height: 32px; border-radius: 999px;
+      border: 1px solid var(--border-light);
+      background: rgba(242, 238, 228, 0.78);
+      color: var(--ink);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      cursor: pointer;
+    }
+    body.night-mode .pill {
+      border-color: var(--border-dark);
+      background: rgba(20, 24, 24, 0.78);
+      color: var(--cream);
+    }
+    .pill[aria-pressed="true"], .pill.active {
+      background: var(--ink); color: var(--paper); border-color: var(--ink);
+    }
+    body.night-mode .pill[aria-pressed="true"], body.night-mode .pill.active {
+      background: var(--cyan-bright); color: #06181c; border-color: var(--cyan-bright);
+    }
+    .light-slider {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 999px;
+      border: 1px solid var(--border-light);
+      background: rgba(242, 238, 228, 0.75);
+      font: 600 10px/1 Inter, sans-serif; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    body.night-mode .light-slider {
+      border-color: var(--border-dark);
+      background: rgba(20, 24, 24, 0.78);
+    }
+    .light-slider input { width: 78px; accent-color: var(--cyan); cursor: pointer; }
+
+    /* Right-Hand Reference & Keyframe Study Drawer */
+    #ref-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 420px;
+      background: rgba(232, 228, 218, 0.96);
+      border-left: 1px solid var(--border-light);
+      display: flex; flex-direction: column;
+      z-index: 10;
+      transition: transform 0.24s ease;
+      user-select: text; -webkit-user-select: text;
+    }
+    body.night-mode #ref-drawer {
+      background: rgba(18, 21, 21, 0.96);
+      border-left-color: var(--border-dark);
+    }
+    body.drawer-closed #ref-drawer { transform: translateX(100%); }
+
+    .drawer-tabs {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 4px; padding: 10px 12px 8px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    body.night-mode .drawer-tabs { border-bottom-color: var(--border-dark); }
+    .d-tab {
+      font: 600 10px/1.2 Inter, sans-serif;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 8px 6px; border-radius: 7px;
+      border: 1px solid transparent; background: transparent;
+      color: inherit; opacity: 0.68; cursor: pointer;
+    }
+    .d-tab[aria-selected="true"] {
+      opacity: 1;
+      border-color: currentColor;
+      background: rgba(128, 128, 120, 0.12);
+    }
+
+    .drawer-body {
+      flex: 1; overflow-y: auto; padding: 12px 14px 24px;
+      display: flex; flex-direction: column; gap: 12px;
+      touch-action: pan-y;
+    }
+    .drawer-body[hidden] { display: none; }
+
+    .ref-card {
+      border: 1px solid var(--border-light);
+      border-radius: 9px; overflow: hidden;
+      background: rgba(255, 255, 255, 0.36);
+    }
+    body.night-mode .ref-card {
+      border-color: var(--border-dark);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .ref-card img {
+      display: block; width: 100%; height: auto; cursor: zoom-in;
+    }
+    .ref-cap {
+      padding: 9px 11px;
+      font-size: 12px; line-height: 1.42;
+    }
+    .ref-cap strong {
+      display: block; font-size: 11px; letter-spacing: 0.08em;
+      text-transform: uppercase; margin-bottom: 3px;
+    }
+    .yt-link {
+      display: inline-block; margin-top: 5px;
+      font: 600 10.5px/1 ui-monospace, Menlo, monospace;
+      color: #0b6f86; text-decoration: none;
+    }
+    body.night-mode .yt-link { color: var(--cyan-bright); }
+    .yt-link:hover { text-decoration: underline; }
+
+    .kf-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    .kf-item {
+      border: 1px solid var(--border-light); border-radius: 7px;
+      overflow: hidden; background: rgba(255, 255, 255, 0.32);
+      cursor: pointer; text-align: left; padding: 0; color: inherit;
+    }
+    body.night-mode .kf-item { border-color: var(--border-dark); background: rgba(255, 255, 255, 0.04); }
+    .kf-item img { display: block; width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+    .kf-item div { padding: 6px 8px; font-size: 11px; line-height: 1.3; }
+    .kf-item code { font-weight: 700; color: #0b6f86; }
+    body.night-mode .kf-item code { color: var(--cyan-bright); }
+
+    .prompt-box {
+      border: 1px solid var(--border-light); border-radius: 8px;
+      padding: 10px 11px; background: rgba(255, 255, 255, 0.34);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    body.night-mode .prompt-box { border-color: var(--border-dark); background: rgba(255, 255, 255, 0.04); }
+    .prompt-head {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    }
+    .prompt-head strong { font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .copy-btn {
+      font: 600 9.5px/1 Inter, sans-serif; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 5px 9px; border-radius: 999px; border: 1px solid currentColor;
+      background: transparent; color: inherit; cursor: pointer;
+    }
+    .prompt-why { margin: 0; font-size: 11.5px; opacity: 0.82; }
+    .prompt-txt {
+      margin: 0; padding: 7px 8px; border-radius: 5px;
+      background: rgba(0, 0, 0, 0.06);
+      font: 400 11px/1.4 ui-monospace, Menlo, monospace;
+      white-space: pre-wrap;
+    }
+    body.night-mode .prompt-txt { background: rgba(0, 0, 0, 0.38); }
+
+    #lightbox {
+      position: fixed; inset: 0; background: rgba(10, 12, 12, 0.92);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; z-index: 30; cursor: zoom-out;
+    }
+    #lightbox[hidden] { display: none; }
+    #lightbox img { max-width: 96vw; max-height: 92vh; border-radius: 6px; box-shadow: 0 12px 42px rgba(0,0,0,0.6); }
+
+    @media (max-width: 900px) {
+      #stage-wrap { right: 0; bottom: 46vh; }
+      body.drawer-closed #stage-wrap { bottom: 0; }
+      .plate-head { max-width: calc(100vw - 24px); top: max(10px, env(safe-area-inset-top)); left: 12px; }
+      .plate-head h1 { font-size: 20px; }
+      .plate-note { display: none; }
+      .nav-links { margin-top: 6px; gap: 4px; }
+      .nav-links a { padding: 4px 8px; font-size: 9px; }
+      .stage-bar { left: 10px; right: 10px; bottom: calc(46vh + 8px); gap: 5px; }
+      body.drawer-closed .stage-bar { bottom: max(10px, env(safe-area-inset-bottom)); }
+      #study-pills {
+        flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+        padding-bottom: 2px; -webkit-overflow-scrolling: touch;
+      }
+      #study-pills::-webkit-scrollbar { display: none; }
+      #study-pills .pill { flex: 0 0 auto; padding: 6px 9px; min-height: 28px; font-size: 9.5px; }
+      .pill { padding: 6px 9px; min-height: 28px; font-size: 9.5px; }
+      .light-slider input { width: 54px; }
+      #ref-drawer {
+        top: auto; left: 0; right: 0; width: 100%; height: 46vh;
+        border-left: 0; border-top: 1px solid var(--border-light);
+      }
+      body.drawer-closed #ref-drawer { transform: translateY(100%); }
+    }
+  </style>
+</head>
+<body>
+  <div id="stage-wrap">
+    <canvas id="view" aria-label="3D Study Plate Stage for People, Props and Architecture"></canvas>
+  </div>
+
+  <header class="plate-head">
+    <p class="eyebrow">Study Plate Workbench · Donkey-Caliber Craft</p>
+    <h1 id="st-title">1 · Imani &amp; 20 kg Two-Handed Basin Pour</h1>
+    <p class="plate-meta"><span id="st-cat">HUMAN BIOMECHANICS</span> · <span id="st-mood-readout">MOOD: 20 KG EFFORT</span> · <span id="st-tri-readout">DRAG TO ORBIT · SCROLL TO ZOOM</span></p>
+    <p class="plate-note" id="st-note">Matched to ZZlDs10FCZk (00:07): left hand grips top handle, right hand cups bottom rib, pelvis counterbalances 20 kg.</p>
+    <nav class="nav-links" aria-label="Project links">
+      <a href="../donkey/">Donkey Study</a>
+      <a href="../zones/">Unified Zones</a>
+      <a href="../night-post/">2086 Night Post</a>
+      <a href="../">Field Index</a>
+    </nav>
+  </header>
+
+  <div class="stage-bar">
+    <div class="pill-row" id="study-pills" aria-label="Select 3D study plate"></div>
+    <div class="pill-row">
+      <button type="button" class="pill" id="btn-mood">Mood: Auto</button>
+      <button type="button" class="pill" id="btn-turntable" aria-pressed="false">Turntable</button>
+      <button type="button" class="pill" id="btn-paper" aria-pressed="true">Paper / Night</button>
+      <label class="light-slider">Sun <input type="range" id="sun-angle" min="0" max="360" value="42"></label>
+      <button type="button" class="pill" id="btn-drawer" aria-pressed="true">Ref Sheet ▾</button>
+    </div>
+  </div>
+
+  <aside id="ref-drawer" aria-label="Film Keyframes, Orthographic Sheets and Video Generation Briefs">
+    <div class="drawer-tabs" role="tablist">
+      <button type="button" class="d-tab" role="tab" data-tab="matched" aria-selected="true">Matched Study</button>
+      <button type="button" class="d-tab" role="tab" data-tab="keyframes" aria-selected="false">16 Film Cuts</button>
+      <button type="button" class="d-tab" role="tab" data-tab="prompts" aria-selected="false">Videos Needed</button>
+    </div>
+    <div class="drawer-body" id="tab-matched"></div>
+    <div class="drawer-body" id="tab-keyframes" hidden></div>
+    <div class="drawer-body" id="tab-prompts" hidden></div>
+  </aside>
+
+  <div id="lightbox" hidden><img id="lightbox-img" alt="Enlarged study plate"></div>
+
+  <script src="../field-plates/fonts.js"></script>
+  <script src="../field-plates/three.js"></script>
+  <script src="../donkey/donkey.js"></script>
+  <script src="../donkey/characters.js?v=study2026a"></script>
+  <script src="../zones/world-architecture.js?v=study2026a"></script>
+  <script src="./study.js?v=study2026a"></script>
+</body>
+</html>
