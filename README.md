@@ -8,6 +8,8 @@ Live GitHub Pages `.html` test URLs (`https://hartswf0.github.io/make-photo/...`
 - [`night-post/companion.html`](https://hartswf0.github.io/make-photo/night-post/companion.html) — Turn-based Dispatch Ledger companion (syncs with 3D game via `localStorage`)
 - [`music-video.html`](https://hartswf0.github.io/make-photo/music-video.html) — **DONKEY WATER SCIFI** Music Video Screening Room, C60 OGG deck, lyrics & HLS/local `.mp4` loader
 - [`zones/index.html`](https://hartswf0.github.io/make-photo/zones/index.html) — **THRESHOLD · Donkey Water Sci-Fi** (`Zones 0–X` / Blue Jerikan #47B)
+- [`zones/index.html?trailer=1`](https://hartswf0.github.io/make-photo/zones/index.html?trailer=1) & [`zones/index.html?musicvideo=1`](https://hartswf0.github.io/make-photo/zones/index.html?musicvideo=1) — **In-World 3D Explainer Trailer (1:16), Full-Song Machinima Music Video (4:43) & Video Recorder** (`U` key, `donkey/characters.js` + `zones/machinima.js`)
+- [`night-post/index.html?trailer=1`](https://hartswf0.github.io/make-photo/night-post/index.html?trailer=1) — **2086 Night Post In-World Trailer** featuring the 11-character Western Basin & Ahiya cast (`Imani`, `June`, `Etta`, `Tess`, `Saba`, `Rahel`, `Rahel's Aunt`)
 - [`MONOLITH-3.html`](https://hartswf0.github.io/make-photo/MONOLITH-3.html) — Single-file Grand Teton & Yosemite open world (`21.1 MB`)
 - [`field-plates/index.html`](https://hartswf0.github.io/make-photo/field-plates/index.html) & [`donkey/index.html`](https://hartswf0.github.io/make-photo/donkey/index.html) — Field Plates & Pack Donkey levels
 

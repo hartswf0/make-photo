@@ -1721,12 +1721,12 @@ void main(){
   const initModeIdx = urlMode && MODES.some(m => m.id === urlMode) ? MODES.findIndex(m => m.id === urlMode) : 0;
   const rawCircuitParam = urlParams.get("circuit");
   const initCircuitParam = rawCircuitParam === "ahiya" ? "ahiya" : rawCircuitParam === "west" ? "west" : "";
-  const skipIntroParam = urlParams.get("skipIntro") === "1";
+  const skipIntroParam = urlParams.get("skipIntro") === "1" || urlParams.get("trailer") === "1" || urlParams.get("musicvideo") === "1" || urlParams.get("machinima") === "1";
 
   /* ---------- WebAudio: 3D Spatial Donkey Panner + Air Lowpass + Beat Detector ---------- */
   const audio = (() => {
     let ctx = null, master = null, enabled = false, analyser = null, freqData = null, tapeConnected = false;
-    let panner = null, airFilter = null, spatialGain = null, directGain = null;
+    let panner = null, airFilter = null, spatialGain = null, directGain = null, recDest = null;
     let spatialMode = true, distMeters = 5.0, falloffDb = 0, prevBass = 0, beatEnv = 0;
     const bands12 = new Float32Array(12);
     const clocks = [{ period: 1.0, acc: 0, ratio: 1.0, pan: -.45 }, { period: 1.37, acc: .35, ratio: 1.25, pan: 0 }, { period: 1.73, acc: .8, ratio: 1.5, pan: .45 }];
@@ -1754,8 +1754,20 @@ void main(){
         src.connect(analyser);
         analyser.connect(airFilter); airFilter.connect(panner); panner.connect(spatialGain); spatialGain.connect(ctx.destination);
         analyser.connect(directGain); directGain.connect(ctx.destination);
+        if (recDest) { spatialGain.connect(recDest); directGain.connect(recDest); }
         tapeConnected = true;
       } catch {}
+    }
+    function getRecordStream(el) {
+      if (!ensure()) return null;
+      if (el) connectTape(el);
+      if (!recDest && ctx.createMediaStreamDestination) {
+        recDest = ctx.createMediaStreamDestination();
+        if (master) master.connect(recDest);
+        if (spatialGain) spatialGain.connect(recDest);
+        if (directGain) directGain.connect(recDest);
+      }
+      return recDest ? recDest.stream : null;
     }
     function setSpatialMode(on) {
       spatialMode = !!on;
@@ -1847,7 +1859,7 @@ void main(){
     }
     return {
       toggle() { enabled = !enabled; if (enabled) ensure(); return enabled; },
-      isOn: () => enabled, connectTape, sampleTape, setSpatialMode, isSpatial: () => spatialMode, updateSpatial,
+      isOn: () => enabled, connectTape, getRecordStream, sampleTape, setSpatialMode, isSpatial: () => spatialMode, updateSpatial,
       getDistFalloff: () => ({ distMeters, falloffDb }),
       shutter() { tone(190, .06, .18, "square", 0, true); setTimeout(() => tone(840, .04, .09, "triangle", 0, true), 35); },
       pumpClank() { tone(138, .08, .22, "square", .1, true); setTimeout(() => tone(520, .14, .11, "sine", -.15, true), 60); setTimeout(() => tone(690, .18, .09, "sine", .15, true), 130); },
@@ -3648,6 +3660,10 @@ void main(){
     donkey.update(.016, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, (x, z) => driveSurfaceAt(x, z));
     donkey.state.onStep = (leg, gait) => audio.step(leg, gait);
     state.y = driveSurfaceAt(state.x, state.z) + 1.68;
+    const cast = window.makeExpeditionCast ? window.makeExpeditionCast(T, {
+      parent: actorRoot, surfaceAt: driveSurfaceAt, hasAhiya: true
+    }) : null;
+    let machinima = null;
     captureInitialFilmStripAtlas();
 
     /* ---------- Step Wedge & HUD ---------- */
@@ -4872,7 +4888,8 @@ void main(){
       const w = renderer.domElement.width, h = renderer.domElement.height;
       // 18-Watch Atmospheric Lighting Curve (18:00 Dusk -> Midnight Indigo -> 06:00 Morning Light)
       const wHour = npCarrier().watch / 18;
-      const dayLight = wHour < .25 ? lerp(.82, .42, wHour / .25) : wHour < .68 ? .38 : lerp(.38, 1.0, (wHour - .68) / .32);
+      const rawLight = wHour < .25 ? lerp(.82, .42, wHour / .25) : wHour < .68 ? .38 : lerp(.38, 1.0, (wHour - .68) / .32);
+      const dayLight = (machinima && machinima.isActive()) ? Math.max(rawLight, .84) : rawLight;
       mw.time.value = 8 + nowSec * .08;
       mw.glass.value = state.filterIdx;
       mw.worldLight.intensity = 2.35 * (state.region === "ahiya" ? dayLight * .78 : dayLight * .95);
@@ -4952,6 +4969,7 @@ void main(){
       renderer.setRenderTarget(null);
       renderer.render(postScene, postCam);
       syncInWorldCss3d();
+      if (machinima) machinima.afterRender(nowSec);
     }
 
     function captureBounds(width, height) {
@@ -5829,7 +5847,7 @@ void main(){
     fieldClick("field-context", () => fieldContext(currentMotion())?.run());
     fieldClick("field-expose", exposePlate);
     fieldClick("field-enter", () => finishIntro(false));
-    fieldClick("field-prologue", startPrologue);
+    fieldClick("field-prologue", () => machinima ? machinima.start("trailer", 0) : startPrologue());
     fieldClick("field-summit", () => $("intro-jump").click());
     fieldClick("field-skip", () => finishIntro(false));
 
@@ -5995,6 +6013,11 @@ void main(){
           return;
         }
       }
+      if (e.code === "Escape" && machinima && machinima.isActive()) {
+        e.preventDefault();
+        machinima.stop();
+        return;
+      }
       if (e.code === "Escape" && armedTravel) {
         armedTravel = null;
         toast("Travel canceled");
@@ -6020,6 +6043,7 @@ void main(){
       else if (e.code === "KeyF") pourWifi();
       else if (e.code === "KeyK") triggerDance();
       else if (e.code === "KeyL") toggleLidar();
+      else if (e.code === "KeyU" && !e.repeat) { if (machinima) machinima.toggle("trailer"); }
       else if (e.code === "KeyY" && !e.repeat) toggleInWorldVideo();
       else if (e.code === "KeyM") openNpDispatch();
       else if (e.code === "Tab") { e.preventDefault(); switchNpCircuit(); }
@@ -6047,6 +6071,7 @@ void main(){
       if (lookPointer !== e.pointerId) return;
       const dx = e.clientX - lastPX, dy = e.clientY - lastPY;
       lastPX = e.clientX; lastPY = e.clientY;
+      if (machinima && machinima.onLookDrag(dx, dy)) return;
       if (state.drivingCart || state.gliding || state.riding) {
         state.cartYawOffset = clamp(state.cartYawOffset - dx * .0045, -1.8, 1.8);
         state.cartPitchOffset = clamp(state.cartPitchOffset - dy * .0035, -.45, .45);
@@ -6301,6 +6326,8 @@ void main(){
             if ($("cinema-shot-bar")) $("cinema-shot-bar").style.width = `${clamp((state.introT / INTRO_DURATION) * 100, 0, 100)}%`;
           }
         }
+      } else if (machinima && machinima.isActive()) {
+        machinima.stepCamera(dt, nowSec, { fwdInput, sideInput, turbo });
       } else if (state.gliding) {
         if (stepGlide(dt, fwdInput, sideInput, turbo, flowSpeedMult)) {
           const g = state.glide, withWagon = state.donkeyOnRoof;
@@ -6631,7 +6658,7 @@ void main(){
       }
       rainGeo.attributes.position.needsUpdate = true;
 
-      leadRope.visible = !state.riding && !state.drivingCart && !state.gliding && !state.donkeyCollapsed;
+      leadRope.visible = !state.riding && !state.drivingCart && !state.gliding && !state.donkeyCollapsed && !(machinima && machinima.isActive());
       if (leadRope.visible) {
         donkey.halterRing(halterOut);
         donkeyHand.set(state.x + Math.cos(state.yaw) * .35, state.y - .42, state.z - Math.sin(state.yaw) * .35);
@@ -6645,6 +6672,14 @@ void main(){
         ropeGeo.attributes.position.needsUpdate = true;
       }
 
+      if (cast) {
+        cast.update(dt, nowSec, {
+          state, donkey, wagon, camera, fieldRigGroup,
+          machinimaActive: Boolean(machinima && machinima.isActive()),
+          hideLabels: Boolean(machinima && machinima.areCaptionsHidden())
+        });
+      }
+
       // Sync 2086 Mistletoe 20L chalk-marked saddle cans + screening cues + station proximity
       const npC = npCarrier();
       const canFrac = clamp(npC.liters / 20, 0, 1);
@@ -6655,7 +6690,7 @@ void main(){
         const idx = clamp(Math.floor((npScreenTimer % 8.4) / 2.8), 0, tails.length - 1);
         setText("np-prog-cue", `“${tails[idx]}”`);
       }
-      if (!state.introActive && !state.gliding && npC.phase === "ground") {
+      if (!state.introActive && !state.gliding && !(machinima && machinima.isActive()) && npC.phase === "ground") {
         let nearId = null, bestD = 32;
         for (const [sid, pos] of Object.entries(NP_STATIONS)) {
           if (npWorld.places[sid]?.circuit !== npState.active) continue;
@@ -6698,6 +6733,22 @@ void main(){
     }
 
     if (!state.introActive) placeAtNpStation(npCarrier().place || "overlook");
+    if (window.createMachinimaDirector) {
+      machinima = window.createMachinimaDirector({
+        T, canvas, camera, state, donkey, wagon, cast, relays, forestGroves,
+        fieldRigGroup, pourGroup, donkeyGlider, contrailL, contrailR,
+        audio, audioEl, keys, driveSurfaceAt, setRegion, initRain,
+        applyLevelChaseCamera, applyLevelFPSCamera, poseRoofRider, poseGlider,
+        toggleInWorldVideo, finishIntro, updateHUD, toast, hasAhiya: true
+      });
+      if ($("intro-trailer")) $("intro-trailer").addEventListener("click", () => machinima.start("trailer", 0));
+      if ($("intro-mv")) $("intro-mv").addEventListener("click", () => machinima.start("musicvideo", 0));
+      if ($("tape-trailer-btn")) $("tape-trailer-btn").addEventListener("click", () => machinima.toggle("trailer"));
+      if ($("field-trailer-btn")) $("field-trailer-btn").addEventListener("click", () => machinima.toggle("trailer"));
+      if (urlParams.get("trailer") === "1") machinima.start("trailer", 0);
+      else if (urlParams.get("musicvideo") === "1") machinima.start("musicvideo", 0);
+      else if (urlParams.get("machinima") === "1") machinima.start("dolly", 0);
+    }
     initRain();
     syncIntroUI();
     step(.016);
@@ -6812,9 +6863,15 @@ void main(){
           totalRelays: relays.length,
           coveragePct: state.coveragePct,
           plates: state.plates.length,
-          audioReady: audioEl.readyState >= 1
+          audioReady: audioEl.readyState >= 1,
+          castCount: cast ? cast.list.length : 0,
+          machinima: machinima ? machinima.getState() : null
         };
       },
+      getCast: () => cast ? cast.list.map(c => ({
+        id: c.state.id, name: c.state.name, role: c.state.role,
+        x: +c.state.x.toFixed(1), z: +c.state.z.toFixed(1), pose: c.state.pose, visible: c.group.visible
+      })) : [],
       getRelays: () => relays.map(r => ({ id: r.id, name: r.name, lit: r.lit, cans: r.cans.length, filled: r.cans.filter(c => (c.userData.fill || 0) >= .95).length })),
       getForest: () => forestGroves.map(g => ({ id: g.id, region: g.region, name: g.name, minRelAlt: g.minRelAlt, unlocked: g.unlocked })),
       getSummits: () => SUMMITS.map(s => ({ id: s.id, region: s.region, name: s.name, x: s.x, z: s.z })),
@@ -6859,6 +6916,11 @@ void main(){
       setWatch: w => { npCarrier().watch = clamp(Math.round(w), 0, 18); npState.rev++; saveNpState(); updateHUD(); renderFrame(performance.now() * .001); },
       openDispatch: openNpDispatch,
       toggleInWorldVideo,
+      startMachinima: (m = "trailer", t = 0) => machinima?.start(m, t),
+      stopMachinima: () => machinima?.stop(),
+      seekMachinima: t => machinima?.seek(t),
+      startRecording: () => machinima?.startRecording(),
+      stopRecording: () => machinima?.stopRecording(false),
       reset: (circuit = "west") => {
         closeScreeningCard();
         npState = circuit === "ahiya" ? npEngine.switchRoute(npEngine.start(), "ahiya") : npEngine.start();

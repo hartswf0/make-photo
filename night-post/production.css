@@ -48,8 +48,9 @@
 body.field-ui .field-links { flex-wrap: wrap; gap: 2px 4px; max-width: 100%; }
 body.field-ui #field-dispatch-btn,
 body.field-ui #field-switch-btn,
+body.field-ui #field-trailer-btn,
 body.field-ui #field-video-btn { width: auto; padding: 0 5px; white-space: nowrap; }
-#tape-video-btn {
+#tape-video-btn, #tape-trailer-btn {
   font: 600 9px/1 Inter, system-ui, sans-serif;
   padding: 3px 7px;
   border-radius: 999px;
@@ -58,7 +59,7 @@ body.field-ui #field-video-btn { width: auto; padding: 0 5px; white-space: nowra
   color: #e6fffa;
   cursor: pointer;
 }
-#tape-video-btn:hover { background: var(--aqua); color: #071918; }
+#tape-video-btn:hover, #tape-trailer-btn:hover { background: var(--aqua); color: #071918; }
 #plate h1#zone-title {
   color: var(--paper);
 }
