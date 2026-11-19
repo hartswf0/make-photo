@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#141819">
+  <meta name="description" content="ABYSSINIAN HIGHLANDS · Executable Worldtext & 4-Zone GTA Compressed Transect: Simien Imet Gogo (3,926m) & Lalibela down through Sacred-Tech Buna Sanctuary & Rift-Edge Market Hub to Blue Nile Gorge & GERD Dam (655m).">
+  <meta property="og:title" content="ABYSSINIAN HIGHLANDS · 4-Zone GTA Transect & Executable Worldtext">
+  <meta property="og:description" content="Walk, drive a Line Taxi HiAce or Sky-Blue Bajaj, cycle the 3-act Buna coffee ceremony, tune Ethiopian FM radio, and explore all 4 orbital agricultural field geometries from 3,926m to 655m.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://hartswf0.github.io/make-photo/abyssinian-highlands/">
+  <meta property="og:image" content="https://hartswf0.github.io/make-photo/abyssinian-highlands/sheets/transect_map.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>ABYSSINIAN HIGHLANDS · 4-Zone GTA Transect &amp; Worldtext Simulation</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="alternate icon" href="../favicon.ico">
+  <style>
+    :root {
+      --paper: #d9d5cb;
+      --ink: #191815;
+      --dark: #131718;
+      --cream: #f2eee4;
+      --cyan: #28d8f0;
+      --brass: #cbb182;
+      --drawer-w: 420px;
+      --border: rgba(25, 24, 21, 0.22);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: var(--paper); color: var(--ink);
+      font: 400 12.5px/1.38 Inter, system-ui, -apple-system, sans-serif;
+      -webkit-user-select: none; user-select: none;
+      overscroll-behavior: none; touch-action: none;
+    }
+
+    #stage-wrap {
+      position: fixed; inset: 0; right: var(--drawer-w);
+      transition: right 0.24s ease;
+    }
+    body.drawer-closed #stage-wrap { right: 0; }
+    #view {
+      width: 100%; height: 100%; display: block;
+      cursor: grab; touch-action: none;
+      transition: filter 0.25s ease;
+    }
+    #view:active { cursor: grabbing; }
+    /* Selective Ansel Adams silver-gelatin + warm selenium contrast */
+    body.silver-cyan-filter #view {
+      filter: saturate(0.42) contrast(1.12);
+    }
+
+    #world-loader {
+      position: fixed; inset: 0; z-index: 40;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; background: #141819; color: var(--cream);
+      transition: opacity 0.42s ease;
+    }
+    #world-loader.fade-out { opacity: 0; pointer-events: none; }
+    #world-loader[hidden] { display: none !important; }
+
+    /* Top-Left Header & Radio Ticker */
+    .hud-head {
+      position: fixed;
+      top: max(12px, env(safe-area-inset-top));
+      left: max(14px, env(safe-area-inset-left));
+      max-width: min(460px, calc(100vw - var(--drawer-w) - 270px));
+      padding: 10px 13px;
+      border-radius: 11px;
+      background: rgba(242, 238, 228, 0.86);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      z-index: 8; pointer-events: auto;
+    }
+    body.drawer-closed .hud-head { max-width: min(500px, calc(100vw - 270px)); }
+    .eyebrow {
+      margin: 0 0 3px;
+      font: 700 9.5px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.16em; text-transform: uppercase; color: #0c6980;
+    }
+    .hud-head h1 {
+      margin: 0;
+      font: 400 clamp(20px, 2.5vw, 27px)/1.05 "Instrument Serif", "Iowan Old Style", Georgia, serif;
+      letter-spacing: 0.03em;
+    }
+    .hud-meta {
+      margin: 5px 0 0;
+      font: 700 10.5px/1.3 ui-monospace, Menlo, monospace;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .radio-strip {
+      margin-top: 6px; padding-top: 6px;
+      border-top: 1px solid rgba(25, 24, 21, 0.14);
+      font-size: 11px; line-height: 1.3;
+    }
+    .radio-strip strong { font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; color: #0c6980; }
+    .nav-links {
+      margin-top: 7px; display: flex; flex-wrap: wrap; gap: 5px;
+    }
+    .nav-links a {
+      font: 600 9.5px/1 Inter, sans-serif; letter-spacing: 0.09em; text-transform: uppercase;
+      padding: 5px 8px; border-radius: 999px; border: 1px solid var(--border);
+      text-decoration: none; color: inherit; background: rgba(255,255,255,0.45);
+    }
+
+    /* Top-Right GTA Compressed Transect Radar */
+    .hud-radar {
+      position: fixed;
+      top: max(12px, env(safe-area-inset-top));
+      right: calc(var(--drawer-w) + 14px);
+      padding: 6px; border-radius: 10px;
+      background: rgba(18, 22, 23, 0.90); color: var(--cream);
+      border: 1px solid rgba(242, 238, 228, 0.24);
+      z-index: 8; transition: right 0.24s ease;
+    }
+    body.drawer-closed .hud-radar { right: max(14px, env(safe-area-inset-right)); }
+    .hud-radar canvas { display: block; border-radius: 6px; }
+    .radar-cap {
+      margin-top: 4px; font: 600 9px/1.1 ui-monospace, monospace;
+      letter-spacing: 0.10em; text-transform: uppercase; text-align: center; opacity: 0.82;
+    }
+
+    /* Bottom Control Bar */
+    .stage-bar {
+      position: fixed;
+      left: max(12px, env(safe-area-inset-left));
+      right: calc(var(--drawer-w) + 12px);
+      bottom: max(10px, env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; gap: 6px;
+      z-index: 8; pointer-events: none;
+      transition: right 0.24s ease;
+    }
+    body.drawer-closed .stage-bar { right: max(12px, env(safe-area-inset-right)); }
+    .pill-row {
+      display: flex; flex-wrap: wrap; gap: 5px; align-items: center; pointer-events: auto;
+    }
+    .pill {
+      font: 600 10px/1 Inter, system-ui, sans-serif;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 7px 10px; min-height: 30px; border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(242, 238, 228, 0.86); color: var(--ink);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      cursor: pointer;
+    }
+    .pill.active, .pill[aria-pressed="true"] {
+      background: var(--ink); color: var(--paper); border-color: var(--ink);
+    }
+
+    /* Right-Hand Worldtext & Orthographic Sheets Drawer */
+    #ref-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; width: var(--drawer-w);
+      background: rgba(234, 230, 220, 0.97);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      z-index: 12; transition: transform 0.24s ease;
+      user-select: text; -webkit-user-select: text;
+    }
+    body.drawer-closed #ref-drawer { transform: translateX(100%); }
+    .drawer-tabs {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 4px; padding: 9px 11px 7px; border-bottom: 1px solid var(--border);
+    }
+    .d-tab {
+      font: 600 10px/1.2 Inter, sans-serif; letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 7px 5px; border-radius: 7px; border: 1px solid transparent;
+      background: transparent; color: inherit; opacity: 0.68; cursor: pointer;
+    }
+    .d-tab[aria-selected="true"] {
+      opacity: 1; border-color: currentColor; background: rgba(25, 24, 21, 0.08);
+    }
+    .drawer-body {
+      flex: 1; overflow-y: auto; padding: 12px 14px 26px;
+      display: flex; flex-direction: column; gap: 12px;
+      touch-action: pan-y;
+    }
+    .drawer-body[hidden] { display: none; }
+
+    .sheet-card {
+      border: 1px solid var(--border); border-radius: 9px;
+      overflow: hidden; background: rgba(255, 255, 255, 0.48);
+    }
+    .sheet-card img { display: block; width: 100%; height: auto; cursor: zoom-in; }
+    .sheet-cap { padding: 8px 10px; font-size: 11.5px; line-height: 1.4; }
+    .sheet-cap strong { display: block; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2px; }
+
+    .doc-box {
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 11px; background: rgba(255, 255, 255, 0.45);
+      font-size: 11.5px; line-height: 1.45;
+    }
+    .doc-box h3 { margin: 0 0 5px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .doc-box ul { margin: 5px 0 0; padding-left: 17px; }
+    .doc-box code { font-size: 10.5px; background: rgba(0,0,0,0.06); padding: 1px 4px; border-radius: 3px; }
+    .doc-link {
+      display: inline-block; margin-top: 6px; margin-right: 8px;
+      font: 600 10.5px/1 ui-monospace, monospace; color: #0c6980; text-decoration: none;
+    }
+    .doc-link:hover { text-decoration: underline; }
+
+    #lightbox {
+      position: fixed; inset: 0; background: rgba(10, 12, 13, 0.93);
+      display: flex; align-items: center; justify-content: center;
+      padding: 18px; z-index: 50; cursor: zoom-out;
+    }
+    #lightbox[hidden] { display: none; }
+    #lightbox img { max-width: 96vw; max-height: 92vh; border-radius: 6px; }
+
+    @media (max-width: 900px) {
+      #stage-wrap { right: 0; bottom: 46vh; }
+      body.drawer-closed #stage-wrap { bottom: 0; }
+      .hud-head, body.drawer-closed .hud-head {
+        max-width: calc(100vw - 20px); left: 10px; right: 10px;
+        top: max(8px, env(safe-area-inset-top)); padding: 7px 10px;
+      }
+      .hud-head h1 { font-size: 18px; }
+      .radio-strip { display: none; }
+      .nav-links { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-top: 5px; }
+      .nav-links::-webkit-scrollbar { display: none; }
+      .nav-links a { flex: 0 0 auto; padding: 4px 7px; font-size: 9px; }
+      .hud-radar { display: none; }
+      .stage-bar { left: 8px; right: 8px; bottom: calc(46vh + 8px); gap: 4px; }
+      body.drawer-closed .stage-bar { bottom: max(8px, env(safe-area-inset-bottom)); }
+      .pill-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+      .pill-row::-webkit-scrollbar { display: none; }
+      .pill { flex: 0 0 auto; padding: 6px 9px; min-height: 27px; font-size: 9.5px; }
+      #ref-drawer {
+        top: auto; left: 0; right: 0; width: 100%; height: 46vh;
+        border-left: 0; border-top: 1px solid var(--border);
+      }
+      body.drawer-closed #ref-drawer { transform: translateY(100%); }
+    }
+  </style>
+</head>
+<body class="silver-cyan-filter">
+  <div id="world-loader">
+    <strong>ABYSSINIAN HIGHLANDS</strong>
+    <span>Compiling 4-Zone GTA Transect (3,926 m → 655 m) &amp; Habitus Kits…</span>
+  </div>
+
+  <div id="stage-wrap">
+    <canvas id="view" aria-label="Abyssinian Highlands 4-Zone GTA Compressed Transect 3D World"></canvas>
+  </div>
+
+  <header class="hud-head">
+    <p class="eyebrow">Abyssinian Highlands · Executable Worldtext &amp; GTA Transect</p>
+    <h1>Roof of Africa · 4-Biome Transect</h1>
+    <p class="hud-meta"><span id="hud-elev">2,620 m · ደጋ DEGA</span> · <span id="hud-zone">Sacred-Tech Sanctuary</span></p>
+    <div class="radio-strip">
+      <strong id="radio-name">RADIO OFF</strong><br>
+      <span id="radio-ticker">Press R or tap Radio to tune Tizita Classics, Highland Beat, or Voice of the Plateau</span>
+    </div>
+    <nav class="nav-links" aria-label="Expedition links">
+      <a href="../">Field Index</a>
+      <a href="../study/">Character Study</a>
+      <a href="../night-post/">2086 Night Post</a>
+      <a href="../zones/">Unified Zones</a>
+      <a href="./WORLD_BIBLE_AND_WORLDTEXT.md" target="_blank" rel="noopener">World Bible .MD</a>
+    </nav>
+  </header>
+
+  <aside class="hud-radar" aria-label="GTA Transect Radar">
+    <canvas id="transect-map" width="212" height="90"></canvas>
+    <div class="radar-cap">3,926m Citadel → 655m GERD Dam</div>
+  </aside>
+
+  <div class="stage-bar">
+    <div class="pill-row" aria-label="Jump to Transect Zone or Study Plate">
+      <button type="button" class="pill active" data-jump="overview">0 · Full GTA Transect</button>
+      <button type="button" class="pill" data-jump="z1_citadel">1 · Citadel (3,200m)</button>
+      <button type="button" class="pill" data-jump="z2_sanctuary">2 · Buna &amp; Vault (2,600m)</button>
+      <button type="button" class="pill" data-jump="z3_market">3 · Market Hub (2,000m)</button>
+      <button type="button" class="pill" data-jump="z4_gerd">4 · Abay &amp; GERD (655m)</button>
+      <button type="button" class="pill" data-jump="plate_buna">Plate · Buna Kit</button>
+      <button type="button" class="pill" data-jump="plate_transit">Plate · HiAce/Bajaj/Isuzu</button>
+      <button type="button" class="pill" data-jump="plate_signage">Plate · Ge'ez &amp; Kiosks</button>
+    </div>
+    <div class="pill-row" aria-label="Traversal, Buna Ritual & Broadcast Controls">
+      <button type="button" class="pill" data-mode="walk">Walk</button>
+      <button type="button" class="pill" data-mode="hiace">Drive HiAce</button>
+      <button type="button" class="pill" data-mode="bajaj">Drive Bajaj</button>
+      <button type="button" class="pill active" data-mode="aerial">Aerial</button>
+      <button type="button" class="pill" id="btn-reverse" aria-pressed="false">Reverse</button>
+      <button type="button" class="pill" id="btn-buna">Buna: 1 · Abol (Roast)</button>
+      <button type="button" class="pill" id="btn-radio" aria-pressed="false">Radio (R)</button>
+      <button type="button" class="pill" id="btn-palette" aria-pressed="true">Look: #47B Silver+Cyan</button>
+      <button type="button" class="pill" id="btn-drawer" aria-pressed="true">Worldtext &amp; Sheets ▾</button>
+    </div>
+  </div>
+
+  <aside id="ref-drawer" aria-label="Abyssinian Highlands Production Sheets & Worldtext Specification">
+    <div class="drawer-tabs" role="tablist">
+      <button type="button" class="d-tab" role="tab" data-tab="sheets" aria-selected="true">4 Ortho Sheets</button>
+      <button type="button" class="d-tab" role="tab" data-tab="worldtext" aria-selected="false">GTA &amp; GIS Data</button>
+      <button type="button" class="d-tab" role="tab" data-tab="geertz" aria-selected="false">Worldtext Theory</button>
+    </div>
+
+    <div class="drawer-body" id="tab-sheets">
+      <article class="sheet-card">
+        <img src="./sheets/transect_map.jpg" alt="4-Zone GTA Compressed Transect Map & Orbital Field Swatches" data-zoom="./sheets/transect_map.jpg">
+        <div class="sheet-cap">
+          <strong>1 · Compressed GTA Transect &amp; 4 Orbital Field Geometries</strong>
+          3,200m Escarpment Citadel → 2,600m Sacred-Tech Sanctuary → 2,000m Rift-Edge Market Hub → 655m Blue Nile Gorge &amp; GERD Dam, with Contour Ribbons, Polygon Quilt, River Strips &amp; Lowland Blocks.
+        </div>
+      </article>
+      <article class="sheet-card">
+        <img src="./sheets/buna_threshold.jpg" alt="Buna Coffee Ceremony & Dejaf Threshold Modeling Sheet" data-zoom="./sheets/buna_threshold.jpg">
+        <div class="sheet-cap">
+          <strong>2 · Buna Ceremony &amp; Dejaf Threshold Habitus Kit</strong>
+          Jebena on matot ring, Rekebot &amp; Sini, Midija &amp; Girgira, Menkeshkesh &amp; Mukecha, Mesob &amp; 12°-tilted Ensera, 3-state 20L Jerrycan reuse, Kettama grass &amp; Kubet wall discs.
+        </div>
+      </article>
+      <article class="sheet-card">
+        <img src="./sheets/street_transit.jpg" alt="Line Taxi HiAce, Bajaj Three-Wheeler, Isuzu Truck & Utility Pole Sheet" data-zoom="./sheets/street_transit.jpg">
+        <div class="sheet-cap">
+          <strong>3 · Highland Transit Fleet, Tangled Poles &amp; Kiosk</strong>
+          Blue/white Toyota HiAce line taxi, sky-blue Bajaj auto-rickshaw, Isuzu FSR escarpment freight truck (teff sacks + eucalyptus logs), crooked utility pole, solar cobra light &amp; kiosk.
+        </div>
+      </article>
+      <article class="sheet-card">
+        <img src="./sheets/decal_signage_atlas.jpg" alt="Bilingual Ge'ez/Latin Road Signs, Telecom Kiosks & Water Packaging Atlas" data-zoom="./sheets/decal_signage_atlas.jpg">
+        <div class="sheet-cap">
+          <strong>4 · Bilingual Ge'ez/Latin Signage, Kiosks &amp; Water Packaging</strong>
+          ERA royal-blue <code>ባሕር ዳር / BAHIR DAR</code> &amp; <code>አባይ / ABAY GORGE</code> sign, <code>ቆም / STOP</code>, tin <code>ቡና / SHOP</code> plaque, Telebirr/Telecom booths, Ambo glass, 12-pack PET &amp; 20L jugs.
+        </div>
+      </article>
+    </div>
+
+    <div class="drawer-body" id="tab-worldtext" hidden>
+      <div class="doc-box">
+        <h3>Executable Worldtext &amp; Master Bible</h3>
+        Full write-up &amp; relational JSON scene manifest compiled in this directory:
+        <div>
+          <a class="doc-link" href="./WORLD_BIBLE_AND_WORLDTEXT.md" target="_blank" rel="noopener">↗ WORLD_BIBLE_AND_WORLDTEXT.md</a>
+          <a class="doc-link" href="./worldtext-manifest.json" target="_blank" rel="noopener">↗ worldtext-manifest.json</a>
+        </div>
+      </div>
+      <div class="doc-box">
+        <h3>Exact Coordinates &amp; Yosemite Parallels</h3>
+        <ul>
+          <li><strong>Simien · Imet Gogo</strong> (<code>13.2167°N, 38.0833°E</code>, <code>3,926 m</code>): 1,000–2,000m sheer basalt drop (Glacier Point parallel).</li>
+          <li><strong>Gheralta Spires</strong> (<code>13.9722°N, 39.4286°E</code>): 250m+ vertical Adigrat sandstone towers.</li>
+          <li><strong>Blue Nile (Abay) Gorge</strong> (<code>10.0750°N, 38.1917°E</code>): 1,200m 3-tier canyon relief.</li>
+          <li><strong>GERD Hydroelectric Dam</strong> (<code>11.2153°N, 35.0931°E</code>): <code>500m</code> bed → <code>655m</code> crest; fed by <strong>Mt. Belaya</strong> (<code>2,731m</code>) &amp; <strong>Mt. Dangur</strong> (<code>2,488m</code>).</li>
+        </ul>
+      </div>
+      <div class="doc-box">
+        <h3>Sub-Meter Parcel &amp; 3D DEM/LiDAR Stack</h3>
+        <ul>
+          <li><strong>Fields of the World (FTW)</strong>: GeoParquet smallholder parcel vectors (<code>s3://us-west-2.opendata.source.coop/tge-labs/ftw-global-data/</code>).</li>
+          <li><strong>SLLC Rural Cadastre</strong>: <code>50M+</code> parcels digitized on <code>0.25m</code> orthophotos (<code>1:2,000</code>).</li>
+          <li><strong>EthCT2020 &amp; DE Africa 10m</strong>: <code>2,793</code> crop plots (<code>DOI: 10.17632/mfpvmk8cnm.1</code>) + STAC <code>crop_mask_eastern</code>.</li>
+          <li><strong>3D Elevation &amp; TLS</strong>: <code>FABDEM v1.2</code> + <code>Copernicus GLO-30</code> + <code>AW3D30</code>, Bale <code>0.84m</code> SfM DEM (<code>zenodo.7269999</code>), and <strong>Zamani Project</strong> Leica TLS of Lalibela &amp; Fasil Ghebbi.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="drawer-body" id="tab-geertz" hidden>
+      <div class="doc-box">
+        <h3>Barthes → Mitchell → Geertz → Bajohr</h3>
+        <ul>
+          <li><strong>1. Inscription (Barthes &amp; Geertz)</strong>: Distinguishing the cultural <em>wink</em> from the raw photogrammetric <em>twitch</em>; preserving the <em>obtuse third meaning</em> (soot on clay, garment crease, masinko grain).</li>
+          <li><strong>2. Fusion (W.J.T. Mitchell, Imagetext)</strong>: Welding Ge'ez/Latin labels, elevation contours &amp; affordance callouts directly onto orthographic plates.</li>
+          <li><strong>3. Cultural Program (Clifford Geertz)</strong>: Recombining finite local formulae like an <em>artistic Markov process</em> across <strong>Model Of / Model For</strong>, silent <strong>Common Sense</strong> defaults ("air of of-courseness"), and <strong>Ideological Friction</strong> zones (monastic basalt vs. #28d8f0 server vaults &amp; Telebirr booths).</li>
+          <li><strong>4. Worldtext Execution (Hannes Bajohr)</strong>: <em>Operative ekphrasis</em> compiling thick JSON manifests directly into navigable 3D habitus circuits and diegetic radio.</li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <div id="lightbox" hidden><img id="lightbox-img" alt="Enlarged production design plate"></div>
+
+  <script src="../field-plates/fonts.js"></script>
+  <script src="../field-plates/three.js"></script>
+  <script src="../donkey/donkey.js"></script>
+  <script src="../donkey/characters.js"></script>
+  <script src="../zones/world-architecture.js"></script>
+  <script src="./habitus-kits.js"></script>
+  <script src="./abyssinian-world.js"></script>
+</body>
+</html>

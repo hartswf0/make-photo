@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "world_id": "abyssinian_highlands",
+  "title": "ABYSSINIAN HIGHLANDS · Executable Worldtext & 4-Zone GTA Transect Manifest",
+  "version": "1.0.0",
+  "semiotic_header": {
+    "lineage": ["Roland Barthes (Image-Music-Text, 1977)", "Clifford Geertz (Interpretation of Cultures, 1973; Local Knowledge, 1983)", "W.J.T. Mitchell (Picture Theory, 1994)", "Hannes Bajohr (Operative Ekphrasis / Worldtext)"],
+    "model_of": "Empirical Ethiopian Highlands & Upper Blue Nile (Abay) watershed: flood-basalt escarpments, SLLC/FTW smallholder field geometries, dry-stone hidmo compounds, Buna thresholds, and street telecom/transit ecosystems.",
+    "model_for": "Embodied player & NPC traversal, water-ration queueing, three-round Buna hospitality (Abol -> Tona -> Baraka), line-taxi transit handoffs, and sacred-tech cooling stewardship.",
+    "common_sense_defaults": [
+      "Queue 20L yellow jerrycans in strict arrival order along a 3.0m spline from any active minch spring box or standpipe.",
+      "Plaster circular kubet dung fuel discs (d=0.22m, t=0.03m) only on sun-exposed south-facing dry-stone masonry walls.",
+      "Stage footwear outside monolithic church and sanctuary thresholds; receive sini coffee cups with a respectful gesture.",
+      "Pass folded birr fare forward hand-to-hand toward the weyala conductor inside blue-and-white HiAce line taxis."
+    ],
+    "ideological_friction_zones": [
+      "Subterranean liquid-cooled #28d8f0 server vaults humming beneath 12th-century basalt/tuff monastic archives.",
+      "Lime-green Telebirr and emerald Safaricom digital-money booths juxtaposed against traditional tej bet honey-wine houses and hand-painted tin suk signs.",
+      "655m hydroelectric GERD concrete megastructure impounding 74B m3 above rain-fed Metekel smallholder and commercial sesame/sorghum clearings."
+    ]
+  },
+  "geospatial_sources": {
+    "bounding_boxes": {
+      "massif_macro": [35.0, 6.0, 42.0, 15.0],
+      "lake_tana_ag": [37.0, 11.4, 37.8, 12.3],
+      "metekel_gerd": [35.0, 10.9, 36.2, 11.8]
+    },
+    "elevation_layers": [
+      { "id": "FABDEM_v1_2", "resolution_m": 30, "role": "Bare-earth DTM with trees and roofs stripped" },
+      { "id": "Copernicus_GLO30", "resolution_m": 30, "role": "Vertical cliff accuracy at Simien / Imet Gogo" },
+      { "id": "ALOS_AW3D30", "resolution_m": 30, "role": "Optical stereo free of radar layover inside Abay Gorge" },
+      { "id": "Bale_SfM_Zenodo_7269999", "resolution_m": 0.85, "role": "Sub-meter afro-alpine gully & outcrop micro-roughness" },
+      { "id": "Zamani_Lalibela_FasilGhebbi_TLS", "resolution_m": 0.005, "role": "Leica HDS3000 monolithic tuff trenches & Gondar basalt masonry" }
+    ],
+    "agricultural_parcel_layers": [
+      { "id": "FTW_Ethiopia_2025", "uri": "s3://us-west-2.opendata.source.coop/tge-labs/ftw-global-data/", "format": "GeoParquet" },
+      { "id": "EthCT2020", "doi": "10.17632/mfpvmk8cnm.1", "plots": 2793, "classes": 22 },
+      { "id": "DE_Africa_Cropland_10m", "stac": "https://explorer.digitalearth.africa/stac", "collection": "crop_mask_eastern" },
+      { "id": "SLLC_Rural_Cadastre", "orthophoto_m": 0.25, "scale": "1:2000", "parcels_digitized": "50000000+" }
+    ]
+  },
+  "transect_zones": [
+    {
+      "zone_id": "escarpment_citadel",
+      "archetypes": ["Simien Mountains / Imet Gogo (13.2167N, 38.0833E)", "Lalibela Tuff Trenches", "Gheralta Spires (13.9722N, 39.4286E)"],
+      "elevation_range_m": [3200, 3926],
+      "agro_zone": "Wurch / High Dega",
+      "field_geometry": "curved_contour_ribbons_fanya_juu",
+      "crops": ["barley", "fava_bean", "potato", "afro_alpine_tussock"],
+      "vertical_totems": ["sunken_cruciform_tuff_monolith", "red_white_guyed_ridge_radio_mast_60m"],
+      "fauna": ["gelada_troop", "walia_ibex", "ethiopian_wolf", "pack_donkey"]
+    },
+    {
+      "zone_id": "sacred_tech_sanctuary",
+      "archetypes": ["Highland Hidmo Monastery Village", "Liquid-Cooled Registry Archive"],
+      "elevation_range_m": [2400, 2850],
+      "agro_zone": "Dega",
+      "field_geometry": "irregular_smallholder_polygons_with_circular_church_forests",
+      "crops": ["teff", "wheat", " highland_pulses"],
+      "vertical_totems": ["domed_ashlar_basilica_with_bolted_lattice_mast", "courtyard_cyan_cistern"],
+      "spatial_anchors": [
+        {
+          "id": "dejaf_threshold_buna",
+          "doorway_offset_m": 1.35,
+          "bounds_m": [1.8, 1.4],
+          "ground_cover": "scattered_kettama_reeds_and_adey_abeba",
+          "children": [
+            { "asset": "midija_charcoal_brazier", "offset": [0.0, 0.3, 0.0], "blackbody_k": 2100 },
+            { "asset": "jebena_black_clay_pot", "parent": "midija_charcoal_brazier", "base": "matot_woven_ring", "soot_mask": 0.65 },
+            { "asset": "rekebot_carved_stand", "offset": [-0.35, -0.1, 0.0], "sini_cups": 8, "high_arc_pour_m": 0.25 },
+            { "asset": "menkeshkesh_roasting_pan", "offset": [0.26, 0.22, 0.0], "bean_ramp": ["#8F9E84", "#1E120C"] },
+            { "asset": "girgira_incense_burner", "offset": [0.32, -0.08, 0.0], "resin": "etan_frankincense_laminar_wisps" },
+            { "asset": "barchuma_three_leg_stool", "offset": [0.0, 0.68, 0.0], "seat_height_m": 0.30 }
+          ]
+        },
+        {
+          "id": "compound_wall_south",
+          "material": "dry_stacked_basalt_with_red_dust_crevices",
+          "attachments": [
+            { "asset": "kubet_dung_fuel_discs", "diameter_m": 0.22, "thickness_m": 0.03, "count": 18, "aspect": "south_facing" },
+            { "asset": "ensera_terracotta_jar", "lean_deg": 12, "placement": "shaded_plinth" },
+            { "asset": "shibo_mekina_wire_toy", "offset": [0.45, 0.0, 0.0] }
+          ]
+        },
+        {
+          "id": "subterranean_cooling_sanctuary",
+          "window": "georgian_diamond_wire_glass_pass_through",
+          "racks_47u": 4,
+          "coolant_hex": "#28d8f0",
+          "focal_totem": "luminous_white_sanctuary_cross"
+        }
+      ]
+    },
+    {
+      "zone_id": "rift_edge_market_hub",
+      "archetypes": ["Gondar / Bahir Dar / Dessie Cobblestone Roundabout", "Lake Tana Riparian Margin"],
+      "elevation_range_m": [1800, 2200],
+      "agro_zone": "Weyna Dega",
+      "field_geometry": "perpendicular_riparian_flood_recession_strips",
+      "crops": ["teff", "arabica_coffee", "irrigated_horticulture"],
+      "vertical_totems": ["unpeeled_eucalyptus_utility_poles_with_drop_wire_webs", "pole_horn_megaphones", "solar_usb_cobra_streetlights"],
+      "commercial_kit": {
+        "water_brands": ["Abyssinia Springs (18.9L & PET)", "YES Natural Mineral Water (royal-blue 12-packs)", "Aquaddis (cyan dual-script)", "Ambo Mineral Water (1930 returnable glass, yellow-green tree emblem)"],
+        "telecom_booths": ["Ethio Telecom / Telebirr (lime-green/white/navy)", "Safaricom Ethiopia / M-Pesa (emerald-green)"],
+        "signage": ["ERA royal-blue Ge'ez-1/English directional signs", "Vienna/UK red octagonal STOP/END signs", "Hand-painted tin suk & clinic planks"],
+        "street_habitus": ["listro_shoeshine_boxes", "eshet_corn_roasting_braziers", "20l_yellow_jerikan_donkey_carts"]
+      }
+    },
+    {
+      "zone_id": "gorge_and_gerd_frontier",
+      "archetypes": ["Blue Nile / Abay Gorge (10.0750N, 38.1917E)", "GERD & Metekel Foothills (11.2153N, 35.0931E)"],
+      "elevation_range_m": [500, 1200],
+      "agro_zone": "Kolla",
+      "field_geometry": "large_mechanized_rectangular_blocks_and_savanna_clearings",
+      "crops": ["sorghum", "maize", "sesame", "noug_niger_seed", "soybean", "cotton"],
+      "vertical_totems": ["gerd_655m_roller_compacted_concrete_crest", "high_voltage_export_pylons", "mt_belaya_2731m_backdrop"]
+    }
+  ],
+  "transit_ecosystem": [
+    { "id": "toyota_hiace_line_taxi", "livery": "sky_blue_with_white_roof_stripe", "crew": "weyala_sliding_door_conductor", "interior": ["st_george_icon", "tricolor_tassels", "folded_birr_handoff"] },
+    { "id": "bajaj_auto_rickshaw", "livery": "sky_blue", "features": ["canvas_hood", "amharic_bumper_proverb", "cobblestone_alley_agility"] },
+    { "id": "isuzu_fsr_freight", "cargo": ["teff_sacks", "eucalyptus_poles"], "banner_geez": "Egziabher Yimesgen", "audio": "air_brake_hiss" },
+    { "id": "pack_donkey_and_zebu_maresha", "cargo": ["20l_ribbed_jerikans_3_state_lifecycle", "wooden_maresha_plow"] }
+  ],
+  "habitus_state_machines": {
+    "threshold_coffee_ritual": {
+      "states": [
+        { "id": "abol", "round": 1, "beans": "green_to_dark_roast", "smoke": "dense_pan_roasting", "pour": "25cm_laminar_strong" },
+        { "id": "tona", "round": 2, "incense": "etan_frankincense_glowing", "smoke": "thin_blue_white_laminar", "pour": "medium_reboil" },
+        { "id": "baraka", "round": 3, "reeds": "wilted_trampled", "cups": "dark_residue_rings", "exit": "household_blessing" }
+      ]
+    },
+    "jerikan_20l_lifecycle": [
+      { "state": "intact_carrier", "use": "spring_queue_and_sawbuck_transport", "patina": "red_basalt_dust_in_x_ribs" },
+      { "state": "top_sliced_z25cm", "use": "livestock_grain_and_wash_basin" },
+      { "state": "half_buried_base", "use": "enset_and_herb_seedling_planter" }
+    ]
+  },
+  "radio_dial": [
+    { "id": "tizita_classics_fm", "genre": "1960s-70s Ethio-jazz, pentatonic ballads, krar & masinko" },
+    { "id": "highland_beat_fm", "genre": "Contemporary Ethiopiyawi electronic, hip-hop & 6/8 eskista with Amharic DJs" },
+    { "id": "voice_of_the_plateau", "genre": "Teff quintal prices, GERD storage telemetry, football & public call-ins" }
+  ]
+}
