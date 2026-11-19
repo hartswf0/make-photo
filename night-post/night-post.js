@@ -441,6 +441,7 @@ void main() {
   /* ---------- Abyssal Field Studio Procedural Sanctuary & Reef Builders ---------- */
   const ABYSS_OX = -1085, ABYSS_OZ = -35, ABYSS_SCALE = 2.15, ABYSS_BASE_Y = 47.5, ABYSS_SURF_Y = 86.0;
   const AHIYA_OX = -1630, AHIYA_OZ = 665, AHIYA_BASE_Y = 74.0;
+  let AHIYA_GROUND_MODE = "sculpted";   // "real" once ahiya-real-terrain.js is in use
   const RIDGE_OX = 620, RIDGE_OZ = 0, RIDGE_OY = 128;
   const TETON_ARRIVAL_DISTANCE = 160;
 
@@ -1056,7 +1057,7 @@ void main(){
       return farGround.at(x, z);
     };
     const abyssLocalY = (ax, az) => ABYSS_BASE_Y + abSeabedH(ax, az) * 1.15;
-    const ahiyaGroundY = (x, z) => {
+    const ahiyaSculptedY = (x, z) => {
       const lx = x - AHIYA_OX, lz = z - AHIYA_OZ;
       // Sculpt Ahiya Highland Wadi (-1460,760), Ridge Cross-Beacon (-1610,590), Hill Archive (-1765,540), Daylight Compound (-1680,775)
       const gBasalt = Math.exp(-((x + 1460) ** 2 + (z - 760) ** 2) / (95 * 95));
@@ -1068,6 +1069,14 @@ void main(){
       const wadiCut = Math.exp(-((lz - 70 - Math.sin(lx * .02) * 35) ** 2) / (32 * 32)) * 9.0 * (1 - gBeacon);
       return ridgeY - wadiCut;
     };
+    // Real ground: Copernicus GLO-30 heights of a Simien hillside (13.2246 N, 38.1045 E) in game coordinates, from
+    // ahiya-real-terrain.js. The pump keeps its sculpted height so the four sets stay where the circuit expects them.
+    // `?ground=sculpted` restores the invented ridge; a missing data file falls back to it as well.
+    const AHIYA_REAL = (typeof window !== "undefined" && window.AHIYA_REAL
+      && new URLSearchParams(location.search).get("ground") !== "sculpted") ? window.AHIYA_REAL : null;
+    const AHIYA_REAL_BASE = AHIYA_REAL ? ahiyaSculptedY(-1460, 760) : 0;
+    const ahiyaGroundY = AHIYA_REAL ? (x, z) => AHIYA_REAL.groundY(x, z, AHIYA_REAL_BASE) : ahiyaSculptedY;
+    if (AHIYA_REAL) AHIYA_GROUND_MODE = "real";
     const tetonWithAbyss = (x, z) => {
       let tg = tetonRawGround(x, z);
       const ax = (x - ABYSS_OX) / ABYSS_SCALE, az = (z - ABYSS_OZ) / ABYSS_SCALE;
@@ -6673,7 +6682,8 @@ void main(){
         moveToStation(npCarrier().place || "overlook");
       },
       setTouchStick: (fx, fy) => setStick(clamp(fx, -1, 1), -clamp(fy, -1, 1)),
-      playIntro: startPrologue, skipIntro: () => finishIntro(false)
+      playIntro: startPrologue, skipIntro: () => finishIntro(false),
+      groundAt: (x, z) => driveSurfaceAt(x, z), ahiyaGround: () => AHIYA_GROUND_MODE
     };
   }
 
