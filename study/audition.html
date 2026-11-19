@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#141615">
   <meta name="description" content="Donkey Water · Cyan Jerikan Music Video &amp; All-15-Shader Character Performance Audition Theater (Scion v5).">
+  <meta property="og:title" content="Donkey Water · Music Video &amp; All-15-Shader Character Audition Theater">
+  <meta property="og:description" content="Interactive 3D Music Video &amp; 15-Shader Ansel Adams Zone Audition Theater synced to Cyan Jerikan with v5.2 Scion character acting.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://hartswf0.github.io/make-photo/study/audition.html">
+  <meta property="og:image" content="https://hartswf0.github.io/make-photo/donkey/textures_v3/imani_expressions_sheet.jpg">
+  <meta name="twitter:card" content="summary_large_image">
   <title>Donkey Water · Music Video &amp; All-15-Shader Character Audition Theater</title>
   <link rel="icon" type="image/svg+xml" href="../favicon.svg">
   <link rel="alternate icon" href="../favicon.ico">
@@ -369,15 +375,15 @@
 
   <script src="../field-plates/fonts.js"></script>
   <script src="../field-plates/three.js"></script>
-  <script src="../donkey/donkey.js?v=v52lean3"></script>
-  <script src="../donkey/scion-eye-globe.js?v=v52lean3"></script>
-  <script src="../donkey/scion-eyelids.js?v=v52lean3"></script>
-  <script src="../donkey/scion-neck.js?v=v52lean3"></script>
-  <script src="../donkey/human-sculpt-v3.js?v=v52lean3"></script>
-  <script src="../donkey/expressions-v4.js?v=v52lean3"></script>
-  <script src="../donkey/characters.js?v=v52lean3"></script>
-  <script src="../zones/world-architecture.js?v=v52lean3"></script>
-  <script src="./look-audition-mv.js?v=v52lean3"></script>
+  <script src="../donkey/donkey.js?v=v52lean5"></script>
+  <script src="../donkey/scion-eye-globe.js?v=v52lean5"></script>
+  <script src="../donkey/scion-eyelids.js?v=v52lean5"></script>
+  <script src="../donkey/scion-neck.js?v=v52lean5"></script>
+  <script src="../donkey/human-sculpt-v3.js?v=v52lean5"></script>
+  <script src="../donkey/expressions-v4.js?v=v52lean5"></script>
+  <script src="../donkey/characters.js?v=v52lean5"></script>
+  <script src="../zones/world-architecture.js?v=v52lean5"></script>
+  <script src="./look-audition-mv.js?v=v52lean5"></script>
   <script>
   (function () {
     "use strict";
@@ -1411,8 +1417,10 @@
       song.seek(LAMV.MV_SETS[activeSetIdx].startSec);
     }
     if (params.get("cut")) activeCutId = params.get("cut").toLowerCase();
-    if (params.get("look")) post.setLook(params.get("look"));
-    if (params.get("contact") === "1" || params.get("contactSheet") === "1") {
+    const lookParam = (params.get("look") || "").toLowerCase();
+    const isSheetLook = lookParam === "sheet" || lookParam === "contact" || lookParam === "9-look";
+    if (lookParam && !isSheetLook) post.setLook(params.get("look"));
+    if (isSheetLook || params.get("contact") === "1" || params.get("contactSheet") === "1") {
       setContactSheet(true);
     }
 

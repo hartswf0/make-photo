@@ -947,24 +947,46 @@
     let changed = false;
     try {
       const [rEmo, rTex] = await Promise.all([
-        fetch("./v2g_emotions/", { cache: "no-store" }).catch(() => null),
-        fetch("../donkey/textures_v3/", { cache: "no-store" }).catch(() => null)
+        fetch("./v2g_emotions/manifest.json").catch(() => null),
+        fetch("../donkey/textures_v3/manifest.json").catch(() => null)
       ]);
       if (rEmo && rEmo.ok) {
-        const html = await rEmo.text();
-        for (const fn of extractHrefFilenames(html)) {
-          if (!liveEmotionFiles.has(fn)) {
-            liveEmotionFiles.add(fn);
+        const emoData = await rEmo.json();
+        const studies = emoData && emoData.studies ? Object.values(emoData.studies) : [];
+        for (const st of studies) {
+          for (const fn of [st && st.video, st && st.sheet]) {
+            if (fn && !liveEmotionFiles.has(fn)) {
+              liveEmotionFiles.add(fn);
+              changed = true;
+            }
+          }
+        }
+        const plates = emoData && Array.isArray(emoData.plates) ? emoData.plates : [];
+        for (const p of plates) {
+          const fn = String(p).split("/").pop();
+          if (fn && !liveTextureV3Files.has(fn)) {
+            liveTextureV3Files.add(fn);
             changed = true;
           }
         }
       }
       if (rTex && rTex.ok) {
-        const html = await rTex.text();
-        for (const fn of extractHrefFilenames(html)) {
-          if (!liveTextureV3Files.has(fn)) {
-            liveTextureV3Files.add(fn);
-            changed = true;
+        const texData = await rTex.json();
+        const portraits = texData && texData.portraits ? Object.values(texData.portraits) : [];
+        for (const pr of portraits) {
+          for (const fn of [pr && pr.front, pr && pr.side]) {
+            if (fn && !liveTextureV3Files.has(fn)) {
+              liveTextureV3Files.add(fn);
+              changed = true;
+            }
+          }
+        }
+        if (texData && texData.hands) {
+          for (const fn of [texData.hands.dorsal, texData.hands.palmar]) {
+            if (fn && !liveTextureV3Files.has(fn)) {
+              liveTextureV3Files.add(fn);
+              changed = true;
+            }
           }
         }
       }

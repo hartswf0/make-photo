@@ -1861,15 +1861,19 @@
     studyApi.seekMusicVideo = sec => { song.seek(sec); if (mvModeActive) lastAudioSample = song.sample(0.016); return getLookState(); };
     studyApi.getLookState = getLookState;
 
-    // Support URL parameters (?look=jerikan&contact=1&mv=1&t=45)
+    // Support URL parameters (?look=jerikan&look=sheet&contact=1&mv=1&t=45)
     try {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("look")) setLook(params.get("look"));
-      if (params.get("contact") === "1" || params.get("contactSheet") === "1") setContactSheet(true);
+      const lookParam = (params.get("look") || "").toLowerCase();
+      const isSheetLook = lookParam === "sheet" || lookParam === "contact" || lookParam === "9-look";
+      if (lookParam && !isSheetLook) setLook(lookParam);
+      if (isSheetLook || params.get("contact") === "1" || params.get("contactSheet") === "1") {
+        setContactSheet(true);
+      }
       if (params.get("mv") === "1") {
         startMusicVideo({
           time: params.get("t") !== null ? +params.get("t") : 12.2,
-          look: params.get("look") || undefined
+          look: (lookParam && !isSheetLook) ? lookParam : undefined
         });
       }
     } catch (_e) { /* ignore */ }

@@ -565,16 +565,8 @@
     if (expressionPriorsState.checked || typeof fetch !== "function") return;
     expressionPriorsState.checked = true;
     const v3Dir = resolveTexturesV3Dir(donkeyBaseUrl);
-    // Probe directory listing (200 OK) first so we NEVER trigger an HTTP 404 while exp-video-plates is generating priors!
-    fetch(v3Dir)
-      .then(r => (r.ok ? r.text() : ""))
-      .then(listing => {
-        if (listing && listing.indexOf("expression_viseme_priors.json") >= 0) {
-          return fetch(v3Dir + "expression_viseme_priors.json")
-            .then(r2 => (r2.ok ? r2.json() : null));
-        }
-        return null;
-      })
+    fetch(v3Dir + "expression_viseme_priors.json")
+      .then(r => (r.ok ? r.json() : null))
       .then(json => {
         if (json) {
           expressionPriorsState.loaded = true;
