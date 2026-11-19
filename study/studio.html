@@ -1,0 +1,1806 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#141512">
+  <meta name="description" content="DONKEY WATER, 2086 · Bidirectional Game ↔ Video Production Studio: Live Night Post 3D Machinima stage, Synchronized Omni 1.2 Flash study comparison, The Donkey Method orthographic projection gallery, V1–V6 scene loops, and 16 ZZlDs10FCZk source keyframes.">
+  <link rel="icon" type="image/svg+xml" href="../night-post/favicon.svg">
+  <link rel="alternate icon" href="../favicon.ico">
+  <title>DONKEY WATER, 2086 · Bidirectional Game ↔ Video Production Studio</title>
+  <script src="../field-plates/fonts.js"></script>
+  <style>
+    :root {
+      --bg: #141512;
+      --bg-deep: #0c0d0b;
+      --surface: #1b1c17;
+      --surface-2: #23251e;
+      --surface-matte: #424242;
+      --panel: rgba(24, 25, 21, 0.92);
+      --paper: #f1eee6;
+      --muted: rgba(241, 238, 230, 0.72);
+      --dim: rgba(241, 238, 230, 0.48);
+      --brass: #cbb182;
+      --brass-dim: rgba(203, 177, 130, 0.34);
+      --brass-bg: rgba(203, 177, 130, 0.12);
+      --cyan: #18b4ff;
+      --aqua: #6be8dc;
+      --cyan-dim: rgba(24, 180, 255, 0.36);
+      --cyan-bg: rgba(24, 180, 255, 0.12);
+      --rule: rgba(241, 238, 230, 0.16);
+      --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+      --sans: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --hdr-h: 50px;
+    }
+
+    * { box-sizing: border-box; }
+    html {
+      background: var(--bg);
+      color: var(--paper);
+      scroll-behavior: smooth;
+    }
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(24, 180, 255, 0.06) 0%, transparent 52%),
+        radial-gradient(circle at 18% 12%, #20221b 0%, var(--bg) 65%);
+      color: var(--paper);
+      font: 400 14px/1.55 var(--sans);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    a { color: inherit; }
+    section { scroll-margin-top: 86px; }
+    [hidden] { display: none !important; }
+
+    /* =========================================================================
+       SLIM STICKY DARKROOM TOP BAR
+       ========================================================================= */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 80;
+      min-height: var(--hdr-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px clamp(12px, 2.5vw, 24px);
+      background: rgba(15, 16, 13, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--brass-dim);
+    }
+    .brand-cluster {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .brand-kicker {
+      font: 700 10.5px/1 var(--mono);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+    .brand-title {
+      font: 400 20px/1 var(--serif);
+      letter-spacing: 0.03em;
+      color: var(--paper);
+    }
+    .top-links, .sec-jumps {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      height: 27px;
+      padding: 0 9px;
+      border-radius: 999px;
+      border: 1px solid var(--brass-dim);
+      background: rgba(24, 25, 21, 0.88);
+      color: var(--paper);
+      font: 600 10px/1 var(--sans);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease, transform 0.14s ease;
+    }
+    .pill:hover, .pill:focus-visible {
+      border-color: var(--cyan);
+      color: var(--aqua);
+      outline: none;
+    }
+    .pill.brass {
+      border-color: var(--brass);
+      color: var(--brass);
+      background: var(--brass-bg);
+    }
+    .pill.brass:hover {
+      background: rgba(203, 177, 130, 0.22);
+      color: var(--paper);
+    }
+    .pill.primary, .pill[aria-pressed="true"], .pill.active {
+      background: var(--cyan);
+      border-color: var(--cyan);
+      color: #06131a;
+      box-shadow: 0 2px 16px rgba(24, 180, 255, 0.28);
+    }
+    .pill.primary:hover {
+      background: #56cbff;
+      color: #06131a;
+    }
+
+    /* =========================================================================
+       MAIN STUDIO CONTAINER & SECTION HEADERS
+       ========================================================================= */
+    .studio-wrap {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 16px clamp(12px, 2.5vw, 28px) 72px;
+      display: flex;
+      flex-direction: column;
+      gap: 44px;
+    }
+
+    .sec-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--brass-dim);
+      margin-bottom: 18px;
+    }
+    .sec-eyebrow {
+      margin: 0 0 4px;
+      font: 700 10.5px/1.2 var(--mono);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--brass);
+    }
+    .sec-title {
+      margin: 0;
+      font: 400 clamp(26px, 3.4vw, 38px)/1.06 var(--serif);
+      letter-spacing: 0.02em;
+      color: var(--paper);
+    }
+    .sec-desc {
+      margin: 6px 0 0;
+      max-width: 78ch;
+      color: var(--muted);
+      font-size: 13.5px;
+    }
+
+    /* =========================================================================
+       SECTION 1: LIVE EMBEDDED STAGE + SYNCHRONIZED COMPARE VIDEO PANE
+       ========================================================================= */
+    .stage-shell {
+      background: linear-gradient(180deg, #191a15 0%, #12130f 100%);
+      border: 1px solid var(--brass-dim);
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .stage-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .jumper-strip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+    .jumper-btn {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 12px;
+      border-radius: 7px;
+      border: 1px solid rgba(241, 238, 230, 0.20);
+      background: rgba(14, 16, 15, 0.86);
+      color: var(--paper);
+      font: 600 11px/1.1 var(--sans);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+    .jumper-btn .j-num {
+      font: 700 10px/1 var(--mono);
+      color: var(--brass);
+    }
+    .jumper-btn:hover {
+      border-color: var(--cyan);
+      background: rgba(24, 180, 255, 0.10);
+    }
+    .jumper-btn.active {
+      background: linear-gradient(135deg, rgba(24, 180, 255, 0.24), rgba(107, 232, 220, 0.14));
+      border-color: var(--cyan);
+      color: #ffffff;
+      box-shadow: inset 0 0 0 1px rgba(24, 180, 255, 0.35);
+    }
+    .jumper-btn.active .j-num {
+      color: var(--aqua);
+    }
+
+    .stage-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dual-stage {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+    .dual-stage.solo {
+      grid-template-columns: 1fr;
+    }
+    .dual-stage.solo #compare-pane {
+      display: none;
+    }
+    @media (max-width: 1060px) {
+      .dual-stage {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .viewport-card {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-deep);
+      border: 1px solid rgba(241, 238, 230, 0.18);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .vp-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 11px;
+      background: rgba(20, 22, 19, 0.96);
+      border-bottom: 1px solid rgba(241, 238, 230, 0.12);
+      font: 600 10.5px/1.2 var(--mono);
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+    .vp-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--paper);
+    }
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+    }
+    .vp-telemetry {
+      color: var(--aqua);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .vp-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #070909;
+      overflow: hidden;
+    }
+    .vp-frame iframe,
+    .vp-frame video,
+    .vp-frame img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      object-fit: cover;
+      background: #070909;
+    }
+    .vp-frame img.contain-plate {
+      object-fit: contain;
+      background: #141512;
+    }
+
+    .compare-subtabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .subtab {
+      appearance: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(241, 238, 230, 0.18);
+      background: rgba(14, 15, 13, 0.85);
+      color: var(--muted);
+      font: 600 9.5px/1 var(--mono);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .subtab:hover { color: var(--paper); border-color: var(--brass); }
+    .subtab.active {
+      background: var(--brass-bg);
+      border-color: var(--brass);
+      color: var(--brass);
+    }
+
+    .vp-foot {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 12px;
+      background: rgba(18, 19, 16, 0.95);
+      border-top: 1px solid rgba(241, 238, 230, 0.10);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .vp-foot code {
+      font: 600 11px/1.2 var(--mono);
+      color: var(--brass);
+    }
+
+    /* =========================================================================
+       SECTION 2: THE DONKEY METHOD GALLERY
+       ========================================================================= */
+    .method-callout {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .method-step {
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: var(--surface);
+      border: 1px solid var(--rule);
+    }
+    .method-step strong {
+      display: block;
+      font: 700 10.5px/1.2 var(--mono);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 6px;
+    }
+    .method-step p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .turnaround-box {
+      background: var(--surface);
+      border: 1px solid var(--brass-dim);
+      border-radius: 9px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .turnaround-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .turnaround-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+    }
+    .ortho-card {
+      background: #2b2c27;
+      border: 1px solid rgba(241, 238, 230, 0.18);
+      border-radius: 7px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      cursor: zoom-in;
+      transition: border-color 0.14s ease, transform 0.14s ease;
+    }
+    .ortho-card:hover {
+      border-color: var(--cyan);
+      transform: translateY(-1px);
+    }
+    .ortho-well {
+      position: relative;
+      background: var(--surface-matte);
+      aspect-ratio: 3 / 4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .ortho-well.wide {
+      aspect-ratio: 16 / 10;
+    }
+    .ortho-well.square {
+      aspect-ratio: 1 / 1;
+    }
+    .ortho-well.decal-bg {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(24, 180, 255, 0.28), rgba(8, 22, 30, 0.96));
+    }
+    .ortho-well img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    .uv-guide {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.16s ease;
+    }
+    body.show-uv-guides .uv-guide {
+      opacity: 1;
+    }
+    .uv-centerline {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      border-left: 1px dashed rgba(24, 180, 255, 0.78);
+    }
+    .uv-crown {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 4.8%;
+      border-top: 1px dashed rgba(203, 177, 130, 0.85);
+    }
+    .uv-soles {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 4.8%;
+      border-bottom: 1px dashed rgba(203, 177, 130, 0.85);
+    }
+    .ortho-meta {
+      padding: 9px 11px;
+      background: var(--surface);
+      border-top: 1px solid rgba(241, 238, 230, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .ortho-meta strong {
+      font: 600 11.5px/1.2 var(--sans);
+      color: var(--paper);
+    }
+    .ortho-meta span {
+      font: 500 10.5px/1.3 var(--mono);
+      color: var(--brass);
+    }
+
+    .sheets-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 960px) {
+      .sheets-row { grid-template-columns: 1fr; }
+    }
+
+    .arch-plates-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 12px;
+    }
+
+    /* =========================================================================
+       SECTION 3: 6 BIDIRECTIONAL SCENE STUDIES (V1–V6)
+       ========================================================================= */
+    .pipeline-scrubber-card {
+      background: var(--surface);
+      border: 1px solid var(--brass-dim);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .pipe-steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (max-width: 980px) {
+      .pipe-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .pipe-steps { grid-template-columns: 1fr; }
+    }
+    .pipe-col {
+      background: var(--bg-deep);
+      border: 1px solid rgba(241, 238, 230, 0.16);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .pipe-col.active-step {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 1px rgba(24, 180, 255, 0.32), 0 10px 26px rgba(0, 0, 0, 0.45);
+    }
+    .pipe-col-hdr {
+      padding: 7px 10px;
+      background: rgba(24, 26, 21, 0.95);
+      border-bottom: 1px solid rgba(241, 238, 230, 0.10);
+      font: 700 10px/1.2 var(--mono);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--brass);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .pipe-col.active-step .pipe-col-hdr {
+      color: var(--aqua);
+    }
+    .pipe-media {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: #090b0b;
+      overflow: hidden;
+    }
+    .pipe-media img, .pipe-media video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .pipe-cap {
+      padding: 9px 11px;
+      font-size: 12px;
+      color: var(--muted);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .scrub-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      border-radius: 7px;
+      background: rgba(12, 14, 13, 0.82);
+      border: 1px solid rgba(241, 238, 230, 0.12);
+    }
+    .scrub-bar-row label {
+      font: 700 10.5px/1 var(--mono);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--aqua);
+      white-space: nowrap;
+    }
+    .scrub-bar-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+
+    .studies-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 16px;
+    }
+    @media (max-width: 520px) {
+      .studies-grid { grid-template-columns: 1fr; }
+    }
+    .study-card {
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-radius: 9px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .study-card-hdr {
+      padding: 12px 15px;
+      border-bottom: 1px solid var(--rule);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .study-card-hdr h3 {
+      margin: 3px 0 0;
+      font: 400 22px/1.12 var(--serif);
+      color: var(--paper);
+    }
+    .study-code {
+      font: 700 10px/1 var(--mono);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+    .study-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: rgba(241, 238, 230, 0.12);
+    }
+    .study-pane {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: #080a0a;
+      overflow: hidden;
+    }
+    .study-pane img, .study-pane video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .pane-badge {
+      position: absolute;
+      left: 7px;
+      top: 7px;
+      padding: 3px 7px;
+      border-radius: 4px;
+      background: rgba(10, 13, 14, 0.82);
+      border: 1px solid rgba(241, 238, 230, 0.22);
+      font: 700 9px/1 var(--mono);
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--paper);
+      pointer-events: none;
+    }
+    .study-body {
+      padding: 12px 15px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+    .study-body p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .swatch-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .swatch {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 7px;
+      border-radius: 4px;
+      background: rgba(10, 12, 11, 0.72);
+      border: 1px solid rgba(241, 238, 230, 0.14);
+      font: 600 10px/1 var(--mono);
+      color: var(--muted);
+    }
+    .swatch i {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      display: inline-block;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    /* =========================================================================
+       SECTION 4: 16 EXTRACTED ZZlDs10FCZk KEYFRAMES
+       ========================================================================= */
+    .kf-scrubber-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      gap: 16px;
+      background: var(--surface);
+      border: 1px solid var(--brass-dim);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 18px;
+      align-items: center;
+    }
+    @media (max-width: 900px) {
+      .kf-scrubber-hero { grid-template-columns: 1fr; }
+    }
+    .kf-hero-frame {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      border-radius: 7px;
+      overflow: hidden;
+      background: #070909;
+      border: 1px solid rgba(241, 238, 230, 0.20);
+      cursor: zoom-in;
+    }
+    .kf-hero-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .kf-hero-info {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .kf-hero-info h3 {
+      margin: 0;
+      font: 400 26px/1.1 var(--serif);
+    }
+    .kf-hero-info p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13.5px;
+    }
+
+    .kf-contact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
+      gap: 11px;
+    }
+    .kf-card {
+      appearance: none;
+      text-align: left;
+      padding: 0;
+      background: var(--surface);
+      border: 1px solid var(--rule);
+      border-radius: 7px;
+      overflow: hidden;
+      color: inherit;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.14s ease, transform 0.14s ease;
+    }
+    .kf-card:hover {
+      border-color: var(--brass);
+      transform: translateY(-1px);
+    }
+    .kf-card.active {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 1px var(--cyan);
+    }
+    .kf-card img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      display: block;
+    }
+    .kf-card-cap {
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .kf-card-cap code {
+      font: 700 10px/1.1 var(--mono);
+      color: var(--cyan);
+      letter-spacing: 0.08em;
+    }
+    .kf-card-cap strong {
+      font: 600 12px/1.25 var(--sans);
+      color: var(--paper);
+    }
+    .kf-card-cap span {
+      font-size: 11px;
+      color: var(--dim);
+    }
+
+    /* =========================================================================
+       DARKROOM LIGHTBOX MODAL
+       ========================================================================= */
+    #lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      background: rgba(8, 10, 10, 0.94);
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      gap: 12px;
+      cursor: zoom-out;
+    }
+    #lightbox img {
+      max-width: 94vw;
+      max-height: 82vh;
+      object-fit: contain;
+      border-radius: 6px;
+      border: 1px solid var(--brass-dim);
+      background: var(--surface-matte);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75);
+    }
+    #lightbox-cap {
+      font: 500 12.5px/1.4 var(--mono);
+      color: var(--paper);
+      text-align: center;
+      max-width: 80ch;
+    }
+
+    footer {
+      border-top: 1px solid var(--rule);
+      padding-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--dim);
+    }
+  </style>
+</head>
+<body class="show-uv-guides">
+  <!-- SLIM STICKY DARKROOM NAVIGATION -->
+  <header class="topbar">
+    <div class="brand-cluster">
+      <span class="brand-kicker">DONKEY WATER · 2086</span>
+      <span class="brand-title">Bidirectional Game ↔ Video Studio</span>
+    </div>
+    <nav class="sec-jumps" aria-label="Studio sections">
+      <a class="pill" href="#live-stage">1 · Live Stage</a>
+      <a class="pill" href="#donkey-method">2 · Donkey Method</a>
+      <a class="pill" href="#v2g-studies">3 · V1–V6 Loops</a>
+      <a class="pill" href="#film-keyframes">4 · 16 Keyframes</a>
+    </nav>
+    <nav class="top-links" aria-label="Playable routes">
+      <a class="pill primary" href="../night-post/index.html?trailer=1">🎬 Night Post Trailer ↗</a>
+      <a class="pill brass" href="../night-post/index.html?circuit=ahiya">☾ Ahiya Circuit ↗</a>
+      <a class="pill" href="./index.html">3D Turntable</a>
+      <a class="pill" href="../zones/index.html?trailer=1">Zones 0–X</a>
+      <a class="pill" href="../index.html">‹ Field Index</a>
+    </nav>
+  </header>
+
+  <main class="studio-wrap">
+    <!-- =======================================================================
+         1. LIVE EMBEDDED NIGHT-POST/?TRAILER=1 STAGE + COMPARE VIDEO PANE
+         ======================================================================= -->
+    <section id="live-stage" aria-label="Live Embedded 3D Machinima Stage and Compare Video">
+      <div class="stage-shell">
+        <div class="stage-toolbar">
+          <div class="jumper-strip" id="scene-jumpers" role="group" aria-label="One-click scene jumpers">
+            <button type="button" class="jumper-btn active" data-scene="wellhead">
+              <span class="j-num">V1</span> Wellhead
+            </button>
+            <button type="button" class="jumper-btn" data-scene="compound">
+              <span class="j-num">V2</span> Compound Unload
+            </button>
+            <button type="button" class="jumper-btn" data-scene="oxbow">
+              <span class="j-num">V3</span> Oxbow Sheet
+            </button>
+            <button type="button" class="jumper-btn" data-scene="cooling">
+              <span class="j-num">V4</span> Cooling Vault
+            </button>
+            <button type="button" class="jumper-btn" data-scene="convoy">
+              <span class="j-num">V5</span> Night Convoy
+            </button>
+            <button type="button" class="jumper-btn" data-scene="hill">
+              <span class="j-num">V6</span> Hill REC PPC
+            </button>
+          </div>
+
+          <div class="stage-controls">
+            <button type="button" class="pill" id="btn-play-pause">⏸ Pause Both</button>
+            <button type="button" class="pill" id="btn-hold-scene" aria-pressed="false" title="Loop the selected scene continuously to inspect motion against the 10s study clip">↻ Hold Scene</button>
+            <button type="button" class="pill" id="btn-mode-mv" aria-pressed="false" title="Switch embedded engine between 90s Explainer Trailer and 4m43s Music Video">♫ Music Video</button>
+            <button type="button" class="pill active" id="btn-compare-toggle" aria-pressed="true">◫ Compare Video</button>
+            <button type="button" class="pill" id="btn-fullscreen">⛶ Fullscreen</button>
+          </div>
+        </div>
+
+        <div class="dual-stage" id="dual-stage">
+          <!-- LEFT: LIVE UPGRADED 3D ENGINE -->
+          <div class="viewport-card">
+            <div class="vp-bar">
+              <span class="vp-label"><i class="live-dot"></i> Live 3D Engine · <code>../night-post/index.html?trailer=1</code></span>
+              <span class="vp-telemetry" id="engine-telemetry">Connecting to 2086 Night Post…</span>
+            </div>
+            <div class="vp-frame" id="engine-frame-wrap">
+              <iframe
+                id="live-stage-frame"
+                src="../night-post/index.html?trailer=1"
+                title="DONKEY WATER 2086 · Live Night Post 3D Machinima Stage"
+                allow="autoplay; fullscreen"
+              ></iframe>
+            </div>
+            <div class="vp-foot">
+              <span id="engine-shot-caption"><strong>Act I · Overlook Wellhead</strong> — Imani pumping &amp; checking Mistletoe’s 4 L chalk window while June holds the cup.</span>
+              <code>Click jumper above to sync 3D cut + study clip</code>
+            </div>
+          </div>
+
+          <!-- RIGHT: SYNCHRONIZED COMPARE VIDEO / PLATE PANE -->
+          <div class="viewport-card" id="compare-pane">
+            <div class="vp-bar">
+              <span class="vp-label" id="compare-pane-title">Compare · V1 Omni 1.2 Flash Study</span>
+              <div class="compare-subtabs" role="tablist" aria-label="Compare reference layer">
+                <button type="button" class="subtab active" data-layer="video">10s Study Video</button>
+                <button type="button" class="subtab" data-layer="keyframe">Film Keyframe</button>
+                <button type="button" class="subtab" data-layer="blocking">3D Blocking</button>
+                <button type="button" class="subtab" data-layer="sheet">Contact Sheet</button>
+              </div>
+            </div>
+            <div class="vp-frame">
+              <video id="compare-video" muted loop playsinline controls preload="metadata"></video>
+              <img id="compare-image" alt="Reference comparison plate" hidden>
+            </div>
+            <div class="vp-foot">
+              <span id="compare-caption">Synchronized 720p motion &amp; surface study paired with the active 3D Machinima scene.</span>
+              <code id="compare-source-path">./v2g/V1_wellhead_pump.mp4</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         2. THE DONKEY METHOD GALLERY
+         ======================================================================= -->
+    <section id="donkey-method" aria-label="The Donkey Method Orthographic Projection Gallery">
+      <div class="sec-head">
+        <div>
+          <p class="sec-eyebrow">Section II · Orthographic Multi-View Texture Projection</p>
+          <h2 class="sec-title">The Donkey Method Gallery</h2>
+          <p class="sec-desc">How Mistletoe’s 25-bone procedural burro (<code>donkey/coat_side.jpg</code>) scaled to the human cast and highland architecture: Catmull-Rom lofted geometry + <code>#424242</code> neutral matte surround with 58 px Euclidean dilated edge-bleed + normal-weighted tri-view <code>onBeforeCompile</code> UV projection.</p>
+        </div>
+        <div class="stage-controls">
+          <button type="button" class="pill active" id="btn-uv-guides" aria-pressed="true">UV Horizon Guides</button>
+          <a class="pill brass" href="../donkey/index.html">Open Pack Donkey ↗</a>
+        </div>
+      </div>
+
+      <div class="method-callout">
+        <div class="method-step">
+          <strong>01 · Shared Vertical Registration (v = 0.047 → 0.952)</strong>
+          <p>All 9 full-body human plates (<code>512×1024</code>) lock soles at <code>y = 976 px</code> and crown at <code>y = 48 px</code> with centerline <code>u = 0.500</code> and left-facing side profiles (<code>-u = +Z</code>), matching <code>donkey/coat_side.jpg</code> row-for-row.</p>
+        </div>
+        <div class="method-step">
+          <strong>02 · #424242 Matte + 58 px Dilated Bleed</strong>
+          <p>Instead of hard alpha cutouts that halo dark seams at grazing 3D limb silhouettes, outward Euclidean pixel dilation smoothly transitions garment weave into a <code>#424242</code> darkroom surround.</p>
+        </div>
+        <div class="method-step">
+          <strong>03 · Tri-View onBeforeCompile Blending</strong>
+          <p>World-normal weights blend Front (<code>+Z</code>), Side (<code>±X</code>), and Back (<code>-Z</code>) orthographic plates across <code>loftOpenGarment</code> <em>gabi</em> shawls, weathered leather dusters, <em>hidmo</em> mud-plaster, and domed stone masonry.</p>
+        </div>
+      </div>
+
+      <!-- INTERACTIVE TURNAROUND SWITCHER -->
+      <div class="turnaround-box">
+        <div class="turnaround-head">
+          <div>
+            <span class="study-code">Interactive Multi-View Plate Set</span>
+            <h3 id="turnaround-title" style="margin:3px 0 0;font:400 22px/1.15 var(--serif);">Gabi-Shawl Highland Carrier (`carrier_*.jpg` · 512×1024)</h3>
+          </div>
+          <div class="stage-controls" id="turnaround-tabs">
+            <button type="button" class="pill active" data-rig="carrier">Gabi Carrier (4)</button>
+            <button type="button" class="pill" data-rig="imani">Imani Mechanic (3)</button>
+            <button type="button" class="pill" data-rig="child">June / Child (3)</button>
+            <button type="button" class="pill" data-rig="donkey">Mistletoe Origin (5)</button>
+          </div>
+        </div>
+        <div class="turnaround-grid" id="turnaround-grid"></div>
+      </div>
+
+      <!-- 3 MASTER STUDY SHEETS -->
+      <div class="sheets-row">
+        <article class="ortho-card" data-zoom="./generated/study_sheet_characters.jpg" data-cap="Master Character Turnaround Study Sheet — Imani Carrier, Elder Shawl Carrier, and Child with wrench, rope, smartphone & cyan cup insets.">
+          <div class="ortho-well wide">
+            <img src="./generated/study_sheet_characters.jpg" alt="Character turnaround orthographic study sheet" loading="lazy">
+          </div>
+          <div class="ortho-meta">
+            <strong>Master Sheet I · Human Cast Turnarounds</strong>
+            <span>./generated/study_sheet_characters.jpg · Imani, Elder &amp; Child</span>
+          </div>
+        </article>
+        <article class="ortho-card" data-zoom="./generated/study_sheet_architecture.jpg" data-cap="Master Architecture & Prop Study Sheet — Highland Hidmo Compound House, Stone Chapel/Archive, Wire-Glass Cooling Bay & 20L Pack Props.">
+          <div class="ortho-well wide">
+            <img src="./generated/study_sheet_architecture.jpg" alt="Highland architecture and prop study sheet" loading="lazy">
+          </div>
+          <div class="ortho-meta">
+            <strong>Master Sheet II · Highland Architecture &amp; Props</strong>
+            <span>./generated/study_sheet_architecture.jpg · Hidmo, Chapel &amp; Vault</span>
+          </div>
+        </article>
+        <article class="ortho-card" data-zoom="./generated/study_sheet_motion.jpg" data-cap="Master Biomechanical Motion Sheet — 6/8 Eskista Shoulder-Dance, 20 kg Jerrycan Lift & Basin Pour, and Cast-Iron Wellhead Pump Lever Stroke.">
+          <div class="ortho-well wide">
+            <img src="./generated/study_sheet_motion.jpg" alt="Biomechanical motion study sheet" loading="lazy">
+          </div>
+          <div class="ortho-meta">
+            <strong>Master Sheet III · 6/8 Eskista, 20 kg Lift &amp; Pump</strong>
+            <span>./generated/study_sheet_motion.jpg · IK Timing &amp; Weight Transfer</span>
+          </div>
+        </article>
+      </div>
+
+      <!-- ARCHITECTURE & STENCIL ORTHO PLATES -->
+      <div class="arch-plates-grid" id="arch-plates-grid"></div>
+    </section>
+
+    <!-- =======================================================================
+         3. 6 BIDIRECTIONAL SCENE STUDIES (V1–V6)
+         ======================================================================= -->
+    <section id="v2g-studies" aria-label="Six Bidirectional Video-to-Game Scene Studies">
+      <div class="sec-head">
+        <div>
+          <p class="sec-eyebrow">Section III · Bidirectional Game ↔ Video Loop (./v2g/V1..V6)</p>
+          <h2 class="sec-title">Six 2086 Scene Studies: Film → 3D Blocking → Omni 1.2 Flash → Live Engine</h2>
+          <p class="sec-desc">Each Night Post station was blocked in Three.js, paired with <code>ZZlDs10FCZk</code> reference keyframes, studied via single-shot 10-second <code>gemini-omni-1.2-flash</code> motion &amp; lighting synthesis, and distilled back into real-time 60 fps IK choreography and orthographic materials.</p>
+        </div>
+      </div>
+
+      <!-- INTERACTIVE 4-STAGE PIPELINE SCRUBBER -->
+      <div class="pipeline-scrubber-card">
+        <div class="stage-toolbar">
+          <div class="jumper-strip" id="pipe-scene-tabs"></div>
+          <button type="button" class="pill primary" id="pipe-cue-live">▶ Cue Scene on Top Live Stage ↑</button>
+        </div>
+
+        <div class="scrub-bar-row">
+          <label for="pipe-slider" id="pipe-stage-readout">Stage 3 / 4 · Omni 1.2 Flash 10s Study</label>
+          <input type="range" id="pipe-slider" min="0" max="3" step="1" value="2">
+        </div>
+
+        <div class="pipe-steps" id="pipe-steps">
+          <div class="pipe-col" data-step="0">
+            <div class="pipe-col-hdr"><span>1 · Source Film Keyframe</span><code>ZZlDs10FCZk</code></div>
+            <div class="pipe-media"><img id="pipe-img-kf" alt="Source film keyframe"></div>
+            <div class="pipe-cap"><span id="pipe-cap-kf"></span></div>
+          </div>
+          <div class="pipe-col" data-step="1">
+            <div class="pipe-col-hdr"><span>2 · 3D Camera Blocking</span><code>Playwright Metal</code></div>
+            <div class="pipe-media"><img id="pipe-img-block" alt="3D engine camera blocking"></div>
+            <div class="pipe-cap"><span id="pipe-cap-block"></span></div>
+          </div>
+          <div class="pipe-col active-step" data-step="2">
+            <div class="pipe-col-hdr"><span>3 · Omni 1.2 Flash 10s Study</span><code>720p Loop</code></div>
+            <div class="pipe-media"><video id="pipe-vid-study" muted loop autoplay playsinline controls preload="metadata"></video></div>
+            <div class="pipe-cap"><span id="pipe-cap-study"></span></div>
+          </div>
+          <div class="pipe-col" data-step="3">
+            <div class="pipe-col-hdr"><span>4 · Contact Sheet &amp; Engine Lock</span><code>60 FPS WebGL</code></div>
+            <div class="pipe-media"><img id="pipe-img-sheet" alt="Extracted motion study contact sheet"></div>
+            <div class="pipe-cap"><span id="pipe-cap-engine"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALL 6 SCENE STUDY CARDS -->
+      <div class="studies-grid" id="studies-grid"></div>
+    </section>
+
+    <!-- =======================================================================
+         4. 16 EXTRACTED ZZlDs10FCZk FILM KEYFRAMES (kf01..kf16)
+         ======================================================================= -->
+    <section id="film-keyframes" aria-label="Sixteen Extracted ZZlDs10FCZk Source Film Keyframes">
+      <div class="sec-head">
+        <div>
+          <p class="sec-eyebrow">Section IV · Primary Visual Canon (./keyframes/kf01..kf16)</p>
+          <h2 class="sec-title">16 Extracted <code>ZZlDs10FCZk</code> Film Keyframes (00:01 – 02:03)</h2>
+          <p class="sec-desc">Scrub chronologically from the opening macro cyan droplet in the <code>REC PPC</code> camcorder gate to the daylight two-person 20 kg saddle unload and wheel-thrown terracotta donkey bowl pour.</p>
+        </div>
+        <a class="pill brass" href="../music-video.html">Open Full Screening Room ↗</a>
+      </div>
+
+      <div class="kf-scrubber-hero">
+        <div class="kf-hero-frame" id="kf-hero-zoom">
+          <img id="kf-hero-img" src="./keyframes/kf10_00m56s_citadel_beacon_mesh.jpg" alt="Selected film keyframe">
+        </div>
+        <div class="kf-hero-info">
+          <span class="study-code" id="kf-hero-code">KF10 · 00:56 · AHIYA NIGHT RIDGE</span>
+          <h3 id="kf-hero-title">Hilltop Cross-Beacon Dome &amp; Cyan Delaunay Ground Mesh</h3>
+          <p id="kf-hero-desc">Over-the-shoulder ridge ascent behind the glowing saddle jugs and smartphone-lit *gabi* carriers looking toward the domed stone Cross-Beacon sanctuary and vertical sky beam.</p>
+          <div class="scrub-bar-row">
+            <label for="kf-slider" id="kf-slider-label">10 / 16</label>
+            <input type="range" id="kf-slider" min="0" max="15" step="1" value="9">
+          </div>
+          <div class="stage-controls">
+            <button type="button" class="pill primary" id="kf-cue-btn">▶ Jump Live 3D Stage to Matching Scene ↑</button>
+            <button type="button" class="pill" id="kf-zoom-btn">🔍 Inspect Full Plate</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="kf-contact-grid" id="kf-contact-grid"></div>
+    </section>
+
+    <footer>
+      <span>DONKEY WATER, 2086 · Night Post &amp; Ahiya Area Network · Darkroom Production Studio (`#141512`)</span>
+      <span> shared modules: <code>donkey/donkey.js</code> · <code>donkey/characters.js</code> · <code>zones/world-architecture.js</code> · <code>zones/machinima.js</code></span>
+    </footer>
+  </main>
+
+  <div id="lightbox" hidden role="dialog" aria-label="Enlarged plate inspector">
+    <img id="lightbox-img" alt="Enlarged studio plate">
+    <div id="lightbox-cap"></div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      /* ---------- Canonical V1–V6 Bidirectional Scene Study Ledger ---------- */
+      const SCENE_STUDIES = [
+        {
+          scene: "wellhead",
+          code: "V1",
+          name: "Wellhead",
+          title: "Overlook Wellhead · 4 L Chalk Window & Dawn Pump",
+          shotStart: 0.2,
+          shotEnd: 8.5,
+          video: "./v2g/V1_wellhead_pump.mp4",
+          sheet: "./v2g/V1_sheet.jpg",
+          blocking: "./v2g/game_blocking_V1_wellhead.jpg",
+          keyframe: "./keyframes/kf02_00m02s_iron_standpipe_pump.jpg",
+          caption3d: "Act I · Overlook Wellhead — Imani pumps the cast-iron standpipe (`pump`) & checks Mistletoe’s 4 L chalk window (`touchPack`) while June raises her tin cup (`micCup`).",
+          captionKf: "kf02 (00:02): Cast-iron lever down-stroke discharging luminous cyan water through the flanged standpipe collar inside the REC PPC viewfinder.",
+          captionBlock: "3D blocking at Overlook Wellhead (-22.2, -6.2) & gravel apron (-20.95, -11.4) aligning standpipe, Mistletoe’s +X sight-window, Imani, and June.",
+          captionStudy: "Omni 1.2 Flash 10s study synthesizing full-body lever weight-transfer, weathered duster creases, and Mistletoe’s glowing 4 L saddle window.",
+          captionEngine: "Distilled into `imani_*` leather/canvas ortho projection, 2-cut pump-to-saddle choreography, and June’s brushed tin microphone-cup gesture.",
+          palettes: ["#141512", "#424242", "#8b7f6e", "#18b4ff", "#6be8dc"]
+        },
+        {
+          scene: "compound",
+          code: "V2",
+          name: "Compound Unload",
+          title: "Daylight Compound · 2-Person 20 L Unload & Clay Bowl Pour",
+          shotStart: 8.7,
+          shotEnd: 17.5,
+          video: "./v2g/V2_daylight_compound_unload.mp4",
+          sheet: "./v2g/V2_sheet.jpg",
+          blocking: "./v2g/game_blocking_V2_compound.jpg",
+          keyframe: "./keyframes/kf14_01m45s_two_man_20kg_unload.jpg",
+          caption3d: "Act II · Daylight Compound — Tesfaye & Abba Desta untie the sisal hitch, heave the 20 L WATER = WIFI can off Mistletoe, and pour into the terracotta bowl beside the billowing hidmo doorway sheet.",
+          captionKf: "kf14–kf16 (01:45–02:03): Synchronized two-person 20 kg embossed-X jerrycan lift from sawbuck pack and luminous pour into a wheel-thrown terracotta bowl.",
+          captionBlock: "Courtyard blocking at (-1680, 775) with North hidmo mud-plaster wall, projecting cedar vigas, billowing linen doorway curtain, and basalt flagstone bowl.",
+          captionStudy: "10s daylight courtyard study (`V2_daylight_compound_unload.mp4`) capturing paired 20 kg counterbalance, gabi drape follow-through, and water arc ripples.",
+          captionEngine: "Wired via `cast.stepCompoundUnload` (`unloadHandoff` -> `pourBowl` + 3 expanding cyan ripple rings) and `arch_mudwall.jpg` + `prop_terracotta.jpg`.",
+          palettes: ["#9b7f5f", "#6a4a38", "#d8d1c2", "#18b4ff", "#cbb182"]
+        },
+        {
+          scene: "oxbow",
+          code: "V3",
+          name: "Oxbow Sheet",
+          title: "Cottonwood Oxbow · Double Linen Screening & Root-Bowl",
+          shotStart: 17.7,
+          shotEnd: 26.0,
+          video: "./v2g/V3_oxbow_screening.mp4",
+          sheet: "./v2g/V3_sheet.jpg",
+          blocking: "./v2g/game_blocking_V3_oxbow.jpg",
+          keyframe: "./keyframes/kf04_00m07s_two_hand_basin_pour.jpg",
+          caption3d: "Act III · Cottonwood Oxbow — Double pegged linen sheets billow with WF–08 while Makeda pours into the gnarled root-bowl, Etta shades the beam, and the yard reacts (`screenWatch` / `auntSing`).",
+          captionKf: "kf04 (00:07) & World Bible `grove.jpg`: Living cyan water feeding the cottonwood root-bowl while pegged linen sheets project double-depth cinema.",
+          captionBlock: "Oxbow Film Grove (-510, 96) framing the buttress root-bowl, 35mm perforated kelp-film fronds, double hanging sheets, and seated front-row witness.",
+          captionStudy: "Omni 1.2 Flash 10s study exploring wind-billowing projection cloth, cyan root-bowl bounce light, and living audience gaze/singing reactions.",
+          captionEngine: "Upgraded vertex wind on double linen screens plus `screenWatch` (anticipative foot-lift & gaze tracking) and `auntSing` expressive phrasing.",
+          palettes: ["#1b221e", "#58534b", "#dfdacf", "#1cb8d4", "#62e4f2"]
+        },
+        {
+          scene: "cooling",
+          code: "V4",
+          name: "Cooling Vault",
+          title: "Highland Pueblo · Wire-Glass Registry & Cyan Server Tubes",
+          shotStart: 26.2,
+          shotEnd: 34.5,
+          video: "./v2g/V4_pueblo_cooling_vault.mp4",
+          sheet: "./v2g/V4_sheet.jpg",
+          blocking: "./v2g/game_blocking_V4_pueblo_cooling.jpg",
+          keyframe: "./keyframes/kf07_00m24s_cyan_server_sanctuary.jpg",
+          caption3d: "Act IV · Highland Pueblo Registry — Framing past the 3-branch splitter hoses and straight through Georgian diamond wire-glass into glowing cyan liquid-cooling server tubes & the lit white cross.",
+          captionKf: "kf07 (00:24): Symmetrical dark server-rack corridor with curved glowing cyan liquid-cooling tubes plunging into a wet reflective floor before a white cross.",
+          captionBlock: "Registry sightline at (-776, -30, rot.y = 0.30) along local x = 2.45 looking unobstructed past Tess’s ledger counter into the 6.5 m vault.",
+          captionStudy: "Omni 1.2 Flash 10s vault study capturing condensation on diamond wire-mesh glass, pulsing cyan coolant tubes, and specular floor reflection.",
+          captionEngine: "Built with `arch_cooling.jpg`, curved `TubeGeometry` cyan coolant loops, glossy wet floor reflection pool, and far-wall emissive cross at (-775.83, -37.75).",
+          palettes: ["#0c141c", "#4c565e", "#0078ff", "#54ecff", "#f6fbff"]
+        },
+        {
+          scene: "convoy",
+          code: "V5",
+          name: "Night Convoy",
+          title: "Ahiya Night Ridge · Gabi Phone Procession & Cross-Beacon Dome",
+          shotStart: 34.7,
+          shotEnd: 43.5,
+          video: "./v2g/V5_ahiya_night_convoy.mp4",
+          sheet: "./v2g/V5_sheet.jpg",
+          blocking: "./v2g/game_blocking_V5_ahiya_ridge.jpg",
+          keyframe: "./keyframes/kf10_00m56s_citadel_beacon_mesh.jpg",
+          caption3d: "Act V · Ahiya Night Ridge — Low-angle dolly beside the walking smartphone-lit gabi-shawl procession (`convoyWalk` / `filmConvoy`) climbing over cyan network lines toward the domed Cross-Beacon sanctuary.",
+          captionKf: "kf09–kf12 (00:48–01:12): Smartphone cyan uplight on faces & hand-woven shawls, WATER = WIFI jugs, Delaunay ridge mesh, and hilltop stone dome + sky beam.",
+          captionBlock: "SE ridge ascent (-1575, 632) -> (-1594, 608) looking NW toward Cross-Beacon (-1610, 590) over terrain-hugging cyan network lines.",
+          captionStudy: "Omni 1.2 Flash 10s night procession study blending rhythmic burro gait, shawl sway, handheld phone uplight, and distant sanctuary beacon.",
+          captionEngine: "Powered by `cast.stepConvoyProcession`, `carrier_*` ortho shawls, `jug_wifi_decal.png`, `arch_chapel.jpg` stone dome, and Delaunay ground pins.",
+          palettes: ["#0a0f18", "#3b3832", "#c4bdb0", "#18b4ff", "#dff6ff"]
+        },
+        {
+          scene: "hill",
+          code: "V6",
+          name: "Hill REC PPC",
+          title: "Hill Archive · REC PPC Monitor & VHF Operator Desk",
+          shotStart: 43.7,
+          shotEnd: 51.5,
+          video: "./v2g/V6_hill_rec_ppc_desk.mp4",
+          sheet: "./v2g/V6_sheet.jpg",
+          blocking: "./v2g/game_blocking_V6_hill_archive.jpg",
+          keyframe: "./keyframes/kf08_00m36s_rec_ppc_desk_radio.jpg",
+          caption3d: "Act VI · Hill Archive — Cutting directly from the night ridge to Daniel & Hanna (`recDesk`) logging the crossing on clipboard & VHF walkie-talkie before the live REC PPC widescreen monitor.",
+          captionKf: "kf08 (00:36): Two operators in an acoustic partition bay flanking a widescreen REC PPC night-convoy monitor under gooseneck lamps with VHF radio.",
+          captionBlock: "Hill Archive cubicle (-1765, 540) over-the-shoulder framing from z = 542.82 between `ppc_op_male` and `ppc_op_female` onto the live `cinemaMat` screen.",
+          captionStudy: "Omni 1.2 Flash 10s control-room study refining seated posture, clipboard logging, periodic VHF walkie-talkie raise, and monitor glow.",
+          captionEngine: "Implemented via `recDesk` IK pose (clipboard + pen + VHF whip-antenna radio cycle), acoustic partition seams, laptop, gooseneck lamps & spinning fans.",
+          palettes: ["#161c24", "#aeb4ba", "#fff0d4", "#18b4ff", "#cbb182"]
+        }
+      ];
+
+      /* ---------- Donkey Method Turnaround Sets ---------- */
+      const TURNAROUND_SETS = {
+        carrier: {
+          title: "Gabi-Shawl Highland Carrier (`carrier_*.jpg` · 512×1024 + 512×512 Head)",
+          plates: [
+            { src: "../donkey/textures/carrier_front.jpg", title: "Carrier · Front (+Z)", spec: "512×1024 · 61 KB · u=[0.012, 0.982]", uv: true },
+            { src: "../donkey/textures/carrier_side.jpg",  title: "Carrier · Side (-X Left)", spec: "512×1024 · 43 KB · u=[0.281, 0.713]", uv: true },
+            { src: "../donkey/textures/carrier_back.jpg",  title: "Carrier · Back (-Z)", spec: "512×1024 · 66 KB · u=[0.041, 0.977]", uv: true },
+            { src: "../donkey/textures/carrier_head.jpg",  title: "Carrier · Head Portrait", spec: "512×512 · 31 KB · Eyes v≈0.55", square: true }
+          ]
+        },
+        imani: {
+          title: "Imani Saddle Mechanic · Weathered Duster (`imani_*.jpg` · 512×1024)",
+          plates: [
+            { src: "../donkey/textures/imani_front.jpg", title: "Imani · Front (+Z)", spec: "512×1024 · 58 KB · u=[0.141, 0.859]", uv: true },
+            { src: "../donkey/textures/imani_side.jpg",  title: "Imani · Side (-X Left)", spec: "512×1024 · 38 KB · u=[0.336, 0.699]", uv: true },
+            { src: "../donkey/textures/imani_back.jpg",  title: "Imani · Back (-Z)", spec: "512×1024 · 51 KB · u=[0.168, 0.830]", uv: true }
+          ]
+        },
+        child: {
+          title: "June & Highland Youth · Hand-Woven Tunic (`child_*.jpg` · 512×1024)",
+          plates: [
+            { src: "../donkey/textures/child_front.jpg", title: "Child · Front (+Z)", spec: "512×1024 · 50 KB · u=[0.051, 0.998]", uv: true },
+            { src: "../donkey/textures/child_side.jpg",  title: "Child · Side (-X Left)", spec: "512×1024 · 35 KB · u=[0.322, 0.686]", uv: true },
+            { src: "../donkey/textures/child_back.jpg",  title: "Child · Back (-Z)", spec: "512×1024 · 46 KB · u=[0.047, 0.959]", uv: true }
+          ]
+        },
+        donkey: {
+          title: "Mistletoe Reference Origin (`../donkey/coat_*.jpg` · `donkey.js`)",
+          plates: [
+            { src: "../donkey/coat_side.jpg",  title: "Mistletoe · Coat Side", spec: "donkey/coat_side.jpg · #424242 Dilated", wide: true },
+            { src: "../donkey/coat_front.jpg", title: "Mistletoe · Coat Front", spec: "donkey/coat_front.jpg · Chest & Forelegs" },
+            { src: "../donkey/coat_rear.jpg",  title: "Mistletoe · Coat Rear", spec: "donkey/coat_rear.jpg · Croup & Hindquarters" },
+            { src: "../donkey/coat_head.jpg",  title: "Mistletoe · Coat Head", spec: "donkey/coat_head.jpg · Mealy Muzzle & Ears", square: true },
+            { src: "../donkey/coat_top.jpg",   title: "Mistletoe · Coat Dorsal", spec: "donkey/coat_top.jpg · Dorsal Cross Stripe", wide: true }
+          ]
+        }
+      };
+
+      const ARCH_PLATES = [
+        { src: "../donkey/textures/arch_mudwall.jpg", title: "Hidmo Mud-Plaster & Basalt Plinth", spec: "512×512 · Seamless Repeat · v_basalt=[0..0.29]", square: true },
+        { src: "../donkey/textures/arch_chapel.jpg", title: "Cross-Beacon Domed Stone Sanctuary", spec: "1024×512 · #424242 Bleed · Drum, Dome & Mast", wide: true },
+        { src: "../donkey/textures/arch_cooling.jpg", title: "Cooling-Registry Wall & Cyan Conduits", spec: "1024×512 · Wire-Glass Bay u=[0.168, 0.492]", wide: true },
+        { src: "../donkey/textures/prop_terracotta.jpg", title: "Wheel-Thrown Ribbed Terracotta", spec: "512×512 · Full-Bleed Lathe/Loft Clay Grain", square: true },
+        { src: "../donkey/textures/jug_wifi_decal.png", title: "WATER = WIFI / SIGNAL OF GOD Stencil", spec: "512×512 RGBA · Electroluminescent Jug Decal", square: true, decal: true }
+      ];
+
+      /* ---------- 16 Extracted ZZlDs10FCZk Keyframes ---------- */
+      const KEYFRAMES = [
+        { file: "kf01_00m01s_droplet_rec_ppc.jpg", tc: "00:01", scene: "wellhead", station: "Overlook Wellhead", title: "Macro Cyan Droplet in REC PPC Gate", desc: "Selective electric-cyan water tension bead resting on dark wet basalt inside the silver-gelatin REC PPC camcorder frame." },
+        { file: "kf02_00m02s_iron_standpipe_pump.jpg", tc: "00:02", scene: "wellhead", station: "Overlook Wellhead", title: "Cast-Iron Standpipe Lever & Cyan Hose", desc: "Two hands driving the cast-iron pump handle down as pressurized living cyan water surges out the lower coupling." },
+        { file: "kf03_00m03s_hand_jerrycan_transfer.jpg", tc: "00:03", scene: "cooling", station: "Survey Conduit", title: "Calibrated Cyan Conduit & Metric Scale", desc: "Ball-valve junction and cyan feeder pipe crossing a painted 0–3 ground survey gauge." },
+        { file: "kf04_00m07s_two_hand_basin_pour.jpg", tc: "00:07", scene: "oxbow", station: "Silver Ford / Oxbow", title: "Two-Handed 20 L Basin Ignition Pour", desc: "Carrier tipping a translucent jerrycan into a ribbed drum as electric-cyan water fills the cistern." },
+        { file: "kf05_00m16s_sunrise_translucent_can.jpg", tc: "00:16", scene: "wellhead", station: "Western Rim", title: "First-Light Dew Bead on Rim Stone", desc: "Golden dawn rim light refracting a tiny cyan core inside a hanging water droplet." },
+        { file: "kf06_00m20s_highland_stone_chapel.jpg", tc: "00:20", scene: "convoy", station: "Highland Approach", title: "Pack Donkey & Highland Stone Sanctuary", desc: "Gray burro carrying an embossed-X 20 L jerrycan down a dusty highland road below a stone gable chapel with rooftop cross." },
+        { file: "kf07_00m24s_cyan_server_sanctuary.jpg", tc: "00:24", scene: "cooling", station: "Highland Pueblo Vault", title: "Wet Cyan Liquid-Cooling Server Vault", desc: "Dark server-rack corridor with arched glowing cyan coolant tubes plunging into a mirror-wet floor before a lit white cross." },
+        { file: "kf08_00m36s_rec_ppc_desk_radio.jpg", tc: "00:36", scene: "hill", station: "Hill Archive", title: "REC PPC Surveillance Desk & VHF Radio", desc: "Two operators in an office bay logging the night donkey convoy on clipboard, laptop, and VHF handheld radio." },
+        { file: "kf09_00m48s_night_youths_phone_glow.jpg", tc: "00:48", scene: "convoy", station: "Ahiya Night Trail", title: "Night Escorts with Cyan Phone Face-Uplight", desc: "Two youths walking ahead of the glowing pack burro, faces and tunics lit from below by handheld cyan screens." },
+        { file: "kf10_00m56s_citadel_beacon_mesh.jpg", tc: "00:56", scene: "convoy", station: "Cross-Beacon Ridge", title: "Cross-Beacon Dome & Cyan Ground Network Mesh", desc: "Wide night panorama of the donkey convoy climbing toward the domed Cross-Beacon citadel across a glowing Delaunay ground mesh." },
+        { file: "kf11_01m02s_water_wifi_stenciled_pack.jpg", tc: "01:02", scene: "convoy", station: "Ahiya Night Trail", title: "WATER = WIFI / SIGNAL OF GOD Pack Jugs", desc: "Close tracking shot of electroluminescent stenciled 20 L jugs, WiFi brow emblem, and tablet-lit gabi youth." },
+        { file: "kf12_01m12s_draped_elders_procession.jpg", tc: "01:12", scene: "convoy", station: "Cross-Beacon Slope", title: "Draped Gabi-Shawl Elders Night Procession", desc: "Low-angle front dolly of elders in layered hand-woven shawls walking with glowing phones below the hilltop dome." },
+        { file: "kf13_01m26s_ots_smartphone_citadel.jpg", tc: "01:26", scene: "compound", station: "Daylight Ridge", title: "Daylight Carrier Guiding Burro Over Basalt", desc: "Morning sun on gray pack donkey and twin blue 20 L saddle cans arriving above the terraced compound." },
+        { file: "kf14_01m45s_two_man_20kg_unload.jpg", tc: "01:45", scene: "compound", station: "Daylight Compound", title: "Synchronized Two-Person 20 kg Saddle Unload", desc: "Two men bracing together to untie the sisal rope and heave the heavy 20 kg embossed-X jerrycan clear of the wooden sawbuck." },
+        { file: "kf15_01m53s_father_child_hidmo_village.jpg", tc: "01:53", scene: "compound", station: "Daylight Compound", title: "Carrier & Child Handoff Outside Hidmo House", desc: "Warm mud-plaster hidmo compound backdrop as a child in a woven tunic reaches both hands onto the 20 L jerrycan." },
+        { file: "kf16_02m03s_terracotta_donkey_bowl.jpg", tc: "02:03", scene: "compound", station: "Daylight Compound", title: "Pour into Wheel-Thrown Terracotta Donkey Bowl", desc: "Clear water arc splashing into a ribbed terracotta watering bowl on basalt flagstones beside the donkey’s forelegs." }
+      ];
+
+      /* ---------- DOM Elements ---------- */
+      const dualStage = document.getElementById("dual-stage");
+      const iframe = document.getElementById("live-stage-frame");
+      const engineTelemetry = document.getElementById("engine-telemetry");
+      const engineShotCaption = document.getElementById("engine-shot-caption");
+      const compareVideo = document.getElementById("compare-video");
+      const compareImage = document.getElementById("compare-image");
+      const compareTitle = document.getElementById("compare-pane-title");
+      const compareCaption = document.getElementById("compare-caption");
+      const compareSourcePath = document.getElementById("compare-source-path");
+      const btnPlayPause = document.getElementById("btn-play-pause");
+      const btnHoldScene = document.getElementById("btn-hold-scene");
+      const btnModeMv = document.getElementById("btn-mode-mv");
+      const btnCompareToggle = document.getElementById("btn-compare-toggle");
+      const btnFullscreen = document.getElementById("btn-fullscreen");
+
+      let currentScene = "wellhead";
+      let compareLayer = "video"; // "video" | "keyframe" | "blocking" | "sheet"
+      let holdScene = false;
+      let bothPlaying = true;
+      let userSelectedLockUntil = 0;
+
+      function getStudy(sceneKey) {
+        return SCENE_STUDIES.find(s => s.scene === sceneKey) || SCENE_STUDIES[0];
+      }
+
+      function getEngineApi() {
+        try {
+          const w = iframe.contentWindow;
+          return w && (w.__nightPost || w.__zones) ? { np: w.__nightPost || w.__zones, mach: w.__machinima } : null;
+        } catch {
+          return null;
+        }
+      }
+
+      /* ---------- Focus & Scroll Guard for Embedded WebGL Stage ---------- */
+      let pointerOverStage = false;
+      const engineWrap = document.getElementById("engine-frame-wrap");
+      engineWrap.addEventListener("pointerenter", () => { pointerOverStage = true; });
+      engineWrap.addEventListener("pointerleave", () => { pointerOverStage = false; });
+      window.addEventListener("keydown", e => {
+        if ((pointerOverStage || document.activeElement === iframe) &&
+            ["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+      function fmtInlineCode(str) {
+        return String(str || "").replace(/`([^`]+)`/g, "<code>$1</code>");
+      }
+
+      /* ---------- Render Compare Pane ---------- */
+      function syncComparePane(restartVideo = false) {
+        const st = getStudy(currentScene);
+        document.querySelectorAll("#scene-jumpers .jumper-btn").forEach(b => {
+          b.classList.toggle("active", b.dataset.scene === currentScene);
+        });
+        document.querySelectorAll(".compare-subtabs .subtab").forEach(b => {
+          b.classList.toggle("active", b.dataset.layer === compareLayer);
+        });
+
+        engineShotCaption.innerHTML = `<strong>${st.code} · ${st.title}</strong> — ${fmtInlineCode(st.caption3d)}`;
+
+        if (compareLayer === "video") {
+          compareImage.hidden = true;
+          compareVideo.hidden = false;
+          const wantSrc = st.video;
+          if (compareVideo.getAttribute("data-src") !== wantSrc) {
+            compareVideo.setAttribute("data-src", wantSrc);
+            compareVideo.src = wantSrc;
+          } else if (restartVideo) {
+            try { compareVideo.currentTime = 0; } catch {}
+          }
+          if (bothPlaying) compareVideo.play().catch(() => {});
+          else compareVideo.pause();
+          compareTitle.textContent = `Compare · ${st.code} Omni 1.2 Flash 10s Study`;
+          compareCaption.innerHTML = fmtInlineCode(st.captionStudy);
+          compareSourcePath.textContent = wantSrc;
+        } else {
+          compareVideo.pause();
+          compareVideo.hidden = true;
+          compareImage.hidden = false;
+          const map = {
+            keyframe: [st.keyframe, `Compare · ${st.code} Source Film Keyframe`, st.captionKf, false],
+            blocking: [st.blocking, `Compare · ${st.code} 3D Camera Blocking`, st.captionBlock, false],
+            sheet:    [st.sheet,    `Compare · ${st.code} Extracted Contact Sheet`, st.captionEngine, true]
+          };
+          const [src, ttl, cap, contain] = map[compareLayer] || map.keyframe;
+          compareImage.src = src;
+          compareImage.classList.toggle("contain-plate", contain);
+          compareTitle.textContent = ttl;
+          compareCaption.innerHTML = fmtInlineCode(cap);
+          compareSourcePath.textContent = src;
+        }
+      }
+
+      /* ---------- Jump Embedded 3D Engine + Compare Video to Scene ---------- */
+      function jumpToScene(sceneKey, scrollTopStage = false) {
+        currentScene = sceneKey;
+        userSelectedLockUntil = performance.now() + 2400;
+        const st = getStudy(sceneKey);
+        const api = getEngineApi();
+        if (api) {
+          if (api.mach && typeof api.mach.jumpToScene === "function") {
+            api.mach.jumpToScene(sceneKey);
+          } else if (api.np) {
+            if (!api.np.getState()?.machinima?.active) api.np.startMachinima("trailer", st.shotStart);
+            else api.np.seekMachinima(st.shotStart);
+          }
+        }
+        try {
+          iframe.contentWindow?.postMessage({ type: "np-studio", cmd: "jumpScene", scene: sceneKey, t: st.shotStart }, "*");
+        } catch {}
+        syncComparePane(true);
+        if (scrollTopStage) {
+          document.getElementById("live-stage").scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+
+      document.querySelectorAll("#scene-jumpers .jumper-btn").forEach(btn => {
+        btn.addEventListener("click", () => jumpToScene(btn.dataset.scene, false));
+      });
+
+      document.querySelectorAll(".compare-subtabs .subtab").forEach(btn => {
+        btn.addEventListener("click", () => {
+          compareLayer = btn.dataset.layer;
+          syncComparePane(false);
+        });
+      });
+
+      btnPlayPause.addEventListener("click", () => {
+        bothPlaying = !bothPlaying;
+        btnPlayPause.textContent = bothPlaying ? "⏸ Pause Both" : "▶ Play Both";
+        const api = getEngineApi();
+        if (api?.mach && typeof api.mach.setPlaying === "function") {
+          api.mach.setPlaying(bothPlaying);
+        } else {
+          try { iframe.contentWindow?.postMessage({ type: "np-studio", cmd: "setPlaying", playing: bothPlaying }, "*"); } catch {}
+        }
+        if (compareLayer === "video") {
+          if (bothPlaying) compareVideo.play().catch(() => {});
+          else compareVideo.pause();
+        }
+      });
+
+      btnHoldScene.addEventListener("click", () => {
+        holdScene = !holdScene;
+        btnHoldScene.setAttribute("aria-pressed", String(holdScene));
+        btnHoldScene.classList.toggle("active", holdScene);
+      });
+
+      btnModeMv.addEventListener("click", () => {
+        const api = getEngineApi();
+        const curMode = api?.np?.getState()?.machinima?.mode || "trailer";
+        const nextMode = curMode === "musicvideo" ? "trailer" : "musicvideo";
+        btnModeMv.setAttribute("aria-pressed", String(nextMode === "musicvideo"));
+        btnModeMv.classList.toggle("active", nextMode === "musicvideo");
+        if (api?.np) api.np.startMachinima(nextMode, 0);
+      });
+
+      btnCompareToggle.addEventListener("click", () => {
+        const isSolo = dualStage.classList.toggle("solo");
+        const on = !isSolo;
+        btnCompareToggle.setAttribute("aria-pressed", String(on));
+        btnCompareToggle.classList.toggle("active", on);
+        if (on) syncComparePane(false);
+        else compareVideo.pause();
+      });
+
+      btnFullscreen.addEventListener("click", () => {
+        const el = document.querySelector(".stage-shell");
+        if (!document.fullscreenElement) el.requestFullscreen?.().catch(() => {});
+        else document.exitFullscreen?.().catch(() => {});
+      });
+
+      /* ---------- Live Telemetry & Automatic Trailer-to-Compare Sync ---------- */
+      let fpsFrames = 0, fpsLastMs = performance.now(), approxFps = 60;
+      iframe.addEventListener("load", () => {
+        try {
+          const w = iframe.contentWindow;
+          const countFrame = () => {
+            fpsFrames++;
+            const now = performance.now();
+            if (now - fpsLastMs >= 1000) {
+              approxFps = Math.round((fpsFrames * 1000) / (now - fpsLastMs));
+              fpsFrames = 0;
+              fpsLastMs = now;
+            }
+            w.requestAnimationFrame(countFrame);
+          };
+          w.requestAnimationFrame(countFrame);
+        } catch {}
+      });
+
+      setInterval(() => {
+        const api = getEngineApi();
+        if (!api || !api.np || !api.np.isReady || !api.np.isReady()) return;
+        const gs = api.np.getState();
+        const ms = gs.machinima;
+        if (ms && ms.active) {
+          const mm = String(Math.floor(ms.t / 60)).padStart(2, "0");
+          const ss = String(Math.floor(ms.t % 60)).padStart(2, "0");
+          engineTelemetry.textContent = `${ms.mode.toUpperCase()} · SHOT ${ms.shotIdx + 1}/${ms.shotCount} · ${mm}:${ss} · ${approxFps} FPS · ${gs.castCount} CAST`;
+
+          if (holdScene && ms.mode === "trailer") {
+            const st = getStudy(currentScene);
+            const bounds = api.mach?.getSceneRange ? api.mach.getSceneRange(currentScene) : { t0: st.shotStart, t1: st.shotEnd };
+            if (bounds && (ms.t >= bounds.t1 - 0.14 || ms.t < bounds.t0 - 0.25)) {
+              api.np.seekMachinima(bounds.t0 + 0.08);
+            }
+          } else if (ms.mode === "trailer" && performance.now() > userSelectedLockUntil) {
+            const liveScene = ms.sceneKey || SCENE_STUDIES.find(s => ms.t >= s.shotStart - 0.2 && ms.t < s.shotEnd)?.scene;
+            if (liveScene && liveScene !== currentScene && SCENE_STUDIES.some(s => s.scene === liveScene)) {
+              currentScene = liveScene;
+              syncComparePane(true);
+            }
+          }
+        } else {
+          engineTelemetry.textContent = `FREE PLAY · ${gs.circuit.toUpperCase()} · ${gs.place.toUpperCase()} · ${approxFps} FPS`;
+        }
+      }, 220);
+
+      /* ---------- Lightbox Inspector ---------- */
+      const lightbox = document.getElementById("lightbox");
+      const lightboxImg = document.getElementById("lightbox-img");
+      const lightboxCap = document.getElementById("lightbox-cap");
+
+      function openLightbox(src, cap) {
+        lightboxImg.src = src;
+        lightboxCap.textContent = cap || src;
+        lightbox.hidden = false;
+      }
+      lightbox.addEventListener("click", () => { lightbox.hidden = true; });
+      window.addEventListener("keydown", e => {
+        if (e.key === "Escape" && !lightbox.hidden) lightbox.hidden = true;
+      });
+
+      document.querySelectorAll("[data-zoom]").forEach(el => {
+        el.addEventListener("click", () => openLightbox(el.dataset.zoom, el.dataset.cap));
+      });
+
+      /* ---------- Populate Section 2: Donkey Method Gallery ---------- */
+      const turnaroundGrid = document.getElementById("turnaround-grid");
+      const turnaroundTitle = document.getElementById("turnaround-title");
+
+      function renderTurnaround(rigKey) {
+        const data = TURNAROUND_SETS[rigKey] || TURNAROUND_SETS.carrier;
+        turnaroundTitle.innerHTML = fmtInlineCode(data.title);
+        document.querySelectorAll("#turnaround-tabs .pill").forEach(b => {
+          b.classList.toggle("active", b.dataset.rig === rigKey);
+        });
+        turnaroundGrid.innerHTML = data.plates.map(p => `
+          <article class="ortho-card" data-src="${p.src}" data-cap="${p.title} — ${p.spec}">
+            <div class="ortho-well ${p.wide ? "wide" : p.square ? "square" : ""}">
+              <img src="${p.src}" alt="${p.title}" loading="lazy">
+              ${p.uv ? `<div class="uv-guide"><span class="uv-centerline"></span><span class="uv-crown"></span><span class="uv-soles"></span></div>` : ""}
+            </div>
+            <div class="ortho-meta">
+              <strong>${p.title}</strong>
+              <span>${p.spec}</span>
+            </div>
+          </article>
+        `).join("");
+        turnaroundGrid.querySelectorAll(".ortho-card").forEach(card => {
+          card.addEventListener("click", () => openLightbox(card.dataset.src, card.dataset.cap));
+        });
+      }
+
+      document.querySelectorAll("#turnaround-tabs .pill").forEach(btn => {
+        btn.addEventListener("click", () => renderTurnaround(btn.dataset.rig));
+      });
+
+      document.getElementById("btn-uv-guides").addEventListener("click", e => {
+        const on = document.body.classList.toggle("show-uv-guides");
+        e.currentTarget.setAttribute("aria-pressed", String(on));
+        e.currentTarget.classList.toggle("active", on);
+      });
+
+      const archGrid = document.getElementById("arch-plates-grid");
+      archGrid.innerHTML = ARCH_PLATES.map(p => `
+        <article class="ortho-card" data-src="${p.src}" data-cap="${p.title} — ${p.spec}">
+          <div class="ortho-well ${p.wide ? "wide" : "square"} ${p.decal ? "decal-bg" : ""}">
+            <img src="${p.src}" alt="${p.title}" loading="lazy">
+          </div>
+          <div class="ortho-meta">
+            <strong>${p.title}</strong>
+            <span>${p.spec}</span>
+          </div>
+        </article>
+      `).join("");
+      archGrid.querySelectorAll(".ortho-card").forEach(card => {
+        card.addEventListener("click", () => openLightbox(card.dataset.src, card.dataset.cap));
+      });
+
+      /* ---------- Populate Section 3: 4-Stage Pipeline Scrubber & 6 V1–V6 Cards ---------- */
+      let pipeScene = "compound";
+      let pipeStep = 2;
+      const pipeTabs = document.getElementById("pipe-scene-tabs");
+      const pipeSlider = document.getElementById("pipe-slider");
+      const pipeReadout = document.getElementById("pipe-stage-readout");
+      const STAGE_NAMES = [
+        "Stage 1 / 4 · Source Film Keyframe (ZZlDs10FCZk)",
+        "Stage 2 / 4 · 3D Camera Blocking (Three.js)",
+        "Stage 3 / 4 · Omni 1.2 Flash 10s Study Video",
+        "Stage 4 / 4 · Extracted Sheet & Upgraded 60 FPS Engine"
+      ];
+
+      pipeTabs.innerHTML = SCENE_STUDIES.map(s => `
+        <button type="button" class="jumper-btn ${s.scene === pipeScene ? "active" : ""}" data-pscene="${s.scene}">
+          <span class="j-num">${s.code}</span> ${s.name}
+        </button>
+      `).join("");
+
+      function renderPipelineScrubber() {
+        const st = getStudy(pipeScene);
+        pipeTabs.querySelectorAll(".jumper-btn").forEach(b => {
+          b.classList.toggle("active", b.dataset.pscene === pipeScene);
+        });
+        pipeReadout.textContent = `${st.code} · ${STAGE_NAMES[pipeStep]}`;
+        document.querySelectorAll("#pipe-steps .pipe-col").forEach(col => {
+          col.classList.toggle("active-step", Number(col.dataset.step) === pipeStep);
+        });
+        const kfImg = document.getElementById("pipe-img-kf");
+        const blkImg = document.getElementById("pipe-img-block");
+        const vid = document.getElementById("pipe-vid-study");
+        const shImg = document.getElementById("pipe-img-sheet");
+
+        kfImg.src = st.keyframe;
+        blkImg.src = st.blocking;
+        shImg.src = st.sheet;
+        if (vid.getAttribute("data-src") !== st.video) {
+          vid.setAttribute("data-src", st.video);
+          vid.src = st.video;
+          vid.play().catch(() => {});
+        }
+        document.getElementById("pipe-cap-kf").innerHTML = fmtInlineCode(st.captionKf);
+        document.getElementById("pipe-cap-block").innerHTML = fmtInlineCode(st.captionBlock);
+        document.getElementById("pipe-cap-study").innerHTML = fmtInlineCode(st.captionStudy);
+        document.getElementById("pipe-cap-engine").innerHTML = fmtInlineCode(st.captionEngine);
+      }
+
+      pipeTabs.querySelectorAll(".jumper-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          pipeScene = btn.dataset.pscene;
+          renderPipelineScrubber();
+        });
+      });
+      pipeSlider.addEventListener("input", () => {
+        pipeStep = Number(pipeSlider.value);
+        renderPipelineScrubber();
+      });
+      document.querySelectorAll("#pipe-steps .pipe-col").forEach(col => {
+        col.addEventListener("click", () => {
+          pipeStep = Number(col.dataset.step);
+          pipeSlider.value = String(pipeStep);
+          renderPipelineScrubber();
+        });
+      });
+      document.getElementById("pipe-cue-live").addEventListener("click", () => jumpToScene(pipeScene, true));
+
+      const studiesGrid = document.getElementById("studies-grid");
+      studiesGrid.innerHTML = SCENE_STUDIES.map(s => `
+        <article class="study-card">
+          <div class="study-card-hdr">
+            <div>
+              <span class="study-code">${s.code} · Bidirectional Study</span>
+              <h3>${s.title}</h3>
+            </div>
+            <button type="button" class="pill primary" data-cue="${s.scene}">▶ Cue Live Stage</button>
+          </div>
+          <div class="study-pair">
+            <div class="study-pane" data-zoom-src="${s.keyframe}" data-zoom-cap="${s.code} Source Keyframe — ${s.captionKf}" style="cursor:zoom-in">
+              <img src="${s.keyframe}" alt="${s.title} source keyframe" loading="lazy">
+              <span class="pane-badge">Source Keyframe</span>
+            </div>
+            <div class="study-pane">
+              <video src="${s.video}" muted loop playsinline controls preload="metadata"></video>
+              <span class="pane-badge">Omni 10s Study</span>
+            </div>
+          </div>
+          <div class="study-body">
+            <p>${fmtInlineCode(s.captionEngine)}</p>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+              <div class="swatch-row">
+                ${s.palettes.map(hex => `<span class="swatch"><i style="background:${hex}"></i>${hex}</span>`).join("")}
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button type="button" class="pill" data-zoom-src="${s.blocking}" data-zoom-cap="${s.code} 3D Blocking — ${s.captionBlock}">3D Blocking</button>
+                <button type="button" class="pill" data-zoom-src="${s.sheet}" data-zoom-cap="${s.code} Contact Sheet — ${s.captionStudy}">Contact Sheet</button>
+              </div>
+            </div>
+          </div>
+        </article>
+      `).join("");
+
+      studiesGrid.querySelectorAll("[data-cue]").forEach(btn => {
+        btn.addEventListener("click", () => jumpToScene(btn.dataset.cue, true));
+      });
+      studiesGrid.querySelectorAll("[data-zoom-src]").forEach(el => {
+        el.addEventListener("click", () => openLightbox(el.dataset.zoomSrc, el.dataset.zoomCap));
+      });
+
+      /* ---------- Populate Section 4: 16 Keyframes Scrubber & Contact Grid ---------- */
+      let activeKfIdx = 9;
+      const kfSlider = document.getElementById("kf-slider");
+      const kfHeroImg = document.getElementById("kf-hero-img");
+      const kfHeroCode = document.getElementById("kf-hero-code");
+      const kfHeroTitle = document.getElementById("kf-hero-title");
+      const kfHeroDesc = document.getElementById("kf-hero-desc");
+      const kfSliderLabel = document.getElementById("kf-slider-label");
+      const kfGrid = document.getElementById("kf-contact-grid");
+
+      kfGrid.innerHTML = KEYFRAMES.map((kf, idx) => `
+        <button type="button" class="kf-card ${idx === activeKfIdx ? "active" : ""}" data-kfidx="${idx}">
+          <img src="./keyframes/${kf.file}" alt="Keyframe ${idx + 1}: ${kf.title}" loading="lazy">
+          <div class="kf-card-cap">
+            <code>KF${String(idx + 1).padStart(2, "0")} · ${kf.tc} · ${kf.station}</code>
+            <strong>${kf.title}</strong>
+            <span>Cue: ${getStudy(kf.scene).name}</span>
+          </div>
+        </button>
+      `).join("");
+
+      function selectKeyframe(idx) {
+        activeKfIdx = Math.max(0, Math.min(KEYFRAMES.length - 1, idx));
+        const kf = KEYFRAMES[activeKfIdx];
+        const num = String(activeKfIdx + 1).padStart(2, "0");
+        kfSlider.value = String(activeKfIdx);
+        kfSliderLabel.textContent = `${activeKfIdx + 1} / ${KEYFRAMES.length}`;
+        kfHeroImg.src = `./keyframes/${kf.file}`;
+        kfHeroCode.textContent = `KF${num} · ${kf.tc} · ${kf.station.toUpperCase()}`;
+        kfHeroTitle.textContent = kf.title;
+        kfHeroDesc.textContent = kf.desc;
+        kfGrid.querySelectorAll(".kf-card").forEach((c, i) => {
+          c.classList.toggle("active", i === activeKfIdx);
+        });
+      }
+
+      kfSlider.addEventListener("input", () => selectKeyframe(Number(kfSlider.value)));
+      kfGrid.querySelectorAll(".kf-card").forEach(card => {
+        card.addEventListener("click", () => selectKeyframe(Number(card.dataset.kfidx)));
+        card.addEventListener("dblclick", () => {
+          const kf = KEYFRAMES[Number(card.dataset.kfidx)];
+          openLightbox(`./keyframes/${kf.file}`, `${kf.tc} · ${kf.title} — ${kf.desc}`);
+        });
+      });
+      document.getElementById("kf-cue-btn").addEventListener("click", () => {
+        jumpToScene(KEYFRAMES[activeKfIdx].scene, true);
+      });
+      document.getElementById("kf-zoom-btn").addEventListener("click", () => {
+        const kf = KEYFRAMES[activeKfIdx];
+        openLightbox(`./keyframes/${kf.file}`, `KF${String(activeKfIdx + 1).padStart(2, "0")} (${kf.tc}) · ${kf.title} — ${kf.desc}`);
+      });
+      document.getElementById("kf-hero-zoom").addEventListener("click", () => {
+        const kf = KEYFRAMES[activeKfIdx];
+        openLightbox(`./keyframes/${kf.file}`, `KF${String(activeKfIdx + 1).padStart(2, "0")} (${kf.tc}) · ${kf.title} — ${kf.desc}`);
+      });
+
+      /* ---------- Boot Initial Studio Views ---------- */
+      renderTurnaround("carrier");
+      renderPipelineScrubber();
+      selectKeyframe(9);
+      syncComparePane(false);
+    })();
+  </script>
+</body>
+</html>

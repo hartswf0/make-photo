@@ -287,9 +287,7 @@
     // Load Donkey-Method Photographic Ortho Plates (`donkey/textures/*`)
     const loader = new T.TextureLoader();
     const loadOrthoTex = (file, cfg) => {
-      const tex = loader.load(resolveDonkeyTexUrl(file), loaded => {
-        loaded.needsUpdate = true;
-      });
+      const tex = loader.load(resolveDonkeyTexUrl(file));
       tex.wrapS = cfg.wrapS || T.RepeatWrapping;
       tex.wrapT = cfg.wrapT || T.RepeatWrapping;
       if (cfg.repeat) tex.repeat.set(cfg.repeat[0], cfg.repeat[1]);
@@ -387,7 +385,7 @@
             [
               "#include <map_fragment>",
               "#ifdef USE_MAP",
-              "  vec2 npCcUv = vec2(0.015 + abs(fract(vMapUv.x * 0.65) * 2.0 - 1.0) * 0.125,",
+              "  vec2 npCcUv = vec2(0.015 + abs(fract(vMapUv.x * 0.65) * 2.0 - 1.0) * 0.068,",
               "                    0.26 + abs(fract(vMapUv.y * 0.65) * 2.0 - 1.0) * 0.66);",
               "  vec3 npPhotoCc = texture2D(tPhotoConc, npCcUv).rgb;",
               "  diffuseColor.rgb = mix(diffuseColor.rgb, npPhotoCc * (0.66 + 0.68 * diffuseColor.rgb), 0.78);",
@@ -452,12 +450,15 @@
       copperPipeMat: new T.MeshStandardMaterial({ color: 0x7b6552, roughness: 0.38, metalness: 0.74 }),
       rubberHoseMat: new T.MeshStandardMaterial({ color: 0x161a1d, roughness: 0.68, metalness: 0.16 }),
       cyanTubeMat: new T.MeshPhysicalMaterial({
-        color: 0x5cf2ff, emissive: 0x0ec8ff, emissiveIntensity: 1.85,
-        roughness: 0.12, metalness: 0.05, clearcoat: 1.0, clearcoatRoughness: 0.08, transparent: true, opacity: 0.94
+        color: 0x3ad6f5, emissive: 0x0b8ed4, emissiveIntensity: 0.95,
+        roughness: 0.08, metalness: 0.04, clearcoat: 1.0, clearcoatRoughness: 0.05, transparent: true, opacity: 0.78
+      }),
+      cyanTubeCoreMat: new T.MeshBasicMaterial({
+        color: 0xcffbff
       }),
       wetVaultFloorMat: new T.MeshPhysicalMaterial({
-        color: 0x072638, emissive: 0x074b6e, emissiveIntensity: 0.72,
-        roughness: 0.06, metalness: 0.32, clearcoat: 1.0, clearcoatRoughness: 0.05
+        color: 0x041a2b, emissive: 0x074b78, emissiveIntensity: 0.88,
+        roughness: 0.05, metalness: 0.36, clearcoat: 1.0, clearcoatRoughness: 0.04
       }),
       litWhiteCrossMat: new T.MeshStandardMaterial({
         color: 0xffffff, emissive: 0xf4fbff, emissiveIntensity: 3.1, roughness: 0.12
@@ -632,43 +633,88 @@
   /* ---------- Prop 3: Wooden Donkey Sawbuck Pack Frame with Braided Sisal-Rope (`study_sheet` d!) ---------- */
   function makeSawbuckPackFrame(T, mats, scale = 1.0) {
     const g = new T.Group();
-    // Front & rear X-crossed hardwood trestles
-    for (const sz of [-0.24, 0.24]) {
+    const alpha = 0.46; // X-crossbuck angle: inverted-V legs below y=0.445, open V-horns above y=0.445
+    const strapMat = new T.MeshStandardMaterial({ color: 0x3b2e22, roughness: 0.84 });
+
+    // Front & rear X-crossed hardwood trestles (intersecting dead-center at x=0, y=0.445, z=sz)
+    for (const sz of [-0.25, 0.25]) {
       for (const sx of [-1, 1]) {
-        const leg = new T.Mesh(new T.BoxGeometry(0.048, 0.66, 0.042), mats.timberMat);
-        leg.position.set(sx * 0.14, 0.30, sz);
-        leg.rotation.z = -sx * 0.38;
+        const leg = new T.Mesh(new T.BoxGeometry(0.050, 0.72, 0.036), mats.timberMat);
+        leg.position.set(sx * 0.0517, 0.3406, sz + sx * 0.017);
+        leg.rotation.z = sx * alpha;
         leg.castShadow = true;
+        leg.receiveShadow = true;
         g.add(leg);
       }
-      // Sisal-rope lashing collar at each X-crotch
-      const knot = new T.Mesh(new T.TorusGeometry(0.048, 0.015, 7, 14), mats.sisalRopeMat);
-      knot.position.set(0, 0.44, sz);
-      g.add(knot);
-    }
-    // 4 longitudinal side slats
-    for (const sx of [-1, 1]) {
-      for (const [ly, lzOff] of [[0.35, 0.11], [0.24, 0.18]]) {
-        const bar = new T.Mesh(new T.BoxGeometry(0.028, 0.058, 0.64), mats.timberMat);
-        bar.position.set(sx * lzOff, ly, 0);
-        bar.rotation.z = -sx * 0.38;
-        g.add(bar);
+      // Hardwood/iron through-bolt + crossed figure-8 braided sisal lashing seated flush on the X-crotch
+      const pin = new T.Mesh(new T.CylinderGeometry(0.010, 0.010, 0.086, 10), mats.ironDarkMat);
+      pin.rotation.x = Math.PI * 0.5;
+      pin.position.set(0, 0.445, sz);
+      g.add(pin);
+      for (const sgn of [-1, 1]) {
+        const lash = new T.Mesh(new T.TorusGeometry(0.036, 0.011, 8, 18), mats.sisalRopeMat);
+        lash.position.set(0, 0.445, sz);
+        lash.rotation.set(0.56, sgn * 0.62, sgn * alpha);
+        lash.scale.set(0.86, 1.14, 1.0);
+        g.add(lash);
       }
     }
-    // Coiled braided sisal pack rope draped over the center crossbars + hanging tails (`study_sheet` d!)
-    for (let c = -2; c <= 2; c++) {
-      const wrap = new T.Mesh(new T.TorusGeometry(0.085, 0.012, 7, 16), mats.sisalRopeMat);
-      wrap.rotation.y = Math.PI * 0.5;
-      wrap.position.set(0, 0.37, c * 0.026);
+
+    // Center longitudinal ridge spar seated inside the X-crotch
+    const ridgeSpar = new T.Mesh(new T.BoxGeometry(0.036, 0.036, 0.58), mats.timberDark);
+    ridgeSpar.position.set(0, 0.422, 0);
+    ridgeSpar.castShadow = true;
+    g.add(ridgeSpar);
+
+    // 4 lower saddle-skirt slats + 2 upper horn cradle rails + flush cinch straps & iron cinch rings
+    for (const sx of [-1, 1]) {
+      for (const [bx, by] of [[0.088, 0.355], [0.150, 0.229]]) {
+        const bar = new T.Mesh(new T.BoxGeometry(0.026, 0.060, 0.68), mats.timberMat);
+        bar.position.set(sx * bx, by, 0);
+        bar.rotation.z = sx * alpha;
+        bar.castShadow = true;
+        g.add(bar);
+      }
+      const upperRail = new T.Mesh(new T.BoxGeometry(0.024, 0.050, 0.66), mats.timberMat);
+      upperRail.position.set(sx * 0.086, 0.548, 0);
+      upperRail.rotation.z = -sx * alpha;
+      upperRail.castShadow = true;
+      g.add(upperRail);
+
+      // Woven leather/canvas cinch collar wrapped flush around lower side-bar + sisal keeper + iron cinch ring
+      const cinchStrap = new T.Mesh(new T.BoxGeometry(0.036, 0.070, 0.064), strapMat);
+      cinchStrap.position.set(sx * 0.150, 0.229, 0);
+      cinchStrap.rotation.z = sx * alpha;
+      g.add(cinchStrap);
+
+      const keeper = new T.Mesh(new T.TorusGeometry(0.024, 0.0065, 6, 14), mats.sisalRopeMat);
+      keeper.position.set(sx * 0.162, 0.200, 0);
+      keeper.rotation.z = sx * alpha;
+      g.add(keeper);
+
+      const cinchRing = new T.Mesh(new T.TorusGeometry(0.026, 0.006, 8, 16), mats.ironDarkMat);
+      cinchRing.position.set(sx * 0.170, 0.176, 0);
+      cinchRing.rotation.y = Math.PI * 0.5;
+      cinchRing.rotation.z = sx * 0.22;
+      g.add(cinchRing);
+    }
+
+    // Coiled braided sisal pack rope wound flush around the right upper wooden horn rail + hanging tails
+    for (let c = 0; c < 5; c++) {
+      const wrap = new T.Mesh(new T.TorusGeometry(0.034, 0.0095, 7, 16), mats.sisalRopeMat);
+      wrap.position.set(0.086, 0.548, -0.09 + c * 0.022);
+      wrap.rotation.set(0.08, 0.06, -alpha);
+      wrap.scale.set(0.78, 1.15, 1.0);
       g.add(wrap);
     }
-    for (const [tx, tz] of [[-0.08, 0.02], [0.09, -0.03]]) {
+    for (const [tz, xSpread] of [[-0.08, 1.08], [-0.01, 1.16]]) {
       const tailCrv = new T.CatmullRomCurve3([
-        new T.Vector3(tx, 0.36, tz),
-        new T.Vector3(tx * 1.45, 0.20, tz + 0.04),
-        new T.Vector3(tx * 1.35, 0.05, tz - 0.02)
+        new T.Vector3(0.098, 0.525, tz),
+        new T.Vector3(0.118 * xSpread, 0.36, tz + 0.02),
+        new T.Vector3(0.168 * xSpread, 0.21, tz - 0.01),
+        new T.Vector3(0.178 * xSpread, 0.06, tz + 0.015)
       ]);
-      g.add(new T.Mesh(new T.TubeGeometry(tailCrv, 10, 0.010, 6, false), mats.sisalRopeMat));
+      g.add(new T.Mesh(new T.TubeGeometry(tailCrv, 12, 0.0085, 6, false), mats.sisalRopeMat));
     }
     g.scale.setScalar(scale);
     return g;
@@ -731,6 +777,346 @@
     return g;
   }
 
+  /* ---------- Shared Articulated Standpipe Lever & World-Space Hand-Grip Rig (`kf02`!) ---------- */
+  function attachStandpipeLeverRig(T, mats, pumpRoot, fulcrumY = 1.15) {
+    // Twin forged clevis ears bolted to pump bonnet
+    for (const sz of [-0.024, 0.024]) {
+      const ear = new T.Mesh(new T.BoxGeometry(0.056, 0.15, 0.012), mats.ironDarkMat);
+      ear.position.set(-0.085, fulcrumY - 0.03, sz);
+      ear.rotation.z = -0.18;
+      pumpRoot.add(ear);
+    }
+    const fulcrumPin = new T.Mesh(new T.CylinderGeometry(0.013, 0.013, 0.072, 10), mats.steelMat);
+    fulcrumPin.rotation.x = Math.PI * 0.5;
+    fulcrumPin.position.set(-0.085, fulcrumY, 0);
+    pumpRoot.add(fulcrumPin);
+
+    const leverPivot = new T.Group();
+    leverPivot.name = "pumpLeverPivot";
+    leverPivot.position.set(-0.085, fulcrumY, 0);
+
+    // Forged cast-iron rocker & round grip bar sloping gently (-0.18 rad) from fulcrum to operator hands
+    const shaftCrv = new T.CatmullRomCurve3([
+      new T.Vector3( 0.085,  0.020, 0),
+      new T.Vector3( 0.000,  0.000, 0),
+      new T.Vector3(-0.180, -0.028, 0),
+      new T.Vector3(-0.380, -0.068, 0),
+      new T.Vector3(-0.560, -0.100, 0)
+    ]);
+    const leverMesh = new T.Mesh(new T.TubeGeometry(shaftCrv, 16, 0.019, 10, false), mats.ironDarkMat);
+    leverMesh.castShadow = true;
+    leverPivot.add(leverMesh);
+
+    const endKnob = new T.Mesh(new T.SphereGeometry(0.023, 10, 8), mats.ironDarkMat);
+    endKnob.position.set(-0.565, -0.101, 0);
+    leverPivot.add(endKnob);
+
+    // Authoritative world-space hand-grip anchors parented directly to leverPivot (preserved across .clone()!)
+    const gripNear = new T.Object3D();
+    gripNear.name = "pumpGripNear";
+    gripNear.position.set(-0.370, -0.066, 0.004);
+    leverPivot.add(gripNear);
+
+    const gripFar = new T.Object3D();
+    gripFar.name = "pumpGripFar";
+    gripFar.position.set(-0.480, -0.086, -0.004);
+    leverPivot.add(gripFar);
+
+    const gripCenter = new T.Object3D();
+    gripCenter.name = "pumpGripCenter";
+    gripCenter.position.set(-0.425, -0.076, 0);
+    leverPivot.add(gripCenter);
+
+    const gripTip = new T.Object3D();
+    gripTip.name = "pumpGripTip";
+    gripTip.position.set(-0.565, -0.101, 0);
+    leverPivot.add(gripTip);
+
+    pumpRoot.add(leverPivot);
+    pumpRoot.setPumpPhase = (phase, out, opts) => stepStandpipePump(T, pumpRoot, phase, out, opts);
+    pumpRoot.getGripWorld = out => {
+      pumpRoot.updateWorldMatrix(true, true);
+      return gripCenter.getWorldPosition(out || new T.Vector3());
+    };
+    return leverPivot;
+  }
+
+  /* ---------- Ballistic Parabolic Water Stream, Helical Surface Waves, Aerated Core & Splash Droplets ---------- */
+  function buildBallisticPumpPour(T, cyanWaterMat, cfg = {}) {
+    const pourGrp = new T.Group();
+    pourGrp.name = "pumpPourGroup";
+    const x0 = cfg.x0 !== undefined ? cfg.x0 : 0.345;
+    const y0 = cfg.y0 !== undefined ? cfg.y0 : 0.790;
+    const z0 = cfg.z0 !== undefined ? cfg.z0 : 0.0;
+    const dirX = cfg.dirX !== undefined ? cfg.dirX : 0.78;
+    const dirY = cfg.dirY !== undefined ? cfg.dirY : -0.625;
+    const dirZ = cfg.dirZ !== undefined ? cfg.dirZ : 0.0;
+    const hitY = cfg.hitY !== undefined ? cfg.hitY : 0.276;
+    const baseR = cfg.baseR !== undefined ? cfg.baseR : 0.024;
+    pourGrp.userData.pourCfg = { x0, y0, z0, dirX, dirY, dirZ, hitY, baseR };
+
+    const makeTubularGridGeo = (segS, segR) => {
+      const cols = segR + 1;
+      const vCount = (segS + 1) * cols;
+      const pos = new Float32Array(vCount * 3);
+      const nrm = new Float32Array(vCount * 3);
+      const uv = new Float32Array(vCount * 2);
+      const idx = [];
+      for (let i = 0; i <= segS; i++) {
+        for (let j = 0; j <= segR; j++) {
+          const k = (i * cols + j) * 2;
+          uv[k] = j / segR;
+          uv[k + 1] = i / segS;
+        }
+      }
+      for (let i = 0; i < segS; i++) {
+        for (let j = 0; j < segR; j++) {
+          const a = i * cols + j, b = a + 1, c = a + cols, d = c + 1;
+          idx.push(a, c, b, b, c, d);
+        }
+      }
+      const geo = new T.BufferGeometry();
+      geo.setAttribute("position", new T.BufferAttribute(pos, 3));
+      geo.setAttribute("normal", new T.BufferAttribute(nrm, 3));
+      geo.setAttribute("uv", new T.BufferAttribute(uv, 2));
+      geo.setIndex(idx);
+      geo.boundingSphere = new T.Sphere(new T.Vector3(x0 + 0.14, (y0 + hitY) * 0.5, z0), 0.85);
+      return geo;
+    };
+
+    const outerMat = cyanWaterMat || new T.MeshPhysicalMaterial({
+      color: 0x3adcf2, emissive: 0x1096c0, emissiveIntensity: 0.82,
+      roughness: 0.08, transmission: 0.34, transparent: true, opacity: 0.90, side: T.DoubleSide
+    });
+    const outerJet = new T.Mesh(makeTubularGridGeo(18, 12), outerMat);
+    outerJet.name = "pumpStream";
+    outerJet.frustumCulled = false;
+    pourGrp.add(outerJet);
+
+    const coreMat = new T.MeshBasicMaterial({
+      color: 0xdffcff, transparent: true, opacity: 0.78, depthWrite: false
+    });
+    const innerCore = new T.Mesh(makeTubularGridGeo(14, 8), coreMat);
+    innerCore.name = "pumpStreamCore";
+    innerCore.frustumCulled = false;
+    innerCore.renderOrder = 2;
+    pourGrp.add(innerCore);
+
+    for (let r = 0; r < 3; r++) {
+      const rMat = new T.MeshBasicMaterial({
+        color: r === 0 ? 0xe8ffff : 0x7ef4ff,
+        transparent: true, opacity: 0.55, side: T.DoubleSide, depthWrite: false
+      });
+      const ring = new T.Mesh(new T.RingGeometry(0.036, 0.052, 24), rMat);
+      ring.name = "pumpImpactRing_" + r;
+      ring.rotation.x = -Math.PI * 0.5;
+      ring.renderOrder = 3;
+      pourGrp.add(ring);
+    }
+
+    const dropGeo = new T.SphereGeometry(0.0085, 6, 5);
+    const dropMat = new T.MeshBasicMaterial({ color: 0xd8fcff, transparent: true, opacity: 0.90 });
+    for (let d = 0; d < 10; d++) {
+      const drop = new T.Mesh(dropGeo, dropMat);
+      drop.name = "pumpSplashDrop_" + d;
+      pourGrp.add(drop);
+    }
+
+    updateBallisticPumpPour(pourGrp, 0.45, 0.72, 1.0);
+    return pourGrp;
+  }
+
+  function updateBallisticPumpPour(pourGrp, animPhase, flowPulse = 0.72, flowScale = 1.0) {
+    if (!pourGrp) return;
+    const outerJet = pourGrp.getObjectByName("pumpStream");
+    const innerCore = pourGrp.getObjectByName("pumpStreamCore");
+    if (!outerJet || !innerCore) return;
+
+    // Ensure cloned pump instances each own independent dynamic vertex buffers & ripple materials
+    if (pourGrp.userData.instanceUuid !== pourGrp.uuid) {
+      if (pourGrp.userData.instanceUuid !== undefined) {
+        outerJet.geometry = outerJet.geometry.clone();
+        innerCore.geometry = innerCore.geometry.clone();
+        for (let r = 0; r < 3; r++) {
+          const rm = pourGrp.getObjectByName("pumpImpactRing_" + r);
+          if (rm && rm.material) rm.material = rm.material.clone();
+        }
+      }
+      pourGrp.userData.instanceUuid = pourGrp.uuid;
+    }
+
+    pourGrp.visible = flowScale > 0.08;
+    if (!pourGrp.visible) return;
+
+    const cfg = pourGrp.userData.pourCfg || {
+      x0: 0.345, y0: 0.790, z0: 0.0, dirX: 0.78, dirY: -0.625, dirZ: 0.0, hitY: 0.276, baseR: 0.024
+    };
+    const dLen = Math.hypot(cfg.dirX, cfg.dirY, cfg.dirZ) || 1;
+    const ux = cfg.dirX / dLen, uy = cfg.dirY / dLen, uz = cfg.dirZ / dLen;
+
+    // Ballistic launch speed pulses realistically with pump down-stroke pressure!
+    const pulse = clamp(flowPulse, 0, 1.25);
+    const vMag = lerp(0.84, 1.18, clamp(pulse, 0, 1)) * clamp(0.65 + 0.35 * flowScale, 0.4, 1.15);
+    const vx = ux * vMag, vy0 = uy * vMag, vz = uz * vMag;
+    const gAcc = 9.81;
+    const dyDrop = Math.max(0.05, cfg.y0 - cfg.hitY);
+    const tFlight = (vy0 + Math.sqrt(vy0 * vy0 + 2.0 * gAcc * dyDrop)) / gAcc;
+
+    const hitX = cfg.x0 + vx * tFlight;
+    const hitZ = cfg.z0 + vz * tFlight;
+    const hitY = cfg.hitY;
+
+    const writeParabolicTube = (mesh, segS, segR, radScale, isCore) => {
+      const pos = mesh.geometry.attributes.position.array;
+      const nrm = mesh.geometry.attributes.normal.array;
+      const cols = segR + 1;
+      for (let i = 0; i <= segS; i++) {
+        const u = i / segS;
+        const ti = u * tFlight;
+        const px = cfg.x0 + vx * ti;
+        const py = cfg.y0 + vy0 * ti - 0.5 * gAcc * ti * ti;
+        const pz = cfg.z0 + vz * ti;
+
+        // Tangent T = normalize(vx, vy0 - g*ti, vz)
+        let tx = vx, ty = vy0 - gAcc * ti, tz = vz;
+        const tl = Math.hypot(tx, ty, tz) || 1;
+        tx /= tl; ty /= tl; tz /= tl;
+
+        // Binormal B = normalize(T x Up)
+        let bx = -tz, by = 0, bz = tx;
+        let bl = Math.hypot(bx, by, bz);
+        if (bl < 1e-4) { bx = 0; by = 0; bz = 1; bl = 1; }
+        bx /= bl; by /= bl; bz /= bl;
+
+        // Normal N = B x T
+        const nx0 = by * tz - bz * ty;
+        const ny0 = bz * tx - bx * tz;
+        const nz0 = bx * ty - by * tx;
+
+        // Vena-contracta gravitational thinning + hydraulic foot flare right at water impact
+        const rProfile = cfg.baseR * radScale * (0.76 + 0.36 * pulse) * clamp(flowScale, 0.3, 1.1)
+          * (1.0 - 0.28 * u + 0.24 * Math.pow(u, 4));
+
+        for (let j = 0; j <= segR; j++) {
+          const th = (j / segR) * TAU;
+          const c = Math.cos(th), s = Math.sin(th);
+          const hel1 = Math.sin(2.0 * th + u * 20.0 - animPhase * 3.8);
+          const hel2 = Math.cos(3.0 * th - u * 14.0 - animPhase * 2.7);
+          const ripple = isCore
+            ? (1.0 + 0.14 * hel1 * (0.3 + 0.7 * u))
+            : (1.0 + (0.045 + 0.11 * u) * hel1 + 0.055 * u * hel2);
+          const r = Math.max(0.002, rProfile * ripple);
+
+          const rnx = nx0 * c + bx * s;
+          const rny = ny0 * c + by * s;
+          const rnz = nz0 * c + bz * s;
+          const idx3 = (i * cols + j) * 3;
+          pos[idx3]     = px + rnx * r;
+          pos[idx3 + 1] = py + rny * r;
+          pos[idx3 + 2] = pz + rnz * r;
+          nrm[idx3]     = rnx;
+          nrm[idx3 + 1] = rny;
+          nrm[idx3 + 2] = rnz;
+        }
+      }
+      mesh.geometry.attributes.position.needsUpdate = true;
+      mesh.geometry.attributes.normal.needsUpdate = true;
+    };
+
+    writeParabolicTube(outerJet, 18, 12, 1.00, false);
+    writeParabolicTube(innerCore, 14, 8, 0.44, true);
+
+    // Expanding concentric impact rings on the water surface
+    for (let r = 0; r < 3; r++) {
+      const ring = pourGrp.getObjectByName("pumpImpactRing_" + r);
+      if (!ring) continue;
+      const ph = frac(animPhase * 0.38 + r / 3);
+      const sc = lerp(0.35, 3.10, ph) * (0.78 + 0.32 * pulse);
+      ring.position.set(hitX, hitY + 0.004 + r * 0.0005, hitZ);
+      ring.scale.set(sc, sc, 1);
+      if (ring.material) {
+        ring.material.opacity = (1 - ph) * smooth(0.0, 0.16, ph) * 0.80 * clamp(flowScale, 0, 1);
+      }
+    }
+
+    // Ballistic crown splash droplets arcing up & outward from impact meniscus
+    for (let d = 0; d < 10; d++) {
+      const drop = pourGrp.getObjectByName("pumpSplashDrop_" + d);
+      if (!drop) continue;
+      const dPh = frac(animPhase * 0.62 + d * 0.137);
+      const az = d * 2.39996 + Math.sin(animPhase * 0.25 + d) * 0.22;
+      const vr = (0.16 + 0.09 * (d % 3)) * (0.68 + 0.50 * pulse);
+      const vyD = (0.76 + 0.34 * ((d * 5) % 4) / 3) * (0.68 + 0.52 * pulse);
+      const dtD = dPh * 0.23;
+      const dyD = Math.max(0.004, vyD * dtD - 0.5 * gAcc * dtD * dtD);
+      drop.position.set(
+        hitX + Math.cos(az) * vr * dtD,
+        hitY + dyD,
+        hitZ + Math.sin(az) * vr * dtD
+      );
+      const dSc = Math.max(0.18, (1.0 - dPh * 0.72) * (0.72 + 0.48 * pulse));
+      drop.scale.setScalar(dSc);
+    }
+  }
+
+  function stepStandpipePump(T, pumpOrKey, phase, out = null, opts = null) {
+    const root = typeof pumpOrKey === "string"
+      ? (typeof window !== "undefined" && window.__npStandpipePumps ? window.__npStandpipePumps[pumpOrKey] : null)
+      : pumpOrKey;
+    if (!root) return out;
+
+    const leverPivot = root.getObjectByName("pumpLeverPivot") || root.userData?.leverPivot;
+    if (!leverPivot) return out;
+
+    const rawSign = Boolean(opts && opts.rawLeverSign);
+    const amp = (opts && opts.amp !== undefined) ? opts.amp : (rawSign ? 0.35 : 0.33);
+    const flowScale = (opts && opts.flowScale !== undefined) ? opts.flowScale : 1.0;
+    const rotZ = (rawSign ? Math.sin(phase) : -Math.sin(phase)) * amp * flowScale;
+    leverPivot.rotation.z = rotZ;
+
+    const strokeUp = -rotZ / Math.max(0.05, amp);
+    const pistonRod = root.getObjectByName("pumpPistonRod");
+    if (pistonRod) {
+      const baseY = pistonRod.userData.baseY !== undefined ? pistonRod.userData.baseY : 1.24;
+      pistonRod.position.y = baseY - strokeUp * 0.032;
+    }
+    const pourGrp = root.getObjectByName("pumpPourGroup");
+    if (pourGrp) {
+      const downSurge = 0.34 + 0.66 * clamp(0.5 - 0.5 * strokeUp, 0, 1);
+      updateBallisticPumpPour(pourGrp, phase, downSurge, flowScale);
+    } else {
+      const stream = root.getObjectByName("pumpStream");
+      if (stream) {
+        const s = 0.84 + 0.22 * Math.max(0, -strokeUp);
+        stream.scale.set(s, 1, s);
+      }
+    }
+
+    root.updateWorldMatrix(true, true);
+
+    if (out) {
+      const gNear = leverPivot.getObjectByName("pumpGripNear");
+      const gFar = leverPivot.getObjectByName("pumpGripFar");
+      const gCenter = leverPivot.getObjectByName("pumpGripCenter");
+      const gTip = leverPivot.getObjectByName("pumpGripTip");
+      if (!out.pumpGripL) out.pumpGripL = new T.Vector3();
+      if (!out.pumpGripR) out.pumpGripR = new T.Vector3();
+      if (!out.pumpGripWorld) out.pumpGripWorld = new T.Vector3();
+      if (!out.pumpBarDir) out.pumpBarDir = new T.Vector3();
+      if (gFar) gFar.getWorldPosition(out.pumpGripL);
+      if (gNear) gNear.getWorldPosition(out.pumpGripR);
+      if (gCenter) gCenter.getWorldPosition(out.pumpGripWorld);
+      else out.pumpGripWorld.copy(out.pumpGripL).add(out.pumpGripR).multiplyScalar(0.5);
+      if (gTip && gNear) {
+        gTip.getWorldPosition(out.pumpBarDir).sub(out.pumpGripR);
+        if (out.pumpBarDir.lengthSq() > 1e-6) out.pumpBarDir.normalize();
+        else out.pumpBarDir.set(-1, 0, 0);
+      }
+      out.pumpPhase = rawSign ? -phase : phase;
+    }
+    return out;
+  }
+
   /* ---------- Prop 5: Cast-Iron Standpipe Hand Pump + Bolted Flange + Cyan Hose (`kf02` & `atlas`!) ---------- */
   function makeCastIronStandpipePump(T, mats, cyanWaterMat, hosePtsLocal = null) {
     const g = new T.Group();
@@ -765,11 +1151,13 @@
     const topCup = new T.Mesh(new T.CylinderGeometry(0.128, 0.105, 0.18, 16), mats.ironDarkMat);
     topCup.position.y = 1.16;
     g.add(topCup);
-    const pistonRod = new T.Mesh(new T.CylinderGeometry(0.016, 0.016, 0.34, 8), mats.steelMat);
-    pistonRod.position.y = 1.32;
+    const pistonRod = new T.Mesh(new T.CylinderGeometry(0.016, 0.016, 0.26, 8), mats.steelMat);
+    pistonRod.name = "pumpPistonRod";
+    pistonRod.userData.baseY = 1.24;
+    pistonRod.position.y = 1.24;
     g.add(pistonRod);
 
-    // Curved cast-iron spout + linkage ear + curved pump lever (`atlas` bottom-right!)
+    // Curved cast-iron spout + articulated fulcrum pump lever (`kf02`!)
     const spoutCrv = new T.CatmullRomCurve3([
       new T.Vector3(0.06, 0.92, 0),
       new T.Vector3(0.22, 0.93, 0),
@@ -777,18 +1165,7 @@
     ]);
     g.add(new T.Mesh(new T.TubeGeometry(spoutCrv, 10, 0.038, 10, false), mats.ironDarkMat));
 
-    const linkBracket = new T.Mesh(new T.BoxGeometry(0.06, 0.24, 0.048), mats.ironDarkMat);
-    linkBracket.position.set(-0.12, 1.24, 0);
-    linkBracket.rotation.z = -0.26;
-    g.add(linkBracket);
-
-    const handleCrv = new T.CatmullRomCurve3([
-      new T.Vector3(0.0, 1.38, 0),
-      new T.Vector3(-0.14, 1.36, 0),
-      new T.Vector3(-0.34, 1.08, 0),
-      new T.Vector3(-0.46, 0.74, 0)
-    ]);
-    g.add(new T.Mesh(new T.TubeGeometry(handleCrv, 14, 0.022, 8, false), mats.ironDarkMat));
+    attachStandpipeLeverRig(T, mats, g, 1.19);
 
     // Threaded lower hose coupling + glowing cyan supply hose (`kf02`!)
     const tee = new T.Mesh(new T.CylinderGeometry(0.056, 0.056, 0.14, 14), mats.steelMat);
@@ -1217,6 +1594,395 @@
     return g;
   }
 
+  /* ---------- ZZlDs10FCZk Film-Matched Architectural & Water-Hardware Pieces ---------- */
+
+  // 1. Wheel-Thrown Terracotta Clay Watering Bowl (`shekla`) on Wet Bedrock (kf16 02:03 & Study Sheet d!)
+  function makeTerracottaDonkeyBowl(T, mats, cyanWaterMat) {
+    const g = new T.Group();
+    const clayMat = new T.MeshStandardMaterial({
+      color: 0x9b5a3c, roughness: 0.78, bumpMap: mats.plasterMat.map, bumpScale: 0.016, side: T.DoubleSide
+    });
+    const wetRockMat = new T.MeshStandardMaterial({ color: 0x262523, roughness: 0.34, metalness: 0.08 });
+    // Wet splashed stone slab under the clay basin
+    const slab = new T.Mesh(new T.CylinderGeometry(0.62, 0.70, 0.07, 18), wetRockMat);
+    slab.position.y = 0.035;
+    slab.receiveShadow = true;
+    g.add(slab);
+
+    // Lathe profile: flat foot -> flaring terracotta wall with 3 incised throwing rings -> rolled rim!
+    const prof = [
+      new T.Vector2(0.00, 0.07),
+      new T.Vector2(0.24, 0.07),
+      new T.Vector2(0.29, 0.14),
+      new T.Vector2(0.34, 0.22),
+      new T.Vector2(0.38, 0.28),
+      new T.Vector2(0.415, 0.315),
+      new T.Vector2(0.395, 0.328),
+      new T.Vector2(0.365, 0.295),
+      new T.Vector2(0.23, 0.09),
+      new T.Vector2(0.00, 0.09)
+    ];
+    const bowl = new T.Mesh(new T.LatheGeometry(prof, 32), clayMat);
+    bowl.castShadow = true;
+    bowl.receiveShadow = true;
+    g.add(bowl);
+    for (const ry of [0.21, 0.24, 0.27]) {
+      const ring = new T.Mesh(new T.TorusGeometry(0.33 + (ry - 0.21) * 0.82, 0.006, 6, 30), clayMat);
+      ring.rotation.x = Math.PI * 0.5;
+      ring.position.y = ry;
+      g.add(ring);
+    }
+    const water = new T.Mesh(new T.CircleGeometry(0.365, 28), cyanWaterMat);
+    water.rotation.x = -Math.PI * 0.5;
+    water.position.y = 0.275;
+    g.add(water);
+    return g;
+  }
+
+  // 2. Wooden X-Frame Donkey Sawbuck Pack Frame + Braided Sisal Lashing + Embossed-X 20L Jerrycan (kf14 & Study Sheet d!)
+  function makeSawbuckAndRibbedCan(T, mats, cyanWaterMat) {
+    const g = new T.Group();
+    const saw = makeSawbuckPackFrame(T, mats, 1.06);
+    saw.name = "sawbuckFrame";
+    g.add(saw);
+
+    // Translucent Embossed-X 20L Jerrycan resting beside sawbuck (named so Study Plate 2 can hide it while sharing one 20L can)
+    const canG = new T.Group();
+    canG.name = "restingCan";
+    canG.position.set(0.52, 0, 0.08);
+    canG.rotation.y = -0.35;
+    const shellMat = new T.MeshPhysicalMaterial({
+      color: 0xcfe8ee, roughness: 0.26, transmission: 0.35, transparent: true, opacity: 0.88
+    });
+    const body = new T.Mesh(new T.BoxGeometry(0.20, 0.38, 0.28), shellMat);
+    body.position.y = 0.19;
+    body.castShadow = true;
+    canG.add(body);
+    const fill = new T.Mesh(new T.BoxGeometry(0.178, 0.27, 0.258), cyanWaterMat);
+    fill.position.y = 0.145;
+    canG.add(fill);
+    for (const sx of [-1, 1]) {
+      for (const rz of [-0.64, 0.64]) {
+        const rib = new T.Mesh(new T.BoxGeometry(0.014, 0.26, 0.024), shellMat);
+        rib.position.set(sx * 0.102, 0.18, 0);
+        rib.rotation.x = rz;
+        canG.add(rib);
+      }
+    }
+    const hdl = new T.Mesh(new T.BoxGeometry(0.038, 0.045, 0.15), shellMat);
+    hdl.position.set(0, 0.40, -0.02);
+    canG.add(hdl);
+    const cap = new T.Mesh(new T.CylinderGeometry(0.028, 0.030, 0.036, 12), mats.ironDarkMat);
+    cap.position.set(0, 0.40, 0.09);
+    canG.add(cap);
+    // Stenciled "WATER = WIFI / SIGNAL OF GOD / +" front badge (kf11 00:58!)
+    if (typeof document !== "undefined") {
+      const cnv = document.createElement("canvas");
+      cnv.width = 256; cnv.height = 256;
+      const ctx = cnv.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, 256, 256);
+        ctx.strokeStyle = "#eafcff"; ctx.fillStyle = "#eafcff"; ctx.lineWidth = 7;
+        for (const r of [24, 42, 60]) {
+          ctx.beginPath(); ctx.arc(128, 86, r, -Math.PI * 0.78, -Math.PI * 0.22); ctx.stroke();
+        }
+        ctx.beginPath(); ctx.arc(128, 92, 7, 0, TAU); ctx.fill();
+        ctx.textAlign = "center";
+        ctx.font = "700 26px Inter, system-ui, sans-serif";
+        ctx.fillText("WATER = WIFI", 128, 138);
+        ctx.font = "600 18px Inter, system-ui, sans-serif";
+        ctx.fillText("SIGNAL OF GOD", 128, 166);
+        ctx.fillRect(122, 184, 12, 48);
+        ctx.fillRect(106, 198, 44, 12);
+        const stTex = new T.CanvasTexture(cnv);
+        if (T.SRGBColorSpace) stTex.colorSpace = T.SRGBColorSpace;
+        const stMat = new T.MeshBasicMaterial({ map: stTex, transparent: true, opacity: 0.92, depthWrite: false });
+        const stPlane = new T.Mesh(new T.PlaneGeometry(0.16, 0.22), stMat);
+        stPlane.position.set(0, 0.19, 0.142);
+        canG.add(stPlane);
+      }
+    }
+    g.add(canG);
+    return g;
+  }
+
+  // 3. Cast-Iron Standpipe Hand Pump on Concrete Pad (kf02 00:02 & Study Sheet d!)
+  function makeStandpipePump(T, mats, cyanWaterMat) {
+    const g = new T.Group();
+    const pad = new T.Mesh(new T.BoxGeometry(0.56, 0.16, 0.56), mats.concreteMat);
+    pad.position.y = 0.08;
+    pad.receiveShadow = true;
+    g.add(pad);
+    const flange = new T.Mesh(new T.BoxGeometry(0.34, 0.036, 0.34), mats.ironDarkMat);
+    flange.position.y = 0.178;
+    g.add(flange);
+    for (const bx of [-0.125, 0.125]) {
+      for (const bz of [-0.125, 0.125]) {
+        const bolt = new T.Mesh(new T.CylinderGeometry(0.019, 0.019, 0.034, 6), mats.ironDarkMat);
+        bolt.position.set(bx, 0.202, bz);
+        g.add(bolt);
+      }
+    }
+    const col = new T.Mesh(new T.CylinderGeometry(0.088, 0.104, 0.94, 16), mats.ironDarkMat);
+    col.position.y = 0.67;
+    col.castShadow = true;
+    g.add(col);
+    for (const ry of [0.44, 0.76, 1.04]) {
+      const collar = new T.Mesh(new T.TorusGeometry(0.098, 0.014, 8, 18), mats.ironDarkMat);
+      collar.rotation.x = Math.PI * 0.5;
+      collar.position.y = ry;
+      g.add(collar);
+    }
+    const topCup = new T.Mesh(new T.CylinderGeometry(0.118, 0.098, 0.16, 16), mats.ironDarkMat);
+    topCup.position.y = 1.13;
+    g.add(topCup);
+    const pistonRod = new T.Mesh(new T.CylinderGeometry(0.015, 0.015, 0.26, 8), mats.steelMat);
+    pistonRod.name = "pumpPistonRod";
+    pistonRod.userData.baseY = 1.22;
+    pistonRod.position.y = 1.22;
+    g.add(pistonRod);
+    const spout = new T.Mesh(
+      new T.TubeGeometry(new T.CatmullRomCurve3([
+        new T.Vector3(0.06, 0.90, 0),
+        new T.Vector3(0.24, 0.89, 0),
+        new T.Vector3(0.345, 0.79, 0)
+      ]), 12, 0.034, 10, false),
+      mats.ironDarkMat
+    );
+    g.add(spout);
+    attachStandpipeLeverRig(T, mats, g, 1.15);
+    g.add(buildBallisticPumpPour(T, cyanWaterMat, {
+      x0: 0.345, y0: 0.790, z0: 0.0,
+      dirX: 0.78, dirY: -0.625, dirZ: 0.0,
+      hitY: 0.276, baseR: 0.024
+    }));
+    return g;
+  }
+
+  // 4. Ethiopian Highland L-Shaped Flat-Roofed Hidmo Compound House + Cyan Courtyard Well (kf15 01:53 & Study Sheet a!)
+  function makeHidmoCompoundHouse(T, mats, cyanWaterMat, darkWinMat) {
+    const g = new T.Group();
+    const winMat = darkWinMat || mats.ironDarkMat;
+
+    // Main Stone-and-Mud Wing (left/back) + Lower Porch Wing (right)
+    const wingA = new T.Mesh(new T.BoxGeometry(5.8, 3.05, 3.8), mats.stoneMat);
+    wingA.position.set(-1.2, 1.52, -1.2);
+    wingA.castShadow = true; wingA.receiveShadow = true;
+    g.add(wingA);
+    // Flat earthen roof parapet coping + protruding cedar vigas!
+    const copA = new T.Mesh(new T.BoxGeometry(5.96, 0.24, 3.96), mats.plasterMat);
+    copA.position.set(-1.2, 3.12, -1.2);
+    g.add(copA);
+    for (let i = 0; i < 8; i++) {
+      const viga = new T.Mesh(new T.CylinderGeometry(0.055, 0.06, 4.35, 7), mats.timberDark);
+      viga.rotation.x = Math.PI * 0.5;
+      viga.position.set(-3.65 + i * 0.70, 2.76, -1.05);
+      viga.castShadow = true;
+      g.add(viga);
+    }
+
+    const wingB = new T.Mesh(new T.BoxGeometry(3.4, 2.55, 4.2), mats.plasterMat);
+    wingB.position.set(2.8, 1.27, 0.4);
+    wingB.castShadow = true; wingB.receiveShadow = true;
+    g.add(wingB);
+    const copB = new T.Mesh(new T.BoxGeometry(3.56, 0.22, 4.36), mats.stoneMat);
+    copB.position.set(2.8, 2.64, 0.4);
+    g.add(copB);
+    for (let i = 0; i < 6; i++) {
+      const viga = new T.Mesh(new T.CylinderGeometry(0.05, 0.055, 3.85, 7), mats.timberDark);
+      viga.rotation.z = Math.PI * 0.5;
+      viga.position.set(2.65, 2.32, -1.25 + i * 0.66);
+      g.add(viga);
+    }
+
+    // Recessed plank doorway + framed windows into courtyard
+    const door = new T.Mesh(new T.BoxGeometry(0.98, 1.92, 0.12), mats.timberMat);
+    door.position.set(-2.4, 0.98, 0.72);
+    g.add(door);
+    for (const wx of [-0.8, 0.6]) {
+      const fw = makeFramedWindow(T, mats, 0.76, 0.86, winMat, false);
+      fw.group.position.set(wx, 1.52, 0.72);
+      g.add(fw.group);
+    }
+    const fwSide = makeFramedWindow(T, mats, 0.74, 0.84, winMat, false);
+    fwSide.group.position.set(1.08, 1.42, 0.95);
+    fwSide.group.rotation.y = -Math.PI * 0.5;
+    g.add(fwSide.group);
+
+    // Circular Coursed-Stone Cyan Courtyard Well (`study_sheet_architecture.jpg` panel a!)
+    const wellWall = new T.Mesh(new T.CylinderGeometry(0.78, 0.82, 0.46, 22, 1, true), mats.stoneMat);
+    wellWall.position.set(-0.25, 0.23, 1.75);
+    wellWall.castShadow = true;
+    g.add(wellWall);
+    const wellCoping = new T.Mesh(new T.TorusGeometry(0.79, 0.075, 8, 24), mats.stoneMat);
+    wellCoping.rotation.x = Math.PI * 0.5;
+    wellCoping.position.set(-0.25, 0.46, 1.75);
+    g.add(wellCoping);
+    const wellPool = new T.Mesh(new T.CircleGeometry(0.74, 22), cyanWaterMat);
+    wellPool.rotation.x = -Math.PI * 0.5;
+    wellPool.position.set(-0.25, 0.38, 1.75);
+    g.add(wellPool);
+    return g;
+  }
+
+  // 5. Gabled Coursed-Stone Highland Chapel / Archive with Arched Door, Lancets & Rooftop Cross (kf06 00:20 & Study Sheet b!)
+  function makeStoneCrossChapel(T, mats, darkWinMat) {
+    const g = new T.Group();
+    const w = 5.4, h = 3.65, d = 6.6;
+    const winMat = darkWinMat || mats.ironDarkMat;
+
+    // Stepped stone plinth
+    const plinth = new T.Mesh(new T.BoxGeometry(w + 0.5, 0.34, d + 0.5), mats.stoneMat);
+    plinth.position.y = 0.17;
+    plinth.receiveShadow = true;
+    g.add(plinth);
+
+    const body = new T.Mesh(new T.BoxGeometry(w, h, d), mats.stoneMat);
+    body.position.y = 0.34 + h * 0.5;
+    body.castShadow = true; body.receiveShadow = true;
+    g.add(body);
+
+    // Corner masonry pilasters + eave finials (`kf06`!)
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        const pil = new T.Mesh(new T.BoxGeometry(0.28, h + 0.1, 0.28), mats.plasterMat);
+        pil.position.set(sx * (w * 0.5 - 0.06), 0.34 + h * 0.5, sz * (d * 0.5 - 0.06));
+        g.add(pil);
+      }
+      const finial = new T.Mesh(new T.ConeGeometry(0.13, 0.42, 6), mats.stoneMat);
+      finial.position.set(sx * (w * 0.5 + 0.05), 0.34 + h + 0.22, d * 0.5 - 0.12);
+      g.add(finial);
+    }
+
+    // Steep pitched gable roof + stone rooftop Latin Cross!
+    const pitchH = 1.95;
+    const roof = makeGableRoof(T, mats, w, pitchH, d, false);
+    roof.position.y = 0.34 + h;
+    g.add(roof);
+
+    const crossV = new T.Mesh(new T.BoxGeometry(0.11, 0.92, 0.11), mats.stoneMat);
+    crossV.position.set(0, 0.34 + h + pitchH + 0.48, d * 0.5 - 0.16);
+    g.add(crossV);
+    const crossH = new T.Mesh(new T.BoxGeometry(0.56, 0.10, 0.10), mats.stoneMat);
+    crossH.position.set(0, 0.34 + h + pitchH + 0.66, d * 0.5 - 0.16);
+    g.add(crossH);
+
+    // Semicircular Arched Plank Doorway + Flanking Arched Lancet Windows + Gable Belfry Lancet (`study_sheet_architecture.jpg` b!)
+    const doorRect = new T.Mesh(new T.BoxGeometry(1.18, 1.85, 0.14), mats.timberMat);
+    doorRect.position.set(0, 0.34 + 0.925, d * 0.5 + 0.02);
+    g.add(doorRect);
+    const doorArch = new T.Mesh(new T.CylinderGeometry(0.59, 0.59, 0.14, 18, 1, false, 0, Math.PI), mats.timberMat);
+    doorArch.rotation.z = -Math.PI * 0.5;
+    doorArch.rotation.y = Math.PI * 0.5;
+    doorArch.position.set(0, 0.34 + 1.85, d * 0.5 + 0.02);
+    g.add(doorArch);
+    const stoneArch = new T.Mesh(new T.TorusGeometry(0.66, 0.085, 8, 18, Math.PI), mats.plasterMat);
+    stoneArch.position.set(0, 0.34 + 1.85, d * 0.5 + 0.05);
+    g.add(stoneArch);
+
+    // Flanking front lancets + upper gable lancet
+    for (const [lx, ly, lw, lh] of [[-1.65, 1.85, 0.38, 1.05], [1.65, 1.85, 0.38, 1.05], [0, h + 0.72, 0.34, 0.82]]) {
+      const lan = new T.Mesh(new T.BoxGeometry(lw, lh, 0.12), winMat);
+      lan.position.set(lx, 0.34 + ly, d * 0.5 + 0.03);
+      g.add(lan);
+      const lFrame = new T.Mesh(new T.TorusGeometry(lw * 0.54, 0.045, 6, 12, Math.PI), mats.plasterMat);
+      lFrame.position.set(lx, 0.34 + ly + lh * 0.5, d * 0.5 + 0.05);
+      g.add(lFrame);
+    }
+    return g;
+  }
+
+  // 6. Cutaway Liquid-Cooled Cross Server Sanctuary & Wire-Glass Registry Bay (kf07 00:24 & Study Sheet c!)
+  function makeCyanServerSanctuary(T, mats, cyanWaterMat) {
+    const g = new T.Group();
+    // Cutaway concrete floor, rear wall with glowing white Cross & left diamond wire-glass wall!
+    const floor = new T.Mesh(new T.BoxGeometry(4.6, 0.18, 4.4), mats.concreteMat);
+    floor.position.y = 0.09;
+    floor.receiveShadow = true;
+    g.add(floor);
+    const slateFloorMat = new T.MeshStandardMaterial({ color: 0x12191e, roughness: 0.16, metalness: 0.38 });
+    const wetFilm = new T.Mesh(new T.PlaneGeometry(4.3, 4.1), slateFloorMat);
+    wetFilm.rotation.x = -Math.PI * 0.5;
+    wetFilm.position.y = 0.184;
+    wetFilm.receiveShadow = true;
+    g.add(wetFilm);
+    // Glowing cyan floor cooling channel loop (`kf07`!)
+    for (const [cx, cz, cw, cd] of [[0, -1.65, 1.45, 0.04], [0, 1.35, 1.45, 0.04], [-0.72, -0.15, 0.04, 3.04], [0.72, -0.15, 0.04, 3.04]]) {
+      const ch = new T.Mesh(new T.PlaneGeometry(cw, cd), cyanWaterMat);
+      ch.rotation.x = -Math.PI * 0.5;
+      ch.position.set(cx, 0.188, cz);
+      g.add(ch);
+    }
+
+    const backWall = new T.Mesh(new T.BoxGeometry(4.6, 3.1, 0.22), mats.concreteMat);
+    backWall.position.set(0, 1.64, -2.09);
+    g.add(backWall);
+
+    // Luminous white Cross at end of server aisle (`kf07`!)
+    const whiteGlow = new T.MeshBasicMaterial({ color: 0xf7fbff });
+    const cV = new T.Mesh(new T.BoxGeometry(0.09, 0.86, 0.05), whiteGlow);
+    cV.position.set(0, 2.12, -1.95);
+    g.add(cV);
+    const cH = new T.Mesh(new T.BoxGeometry(0.52, 0.09, 0.05), whiteGlow);
+    cH.position.set(0, 2.28, -1.95);
+    g.add(cH);
+    const aisleLight = new T.PointLight(0x46e6ff, 1.85, 6.5, 1.5);
+    aisleLight.position.set(0, 1.65, -0.2);
+    g.add(aisleLight);
+    const clerkLight = new T.PointLight(0xfff0d4, 1.25, 4.2, 1.6);
+    clerkLight.position.set(-1.65, 2.25, 0.35);
+    g.add(clerkLight);
+
+    // Left cutaway concrete wall with Georgian diamond wire-glass Registry pass-through window + counter!
+    const leftLow = new T.Mesh(new T.BoxGeometry(0.24, 0.98, 4.4), mats.concreteMat);
+    leftLow.position.set(-2.18, 0.58, 0);
+    g.add(leftLow);
+    const leftHigh = new T.Mesh(new T.BoxGeometry(0.24, 0.55, 4.4), mats.concreteMat);
+    leftHigh.position.set(-2.18, 2.92, 0);
+    g.add(leftHigh);
+    const counter = new T.Mesh(new T.BoxGeometry(0.58, 0.07, 2.6), mats.counterChipMat);
+    counter.position.set(-2.22, 1.08, 0.25);
+    g.add(counter);
+    const wg = new T.Mesh(new T.PlaneGeometry(2.5, 1.32), mats.wireGlassMat);
+    wg.rotation.y = Math.PI * 0.5;
+    wg.position.set(-2.18, 1.88, 0.25);
+    g.add(wg);
+
+    // Twin rows of 19-inch black server racks + 1U blade faceplates + glowing cyan floor-to-rack cooling tubes (`kf07`!)
+    const ledCyan = new T.MeshBasicMaterial({ color: 0x56f0ff });
+    for (const sx of [-1, 1]) {
+      for (let r = 0; r < 2; r++) {
+        const rz = -1.05 + r * 1.35;
+        const rack = new T.Mesh(new T.BoxGeometry(0.72, 2.28, 0.88), mats.ironDarkMat);
+        rack.position.set(sx * 1.38, 1.32, rz);
+        rack.castShadow = true;
+        g.add(rack);
+        // Brushed steel corner rails & 1U blade bays with cyan status LEDs facing center aisle
+        for (let u = 0; u < 7; u++) {
+          const uy = 0.42 + u * 0.27;
+          const bay = new T.Mesh(new T.BoxGeometry(0.02, 0.19, 0.74), mats.steelMat);
+          bay.position.set(sx * 1.015, uy, rz);
+          g.add(bay);
+          const led = new T.Mesh(new T.BoxGeometry(0.024, 0.022, 0.16), ledCyan);
+          led.position.set(sx * 1.012, uy + 0.05, rz - 0.22);
+          g.add(led);
+        }
+        // Glowing cyan liquid-cooling tube arching out of floor port into rack collar!
+        const collar = new T.Mesh(new T.CylinderGeometry(0.075, 0.075, 0.08, 12), mats.steelMat);
+        collar.rotation.z = Math.PI * 0.5;
+        collar.position.set(sx * 0.99, 1.48 - r * 0.22, rz);
+        g.add(collar);
+        const tubeCrv = new T.CatmullRomCurve3([
+          new T.Vector3(sx * 0.55, 0.18, rz + 0.18),
+          new T.Vector3(sx * 0.62, 0.92, rz + 0.10),
+          new T.Vector3(sx * 0.84, 1.44 - r * 0.22, rz),
+          new T.Vector3(sx * 1.02, 1.48 - r * 0.22, rz)
+        ]);
+        g.add(new T.Mesh(new T.TubeGeometry(tubeCrv, 18, 0.046, 10, false), cyanWaterMat));
+      }
+    }
+    return g;
+  }
   /* ---------- Build Ergonomic Swivel Task Chair for Hill Archive `REC PPC` (`kf08`!) ---------- */
   function makeOfficeTaskChair(T, mats) {
     const g = new T.Group();
@@ -1444,12 +2210,15 @@
     crossHoriz.position.set(0, crossBaseY + 1.32, cz);
     g.add(crossHoriz);
 
-    const crossHaloLight = new T.PointLight(0x74ecff, 3.2, 34, 1.5);
-    crossHaloLight.position.set(0, crossBaseY + 1.2, cz);
+    const crossHaloLight = new T.PointLight(0x74ecff, 3.6, 48, 1.35);
+    crossHaloLight.position.set(0, crossBaseY + 1.4, cz);
     g.add(crossHaloLight);
-    const portalWarmLight = new T.PointLight(0xffd89b, 1.8, 14, 1.7);
-    portalWarmLight.position.set(0, 2.8, frontZ + 1.2);
+    const portalWarmLight = new T.PointLight(0xffdca0, 2.8, 28, 1.45);
+    portalWarmLight.position.set(0, 3.8, frontZ + 2.8);
     g.add(portalWarmLight);
+    const domeWarmLight = new T.PointLight(0xffe6b8, 2.2, 26, 1.5);
+    domeWarmLight.position.set(0, domeBaseY + 1.4, frontZ + 1.5);
+    g.add(domeWarmLight);
 
     // Dual-layer vertical sky beacon beam (`kf10`!)
     const innerCoreBeam = new T.Mesh(
@@ -1686,16 +2455,76 @@
     const npSpinFans = [];
     const inWorldScreens = [];
     const laundrySway = [];
+    const pumpRegistry = {};
     let oxbowSheetFront = null, oxbowSheetRear = null, oxbowWindBase = null;
 
     // 0. Upgrade Mistletoe's canvas panniers with the 4 L cyan sight-window + `WATER = WIFI / SIGNAL OF GOD` stencil!
     attachSaddleSightWindows(T, donkey, mats);
 
     // 0b. Enrich Overlook Wellhead (`-22.2, -6.2`) with bolted cast-iron flange collar, glowing cyan hose (`kf02`),
-    // wheel-thrown terracotta bowl (`kf16`), wooden sawbuck pack frame, and stenciled `WATER = WIFI` hero jugs!
-    // Kept strictly clear of `witness_tomas` (-22.85, -6.05), `donkey` (-20.95, -11.4), `imani` (-20.18, -11.42), `june` (-19.34, -11.55)!
+    // wheel-thrown terracotta bowl (`kf16`), wooden sawbuck pack frame, stenciled `WATER = WIFI` hero jugs,
+    // and authoritative world-space hand-grip anchors on the live Overlook `leverPivot`!
     {
       const wx = -22.2, wz = -6.2, wy = groundAt(wx, wz);
+      // Upgrade the existing Overlook Wellhead standpipe lever in `worldProps` (`kf02` ergonomic downward-sloped forged iron bar + 0.000m IK grips!)
+      for (const child of worldProps.children) {
+        if (child.isGroup && Math.hypot(child.position.x - wx, child.position.z - wz) < 0.35) {
+          const ovLeverPivot = child.children.find(ch => ch.isGroup && Math.abs(ch.position.y - 1.18) < 0.08);
+          if (ovLeverPivot && !ovLeverPivot.getObjectByName("pumpGripCenter")) {
+            ovLeverPivot.name = "pumpLeverPivot";
+            const boxArm = ovLeverPivot.children[0];
+            if (boxArm) {
+              boxArm.position.set(-0.20, -0.036, 0);
+              boxArm.rotation.z = 0.18;
+              boxArm.scale.set(0.50, 0.72, 0.72);
+            }
+            const roundShaft = new T.Mesh(new T.CylinderGeometry(0.0155, 0.0185, 0.44, 12), mats.ironDarkMat);
+            roundShaft.rotation.z = Math.PI * 0.5 + 0.18;
+            roundShaft.position.set(-0.33, -0.060, 0);
+            roundShaft.castShadow = true;
+            ovLeverPivot.add(roundShaft);
+            const tipKnob = new T.Mesh(new T.SphereGeometry(0.022, 10, 8), mats.ironDarkMat);
+            tipKnob.position.set(-0.545, -0.099, 0);
+            ovLeverPivot.add(tipKnob);
+
+            const fulcrumPin = new T.Mesh(new T.CylinderGeometry(0.016, 0.016, 0.095, 10), mats.steelMat);
+            fulcrumPin.rotation.x = Math.PI * 0.5;
+            fulcrumPin.position.set(0, 1.18, 0);
+            child.add(fulcrumPin);
+
+            const gNear = new T.Object3D(); gNear.name = "pumpGripNear"; gNear.position.set(-0.380, -0.069, 0.004); ovLeverPivot.add(gNear);
+            const gFar = new T.Object3D(); gFar.name = "pumpGripFar"; gFar.position.set(-0.486, -0.088, -0.004); ovLeverPivot.add(gFar);
+            const gCenter = new T.Object3D(); gCenter.name = "pumpGripCenter"; gCenter.position.set(-0.433, -0.078, 0); ovLeverPivot.add(gCenter);
+            const gTip = new T.Object3D(); gTip.name = "pumpGripTip"; gTip.position.set(-0.545, -0.099, 0); ovLeverPivot.add(gTip);
+
+            child.userData.leverPivot = ovLeverPivot;
+            // Replace legacy straight hose/cylinder stream on Overlook wellhead with dynamic ballistic spout-to-shekla-bowl arc!
+            for (const sub of child.children) {
+              if (sub.isMesh && Math.abs(sub.position.x - 1.75) < 0.08 && Math.abs(sub.position.z - 1.75) < 0.08 && Math.abs(sub.position.y - 0.46) < 0.12) {
+                sub.geometry = new T.BufferGeometry();
+              } else if (sub.isMesh && sub.geometry && sub.geometry.type === "TubeGeometry") {
+                sub.visible = false;
+              }
+            }
+            if (!child.getObjectByName("pumpPourGroup")) {
+              // Parabolic cyan water arc pouring directly out of the Overlook standpipe spout (+X=0.41, Y=0.62) into ovBowl (X=0.76, Z=0.00)!
+              child.add(buildBallisticPumpPour(T, cyanWaterMat || mats.cyanTubeMat, {
+                x0: 0.41, y0: 0.62, z0: 0.00,
+                dirX: 0.90, dirY: -0.43, dirZ: 0.00,
+                hitY: 0.205, baseR: 0.024
+              }));
+            }
+            child.setPumpPhase = (phase, out, opts) => stepStandpipePump(T, child, phase, out, Object.assign({ rawLeverSign: true }, opts));
+            child.getGripWorld = out => {
+              child.updateWorldMatrix(true, true);
+              return gCenter.getWorldPosition(out || new T.Vector3());
+            };
+            pumpRegistry.overlook = child;
+          }
+          break;
+        }
+      }
+
       const ovWellExtras = new T.Group();
       ovWellExtras.position.set(wx, wy, wz);
 
@@ -1710,16 +2539,16 @@
           ovWellExtras.add(nut);
         }
       }
-      // Glowing cyan supply hose sleeve along the Overlook pump hose (`kf02`!)
+      // Ground-hugging cyan manifold supply hose routed cleanly from the lower base flange to the side basin (never blocking spout pour!)
       const ovCyanHose = new T.CatmullRomCurve3([
-        new T.Vector3(0.38, 0.58, 0), new T.Vector3(0.75, 0.20, 0.35),
-        new T.Vector3(1.15, 0.09, 0.85), new T.Vector3(1.55, 0.15, 1.32), new T.Vector3(1.75, 0.36, 1.62)
+        new T.Vector3(0.18, 0.28, 0.18), new T.Vector3(0.55, 0.08, 0.48),
+        new T.Vector3(1.08, 0.06, 0.92), new T.Vector3(1.52, 0.12, 1.34), new T.Vector3(1.75, 0.34, 1.62)
       ]);
-      ovWellExtras.add(new T.Mesh(new T.TubeGeometry(ovCyanHose, 18, 0.046, 10, false), cyanWaterMat || mats.cyanTubeMat));
+      ovWellExtras.add(new T.Mesh(new T.TubeGeometry(ovCyanHose, 18, 0.028, 10, false), cyanWaterMat || mats.cyanTubeMat));
 
-      // Wheel-thrown terracotta watering bowl + wooden sawbuck pack frame + `WATER = WIFI` hero jerrycan beside wellhead
+      // Wheel-thrown terracotta watering bowl positioned directly under the Overlook standpipe spout's parabolic arc!
       const ovBowl = makeTerracottaWateringBowl(T, mats, cyanWaterMat, 0.38, 0.26, true);
-      ovBowl.position.set(0.95, 0, -0.78);
+      ovBowl.position.set(0.76, 0, 0.00);
       ovWellExtras.add(ovBowl);
 
       const ovSawbuck = makeSawbuckPackFrame(T, mats, 0.96);
@@ -1779,6 +2608,11 @@
         wall.rotation.y = wyaw;
         worldProps.add(wall);
       }
+
+      // Pueblo courtyard wheel-thrown terracotta bowl + sawbuck frame at `(-774.95, -26.18)` for `/zones/` Act II unload!
+      const pAct2Bowl = makeTerracottaWateringBowl(T, mats, cyanWaterMat, 0.42, 0.29, true);
+      pAct2Bowl.position.set(-774.95, driveSurfaceAt(-774.95, -26.18) + 0.02, -26.18);
+      worldProps.add(pAct2Bowl);
     }
 
     // Sanctuary Stone Steps & Carved Basalt Blue-Lit Portal on Upper Pueblo Terrace (-812, -34)
@@ -1953,33 +2787,33 @@
       const regLowerFront = new T.Mesh(new T.BoxGeometry(vaultW, 1.02, 0.28), mats.concreteMat);
       regLowerFront.position.set(regX, 0.51, frontWallZ);
       pGrp.add(regLowerFront);
-      const regHeader = new T.Mesh(new T.BoxGeometry(vaultW, 0.67, 0.28), mats.concreteMat);
-      regHeader.position.set(regX, 2.815, frontWallZ);
+      const regHeader = new T.Mesh(new T.BoxGeometry(vaultW, 0.55, 0.28), mats.concreteMat);
+      regHeader.position.set(regX, 2.875, frontWallZ);
       pGrp.add(regHeader);
-      for (const [ cheekX, cheekW ] of [[regX - 1.82, 0.96], [regX + 1.82, 0.96]]) {
-        const cheek = new T.Mesh(new T.BoxGeometry(cheekW, 1.48, 0.28), mats.concreteMat);
-        cheek.position.set(cheekX, 1.75, frontWallZ);
+      for (const [ cheekX, cheekW ] of [[regX - 1.91, 0.78], [regX + 1.91, 0.78]]) {
+        const cheek = new T.Mesh(new T.BoxGeometry(cheekW, 1.60, 0.28), mats.concreteMat);
+        cheek.position.set(cheekX, 1.81, frontWallZ);
         pGrp.add(cheek);
       }
 
       // Exterior 3D Steel Coolant Manifold Headers + Glowing Cyan Conduit Triplets on Concrete Wall (`arch_cooling.jpg`!)
       const extZ = frontWallZ + 0.16;
-      for (const [mhx, mhy, mhw] of [[regX + 1.72, 1.62, 0.62], [regX + 1.68, 1.36, 0.54]]) {
+      for (const [mhx, mhy, mhw] of [[regX + 1.88, 1.62, 0.52], [regX + 1.85, 1.36, 0.46]]) {
         const mHdr = new T.Mesh(new T.CylinderGeometry(0.055, 0.055, mhw, 12), mats.steelMat);
         mHdr.rotation.z = Math.PI * 0.5;
         mHdr.position.set(mhx, mhy, extZ + 0.03);
         pGrp.add(mHdr);
       }
       const vManifold = new T.Mesh(new T.CylinderGeometry(0.068, 0.068, 0.48, 12), mats.steelMat);
-      vManifold.position.set(regX + 1.38, 1.48, extZ + 0.04);
+      vManifold.position.set(regX + 1.60, 1.48, extZ + 0.04);
       pGrp.add(vManifold);
       for (let c = 0; c < 3; c++) {
         const off = c * 0.095;
         const cPts = [
-          new T.Vector3(regX + 1.62 + off, 3.05, extZ),
-          new T.Vector3(regX + 1.62 + off, 1.66, extZ),
-          new T.Vector3(regX + 1.52 + off * 0.7, 1.32, extZ),
-          new T.Vector3(regX + 1.46 + off * 0.6, 0.62 - c * 0.08, extZ),
+          new T.Vector3(regX + 1.80 + off, 3.05, extZ),
+          new T.Vector3(regX + 1.80 + off, 1.66, extZ),
+          new T.Vector3(regX + 1.70 + off * 0.7, 1.32, extZ),
+          new T.Vector3(regX + 1.64 + off * 0.6, 0.62 - c * 0.08, extZ),
           new T.Vector3(regX - 1.15 - c * 0.08, 0.62 - c * 0.08, extZ),
           new T.Vector3(regX - 1.15 - c * 0.08, 0.04, extZ)
         ];
@@ -1990,10 +2824,16 @@
       regRoof.position.set(regX, vaultH, vaultCenterZ);
       pGrp.add(regRoof);
 
-      // Glossy Wet Cyan Cooling Floor + Immersion Glow Strips + Inverted Cross Reflection (`kf07`!)
-      const wetFloor = new T.Mesh(new T.PlaneGeometry(vaultW - 0.5, vaultLen - 0.4), mats.wetVaultFloorMat);
+      // Raised interior concrete floor slab + Glossy Wet Cyan Cooling Floor at `local y = 0.38`
+      // Completely clears sloped hillside terrain across the entire 6.7m server corridor (`#65`!)
+      const vFloorY = 0.38;
+      const vaultSubSlab = new T.Mesh(new T.BoxGeometry(vaultW - 0.34, vFloorY, vaultLen - 0.24), mats.concreteMat);
+      vaultSubSlab.position.set(regX, vFloorY * 0.5 - 0.005, vaultCenterZ);
+      pGrp.add(vaultSubSlab);
+
+      const wetFloor = new T.Mesh(new T.PlaneGeometry(vaultW - 0.46, vaultLen - 0.34), mats.wetVaultFloorMat);
       wetFloor.rotation.x = -Math.PI * 0.5;
-      wetFloor.position.set(regX, 0.035, vaultCenterZ);
+      wetFloor.position.set(regX, vFloorY, vaultCenterZ);
       pGrp.add(wetFloor);
 
       // Glowing cyan water sheen bands across the wet corridor floor
@@ -2003,63 +2843,60 @@
           new T.MeshBasicMaterial({ color: 0x48f2ff, transparent: true, opacity: 0.55, depthWrite: false, blending: T.AdditiveBlending })
         );
         glowBand.rotation.x = -Math.PI * 0.5;
-        glowBand.position.set(regX, 0.042, fz);
+        glowBand.position.set(regX, vFloorY + 0.006, fz);
         pGrp.add(glowBand);
       }
 
-      // Luminous Lit White Cross on the far sanctuary vault wall (`local 2.45, 1.70, -7.32` — `kf07`!)
+      // Luminous Lit White Cross on the far sanctuary vault wall (`local 2.45, 1.84, -7.31` — `kf07`!)
       const vCrossV = new T.Mesh(new T.BoxGeometry(0.13, 1.16, 0.08), mats.litWhiteCrossMat);
-      vCrossV.position.set(regX, 1.70, vaultBackZ + 0.19);
+      vCrossV.position.set(regX, 1.84, vaultBackZ + 0.19);
       pGrp.add(vCrossV);
       const vCrossH = new T.Mesh(new T.BoxGeometry(0.72, 0.13, 0.08), mats.litWhiteCrossMat);
-      vCrossH.position.set(regX, 1.88, vaultBackZ + 0.19);
+      vCrossH.position.set(regX, 2.02, vaultBackZ + 0.19);
       pGrp.add(vCrossH);
 
       // Specular floor reflection of the glowing white cross (`kf07` bottom center!)
       const refCrossV = new T.Mesh(new T.PlaneGeometry(0.16, 1.35), mats.reflectedCrossMat);
       refCrossV.rotation.x = -Math.PI * 0.5;
-      refCrossV.position.set(regX, 0.045, -5.85);
+      refCrossV.position.set(regX, vFloorY + 0.008, -5.85);
       pGrp.add(refCrossV);
       const refCrossH = new T.Mesh(new T.PlaneGeometry(0.78, 0.16), mats.reflectedCrossMat);
       refCrossH.rotation.x = -Math.PI * 0.5;
-      refCrossH.position.set(regX, 0.046, -6.08);
+      refCrossH.position.set(regX, vFloorY + 0.009, -6.08);
       pGrp.add(refCrossH);
 
       // Cyan & white interior vault lights illuminating the curved hoses and wet floor
       const vaultCrossLight = new T.PointLight(0xdffaff, 2.4, 7.5, 1.5);
-      vaultCrossLight.position.set(regX, 1.85, vaultBackZ + 0.65);
+      vaultCrossLight.position.set(regX, 1.98, vaultBackZ + 0.65);
       pGrp.add(vaultCrossLight);
       const vaultFloorLight = new T.PointLight(0x18d4ff, 2.1, 6.8, 1.6);
-      vaultFloorLight.position.set(regX, 0.65, -3.6);
+      vaultFloorLight.position.set(regX, vFloorY + 0.55, -3.6);
       pGrp.add(vaultFloorLight);
 
-      //Overhead heavy steel chilled-water main ducts along both sides of corridor ceiling (`kf07` top!)
+      // Overhead heavy steel chilled-water main ducts along both sides of corridor ceiling (`kf07` top!)
       for (const sx of [-1, 1]) {
         const duct = new T.Mesh(new T.CylinderGeometry(0.13, 0.13, vaultLen - 0.8, 14), mats.steelMat);
         duct.rotation.x = Math.PI * 0.5;
-        duct.position.set(regX + sx * 0.92, 2.74, vaultCenterZ - 0.2);
+        duct.position.set(regX + sx * 0.92, 2.82, vaultCenterZ - 0.2);
         pGrp.add(duct);
       }
 
-      // 8 Dark Steel Server Racks (`4` left at x = regX - 1.38, `4` right at x = regX + 1.38) +
-      // Curved Glowing Cyan `TubeGeometry` Liquid-Cooling Hoses plunging into the wet floor (`kf07`!)
-      const rackZList = [-2.25, -3.55, -4.85, -6.15];
+      // 8 Dark Steel Server Racks + Curved Glowing Cyan `TubeGeometry` Liquid-Cooling Hoses plunging into `y = 0.38` wet floor (`kf07`!)
+      const rackZList = [-2.30, -3.60, -4.90, -6.20];
       for (let ri = 0; ri < rackZList.length; ri++) {
         const rz = rackZList[ri];
         for (const sx of [-1, 1]) {
           const rx = regX + sx * 1.42;
-          const cabinet = new T.Mesh(new T.BoxGeometry(0.76, 2.42, 0.96), mats.ironDarkMat);
-          cabinet.position.set(rx, 1.24, rz);
+          const cabinet = new T.Mesh(new T.BoxGeometry(0.76, 2.32, 0.96), mats.ironDarkMat);
+          cabinet.position.set(rx, vFloorY + 1.16, rz);
           pGrp.add(cabinet);
 
-          // Glowing server blade LED faceplate facing into the central corridor
-          const face = new T.Mesh(new T.PlaneGeometry(0.84, 2.22), mats.serverRackMat);
-          face.position.set(rx - sx * 0.39, 1.24, rz);
+          const face = new T.Mesh(new T.PlaneGeometry(0.84, 2.14), mats.serverRackMat);
+          face.position.set(rx - sx * 0.39, vFloorY + 1.16, rz);
           face.rotation.y = -sx * Math.PI * 0.5;
           pGrp.add(face);
 
-          // Flanged coolant port collar + gracefully arched glowing cyan liquid-cooling tube (`kf07`!)
-          const portY = 1.08 + (ri % 2) * 0.28;
+          const portY = vFloorY + 0.94 + (ri % 2) * 0.26;
           const portX = rx - sx * 0.40;
           const collar = new T.Mesh(new T.CylinderGeometry(0.068, 0.068, 0.09, 12), mats.steelMat);
           collar.rotation.z = Math.PI * 0.5;
@@ -2069,18 +2906,25 @@
           const entryX = regX + sx * (0.58 + (ri % 2) * 0.16);
           const hoseCrv = new T.CatmullRomCurve3([
             new T.Vector3(portX, portY, rz + 0.12),
-            new T.Vector3(portX - sx * 0.34, portY - 0.04, rz + 0.18),
-            new T.Vector3(entryX, portY * 0.52, rz + 0.22),
-            new T.Vector3(entryX - sx * 0.05, 0.04, rz + 0.20)
+            new T.Vector3(portX - sx * 0.34, portY - 0.03, rz + 0.18),
+            new T.Vector3(entryX, lerp(vFloorY, portY, 0.52), rz + 0.22),
+            new T.Vector3(entryX - sx * 0.05, vFloorY + 0.005, rz + 0.20)
           ]);
-          pGrp.add(new T.Mesh(new T.TubeGeometry(hoseCrv, 18, 0.044, 10, false), mats.cyanTubeMat));
+          pGrp.add(new T.Mesh(new T.TubeGeometry(hoseCrv, 18, 0.048, 10, false), mats.cyanTubeMat));
+          pGrp.add(new T.Mesh(new T.TubeGeometry(hoseCrv, 18, 0.018, 8, false), mats.cyanTubeCoreMat));
+          const floorHalo = new T.Mesh(
+            new T.CircleGeometry(0.18, 16),
+            new T.MeshBasicMaterial({ color: 0x58f4ff, transparent: true, opacity: 0.52, depthWrite: false, blending: T.AdditiveBlending })
+          );
+          floorHalo.rotation.x = -Math.PI * 0.5;
+          floorHalo.position.set(entryX - sx * 0.05, vFloorY + 0.007, rz + 0.20);
+          pGrp.add(floorHalo);
 
-          // Secondary dark braided return hose snaking across floor
           if (ri % 2 === 0) {
             const retCrv = new T.CatmullRomCurve3([
-              new T.Vector3(portX, 0.68, rz - 0.18),
-              new T.Vector3(regX + sx * 0.65, 0.16, rz - 0.05),
-              new T.Vector3(regX - sx * 0.35, 0.06, rz + 0.32)
+              new T.Vector3(portX, vFloorY + 0.48, rz - 0.18),
+              new T.Vector3(regX + sx * 0.65, vFloorY + 0.12, rz - 0.05),
+              new T.Vector3(regX - sx * 0.35, vFloorY + 0.02, rz + 0.32)
             ]);
             pGrp.add(new T.Mesh(new T.TubeGeometry(retCrv, 14, 0.026, 7, false), mats.rubberHoseMat));
           }
@@ -2088,31 +2932,32 @@
       }
       // Ceiling-to-floor sweeping cyan umbilical tube near far cross (`kf07` center-top curve!)
       const ceilTubeCrv = new T.CatmullRomCurve3([
-        new T.Vector3(regX - 0.28, 2.95, -4.65),
-        new T.Vector3(regX - 0.16, 1.85, -5.55),
-        new T.Vector3(regX + 0.12, 0.85, -6.35),
-        new T.Vector3(regX + 0.48, 0.06, -6.85)
+        new T.Vector3(regX - 0.28, 2.98, -4.65),
+        new T.Vector3(regX - 0.16, 1.98, -5.55),
+        new T.Vector3(regX + 0.12, 1.05, -6.35),
+        new T.Vector3(regX + 0.48, vFloorY + 0.02, -6.85)
       ]);
       pGrp.add(new T.Mesh(new T.TubeGeometry(ceilTubeCrv, 20, 0.034, 8, false), mats.cyanTubeMat));
 
-      // Chipped-paint Registry service counter + Ration Ledger + Sample Cup + `WATER = WIFI` Jug
-      const counter = new T.Mesh(new T.BoxGeometry(2.85, 0.085, 0.68), mats.counterChipMat);
+      // Chipped-paint Registry service counter + Ration Ledger + Sample Cup aligned to Tess's right bay (`lx = 3.56`)
+      const counter = new T.Mesh(new T.BoxGeometry(3.16, 0.085, 0.68), mats.counterChipMat);
       counter.position.set(regX, 1.04, frontWallZ + 0.03);
       pGrp.add(counter);
       const ledger = new T.Mesh(new T.BoxGeometry(0.36, 0.048, 0.28), new T.MeshStandardMaterial({ color: 0x4b3f32, roughness: 0.86 }));
-      ledger.position.set(regX + 0.52, 1.105, frontWallZ - 0.02);
+      ledger.position.set(regX + 1.05, 1.105, frontWallZ - 0.04);
       ledger.rotation.y = 0.18;
       pGrp.add(ledger);
       const sampleCup = new T.Mesh(new T.CylinderGeometry(0.042, 0.034, 0.09, 14), new T.MeshStandardMaterial({ color: 0xdcd7cb, roughness: 0.45 }));
-      sampleCup.position.set(regX + 0.28, 1.128, frontWallZ + 0.06);
+      sampleCup.position.set(regX + 0.76, 1.128, frontWallZ + 0.05);
       pGrp.add(sampleCup);
 
-      // Steel-mullioned Georgian diamond wire-glass Registry window (`mx` keeps center [-0.52..+0.52] around regX 100% clear!)
-      const winW = 2.68, winH = 1.32, winY = 1.84, winZ = frontWallZ + 0.01;
+      // Steel-mullioned Georgian diamond wire-glass Registry window (`winW = 3.04, winH = 1.44`, mullions at `[-1.52, -0.60, +0.60, +1.52]`):
+      // Center corridor `[1.85..3.05]` AND right Tess bay `[3.05..3.97]` (centered at `lx = 3.51`, top bar `y = 2.60`) are 100% mullion-free!
+      const winW = 3.04, winH = 1.44, winY = 1.88, winZ = frontWallZ + 0.01;
       const wgPane = new T.Mesh(new T.PlaneGeometry(winW, winH), mats.wireGlassMat);
       wgPane.position.set(regX, winY, winZ);
       pGrp.add(wgPane);
-      for (const mx of [-winW * 0.5, -winW * 0.21, winW * 0.21, winW * 0.5]) {
+      for (const mx of [-winW * 0.5, -0.60, 0.60, winW * 0.5]) {
         const mul = new T.Mesh(new T.BoxGeometry(0.038, winH + 0.18, 0.052), mats.ironDarkMat);
         mul.position.set(regX + mx, winY - 0.06, winZ);
         pGrp.add(mul);
@@ -2449,12 +3294,28 @@
       const seepPump = makeCastIronStandpipePump(T, mats, cyanWaterMat);
       seepPump.position.set(438, apY, 34);
       worldProps.add(seepPump);
+      pumpRegistry.seep = seepPump;
       if (mw && mw.tetonRange) {
         const tcY = groundAt(mw.tetonRange.x, mw.tetonRange.z);
         const tcCairn = new T.Mesh(new T.ConeGeometry(0.88, 1.65, 8), mats.stoneMat);
         tcCairn.position.set(mw.tetonRange.x, tcY + 0.8, mw.tetonRange.z);
         worldProps.add(tcCairn);
       }
+      // Place ZZlDs10FCZk Wheel-Thrown Terracotta Donkey Watering Bowls (`shekla`, kf16!) & Highland Stone Chapel!
+      for (const [bx, bz] of [[-24.2, -5.2], [-49.6, -166.2], [-246.2, -53.2]]) {
+        const bowl = makeTerracottaDonkeyBowl(T, mats, cyanWaterMat);
+        bowl.position.set(bx, groundAt(bx, bz), bz);
+        worldProps.add(bowl);
+      }
+      const upperChapel = makeStoneCrossChapel(T, mats, puebloDarkWinMat);
+      upperChapel.position.set(-816, groundAt(-816, -22), -22);
+      upperChapel.rotation.y = Math.PI * 0.48;
+      worldProps.add(upperChapel);
+
+      const hidmo = makeHidmoCompoundHouse(T, mats, cyanWaterMat, puebloDarkWinMat);
+      hidmo.position.set(-786, groundAt(-786, -38), -38);
+      hidmo.rotation.y = 0.22;
+      worldProps.add(hidmo);
     }
 
     /* =========================================================================
@@ -2465,6 +3326,14 @@
           - Daylight Hidmo Compound, Billowing Doorway Curtain & Terracotta Bowl (`-1680, 775`)
        ========================================================================= */
     if (hasNightPostSets) {
+      // Terracotta donkey bowl at Basalt Pump + Gabled Stone Chapel crowning Cross-Beacon Watch!
+      const bBowl = makeTerracottaDonkeyBowl(T, mats, cyanWaterMat);
+      bBowl.position.set(-1457.8, groundAt(-1457.8, 761.2), 761.2);
+      worldProps.add(bBowl);
+
+      const beaconChapel = makeStoneCrossChapel(T, mats, puebloDarkWinMat);
+      beaconChapel.position.set(-1610, groundAt(-1610, 585.5), 585.5);
+      worldProps.add(beaconChapel);
       // 5a. Basalt Column Cast-Iron Standpipe Pump, Gauge-Thread Trough & `WATER = WIFI` Cans (-1460, 760)
       const by = groundAt(-1460, 760);
       const bGrp = new T.Group();
@@ -2479,6 +3348,7 @@
         [0, 0.38, 0.16], [0.45, 0.24, 0.32], [1.10, 0.22, 0.52], [1.55, 0.44, 0.62]
       ]);
       bGrp.add(bStandpipe);
+      pumpRegistry.basalt = bStandpipe;
       const bThread = new T.Mesh(new T.TorusGeometry(0.118, 0.016, 6, 18), new T.MeshBasicMaterial({ color: 0xff5a5a }));
       bThread.rotation.x = Math.PI * 0.5;
       bThread.position.set(0, 0.92, 0);
@@ -2710,62 +3580,68 @@
       }
       worldProps.add(hGrp);
 
-      // 5d. Daylight Hidmo Compound (`-1680, 775`, `rot.y = 0` — locked to #57 & #58!):
-      //     - Main North Hidmo House (`front wall z = -3.40`) with battered basalt plinth, `arch_mudwall.jpg`, & projecting cedar vigas
-      //     - Hero Recessed Timber-Lintel Doorway + Wind-Billowing White Linen Curtain at `local (-2.15, 0, -3.38)` -> `(-1682.15, cy, 771.62)`
-      //     - Wheel-Thrown Ribbed Terracotta Watering Bowl at `local (-0.85, 0, -0.65)` -> `(-1680.85, cy, 774.35)` (`rim y = 0.30, meniscus y = 0.23`)
-      //     - Coursed-Stone Cyan Courtyard Well at `local (+2.35, 0, +0.85)` -> `(-1677.65, cy, 775.85)`
-      //     - Pegged Cinema Sheet (`id: "compound"`) at `local (+2.45, 2.05, -3.25)`
-      //     - Open South Courtyard (`z > 772`) completely clear for camera & 2-person unload!
-      const cy = groundAt(-1680, 775);
+      // 5d. Daylight Hidmo Compound (`-1680, 775`, `rot.y = 0` — locked to `COMPOUND_PAD_Y = groundAt(-1680, 775) + 0.52` in #65!):
+      const cy = groundAt(-1680, 775) + 0.52;
       const cGrp = new T.Group();
       cGrp.position.set(-1680, cy, 775);
 
-      // Earthen compacted courtyard plinth leveling slight slope
-      const courtPad = new T.Mesh(new T.BoxGeometry(12.2, 1.6, 10.6), mats.basaltPlinthMat);
-      courtPad.position.set(-0.4, -0.82, -0.8);
+      // Level earthen & coursed-basalt compound terrace (`14.5 × 2.2 × 12.0` centered at `y = -1.10` so flat top face = `local y = 0.0`,
+      // completely above the coarse GPU terrain chord so Mistletoe's hooves, carriers' sandals & terracotta bowl stand cleanly on earth!)
+      const courtPad = new T.Mesh(new T.BoxGeometry(14.5, 2.2, 12.0), mats.basaltPlinthMat);
+      courtPad.position.set(0.2, -1.10, -0.6);
       courtPad.receiveShadow = true;
       cGrp.add(courtPad);
+      const courtEarth = new T.Mesh(new T.BoxGeometry(14.1, 0.04, 11.6), mats.mudPlasterMat);
+      courtEarth.position.set(0.2, -0.018, -0.6);
+      courtEarth.receiveShadow = true;
+      cGrp.add(courtEarth);
 
-      // Main North Hidmo House Wing (`local x ∈ [-5.6, +5.0]`, front wall at `local z = -3.40`, back at `z = -7.20`)
-      const nWingW = 10.6, nWingH = 3.38, nWingD = 3.80, nWingX = -0.30, nWingZ = -5.30;
-      const nPlinth = new T.Mesh(new T.BoxGeometry(nWingW + 0.26, 0.88, nWingD + 0.26), mats.basaltPlinthMat);
-      nPlinth.position.set(nWingX, 0.40, nWingZ);
-      nPlinth.castShadow = true;
-      nPlinth.receiveShadow = true;
-      cGrp.add(nPlinth);
-
-      const nBody = new T.Mesh(new T.BoxGeometry(nWingW, nWingH, nWingD), mats.hidmoWallMat);
-      nBody.position.set(nWingX, nWingH * 0.5, nWingZ);
-      nBody.castShadow = true;
-      nBody.receiveShadow = true;
-      cGrp.add(nBody);
-
-      addHidmoVigasAndParapet(T, mats, cGrp, nWingW, nWingH, nWingD, false, false);
-      // Offset the parapet/vigas helper onto nWingX, nWingZ cleanly:
-      cGrp.children.slice(-6).forEach(m => { m.position.x += nWingX; m.position.z += nWingZ; });
-      // Projecting round cedar/juniper viga beam ends along the North House front (`z = -3.12, y = 3.08` — `study_sheet` a & `kf15`!)
-      for (let i = 0; i < 12; i++) {
-        const vx = lerp(nWingX - nWingW * 0.45, nWingX + nWingW * 0.45, i / 11);
-        const viga = new T.Mesh(new T.CylinderGeometry(0.072, 0.080, 0.62, 9), mats.vigaMat);
-        viga.rotation.x = Math.PI * 0.5;
-        viga.position.set(vx, nWingH - 0.28, -3.15);
-        viga.castShadow = true;
-        cGrp.add(viga);
-      }
+      // 1) Left (NW) Hidmo House (`local x ∈ [-5.65, -0.35]`, front wall at `local z = -3.40`)
+      const nwW = 5.30, nwH = 3.38, nwD = 3.80, nwX = -3.00, nwZ = -5.30;
+      const nwGrp = new T.Group();
+      nwGrp.position.set(nwX, 0, nwZ);
+      const nwPlinth = new T.Mesh(new T.BoxGeometry(nwW + 0.24, 0.88, nwD + 0.24), mats.basaltPlinthMat);
+      nwPlinth.position.y = 0.40;
+      nwGrp.add(nwPlinth);
+      const nwBody = new T.Mesh(new T.BoxGeometry(nwW, nwH, nwD), mats.hidmoWallMat);
+      nwBody.position.y = nwH * 0.5;
+      nwBody.castShadow = true;
+      nwBody.receiveShadow = true;
+      nwGrp.add(nwBody);
+      addHidmoVigasAndParapet(T, mats, nwGrp, nwW, nwH, nwD, true, false);
+      cGrp.add(nwGrp);
 
       // HERO Recessed Timber-Lintel Doorway + Wind-Billowing White Linen Curtain at `local (-2.15, 0, -3.38)`!
       const heroDoorway = makeHidmoDoorwayWithCurtain(T, mats, 1.28, 2.22);
       heroDoorway.group.position.set(-2.15, 0, -3.38);
       cGrp.add(heroDoorway.group);
 
-      // Flanking recessed shuttered timber window on North Hidmo facade (`local -4.15, 1.42, -3.38`)
-      const compWin1 = makeFramedWindow(T, mats, 0.86, 0.96, puebloDarkWinMat, true);
-      compWin1.group.position.set(-4.15, 1.42, -3.38);
+      // Flanking recessed shuttered timber window on NW Hidmo facade (`local -4.35, 1.42, -3.38`)
+      const compWin1 = makeFramedWindow(T, mats, 0.84, 0.94, puebloDarkWinMat, true);
+      compWin1.group.position.set(-4.35, 1.42, -3.38);
       cGrp.add(compWin1.group);
 
-      // West Hidmo Return Wing (`local x = -5.55` inner courtyard wall at `x = -4.65`, `z ∈ [-3.40, +3.40]`)
-      // Leaves `x > -4.5` completely clear for Mistletoe `(-3.15, -0.45)` & Biruk `(-3.25, +0.35)`!
+      // Low coursed-basalt compound threshold sill across the center sightline notch (`x ∈ [-0.35, +2.45]`, `h = 0.58m`)
+      const notchWall = new T.Mesh(new T.BoxGeometry(2.85, 0.58, 0.48), mats.basaltPlinthMat);
+      notchWall.position.set(1.05, 0.29, -4.15);
+      cGrp.add(notchWall);
+
+      // 2) Right (NE) Hidmo House (`local x ∈ [+2.45, +6.85]`, front wall at `local z = -3.30`)
+      const neW = 4.40, neH = 3.16, neD = 3.70, neX = 4.65, neZ = -5.15;
+      const neGrp = new T.Group();
+      neGrp.position.set(neX, 0, neZ);
+      const nePlinth = new T.Mesh(new T.BoxGeometry(neW + 0.24, 0.84, neD + 0.24), mats.basaltPlinthMat);
+      nePlinth.position.y = 0.38;
+      neGrp.add(nePlinth);
+      const neBody = new T.Mesh(new T.BoxGeometry(neW, neH, neD), mats.hidmoWallMat);
+      neBody.position.y = neH * 0.5;
+      neBody.castShadow = true;
+      neBody.receiveShadow = true;
+      neGrp.add(neBody);
+      addHidmoVigasAndParapet(T, mats, neGrp, neW, neH, neD, true, false);
+      cGrp.add(neGrp);
+
+      // 3) West Hidmo Return Wing (`inner courtyard wall at x = -4.65`, `z ∈ [-3.40, +3.40]`)
       const wWingW = 2.6, wWingH = 2.92, wWingD = 6.8, wWingX = -5.95, wWingZ = 0.0;
       const wPlinth = new T.Mesh(new T.BoxGeometry(wWingW + 0.24, 0.82, wWingD + 0.24), mats.basaltPlinthMat);
       wPlinth.position.set(wWingX, 0.38, wWingZ);
@@ -2791,36 +3667,36 @@
       compWin2.group.rotation.y = Math.PI * 0.5;
       cGrp.add(compWin2.group);
 
-      // Secondary wind-billowing linen curtain in West Wing doorway (`local -4.63, 0, +1.55`)
+      // Secondary wind-billowing linen curtain in West Wing doorway (`local -4.65, 0, +1.55`)
       const sideDoor = makeHidmoDoorwayWithCurtain(T, mats, 1.08, 2.02);
       sideDoor.group.position.set(wWingX + wWingW * 0.5, 0, 1.55);
       sideDoor.group.rotation.y = Math.PI * 0.5;
       cGrp.add(sideDoor.group);
 
-      // Pegged Cinema Sheet (`id: "compound"`) at `local (+2.45, 2.05, -3.22)` (`4.4m × 2.48m` on pegs & lintel rope)
-      const cRope = new T.Mesh(new T.CylinderGeometry(0.009, 0.009, 4.7, 6), mats.sisalRopeMat);
+      // Pegged Cinema Sheet (`id: "compound"`) hung cleanly on the NE Hidmo House front (`local +4.65, 1.88, -3.12`)
+      const cRope = new T.Mesh(new T.CylinderGeometry(0.009, 0.009, 4.3, 6), mats.sisalRopeMat);
       cRope.rotation.z = Math.PI * 0.5;
-      cRope.position.set(2.45, 3.32, -3.22);
+      cRope.position.set(4.65, 3.04, -3.12);
       cGrp.add(cRope);
-      for (const px of [0.45, 1.75, 3.15, 4.45]) {
+      for (const px of [2.85, 4.05, 5.25, 6.45]) {
         const peg = new T.Mesh(new T.BoxGeometry(0.028, 0.09, 0.028), mats.timberMat);
-        peg.position.set(px, 3.32, -3.22);
+        peg.position.set(px, 3.04, -3.12);
         cGrp.add(peg);
       }
-      const cSheet = new T.Mesh(new T.PlaneGeometry(4.4, 2.48, 8, 6), cinemaMat);
-      cSheet.position.set(2.45, 2.05, -3.22);
+      const cSheet = new T.Mesh(new T.PlaneGeometry(4.1, 2.31, 8, 6), cinemaMat);
+      cSheet.position.set(4.65, 1.86, -3.12);
       cGrp.add(cSheet);
-      inWorldScreens.push({ id: "compound", label: "Daylight Compound Pegged Sheet", mesh: cSheet, w: 4.4, h: 2.48, stand: { x: -1679.0, z: 783.5, yaw: 0.09 } });
+      inWorldScreens.push({ id: "compound", label: "Daylight Compound Pegged Sheet", mesh: cSheet, w: 4.1, h: 2.31, stand: { x: -1679.0, z: 783.5, yaw: 0.09 } });
 
-      // HERO Wheel-Thrown Ribbed Terracotta Watering Bowl (`kf16`) at `local (-0.85, 0, -0.65)` -> world `(-1680.85, cy, 774.35)`!
-      // Flat basalt flagstone ringflush with ground (`y = 0.015`) so bowl rim sits at exact `cy + 0.30` and meniscus at `cy + 0.23`!
-      const bowlFlagstone = new T.Mesh(new T.CylinderGeometry(0.62, 0.66, 0.03, 12), mats.chapelStoneMat);
-      bowlFlagstone.position.set(-0.85, 0.005, -0.65);
+      // HERO Wheel-Thrown Ribbed Terracotta Watering Bowl (`kf16`) on low `0.06m` flagstone at `local (-0.85, 0, -0.65)`:
+      // `bowl rim = local y + 0.30`, `meniscus = local y + 0.23` on flat `COMPOUND_PAD_Y` (`#65`!)
+      const bowlFlagstone = new T.Mesh(new T.CylinderGeometry(0.60, 0.64, 0.06, 14), mats.chapelStoneMat);
+      bowlFlagstone.position.set(-0.85, -0.02, -0.65);
       bowlFlagstone.receiveShadow = true;
       cGrp.add(bowlFlagstone);
 
       const heroClayBowl = makeTerracottaWateringBowl(T, mats, cyanWaterMat, 0.44, 0.30, true);
-      heroClayBowl.position.set(-0.85, 0.0, -0.65);
+      heroClayBowl.position.set(-0.85, 0.005, -0.65);
       cGrp.add(heroClayBowl);
 
       // Coursed-Stone Circular Courtyard Well with Glowing Cyan Water (`study_sheet` a!) at `local (+2.35, 0, +0.85)`
@@ -2834,24 +3710,27 @@
       compSawbuck.rotation.y = 0.38;
       cGrp.add(compSawbuck);
 
-      for (const [jx, jz, jry] of [[-0.45, -2.92, 0.18], [-0.05, -2.85, -0.32]]) {
+      for (const [jx, jz, jry] of [[-0.58, -3.05, 0.18], [-0.15, -2.98, -0.32]]) {
         const cj = makeHeroWifiJerikan(T, mats, 1.04, true);
         cj.position.set(jx, 0, jz);
         cj.rotation.y = jry;
         cGrp.add(cj);
       }
 
-      // Low dry-stone basalt curb on far East edge (`x = +4.85`) keeping entire South camera stage (`z > 772`) wide open!
       const eastCurb = new T.Mesh(new T.BoxGeometry(0.52, 0.78, 5.4), mats.basaltPlinthMat);
-      eastCurb.position.set(4.85, 0.38, -0.7);
+      eastCurb.position.set(6.55, 0.38, -0.4);
       cGrp.add(eastCurb);
 
       const cChair = makeWoodenChair(T, mats);
-      cChair.position.set(3.85, 0, -1.85);
+      cChair.position.set(4.15, 0, -1.85);
       cChair.rotation.y = -0.55;
       cGrp.add(cChair);
 
       worldProps.add(cGrp);
+    }
+
+    if (typeof window !== "undefined") {
+      window.__npStandpipePumps = pumpRegistry;
     }
 
     function updateArchitecture(nowSec) {
@@ -2880,11 +3759,46 @@
       oxbowSheetFront,
       oxbowSheetRear,
       oxbowWindBase,
+      pumpRegistry,
       updateArchitecture
     };
   }
 
+  function makeArchitectureStudyPiece(T, pieceId) {
+    const mats = getArchMaterials(T);
+    const cyanWaterMat = new T.MeshPhysicalMaterial({
+      color: 0x3fd8e8, emissive: 0x1498b8, emissiveIntensity: 0.75,
+      roughness: 0.14, transmission: 0.32, transparent: true, opacity: 0.92
+    });
+    if (pieceId === "hidmo") return makeHidmoCompoundHouse(T, mats, cyanWaterMat, mats.ironDarkMat);
+    if (pieceId === "chapel") return makeStoneCrossChapel(T, mats, mats.ironDarkMat);
+    if (pieceId === "sanctuary") return makeCyanServerSanctuary(T, mats, cyanWaterMat);
+    if (pieceId === "wifi_can") return makeHeroWifiJerikan(T, mats, 1.0, false);
+    if (pieceId === "props") {
+      const grp = new T.Group();
+      const saw = makeSawbuckAndRibbedCan(T, mats, cyanWaterMat);
+      saw.position.set(-1.15, 0, 0);
+      grp.add(saw);
+      const pump = makeStandpipePump(T, mats, cyanWaterMat);
+      pump.position.set(0.32, 0, -0.06);
+      grp.add(pump);
+      const bowl = makeTerracottaDonkeyBowl(T, mats, cyanWaterMat);
+      bowl.position.set(0.88, 0, -0.06);
+      grp.add(bowl);
+      return grp;
+    }
+    // Default: Two-story Highland Stone & Corrugated-Iron House + Clothesline
+    const winList = [], dishList = [];
+    const houseG = new T.Group();
+    const h = makeHighlandHouse(T, mats, { w: 5.4, h: 4.4, d: 4.6, twoStory: true, hasPorch: true, hasChimney: true, seed: 1 }, winList, dishList, mats.ironDarkMat, mats.steelMat);
+    houseG.add(h);
+    return houseG;
+  }
+
   if (typeof window !== "undefined") {
     window.buildWorldArchitecture = buildWorldArchitecture;
+    window.makeArchitectureStudyPiece = makeArchitectureStudyPiece;
+    window.stepStandpipePump = (pumpOrKey, phase, out, opts) =>
+      stepStandpipePump(window.THREE, pumpOrKey, phase, out, opts);
   }
 })();

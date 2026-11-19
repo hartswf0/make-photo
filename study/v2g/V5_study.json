@@ -1,0 +1,113 @@
+{
+  "width": 1280,
+  "height": 720,
+  "fps": 24.0,
+  "duration": 10.027,
+  "palette": [
+    {
+      "hex": "#161918",
+      "share": 0.194
+    },
+    {
+      "hex": "#081317",
+      "share": 0.143
+    },
+    {
+      "hex": "#252727",
+      "share": 0.14
+    },
+    {
+      "hex": "#040a0b",
+      "share": 0.098
+    },
+    {
+      "hex": "#192327",
+      "share": 0.093
+    },
+    {
+      "hex": "#040c11",
+      "share": 0.042
+    },
+    {
+      "hex": "#141d22",
+      "share": 0.035
+    },
+    {
+      "hex": "#353736",
+      "share": 0.033
+    },
+    {
+      "hex": "#293336",
+      "share": 0.029
+    },
+    {
+      "hex": "#0b1a22",
+      "share": 0.023
+    }
+  ],
+  "cuts": [],
+  "frames": [
+    {
+      "t": 0.0,
+      "file": "f_001.jpg"
+    },
+    {
+      "t": 0.8,
+      "file": "f_002.jpg"
+    },
+    {
+      "t": 1.6,
+      "file": "f_003.jpg"
+    },
+    {
+      "t": 2.4,
+      "file": "f_004.jpg"
+    },
+    {
+      "t": 3.2,
+      "file": "f_005.jpg"
+    },
+    {
+      "t": 4.0,
+      "file": "f_006.jpg"
+    },
+    {
+      "t": 4.8,
+      "file": "f_007.jpg"
+    },
+    {
+      "t": 5.6,
+      "file": "f_008.jpg"
+    },
+    {
+      "t": 6.4,
+      "file": "f_009.jpg"
+    },
+    {
+      "t": 7.2,
+      "file": "f_010.jpg"
+    },
+    {
+      "t": 8.0,
+      "file": "f_011.jpg"
+    },
+    {
+      "t": 8.8,
+      "file": "f_012.jpg"
+    },
+    {
+      "t": 9.6,
+      "file": "f_013.jpg"
+    }
+  ],
+  "sheet": "V5_sheet.jpg",
+  "id": "V5",
+  "title": "Ahiya Night Ridge Smartphone Convoy & Cross-Beacon Mesh",
+  "video": "V5_ahiya_night_convoy.mp4",
+  "blocking": "game_blocking_V5_ahiya_ridge.jpg",
+  "keyframes": [
+    "kf09_00m48s_night_youths_phone_glow.jpg",
+    "kf10_00m56s_citadel_beacon_mesh.jpg",
+    "kf12_01m12s_draped_elders_procession.jpg"
+  ]
+}

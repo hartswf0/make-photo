@@ -1,0 +1,113 @@
+{
+  "width": 1280,
+  "height": 720,
+  "fps": 24.0,
+  "duration": 10.027,
+  "palette": [
+    {
+      "hex": "#463c35",
+      "share": 0.053
+    },
+    {
+      "hex": "#181716",
+      "share": 0.048
+    },
+    {
+      "hex": "#292624",
+      "share": 0.043
+    },
+    {
+      "hex": "#342c26",
+      "share": 0.043
+    },
+    {
+      "hex": "#3a3634",
+      "share": 0.037
+    },
+    {
+      "hex": "#554b45",
+      "share": 0.036
+    },
+    {
+      "hex": "#665b54",
+      "share": 0.033
+    },
+    {
+      "hex": "#39322c",
+      "share": 0.031
+    },
+    {
+      "hex": "#665549",
+      "share": 0.03
+    },
+    {
+      "hex": "#466989",
+      "share": 0.028
+    }
+  ],
+  "cuts": [],
+  "frames": [
+    {
+      "t": 0.0,
+      "file": "f_001.jpg"
+    },
+    {
+      "t": 0.8,
+      "file": "f_002.jpg"
+    },
+    {
+      "t": 1.6,
+      "file": "f_003.jpg"
+    },
+    {
+      "t": 2.4,
+      "file": "f_004.jpg"
+    },
+    {
+      "t": 3.2,
+      "file": "f_005.jpg"
+    },
+    {
+      "t": 4.0,
+      "file": "f_006.jpg"
+    },
+    {
+      "t": 4.8,
+      "file": "f_007.jpg"
+    },
+    {
+      "t": 5.6,
+      "file": "f_008.jpg"
+    },
+    {
+      "t": 6.4,
+      "file": "f_009.jpg"
+    },
+    {
+      "t": 7.2,
+      "file": "f_010.jpg"
+    },
+    {
+      "t": 8.0,
+      "file": "f_011.jpg"
+    },
+    {
+      "t": 8.8,
+      "file": "f_012.jpg"
+    },
+    {
+      "t": 9.6,
+      "file": "f_013.jpg"
+    }
+  ],
+  "sheet": "V2_sheet.jpg",
+  "id": "V2",
+  "title": "Daylight Compound Two-Person 20L Unload & Terracotta Pour",
+  "video": "V2_daylight_compound_unload.mp4",
+  "blocking": "game_blocking_V2_compound.jpg",
+  "keyframes": [
+    "kf14_01m45s_two_man_20kg_unload.jpg",
+    "kf15_01m53s_father_child_hidmo_village.jpg",
+    "kf16_02m03s_terracotta_donkey_bowl.jpg"
+  ]
+}

@@ -1,0 +1,991 @@
+{
+  "version": "v3.0",
+  "directory": "/Users/gaia/make-photo/make-photo/donkey/textures_v3",
+  "background_hex": "#424242",
+  "background_rgb": [
+    66,
+    66,
+    66
+  ],
+  "edge_bleed_px": 28,
+  "canonical_portrait_spec": {
+    "resolution": [
+      1024,
+      1024
+    ],
+    "front": {
+      "eye_pupils_y": 0.44,
+      "nose_tip_y": 0.56,
+      "mouth_seam_y": 0.66,
+      "chin_bottom_y": 0.8,
+      "head_width_x": [
+        0.28,
+        0.72
+      ],
+      "center_x": 0.5
+    },
+    "side_left_profile": {
+      "facing": "left (-X: nose tip at x~0.245, occiput at x~0.865)",
+      "eye_pupil_y": 0.44,
+      "nose_tip_y": 0.56,
+      "mouth_seam_y": 0.66,
+      "chin_bottom_y": 0.8,
+      "ear_canal_x": 0.62
+    },
+    "uv_note": "In Three.js default Texture (flipY=true), v = 1.0 - y_norm (so eye_v = 0.560, nose_v = 0.440, mouth_v = 0.340, chin_v = 0.200)."
+  },
+  "portraits": {
+    "imani": {
+      "front": "imani_head_front.jpg",
+      "side": "imani_head_side.jpg",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "background_hex": "#424242",
+      "background_rgb": [
+        66,
+        66,
+        66
+      ],
+      "bleed_px": 28,
+      "side_facing": "left (-X, nose at smaller u, occiput at larger u)",
+      "front_landmarks_norm": {
+        "pupil_left": [
+          0.402,
+          0.44
+        ],
+        "pupil_right": [
+          0.598,
+          0.44
+        ],
+        "eye_line_y": 0.44,
+        "nose_tip": [
+          0.5,
+          0.56
+        ],
+        "mouth_seam": [
+          0.5,
+          0.66
+        ],
+        "chin_bottom": [
+          0.5,
+          0.8
+        ],
+        "head_span_x": [
+          0.28,
+          0.72
+        ]
+      },
+      "front_landmarks_px": {
+        "pupil_left": [
+          411.6,
+          450.6
+        ],
+        "pupil_right": [
+          612.4,
+          450.6
+        ],
+        "nose_tip": [
+          512.0,
+          573.4
+        ],
+        "mouth_seam": [
+          512.0,
+          675.8
+        ],
+        "chin_bottom": [
+          512.0,
+          819.2
+        ],
+        "head_span_x": [
+          286.7,
+          737.3
+        ]
+      },
+      "front_landmarks_uv_flipY": {
+        "eye_v": 0.56,
+        "nose_tip_v": 0.44,
+        "mouth_seam_v": 0.34,
+        "chin_bottom_v": 0.2,
+        "u_span": [
+          0.28,
+          0.72
+        ]
+      },
+      "side_landmarks_norm": {
+        "nose_tip": [
+          0.245,
+          0.56
+        ],
+        "eye_pupil": [
+          0.352,
+          0.44
+        ],
+        "mouth_corner": [
+          0.287,
+          0.66
+        ],
+        "chin_bottom": [
+          0.3,
+          0.8
+        ],
+        "ear_canal": [
+          0.62,
+          0.495
+        ],
+        "occiput_back": [
+          0.855,
+          0.42
+        ]
+      },
+      "side_landmarks_px": {
+        "nose_tip": [
+          250.9,
+          573.4
+        ],
+        "eye_pupil": [
+          360.4,
+          450.6
+        ],
+        "mouth_seam_y": 675.8,
+        "chin_bottom_y": 819.2,
+        "ear_canal_x": 634.9
+      }
+    },
+    "youth": {
+      "front": "youth_head_front.jpg",
+      "side": "youth_head_side.jpg",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "background_hex": "#424242",
+      "background_rgb": [
+        66,
+        66,
+        66
+      ],
+      "bleed_px": 28,
+      "side_facing": "left (-X, nose at smaller u, occiput at larger u)",
+      "front_landmarks_norm": {
+        "pupil_left": [
+          0.402,
+          0.44
+        ],
+        "pupil_right": [
+          0.598,
+          0.44
+        ],
+        "eye_line_y": 0.44,
+        "nose_tip": [
+          0.5,
+          0.56
+        ],
+        "mouth_seam": [
+          0.5,
+          0.66
+        ],
+        "chin_bottom": [
+          0.5,
+          0.8
+        ],
+        "head_span_x": [
+          0.28,
+          0.72
+        ]
+      },
+      "front_landmarks_px": {
+        "pupil_left": [
+          411.6,
+          450.6
+        ],
+        "pupil_right": [
+          612.4,
+          450.6
+        ],
+        "nose_tip": [
+          512.0,
+          573.4
+        ],
+        "mouth_seam": [
+          512.0,
+          675.8
+        ],
+        "chin_bottom": [
+          512.0,
+          819.2
+        ],
+        "head_span_x": [
+          286.7,
+          737.3
+        ]
+      },
+      "front_landmarks_uv_flipY": {
+        "eye_v": 0.56,
+        "nose_tip_v": 0.44,
+        "mouth_seam_v": 0.34,
+        "chin_bottom_v": 0.2,
+        "u_span": [
+          0.28,
+          0.72
+        ]
+      },
+      "side_landmarks_norm": {
+        "nose_tip": [
+          0.248,
+          0.56
+        ],
+        "eye_pupil": [
+          0.348,
+          0.44
+        ],
+        "mouth_corner": [
+          0.29,
+          0.66
+        ],
+        "chin_bottom": [
+          0.303,
+          0.8
+        ],
+        "ear_canal": [
+          0.62,
+          0.495
+        ],
+        "occiput_back": [
+          0.872,
+          0.42
+        ]
+      },
+      "side_landmarks_px": {
+        "nose_tip": [
+          254.0,
+          573.4
+        ],
+        "eye_pupil": [
+          356.4,
+          450.6
+        ],
+        "mouth_seam_y": 675.8,
+        "chin_bottom_y": 819.2,
+        "ear_canal_x": 634.9
+      }
+    },
+    "elder": {
+      "front": "elder_head_front.jpg",
+      "side": "elder_head_side.jpg",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "background_hex": "#424242",
+      "background_rgb": [
+        66,
+        66,
+        66
+      ],
+      "bleed_px": 28,
+      "side_facing": "left (-X, nose at smaller u, occiput at larger u)",
+      "front_landmarks_norm": {
+        "pupil_left": [
+          0.414,
+          0.44
+        ],
+        "pupil_right": [
+          0.586,
+          0.44
+        ],
+        "eye_line_y": 0.44,
+        "nose_tip": [
+          0.5,
+          0.56
+        ],
+        "mouth_seam": [
+          0.5,
+          0.66
+        ],
+        "chin_bottom": [
+          0.5,
+          0.8
+        ],
+        "head_span_x": [
+          0.28,
+          0.72
+        ]
+      },
+      "front_landmarks_px": {
+        "pupil_left": [
+          423.9,
+          450.6
+        ],
+        "pupil_right": [
+          600.1,
+          450.6
+        ],
+        "nose_tip": [
+          512.0,
+          573.4
+        ],
+        "mouth_seam": [
+          512.0,
+          675.8
+        ],
+        "chin_bottom": [
+          512.0,
+          819.2
+        ],
+        "head_span_x": [
+          286.7,
+          737.3
+        ]
+      },
+      "front_landmarks_uv_flipY": {
+        "eye_v": 0.56,
+        "nose_tip_v": 0.44,
+        "mouth_seam_v": 0.34,
+        "chin_bottom_v": 0.2,
+        "u_span": [
+          0.28,
+          0.72
+        ]
+      },
+      "side_landmarks_norm": {
+        "nose_tip": [
+          0.245,
+          0.56
+        ],
+        "eye_pupil": [
+          0.352,
+          0.44
+        ],
+        "mouth_corner": [
+          0.287,
+          0.66
+        ],
+        "chin_bottom": [
+          0.3,
+          0.8
+        ],
+        "ear_canal": [
+          0.62,
+          0.495
+        ],
+        "occiput_back": [
+          0.865,
+          0.42
+        ]
+      },
+      "side_landmarks_px": {
+        "nose_tip": [
+          250.9,
+          573.4
+        ],
+        "eye_pupil": [
+          360.4,
+          450.6
+        ],
+        "mouth_seam_y": 675.8,
+        "chin_bottom_y": 819.2,
+        "ear_canal_x": 634.9
+      }
+    },
+    "operator_f": {
+      "front": "operator_f_head_front.jpg",
+      "side": "operator_f_head_side.jpg",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "background_hex": "#424242",
+      "background_rgb": [
+        66,
+        66,
+        66
+      ],
+      "bleed_px": 28,
+      "side_facing": "left (-X, nose at smaller u, occiput at larger u)",
+      "front_landmarks_norm": {
+        "pupil_left": [
+          0.402,
+          0.44
+        ],
+        "pupil_right": [
+          0.598,
+          0.44
+        ],
+        "eye_line_y": 0.44,
+        "nose_tip": [
+          0.5,
+          0.56
+        ],
+        "mouth_seam": [
+          0.5,
+          0.66
+        ],
+        "chin_bottom": [
+          0.5,
+          0.8
+        ],
+        "head_span_x": [
+          0.28,
+          0.72
+        ]
+      },
+      "front_landmarks_px": {
+        "pupil_left": [
+          411.6,
+          450.6
+        ],
+        "pupil_right": [
+          612.4,
+          450.6
+        ],
+        "nose_tip": [
+          512.0,
+          573.4
+        ],
+        "mouth_seam": [
+          512.0,
+          675.8
+        ],
+        "chin_bottom": [
+          512.0,
+          819.2
+        ],
+        "head_span_x": [
+          286.7,
+          737.3
+        ]
+      },
+      "front_landmarks_uv_flipY": {
+        "eye_v": 0.56,
+        "nose_tip_v": 0.44,
+        "mouth_seam_v": 0.34,
+        "chin_bottom_v": 0.2,
+        "u_span": [
+          0.28,
+          0.72
+        ]
+      },
+      "side_landmarks_norm": {
+        "nose_tip": [
+          0.242,
+          0.56
+        ],
+        "eye_pupil": [
+          0.352,
+          0.44
+        ],
+        "mouth_corner": [
+          0.284,
+          0.66
+        ],
+        "chin_bottom": [
+          0.297,
+          0.8
+        ],
+        "ear_canal": [
+          0.62,
+          0.495
+        ],
+        "occiput_back": [
+          0.915,
+          0.42
+        ]
+      },
+      "side_landmarks_px": {
+        "nose_tip": [
+          247.8,
+          573.4
+        ],
+        "eye_pupil": [
+          360.4,
+          450.6
+        ],
+        "mouth_seam_y": 675.8,
+        "chin_bottom_y": 819.2,
+        "ear_canal_x": 634.9
+      }
+    },
+    "operator_m": {
+      "front": "operator_m_head_front.jpg",
+      "side": "operator_m_head_side.jpg",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "background_hex": "#424242",
+      "background_rgb": [
+        66,
+        66,
+        66
+      ],
+      "bleed_px": 28,
+      "side_facing": "left (-X, nose at smaller u, occiput at larger u)",
+      "front_landmarks_norm": {
+        "pupil_left": [
+          0.4,
+          0.44
+        ],
+        "pupil_right": [
+          0.6,
+          0.44
+        ],
+        "eye_line_y": 0.44,
+        "nose_tip": [
+          0.5,
+          0.56
+        ],
+        "mouth_seam": [
+          0.5,
+          0.66
+        ],
+        "chin_bottom": [
+          0.5,
+          0.8
+        ],
+        "head_span_x": [
+          0.28,
+          0.72
+        ]
+      },
+      "front_landmarks_px": {
+        "pupil_left": [
+          409.6,
+          450.6
+        ],
+        "pupil_right": [
+          614.4,
+          450.6
+        ],
+        "nose_tip": [
+          512.0,
+          573.4
+        ],
+        "mouth_seam": [
+          512.0,
+          675.8
+        ],
+        "chin_bottom": [
+          512.0,
+          819.2
+        ],
+        "head_span_x": [
+          286.7,
+          737.3
+        ]
+      },
+      "front_landmarks_uv_flipY": {
+        "eye_v": 0.56,
+        "nose_tip_v": 0.44,
+        "mouth_seam_v": 0.34,
+        "chin_bottom_v": 0.2,
+        "u_span": [
+          0.28,
+          0.72
+        ]
+      },
+      "side_landmarks_norm": {
+        "nose_tip": [
+          0.242,
+          0.56
+        ],
+        "eye_pupil": [
+          0.354,
+          0.44
+        ],
+        "mouth_corner": [
+          0.284,
+          0.66
+        ],
+        "chin_bottom": [
+          0.297,
+          0.8
+        ],
+        "ear_canal": [
+          0.62,
+          0.495
+        ],
+        "occiput_back": [
+          0.865,
+          0.42
+        ]
+      },
+      "side_landmarks_px": {
+        "nose_tip": [
+          247.8,
+          573.4
+        ],
+        "eye_pupil": [
+          362.5,
+          450.6
+        ],
+        "mouth_seam_y": 675.8,
+        "chin_bottom_y": 819.2,
+        "ear_canal_x": 634.9
+      }
+    }
+  },
+  "hands": {
+    "dorsal": "hand_dorsal.jpg",
+    "palmar": "hand_palmar.jpg",
+    "resolution": [
+      1024,
+      1024
+    ],
+    "background_hex": "#424242",
+    "bleed_px": 28,
+    "uv_registration": "1:1 identical silhouette in (u, v) \u2014 both dorsal and palmar have wrist at top (y=0.16, v=0.84), fingers pointing DOWN (+y, v->0.09), thumb on LEFT (u=0.180), pinky on RIGHT (u=0.720). No horizontal flip needed between dorsal and palmar!",
+    "fingers_direction": "down (+y in image, -v in Three.js flipY UV)",
+    "thumb_side": "left (-u, u=0.180)",
+    "landmarks_norm": {
+      "wrist_center": [
+        0.5,
+        0.16
+      ],
+      "thumb_cmc": [
+        0.345,
+        0.335
+      ],
+      "thumb_mcp": [
+        0.27,
+        0.445
+      ],
+      "thumb_ip": [
+        0.222,
+        0.515
+      ],
+      "thumb_tip": [
+        0.18,
+        0.562
+      ],
+      "index_mcp": [
+        0.382,
+        0.552
+      ],
+      "index_pip": [
+        0.378,
+        0.678
+      ],
+      "index_dip": [
+        0.376,
+        0.778
+      ],
+      "index_tip": [
+        0.375,
+        0.855
+      ],
+      "middle_mcp": [
+        0.5,
+        0.56
+      ],
+      "middle_pip": [
+        0.5,
+        0.698
+      ],
+      "middle_dip": [
+        0.5,
+        0.812
+      ],
+      "middle_tip": [
+        0.5,
+        0.91
+      ],
+      "ring_mcp": [
+        0.602,
+        0.552
+      ],
+      "ring_pip": [
+        0.606,
+        0.684
+      ],
+      "ring_dip": [
+        0.608,
+        0.785
+      ],
+      "ring_tip": [
+        0.61,
+        0.862
+      ],
+      "pinky_mcp": [
+        0.684,
+        0.538
+      ],
+      "pinky_pip": [
+        0.7,
+        0.635
+      ],
+      "pinky_dip": [
+        0.712,
+        0.702
+      ],
+      "pinky_tip": [
+        0.72,
+        0.758
+      ]
+    },
+    "landmarks_uv_flipY": {
+      "wrist_center": [
+        0.5,
+        0.84
+      ],
+      "thumb_cmc": [
+        0.345,
+        0.665
+      ],
+      "thumb_mcp": [
+        0.27,
+        0.555
+      ],
+      "thumb_ip": [
+        0.222,
+        0.485
+      ],
+      "thumb_tip": [
+        0.18,
+        0.438
+      ],
+      "index_mcp": [
+        0.382,
+        0.448
+      ],
+      "index_pip": [
+        0.378,
+        0.322
+      ],
+      "index_dip": [
+        0.376,
+        0.222
+      ],
+      "index_tip": [
+        0.375,
+        0.145
+      ],
+      "middle_mcp": [
+        0.5,
+        0.44
+      ],
+      "middle_pip": [
+        0.5,
+        0.302
+      ],
+      "middle_dip": [
+        0.5,
+        0.188
+      ],
+      "middle_tip": [
+        0.5,
+        0.09
+      ],
+      "ring_mcp": [
+        0.602,
+        0.448
+      ],
+      "ring_pip": [
+        0.606,
+        0.316
+      ],
+      "ring_dip": [
+        0.608,
+        0.215
+      ],
+      "ring_tip": [
+        0.61,
+        0.138
+      ],
+      "pinky_mcp": [
+        0.684,
+        0.462
+      ],
+      "pinky_pip": [
+        0.7,
+        0.365
+      ],
+      "pinky_dip": [
+        0.712,
+        0.298
+      ],
+      "pinky_tip": [
+        0.72,
+        0.242
+      ]
+    },
+    "landmarks_px": {
+      "wrist_center": [
+        512.0,
+        163.8
+      ],
+      "thumb_cmc": [
+        353.3,
+        343.0
+      ],
+      "thumb_mcp": [
+        276.5,
+        455.7
+      ],
+      "thumb_ip": [
+        227.3,
+        527.4
+      ],
+      "thumb_tip": [
+        184.3,
+        575.5
+      ],
+      "index_mcp": [
+        391.2,
+        565.2
+      ],
+      "index_pip": [
+        387.1,
+        694.3
+      ],
+      "index_dip": [
+        385.0,
+        796.7
+      ],
+      "index_tip": [
+        384.0,
+        875.5
+      ],
+      "middle_mcp": [
+        512.0,
+        573.4
+      ],
+      "middle_pip": [
+        512.0,
+        714.8
+      ],
+      "middle_dip": [
+        512.0,
+        831.5
+      ],
+      "middle_tip": [
+        512.0,
+        931.8
+      ],
+      "ring_mcp": [
+        616.4,
+        565.2
+      ],
+      "ring_pip": [
+        620.5,
+        700.4
+      ],
+      "ring_dip": [
+        622.6,
+        803.8
+      ],
+      "ring_tip": [
+        624.6,
+        882.7
+      ],
+      "pinky_mcp": [
+        700.4,
+        550.9
+      ],
+      "pinky_pip": [
+        716.8,
+        650.2
+      ],
+      "pinky_dip": [
+        729.1,
+        718.8
+      ],
+      "pinky_tip": [
+        737.3,
+        776.2
+      ]
+    }
+  },
+  "hair": {
+    "hair_coily_shell": {
+      "file": "hair_coily_shell.png",
+      "format": "RGBA PNG",
+      "resolution": [
+        512,
+        512
+      ],
+      "tileable": true,
+      "wrap_mode": "RepeatWrapping",
+      "alpha_meaning": "Multi-shell 4C micro-coil height/density field in [0..1]: discard when alpha < shellThreshold(shellIndex/12). RGB is decontaminated espresso-to-umber strand albedo everywhere (zero grey mip fringe)."
+    },
+    "hair_locs_braids": {
+      "file": "hair_locs_braids.jpg",
+      "format": "RGB JPG",
+      "resolution": [
+        512,
+        512
+      ],
+      "tileable": true,
+      "wrap_mode": "RepeatWrapping",
+      "uv_orientation": "Vertical v-axis runs along loc/braid length; u-axis wraps around tube circumference or across scalp cornrow partings."
+    },
+    "hair_strand_cards": {
+      "file": "hair_strand_cards.png",
+      "format": "RGBA PNG",
+      "resolution": [
+        512,
+        512
+      ],
+      "tileable": false,
+      "root_edge": "top (y=0.0, Three.js flipY v=1.0) with 4.5% soft root fade",
+      "tip_edge": "bottom (y=1.0, Three.js flipY v=0.0) tapering into feathered wispy V-tips & flyaways",
+      "albedo_note": "Decontaminated neutral-warm lustrous strand luminance (mean ~0.46) \u2014 multiply by dark espresso for Hanna/Tess ponytails or by cool silver-ivory for Etta silverSwept hair!"
+    }
+  },
+  "garments": {
+    "files": [
+      "imani_photo_front.jpg",
+      "imani_photo_side.jpg",
+      "imani_photo_back.jpg"
+    ],
+    "resolution": [
+      768,
+      1344
+    ],
+    "background_hex": "#424242",
+    "bleed_px": 28,
+    "uv_projection_formula": "Matches characters.js tri-view ortho projection: vy = 0.048 + y_meters * 0.5178 (sole at y_norm=0.952 / v=0.048, crown at y_norm=0.048 / v=0.952), side view faces LEFT (-X, front chest/nose at u < 0.5).",
+    "plates": {
+      "imani_photo_front.jpg": {
+        "resolution": [
+          768,
+          1344
+        ],
+        "crown_y_norm": 0.0484,
+        "sole_y_norm": 0.9524,
+        "x_span_norm": [
+          0.1823,
+          0.8177
+        ],
+        "facing": "front (+Z)"
+      },
+      "imani_photo_side.jpg": {
+        "resolution": [
+          768,
+          1344
+        ],
+        "crown_y_norm": 0.0484,
+        "sole_y_norm": 0.9524,
+        "x_span_norm": [
+          0.3359,
+          0.6641
+        ],
+        "facing": "left (-X)"
+      },
+      "imani_photo_back.jpg": {
+        "resolution": [
+          768,
+          1344
+        ],
+        "crown_y_norm": 0.0484,
+        "sole_y_norm": 0.9524,
+        "x_span_norm": [
+          0.1862,
+          0.8151
+        ],
+        "facing": "back (-Z)"
+      }
+    }
+  }
+}

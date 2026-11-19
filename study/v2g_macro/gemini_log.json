@@ -1,0 +1,127 @@
+[
+  {
+    "timestamp": "2026-11-19T01:13:54Z",
+    "milestone": "v3_m1",
+    "kind": "video",
+    "model": "gemini-omni-1.2-flash",
+    "name": "M1_macro_hands_grip_study",
+    "interaction_id": "v1_ChdUazMtYXIyMEZhLXR1TVlQaDc2cXNBZxIXVGszLWFyMjBGYS10dU1ZUGg3NnFzQWc",
+    "previous_interaction_id": null,
+    "seconds": 63.42,
+    "prompt": "100mm macro cinema anatomical study on neutral #424242 charcoal studio backdrop showing a weathered East African water carrier's real human hands in hyper-detailed close-up: first flexing slowly from spread open dorsal anatomy (visible extensor digitorum tendons, knuckle folds, subcutaneous veins, paler fingernails with lunulae) into supinated palmar view (palmar creases, thenar pad), then wrapping firmly around a weathered cast-iron standpipe pump bar with zero air gap, then threading four fingers cleanly through the top handle of a translucent cyan-glowing 20-liter blue jerrycan under 20kg weight tension, and finally cradling a glowing cyan-screen smartphone at dusk with gentle thumb scroll motion. Crisp 24fps documentary macro cinematography, tactile skin pore and tendon realism, no text overlays.",
+    "refs": [
+      "/Users/gaia/make-photo/make-photo/study/keyframes/kf03_00m03s_hand_jerrycan_transfer.jpg",
+      "/Users/gaia/make-photo/make-photo/study/keyframes/kf04_00m07s_two_hand_basin_pour.jpg",
+      "/Users/gaia/make-photo/make-photo/donkey/textures_v3/hand_dorsal.jpg",
+      "/Users/gaia/make-photo/make-photo/donkey/textures_v3/hand_palmar.jpg"
+    ],
+    "first_frame": null,
+    "last_frame": null,
+    "files": [
+      "/Users/gaia/make-photo/make-photo/study/v2g_macro/M1_macro_hands_grip_study.mp4"
+    ]
+  },
+  {
+    "timestamp": "2026-11-19T01:13:57Z",
+    "milestone": "v3_m2",
+    "kind": "video",
+    "model": "gemini-omni-1.2-flash",
+    "name": "M2_imani_portrait_hair_turntable",
+    "interaction_id": "v1_ChdVVTMtYW9YbU5fYUMxc2dQaGVpNDJBOBIXVVUzLWFvWG1OX2FDMXNnUGhlaTQyQTg",
+    "previous_interaction_id": null,
+    "seconds": 67.34,
+    "prompt": "85mm medium-format studio portrait cinema study of this exact 32-year-old Black East African woman (Imani) on a neutral #424242 studio grey background under soft cinematic key and subtle warm rim lighting. Smooth slow camera orbit sweeping from pure 90-degree left profile (highlighting airy three-dimensional 4C tightly-coiled natural hair silhouette, ear folds, and jawline) around to 0-degree front close-up and 3/4 view, while she breathes subtly, performs two natural soft eyelid blinks, crisp wet cornea catchlight micro-saccades, and a calm thoughtful downward gaze shift before looking steadily back into the lens. Ultra-sharp 1080p skin pores, subsurface warmth, eyelashes, and individual 4C hair ringlets.",
+    "refs": [
+      "/Users/gaia/make-photo/make-photo/donkey/textures_v3/imani_head_front.jpg",
+      "/Users/gaia/make-photo/make-photo/donkey/textures_v3/imani_head_side.jpg"
+    ],
+    "first_frame": null,
+    "last_frame": null,
+    "files": [
+      "/Users/gaia/make-photo/make-photo/study/v2g_macro/M2_imani_portrait_hair_turntable.mp4"
+    ]
+  },
+  {
+    "timestamp": "2026-11-19T01:14:10Z",
+    "milestone": "v3_m4",
+    "kind": "video",
+    "model": "gemini-omni-1.2-flash",
+    "name": "M4_operator_elder_portraits",
+    "interaction_id": "v1_ChdYazMtYXI2c0EtdUMxc2dQN082STRBTRIXWGszLWFyNnNBLXVDMXNnUDdPNkk0QU0",
+    "previous_interaction_id": null,
+    "seconds": 75.94,
+    "prompt": "Split diopter / side-by-side 85mm studio portrait study on neutral #424242 background contrasting two characters in crisp close-up: on the left, the 29-year-old female archive operator Hanna with feathered dark brown hair swept into a dynamic ponytail raising a handheld VHF radio to speak calmly with natural jaw/lip articulation, wrist pronation, and ponytail sway; on the right, the bearded Ethiopian highland elder man in hand-woven cream tibeb shawl and head wrap nodding slowly with volumetric curly beard silhouette, natural blinks, wet eye catchlights, and weathered skin pore detail.",
+    "refs": [
+      "/Users/gaia/make-photo/make-photo/study/keyframes/kf08_00m36s_rec_ppc_desk_radio.jpg",
+      "/Users/gaia/make-photo/make-photo/study/keyframes/kf12_01m12s_draped_elders_procession.jpg",
+      "/Users/gaia/make-photo/make-photo/donkey/textures_v3/operator_f_head_front.jpg",
+      "/Users/gaia/make-photo/make-photo/donkey/textures_v3/elder_head_front.jpg"
+    ],
+    "first_frame": null,
+    "last_frame": null,
+    "files": [
+      "/Users/gaia/make-photo/make-photo/study/v2g_macro/M4_operator_elder_portraits.mp4"
+    ]
+  },
+  {
+    "timestamp": "2026-11-19T01:14:39Z",
+    "milestone": "v3_m3",
+    "kind": "video",
+    "model": "gemini-omni-1.2-flash",
+    "name": "M3_youth_locs_braids_portrait",
+    "interaction_id": "v1_ChdlMDMtYXUzWk1wWEJ4ZElQbjlmdnVRRRIXZTAzLWF1M1pNcFhCeGRJUG45ZnZ1UUU",
+    "previous_interaction_id": null,
+    "seconds": 68.79,
+    "prompt": "85mm cinema portrait and upper-body study of an East African apprentice carrier with short neat twisted dreadlocks, crisp scalp partings, and fine natural temple curls at twilight against a deep highland dusk and neutral #424242 studio atmosphere. Soft luminous cyan smartphone screen light bounces upward onto the chin, lips, cheekbones, wet corneas, and the undersides of the twisted locs while reading the glowing handheld screen, blinking naturally with subtle thumb scroll motion, then slowly looking up calmly toward the camera as the camera arcs gently from front to 3/4 profile showing three-dimensional twisted loc volume.",
+    "refs": [
+      "/Users/gaia/make-photo/make-photo/study/keyframes/kf09_00m48s_night_youths_phone_glow.jpg"
+    ],
+    "first_frame": null,
+    "last_frame": null,
+    "files": [
+      "/Users/gaia/make-photo/make-photo/study/v2g_macro/M3_youth_locs_braids_portrait.mp4"
+    ]
+  },
+  {
+    "timestamp": "2026-11-19T01:14:59Z",
+    "milestone": "v3_m5",
+    "kind": "video",
+    "model": "gemini-omni-1.2-flash",
+    "name": "M5_skeleton_eskista_lift_mocap",
+    "interaction_id": "v1_ChdrVTMtYXBQSkE3X2d5dE1QMTlfZDBBOBIXa1UzLWFwUEpBN19neXRNUDE5X2QwQTg",
+    "previous_interaction_id": null,
+    "seconds": 65.44,
+    "prompt": "Full-body biomechanical motion-reference study on a clean grid-marked #424242 neutral grey studio floor: the East African female field carrier Imani in her khaki waxed-canvas duster coat, rolled sleeves, tool belt, and leather boots first performs 5 seconds of authentic rhythmic 6/8 Ethiopian Eskista shoulder, clavicle, scapular roll, and thoracic pulse with crisp elbow and wrist articulation, then transitions seamlessly into a grounded deep-knee squat, gripping a heavy translucent blue 20-liter water jerrycan with both hands and driving upward through hips, lumbar S-curve spine, and shoulders into a balanced chest-level two-hand carry. Locked 50mm full-body camera, crisp foot contact, zero motion blur.",
+    "refs": [
+      "/Users/gaia/make-photo/make-photo/study/keyframes/kf14_01m45s_two_man_20kg_unload.jpg",
+      "/Users/gaia/make-photo/make-photo/donkey/textures_v3/imani_photo_front.jpg"
+    ],
+    "first_frame": null,
+    "last_frame": null,
+    "files": [
+      "/Users/gaia/make-photo/make-photo/study/v2g_macro/M5_skeleton_eskista_lift_mocap.mp4"
+    ]
+  },
+  {
+    "timestamp": "2026-11-19T01:15:17Z",
+    "milestone": "v3_m6",
+    "kind": "video",
+    "model": "gemini-omni-1.2-flash",
+    "name": "M6_garment_drape_turntable",
+    "interaction_id": "v1_ChdvazMtYXBxT0RmbkJ4ZElQdWNfMmtBMBIXb2szLWFwcU9EZm5CeGRJUHVjXzJrQTA",
+    "previous_interaction_id": null,
+    "seconds": 79.8,
+    "prompt": "Full-body 360-degree studio garment and cloth-drape study on a clean #424242 neutral grey turntable stage showing two figures side-by-side: on the left, the Ethiopian highland elder wearing a hand-loomed cream cotton gabi shawl with red-and-black woven tibeb border over an earth-brown tunic; on the right, Imani wearing her weathered khaki waxed-canvas duster coat, leather wrench belt, and laced boots. Both rotate smoothly through 360 degrees while taking measured walking steps in place so the heavy cotton gabi folds, shawl drape, and waxed-canvas coat tails billow, crease, and settle naturally with realistic cloth inertia.",
+    "refs": [
+      "/Users/gaia/make-photo/make-photo/donkey/textures/carrier_front.jpg",
+      "/Users/gaia/make-photo/make-photo/donkey/textures/carrier_back.jpg",
+      "/Users/gaia/make-photo/make-photo/donkey/textures_v3/imani_photo_front.jpg",
+      "/Users/gaia/make-photo/make-photo/donkey/textures_v3/imani_photo_back.jpg"
+    ],
+    "first_frame": null,
+    "last_frame": null,
+    "files": [
+      "/Users/gaia/make-photo/make-photo/study/v2g_macro/M6_garment_drape_turntable.mp4"
+    ]
+  }
+]

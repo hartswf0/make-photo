@@ -1,0 +1,1664 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#141615">
+  <meta name="description" content="Donkey Water · Cyan Jerikan Music Video &amp; All-15-Shader Character Performance Audition Theater (Scion v5).">
+  <title>Donkey Water · Music Video &amp; All-15-Shader Character Audition Theater</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="alternate icon" href="../favicon.ico">
+  <style>
+    :root {
+      --paper: #d9d5cb;
+      --ink: #191815;
+      --night: #121516;
+      --cream: #f2eee4;
+      --cyan: #1cb8d4;
+      --cyan-bright: #4ee8ff;
+      --amber: #d9822b;
+      --amber-bright: #ffbe5c;
+      --border-light: rgba(25, 24, 21, 0.22);
+      --border-dark: rgba(242, 238, 228, 0.24);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%; overflow: hidden;
+      background: var(--paper); color: var(--ink);
+      font: 13px/1.36 Inter, system-ui, -apple-system, sans-serif;
+      -webkit-user-select: none; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body.night-mode { background: var(--night); color: var(--cream); }
+
+    #stage-wrap {
+      position: fixed; inset: 0;
+    }
+    #view {
+      width: 100%; height: 100%; display: block;
+      touch-action: none; cursor: grab;
+    }
+    #view:active { cursor: grabbing; }
+
+    /* Top-left Theater Plate Header */
+    .plate-head {
+      position: fixed;
+      left: max(16px, env(safe-area-inset-left));
+      top: max(12px, env(safe-area-inset-top));
+      max-width: min(520px, calc(100vw - 410px));
+      padding: 7px 12px 9px;
+      border-radius: 11px;
+      background: rgba(242, 238, 228, 0.80);
+      border: 1px solid var(--border-light);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      pointer-events: auto;
+      z-index: 6;
+    }
+    body.night-mode .plate-head {
+      background: rgba(16, 20, 22, 0.82);
+      border-color: var(--border-dark);
+    }
+    body.contact-sheet-active .plate-head {
+      opacity: 0; pointer-events: none;
+    }
+    body.contact-sheet-active #aud-hud {
+      opacity: 0; pointer-events: none;
+    }
+    body.contact-sheet-active #lyric-strip {
+      bottom: 112px;
+      padding: 4px 12px 5px;
+      width: min(580px, calc(100vw - 32px));
+    }
+    body.contact-sheet-active .lyric-line {
+      font-size: 14px;
+    }
+    body.contact-sheet-active #row-sets,
+    body.contact-sheet-active #row-cuts {
+      display: none;
+    }
+
+    .eyebrow {
+      margin: 0 0 3px;
+      font: 700 9.5px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      color: #0b6f86;
+    }
+    body.night-mode .eyebrow { color: var(--cyan-bright); }
+    .plate-head h1 {
+      margin: 0;
+      font: 400 clamp(18px, 2.2vw, 25px)/1.08 "Instrument Serif", "Iowan Old Style", Georgia, serif;
+      letter-spacing: 0.02em;
+    }
+    .plate-meta {
+      margin: 4px 0 0;
+      font: 600 9.5px/1.3 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.09em; text-transform: uppercase;
+      opacity: 0.82;
+    }
+    .plate-note {
+      margin: 4px 0 0;
+      font: italic 400 13px/1.28 "Instrument Serif", Georgia, serif;
+      opacity: 0.90;
+    }
+    .nav-links {
+      margin-top: 6px; display: flex; gap: 5px; flex-wrap: wrap;
+    }
+    .nav-links a {
+      font: 600 9px/1 Inter, sans-serif;
+      letter-spacing: 0.09em; text-transform: uppercase;
+      text-decoration: none; padding: 4px 8px; border-radius: 999px;
+      border: 1px solid currentColor; color: inherit; opacity: 0.82;
+    }
+    .nav-links a:hover { opacity: 1; }
+
+    /* Top-right Live Audio Formant, Viseme & Shader Telemetry HUD */
+    #aud-hud {
+      position: fixed;
+      top: max(12px, env(safe-area-inset-top));
+      right: max(16px, env(safe-area-inset-right));
+      width: 344px;
+      padding: 8px 11px;
+      border-radius: 11px;
+      border: 1px solid var(--border-light);
+      background: rgba(242, 238, 228, 0.84);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      z-index: 6;
+      pointer-events: auto;
+    }
+    body.night-mode #aud-hud {
+      border-color: var(--border-dark);
+      background: rgba(16, 20, 22, 0.86);
+    }
+    .hud-top {
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+      font: 700 9.5px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .hud-live-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .hud-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #0b8ba6;
+      box-shadow: 0 0 8px rgba(28, 184, 212, 0.7);
+    }
+    body.night-mode .hud-dot { background: var(--cyan-bright); }
+    .hud-sub {
+      margin-top: 4px;
+      font: 600 9px/1.35 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.04em;
+      opacity: 0.84;
+    }
+    .meters {
+      margin-top: 6px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;
+    }
+    .meter-box {
+      font: 700 8px/1 ui-monospace, Menlo, monospace;
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .meter-bar {
+      margin-top: 3px; height: 4px; border-radius: 99px;
+      background: rgba(128, 128, 128, 0.24); overflow: hidden;
+    }
+    .meter-fill {
+      height: 100%; width: 20%;
+      background: linear-gradient(90deg, #0b8ba6, #4ee8ff);
+      transition: width 0.05s linear;
+    }
+    .meter-fill.vocal {
+      background: linear-gradient(90deg, #d9822b, #ffd27d);
+    }
+
+    /* Subtle Cinema Subtitle & Scrubber Strip above Stage Bar */
+    #lyric-strip {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 152px;
+      width: min(760px, calc(100vw - 32px));
+      padding: 8px 15px 9px;
+      border-radius: 12px;
+      background: rgba(12, 16, 18, 0.84);
+      border: 1px solid rgba(78, 232, 255, 0.38);
+      color: #f6f2e8;
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+      z-index: 6;
+      pointer-events: auto;
+    }
+    .lyric-line {
+      text-align: center;
+      font: 400 clamp(15px, 1.75vw, 20px)/1.25 "Instrument Serif", Georgia, serif;
+      letter-spacing: 0.02em;
+    }
+    .lyric-line b {
+      color: #5ef0ff;
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .timeline-row {
+      margin-top: 6px;
+      display: flex; align-items: center; gap: 8px;
+      font: 700 9px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: rgba(244, 240, 230, 0.82);
+    }
+    .timeline-row input[type="range"] {
+      flex: 1; height: 4px; accent-color: #4ee8ff; cursor: pointer; margin: 0;
+    }
+    .audio-cta {
+      font: 700 9px/1 Inter, sans-serif;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 5px 10px; border-radius: 999px;
+      border: 1px solid #4ee8ff;
+      background: rgba(24, 152, 180, 0.28);
+      color: #9ef6ff;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .audio-cta.live {
+      background: #4ee8ff;
+      color: #04191e;
+    }
+    .play-btn {
+      font: 700 9px/1 Inter, sans-serif;
+      padding: 5px 9px; border-radius: 999px;
+      border: 1px solid rgba(242, 238, 228, 0.35);
+      background: transparent; color: #f6f2e8; cursor: pointer;
+    }
+
+    /* Bottom Director & Shader Rack */
+    .stage-bar {
+      position: fixed;
+      left: max(12px, env(safe-area-inset-left));
+      right: max(12px, env(safe-area-inset-right));
+      bottom: max(8px, env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; gap: 4px;
+      z-index: 7; pointer-events: none;
+    }
+    .pill-row {
+      display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+      gap: 4px; align-items: center; pointer-events: auto;
+      padding-bottom: 1px;
+    }
+    .pill-row::-webkit-scrollbar { display: none; }
+    .row-tag {
+      font: 700 8.5px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.11em; text-transform: uppercase;
+      opacity: 0.72; padding: 0 4px 0 2px; flex: 0 0 auto;
+    }
+    .pill-sep {
+      width: 1px; height: 16px; background: var(--border-light); margin: 0 2px; flex: 0 0 auto;
+    }
+    body.night-mode .pill-sep { background: var(--border-dark); }
+
+    .pill {
+      flex: 0 0 auto;
+      font: 600 9.4px/1 Inter, system-ui, sans-serif;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 5px 9px; min-height: 25px; border-radius: 999px;
+      border: 1px solid var(--border-light);
+      background: rgba(242, 238, 228, 0.86);
+      color: var(--ink);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      cursor: pointer;
+      transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+    }
+    body.night-mode .pill {
+      border-color: var(--border-dark);
+      background: rgba(18, 23, 24, 0.86);
+      color: var(--cream);
+    }
+    .pill.active, .pill[aria-pressed="true"] {
+      background: var(--ink); color: var(--paper); border-color: var(--ink);
+    }
+    body.night-mode .pill.active, body.night-mode .pill[aria-pressed="true"] {
+      background: var(--cyan-bright); color: #05181c; border-color: var(--cyan-bright);
+    }
+    .pill-cast.active {
+      background: #9c4d08 !important; color: #fffaf2 !important; border-color: #9c4d08 !important;
+    }
+    body.night-mode .pill-cast.active {
+      background: var(--amber-bright) !important; color: #241202 !important; border-color: var(--amber-bright) !important;
+    }
+    .pill-cs {
+      border-color: rgba(11, 122, 146, 0.72);
+      background: rgba(220, 246, 250, 0.92);
+      color: #063b47;
+      font-weight: 700;
+    }
+    body.night-mode .pill-cs {
+      border-color: rgba(78, 232, 255, 0.65);
+      background: rgba(12, 44, 52, 0.90);
+      color: #9cf5ff;
+    }
+    .pill-cs.active {
+      background: #0b7a92 !important; color: #f4fcfd !important; border-color: #0b7a92 !important;
+    }
+    body.contact-sheet-active .plate-head,
+    body.contact-sheet-active #aud-hud,
+    body.contact-sheet-active #lyric-strip {
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+    body.contact-sheet-active #row-sets,
+    body.contact-sheet-active #row-cuts {
+      display: none !important;
+    }
+
+    @media (max-width: 920px) {
+      #aud-hud { display: none; }
+      .plate-head { max-width: calc(100vw - 24px); }
+      #lyric-strip { bottom: 146px; padding: 6px 11px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="stage-wrap">
+    <canvas id="view" aria-label="3D Music Video and All-15-Shader Character Audition Stage"></canvas>
+  </div>
+
+  <header class="plate-head">
+    <p class="eyebrow">Cyan Jerikan Over Cosmic Addis · All-Shader Audition Theater</p>
+    <h1 id="mv-title">I · Dawn Wellhead, Parabolic Cyan Spout &amp; Mistletoe</h1>
+    <p class="plate-meta">
+      <span id="mv-look-badge">LOOK: CYAN JERIKAN</span> ·
+      <span id="mv-cast-badge">STAR: IMANI</span> ·
+      <span id="mv-cut-badge">AUTO DIRECTOR CUT</span>
+    </p>
+    <p class="plate-note" id="mv-desc">Cast-iron standpipe gushing parabolic #28d8f0 water into a wheel-thrown terracotta bowl beside Mistletoe.</p>
+    <nav class="nav-links" aria-label="Project navigation">
+      <a href="./index.html">← Study Workbench</a>
+      <a href="../night-post/">2086 Night Post</a>
+      <a href="../zones/">Unified Zones</a>
+      <a href="../donkey/">Donkey Study</a>
+    </nav>
+  </header>
+
+  <aside id="aud-hud" aria-live="polite">
+    <div class="hud-top">
+      <span class="hud-live-badge"><span class="hud-dot"></span><span id="hud-epoch">I · WELLHEAD AWAKENING</span></span>
+      <span id="hud-fps">60 FPS</span>
+    </div>
+    <div class="hud-sub" id="hud-phoneme">VISEME: AA · EMOTION: DETERMINED FOCUS · JAW: 48%</div>
+    <div class="meters">
+      <div class="meter-box">60–160Hz Kebero<div class="meter-bar"><div class="meter-fill" id="m-perc"></div></div></div>
+      <div class="meter-box">300–2.8k Vocal<div class="meter-bar"><div class="meter-fill vocal" id="m-vocal"></div></div></div>
+      <div class="meter-box">Addis Brass<div class="meter-bar"><div class="meter-fill" id="m-brass"></div></div></div>
+    </div>
+  </aside>
+
+  <section id="lyric-strip" aria-label="Synced Cyan Jerikan lyrics and timeline">
+    <div class="lyric-line" id="lyric-text">“<b>Iron</b> lever cracks before the rooster”</div>
+    <div class="timeline-row">
+      <button type="button" class="play-btn" id="btn-play">⏸ Pause</button>
+      <span id="time-readout">00:12 / 04:43</span>
+      <input type="range" id="song-scrub" min="0" max="283" step="0.2" value="12.2" aria-label="Scrub Cyan Jerikan timeline">
+      <button type="button" class="audio-cta" id="btn-unmute">🔊 Unmute OGG</button>
+    </div>
+  </section>
+
+  <div class="stage-bar">
+    <div class="pill-row" id="row-looks" aria-label="15 GPU Looks and 9-Look Contact Sheet"></div>
+    <div class="pill-row" id="row-cast" aria-label="Cast Lead Switcher"></div>
+    <div class="pill-row" id="row-sets" aria-label="5 In-Context Music Video Sets"></div>
+    <div class="pill-row" id="row-cuts" aria-label="Director Camera Cuts and Lenses"></div>
+  </div>
+
+  <script src="../field-plates/fonts.js"></script>
+  <script src="../field-plates/three.js"></script>
+  <script src="../donkey/donkey.js?v=v52lean3"></script>
+  <script src="../donkey/scion-eye-globe.js?v=v52lean3"></script>
+  <script src="../donkey/scion-eyelids.js?v=v52lean3"></script>
+  <script src="../donkey/scion-neck.js?v=v52lean3"></script>
+  <script src="../donkey/human-sculpt-v3.js?v=v52lean3"></script>
+  <script src="../donkey/expressions-v4.js?v=v52lean3"></script>
+  <script src="../donkey/characters.js?v=v52lean3"></script>
+  <script src="../zones/world-architecture.js?v=v52lean3"></script>
+  <script src="./look-audition-mv.js?v=v52lean3"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    const T = window.THREE;
+    const LAMV = window.LookAuditionMV;
+    const $ = id => document.getElementById(id);
+    const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const TAU = Math.PI * 2;
+
+    LAMV.injectSharedStyles();
+
+    const wrap = $("stage-wrap");
+    const canvas = $("view");
+    const renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = T.PCFShadowMap;
+    renderer.toneMapping = T.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.09;
+
+    const scene = new T.Scene();
+    const PAPER_COLOR = new T.Color(0xd7d2c7);
+    const DUSK_COLOR  = new T.Color(0xbdb7ab);
+    const NIGHT_COLOR = new T.Color(0x121618);
+    scene.background = PAPER_COLOR.clone();
+    scene.fog = new T.FogExp2(0xd7d2c7, 0.018);
+
+    const camera = new T.PerspectiveCamera(35, 1, 0.016, 220);
+
+    // Calibrated 3-Point Cinema + Cyan Bounce Lighting (protects dark melanin & ocular catchlights!)
+    const hemi = new T.HemisphereLight(0xf6f2e9, 0x938879, 1.54);
+    scene.add(hemi);
+
+    const sun = new T.DirectionalLight(0xfffaf0, 2.45);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.bias = -0.00016;
+    sun.shadow.normalBias = 0.0055;
+    Object.assign(sun.shadow.camera, { left: -4.2, right: 4.2, top: 4.2, bottom: -4.2, near: 0.4, far: 36 });
+    scene.add(sun, sun.target);
+
+    const rim = new T.DirectionalLight(0xcceef9, 1.12);
+    scene.add(rim, rim.target);
+
+    const bounceLight = new T.DirectionalLight(0xf5dec4, 0.48);
+    scene.add(bounceLight, bounceLight.target);
+
+    const catchLight = new T.DirectionalLight(0xffffff, 0.28);
+    scene.add(catchLight, catchLight.target);
+
+    // Zero floating shin-level point lights (prevents false cyan stains on trousers/shamma; cyan comes strictly from physical water/pack/relay meshes!)
+    const cyanStageLight = new T.PointLight(0x28d8f0, 0.0, 1.5, 2.0);
+    cyanStageLight.position.set(0, 2.5, -2.0);
+    scene.add(cyanStageLight);
+
+    // Textured Highland Flagstone / Earth Stage Pad + Shadow Catcher
+    const groundMat = new T.MeshStandardMaterial({ color: 0x8e887d, roughness: 0.92, metalness: 0.02 });
+    const groundDisc = new T.Mesh(new T.CylinderGeometry(18, 18, 0.08, 64), groundMat);
+    groundDisc.position.y = -0.04;
+    groundDisc.receiveShadow = true;
+    scene.add(groundDisc);
+
+    const stageRoot = new T.Group();
+    scene.add(stageRoot);
+
+    const post = LAMV.createPostProcessor(T, renderer);
+    post.setLook("jerikan"); // Default signature look in MV Audition Theater!
+
+    const song = LAMV.createSongEngine({ autoPlay: true, startTime: 12.2 });
+
+    const csOverlay = LAMV.mountContactSheetOverlay(wrap, chosenLookId => {
+      setContactSheet(false);
+      setLook(chosenLookId);
+    });
+
+    /* ---------- Orbit / Zoom State ---------- */
+    const camState = {
+      yaw: 0.12, pitch: 0.04, dist: 0.42,
+      targetX: 0, targetY: 1.54, targetZ: 0.22,
+      wantYaw: 0.12, wantPitch: 0.04, wantDist: 0.42,
+      wantTargetX: 0, wantTargetY: 1.54, wantTargetZ: 0.22,
+      sunDeg: 38, night: false
+    };
+
+    let activeCastId = "imani";
+    let activeSetIdx = 0;
+    let activeCutId = "auto";
+    let lastAutoSlot = -1;
+
+    let activeActors = [];
+    let activeDonkey = null;
+    let activePump = null;
+    let activeHandoff = null;
+    let activeOxbowScreen = null;
+    const pumpGrips = {
+      pumpGripL: new T.Vector3(),
+      pumpGripR: new T.Vector3(),
+      pumpGripWorld: new T.Vector3(),
+      pumpBarDir: new T.Vector3(),
+      pumpPhase: 0
+    };
+    const flatGround = () => 0;
+
+    let drag = null;
+    canvas.addEventListener("contextmenu", e => e.preventDefault());
+    canvas.addEventListener("pointerdown", e => {
+      canvas.setPointerCapture(e.pointerId);
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey };
+      if (activeCutId !== "orbit") {
+        activeCutId = "orbit";
+        syncBarUI();
+      }
+    });
+    canvas.addEventListener("pointermove", e => {
+      if (!drag || drag.id !== e.pointerId) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      drag.x = e.clientX; drag.y = e.clientY;
+      if (drag.pan) {
+        const ps = camState.dist * 0.0014;
+        const cy = Math.cos(camState.yaw), sy = Math.sin(camState.yaw);
+        camState.wantTargetX -= dx * cy * ps;
+        camState.wantTargetZ += dx * sy * ps;
+        camState.wantTargetY = clamp(camState.wantTargetY + dy * ps, 0.1, 4.5);
+      } else {
+        camState.wantYaw -= dx * 0.007;
+        camState.wantPitch = clamp(camState.wantPitch + dy * 0.0055, -0.22, 1.15);
+      }
+    });
+    canvas.addEventListener("pointerup", e => { if (drag && drag.id === e.pointerId) drag = null; });
+    canvas.addEventListener("wheel", e => {
+      e.preventDefault();
+      if (activeCutId !== "orbit") {
+        activeCutId = "orbit";
+        syncBarUI();
+      }
+      camState.wantDist = clamp(camState.wantDist * Math.exp(e.deltaY * 0.0011), 0.17, 16.0);
+    }, { passive: false });
+
+    function applyLightingForSet(setDef) {
+      const isNight = Boolean(setDef.night);
+      const isOxbow = setDef.id === "cottonwood_oxbow";
+      camState.night = isNight;
+      camState.sunDeg = setDef.sunDeg;
+      document.body.classList.toggle("night-mode", isNight);
+
+      const bgCol = isNight ? NIGHT_COLOR : (isOxbow ? DUSK_COLOR : PAPER_COLOR);
+      scene.background.copy(bgCol);
+      scene.fog.color.copy(bgCol);
+      scene.fog.density = isNight ? 0.032 : 0.016;
+      groundMat.color.setHex(isNight ? 0x1e2426 : (isOxbow ? 0x6f6c62 : 0x8d877b));
+
+      // Night lighting keeps warm-moonlight sculptural key/fill so dark melanin skin & shamma read naturally!
+      hemi.intensity = isNight ? 0.78 : 1.54;
+      hemi.color.setHex(isNight ? 0xcfdce6 : 0xf6f2e9);
+      hemi.groundColor.setHex(isNight ? 0x2a3136 : 0x938879);
+      sun.intensity = isNight ? 1.22 : (isOxbow ? 1.95 : 2.45);
+      sun.color.setHex(isNight ? 0xdde8f2 : 0xfffaf0);
+      rim.intensity = isNight ? 1.15 : 1.12;
+      rim.color.setHex(isNight ? 0x7adcf0 : 0xcceef9);
+      bounceLight.intensity = isNight ? 0.38 : 0.48;
+      catchLight.intensity = isNight ? 0.24 : 0.28;
+      catchLight.visible = activeCastId !== "ensemble";
+      cyanStageLight.intensity = 0.0;
+      cyanStageLight.visible = false;
+    }
+
+    function updateLightsToTarget() {
+      const rad = (camState.sunDeg * Math.PI) / 180;
+      const tx = camState.targetX, ty = camState.targetY * 0.6, tz = camState.targetZ;
+      sun.target.position.set(tx, ty, tz);
+      sun.position.set(tx + Math.sin(rad) * 7.2, ty + 8.0, tz + Math.cos(rad) * 7.2);
+      rim.target.position.set(tx, ty + 0.3, tz);
+      rim.position.set(tx - Math.sin(rad + 0.35) * 6.5, ty + 3.6, tz - Math.cos(rad + 0.35) * 6.5);
+      bounceLight.target.position.set(tx, ty + 0.4, tz);
+      bounceLight.position.set(tx - Math.sin(rad - 0.8) * 4.4, -1.2, tz + Math.cos(rad - 0.8) * 4.4);
+
+      const isMacro = camState.dist < 1.1;
+      const shB = isMacro ? 1.05 : 4.2;
+      if (Math.abs(sun.shadow.camera.right - shB) > 0.05) {
+        sun.shadow.camera.left = -shB;
+        sun.shadow.camera.right = shB;
+        sun.shadow.camera.top = shB;
+        sun.shadow.camera.bottom = -shB;
+        sun.shadow.camera.updateProjectionMatrix();
+      }
+    }
+
+    function clearStage() {
+      while (stageRoot.children.length) stageRoot.remove(stageRoot.children[0]);
+      activeActors = [];
+      activeDonkey = null;
+      activePump = null;
+      activeHandoff = null;
+      activeOxbowScreen = null;
+    }
+
+    const performerPool = new Map();
+    let cachedDonkeyEns = null;
+    let cachedDonkeySolo = null;
+
+    function spawnDonkey(x, z, heading) {
+      if (!window.makeDonkey) return null;
+      const isEns = activeCastId === "ensemble";
+        let d = isEns ? cachedDonkeyEns : cachedDonkeySolo;
+      if (!d) {
+        d = window.makeDonkey({ assetPath: "../donkey/", shells: isEns ? 5 : 8, monochrome: true, contactShadow: true, alwaysHalter: true });
+        d.setCargo([{ kg: 14, slot: "L" }, { kg: 14, slot: "R" }, { kg: 8, slot: "T" }]);
+        const frameMat = new T.MeshStandardMaterial({ color: 0x1a1613, roughness: 0.68 });
+        const glowMat = new T.MeshStandardMaterial({ color: 0x058ab8, emissive: 0x046a94, emissiveIntensity: 0.72, roughness: 0.18 });
+        d.pack.traverse(obj => {
+          if (obj.isGroup && Math.abs(Math.abs(obj.position.x) - 0.095) < 0.01 && Math.abs(obj.position.y + 0.225) < 0.02) {
+            const s = Math.sign(obj.position.x) || 1;
+            const bezel = new T.Mesh(new T.BoxGeometry(0.016, 0.21, 0.16), frameMat);
+            bezel.position.set(s * 0.105, 0.02, 0.085);
+            obj.add(bezel);
+            const pouch = new T.Mesh(new T.BoxGeometry(0.022, 0.17, 0.122), glowMat);
+            pouch.position.set(s * 0.108, 0.02, 0.085);
+            obj.add(pouch);
+          }
+        });
+        d.group.traverse(o => {
+          if (o.isMesh) {
+            const m = o.material;
+            const isFurShell = Boolean((m && (m.transparent || m.alphaTest > 0)) || (o.renderOrder && o.renderOrder > 0));
+            o.castShadow = !isFurShell;
+            o.receiveShadow = !isFurShell;
+          }
+        });
+        if (isEns) cachedDonkeyEns = d;
+        else cachedDonkeySolo = d;
+      }
+      d.place(x, z, heading, flatGround);
+      stageRoot.add(d.group);
+      return d;
+    }
+
+    function spawnPerformer(spec, role = "support") {
+      const poolKey = `${spec.id}__phone_${Boolean(spec.enablePhoneLight)}__y_${spec.yOffset || 0}`;
+      let ch = performerPool.get(poolKey);
+      if (!ch) {
+        ch = window.makeExpeditionCharacter(T, spec);
+        if (!ch.userData) ch.userData = ch.group.userData;
+        if (window.HumanExpressionsV4 && typeof window.HumanExpressionsV4.ensureController === "function") {
+          window.HumanExpressionsV4.ensureController(ch);
+        }
+        if (ch.label && ch.label.sprite) ch.label.sprite.visible = false;
+        performerPool.set(poolKey, ch);
+      }
+      ch.state.phase = spec.phase || 0;
+      ch.state.pose = spec.pose || "idle";
+      ch.place(spec.x || 0, spec.z || 0, spec.heading || 0, flatGround);
+      stageRoot.add(ch.group);
+      const entry = {
+        ch,
+        role,
+        pose: spec.pose || "idle",
+        baseX: spec.x || 0,
+        baseZ: spec.z || 0,
+        baseHeading: spec.heading || 0
+      };
+      activeActors.push(entry);
+      return entry;
+    }
+
+    // Lift near-zero #000000 architectural blackout boxes into realistic weathered stone slate / gunmetal / cast iron (NEVER neon billboards or #000 holes!)
+    function refineArchMaterials(root, kind = "stone") {
+      if (!root) return root;
+      const slateWinMat = new T.MeshStandardMaterial({ color: 0x58534b, roughness: 0.86, metalness: 0.04 });
+      const gunmetalMat = new T.MeshStandardMaterial({ color: 0x24282c, roughness: 0.44, metalness: 0.56 });
+      const castIronMat = new T.MeshStandardMaterial({ color: 0x3b4045, roughness: 0.38, metalness: 0.58 });
+      const targetMat = kind === "iron" ? castIronMat : (kind === "sanctuary" ? gunmetalMat : slateWinMat);
+
+      root.traverse(obj => {
+        if (!obj.isMesh || !obj.material) return;
+        const m = obj.material;
+        // Disable expensive full-scene Three.js transmission re-render pass on small prop water meshes -> instant 60 FPS!
+        if (m.transmission && m.transmission > 0) {
+          m.transmission = 0;
+          m.transparent = true;
+          m.opacity = Math.min(m.opacity || 0.90, 0.90);
+          m.needsUpdate = true;
+        }
+        if (m.color && !m.map) {
+          const lum = m.color.r * 0.3 + m.color.g * 0.59 + m.color.b * 0.11;
+          const emLum = m.emissive ? (m.emissive.r + m.emissive.g + m.emissive.b) : 0;
+          if (kind !== "keep" && lum < (kind === "iron" ? 0.09 : 0.038) && emLum < 0.02) {
+            obj.material = targetMat;
+          }
+        }
+      });
+      return root;
+    }
+
+    // Authentic World Bible Props ONLY: Wooden X-Frame Sawbuck + Embossed-X 20L "WATER = WIFI" Translucent Cyan Jerrycans on Stone Carrier Bench (ZERO lollipop poles!)
+    function addSawbuckAndWifiJerrycans(x, z, rotY = -0.35, benchH = 0.32) {
+      if (!window.makeArchitectureStudyPiece) return null;
+      const grp = new T.Group();
+      grp.position.set(x, 0, z);
+      grp.rotation.y = rotY;
+
+      if (benchH > 0.02) {
+        const stoneMat = new T.MeshStandardMaterial({ color: 0x625d54, roughness: 0.90 });
+        const bench = new T.Mesh(new T.BoxGeometry(0.76, benchH, 0.58), stoneMat);
+        bench.position.set(0, benchH * 0.5, 0);
+        bench.castShadow = true; bench.receiveShadow = true;
+        grp.add(bench);
+      }
+
+      const props = window.makeArchitectureStudyPiece(T, "props");
+      const sawbuck = props.children[0].clone();
+      sawbuck.position.set(-0.08, benchH, 0);
+      sawbuck.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      grp.add(sawbuck);
+
+      const can2 = window.makeArchitectureStudyPiece(T, "wifi_can");
+      can2.position.set(0.20, benchH, 0.08);
+      can2.rotation.y = 0.42;
+      can2.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      grp.add(can2);
+
+      refineArchMaterials(grp, "keep");
+      stageRoot.add(grp);
+      return grp;
+    }
+
+    function buildOxbowCinemaBackdrop() {
+      const grp = new T.Group();
+      const barkMat = new T.MeshStandardMaterial({ color: 0x3f3932, roughness: 0.92 });
+      const ropeMat = new T.MeshStandardMaterial({ color: 0xb9ad96, roughness: 0.85 });
+
+      for (const tx of [-2.35, 2.35]) {
+        const trunk = new T.Mesh(new T.CylinderGeometry(0.19, 0.28, 4.2, 12), barkMat);
+        trunk.position.set(tx, 2.1, -2.35);
+        trunk.castShadow = true;
+        grp.add(trunk);
+      }
+      const rope = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 4.7, 8), ropeMat);
+      rope.rotation.z = Math.PI * 0.5;
+      rope.position.set(0, 3.12, -2.35);
+      grp.add(rope);
+
+      // Animated silver-cyan wedding reel canvas projected onto wind-billowing linen!
+      const pCnv = document.createElement("canvas");
+      pCnv.width = 512; pCnv.height = 288;
+      const pCtx = pCnv.getContext("2d");
+      const pTex = new T.CanvasTexture(pCnv);
+      if (T.SRGBColorSpace) pTex.colorSpace = T.SRGBColorSpace;
+
+      const sheetGeo = new T.PlaneGeometry(3.9, 2.2, 20, 12);
+      const basePos = Float32Array.from(sheetGeo.attributes.position.array);
+      const sheetMat = new T.MeshStandardMaterial({
+        map: pTex, roughness: 0.78, side: T.DoubleSide, emissive: 0x1c343a, emissiveIntensity: 0.35
+      });
+      const sheet = new T.Mesh(sheetGeo, sheetMat);
+      sheet.position.set(0, 2.02, -2.35);
+      sheet.castShadow = true;
+      grp.add(sheet);
+
+      const rearSheet = new T.Mesh(
+        new T.PlaneGeometry(3.9, 2.2, 8, 6),
+        new T.MeshStandardMaterial({ color: 0xe6e1d5, roughness: 0.88, transparent: true, opacity: 0.72, side: T.DoubleSide })
+      );
+      rearSheet.position.set(0.08, 2.00, -2.62);
+      grp.add(rearSheet);
+
+      stageRoot.add(grp);
+      return {
+        sheet, basePos, pCnv, pCtx, pTex,
+        update(nowSec) {
+          // Billowing mountain wind
+          const arr = sheet.geometry.attributes.position.array;
+          for (let i = 0; i < arr.length; i += 3) {
+            const ox = basePos[i], oy = basePos[i + 1];
+            const loose = clamp((1.1 - oy) / 2.2, 0, 1);
+            arr[i + 2] = basePos[i + 2] + loose * (Math.sin(nowSec * 1.9 + ox * 1.6) * 0.08 + Math.cos(nowSec * 3.1 - oy * 2.0) * 0.03);
+          }
+          sheet.geometry.attributes.position.needsUpdate = true;
+
+          // Flickering 16mm silver-cyan projection frame
+          const flick = 0.88 + 0.12 * Math.sin(nowSec * 18.0);
+          pCtx.fillStyle = "#dad5c8";
+          pCtx.fillRect(0, 0, 512, 288);
+          pCtx.fillStyle = `rgba(26, 32, 34, ${0.84 * flick})`;
+          pCtx.fillRect(24, 18, 464, 252);
+          const gx = 256 + Math.sin(nowSec * 0.7) * 55;
+          const grd = pCtx.createRadialGradient(gx, 138, 14, gx, 138, 175);
+          grd.addColorStop(0, "rgba(78, 232, 255, 0.75)");
+          grd.addColorStop(0.45, "rgba(225, 222, 212, 0.42)");
+          grd.addColorStop(1, "rgba(20, 24, 26, 0.0)");
+          pCtx.fillStyle = grd;
+          pCtx.fillRect(24, 18, 464, 252);
+          pCtx.strokeStyle = "rgba(240, 236, 226, 0.55)";
+          pCtx.lineWidth = 2;
+          pCtx.strokeRect(36, 28, 440, 232);
+          pTex.needsUpdate = true;
+        }
+      };
+    }
+
+    function rebuildStage() {
+      clearStage();
+      const setDef = LAMV.MV_SETS[activeSetIdx];
+      const castDef = LAMV.MV_CAST.find(c => c.id === activeCastId) || LAMV.MV_CAST[0];
+      const capDpr = (castDef.isEnsemble || wrap.clientWidth >= 1400) ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.5);
+      renderer.setPixelRatio(capDpr);
+      renderer.setSize(Math.max(1, wrap.clientWidth), Math.max(1, wrap.clientHeight), false);
+      applyLightingForSet(setDef);
+
+      const isNight = Boolean(setDef.night);
+      const isFinale = setDef.id === "cosmic_addis_finale";
+
+      // 1. Spawn Lead Star(s) in a natural semicircular music-video depth arc (shorter June forward-left so zero elbow occlusion!)
+      if (castDef.isEnsemble) {
+        const lineup = [
+          { ref: LAMV.MV_CAST[0], x: -0.04, z:  0.38, h:  0.05, role: "lead",   handPref: "talking_gesticulate", armAlt: "cupped_water_plea" },
+          { ref: LAMV.MV_CAST[1], x: -0.68, z:  0.22, h:  0.26, role: "chorus", handPref: "cupped_water_plea",   armAlt: "heart_gratitude" },
+          { ref: LAMV.MV_CAST[3], x:  0.66, z:  0.06, h: -0.28, role: "chorus", handPref: "heart_gratitude",     armAlt: "cupped_water_plea" },
+          { ref: LAMV.MV_CAST[4], x: -1.24, z: -0.26, h:  0.42, role: "chorus", handPref: "joyful_wave",         armAlt: "talking_gesticulate" },
+          { ref: LAMV.MV_CAST[2], x:  1.22, z: -0.26, h: -0.42, role: "chorus", handPref: "talking_gesticulate", armAlt: "heart_gratitude" }
+        ];
+        lineup.forEach((slot, idx) => {
+          const ent = spawnPerformer({
+            ...slot.ref.spec,
+            id: `${slot.ref.spec.id}_${idx}`,
+            x: slot.x,
+            z: slot.z,
+            heading: slot.h,
+            phase: idx * 1.42,
+            enablePhoneLight: isNight,
+            pose: isFinale ? "eskista" : (isNight ? "convoyPhoneWalk" : "idle")
+          }, slot.role);
+          // Skip sub-mm alpha hair/lash shadow-map draws on wide 5-actor ensemble -> locks >= 60 FPS!
+          ent.ch.group.traverse(o => {
+            if (o.isMesh && o.material && (o.material.transparent || o.material.alphaTest > 0)) {
+              o.castShadow = false;
+            }
+          });
+          ent.handPref = slot.handPref;
+          ent.armAlt = slot.armAlt;
+          ent.timeOffset = idx * 0.94;
+        });
+      } else {
+        const ent = spawnPerformer({
+          ...castDef.spec,
+          x: 0.0,
+          z: 0.26,
+          heading: 0.05,
+          enablePhoneLight: isNight,
+          pose: isFinale ? "eskista" : (isNight ? "convoyPhoneWalk" : "idle")
+        }, "lead");
+        ent.timeOffset = 0;
+      }
+
+      // 2. Build Set-Specific Architecture, Cyan Water Props & Supporting Action
+      if (setDef.id === "dawn_wellhead") {
+        // Authentic World Bible props: embossed-X 20L WATER=WIFI jerrycans on carrier ledge + Mistletoe turned side-on showing her glowing #28d8f0 pack sight-window!
+        addSawbuckAndWifiJerrycans(0.50, -0.52, -0.35, 0.58);
+        activeDonkey = spawnDonkey(1.12, -0.82, -1.22);
+
+        if (window.makeArchitectureStudyPiece) {
+          const props = window.makeArchitectureStudyPiece(T, "props");
+          // Stepped coursed-stone wellhead curb (y = 0.44m) on stage-left so cast-iron standpipe + full parabolic #28d8f0 cyan stream + cyan-filled shekla basin sit cleanly in frame!
+          const curbMat = new T.MeshStandardMaterial({ color: 0x666157, roughness: 0.90 });
+          const wellCurb = new T.Mesh(new T.BoxGeometry(1.18, 0.44, 0.78), curbMat);
+          wellCurb.position.set(-0.66, 0.22, -0.26);
+          wellCurb.castShadow = true; wellCurb.receiveShadow = true;
+          stageRoot.add(wellCurb);
+
+          const standpipe = refineArchMaterials(props.children[1].clone(), "iron");
+          standpipe.position.set(-0.88, 0.44, -0.28);
+          standpipe.rotation.y = -0.14;
+          stageRoot.add(standpipe);
+          activePump = standpipe;
+
+          const pBowl = refineArchMaterials(props.children[2].clone(), "keep");
+          pBowl.position.set(-0.34, 0.44, -0.20);
+          stageRoot.add(pBowl);
+
+          if (!castDef.isEnsemble) {
+            const pumpCast = activeCastId === "imani" ? LAMV.MV_CAST[4] : LAMV.MV_CAST[0];
+            spawnPerformer({
+              ...pumpCast.spec,
+              id: "bg_pumper",
+              x: -1.94,
+              z: -0.42,
+              yOffset: 0.24,
+              heading: Math.PI * 0.5 - 0.14,
+              pose: "pump"
+            }, "pump");
+          }
+
+          const chapel = refineArchMaterials(window.makeArchitectureStudyPiece(T, "chapel"), "stone");
+          chapel.position.set(-4.15, 0, -7.8);
+          chapel.rotation.y = 0.28;
+          chapel.traverse(o => { if (o.isMesh) o.castShadow = false; });
+          stageRoot.add(chapel);
+        }
+      } else if (setDef.id === "hidmo_handoff") {
+        addSawbuckAndWifiJerrycans(-0.56, -0.46, 0.38, 0.34);
+        activeDonkey = spawnDonkey(-1.05, -0.58, 0.78);
+
+        if (window.makeArchitectureStudyPiece) {
+          const hidmo = refineArchMaterials(window.makeArchitectureStudyPiece(T, "hidmo"), "stone");
+          hidmo.position.set(0, 0, -3.6);
+          stageRoot.add(hidmo);
+
+          if (!castDef.isEnsemble) {
+            const elderX = 0.92, elderZ = -0.82;
+            const juneX = 1.21, juneZ = -0.49;
+            const handoffYaw = Math.atan2(juneX - elderX, juneZ - elderZ);
+            const supA = spawnPerformer({
+              ...LAMV.MV_CAST[3].spec,
+              id: "bg_handoff_a", x: elderX, z: elderZ, heading: handoffYaw, pose: "heaveSaddle20kg"
+            }, "handoffA");
+            const supB = spawnPerformer({
+              ...LAMV.MV_CAST[1].spec,
+              scale: 0.76, id: "bg_handoff_b", x: juneX, z: juneZ, heading: handoffYaw - Math.PI, pose: "childReceive20kg"
+            }, "handoffB");
+
+            let canRoot;
+            if (typeof window.makeWaterWifiCan === "function") {
+              canRoot = window.makeWaterWifiCan(T, { withPourAndRipples: false }).canRoot;
+            } else {
+              canRoot = new T.Group();
+              const rawCan = window.makeArchitectureStudyPiece(T, "wifi_can");
+              rawCan.position.y = -0.20;
+              canRoot.add(rawCan);
+            }
+            const gElderL = new T.Object3D(); gElderL.position.set( 0.008,  0.204, -0.022); canRoot.add(gElderL);
+            const gElderR = new T.Object3D(); gElderR.position.set(-0.062, -0.172, -0.112); canRoot.add(gElderR);
+            const gJuneL  = new T.Object3D(); gJuneL.position.set(-0.066, -0.172,  0.112); canRoot.add(gJuneL);
+            const gJuneR  = new T.Object3D(); gJuneR.position.set( 0.066, -0.172,  0.112); canRoot.add(gJuneR);
+            stageRoot.add(canRoot);
+
+            activeHandoff = {
+              canRoot, elderX, elderZ, handoffYaw, supA: supA.ch, supB: supB.ch,
+              gElderL, gElderR, gJuneL, gJuneR,
+              wElderL: new T.Vector3(), wElderR: new T.Vector3(),
+              wJuneL: new T.Vector3(), wJuneR: new T.Vector3(),
+              nElderL: new T.Vector3(), nElderR: new T.Vector3(),
+              nJuneL: new T.Vector3(), nJuneR: new T.Vector3(),
+              qCan: new T.Quaternion()
+            };
+          }
+        }
+      } else if (setDef.id === "cottonwood_oxbow") {
+        activeOxbowScreen = buildOxbowCinemaBackdrop();
+        addSawbuckAndWifiJerrycans(0.56, -0.52, -0.35, 0.30);
+        activeDonkey = spawnDonkey(-1.08, -0.68, 0.72);
+        if (!castDef.isEnsemble) {
+          const watcherRef = activeCastId === "hanna" ? LAMV.MV_CAST[4] : LAMV.MV_CAST[2];
+          spawnPerformer({
+            ...watcherRef.spec,
+            id: "bg_oxbow_watch", x: 1.05, z: -0.78, heading: -0.35, pose: "shadeScreen"
+          }, "support");
+        }
+      } else if (setDef.id === "ahiya_night_convoy") {
+        activeDonkey = spawnDonkey(-0.88, -0.62, 0.72);
+        addSawbuckAndWifiJerrycans(0.56, -0.58, -0.38, 0.28);
+        if (!castDef.isEnsemble) {
+          const escortRef = activeCastId === "elder" ? LAMV.MV_CAST[0] : LAMV.MV_CAST[3];
+          spawnPerformer({
+            ...escortRef.spec,
+            id: "bg_night_escort", x: 0.98, z: -0.76, heading: -0.22,
+            enablePhoneLight: true, pose: "convoyPhoneWalk"
+          }, "support");
+        }
+      } else if (setDef.id === "cosmic_addis_finale") {
+        if (window.makeArchitectureStudyPiece) {
+          // Dark gunmetal server racks so ONLY the curved floor-to-rack cooling hoses & slot LEDs glow #28d8f0 cyan!
+          const sanc = refineArchMaterials(window.makeArchitectureStudyPiece(T, "sanctuary"), "sanctuary");
+          sanc.position.set(0, 0, -3.65);
+          // Background sanctuary sits behind all actors (z = -3.65): skip 318k shadow-map triangles & coalesce 5 rack PointLights -> 1 for locked 60 FPS!
+          let keptRackLight = false;
+          sanc.traverse(o => {
+            if (o.isMesh) o.castShadow = false;
+            if (o.isPointLight) {
+              if (!keptRackLight) {
+                keptRackLight = true;
+                o.intensity = 0.68;
+                o.distance = 5.5;
+              } else {
+                o.visible = false;
+                o.intensity = 0;
+              }
+            }
+          });
+          stageRoot.add(sanc);
+        }
+        addSawbuckAndWifiJerrycans(-1.66, -0.58, 0.36, 0.26);
+        addSawbuckAndWifiJerrycans( 1.66, -0.58, -0.36, 0.26);
+        activeDonkey = spawnDonkey(-0.58, -0.92, 0.68);
+
+        if (!castDef.isEnsemble) {
+          const dLeft = activeCastId === "makeda" ? LAMV.MV_CAST[0] : LAMV.MV_CAST[4];
+          const dRight = activeCastId === "elder" ? LAMV.MV_CAST[2] : LAMV.MV_CAST[3];
+          const entL = spawnPerformer({
+            ...dLeft.spec, id: "bg_esk_l", x: -0.84, z: -0.26, heading: 0.28, phase: 1.35, pose: "eskista"
+          }, "chorus");
+          entL.handPref = "joyful_wave";
+          entL.armAlt = "talking_gesticulate";
+          entL.timeOffset = 1.15;
+          const entR = spawnPerformer({
+            ...dRight.spec, id: "bg_esk_r", x:  0.84, z: -0.26, heading: -0.28, phase: 2.65, pose: "eskista"
+          }, "chorus");
+          entR.handPref = "talking_gesticulate";
+          entR.armAlt = "heart_gratitude";
+          entR.timeOffset = 2.30;
+        }
+      }
+
+      // Guarantee zero Three.js double-scene transmissionRenderTarget passes on stage/pack water meshes
+      stageRoot.traverse(obj => {
+        if (!obj.isMesh || !obj.material) return;
+        if (String(obj.name || "").toLowerCase().includes("cornea")) return;
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (const m of mats) {
+          if (m && m.transmission && m.transmission > 0) {
+            m.transmission = 0;
+            m.transparent = true;
+            m.opacity = Math.min(m.opacity || 0.90, 0.90);
+            m.needsUpdate = true;
+          }
+        }
+      });
+
+      renderer.shadowMap.autoUpdate = false;
+      renderer.shadowMap.needsUpdate = true;
+
+      lastAutoSlot = -1;
+      syncHeaderAndHud(null);
+      syncBarUI();
+    }
+
+    /* ---------- Dynamic Bone-Locked Camera Framing (Zero Empty-Air Cuts!) ---------- */
+    const tmpHead = new T.Vector3();
+    const tmpNeck = new T.Vector3();
+    const tmpHandL = new T.Vector3();
+    const tmpHandR = new T.Vector3();
+
+    function evaluateCameraTargetForCut(cutKey, snap = false) {
+      if (cutKey === "orbit") return;
+      const leadEntry = activeActors[0];
+      if (!leadEntry || !leadEntry.ch || !leadEntry.ch.bones) return;
+
+      const ch = leadEntry.ch;
+      ch.group.updateMatrixWorld(true);
+      const V3 = window.HumanSculptV3 && ch.bones.length >= 50 ? window.HumanSculptV3 : null;
+      const B = V3 ? V3.B : null;
+      const bHead  = ch.bones[B ? B.HEAD : 5];
+      const bNeck  = ch.bones[B ? B.NECK_LOW : 4];
+      const bChest = ch.bones[B ? B.CHEST : 3];
+      const bHandL = ch.bones[B ? B.L_MID_1 : 9];
+      const bHandR = ch.bones[B ? B.R_MID_1 : 13];
+      const hdg = ch.state.heading || 0;
+      const isEnsemble = activeCastId === "ensemble";
+
+      let dist = 0.40, yaw = hdg + 0.10, pitch = 0.03;
+
+      if (cutKey === "eyes") {
+        tmpHead.set(0.010, 0.056, 0.062);
+        bHead.localToWorld(tmpHead);
+        dist = 0.20;
+        yaw = hdg + 0.06;
+        pitch = 0.015;
+        camState.wantTargetX = tmpHead.x;
+        camState.wantTargetY = tmpHead.y;
+        camState.wantTargetZ = tmpHead.z;
+      } else if (cutKey === "neck") {
+        // Steady chest-referenced mid-neck/clavicle framing (0.96m): frames full crown with clean headroom,
+        // singing mouth, oval V-jaw, ±16° leaning SCM neck, S-clavicles (1.408m) & open collar clear above #lyric-strip!
+        tmpNeck.set(0, 0.158, 0.036);
+        bChest.localToWorld(tmpNeck);
+        dist = 0.96;
+        yaw = hdg + 0.06;
+        pitch = 0.02;
+        camState.wantTargetX = tmpNeck.x;
+        camState.wantTargetY = tmpNeck.y;
+        camState.wantTargetZ = tmpNeck.z;
+      } else if (cutKey === "face") {
+        tmpHead.set(0, 0.014, 0.050);
+        bHead.localToWorld(tmpHead);
+        dist = 0.37;
+        yaw = hdg + 0.12;
+        pitch = 0.03;
+        camState.wantTargetX = tmpHead.x;
+        camState.wantTargetY = tmpHead.y;
+        camState.wantTargetZ = tmpHead.z;
+      } else if (cutKey === "profile") {
+        tmpHead.set(0, 0.018, 0.034);
+        bHead.localToWorld(tmpHead);
+        dist = 0.44;
+        yaw = hdg - 1.40;
+        pitch = 0.03;
+        camState.wantTargetX = tmpHead.x;
+        camState.wantTargetY = tmpHead.y;
+        camState.wantTargetZ = tmpHead.z;
+      } else if (cutKey === "hands") {
+        bHandL.getWorldPosition(tmpHandL);
+        bHandR.getWorldPosition(tmpHandR);
+        tmpHead.set(0, 0.02, 0.04);
+        bHead.localToWorld(tmpHead);
+        const midX = (tmpHandL.x + tmpHandR.x + tmpHead.x) / 3;
+        const minY = Math.min(tmpHandL.y, tmpHandR.y, tmpHead.y - 0.34);
+        const maxY = tmpHead.y + 0.16;
+        dist = clamp((maxY - minY + 0.16) / 0.54, 0.72, 1.08);
+        yaw = hdg - 0.12;
+        pitch = 0.06;
+        camState.wantTargetX = midX;
+        camState.wantTargetY = (minY + maxY) * 0.5 - 0.03;
+        camState.wantTargetZ = (tmpHead.z + Math.max(tmpHandL.z, tmpHandR.z)) * 0.5;
+      } else {
+        // Wide Two-Shot / Full Ensemble Set
+        bChest.getWorldPosition(tmpNeck);
+        dist = isEnsemble ? 3.82 : 2.65;
+        yaw = isEnsemble ? 0.03 : 0.14;
+        pitch = 0.10;
+        camState.wantTargetX = isEnsemble ? 0.0 : -0.10;
+        camState.wantTargetY = isEnsemble ? 1.00 : (tmpNeck.y - 0.16);
+        camState.wantTargetZ = -0.10;
+      }
+
+      camState.wantDist = dist;
+      camState.wantYaw = yaw;
+      camState.wantPitch = pitch;
+
+      if (snap) {
+        camState.dist = dist;
+        camState.yaw = yaw;
+        camState.pitch = pitch;
+        camState.targetX = camState.wantTargetX;
+        camState.targetY = camState.wantTargetY;
+        camState.targetZ = camState.wantTargetZ;
+      }
+    }
+
+    /* ---------- UI Pill Racks & Controls ---------- */
+    function setLook(idOrIdx) {
+      post.setLook(idOrIdx);
+      if (post.isContactSheet()) {
+        post.setContactSheet(false);
+        csOverlay.setVisible(false);
+        document.body.classList.remove("contact-sheet-active");
+      }
+      syncBarUI();
+      syncHeaderAndHud(null);
+      return post.getLook();
+    }
+
+    function setContactSheet(flag) {
+      const on = post.setContactSheet(flag);
+      csOverlay.setVisible(on);
+      document.body.classList.toggle("contact-sheet-active", on);
+      syncBarUI();
+      syncHeaderAndHud(null);
+      return on;
+    }
+
+    function setCast(castId) {
+      const found = LAMV.MV_CAST.find(c => c.id === String(castId).toLowerCase());
+      activeCastId = found ? found.id : "imani";
+      rebuildStage();
+      evaluateCameraTargetForCut(resolveEffectiveCut(0), true);
+      return activeCastId;
+    }
+
+    function setSet(idxOrId, keepTime = false) {
+      let idx = 0;
+      if (typeof idxOrId === "number") idx = clamp(Math.round(idxOrId), 0, LAMV.MV_SETS.length - 1);
+      else {
+        const s = String(idxOrId).toLowerCase();
+        const f = LAMV.MV_SETS.findIndex(x => x.id === s || x.short.toLowerCase().includes(s) || String(x.idx) === s);
+        if (f >= 0) idx = f;
+      }
+      activeSetIdx = idx;
+      if (!keepTime) {
+        song.seek(LAMV.MV_SETS[idx].startSec);
+      }
+      rebuildStage();
+      evaluateCameraTargetForCut(resolveEffectiveCut(0), true);
+      return LAMV.MV_SETS[idx];
+    }
+
+    function setCut(cutId) {
+      const low = String(cutId || "auto").toLowerCase();
+      const mapped = (low === "neck_collar" || low === "leaning_neck" || low === "collar") ? "neck" : low;
+      const found = LAMV.MV_CUTS.find(c => c.id === mapped);
+      activeCutId = found ? found.id : "auto";
+      renderer.shadowMap.needsUpdate = true;
+      lastAutoSlot = -1;
+      evaluateCameraTargetForCut(resolveEffectiveCut(0), true);
+      syncBarUI();
+      syncHeaderAndHud(null);
+      return activeCutId;
+    }
+
+    function resolveEffectiveCut(barIndex) {
+      if (activeCutId !== "auto") return activeCutId;
+      // Cuts cleanly every 2 bars (~3.46s at 104 BPM) across the 5 cinema director shots including Leaning Neck & Collar!
+      const autoOrder = ["face", "neck", "hands", "wide", "profile"];
+      return autoOrder[Math.floor((barIndex || 0) / 2) % autoOrder.length];
+    }
+
+    function buildBarRows() {
+      const rLooks = $("row-looks");
+      let lHtml = `<span class="row-tag">Look:</span>`;
+      lHtml += `<button type="button" class="pill pill-cs" id="btn-cs-grid" aria-pressed="false">⊞ 9-Look Contact Sheet</button>`;
+      lHtml += `<span class="pill-sep"></span>`;
+      for (const lid of LAMV.UI_LOOK_ORDER) {
+        const lObj = LAMV.resolveLook(lid);
+        lHtml += `<button type="button" class="pill" data-look="${lObj.id}" title="${lObj.name}: ${lObj.desc}">${lObj.short}</button>`;
+      }
+      rLooks.innerHTML = lHtml;
+      $("btn-cs-grid").addEventListener("click", () => setContactSheet(!post.isContactSheet()));
+      rLooks.querySelectorAll("[data-look]").forEach(b => b.addEventListener("click", () => setLook(b.dataset.look)));
+
+      const rCast = $("row-cast");
+      rCast.innerHTML = `<span class="row-tag">Cast Lead:</span>` + LAMV.MV_CAST.map(c =>
+        `<button type="button" class="pill pill-cast" data-cast="${c.id}" title="${c.title}">${c.short}</button>`
+      ).join("");
+      rCast.querySelectorAll("[data-cast]").forEach(b => b.addEventListener("click", () => setCast(b.dataset.cast)));
+
+      const rSets = $("row-sets");
+      rSets.innerHTML = `<span class="row-tag">MV Set:</span>` + LAMV.MV_SETS.map(s =>
+        `<button type="button" class="pill" data-set="${s.idx}" title="${s.desc}">${s.short}</button>`
+      ).join("");
+      rSets.querySelectorAll("[data-set]").forEach(b => b.addEventListener("click", () => setSet(+b.dataset.set, false)));
+
+      const rCuts = $("row-cuts");
+      rCuts.innerHTML = `<span class="row-tag">Camera:</span>` + LAMV.MV_CUTS.map(c => {
+        const lbl = c.id === "neck" ? "Leaning Neck & Collar" : c.short;
+        return `<button type="button" class="pill" data-cut="${c.id}">${lbl}</button>`;
+      }).join("");
+      rCuts.querySelectorAll("[data-cut]").forEach(b => b.addEventListener("click", () => setCut(b.dataset.cut)));
+    }
+
+    function syncBarUI() {
+      const curLook = post.getLook();
+      const csOn = post.isContactSheet();
+      const csBtn = $("btn-cs-grid");
+      if (csBtn) {
+        csBtn.classList.toggle("active", csOn);
+        csBtn.setAttribute("aria-pressed", String(csOn));
+      }
+      document.querySelectorAll("#row-looks [data-look]").forEach(b => {
+        const act = !csOn && b.dataset.look === curLook.id;
+        b.classList.toggle("active", act);
+        b.setAttribute("aria-pressed", String(act));
+      });
+      document.querySelectorAll("#row-cast [data-cast]").forEach(b => {
+        const act = b.dataset.cast === activeCastId;
+        b.classList.toggle("active", act);
+        b.setAttribute("aria-pressed", String(act));
+      });
+      document.querySelectorAll("#row-sets [data-set]").forEach(b => {
+        const act = +b.dataset.set === activeSetIdx;
+        b.classList.toggle("active", act);
+        b.setAttribute("aria-pressed", String(act));
+      });
+      document.querySelectorAll("#row-cuts [data-cut]").forEach(b => {
+        const act = b.dataset.cut === activeCutId;
+        b.classList.toggle("active", act);
+        b.setAttribute("aria-pressed", String(act));
+      });
+    }
+
+    function fmtTime(sec) {
+      const s = Math.max(0, Math.floor(sec));
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+    }
+
+    let lastHeaderSig = "";
+    let lastLyricHtml = "";
+    let lastHudUpdateMs = 0;
+
+    function syncHeaderAndHud(vox) {
+      const setDef = LAMV.MV_SETS[activeSetIdx];
+      const castDef = LAMV.MV_CAST.find(c => c.id === activeCastId) || LAMV.MV_CAST[0];
+      const lookObj = post.getLook();
+      const cutDef = LAMV.MV_CUTS.find(c => c.id === activeCutId) || LAMV.MV_CUTS[0];
+
+      const headerSig = `${setDef.id}|${castDef.id}|${lookObj.id}|${post.isContactSheet()}|${cutDef.id}`;
+      if (headerSig !== lastHeaderSig) {
+        lastHeaderSig = headerSig;
+        $("mv-title").textContent = setDef.title;
+        $("mv-desc").textContent = setDef.desc;
+        $("mv-look-badge").textContent = post.isContactSheet() ? "⊞ 9-LOOK CONTACT SHEET" : `LOOK: ${lookObj.name}`;
+        $("mv-cast-badge").textContent = `STAR: ${castDef.short.replace("★ ", "").toUpperCase()}`;
+        $("mv-cut-badge").textContent = cutDef.id === "neck" ? "LEANING NECK, V-JAW & CLAVICLE (0.78M)" : cutDef.label;
+      }
+
+      if (vox) {
+        const lyrHtml = LAMV.formatHighlightedLyricHtml(vox);
+        if (lyrHtml !== lastLyricHtml) {
+          lastLyricHtml = lyrHtml;
+          $("lyric-text").innerHTML = lyrHtml;
+        }
+        const nowMs = performance.now();
+        if (nowMs - lastHudUpdateMs > 95) {
+          lastHudUpdateMs = nowMs;
+          $("hud-fps").textContent = `${Math.round(fpsSmoothed)} FPS`;
+          $("hud-epoch").textContent = vox.epoch.name.toUpperCase();
+          const leadCh = activeActors[0]?.ch;
+          const exp = leadCh && typeof leadCh.getExpressionState === "function" ? leadCh.getExpressionState() : null;
+          const jawPct = Math.round(((exp && exp.jawOpen) || (vox.visemeAmount * 0.5)) * 100);
+          const leanDegRound = Math.round(lastLeadNeckLeanDeg);
+          const leanStr = `${leanDegRound > 0 ? "+" : ""}${leanDegRound}°`;
+          $("hud-phoneme").textContent = `VIS: ${vox.viseme} · LEAN: ${leanStr} · ${vox.emotion.replace(/_/g, " ").toUpperCase()} · JAW: ${jawPct}%`;
+          $("m-perc").style.width = `${Math.round(clamp(vox.percEnv * 100, 6, 100))}%`;
+          $("m-vocal").style.width = `${Math.round(clamp(vox.vocalFormantEnv * 100, 6, 100))}%`;
+          $("m-brass").style.width = `${Math.round(clamp(vox.highBrassEnv * 100, 6, 100))}%`;
+          $("time-readout").textContent = `${fmtTime(vox.songTime)} / 04:43`;
+          const scrub = $("song-scrub");
+          if (document.activeElement !== scrub) scrub.value = String(vox.songTime.toFixed(1));
+        }
+      }
+    }
+
+    $("btn-play").addEventListener("click", () => {
+      const on = song.setPlaying(!song.isPlaying());
+      $("btn-play").textContent = on ? "⏸ Pause" : "▶ Play";
+    });
+    $("song-scrub").addEventListener("input", e => {
+      song.seek(+e.target.value);
+    });
+    $("btn-unmute").addEventListener("click", async () => {
+      const live = await song.toggleUnmute();
+      const btn = $("btn-unmute");
+      btn.classList.toggle("live", live);
+      btn.textContent = live ? "🔊 OGG Live" : "🔊 Unmute OGG";
+      $("btn-play").textContent = song.isPlaying() ? "⏸ Pause" : "▶ Play";
+    });
+
+    function resize() {
+      const w = Math.max(1, wrap.clientWidth), h = Math.max(1, wrap.clientHeight);
+      renderer.setPixelRatio((activeCastId === "ensemble" || w >= 1400) ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.5));
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener("resize", resize);
+
+    /* ---------- Musical Cervical Neck-Leaning Phraser (±12°–20° Vocal & Eskista Groove) ---------- */
+    const DEG = Math.PI / 180;
+    let lastLeadNeckLeanDeg = 16;
+
+    function computeMusicalNeckLean(vox, songSec, actorIdx, isLead, danceNow, effCut) {
+      const tSong = (vox ? vox.songTime : songSec) || 0;
+      const vEnv = vox ? clamp(vox.vocalFormantEnv || 0.45, 0, 1) : 0.5;
+      const visAmt = vox ? clamp(vox.visemeAmount || 0.3, 0, 1) : 0.3;
+      const emo = (vox && vox.emotion) || "determined_focus";
+      // 104 BPM musical phrasing: phase offset +0.88 ensures vivid ~+16°..+19° lean at Set start timestamps (12.2s, 45.2s, 94.2s, 152.2s, 220.2s)!
+      const phrasePh = tSong * 0.92 + 0.88 + actorIdx * 1.45;
+      const subBeatPh = tSong * (104 / 60) * Math.PI + actorIdx * 1.1;
+      const dwellWave = Math.tanh(1.75 * Math.sin(phrasePh));
+
+      let ampDeg = isLead ? (13.0 + 4.5 * vEnv) : (11.5 + 3.5 * vEnv);
+      if (effCut === "neck" && isLead) {
+        ampDeg = Math.max(ampDeg, 16.5);
+      }
+
+      let rollDeg = ampDeg * dwellWave + (danceNow ? 2.8 * Math.sin(subBeatPh * 0.5) : 1.5 * Math.cos(phrasePh * 2.0));
+      let pitchDeg = -3.0 * visAmt - 1.8 * vEnv;
+      let yawDeg = (isLead ? 9.0 : 7.5) * Math.sin(phrasePh * 0.65 + 0.4);
+      let glideX = danceNow ? (0.020 * Math.sin(subBeatPh)) : (0.005 * Math.sin(phrasePh * 1.5));
+
+      if (emo === "sad_grief") {
+        rollDeg = lerp(rollDeg, -16.0 * (dwellWave >= 0 ? 1 : -0.85), 0.45);
+        pitchDeg += 7.0;
+      } else if (emo === "concerned_pleading") {
+        pitchDeg -= 2.5;
+        yawDeg += 5.0 * dwellWave;
+      } else if (emo === "surprised_awe") {
+        pitchDeg -= 6.5;
+      } else if (emo === "happy_joy" || emo === "laughing_open") {
+        pitchDeg -= 2.5;
+      }
+
+      rollDeg = clamp(rollDeg, -19, 19);
+      pitchDeg = clamp(pitchDeg, -16, 13);
+      yawDeg = clamp(yawDeg, -24, 24);
+
+      return {
+        roll: rollDeg * DEG,
+        pitch: pitchDeg * DEG,
+        yaw: yawDeg * DEG,
+        glideX,
+        rollDeg
+      };
+    }
+
+    function applyAuditionFallbackNeckLean(ch, neckLean) {
+      if (!ch || !ch.bones || !neckLean) return;
+      if (typeof ch.setNeckLean === "function" || typeof ch.getNeckLeanState === "function") return;
+      const V3 = window.HumanSculptV3;
+      const B = (V3 && V3.B) || { CHEST: 3, NECK_LOW: 4, NECK_HIGH: 5, HEAD: 6 };
+      const r = neckLean.roll || 0, p = neckLean.pitch || 0, y = neckLean.yaw || 0, gx = neckLean.glideX || 0;
+      if (ch.bones[B.CHEST]) { ch.bones[B.CHEST].rotateZ(r * 0.10); ch.bones[B.CHEST].rotateY(y * 0.04); }
+      if (ch.bones[B.NECK_LOW]) {
+        ch.bones[B.NECK_LOW].rotateX(p * 0.42); ch.bones[B.NECK_LOW].rotateY(y * 0.28); ch.bones[B.NECK_LOW].rotateZ(r * 0.40);
+        if (gx) ch.bones[B.NECK_LOW].position.x += gx * 0.55;
+      }
+      if (ch.bones[B.NECK_HIGH]) {
+        ch.bones[B.NECK_HIGH].rotateX(p * 0.34); ch.bones[B.NECK_HIGH].rotateY(y * 0.36); ch.bones[B.NECK_HIGH].rotateZ(r * 0.36);
+        if (gx) ch.bones[B.NECK_HIGH].position.x += gx * 0.45;
+      }
+      if (ch.bones[B.HEAD]) {
+        ch.bones[B.HEAD].rotateX(p * 0.24); ch.bones[B.HEAD].rotateY(y * 0.36); ch.bones[B.HEAD].rotateZ(r * 0.24);
+      }
+      ch.group.updateMatrixWorld(true);
+    }
+
+    /* ---------- Boot & URL Query Parameters ---------- */
+    buildBarRows();
+    resize();
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("cast")) activeCastId = params.get("cast").toLowerCase();
+    if (params.get("set") !== null) {
+      const sRaw = params.get("set");
+      const foundSet = LAMV.MV_SETS.findIndex(s => s.id === sRaw || String(s.idx) === sRaw || String(s.idx + 1) === sRaw);
+      if (foundSet >= 0) activeSetIdx = foundSet;
+    }
+    if (params.get("t") !== null) {
+      song.seek(+params.get("t"));
+    } else {
+      song.seek(LAMV.MV_SETS[activeSetIdx].startSec);
+    }
+    if (params.get("cut")) activeCutId = params.get("cut").toLowerCase();
+    if (params.get("look")) post.setLook(params.get("look"));
+    if (params.get("contact") === "1" || params.get("contactSheet") === "1") {
+      setContactSheet(true);
+    }
+
+    rebuildStage();
+    evaluateCameraTargetForCut(resolveEffectiveCut(0), true);
+
+    /* ---------- Live 60 FPS Music Video Render Loop ---------- */
+    let lastMs = performance.now();
+    let fpsSmoothed = 60;
+    let lastVox = null;
+
+    function frame(nowMs) {
+      const rawDt = (nowMs - lastMs) * 0.001;
+      const dt = clamp(rawDt, 0.001, 0.05);
+      lastMs = nowMs;
+      const nowSec = nowMs * 0.001;
+      if (rawDt > 0.001 && rawDt < 0.090) {
+        fpsSmoothed = lerp(fpsSmoothed, Math.min(60, 1 / rawDt), 0.14);
+      }
+
+      const vox = song.sample(dt);
+      lastVox = vox;
+      const setDef = LAMV.MV_SETS[activeSetIdx];
+      const effCut = resolveEffectiveCut(vox.barIndex);
+      const steadyMacro = effCut === "eyes";
+
+      // Step Set I standpipe pump & parabolic cyan stream
+      if (activePump && typeof window.stepStandpipePump === "function") {
+        pumpGrips.pumpPhase = nowSec * 3.5;
+        window.stepStandpipePump(activePump, pumpGrips.pumpPhase, pumpGrips);
+      }
+
+      // Step Set II 20 kg two-carrier jerrycan handoff
+      let handoffWave = 0;
+      if (activeHandoff) {
+        const sh = activeHandoff;
+        handoffWave = 0.5 + 0.5 * Math.sin(nowSec * 1.15);
+        const fwd = lerp(0.245, 0.265, handoffWave);
+        sh.canRoot.position.set(
+          sh.elderX + Math.sin(sh.handoffYaw) * fwd,
+          lerp(0.95, 0.89, handoffWave),
+          sh.elderZ + Math.cos(sh.handoffYaw) * fwd
+        );
+        sh.canRoot.rotation.set(0.07 * handoffWave, sh.handoffYaw, 0, "YXZ");
+        sh.canRoot.updateWorldMatrix(true, true);
+        sh.gElderL.getWorldPosition(sh.wElderL);
+        sh.gElderR.getWorldPosition(sh.wElderR);
+        sh.gJuneL.getWorldPosition(sh.wJuneL);
+        sh.gJuneR.getWorldPosition(sh.wJuneR);
+        sh.canRoot.getWorldQuaternion(sh.qCan);
+        sh.nElderL.set(0, -1, 0).applyQuaternion(sh.qCan);
+        sh.nElderR.set(0.32, 0.88, 0.34).normalize().applyQuaternion(sh.qCan);
+        sh.nJuneL.set(0.34, 0.88, -0.32).normalize().applyQuaternion(sh.qCan);
+        sh.nJuneR.set(-0.34, 0.88, -0.32).normalize().applyQuaternion(sh.qCan);
+      }
+
+      if (activeOxbowScreen) {
+        activeOxbowScreen.update(nowSec);
+      }
+
+      // Update Lead & Ensemble Performers
+      for (let i = 0; i < activeActors.length; i++) {
+        const entry = activeActors[i];
+        const ch = entry.ch;
+
+        const isCloseLeadCut = effCut === "eyes" || effCut === "face" || effCut === "neck" || effCut === "profile";
+        if (entry.role !== "lead" && isCloseLeadCut && activeCastId !== "ensemble") {
+          ch.group.visible = false;
+          continue;
+        }
+        ch.group.visible = true;
+
+        if (entry.role === "pump" && activePump) {
+          ch.update(dt, nowSec, {
+            pose: "pump",
+            surfaceAt: flatGround,
+            pumpPhase: pumpGrips.pumpPhase,
+            pumpGripL: pumpGrips.pumpGripL,
+            pumpGripR: pumpGrips.pumpGripR,
+            worldGripL: pumpGrips.pumpGripL,
+            worldGripR: pumpGrips.pumpGripR,
+            pumpGripWorld: pumpGrips.pumpGripWorld,
+            pumpBarDir: pumpGrips.pumpBarDir,
+            lookAt: pumpGrips.pumpGripWorld,
+            emotion: "determined_focus",
+            emotionIntensity: 0.72
+          });
+          continue;
+        }
+
+        if (entry.role === "handoffA" && activeHandoff) {
+          const sh = activeHandoff;
+          ch.update(dt, nowSec, {
+            pose: "heaveSaddle20kg",
+            surfaceAt: flatGround,
+            worldGripL: sh.wElderL, worldGripR: sh.wElderR,
+            gripNormalL: sh.nElderL, gripNormalR: sh.nElderR,
+            gripModeL: "handleTop", gripModeR: "underRib",
+            unloadPhase: lerp(0.32, 0.50, handoffWave),
+            lookAt: sh.canRoot.position
+          });
+          continue;
+        }
+
+        if (entry.role === "handoffB" && activeHandoff) {
+          const sh = activeHandoff;
+          ch.update(dt, nowSec, {
+            pose: "childReceive20kg",
+            surfaceAt: flatGround,
+            worldGripL: sh.wJuneL, worldGripR: sh.wJuneR,
+            gripNormalL: sh.nJuneL, gripNormalR: sh.nJuneR,
+            gripModeL: "underRib", gripModeR: "underRib",
+            lookAt: sh.canRoot.position
+          });
+          continue;
+        }
+
+        const isLead = entry.role === "lead";
+        const isChorus = entry.role === "chorus";
+        const actorTime = nowSec + (entry.timeOffset || 0);
+        const danceNow = !steadyMacro && (setDef.id === "cosmic_addis_finale" || (vox.isChorusDance && !setDef.night));
+        const hasPhone = setDef.night && !steadyMacro;
+        const runPose = steadyMacro ? "idle" : (hasPhone ? "convoyPhoneWalk" : (danceNow ? "eskista" : "idle"));
+
+        const singThisActor = isLead || (isChorus && (vox.isChorusDance || ((vox.barIndex + i) % 2 === 1)));
+        const phraseSwap = ((vox.barIndex + i) % 4) >= 2;
+        const actorHand = (phraseSwap && entry.armAlt) ? entry.armAlt : (entry.handPref || vox.handGesture);
+        // Never overwrite phone-cradling arms/hands in Set IV Night Convoy!
+        const eskistaArmFlourish = danceNow && (((vox.barIndex + i) % 2 === 0) || isLead);
+        const allowArmAct = (isLead || isChorus) && !steadyMacro && !hasPhone && effCut !== "eyes" && (!danceNow || eskistaArmFlourish);
+        const neckLean = steadyMacro ? undefined : computeMusicalNeckLean(vox, nowSec, i, isLead, danceNow, effCut);
+        if (i === 0 && neckLean) lastLeadNeckLeanDeg = neckLean.rollDeg;
+
+        ch.update(dt, actorTime, {
+          pose: runPose,
+          lodDist: activeCastId === "ensemble" ? 8.5 : 0,
+          surfaceAt: flatGround,
+          beatPulse: vox.beatPulse,
+          lookAt: (steadyMacro || effCut === "neck" || effCut === "profile" || hasPhone) ? undefined : camera.position,
+          emotion: vox.emotion,
+          emotionIntensity: isLead ? 0.74 : 0.64,
+          speaking: false,
+          viseme: singThisActor ? vox.viseme : "SIL",
+          visemeAmount: singThisActor ? (isLead ? vox.visemeAmount : vox.visemeAmount * 0.78) : 0.0,
+          neckLean,
+          handGestureL: hasPhone ? undefined : actorHand,
+          handGestureR: hasPhone ? undefined : (isLead && danceNow ? "joyful_wave" : actorHand),
+          handGestureIntensity: 0.88,
+          expressiveArmGesture: allowArmAct ? actorHand : null
+        });
+        if (neckLean) {
+          applyAuditionFallbackNeckLean(ch, neckLean);
+        }
+      }
+
+      if (activeDonkey) {
+        activeDonkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 2, drop: 0 }, flatGround);
+      }
+
+      // Snap cleanly on Auto-Director musical bar cuts; track live bone target smoothly within each shot!
+      const autoSlot = activeCutId === "auto" ? Math.floor((vox.barIndex || 0) / 2) : -2;
+      const cutChanged = activeCutId === "auto" && autoSlot !== lastAutoSlot;
+      if (cutChanged) lastAutoSlot = autoSlot;
+      evaluateCameraTargetForCut(effCut, cutChanged);
+
+      const k = 1 - Math.exp(-dt * 9.5);
+      camState.yaw = lerp(camState.yaw, camState.wantYaw, k);
+      camState.pitch = lerp(camState.pitch, camState.wantPitch, k);
+      camState.dist = lerp(camState.dist, camState.wantDist, k);
+      camState.targetX = lerp(camState.targetX, camState.wantTargetX, k);
+      camState.targetY = lerp(camState.targetY, camState.wantTargetY, k);
+      camState.targetZ = lerp(camState.targetZ, camState.wantTargetZ, k);
+
+      camera.near = clamp(camState.dist * 0.055, 0.014, 0.12);
+      camera.updateProjectionMatrix();
+      updateLightsToTarget();
+
+      const cp = Math.cos(camState.pitch), sp = Math.sin(camState.pitch);
+      camera.position.set(
+        camState.targetX + Math.sin(camState.yaw) * cp * camState.dist,
+        camState.targetY + sp * camState.dist,
+        camState.targetZ + Math.cos(camState.yaw) * cp * camState.dist
+      );
+      camera.lookAt(camState.targetX, camState.targetY, camState.targetZ);
+
+      if (catchLight.visible) {
+        catchLight.target.position.set(camState.targetX, camState.targetY, camState.targetZ);
+        catchLight.position.set(
+          camera.position.x + Math.cos(camState.yaw) * 0.68,
+          camera.position.y + 0.48,
+          camera.position.z - Math.sin(camState.yaw) * 0.68
+        );
+      }
+      if (!renderer.shadowMap.autoUpdate && (Math.floor(nowSec * 60) % 3 === 0)) {
+        renderer.shadowMap.needsUpdate = true;
+      }
+
+      syncHeaderAndHud(vox);
+      post.render(scene, camera, dt, nowSec, vox);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    window.__audition = {
+      isReady: () => true,
+      renderer,
+      scene,
+      camera,
+      setLook,
+      setContactSheet,
+      setCast,
+      setSet,
+      setCut,
+      seek: sec => { song.seek(sec); return song.getTime(); },
+      setPlaying: flag => song.setPlaying(flag),
+      toggleUnmute: force => song.toggleUnmute(force),
+      getState: () => {
+        const leadCh = activeActors[0]?.ch;
+        const exp = leadCh && typeof leadCh.getExpressionState === "function" ? leadCh.getExpressionState() : null;
+        return {
+          ready: true,
+          fps: Math.round(fpsSmoothed),
+          glError: post.checkGlError(),
+          ...post.getState(),
+          castId: activeCastId,
+          setIdx: activeSetIdx,
+          setId: LAMV.MV_SETS[activeSetIdx].id,
+          cutId: activeCutId,
+          effectiveCut: resolveEffectiveCut(lastVox ? lastVox.barIndex : 0),
+          songTime: +(song.getTime().toFixed(2)),
+          playing: song.isPlaying(),
+          audioUnmuted: song.isUnmuted(),
+          epoch: lastVox ? lastVox.epoch.name : null,
+          lyric: lastVox ? lastVox.lineText : null,
+          activeWord: lastVox ? lastVox.activeWord : null,
+          viseme: lastVox ? lastVox.viseme : "SIL",
+          visemeAmount: lastVox ? +lastVox.visemeAmount.toFixed(3) : 0,
+          emotion: exp ? exp.emotion : (lastVox ? lastVox.emotion : "neutral"),
+          jawOpen: exp ? +exp.jawOpen.toFixed(3) : 0,
+          neckLeanDeg: +lastLeadNeckLeanDeg.toFixed(1),
+          actorCount: activeActors.length,
+          hasDonkey: Boolean(activeDonkey)
+        };
+      }
+    };
+  })();
+  </script>
+</body>
+</html>

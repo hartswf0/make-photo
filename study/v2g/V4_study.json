@@ -1,0 +1,111 @@
+{
+  "width": 1280,
+  "height": 720,
+  "fps": 24.0,
+  "duration": 10.027,
+  "palette": [
+    {
+      "hex": "#030506",
+      "share": 0.137
+    },
+    {
+      "hex": "#293837",
+      "share": 0.081
+    },
+    {
+      "hex": "#0a1417",
+      "share": 0.057
+    },
+    {
+      "hex": "#192427",
+      "share": 0.051
+    },
+    {
+      "hex": "#374645",
+      "share": 0.049
+    },
+    {
+      "hex": "#141a19",
+      "share": 0.046
+    },
+    {
+      "hex": "#061826",
+      "share": 0.041
+    },
+    {
+      "hex": "#020b14",
+      "share": 0.031
+    },
+    {
+      "hex": "#242a28",
+      "share": 0.03
+    },
+    {
+      "hex": "#162936",
+      "share": 0.024
+    }
+  ],
+  "cuts": [],
+  "frames": [
+    {
+      "t": 0.0,
+      "file": "f_001.jpg"
+    },
+    {
+      "t": 0.8,
+      "file": "f_002.jpg"
+    },
+    {
+      "t": 1.6,
+      "file": "f_003.jpg"
+    },
+    {
+      "t": 2.4,
+      "file": "f_004.jpg"
+    },
+    {
+      "t": 3.2,
+      "file": "f_005.jpg"
+    },
+    {
+      "t": 4.0,
+      "file": "f_006.jpg"
+    },
+    {
+      "t": 4.8,
+      "file": "f_007.jpg"
+    },
+    {
+      "t": 5.6,
+      "file": "f_008.jpg"
+    },
+    {
+      "t": 6.4,
+      "file": "f_009.jpg"
+    },
+    {
+      "t": 7.2,
+      "file": "f_010.jpg"
+    },
+    {
+      "t": 8.0,
+      "file": "f_011.jpg"
+    },
+    {
+      "t": 8.8,
+      "file": "f_012.jpg"
+    },
+    {
+      "t": 9.6,
+      "file": "f_013.jpg"
+    }
+  ],
+  "sheet": "V4_sheet.jpg",
+  "id": "V4",
+  "title": "Highland Pueblo Wire-Glass Registry & Wet Cyan Cooling Vault",
+  "video": "V4_pueblo_cooling_vault.mp4",
+  "blocking": "game_blocking_V4_pueblo_cooling.jpg",
+  "keyframes": [
+    "kf07_00m24s_cyan_server_sanctuary.jpg"
+  ]
+}

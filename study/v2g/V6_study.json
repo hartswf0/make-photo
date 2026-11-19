@@ -1,0 +1,111 @@
+{
+  "width": 1280,
+  "height": 720,
+  "fps": 24.0,
+  "duration": 10.027,
+  "palette": [
+    {
+      "hex": "#040606",
+      "share": 0.119
+    },
+    {
+      "hex": "#767a76",
+      "share": 0.051
+    },
+    {
+      "hex": "#272825",
+      "share": 0.037
+    },
+    {
+      "hex": "#161716",
+      "share": 0.037
+    },
+    {
+      "hex": "#868a88",
+      "share": 0.036
+    },
+    {
+      "hex": "#585954",
+      "share": 0.033
+    },
+    {
+      "hex": "#676a65",
+      "share": 0.032
+    },
+    {
+      "hex": "#949997",
+      "share": 0.031
+    },
+    {
+      "hex": "#383936",
+      "share": 0.027
+    },
+    {
+      "hex": "#484a45",
+      "share": 0.025
+    }
+  ],
+  "cuts": [],
+  "frames": [
+    {
+      "t": 0.0,
+      "file": "f_001.jpg"
+    },
+    {
+      "t": 0.8,
+      "file": "f_002.jpg"
+    },
+    {
+      "t": 1.6,
+      "file": "f_003.jpg"
+    },
+    {
+      "t": 2.4,
+      "file": "f_004.jpg"
+    },
+    {
+      "t": 3.2,
+      "file": "f_005.jpg"
+    },
+    {
+      "t": 4.0,
+      "file": "f_006.jpg"
+    },
+    {
+      "t": 4.8,
+      "file": "f_007.jpg"
+    },
+    {
+      "t": 5.6,
+      "file": "f_008.jpg"
+    },
+    {
+      "t": 6.4,
+      "file": "f_009.jpg"
+    },
+    {
+      "t": 7.2,
+      "file": "f_010.jpg"
+    },
+    {
+      "t": 8.0,
+      "file": "f_011.jpg"
+    },
+    {
+      "t": 8.8,
+      "file": "f_012.jpg"
+    },
+    {
+      "t": 9.6,
+      "file": "f_013.jpg"
+    }
+  ],
+  "sheet": "V6_sheet.jpg",
+  "id": "V6",
+  "title": "Hill Archive REC PPC Surveillance & Radio Desk",
+  "video": "V6_hill_rec_ppc_desk.mp4",
+  "blocking": "game_blocking_V6_hill_archive.jpg",
+  "keyframes": [
+    "kf08_00m36s_rec_ppc_desk_radio.jpg"
+  ]
+}

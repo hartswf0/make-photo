@@ -1,0 +1,111 @@
+{
+  "width": 1280,
+  "height": 720,
+  "fps": 24.0,
+  "duration": 10.027,
+  "palette": [
+    {
+      "hex": "#272826",
+      "share": 0.121
+    },
+    {
+      "hex": "#383837",
+      "share": 0.111
+    },
+    {
+      "hex": "#171716",
+      "share": 0.092
+    },
+    {
+      "hex": "#464645",
+      "share": 0.075
+    },
+    {
+      "hex": "#686868",
+      "share": 0.069
+    },
+    {
+      "hex": "#575857",
+      "share": 0.064
+    },
+    {
+      "hex": "#050505",
+      "share": 0.048
+    },
+    {
+      "hex": "#aaa9a6",
+      "share": 0.045
+    },
+    {
+      "hex": "#757574",
+      "share": 0.039
+    },
+    {
+      "hex": "#c4bcb4",
+      "share": 0.034
+    }
+  ],
+  "cuts": [],
+  "frames": [
+    {
+      "t": 0.0,
+      "file": "f_001.jpg"
+    },
+    {
+      "t": 0.8,
+      "file": "f_002.jpg"
+    },
+    {
+      "t": 1.6,
+      "file": "f_003.jpg"
+    },
+    {
+      "t": 2.4,
+      "file": "f_004.jpg"
+    },
+    {
+      "t": 3.2,
+      "file": "f_005.jpg"
+    },
+    {
+      "t": 4.0,
+      "file": "f_006.jpg"
+    },
+    {
+      "t": 4.8,
+      "file": "f_007.jpg"
+    },
+    {
+      "t": 5.6,
+      "file": "f_008.jpg"
+    },
+    {
+      "t": 6.4,
+      "file": "f_009.jpg"
+    },
+    {
+      "t": 7.2,
+      "file": "f_010.jpg"
+    },
+    {
+      "t": 8.0,
+      "file": "f_011.jpg"
+    },
+    {
+      "t": 8.8,
+      "file": "f_012.jpg"
+    },
+    {
+      "t": 9.6,
+      "file": "f_013.jpg"
+    }
+  ],
+  "sheet": "V1_sheet.jpg",
+  "id": "V1",
+  "title": "Overlook Wellhead Pump & 4L Chalk Window",
+  "video": "V1_wellhead_pump.mp4",
+  "blocking": "game_blocking_V1_wellhead.jpg",
+  "keyframes": [
+    "kf02_00m02s_iron_standpipe_pump.jpg"
+  ]
+}

@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#d9d5cb">
-  <meta name="description" content="Donkey Water 3D Study Plate Workbench: side-by-side sculpting, motion & architectural study comparing live 3D humans, props and buildings against ZZlDs10FCZk keyframes and orthographic turnaround sheets.">
-  <title>Donkey Water · People, Architecture &amp; Keyframe Study Workbench</title>
+  <meta name="description" content="Donkey Water v5.2 Character Performance Engine: 3-Joint Cervical Neck Leaning, Oval V-Jawline, Unbroken Face-Neck-Body-Hand Skin Continuity, FACS Open-Mouth Speech &amp; 30-Bone Hand Acting.">
+  <title>Donkey Water · v5.2 Leaning Neck, Skin Continuity, Emotions &amp; Hand Acting Workbench</title>
   <link rel="icon" type="image/svg+xml" href="../favicon.svg">
   <link rel="alternate icon" href="../favicon.ico">
   <style>
@@ -16,6 +16,9 @@
       --cream: #f2eee4;
       --cyan: #1cb8d4;
       --cyan-bright: #4ee8ff;
+      --amber: #d9822b;
+      --amber-bright: #ffbe5c;
+      --drawer-w: 436px;
       --border-light: rgba(25, 24, 21, 0.22);
       --border-dark: rgba(242, 238, 228, 0.26);
     }
@@ -30,7 +33,7 @@
     body.night-mode { background: var(--night); color: var(--cream); }
 
     #stage-wrap {
-      position: fixed; inset: 0; right: 420px;
+      position: fixed; inset: 0; right: var(--drawer-w);
       transition: right 0.24s ease;
     }
     body.drawer-closed #stage-wrap { right: 0; }
@@ -40,101 +43,289 @@
     }
     #view:active { cursor: grabbing; }
 
-    /* Top-left Study Plate Header (modeled directly on /donkey/index.html) */
+    /* Top-left Study Plate Header */
     .plate-head {
       position: fixed;
       left: max(18px, env(safe-area-inset-left));
       top: max(14px, env(safe-area-inset-top));
-      max-width: min(500px, calc(100vw - 460px));
+      max-width: min(500px, calc(100vw - 820px));
+      padding: 6px 10px 8px;
+      margin: -6px -10px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(217, 213, 203, 0.76) 0%, rgba(217, 213, 203, 0.28) 68%, rgba(217, 213, 203, 0) 100%);
       pointer-events: none;
       z-index: 6;
     }
-    body.drawer-closed .plate-head { max-width: min(560px, calc(100vw - 36px)); }
+    body.night-mode .plate-head {
+      background: linear-gradient(135deg, rgba(20, 22, 21, 0.78) 0%, rgba(20, 22, 21, 0.30) 68%, rgba(20, 22, 21, 0) 100%);
+    }
+    body.drawer-closed .plate-head { max-width: min(580px, calc(100vw - 380px)); }
     .eyebrow {
       margin: 0 0 4px;
       font: 600 10px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
       letter-spacing: 0.18em; text-transform: uppercase;
-      opacity: 0.72;
+      opacity: 0.76;
     }
     .plate-head h1 {
       margin: 0;
-      font: 400 clamp(22px, 3vw, 31px)/1.06 "Instrument Serif", "Iowan Old Style", Georgia, serif;
-      letter-spacing: 0.04em;
+      font: 400 clamp(20px, 2.5vw, 28px)/1.06 "Instrument Serif", "Iowan Old Style", Georgia, serif;
+      letter-spacing: 0.025em;
     }
     .plate-meta {
-      margin: 6px 0 0;
-      font: 600 10.5px/1.3 Inter, sans-serif;
-      letter-spacing: 0.14em; text-transform: uppercase;
-      opacity: 0.78;
+      margin: 5px 0 0;
+      font: 600 10px/1.3 Inter, sans-serif;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      opacity: 0.80;
     }
     .plate-note {
-      margin: 6px 0 0;
-      font: italic 400 14.5px/1.32 "Instrument Serif", Georgia, serif;
+      margin: 5px 0 0;
+      font: italic 400 14px/1.3 "Instrument Serif", Georgia, serif;
       opacity: 0.92;
     }
     .nav-links {
-      margin-top: 9px; display: flex; gap: 6px; flex-wrap: wrap; pointer-events: auto;
+      margin-top: 7px; display: flex; gap: 5px; flex-wrap: wrap; pointer-events: auto;
     }
     .nav-links a {
-      font: 600 10px/1 Inter, sans-serif;
+      font: 600 9.5px/1 Inter, sans-serif;
       letter-spacing: 0.10em; text-transform: uppercase;
-      text-decoration: none; padding: 6px 10px; border-radius: 999px;
+      text-decoration: none; padding: 5px 9px; border-radius: 999px;
       border: 1px solid currentColor; color: inherit; opacity: 0.8;
     }
     .nav-links a:hover { opacity: 1; }
+
+    /* Top-right Live FACS, Viseme & 30-Bone Gesture Telemetry HUD */
+    #exp-hud {
+      position: fixed;
+      top: max(14px, env(safe-area-inset-top));
+      right: calc(var(--drawer-w) + 16px);
+      max-width: 348px;
+      padding: 8px 11px;
+      border-radius: 10px;
+      border: 1px solid var(--border-light);
+      background: rgba(242, 238, 228, 0.84);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      z-index: 6;
+      pointer-events: auto;
+      transition: right 0.24s ease, opacity 0.18s ease;
+    }
+    body.drawer-closed #exp-hud { right: max(16px, env(safe-area-inset-right)); }
+    body.night-mode #exp-hud {
+      border-color: var(--border-dark);
+      background: rgba(18, 22, 23, 0.86);
+    }
+    #exp-hud[hidden] { display: none; }
+    .hud-head {
+      display: flex; align-items: center; gap: 6px;
+      font: 700 10px/1.2 Inter, system-ui, sans-serif;
+      letter-spacing: 0.09em; text-transform: uppercase;
+    }
+    .hud-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #0b8ba6;
+      box-shadow: 0 0 8px rgba(28, 184, 212, 0.65);
+      flex-shrink: 0;
+    }
+    body.night-mode .hud-dot { background: var(--cyan-bright); }
+    .hud-dot.override {
+      background: var(--amber);
+      box-shadow: 0 0 8px rgba(217, 130, 43, 0.7);
+    }
+    .hud-facs {
+      margin-top: 3px;
+      font: 600 9.5px/1.35 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.04em;
+      opacity: 0.84;
+    }
+    .hud-visemes {
+      margin-top: 6px;
+      display: flex; flex-wrap: wrap; gap: 3px;
+    }
+    .hud-visemes[hidden] { display: none; }
+    .v-chip {
+      font: 700 8.5px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.05em;
+      padding: 4px 6px; border-radius: 5px;
+      border: 1px solid var(--border-light);
+      background: rgba(255, 255, 255, 0.45);
+      color: inherit; cursor: pointer;
+    }
+    body.night-mode .v-chip {
+      border-color: var(--border-dark);
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .v-chip.active {
+      background: #0b6f86; color: #f4fbfc; border-color: #0b6f86;
+    }
+    body.night-mode .v-chip.active {
+      background: var(--cyan-bright); color: #05181c; border-color: var(--cyan-bright);
+    }
 
     /* Bottom Control Bar on Stage */
     .stage-bar {
       position: fixed;
       left: max(14px, env(safe-area-inset-left));
-      right: calc(420px + 14px);
-      bottom: max(12px, env(safe-area-inset-bottom));
-      display: flex; flex-direction: column; gap: 7px;
+      right: calc(var(--drawer-w) + 14px);
+      bottom: max(10px, env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; gap: 5px;
       z-index: 7; pointer-events: none;
       transition: right 0.24s ease;
     }
     body.drawer-closed .stage-bar { right: max(14px, env(safe-area-inset-right)); }
     .pill-row {
-      display: flex; flex-wrap: wrap; gap: 5px; align-items: center; pointer-events: auto;
+      display: flex; flex-wrap: wrap; gap: 4px; align-items: center; pointer-events: auto;
     }
+    .pill-row:empty { display: none; }
+    .pill-row[hidden] { display: none; }
+
+    .row-tag {
+      font: 700 8.5px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      opacity: 0.68; padding: 0 3px 0 1px;
+    }
+
     .pill {
-      font: 600 10px/1 Inter, system-ui, sans-serif;
-      letter-spacing: 0.09em; text-transform: uppercase;
-      padding: 8px 11px; min-height: 32px; border-radius: 999px;
+      font: 600 9.8px/1 Inter, system-ui, sans-serif;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      padding: 6px 9px; min-height: 27px; border-radius: 999px;
       border: 1px solid var(--border-light);
-      background: rgba(242, 238, 228, 0.78);
+      background: rgba(242, 238, 228, 0.84);
       color: var(--ink);
       backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       cursor: pointer;
+      transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
     }
     body.night-mode .pill {
       border-color: var(--border-dark);
-      background: rgba(20, 24, 24, 0.78);
+      background: rgba(20, 24, 24, 0.84);
       color: var(--cream);
     }
+
+    /* Flagship v5.2 Neck Leaning & Skin Continuity Pill (N1) + Emotion & Hand Acting Pills (E1, E2) */
+    .pill-lean {
+      border-color: rgba(14, 116, 108, 0.68);
+      background: rgba(224, 246, 242, 0.94);
+      color: #073b37;
+      font-weight: 700;
+    }
+    body.night-mode .pill-lean {
+      border-color: rgba(78, 232, 214, 0.65);
+      background: rgba(12, 44, 42, 0.90);
+      color: #a4f8ee;
+    }
+    .pill-lean.active, .pill-lean[aria-pressed="true"] {
+      background: #095e58; color: #f4fcfb; border-color: #095e58;
+    }
+    body.night-mode .pill-lean.active, body.night-mode .pill-lean[aria-pressed="true"] {
+      background: #52f0dc; color: #041b19; border-color: #52f0dc;
+    }
+
+    /* Flagship v4 Emotion & Hand Acting Study Pills (E1, E2) */
+    .pill-exp {
+      border-color: rgba(182, 98, 18, 0.62);
+      background: rgba(252, 241, 224, 0.92);
+      color: #592c05;
+    }
+    body.night-mode .pill-exp {
+      border-color: rgba(255, 190, 92, 0.58);
+      background: rgba(48, 32, 14, 0.88);
+      color: #ffd79a;
+    }
+
+    /* Next-Gen v3 Macro Anatomy Study Pills (M1..M3) */
+    .pill-macro {
+      border-color: rgba(12, 128, 154, 0.58);
+      background: rgba(226, 245, 248, 0.88);
+      color: #083d4a;
+    }
+    body.night-mode .pill-macro {
+      border-color: rgba(78, 232, 255, 0.52);
+      background: rgba(14, 42, 48, 0.86);
+      color: #b7f5ff;
+    }
+
+    .pill-focus {
+      font-size: 9.2px;
+      padding: 5px 8.5px;
+      min-height: 24px;
+      letter-spacing: 0.06em;
+      background: rgba(248, 245, 238, 0.76);
+    }
+    body.night-mode .pill-focus {
+      background: rgba(24, 29, 30, 0.78);
+    }
+
+    .pill-dir {
+      font-size: 9px;
+      padding: 4px 8px;
+      min-height: 23px;
+      letter-spacing: 0.06em;
+      background: rgba(246, 242, 233, 0.78);
+    }
+    body.night-mode .pill-dir {
+      background: rgba(22, 26, 27, 0.80);
+    }
+
+    .pill-sep {
+      width: 1px; height: 17px;
+      background: var(--border-light);
+      margin: 0 2px;
+    }
+    body.night-mode .pill-sep { background: var(--border-dark); }
+
     .pill[aria-pressed="true"], .pill.active {
       background: var(--ink); color: var(--paper); border-color: var(--ink);
     }
     body.night-mode .pill[aria-pressed="true"], body.night-mode .pill.active {
       background: var(--cyan-bright); color: #06181c; border-color: var(--cyan-bright);
     }
-    .light-slider {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 4px 10px; border-radius: 999px;
-      border: 1px solid var(--border-light);
-      background: rgba(242, 238, 228, 0.75);
-      font: 600 10px/1 Inter, sans-serif; letter-spacing: 0.08em; text-transform: uppercase;
+    .pill-exp.active, .pill-exp[aria-pressed="true"] {
+      background: #9c4d08; color: #fffaf2; border-color: #9c4d08;
     }
-    body.night-mode .light-slider {
-      border-color: var(--border-dark);
-      background: rgba(20, 24, 24, 0.78);
+    body.night-mode .pill-exp.active, .pill-exp[aria-pressed="true"] {
+      background: var(--amber-bright); color: #231202; border-color: var(--amber-bright);
     }
-    .light-slider input { width: 78px; accent-color: var(--cyan); cursor: pointer; }
+    .pill-macro.active, .pill-macro[aria-pressed="true"] {
+      background: #0b6f86; color: #f4fbfc; border-color: #0b6f86;
+    }
+    body.night-mode .pill-macro.active, body.night-mode .pill-macro[aria-pressed="true"] {
+      background: var(--cyan-bright); color: #05181c; border-color: var(--cyan-bright);
+    }
+    .pill-xray[aria-pressed="true"] {
+      background: #0a252c;
+      color: #5ef0ff;
+      border-color: #3be2f8;
+      box-shadow: 0 0 12px rgba(59, 226, 248, 0.35);
+    }
+    body.night-mode .pill-xray[aria-pressed="true"] {
+      background: #3be2f8;
+      color: #04161b;
+      border-color: #7df5ff;
+      box-shadow: 0 0 14px rgba(59, 226, 248, 0.45);
+    }
 
-    /* Right-Hand Reference & Keyframe Study Drawer */
+    .light-slider, .facs-slider {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px; border-radius: 999px;
+      border: 1px solid var(--border-light);
+      background: rgba(242, 238, 228, 0.82);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      font: 600 9.2px/1 Inter, sans-serif; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    body.night-mode .light-slider, body.night-mode .facs-slider {
+      border-color: var(--border-dark);
+      background: rgba(20, 24, 24, 0.84);
+    }
+    .light-slider input { width: 66px; accent-color: var(--cyan); cursor: pointer; margin: 0; }
+    .facs-slider input { width: 64px; accent-color: var(--amber); cursor: pointer; margin: 0; }
+    .facs-val {
+      font: 700 8.8px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      min-width: 26px; text-align: right; opacity: 0.82;
+    }
+
+    /* Right-Hand Video, Ortho Plate & Keyframe Study Drawer */
     #ref-drawer {
-      position: fixed; top: 0; right: 0; bottom: 0; width: 420px;
-      background: rgba(232, 228, 218, 0.96);
+      position: fixed; top: 0; right: 0; bottom: 0; width: var(--drawer-w);
+      background: rgba(232, 228, 218, 0.97);
       border-left: 1px solid var(--border-light);
       display: flex; flex-direction: column;
       z-index: 10;
@@ -142,7 +333,7 @@
       user-select: text; -webkit-user-select: text;
     }
     body.night-mode #ref-drawer {
-      background: rgba(18, 21, 21, 0.96);
+      background: rgba(18, 21, 21, 0.97);
       border-left-color: var(--border-dark);
     }
     body.drawer-closed #ref-drawer { transform: translateX(100%); }
@@ -167,16 +358,25 @@
     }
 
     .drawer-body {
-      flex: 1; overflow-y: auto; padding: 12px 14px 24px;
-      display: flex; flex-direction: column; gap: 12px;
+      flex: 1; overflow-y: auto; padding: 12px 14px 26px;
+      display: flex; flex-direction: column; gap: 11px;
       touch-action: pan-y;
     }
     .drawer-body[hidden] { display: none; }
 
+    .sec-kicker {
+      flex-shrink: 0;
+      margin: 2px 0 -4px;
+      font: 700 9.5px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      opacity: 0.72;
+    }
+
     .ref-card {
+      flex-shrink: 0;
       border: 1px solid var(--border-light);
       border-radius: 9px; overflow: hidden;
-      background: rgba(255, 255, 255, 0.36);
+      background: rgba(255, 255, 255, 0.38);
     }
     body.night-mode .ref-card {
       border-color: var(--border-dark);
@@ -185,14 +385,92 @@
     .ref-card img {
       display: block; width: 100%; height: auto; cursor: zoom-in;
     }
+    .vid-wrap {
+      position: relative;
+      background: #141615;
+    }
+    .vid-wrap video {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      background: #141615;
+    }
+    .vid-badge {
+      position: absolute;
+      left: 8px; top: 8px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: rgba(10, 18, 22, 0.82);
+      border: 1px solid rgba(78, 232, 255, 0.55);
+      color: #8af2ff;
+      font: 700 9px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.10em; text-transform: uppercase;
+      pointer-events: none;
+    }
+    .vid-badge.emotion {
+      border-color: rgba(255, 190, 92, 0.72);
+      color: #ffd79a;
+    }
     .ref-cap {
       padding: 9px 11px;
-      font-size: 12px; line-height: 1.42;
+      font-size: 11.8px; line-height: 1.42;
     }
     .ref-cap strong {
-      display: block; font-size: 11px; letter-spacing: 0.08em;
+      display: block; font-size: 10.8px; letter-spacing: 0.07em;
       text-transform: uppercase; margin-bottom: 3px;
     }
+    .vid-switcher {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+    }
+    .vid-sw-btn {
+      font: 600 9px/1 Inter, sans-serif;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 4px 8px; border-radius: 999px;
+      border: 1px solid var(--border-light);
+      background: rgba(128, 128, 120, 0.10);
+      color: inherit; cursor: pointer; opacity: 0.78;
+    }
+    body.night-mode .vid-sw-btn { border-color: var(--border-dark); }
+    .vid-sw-btn.active {
+      opacity: 1; background: #0b6f86; color: #f4fbfc; border-color: #0b6f86;
+    }
+    body.night-mode .vid-sw-btn.active {
+      background: var(--cyan-bright); color: #05181c; border-color: var(--cyan-bright);
+    }
+    .vid-jump-btn {
+      margin-top: 6px;
+      font: 600 9.5px/1 Inter, sans-serif;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 5px 9px; border-radius: 999px;
+      border: 1px solid currentColor; background: transparent;
+      color: inherit; cursor: pointer; opacity: 0.86;
+    }
+    .vid-jump-btn:hover { opacity: 1; }
+
+    /* 2K Photographic Ortho Plate Contact Grid (#424242 Studio Matte) */
+    .ortho-grid {
+      flex-shrink: 0;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 7px;
+    }
+    .ortho-tile {
+      border: 1px solid var(--border-light);
+      border-radius: 7px; overflow: hidden;
+      background: #424242; color: #f2eee4;
+      cursor: zoom-in;
+    }
+    body.night-mode .ortho-tile { border-color: var(--border-dark); }
+    .ortho-tile img {
+      display: block; width: 100%; aspect-ratio: 1 / 1;
+      object-fit: contain; background: #424242;
+    }
+    .ortho-tile span {
+      display: block; padding: 5px 7px;
+      background: rgba(18, 20, 20, 0.90);
+      font: 600 10px/1.25 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.04em;
+    }
+
     .yt-link {
       display: inline-block; margin-top: 5px;
       font: 600 10.5px/1 ui-monospace, Menlo, monospace;
@@ -215,16 +493,26 @@
     .kf-item code { font-weight: 700; color: #0b6f86; }
     body.night-mode .kf-item code { color: var(--cyan-bright); }
 
+    details.briefs-fold {
+      border-top: 1px solid var(--border-light);
+      padding-top: 10px; margin-top: 4px;
+    }
+    body.night-mode details.briefs-fold { border-top-color: var(--border-dark); }
+    details.briefs-fold summary {
+      font: 600 10.5px/1.3 Inter, sans-serif;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; opacity: 0.82; margin-bottom: 8px;
+    }
     .prompt-box {
       border: 1px solid var(--border-light); border-radius: 8px;
       padding: 10px 11px; background: rgba(255, 255, 255, 0.34);
-      display: flex; flex-direction: column; gap: 6px;
+      display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;
     }
     body.night-mode .prompt-box { border-color: var(--border-dark); background: rgba(255, 255, 255, 0.04); }
     .prompt-head {
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
     }
-    .prompt-head strong { font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; }
+    .prompt-head strong { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; }
     .copy-btn {
       font: 600 9.5px/1 Inter, sans-serif; letter-spacing: 0.08em; text-transform: uppercase;
       padding: 5px 9px; border-radius: 999px; border: 1px solid currentColor;
@@ -234,7 +522,7 @@
     .prompt-txt {
       margin: 0; padding: 7px 8px; border-radius: 5px;
       background: rgba(0, 0, 0, 0.06);
-      font: 400 11px/1.4 ui-monospace, Menlo, monospace;
+      font: 400 10.5px/1.4 ui-monospace, Menlo, monospace;
       white-space: pre-wrap;
     }
     body.night-mode .prompt-txt { background: rgba(0, 0, 0, 0.38); }
@@ -247,26 +535,27 @@
     #lightbox[hidden] { display: none; }
     #lightbox img { max-width: 96vw; max-height: 92vh; border-radius: 6px; box-shadow: 0 12px 42px rgba(0,0,0,0.6); }
 
-    @media (max-width: 900px) {
-      #stage-wrap { right: 0; bottom: 46vh; }
+    @media (max-width: 980px) {
+      #exp-hud { display: none; }
+      #stage-wrap { right: 0; bottom: 44vh; }
       body.drawer-closed #stage-wrap { bottom: 0; }
       .plate-head { max-width: calc(100vw - 24px); top: max(10px, env(safe-area-inset-top)); left: 12px; }
-      .plate-head h1 { font-size: 20px; }
+      .plate-head h1 { font-size: 19px; }
       .plate-note { display: none; }
-      .nav-links { margin-top: 6px; gap: 4px; }
+      .nav-links { margin-top: 5px; gap: 4px; }
       .nav-links a { padding: 4px 8px; font-size: 9px; }
-      .stage-bar { left: 10px; right: 10px; bottom: calc(46vh + 8px); gap: 5px; }
+      .stage-bar { left: 10px; right: 10px; bottom: calc(44vh + 8px); gap: 4px; }
       body.drawer-closed .stage-bar { bottom: max(10px, env(safe-area-inset-bottom)); }
-      #study-pills {
+      #study-pills, #focus-pills, #mode-pills, #director-row, #director-sliders {
         flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
         padding-bottom: 2px; -webkit-overflow-scrolling: touch;
       }
-      #study-pills::-webkit-scrollbar { display: none; }
-      #study-pills .pill { flex: 0 0 auto; padding: 6px 9px; min-height: 28px; font-size: 9.5px; }
-      .pill { padding: 6px 9px; min-height: 28px; font-size: 9.5px; }
-      .light-slider input { width: 54px; }
+      #study-pills::-webkit-scrollbar, #focus-pills::-webkit-scrollbar, #mode-pills::-webkit-scrollbar,
+      #director-row::-webkit-scrollbar, #director-sliders::-webkit-scrollbar { display: none; }
+      .pill { flex: 0 0 auto; padding: 5px 8px; min-height: 25px; font-size: 9px; }
+      .light-slider input, .facs-slider input { width: 52px; }
       #ref-drawer {
-        top: auto; left: 0; right: 0; width: 100%; height: 46vh;
+        top: auto; left: 0; right: 0; width: 100%; height: 44vh;
         border-left: 0; border-top: 1px solid var(--border-light);
       }
       body.drawer-closed #ref-drawer { transform: translateY(100%); }
@@ -275,51 +564,80 @@
 </head>
 <body>
   <div id="stage-wrap">
-    <canvas id="view" aria-label="3D Study Plate Stage for People, Props and Architecture"></canvas>
+    <canvas id="view" aria-label="3D Study Plate Stage for v4 Emotions, Open-Mouth Speech, 30-Bone Expressive Hands and 56-Bone Skeleton"></canvas>
   </div>
 
   <header class="plate-head">
-    <p class="eyebrow">Study Plate Workbench · Donkey-Caliber Craft</p>
-    <h1 id="st-title">1 · Imani &amp; 20 kg Two-Handed Basin Pour</h1>
-    <p class="plate-meta"><span id="st-cat">HUMAN BIOMECHANICS</span> · <span id="st-mood-readout">MOOD: 20 KG EFFORT</span> · <span id="st-tri-readout">DRAG TO ORBIT · SCROLL TO ZOOM</span></p>
-    <p class="plate-note" id="st-note">Matched to ZZlDs10FCZk (00:07): left hand grips top handle, right hand cups bottom rib, pelvis counterbalances 20 kg.</p>
+    <p class="eyebrow">Study Plate Workbench · v5.2 Character Performance Engine</p>
+    <h1 id="st-title">N1 · Leaning Neck, Jawline &amp; Body Skin Continuity</h1>
+    <p class="plate-meta"><span id="st-cat">85MM CERVICAL BIOMECHANICS &amp; SKIN CONTINUITY · 3-JOINT SCM LEAN</span> · <span id="st-mood-readout">NECK LEAN: CYCLE</span> · <span id="st-tri-readout">DRAG TO ORBIT · SCROLL TO 0.22M</span></p>
+    <p class="plate-note" id="st-note">Supple 3-joint cervical neck leaning (±24° SCM stretch, oblique portrait turn, -22° throat extension &amp; Eskista glide) with unbroken face-jaw-neck-clavicle-arm-hand skin continuity.</p>
     <nav class="nav-links" aria-label="Project links">
+      <a href="./audition.html">MV Audition</a>
       <a href="../donkey/">Donkey Study</a>
+      <a href="./studio.html">V2G Studio</a>
       <a href="../zones/">Unified Zones</a>
       <a href="../night-post/">2086 Night Post</a>
       <a href="../">Field Index</a>
     </nav>
   </header>
 
+  <aside id="exp-hud" aria-live="polite">
+    <div class="hud-head">
+      <span class="hud-dot" id="hud-dot"></span>
+      <span id="hud-title">1/6 · LEFT LATERAL NECK LEAN (+24° SCM STRETCH)</span>
+    </div>
+    <div class="hud-facs" id="hud-facs">3-JOINT C-CURVE · ELONGATED SCM · FACE·NECK·CHEST·ARM·HAND SKIN</div>
+    <div class="hud-visemes" id="hud-visemes" hidden aria-label="Inspect individual speech visemes"></div>
+  </aside>
+
   <div class="stage-bar">
+    <div class="pill-row" id="director-sliders" hidden aria-label="Live neck lean, FACS and hand acting sliders">
+      <label class="facs-slider" title="Lean 3-joint cervical neck laterally from Right (-26°) through Neutral (0°) to Left (+26°)">Neck Lean <input type="range" id="sl-neck-lean" min="-26" max="26" step="1" value="0"><span class="facs-val" id="val-neck-lean">0°</span></label>
+      <label class="facs-slider" title="Open jaw &amp; boost speech aperture">Jaw / Speech <input type="range" id="sl-jaw" min="0" max="100" value="0"><span class="facs-val" id="val-jaw">0%</span></label>
+      <label class="facs-slider" title="Sweep Sadness/Grief (-100) through Neutral (0) to Duchenne Smile (+100)">Sad ↔ Smile <input type="range" id="sl-smile" min="-100" max="100" value="0"><span class="facs-val" id="val-smile">0</span></label>
+      <label class="facs-slider" title="Sweep Glabellar Furrow (-100) to Arched Surprise Brows (+100)">Brows <input type="range" id="sl-brows" min="-100" max="100" value="0"><span class="facs-val" id="val-brows">0</span></label>
+      <label class="facs-slider" title="Sweep Clenched Fist Curl (-100) to Wide MCP Finger Splay (+100)">Curl ↔ Splay <input type="range" id="sl-hands" min="-100" max="100" value="0"><span class="facs-val" id="val-hands">0</span></label>
+      <button type="button" class="pill pill-dir" id="btn-sl-reset">Reset</button>
+    </div>
+    <div class="pill-row" id="director-row" aria-label="Live reaction override across any study scene"></div>
+    <div class="pill-row" id="mode-pills" aria-label="Emotion, speech and hand gesture showcase modes"></div>
+    <div class="pill-row" id="focus-pills" aria-label="Macro lens and character focus sub-controls"></div>
     <div class="pill-row" id="study-pills" aria-label="Select 3D study plate"></div>
     <div class="pill-row">
+      <button type="button" class="pill pill-xray" id="btn-skeleton" aria-pressed="false" title="Toggle 56-Bone Anatomical Skeleton &amp; Muscle X-Ray (Key: X)">Skeleton X-Ray</button>
       <button type="button" class="pill" id="btn-mood">Mood: Auto</button>
       <button type="button" class="pill" id="btn-turntable" aria-pressed="false">Turntable</button>
-      <button type="button" class="pill" id="btn-paper" aria-pressed="true">Paper / Night</button>
+      <button type="button" class="pill" id="btn-paper" aria-pressed="true">Mode: Study Paper</button>
       <label class="light-slider">Sun <input type="range" id="sun-angle" min="0" max="360" value="42"></label>
       <button type="button" class="pill" id="btn-drawer" aria-pressed="true">Ref Sheet ▾</button>
     </div>
   </div>
 
-  <aside id="ref-drawer" aria-label="Film Keyframes, Orthographic Sheets and Video Generation Briefs">
+  <aside id="ref-drawer" aria-label="Live Video Comparison, 2K Orthographic Plates and Film Keyframes">
     <div class="drawer-tabs" role="tablist">
       <button type="button" class="d-tab" role="tab" data-tab="matched" aria-selected="true">Matched Study</button>
+      <button type="button" class="d-tab" role="tab" data-tab="prompts" aria-selected="false">Macro Videos</button>
       <button type="button" class="d-tab" role="tab" data-tab="keyframes" aria-selected="false">16 Film Cuts</button>
-      <button type="button" class="d-tab" role="tab" data-tab="prompts" aria-selected="false">Videos Needed</button>
     </div>
     <div class="drawer-body" id="tab-matched"></div>
-    <div class="drawer-body" id="tab-keyframes" hidden></div>
     <div class="drawer-body" id="tab-prompts" hidden></div>
+    <div class="drawer-body" id="tab-keyframes" hidden></div>
   </aside>
 
   <div id="lightbox" hidden><img id="lightbox-img" alt="Enlarged study plate"></div>
 
   <script src="../field-plates/fonts.js"></script>
   <script src="../field-plates/three.js"></script>
-  <script src="../donkey/donkey.js"></script>
-  <script src="../donkey/characters.js?v=study2026a"></script>
-  <script src="../zones/world-architecture.js?v=study2026a"></script>
-  <script src="./study.js?v=study2026a"></script>
+  <script src="../donkey/donkey.js?v=v52lean4"></script>
+  <script src="../donkey/scion-eye-globe.js?v=v52lean4"></script>
+  <script src="../donkey/scion-eyelids.js?v=v52lean4"></script>
+  <script src="../donkey/scion-neck.js?v=v52lean4"></script>
+  <script src="../donkey/human-sculpt-v3.js?v=v52lean4"></script>
+  <script src="../donkey/expressions-v4.js?v=v52lean4"></script>
+  <script src="../donkey/characters.js?v=v52lean4"></script>
+  <script src="../zones/world-architecture.js?v=v52lean4"></script>
+  <script src="./study.js?v=v52lean4"></script>
+  <script src="./look-audition-mv.js?v=v52lean4"></script>
 </body>
 </html>

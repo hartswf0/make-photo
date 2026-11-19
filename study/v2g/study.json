@@ -1,0 +1,674 @@
+{
+  "studies": {
+    "V1": {
+      "width": 1280,
+      "height": 720,
+      "fps": 24.0,
+      "duration": 10.027,
+      "palette": [
+        {
+          "hex": "#272826",
+          "share": 0.121
+        },
+        {
+          "hex": "#383837",
+          "share": 0.111
+        },
+        {
+          "hex": "#171716",
+          "share": 0.092
+        },
+        {
+          "hex": "#464645",
+          "share": 0.075
+        },
+        {
+          "hex": "#686868",
+          "share": 0.069
+        },
+        {
+          "hex": "#575857",
+          "share": 0.064
+        },
+        {
+          "hex": "#050505",
+          "share": 0.048
+        },
+        {
+          "hex": "#aaa9a6",
+          "share": 0.045
+        },
+        {
+          "hex": "#757574",
+          "share": 0.039
+        },
+        {
+          "hex": "#c4bcb4",
+          "share": 0.034
+        }
+      ],
+      "cuts": [],
+      "frames": [
+        {
+          "t": 0.0,
+          "file": "f_001.jpg"
+        },
+        {
+          "t": 0.8,
+          "file": "f_002.jpg"
+        },
+        {
+          "t": 1.6,
+          "file": "f_003.jpg"
+        },
+        {
+          "t": 2.4,
+          "file": "f_004.jpg"
+        },
+        {
+          "t": 3.2,
+          "file": "f_005.jpg"
+        },
+        {
+          "t": 4.0,
+          "file": "f_006.jpg"
+        },
+        {
+          "t": 4.8,
+          "file": "f_007.jpg"
+        },
+        {
+          "t": 5.6,
+          "file": "f_008.jpg"
+        },
+        {
+          "t": 6.4,
+          "file": "f_009.jpg"
+        },
+        {
+          "t": 7.2,
+          "file": "f_010.jpg"
+        },
+        {
+          "t": 8.0,
+          "file": "f_011.jpg"
+        },
+        {
+          "t": 8.8,
+          "file": "f_012.jpg"
+        },
+        {
+          "t": 9.6,
+          "file": "f_013.jpg"
+        }
+      ],
+      "sheet": "V1_sheet.jpg",
+      "id": "V1",
+      "title": "Overlook Wellhead Pump & 4L Chalk Window",
+      "video": "V1_wellhead_pump.mp4",
+      "blocking": "game_blocking_V1_wellhead.jpg",
+      "keyframes": [
+        "kf02_00m02s_iron_standpipe_pump.jpg"
+      ]
+    },
+    "V2": {
+      "width": 1280,
+      "height": 720,
+      "fps": 24.0,
+      "duration": 10.027,
+      "palette": [
+        {
+          "hex": "#463c35",
+          "share": 0.053
+        },
+        {
+          "hex": "#181716",
+          "share": 0.048
+        },
+        {
+          "hex": "#292624",
+          "share": 0.043
+        },
+        {
+          "hex": "#342c26",
+          "share": 0.043
+        },
+        {
+          "hex": "#3a3634",
+          "share": 0.037
+        },
+        {
+          "hex": "#554b45",
+          "share": 0.036
+        },
+        {
+          "hex": "#665b54",
+          "share": 0.033
+        },
+        {
+          "hex": "#39322c",
+          "share": 0.031
+        },
+        {
+          "hex": "#665549",
+          "share": 0.03
+        },
+        {
+          "hex": "#466989",
+          "share": 0.028
+        }
+      ],
+      "cuts": [],
+      "frames": [
+        {
+          "t": 0.0,
+          "file": "f_001.jpg"
+        },
+        {
+          "t": 0.8,
+          "file": "f_002.jpg"
+        },
+        {
+          "t": 1.6,
+          "file": "f_003.jpg"
+        },
+        {
+          "t": 2.4,
+          "file": "f_004.jpg"
+        },
+        {
+          "t": 3.2,
+          "file": "f_005.jpg"
+        },
+        {
+          "t": 4.0,
+          "file": "f_006.jpg"
+        },
+        {
+          "t": 4.8,
+          "file": "f_007.jpg"
+        },
+        {
+          "t": 5.6,
+          "file": "f_008.jpg"
+        },
+        {
+          "t": 6.4,
+          "file": "f_009.jpg"
+        },
+        {
+          "t": 7.2,
+          "file": "f_010.jpg"
+        },
+        {
+          "t": 8.0,
+          "file": "f_011.jpg"
+        },
+        {
+          "t": 8.8,
+          "file": "f_012.jpg"
+        },
+        {
+          "t": 9.6,
+          "file": "f_013.jpg"
+        }
+      ],
+      "sheet": "V2_sheet.jpg",
+      "id": "V2",
+      "title": "Daylight Compound Two-Person 20L Unload & Terracotta Pour",
+      "video": "V2_daylight_compound_unload.mp4",
+      "blocking": "game_blocking_V2_compound.jpg",
+      "keyframes": [
+        "kf14_01m45s_two_man_20kg_unload.jpg",
+        "kf15_01m53s_father_child_hidmo_village.jpg",
+        "kf16_02m03s_terracotta_donkey_bowl.jpg"
+      ]
+    },
+    "V3": {
+      "width": 1280,
+      "height": 720,
+      "fps": 24.0,
+      "duration": 10.027,
+      "palette": [
+        {
+          "hex": "#161914",
+          "share": 0.201
+        },
+        {
+          "hex": "#282824",
+          "share": 0.126
+        },
+        {
+          "hex": "#393934",
+          "share": 0.076
+        },
+        {
+          "hex": "#23231d",
+          "share": 0.062
+        },
+        {
+          "hex": "#1c2219",
+          "share": 0.05
+        },
+        {
+          "hex": "#33322d",
+          "share": 0.038
+        },
+        {
+          "hex": "#0a0b09",
+          "share": 0.034
+        },
+        {
+          "hex": "#0c120c",
+          "share": 0.03
+        },
+        {
+          "hex": "#6a7579",
+          "share": 0.03
+        },
+        {
+          "hex": "#12120d",
+          "share": 0.019
+        }
+      ],
+      "cuts": [],
+      "frames": [
+        {
+          "t": 0.0,
+          "file": "f_001.jpg"
+        },
+        {
+          "t": 0.8,
+          "file": "f_002.jpg"
+        },
+        {
+          "t": 1.6,
+          "file": "f_003.jpg"
+        },
+        {
+          "t": 2.4,
+          "file": "f_004.jpg"
+        },
+        {
+          "t": 3.2,
+          "file": "f_005.jpg"
+        },
+        {
+          "t": 4.0,
+          "file": "f_006.jpg"
+        },
+        {
+          "t": 4.8,
+          "file": "f_007.jpg"
+        },
+        {
+          "t": 5.6,
+          "file": "f_008.jpg"
+        },
+        {
+          "t": 6.4,
+          "file": "f_009.jpg"
+        },
+        {
+          "t": 7.2,
+          "file": "f_010.jpg"
+        },
+        {
+          "t": 8.0,
+          "file": "f_011.jpg"
+        },
+        {
+          "t": 8.8,
+          "file": "f_012.jpg"
+        },
+        {
+          "t": 9.6,
+          "file": "f_013.jpg"
+        }
+      ],
+      "sheet": "V3_sheet.jpg",
+      "id": "V3",
+      "title": "Cottonwood Oxbow Root-Bowl & Billowing Linen Screening",
+      "video": "V3_oxbow_screening.mp4",
+      "blocking": "game_blocking_V3_oxbow.jpg",
+      "keyframes": [
+        "kf16_02m03s_terracotta_donkey_bowl.jpg"
+      ]
+    },
+    "V4": {
+      "width": 1280,
+      "height": 720,
+      "fps": 24.0,
+      "duration": 10.027,
+      "palette": [
+        {
+          "hex": "#030506",
+          "share": 0.137
+        },
+        {
+          "hex": "#293837",
+          "share": 0.081
+        },
+        {
+          "hex": "#0a1417",
+          "share": 0.057
+        },
+        {
+          "hex": "#192427",
+          "share": 0.051
+        },
+        {
+          "hex": "#374645",
+          "share": 0.049
+        },
+        {
+          "hex": "#141a19",
+          "share": 0.046
+        },
+        {
+          "hex": "#061826",
+          "share": 0.041
+        },
+        {
+          "hex": "#020b14",
+          "share": 0.031
+        },
+        {
+          "hex": "#242a28",
+          "share": 0.03
+        },
+        {
+          "hex": "#162936",
+          "share": 0.024
+        }
+      ],
+      "cuts": [],
+      "frames": [
+        {
+          "t": 0.0,
+          "file": "f_001.jpg"
+        },
+        {
+          "t": 0.8,
+          "file": "f_002.jpg"
+        },
+        {
+          "t": 1.6,
+          "file": "f_003.jpg"
+        },
+        {
+          "t": 2.4,
+          "file": "f_004.jpg"
+        },
+        {
+          "t": 3.2,
+          "file": "f_005.jpg"
+        },
+        {
+          "t": 4.0,
+          "file": "f_006.jpg"
+        },
+        {
+          "t": 4.8,
+          "file": "f_007.jpg"
+        },
+        {
+          "t": 5.6,
+          "file": "f_008.jpg"
+        },
+        {
+          "t": 6.4,
+          "file": "f_009.jpg"
+        },
+        {
+          "t": 7.2,
+          "file": "f_010.jpg"
+        },
+        {
+          "t": 8.0,
+          "file": "f_011.jpg"
+        },
+        {
+          "t": 8.8,
+          "file": "f_012.jpg"
+        },
+        {
+          "t": 9.6,
+          "file": "f_013.jpg"
+        }
+      ],
+      "sheet": "V4_sheet.jpg",
+      "id": "V4",
+      "title": "Highland Pueblo Wire-Glass Registry & Wet Cyan Cooling Vault",
+      "video": "V4_pueblo_cooling_vault.mp4",
+      "blocking": "game_blocking_V4_pueblo_cooling.jpg",
+      "keyframes": [
+        "kf07_00m24s_cyan_server_sanctuary.jpg"
+      ]
+    },
+    "V5": {
+      "width": 1280,
+      "height": 720,
+      "fps": 24.0,
+      "duration": 10.027,
+      "palette": [
+        {
+          "hex": "#161918",
+          "share": 0.194
+        },
+        {
+          "hex": "#081317",
+          "share": 0.143
+        },
+        {
+          "hex": "#252727",
+          "share": 0.14
+        },
+        {
+          "hex": "#040a0b",
+          "share": 0.098
+        },
+        {
+          "hex": "#192327",
+          "share": 0.093
+        },
+        {
+          "hex": "#040c11",
+          "share": 0.042
+        },
+        {
+          "hex": "#141d22",
+          "share": 0.035
+        },
+        {
+          "hex": "#353736",
+          "share": 0.033
+        },
+        {
+          "hex": "#293336",
+          "share": 0.029
+        },
+        {
+          "hex": "#0b1a22",
+          "share": 0.023
+        }
+      ],
+      "cuts": [],
+      "frames": [
+        {
+          "t": 0.0,
+          "file": "f_001.jpg"
+        },
+        {
+          "t": 0.8,
+          "file": "f_002.jpg"
+        },
+        {
+          "t": 1.6,
+          "file": "f_003.jpg"
+        },
+        {
+          "t": 2.4,
+          "file": "f_004.jpg"
+        },
+        {
+          "t": 3.2,
+          "file": "f_005.jpg"
+        },
+        {
+          "t": 4.0,
+          "file": "f_006.jpg"
+        },
+        {
+          "t": 4.8,
+          "file": "f_007.jpg"
+        },
+        {
+          "t": 5.6,
+          "file": "f_008.jpg"
+        },
+        {
+          "t": 6.4,
+          "file": "f_009.jpg"
+        },
+        {
+          "t": 7.2,
+          "file": "f_010.jpg"
+        },
+        {
+          "t": 8.0,
+          "file": "f_011.jpg"
+        },
+        {
+          "t": 8.8,
+          "file": "f_012.jpg"
+        },
+        {
+          "t": 9.6,
+          "file": "f_013.jpg"
+        }
+      ],
+      "sheet": "V5_sheet.jpg",
+      "id": "V5",
+      "title": "Ahiya Night Ridge Smartphone Convoy & Cross-Beacon Mesh",
+      "video": "V5_ahiya_night_convoy.mp4",
+      "blocking": "game_blocking_V5_ahiya_ridge.jpg",
+      "keyframes": [
+        "kf09_00m48s_night_youths_phone_glow.jpg",
+        "kf10_00m56s_citadel_beacon_mesh.jpg",
+        "kf12_01m12s_draped_elders_procession.jpg"
+      ]
+    },
+    "V6": {
+      "width": 1280,
+      "height": 720,
+      "fps": 24.0,
+      "duration": 10.027,
+      "palette": [
+        {
+          "hex": "#040606",
+          "share": 0.119
+        },
+        {
+          "hex": "#767a76",
+          "share": 0.051
+        },
+        {
+          "hex": "#272825",
+          "share": 0.037
+        },
+        {
+          "hex": "#161716",
+          "share": 0.037
+        },
+        {
+          "hex": "#868a88",
+          "share": 0.036
+        },
+        {
+          "hex": "#585954",
+          "share": 0.033
+        },
+        {
+          "hex": "#676a65",
+          "share": 0.032
+        },
+        {
+          "hex": "#949997",
+          "share": 0.031
+        },
+        {
+          "hex": "#383936",
+          "share": 0.027
+        },
+        {
+          "hex": "#484a45",
+          "share": 0.025
+        }
+      ],
+      "cuts": [],
+      "frames": [
+        {
+          "t": 0.0,
+          "file": "f_001.jpg"
+        },
+        {
+          "t": 0.8,
+          "file": "f_002.jpg"
+        },
+        {
+          "t": 1.6,
+          "file": "f_003.jpg"
+        },
+        {
+          "t": 2.4,
+          "file": "f_004.jpg"
+        },
+        {
+          "t": 3.2,
+          "file": "f_005.jpg"
+        },
+        {
+          "t": 4.0,
+          "file": "f_006.jpg"
+        },
+        {
+          "t": 4.8,
+          "file": "f_007.jpg"
+        },
+        {
+          "t": 5.6,
+          "file": "f_008.jpg"
+        },
+        {
+          "t": 6.4,
+          "file": "f_009.jpg"
+        },
+        {
+          "t": 7.2,
+          "file": "f_010.jpg"
+        },
+        {
+          "t": 8.0,
+          "file": "f_011.jpg"
+        },
+        {
+          "t": 8.8,
+          "file": "f_012.jpg"
+        },
+        {
+          "t": 9.6,
+          "file": "f_013.jpg"
+        }
+      ],
+      "sheet": "V6_sheet.jpg",
+      "id": "V6",
+      "title": "Hill Archive REC PPC Surveillance & Radio Desk",
+      "video": "V6_hill_rec_ppc_desk.mp4",
+      "blocking": "game_blocking_V6_hill_archive.jpg",
+      "keyframes": [
+        "kf08_00m36s_rec_ppc_desk_radio.jpg"
+      ]
+    }
+  }
+}

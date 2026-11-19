@@ -1,0 +1,138 @@
+{
+  "version": "v3.0",
+  "directory": "/Users/gaia/make-photo/make-photo/study/v2g_macro",
+  "model": "gemini-omni-1.2-flash",
+  "motion_priors": "../donkey/textures_v3/video_motion_priors.json",
+  "studies": {
+    "M1": {
+      "id": "M1",
+      "video": "M1_macro_hands_grip_study.mp4",
+      "sheet": "M1_sheet.jpg",
+      "title": "100mm Macro Carrier Hands, Tendons & Multi-Grip Study",
+      "matched_study": "macro_hands",
+      "keyframes": [
+        "kf03_00m03s_hand_jerrycan_transfer.jpg",
+        "kf04_00m07s_two_hand_basin_pour.jpg"
+      ],
+      "plates": [
+        "hand_dorsal.jpg",
+        "hand_palmar.jpg"
+      ],
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "frames": 240,
+      "duration": 10.0,
+      "sheet_tiles": "4x3 (12 tiles)"
+    },
+    "M2": {
+      "id": "M2",
+      "video": "M2_imani_portrait_hair_turntable.mp4",
+      "sheet": "M2_sheet.jpg",
+      "title": "85mm Imani Portrait Sweep, Wet Corneas & 4C Coily Hair Volume",
+      "matched_study": "macro_portraits",
+      "keyframes": [
+        "kf02_00m02s_iron_standpipe_pump.jpg"
+      ],
+      "plates": [
+        "imani_head_front.jpg",
+        "imani_head_side.jpg",
+        "hair_coily_shell.png"
+      ],
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "frames": 240,
+      "duration": 10.0,
+      "sheet_tiles": "4x3 (12 tiles)"
+    },
+    "M3": {
+      "id": "M3",
+      "video": "M3_youth_locs_braids_portrait.mp4",
+      "sheet": "M3_sheet.jpg",
+      "title": "85mm Youth Twisted Locs, Baby Hairs & Cyan Smartphone Uplight",
+      "matched_study": "macro_portraits",
+      "keyframes": [
+        "kf09_00m48s_night_youths_phone_glow.jpg",
+        "kf15_01m53s_father_child_hidmo_village.jpg"
+      ],
+      "plates": [
+        "youth_head_front.jpg",
+        "youth_head_side.jpg",
+        "hair_locs_braids.jpg"
+      ],
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "frames": 240,
+      "duration": 10.0,
+      "sheet_tiles": "4x3 (12 tiles)"
+    },
+    "M4": {
+      "id": "M4",
+      "video": "M4_operator_elder_portraits.mp4",
+      "sheet": "M4_sheet.jpg",
+      "title": "85mm REC PPC Operator Ponytail & Highland Elder Beard Study",
+      "matched_study": "macro_portraits",
+      "keyframes": [
+        "kf08_00m36s_rec_ppc_desk_radio.jpg",
+        "kf12_01m12s_draped_elders_procession.jpg"
+      ],
+      "plates": [
+        "operator_f_head_front.jpg",
+        "operator_f_head_side.jpg",
+        "elder_head_front.jpg",
+        "elder_head_side.jpg",
+        "hair_strand_cards.png"
+      ],
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "frames": 240,
+      "duration": 10.0,
+      "sheet_tiles": "4x3 (12 tiles)"
+    },
+    "M5": {
+      "id": "M5",
+      "video": "M5_skeleton_eskista_lift_mocap.mp4",
+      "sheet": "M5_sheet.jpg",
+      "title": "Full-Body 6/8 Eskista Shoulder Rhythm -> 20kg Jerrycan Squat-Lift",
+      "matched_study": "macro_skeleton",
+      "keyframes": [
+        "kf14_01m45s_two_man_20kg_unload.jpg"
+      ],
+      "plates": [
+        "imani_photo_front.jpg",
+        "imani_photo_side.jpg"
+      ],
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "frames": 240,
+      "duration": 10.0,
+      "sheet_tiles": "4x3 (12 tiles)"
+    },
+    "M6": {
+      "id": "M6",
+      "video": "M6_garment_drape_turntable.mp4",
+      "sheet": "M6_sheet.jpg",
+      "title": "360-Deg Hand-Loomed Tibeb Gabi & Waxed Duster Cloth-Drape Turntable",
+      "matched_study": "garment_drape",
+      "keyframes": [
+        "kf12_01m12s_draped_elders_procession.jpg",
+        "kf15_01m53s_father_child_hidmo_village.jpg"
+      ],
+      "plates": [
+        "imani_photo_front.jpg",
+        "imani_photo_side.jpg",
+        "imani_photo_back.jpg"
+      ],
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "frames": 240,
+      "duration": 10.0,
+      "sheet_tiles": "4x3 (12 tiles)"
+    }
+  }
+}

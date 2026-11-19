@@ -1,0 +1,111 @@
+{
+  "width": 1280,
+  "height": 720,
+  "fps": 24.0,
+  "duration": 10.027,
+  "palette": [
+    {
+      "hex": "#161914",
+      "share": 0.201
+    },
+    {
+      "hex": "#282824",
+      "share": 0.126
+    },
+    {
+      "hex": "#393934",
+      "share": 0.076
+    },
+    {
+      "hex": "#23231d",
+      "share": 0.062
+    },
+    {
+      "hex": "#1c2219",
+      "share": 0.05
+    },
+    {
+      "hex": "#33322d",
+      "share": 0.038
+    },
+    {
+      "hex": "#0a0b09",
+      "share": 0.034
+    },
+    {
+      "hex": "#0c120c",
+      "share": 0.03
+    },
+    {
+      "hex": "#6a7579",
+      "share": 0.03
+    },
+    {
+      "hex": "#12120d",
+      "share": 0.019
+    }
+  ],
+  "cuts": [],
+  "frames": [
+    {
+      "t": 0.0,
+      "file": "f_001.jpg"
+    },
+    {
+      "t": 0.8,
+      "file": "f_002.jpg"
+    },
+    {
+      "t": 1.6,
+      "file": "f_003.jpg"
+    },
+    {
+      "t": 2.4,
+      "file": "f_004.jpg"
+    },
+    {
+      "t": 3.2,
+      "file": "f_005.jpg"
+    },
+    {
+      "t": 4.0,
+      "file": "f_006.jpg"
+    },
+    {
+      "t": 4.8,
+      "file": "f_007.jpg"
+    },
+    {
+      "t": 5.6,
+      "file": "f_008.jpg"
+    },
+    {
+      "t": 6.4,
+      "file": "f_009.jpg"
+    },
+    {
+      "t": 7.2,
+      "file": "f_010.jpg"
+    },
+    {
+      "t": 8.0,
+      "file": "f_011.jpg"
+    },
+    {
+      "t": 8.8,
+      "file": "f_012.jpg"
+    },
+    {
+      "t": 9.6,
+      "file": "f_013.jpg"
+    }
+  ],
+  "sheet": "V3_sheet.jpg",
+  "id": "V3",
+  "title": "Cottonwood Oxbow Root-Bowl & Billowing Linen Screening",
+  "video": "V3_oxbow_screening.mp4",
+  "blocking": "game_blocking_V3_oxbow.jpg",
+  "keyframes": [
+    "kf16_02m03s_terracotta_donkey_bowl.jpg"
+  ]
+}

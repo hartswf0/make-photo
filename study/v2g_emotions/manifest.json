@@ -1,0 +1,64 @@
+{
+  "version": "v4.0",
+  "directory": "/Users/gaia/make-photo/make-photo/study/v2g_emotions",
+  "source_pipeline": "Curated & Lanczos-stabilized 1080p 24fps macro reels from gemini-omni-1.2-flash M1..M6 & V1..V6 + 20 Hz Farneback optical-flow priors",
+  "expression_priors": "../../donkey/textures_v3/expression_viseme_priors.json",
+  "plates": [
+    "../../donkey/textures_v3/imani_expressions_sheet.jpg",
+    "../../donkey/textures_v3/hand_emotions_sheet.jpg"
+  ],
+  "studies": {
+    "E1": {
+      "id": "E1",
+      "video": "E1_imani_emotions_speech_arc.mp4",
+      "sheet": "E1_sheet.jpg",
+      "title": "85mm Imani Emotions, Open-Mouth Speech Visemes & Duchenne Smile Arc",
+      "matched_study": "exp_emotions_speech",
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "frames": 240,
+      "duration": 10.0,
+      "sheet_tiles": "4x2 (8 tiles)"
+    },
+    "E2": {
+      "id": "E2",
+      "video": "E2_elder_youth_dialogue_reactions.mp4",
+      "sheet": "E2_sheet.jpg",
+      "title": "85mm Highland Elder & Youth Dialogue, Awe, 20 kg Handoff & Shared Relief",
+      "matched_study": "exp_emotions_speech",
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "frames": 240,
+      "duration": 10.0,
+      "sheet_tiles": "4x2 (8 tiles)"
+    },
+    "E3": {
+      "id": "E3",
+      "video": "E3_expressive_hands_gestures_100mm.mp4",
+      "sheet": "E3_sheet.jpg",
+      "title": "100mm Macro Expressive Hands, 30-Bone Finger Range & 0.000m Contact Grips",
+      "matched_study": "exp_hand_acting",
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "frames": 240,
+      "duration": 10.0,
+      "sheet_tiles": "4x2 (8 tiles)"
+    },
+    "E4": {
+      "id": "E4",
+      "video": "E4_fullbody_emotional_acting_ensemble.mp4",
+      "sheet": "E4_sheet.jpg",
+      "title": "Full-Upper-Body Acting Ensemble: 6/8 Eskista, 20 kg Effort, Pump & Parabolic Pour",
+      "matched_study": "exp_hand_acting",
+      "width": 1920,
+      "height": 1080,
+      "fps": 24.0,
+      "frames": 240,
+      "duration": 10.0,
+      "sheet_tiles": "4x2 (8 tiles)"
+    }
+  }
+}
