@@ -6,6 +6,7 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import RAPIER from './vendor/rapier.es.js';
 import { loadGround } from './ground.js';
 import { makeRetarget, clipGroundSpeed, twoBoneIK } from './retarget.js';
+import { makeAudio } from './audio.js';
 
 const $ = id => document.getElementById(id);
 const status = t => { $('boot').textContent = t; };
@@ -177,8 +178,8 @@ function buildBajaj(x, z, yaw) {
   add(new THREE.BoxGeometry(.04, .55, 1.08), glass, 1.06, .9, 0, 0, 0, -.42);       // windscreen, raked
   for (const [x, z] of [[1.0, .58], [1.0, -.58], [-1.3, .63], [-1.3, -.63], [-.22, .63], [-.22, -.63]]) add(new THREE.CylinderGeometry(.022, .022, .72, 6), chrome, x, 1.02, z);
   add(new THREE.BoxGeometry(.5, .14, 1.12), dark, -.75, .78, 0); add(new THREE.BoxGeometry(.12, .5, 1.12), dark, -1.05, 1.0, 0);   // rear bench and back
-  add(new THREE.BoxGeometry(.34, .1, .38), dark, .38, .62, 0);                                                                     // driver seat
-  add(new THREE.CylinderGeometry(.022, .022, .5, 6), chrome, .74, .86, 0, 0, 0, .5); add(new THREE.BoxGeometry(.05, .05, .6), chrome, .86, 1.07, 0);   // bars
+  add(new THREE.BoxGeometry(.42, .08, .4), dark, .08, .27, 0); add(new THREE.BoxGeometry(.3, .26, .3), dark, .08, .1, 0);        // driver saddle on its box, under her hips
+  add(new THREE.CylinderGeometry(.024, .024, .7, 6), chrome, .43, .43, 0, 0, 0, .33); add(new THREE.BoxGeometry(.05, .05, .58), chrome, .3, .77, 0);     // steering column and bars, at her hands
   add(new THREE.SphereGeometry(.09, 12, 8), new THREE.MeshStandardMaterial({ color: '#fff4cf', emissive: '#ffd27a', emissiveIntensity: .7 }), 1.33, .36, 0);
   add(new THREE.BoxGeometry(.03, .1, 1.28), new THREE.MeshStandardMaterial({ color: '#e9e4d8', roughness: .6 }), .2, .34, 0);       // white side stripe
   const wheels = pts.map(() => { const w = new THREE.Group(), t = new THREE.Mesh(new THREE.CylinderGeometry(BJ.wheelR, BJ.wheelR, .14, 18), dark); t.rotation.x = Math.PI / 2; t.castShadow = true; const hub = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, .15, 8), chrome); hub.rotation.x = Math.PI / 2; w.add(t, hub); scene.add(w); return w; });
@@ -204,6 +205,13 @@ function stepVehicle(dt) {
   // upside down or on its side for 2 s: set it back on its wheels
   const r = chassis.rotation(), upY = 1 - 2 * (r.x * r.x + r.z * r.z); bajaj.tipped = upY < .3 ? (bajaj.tipped || 0) + dt : 0;
   if (bajaj.tipped > 2) { const t = chassis.translation(), f = new THREE.Vector3(1, 0, 0).applyQuaternion(new THREE.Quaternion(r.x, r.y, r.z, r.w)); chassis.setTranslation({ x: t.x, y: G.height(t.x, t.z) + 1.2, z: t.z }, true); chassis.setRotation(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(-f.z, f.x)), true); chassis.setLinvel({ x: 0, y: 0, z: 0 }, true); chassis.setAngvel({ x: 0, y: 0, z: 0 }, true); bajaj.tipped = 0; state.resets = (state.resets || 0) + 1; }
+}
+const GEARS = [[0, 4.2], [3.6, 8.8], [8, 15.8]];
+function engineState() {
+  const v = Math.abs(vehicle.currentVehicleSpeed()), t = chassis.translation(); let g = 0; while (g < 2 && v > GEARS[g][1]) g++;
+  const [a, b] = GEARS[g], rpm = state.engineOn ? clamp(.18 + .82 * (v - a) / (b - a), .15, 1) : 0;
+  bajaj.gear = g; bajaj.rpm = damp(bajaj.rpm || 0, rpm, 6, 1 / 30);
+  return { running: !!state.engineOn, rpm: bajaj.rpm, load: state.mode === 'drive' ? Math.max(0, input.f) : 0, speed: v, pos: new THREE.Vector3(t.x, t.y, t.z) };
 }
 function syncVehicle() {
   const t = chassis.translation(), r = chassis.rotation();
@@ -277,7 +285,8 @@ function poseOnGround(p, dt) {
     if (Math.abs(off[k] - drop) > .004) twoBoneIK(a, b, c, tmpT, new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), p.yaw));
   }
 }
-const SEAT = new THREE.Vector3(.38, -.36, 0), FACE_X = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
+const SEAT = new THREE.Vector3(.38, -.2, 0),   // measured: feet on the floor, hips on the saddle
+  FACE_X = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
 function seatDriver(p) {                 // sit the player on the driver's saddle, facing forward, hands on the bars
   p.root.position.copy(SEAT).applyQuaternion(bajaj.g.quaternion).add(bajaj.g.position); p.root.quaternion.copy(bajaj.g.quaternion).multiply(FACE_X);
   p.root.updateMatrixWorld(true); p.src.updateMatrixWorld(true); p.rt.apply();
@@ -330,6 +339,9 @@ function stepDonkey(dt, leader) {
     d.m.updateMatrixWorld(true); const inv = new THREE.Matrix4().copy(d.m.matrixWorld).invert();
     const l = d.fl.getWorldPosition(new THREE.Vector3()).applyMatrix4(inv), r = d.fr.getWorldPosition(new THREE.Vector3()).applyMatrix4(inv), k = l.y <= r.y ? 0 : 1, cur = k ? r : l;
     if (d.prev) { const dz = (d.prev[k].z - cur.z) * d.S; if (dz > 0 && Math.min(l.y, r.y) < .2) adv = dz; }
+    if (d.plantK !== undefined && k !== d.plantK && audio && audio.on) { const hp = d.root.position.clone(), fw = new THREE.Vector3(Math.sin(d.yaw), 0, Math.cos(d.yaw)); const surf = surfaceAt(hp.x, hp.z), spr = surf === 'stone' || surf === 'gravel' ? 'hoof_hard' : 'hoof';
+      audio.hit(spr, hp.clone().addScaledVector(fw, .8), { gain: .7 }); setTimeout(() => audio.hit(spr, hp.clone().addScaledVector(fw, -.8), { gain: .55 }), 1000 * .5 / Math.max(.4, d.speed / d.speeds.walk) * .5); state.hooves = (state.hooves || 0) + 1; }
+    d.plantK = k;
     d.prev = [l, r];
   } else d.prev = null;
   const nx = d.x + Math.sin(d.yaw) * adv, nz = d.z + Math.cos(d.yaw) * adv; [d.x, d.z] = resolve(nx, nz, .7, d);
@@ -397,14 +409,33 @@ function stepFoot(dt) {
   [p.x, p.z] = resolve(nx, nz, .3, p); p.y = G.height(p.x, p.z);
 }
 const fv = new THREE.Vector3();
+function surfaceAt(x, z) {
+  if (state.stage && Math.hypot(x - state.stage.x, z - state.stage.z) < 4.2) return 'stone';
+  const r = G.roadInfo(x, z); if (r.d < G.roadWidth / 2 + .4) return 'gravel'; if (r.d < G.roadWidth / 2 + 2) return 'dirt'; return 'grass';
+}
+function footfall(p, k) {
+  if (!audio || !audio.on) return; const foot = (k ? p.rt.D.footR : p.rt.D.footL).getWorldPosition(new THREE.Vector3());
+  const surf = surfaceAt(foot.x, foot.z), run = p.speed > 1.9, load = state.carry ? .9 : 1;
+  const sprite = surf === 'stone' ? 'stone' : surf === 'grass' ? 'grass' : run ? 'dirt_run' : surf === 'gravel' ? 'gravel' : 'dirt';
+  audio.hit(sprite, foot, { gain: (run ? 1.1 : .8) * (surf === 'grass' ? .7 : 1), rate: load * (run ? 1.05 : 1), wet: surf === 'stone' ? .4 : .1 });
+  if (Math.random() < .25) audio.hit('cloth', foot.setY(foot.y + 1.1), { gain: .25 });
+  state.steps = (state.steps || 0) + 1;
+}
 function footAdvance(p, dt) {
   p.src.updateMatrixWorld(true); const S = p.rt.S, l = S.foot_l.getWorldPosition(fv).clone(), r = S.foot_r.getWorldPosition(fv).clone();
   const prev = p.feetPrev; p.feetPrev = [l, r];
   if (!prev || p.speed < .05) { p.advV = damp(p.advV || 0, p.speed, 8, dt); return p.speed * dt; }
   const k = l.y <= r.y ? 0 : 1, cur = k ? r : l, was = prev[k], low = Math.min(l.y, r.y);
+  if (p.plantK !== undefined && k !== p.plantK && low < .14) footfall(p, k);           // the other foot has just landed
+  p.plantK = k;
   let d = (was.z - cur.z) * p.rt.ratio;
   if (low > .16 || d < 0) d = (p.advV || p.speed) * dt;              // in the air (running) or a swing frame: keep momentum
   p.advV = damp(p.advV || 0, d / dt, 12, dt); return Math.max(0, d);
+}
+function pumpTick(o) {
+  const a = o.act.pump; if (!a || (o.weights.pump || 0) < .2) { state.pumping = false; return; }
+  const ph = (a.time / a.getClip().duration) % 1; if (o.pumpPh !== undefined && ph < o.pumpPh && audio && audio.on) { audio.hit('pump', o.rt.D.wristR.getWorldPosition(new THREE.Vector3()), { gain: .9, wet: .35 }); state.pumpStrokes = (state.pumpStrokes || 0) + 1; }
+  o.pumpPh = ph; state.pumping = true;
 }
 function stepNPC(o, dt) {
   const p = player(); let want = o.base;
@@ -416,8 +447,9 @@ function stepNPC(o, dt) {
   } else if (o.homeYaw !== undefined) o.yaw += clamp(angleTo(o.yaw, o.homeYaw), -.6 * dt, .6 * dt);  // drift back to their work
   const W = { [want]: 1 }; if (want === 'pump') { W.pump = .55; W['idle-subtle'] = .45; }
   setWeights(o, W, dt, 5); o.y = G.height(o.x, o.z);
+  if (o.id === 'makeda') pumpTick(o);
 }
-let last = 0, frameMs = [];
+let last = 0, frameMs = [], audio = null; const camVel = [];
 function tick(now) {
   requestAnimationFrame(tick); const dt = Math.min(.05, last ? (now - last) / 1000 : 1 / 60); last = now; step(dt); render();
 }
@@ -433,13 +465,22 @@ function step(dt) {
   if (state.talk) { state.talk.t += dt; state.talk.o.says = Math.max(0, state.talk.dur - state.talk.t); if (state.talk.t > state.talk.dur + 1.5 || Math.hypot(player().x - state.talk.o.x, player().z - state.talk.o.z) > 4) { state.talk = null; $('bub').hidden = true; } }
   for (const o of Object.values(people)) { if (!o.mixed) o.mixer.update(dt); o.mixed = false; if (state.mode === 'drive' && o === player()) seatDriver(o); else poseOnGround(o, dt); }
   stepDonkey(dt, state.mode === 'foot' ? player() : null);
-  stepCamera(dt); if (state.sky) state.sky.position.copy(camera.position); hud();
+  stepCamera(dt); if (state.sky) state.sky.position.copy(camera.position);
+  if (audio && audio.on) {
+    const p = player(), hp = new THREE.Vector3(); let head = null; donkey.m.traverse(o => { if (o.name === 'head') head = o; }); if (head) head.getWorldPosition(hp); else hp.copy(donkey.root.position);
+    const st = state.stage, dSt = st ? Math.hypot(camera.position.x - st.x, camera.position.z - st.z) : 99;
+    camVel.push(camera.position.clone()); if (camVel.length > 10) camVel.shift();
+    audio.update(dt, { shelter: clamp(1 - (dSt - 3) / 6, 0, 1) * .8, height: camera.position.y, lowest: G.lowest, highest: G.highest, camSpeed: camVel.length > 1 ? camVel[0].distanceTo(camVel[camVel.length - 1]) / (dt * (camVel.length - 1)) : 0,
+      bajaj: engineState(), pumping: state.pumping, donkeyHead: hp, donkeyEating: (donkey.weights.eating || 0) > .5 });
+  }
+  if (state.engineOn && state.mode !== 'drive' && (state.engineIdle = (state.engineIdle || 0) + dt) > 25) state.engineOn = false;   // the driver switches off if you walk away
+  hud();
 }
 function render() { const t0 = performance.now(); renderer.render(scene, camera); frameMs.push(performance.now() - t0); if (frameMs.length > 240) frameMs.shift(); }
 function hud() {
   const p = player(), near = state.mode === 'foot' && !state.talk ? nearestPerson(p) : null, nearDonkey = Math.hypot(donkey.x - p.x, donkey.z - p.z) < 2.6, t = chassis.translation(), nearBajaj = Math.hypot(t.x - p.x, t.z - p.z) < 3.2;
   const acts = [];
-  if (state.mode === 'drive') acts.push(['F', 'Get out']);
+  if (state.mode === 'drive') { acts.push(['F', 'Get out']); if (audio && audio.on) acts.push(['R', audio.radio ? 'Radio: ' + audio.radio.name : 'Radio']); }
   else { if (near) acts.push(['E', 'Talk to ' + near.id[0].toUpperCase() + near.id.slice(1)]); if (nearBajaj) acts.push(['F', 'Drive the bajaj']); if (nearDonkey || state.lead) acts.push(['G', state.lead ? 'Let go of Mistletoe' : 'Lead Mistletoe']); }
   const html = acts.map(([k, l]) => `<button data-k="${k}"><b>${k}</b> ${l}</button>`).join('');
   if ($('acts').dataset.h !== html) { $('acts').innerHTML = html; $('acts').dataset.h = html; }
@@ -447,13 +488,15 @@ function hud() {
   $('spd').textContent = `${v.toFixed(0)} km/h`;
   if (state.talk) { const o = state.talk.o, hp = o.rt.D.head.getWorldPosition(new THREE.Vector3()); hp.y += .35; hp.project(camera); $('bub').style.left = clamp((hp.x * .5 + .5) * innerWidth, 140, innerWidth - 140) + 'px'; $('bub').style.top = clamp((-hp.y * .5 + .5) * innerHeight, 60, innerHeight - 200) + 'px'; }
 }
+function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { el.hidden = true; }, 2200); }
 function act(k) {
   const p = player();
   if (k === 'E' && state.mode === 'foot') startTalk(nearestPerson(p));
   if (k === 'F') {
     if (state.mode === 'drive') { const t = chassis.translation(), r = new THREE.Vector3(0, 0, 1.4).applyQuaternion(bajaj.g.quaternion); [p.x, p.z] = resolve(t.x + r.x, t.z + r.z, .3, p); p.y = G.height(p.x, p.z); state.mode = 'foot'; }
-    else { const t = chassis.translation(); if (Math.hypot(t.x - p.x, t.z - p.z) < 3.2) { state.mode = 'drive'; state.lead = false; } }
+    else { const t = chassis.translation(); if (Math.hypot(t.x - p.x, t.z - p.z) < 3.2) { state.mode = 'drive'; state.lead = false; state.engineIdle = 0; if (!state.engineOn) { state.engineOn = true; if (audio && audio.on) { audio.oneShot('bajaj_start_idle', new THREE.Vector3(t.x, t.y, t.z), { gain: .9, from: 0, dur: 9 }); if (audio.radio) { audio.radio.on = true; audio.radio.tune(audio.radio.i); } } } } }
   }
+  if (k === 'R' && state.mode === 'drive' && audio && audio.radio) { audio.radio.on = true; audio.radio.tune(); toast(audio.radio.name); }
   if (k === 'G' && state.mode === 'foot' && (state.lead || Math.hypot(donkey.x - p.x, donkey.z - p.z) < 2.6)) state.lead = !state.lead;
 }
 function readKeys() {
@@ -464,7 +507,7 @@ function readKeys() {
   input.f = clamp(input.f, -1, 1); input.s = clamp(input.s, -1, 1);
   input.run = keys.has('shift') || (st && Math.hypot(st.x, st.y) > .92); input.brake = keys.has(' ');
 }
-addEventListener('keydown', e => { const k = e.key.toLowerCase(); keys.add(k); if (['e', 'f', 'g'].includes(k) && !e.repeat) act(k.toUpperCase()); if (k === ' ') e.preventDefault(); });
+addEventListener('keydown', e => { const k = e.key.toLowerCase(); keys.add(k); if (['e', 'f', 'g', 'r'].includes(k) && !e.repeat) act(k.toUpperCase()); if (k === ' ') e.preventDefault(); });
 addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 addEventListener('blur', () => keys.clear());
 $('acts').addEventListener('click', e => { const b = e.target.closest('button'); if (b) act(b.dataset.k); });
@@ -496,7 +539,18 @@ async function boot() {
   const br = G.road[6]; buildBajaj(br[0] + 3.6, br[1] + 1.2, roadDir);
   for (let i = 0; i < 120; i++) { stepVehicle(1 / 60); world.timestep = 1 / 60; world.step(); }       // let the bajaj settle on its springs
   state.checks = { heightfield: state.hfLayout, heightfieldError_m: hfCheck(), clipSpeeds: state.clipSpeeds, retargetMissing: player().rt.missing, ratio: +player().rt.ratio.toFixed(3) };
+  // world anchors for the sound
+  const mast = G.items.find(i => i.kind === 'mast'), house = G.items.find(i => i.kind === 'house'), R = G.road, end = R[R.length - 1], pre = R[R.length - 8];
+  let lo = Infinity, hi = -Infinity; for (let i = 0; i < G.H.length; i += 7) { lo = Math.min(lo, G.H[i]); hi = Math.max(hi, G.H[i]); } G.lowest = lo; G.highest = hi;
+  let cliff = null, cs = 0; for (let x = G.bounds[0] + 20; x < G.bounds[1] - 20; x += 15) for (let z = G.bounds[2] + 20; z < G.bounds[3] - 20; z += 15) { const s = Math.abs(G.height(x + 4, z) - G.height(x - 4, z)) + Math.abs(G.height(x, z + 4) - G.height(x, z - 4)); if (s > cs) { cs = s; cliff = [x, z]; } }
+  const dir = new THREE.Vector3(end[0] - pre[0], 0, end[1] - pre[1]).normalize();
+  const anchors = { mast: new THREE.Vector3(mast.x, G.height(mast.x, mast.z) + 18, mast.z), wellhead: new THREE.Vector3(state.stage.x, state.stage.y + 1.5, state.stage.z), bowl: new THREE.Vector3(state.stage.x, state.stage.y + .8, state.stage.z),
+    town: new THREE.Vector3(end[0] + dir.x * 700, end[2] - 120, end[1] + dir.z * 700), house: new THREE.Vector3(house.x, G.height(house.x, house.z) + 1, house.z),
+    pasture: new THREE.Vector3(G.road[60][0] + 60, G.height(G.road[60][0] + 60, G.road[60][1] + 40) + 1, G.road[60][1] + 40), cliff: new THREE.Vector3(cliff[0], G.height(cliff[0], cliff[1]) + 2, cliff[1]) };
+  audio = makeAudio({ camera, G }); audio.world = anchors;
+  const startSound = () => { audio.start(); removeEventListener('pointerdown', startSound); removeEventListener('keydown', startSound); };
+  if (!location.search.includes('mute')) { addEventListener('pointerdown', startSound); addEventListener('keydown', startSound); }
   $('boot').hidden = true; cam.yaw = pl.yaw; if (!location.search.includes('test')) requestAnimationFrame(tick);
-  window.__lab = { scene, state, people, donkey: () => donkey, chassis: () => chassis, vehicle: () => vehicle, G, step, render, act, input, keys, camera, cam, renderer, frameMs: () => frameMs, player };
+  window.__lab = { audio: () => audio, scene, state, people, donkey: () => donkey, chassis: () => chassis, vehicle: () => vehicle, G, step, render, act, input, keys, camera, cam, renderer, frameMs: () => frameMs, player };
 }
 boot().catch(e => { status('Could not start: ' + e.message); console.error(e); });
