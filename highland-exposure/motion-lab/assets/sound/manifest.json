@@ -6,10 +6,22 @@
    "from_s": 121.0,
    "len_s": 75
   },
+  "amb_night": {
+   "file": "amb_night.mp3",
+   "loop": true,
+   "from_s": 57.0,
+   "len_s": 60
+  },
   "amb_fire_voices": {
    "file": "amb_fire_voices.mp3",
    "loop": true,
    "from_s": 200.0,
+   "len_s": 60
+  },
+  "amb_xmas_night": {
+   "file": "amb_xmas_night.mp3",
+   "loop": true,
+   "from_s": 75.0,
    "len_s": 60
   },
   "bird_baro": {

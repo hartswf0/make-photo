@@ -8,12 +8,28 @@
   "excerpt": "121-196 s, looped"
  },
  {
+  "use": "amb_night",
+  "title": "Awassa night.wav",
+  "author": "bruno.auzet",
+  "license": "CC0 1.0",
+  "source": "https://freesound.org/people/bruno.auzet/sounds/527688",
+  "excerpt": "57-117 s, looped"
+ },
+ {
   "use": "amb_fire_voices",
   "title": "voices around an ethiopian fire.wav",
   "author": "bruno.auzet",
   "license": "CC0 1.0",
   "source": "https://freesound.org/people/bruno.auzet/sounds/527695",
   "excerpt": "200-260 s, looped"
+ },
+ {
+  "use": "amb_xmas_night",
+  "title": "chrismast night in ethiopia.wav",
+  "author": "bruno.auzet",
+  "license": "CC0 1.0",
+  "source": "https://freesound.org/people/bruno.auzet/sounds/527684",
+  "excerpt": "75-135 s, looped"
  },
  {
   "use": "bird_baro",

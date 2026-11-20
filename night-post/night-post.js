@@ -1747,7 +1747,7 @@ void main(){
   /* ---------- WebAudio: 3D Spatial Donkey Panner + Air Lowpass + Beat Detector ---------- */
   const audio = (() => {
     let ctx = null, master = null, enabled = false, analyser = null, freqData = null, tapeConnected = false;
-    let panner = null, airFilter = null, spatialGain = null, directGain = null, recDest = null;
+    let panner = null, airFilter = null, spatialGain = null, directGain = null, recDest = null, musicOut = null, synthOut = null;
     let spatialMode = true, distMeters = 5.0, falloffDb = 0, prevBass = 0, beatEnv = 0;
     const bands12 = new Float32Array(12);
     const clocks = [{ period: 1.0, acc: 0, ratio: 1.0, pan: -.45 }, { period: 1.37, acc: .35, ratio: 1.25, pan: 0 }, { period: 1.73, acc: .8, ratio: 1.5, pan: .45 }];
@@ -1755,7 +1755,7 @@ void main(){
       if (!ctx) {
         const AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return false;
-        ctx = new AC(); master = ctx.createGain(); master.gain.value = .5; master.connect(ctx.destination);
+        ctx = new AC(); master = ctx.createGain(); master.gain.value = .5; master.connect(synthOut || ctx.destination);
       }
       if (ctx.state === "suspended") ctx.resume().catch(() => {});
       return true;
@@ -1773,8 +1773,8 @@ void main(){
         spatialGain = ctx.createGain(); spatialGain.gain.value = spatialMode ? 1.0 : 0.0;
         directGain = ctx.createGain(); directGain.gain.value = spatialMode ? 0.0 : .85;
         src.connect(analyser);
-        analyser.connect(airFilter); airFilter.connect(panner); panner.connect(spatialGain); spatialGain.connect(ctx.destination);
-        analyser.connect(directGain); directGain.connect(ctx.destination);
+        analyser.connect(airFilter); airFilter.connect(panner); panner.connect(spatialGain); spatialGain.connect(musicOut || ctx.destination);
+        analyser.connect(directGain); directGain.connect(musicOut || ctx.destination);
         if (recDest) { spatialGain.connect(recDest); directGain.connect(recDest); }
         tapeConnected = true;
       } catch {}
@@ -1880,6 +1880,12 @@ void main(){
     }
     return {
       toggle() { enabled = !enabled; if (enabled) ensure(); return enabled; },
+      context() { return ensure() ? ctx : null; },
+      route(musicIn, synthIn) {           // the Ahiya field mixer takes the tape and the tones onto its own buses
+        musicOut = musicIn; synthOut = synthIn;
+        if (master) { master.disconnect(); master.connect(synthOut); if (recDest) master.connect(recDest); }
+        for (const g of [spatialGain, directGain]) if (g) { g.disconnect(); g.connect(musicOut); if (recDest) g.connect(recDest); }
+      },
       isOn: () => enabled, connectTape, getRecordStream, sampleTape, setSpatialMode, isSpatial: () => spatialMode, updateSpatial,
       getDistFalloff: () => ({ distMeters, falloffDb }),
       shutter() { tone(190, .06, .18, "square", 0, true); setTimeout(() => tone(840, .04, .09, "triangle", 0, true), 35); },
@@ -3512,7 +3518,7 @@ void main(){
 
     donkey.place(-26.0, -1.2, -Math.PI * .45, (x, z) => driveSurfaceAt(x, z));
     donkey.update(.016, { throttle: 0, steer: 0, pace: 0, near: 1, drop: 0 }, (x, z) => driveSurfaceAt(x, z));
-    donkey.state.onStep = (leg, gait) => audio.step(leg, gait);
+    donkey.state.onStep = (leg, gait) => { audio.step(leg, gait); if (DEMO && field && field.ready && leg && leg.pos) field.hoof(leg.pos, gait, Math.hypot(leg.pos.x + 1630, leg.pos.z - 665) < 300 && nearSet(leg.pos.x, leg.pos.z) < 6); };
     state.y = driveSurfaceAt(state.x, state.z) + 1.68;
     const cast = window.makeExpeditionCast ? window.makeExpeditionCast(T, {
       parent: actorRoot, surfaceAt: driveSurfaceAt, hasAhiya: true
@@ -3880,7 +3886,7 @@ void main(){
 
       // Trigger rich 3D/WebAudio feedback per NightPost verb
       const verb = actionId.split(":")[0], arg = actionId.split(":")[1];
-      if (verb === "pump" || verb === "overdraw") { state.pumpFlow = 1.0; state.donkeyWater = 1.0; state.donkeyCollapsed = false; audio.pumpClank(); }
+      if (verb === "pump" || verb === "overdraw") { state.pumpFlow = 1.0; state.donkeyWater = 1.0; state.donkeyCollapsed = false; audio.pumpClank(); if (DEMO && field && field.ready) field.pumpStrokes(new T.Vector3(-1460, driveSurfaceAt(-1460, 760) + 1.1, 760), verb === "overdraw" ? 7 : 4); }
       else if (verb === "water") { state.donkeyWater = 1.0; state.donkeyCollapsed = false; triggerDance(2.2, true); }
       else if (verb === "screen") { openScreeningCard(npState.active === "west" ? "WF-08" : "AR-03", npCarrier().log.at(-1)?.text); audio.relayChime(true); }
       else if (verb === "listen") {
@@ -5946,6 +5952,8 @@ void main(){
       else if (e.code === "KeyL") toggleLidar();
       else if (e.code === "KeyU" && !e.repeat) { if (machinima) machinima.toggle("trailer"); }
       else if (e.code === "KeyY" && !e.repeat) toggleInWorldVideo();
+      else if (e.code === "KeyO" && DEMO && !e.repeat) { startField(); if (field) field.panel(!field.panelOpen); }
+      else if (e.code === "KeyN" && DEMO && !e.repeat && state.drivingCart) { if (field && field.radio) field.radio.tune(); }
       else if (e.code === "KeyZ" && DEMO && !e.repeat) { if (demo.withCh && demo.ui) { e.preventDefault(); demo.ui.input.focus(); } }
       else if (e.code === "KeyM") openNpDispatch();
       else if (e.code === "Tab") { e.preventDefault(); switchNpCircuit(); }
@@ -6156,6 +6164,67 @@ void main(){
     /* ---------- AHIYA PLAYABLE DEMO (?demo=ahiya): solid sets and people, human pace, slope-aware wagon, cast who answer ---------- */
     const DEMO = urlParams.get("demo") === "ahiya";
     const demo = { solids: null, grid: new Map(), ui: null, withCh: null, line: null, keep: null };
+    /* ---------- Ahiya field sound: real recordings, mixed on six buses, visible in the world ---------- */
+    let field = null, fieldStarting = false;
+    const AHIYA_SETS = [[-1460, 760], [-1610, 590], [-1765, 540], [-1680, 775]];
+    const nearSet = (x, z) => Math.min(...AHIYA_SETS.map(([a, b]) => Math.hypot(x - a, z - b)));
+    function startField() {
+      if (!DEMO || field || fieldStarting || !window.makeAhiyaSound) return; fieldStarting = true;
+      const ctx = audio.context(); if (!ctx) return;
+      const at = (x, z, up = 1.4) => new T.Vector3(x, driveSurfaceAt(x, z) + up, z);
+      field = window.makeAhiyaSound(T, { ctx, camera, base: "./sound/", anchors: {
+        pump: at(-1460, 760, 1.1), beacon: at(-1610, 590, 3), beaconTop: at(-1617, 590, 36), compound: at(-1680, 775, 2.2), compoundYard: at(-1676, 772, 1.2),
+        archive: at(-1765, 540, 1.4), dog: at(-1700, 800, .5) } });
+      audio.route(field.busInput("music"), field.busInput("synth"));
+      field.load().then(() => { fieldReadyAt = performance.now(); }).catch(e => console.warn("field sound", e));
+      // the height range of the real Ahiya ground, for the wind
+      let lo = Infinity, hi = -Infinity; for (let x = -1940; x <= -1320; x += 20) for (let z = 380; z <= 950; z += 20) { const y = driveSurfaceAt(x, z); lo = Math.min(lo, y); hi = Math.max(hi, y); } field.lo = lo; field.hi = hi;
+    }
+    let fieldReadyAt = 0, fieldLast = null, stepAcc = 0;
+    const ringPool = [];
+    function ring(color) {
+      // sound markers: a broken ring on the ground and a thin post, coloured by bus, so they never read as the game's relay rings
+      const m = new T.Group(), mat = new T.MeshBasicMaterial({ color, transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide });
+      for (let i = 0; i < 12; i++) { const seg = new T.Mesh(new T.RingGeometry(.84, 1, 6, 1, i * Math.PI / 6, Math.PI / 9), mat); seg.rotation.x = -Math.PI / 2; m.add(seg); }
+      const post = new T.Mesh(new T.CylinderGeometry(.012, .012, 1, 4), mat); post.position.y = .5; m.add(post); m.post = post;
+      m.material = mat; m.renderOrder = 20; m.visible = false; mw.world.add(m); return m;
+    }
+    const BUS_COLOR = { music: 0xffd27a, radio: 0xff9fd0, ambience: 0x6fb8ff, foley: 0x38e8ff, life: 0x9dff9a, synth: 0xbbbbbb };
+    function fieldTick(dt) {
+      if (!field || !field.ready) return;
+      const onFoot = !state.drivingCart && !state.riding && !state.gliding;
+      const here = { x: state.x, z: state.z }, moved = fieldLast ? Math.hypot(here.x - fieldLast.x, here.z - fieldLast.z) : 0; fieldLast = here;
+      const speed = dt > 0 ? moved / dt : 0, running = speed > 3.2;
+      if (onFoot && moved < 3) {                                   // a step each stride of real ground covered
+        stepAcc += moved; const stride = running ? 1.05 : .72;
+        if (stepAcc > stride) { stepAcc %= stride; const gy = driveSurfaceAt(state.x, state.z); field.footstep({ x: state.x, y: gy + .02, z: state.z, yaw: state.yaw, load: npCarrier().liters > 12 ? .92 : 1 }, speed, nearSet(state.x, state.z) < 7 ? "stone" : "dirt", running); }
+      } else stepAcc = 0;
+      const gy = driveSurfaceAt(state.x, state.z), dHead = donkey.group.position.clone(); dHead.y += 1.35;
+      const thr = (keys.KeyW || keys.ArrowUp) ? 1 : 0;
+      field.update(dt, { heightRel: Math.max(0, Math.min(1, (gy - field.lo) / Math.max(1, field.hi - field.lo))), shelter: Math.max(0, 1 - nearSet(state.x, state.z) / 14), speed,
+        wagon: { on: state.drivingCart, speed: wagon.speed || 0, throttle: state.drivingCart ? thr : 0, pos: wagon.group.position },
+        talking: !!demo.line, watch: npCarrier().watch || 0, compoundOpen: npCarrier().visited.includes("beacon"), donkeyHead: dHead });
+      field.drawPanel(dt);
+      // sound made visible: a ring on the ground under each source, sized by how loud it is where you stand; a ripple for each hit
+      const show = field.panelOpen && field.showRings, now = field.ctx ? 0 : 0;
+      let k = 0;
+      if (show) {
+        for (const E of field.emitters) {
+          if (!E.pos || E.target < .01) continue; const m = ringPool[k] || (ringPool[k] = ring(0xffffff)); k++;
+          const lv = Math.max(0, (E.level + 70) / 50), y = driveSurfaceAt(E.pos.x, E.pos.z) + .08;
+          m.material.color.setHex(BUS_COLOR[E.bus] || 0xffffff); m.position.set(E.pos.x, y, E.pos.z); const sc = .6 + lv * 4 + Math.sin(performance.now() / 300 + k) * .15 * lv; m.scale.set(sc, Math.max(.5, (E.pos.y - y) / Math.max(.3, sc) + .4), sc);
+          m.material.opacity = .25 + .55 * Math.min(1, lv); m.visible = true;
+        }
+        const t = audio.context().currentTime;
+        for (const H of field.hits) {
+          const age = t - H.t; if (age > .9 || age < 0) continue; const m = ringPool[k] || (ringPool[k] = ring(0xffffff)); k++;
+          m.material.color.setHex(BUS_COLOR[H.bus] || 0xffffff); m.position.set(H.pos.x, driveSurfaceAt(H.pos.x, H.pos.z) + .06, H.pos.z);
+          m.scale.setScalar(.15 + age * 2.4 * (.6 + H.gain)); m.material.opacity = (1 - age / .9) * .9; m.visible = true;
+        }
+      }
+      for (; k < ringPool.length; k++) ringPool[k].visible = false;
+      if (demo.ui) { const b = demo.ui.radioBtn; if (b) { b.hidden = !state.drivingCart; b.textContent = field.radio && field.radio.on ? "Radio · " + field.radio.name : "Radio"; } }
+    }
     const DEMO_BOX = [-1976, -1284, 348, 982];
     function demoBuildSolids() {
       demo.solids = []; demo.grid.clear();
@@ -6342,7 +6411,7 @@ void main(){
         #demo-brief{left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);width:min(520px,calc(100vw - 32px));background:rgba(8,20,30,.94);border:1px solid #38e8ff;border-radius:10px;padding:12px 16px}
         #demo-brief ul{margin:6px 0 8px;padding-left:18px}
         body.demo-clean #top-left,body.demo-clean #reel-col,body.demo-clean #rack-tray,body.demo-clean #wedge-wrap,body.demo-clean #focus-dock,body.demo-clean #keys,
-        body.demo-clean #ppc-hud,body.demo-clean #inworld-video-bar,body.demo-clean #field-status,body.demo-clean #field-tools,body.demo-clean #field-actions{display:none!important}
+        body.demo-clean #ppc-hud,body.demo-clean #inworld-video-bar,body.demo-clean #field-status,body.demo-clean #field-tools,body.demo-clean #field-actions,body.demo-clean #np-radio-host,body.demo-clean .hs-radio-hud{display:none!important}
         #demo-sig{display:inline-flex;gap:2px;align-items:flex-end;height:12px}#demo-sig i{width:4px;background:#26343c;border-radius:1px}#demo-sig i.on{background:#38e8ff}
         #demo-sig i:nth-child(1){height:4px}#demo-sig i:nth-child(2){height:7px}#demo-sig i:nth-child(3){height:10px}#demo-sig i:nth-child(4){height:12px}
         #demo-phone h4{cursor:pointer}
@@ -6356,18 +6425,23 @@ void main(){
         <div id="demo-brief" class="dm"><b>Ahiya demo</b>
           <ul><li>Walk up to anyone. They greet you. Tap the bar that appears (or press Z), then type or speak.</li>
           <li>Ask for things in words: “draw” at the pump, “where is the archive”, “show me your phone”.</li>
-          <li>Your phone shows the water you carry and whether you can see the beacon.</li></ul>
+          <li>Your phone shows the water you carry and whether you can see the beacon.</li>
+          <li>Wear headphones. Every sound is a recording placed where it happens; open Listen on the phone (or press O) to see and mix it.</li></ul>
           <button id="demo-brief-ok">Begin at the Basalt Pump</button></div>
         <div id="demo-bub" class="dm" hidden><b></b><span></span></div>
         <div id="demo-you" class="dm" hidden></div>
         <form id="demo-say" class="dm" hidden autocomplete="off"><input id="demo-in" maxlength="140" aria-label="Say something" placeholder=""><button type="button" id="demo-mic" aria-pressed="false">Mic</button><button type="submit">Say</button></form>
         <div id="demo-phone" class="dm shut"><h4><span>CARRIER</span><span id="demo-sig"><i></i><i></i><i></i><i></i></span></h4><div id="demo-can"><i></i><u></u></div>
-          <p id="demo-lit"></p><p id="demo-los"></p><div id="demo-thread"></div><p id="demo-btns"><button type="button" id="demo-voice" aria-pressed="true">Voice on</button> <button type="button" id="demo-hud" aria-pressed="false">Full HUD</button></p></div>`;
+          <p id="demo-lit"></p><p id="demo-los"></p><div id="demo-thread"></div><p id="demo-btns"><button type="button" id="demo-voice" aria-pressed="true">Voice on</button> <button type="button" id="demo-hud" aria-pressed="false">Full HUD</button> <button type="button" id="demo-listen">Listen</button> <button type="button" id="demo-radio" hidden>Radio</button></p></div>`;
       document.body.append(el);
       const q = id => el.querySelector("#" + id);
       const ui = demo.ui = { brief: q("demo-brief"), bub: q("demo-bub"), you: q("demo-you"), say: q("demo-say"), input: q("demo-in"), mic: q("demo-mic"), sig: q("demo-sig"), can: q("demo-can").firstElementChild,
-        lit: q("demo-lit"), los: q("demo-los"), thread: q("demo-thread"), voice: q("demo-voice") };
-      q("demo-brief-ok").onclick = () => { ui.brief.hidden = true; };
+        lit: q("demo-lit"), los: q("demo-los"), thread: q("demo-thread"), voice: q("demo-voice"), radioBtn: q("demo-radio") };
+      q("demo-brief-ok").onclick = () => { ui.brief.hidden = true; startField(); };
+      const kick = () => { startField(); removeEventListener("pointerdown", kick, true); removeEventListener("keydown", kick, true); };
+      addEventListener("pointerdown", kick, true); addEventListener("keydown", kick, true);       // sound begins with the first touch, wherever it lands
+      q("demo-listen").onclick = () => { startField(); if (field) field.panel(!field.panelOpen); };
+      q("demo-radio").onclick = () => { if (field && field.radio) field.radio.tune(); };
       document.body.classList.add("demo-clean");
       const phone = q("demo-phone"); phone.firstElementChild.onclick = () => phone.classList.toggle("shut");
       q("demo-hud").onclick = e => { const on = document.body.classList.toggle("demo-clean"); e.currentTarget.setAttribute("aria-pressed", !on); };
@@ -6462,6 +6536,7 @@ void main(){
         if (L.t > L.dur) { const end = L.end; demoRestore(); if (end) demo.withCh = null; }
       }
       if (demo.youUntil && now > demo.youUntil) { ui.you.hidden = true; demo.youUntil = 0; }
+      fieldTick(dt);
       if (!ui.brief.hidden && demo.startXZ && Math.hypot(state.x - demo.startXZ[0], state.z - demo.startXZ[1]) > 1.5) ui.brief.hidden = true;
       if (!demo.startXZ && demo.started) demo.startXZ = [state.x, state.z];
       ui.say.hidden = !ch; if (ch && document.activeElement !== ui.input) ui.input.placeholder = `Z · say something to ${demoName(ch)}`;
@@ -6731,7 +6806,8 @@ void main(){
       if (physParticles) physParticles.update(dt, driveSurfaceAt);
 
       /* --- HighlandSoundscape Spatial Audio + 4-Station Radio Bridge --- */
-      if (window.HighlandSoundscape) {
+      // In the Ahiya demo the field mixer (ahiya-sound.js) carries the world's sound, so this bridge stands down there.
+      if (window.HighlandSoundscape && !DEMO) {
         const HS = window.HighlandSoundscape;
         if (!window._npSoundscapeState) {
           window._npSoundscapeState = { ready: false, radioMounted: false, stepDist: 0, lastX: state.x, lastZ: state.z, donkeyTimer: 11 };
@@ -7351,7 +7427,7 @@ void main(){
       demo: () => ({ on: DEMO, solids: demo.solids ? demo.solids.length : (DEMO ? (demoBuildSolids(), demo.solids.length) : 0), withCh: demo.withCh ? demo.withCh.state.id : null, line: demo.line ? demo.line.text : "", pose: demo.withCh ? demo.withCh.state.pose : "",
         speaking: demo.withCh ? Boolean(demo.withCh.state.poseOpts && demo.withCh.state.poseOpts.speaking) : false, signal: demo.signal, thread: demo.thread || [] }),
       demoSay: t => demoSay(t), demoResolve: (x, z, r) => demoResolve(x, z, r || .35), wagonState: () => ({ x: wagon.x, z: wagon.z, speed: wagon.speed, heading: wagon.heading }),
-      setKey: (code, down) => { keys[code] = !!down; }, toggleCart: () => toggleCart(), simOnce: dt => step(dt || .05),
+      setKey: (code, down) => { keys[code] = !!down; }, toggleCart: () => toggleCart(), field: () => field, startField: () => startField(), simOnce: dt => step(dt || .05),
       repairWagon: () => repairWagonAtStation(),
       triggerImpact: (sev = 22, type = "rock") => { if (vehPhys) { vehPhys.applyImpact(sev, type, onVehicleImpact); applyWagonVisuals(); updateHUD(); } },
       triggerSlosh: (ix = 4.2, iz = 3.2) => { if (waterSlosh) waterSlosh.impulse(ix, iz); },
