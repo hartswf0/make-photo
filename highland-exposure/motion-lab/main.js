@@ -226,7 +226,7 @@ const CAST = {
 const CLIPS = ['walk', 'walk-female', 'run-female', 'walk-carry', 'jog', 'idle-subtle', 'idle-listening', 'idle-talking', 'idle-talkingphone', 'idle-foldarms', 'greeting', 'head-nod', 'yes', 'driving', 'hammering'];
 let skelGltf, clipLib = {}, walkSpeed = 1.3, jogSpeed = 3.2;
 async function loadClips() {
-  skelGltf = await load('assets/clips/_skeleton.glb');
+  skelGltf = await load('assets/clips/skeleton.glb');
   await Promise.all(CLIPS.map(async n => { try { const g = await load('assets/clips/' + n + '.glb'); clipLib[n] = g.animations[0]; } catch (e) { /* optional */ } }));
   const sk = SkeletonUtils.clone(skelGltf.scene);
   clipLib.walk = clipLib['walk-female'] || clipLib.walk; clipLib.jog = clipLib['run-female'] || clipLib.jog;              // the most upright walk and run in the library
