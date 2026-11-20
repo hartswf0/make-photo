@@ -68,7 +68,7 @@ PHENOTYPES = {
         "noseBridge": 0.98,
         "noseTipProj": 0.0985,
         "noseTipLiftY": 0.0026,
-        "alarWidth": 0.0186,
+        "alarWidth": 0.0166,
         "lipFullU": 1.06,
         "lipFullL": 1.08,
         "mouthWidth": 0.0256,
@@ -95,7 +95,7 @@ PHENOTYPES = {
         "noseBridge": 0.98,
         "noseTipProj": 0.0988,
         "noseTipLiftY": 0.0028,
-        "alarWidth": 0.0192,
+        "alarWidth": 0.0170,
         "lipFullU": 1.10,
         "lipFullL": 1.12,
         "mouthWidth": 0.0260,
@@ -281,7 +281,7 @@ def eval_sculpted_head_point(sa, ca, y_base, z0, rw, rf, rb, p, include_lips=Tru
             if u_jaw < 1.15:
                 z_pogo = p["chinProj"]
                 labio_dip = -0.0034 * float(g1(y_base, 1.5365 + chin_lift * 0.4, 0.0056))
-                pogo_ball = +0.0034 * float(g1(y_base, y_pogo, 0.0098))
+                pogo_ball = +0.0044 * float(g1(y_base, y_pogo, 0.0104))
                 oral_barrel = -0.0024 * float(smooth(1.538, 1.568, y_base))
                 z_apex = z_pogo + pogo_ball + labio_dip + oral_barrel
 
@@ -372,15 +372,15 @@ def eval_sculpted_head_point(sa, ca, y_base, z0, rw, rf, rb, p, include_lips=Tru
 
         t_dorsum = float(clamp((1.625 - y_base) / max(0.015, 1.625 - tip_y), 0.0, 1.0))
         dorsum_env = t_dorsum * (1.0 - float(smooth(tip_y - 0.002, tip_y - 0.012, y_base))) * float(smooth(1.628, 1.616, y_base))
-        bridge_w = lerp_s(0.0076, 0.0112, t_dorsum)
+        bridge_w = lerp_s(0.0068, 0.0092, t_dorsum)
         bridge = float(g1(ax, 0.0, bridge_w)) * dorsum_env * float(smooth(0.50, 0.98, ca))
         sidewall = float(g1(ax, bridge_w * 1.30, 0.0062)) * dorsum_env * float(smooth(0.45, 0.95, ca))
 
-        nose_tip = float(g1(ax, 0.0, 0.0128)) * float(g1(y_base, tip_y, 0.0112)) * float(smooth(0.58, 1.0, ca))
+        nose_tip = float(g1(ax, 0.0, 0.0102)) * float(g1(y_base, tip_y, 0.0108)) * float(smooth(0.58, 1.0, ca))
         columella = float(g1(ax, 0.0, 0.0050)) * float(g1(y_base, tip_y - 0.0072, 0.0068)) * float(smooth(0.65, 1.0, ca))
         subnasale_ramp = float(g1(ax, 0.0, 0.0150)) * float(g1(y_base, tip_y - 0.0130, 0.0085)) * float(smooth(0.62, 1.0, ca))
 
-        alar = float(g2(ax, y_base, alar_w * 0.80, tip_y - 0.0040, alar_w * 0.36, 0.0058)) * float(smooth(0.42, 0.96, ca))
+        alar = float(g2(ax, y_base, alar_w * 0.82, tip_y - 0.0046, alar_w * 0.32, 0.0052)) * float(smooth(0.42, 0.96, ca))
         alar_groove = float(g2(ax, y_base, alar_w * 1.06, tip_y - 0.0030, 0.0030, 0.0060)) * float(smooth(0.45, 0.94, ca))
         n_dx = (ax - alar_w * 0.48) / 0.0034
         n_dy = (y_base - (tip_y - 0.0072 - 0.0010 * (ax / max(0.01, alar_w)))) / 0.0021
@@ -390,10 +390,10 @@ def eval_sculpted_head_point(sa, ca, y_base, z0, rw, rf, rb, p, include_lips=Tru
         tip_ball = tip_amp * nose_tip
         nose_mid_z = max(dorsum_ridge, tip_ball) + 0.16 * min(dorsum_ridge, tip_ball)
 
-        lz += (-0.0016 * nasion_dip + nose_mid_z + 0.0064 * columella + 0.0046 * subnasale_ramp + 0.0105 * alar - 0.0024 * alar_groove)
+        lz += (-0.0016 * nasion_dip + nose_mid_z + 0.0064 * columella + 0.0046 * subnasale_ramp + 0.0124 * alar - 0.0026 * alar_groove)
         lz -= 0.0034 * nostril_hole
         ly += 0.0012 * nostril_hole
-        lx += s_lat * (0.0042 * alar - 0.0006 * alar_groove)
+        lx += s_lat * (0.0028 * alar - 0.0008 * alar_groove)
 
         # Zygomatic Arch & Smooth 2.5x Wider-Falloff Malar-to-Buccal Flow (ZERO 3/4 cheek horizontal shelf!)
         malar_sweep_y = 1.596 + 0.005 * float(smooth(0.036, 0.066, ax))
@@ -421,17 +421,17 @@ def eval_sculpted_head_point(sa, ca, y_base, z0, rw, rf, rb, p, include_lips=Tru
             taper_u = math.pow(max(0.0, 1.0 - min(1.0, u_m / 1.02) ** 1.85), 0.82) * float(smooth(0.56, 1.0, ca))
             taper_l = math.pow(max(0.0, 1.0 - min(1.0, u_m / 0.96) ** 1.80), 0.84) * float(smooth(0.56, 1.0, ca))
             cupid_peak = 0.00155 * float(g1(ax, 0.0054, 0.0029)) - 0.00070 * float(g1(ax, 0.0, 0.0021))
-            u_lip = float(g1(y_base, 1.5568 + cupid_peak - 0.0018 * min(1.05, u_m * u_m), 0.0064)) * taper_u
-            l_lip = float(g1(y_base, 1.5474 + 0.0014 * min(1.05, u_m * u_m), 0.0070)) * taper_l
+            u_lip = float(g1(y_base, 1.5570 + cupid_peak - 0.0018 * min(1.05, u_m * u_m), 0.0070)) * taper_u
+            l_lip = float(g1(y_base, 1.5472 + 0.0014 * min(1.05, u_m * u_m), 0.0076)) * taper_l
             modiolus_fill = float(g2(ax, y_base, mw_lip * 0.78, 1.5525, 0.0075, 0.0068)) * float(smooth(0.58, 0.96, ca))
 
             rima_y = 1.5525 - 0.00035 * float(g1(ax, 0.0, 0.0040)) + 0.00032 * float(g1(ax, 0.0080, 0.0040)) + 0.00024 * float(smooth(0.58, 0.92, u_m))
             rima_gate = (1.0 - float(smooth(0.46, 0.78, u_m))) * float(smooth(0.070, 0.078, z0 + rf)) * float(smooth(0.68, 1.0, ca))
             rima = float(g1(y_base, rima_y, 0.0013)) * rima_gate
 
-            lz += (0.0044 * phil_support - 0.0010 * phil_dimple + 0.0012 * phil_ridge
-                   + 0.0098 * u_lip * p["lipFullU"]
-                   + 0.0100 * l_lip * p["lipFullL"]
+            lz += (0.0056 * phil_support - 0.0010 * phil_dimple + 0.0012 * phil_ridge
+                   + 0.0128 * u_lip * p["lipFullU"]
+                   + 0.0132 * l_lip * p["lipFullL"]
                    + 0.0012 * modiolus_fill
                    - 0.0016 * rima)
 

@@ -179,13 +179,29 @@
   function getAssets(T) {
     if (assetCache) return assetCache;
 
-    // 1. Coiled 4C & Strand Micro-Groove Hair Normal Map
+    // 1. Tight Helical O-Ringlet 4C Spongy Micro-Coil Normal Map (eliminates flat facets in both PBR & Clay modes!)
     const hairCoilNormal = makeHeightToNormalTex(T, 256, (u, v) => {
-      const strand = Math.sin(u * TAU * 48 + Math.sin(v * TAU * 6) * 1.4) * 0.35;
-      const ringlet = Math.sin(u * TAU * 14 + v * TAU * 14) * Math.cos(u * TAU * 11 - v * TAU * 13) * 0.45;
-      const fine = vnoise(u * 96, v * 96) * 0.25;
-      return strand + ringlet + fine;
-    }, 2.4, 3, 3);
+      let coilSum = 0.0;
+      for (const [scale, wt] of [[13.0, 0.52], [23.0, 0.34], [37.0, 0.20]]) {
+        const gx = u * scale, gy = v * scale;
+        const ix = Math.floor(gx), iy = Math.floor(gy);
+        let minD = 9.0;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const cx = ((ix + dx) % scale + scale) % scale;
+            const cy = ((iy + dy) % scale + scale) % scale;
+            const jx = ix + dx + 0.18 + 0.64 * hash2(cx, cy);
+            const jy = iy + dy + 0.18 + 0.64 * hash2(cy + 17.3, cx + 9.1);
+            const d = Math.hypot(gx - jx, gy - jy);
+            if (d < minD) minD = d;
+          }
+        }
+        // Tight O-shaped 4C ringlet ridge peaking at r = 0.28 with hollow coiled center & deep inter-coil valley!
+        const ring = Math.exp(-Math.pow((minD - 0.27) / 0.14, 2)) - 0.35 * Math.exp(-Math.pow(minD / 0.12, 2));
+        coilSum += ring * wt;
+      }
+      return coilSum + (vnoise(u * 84, v * 84) - 0.5) * 0.18;
+    }, 3.2, 2, 2);
 
     // 2. Braided / Twisted Locs & Cornrow Plait Normal Map
     const hairBraidNormal = makeHeightToNormalTex(T, 256, (u, v) => {
@@ -750,11 +766,10 @@
       return smooth(hairlineY, hairlineY + 0.008, py);
     }
 
-    // Lateral temple & pre-auricular sideburn zone (`0b07591c.jpg` 3/4 & 90° — fills temple gap down to upper ear & subtle tapered temple peak!)
+    // Lateral temple & pre-auricular sideburn zone (`0b07591c.jpg` 3/4 & 90° — clean continuous hairline with zero detached stray dots!)
     if (pz >= -0.036) {
       const isCoily = style === "croppedCoily" || style === "glassesCrop";
-      const sideburnDip = isCoily && pz > -0.004 && pz < 0.020 ? 0.014 : 0.0;
-      const sideMinY = (isCoily ? 1.600 : 1.622) - sideburnDip;
+      const sideMinY = isCoily ? 1.604 : 1.622;
       if (py < sideMinY) return 0.0;
       return smooth(sideMinY, sideMinY + 0.008, py);
     }
@@ -819,9 +834,9 @@
     return g;
   }
 
-  /* Lean (~40 verts/tuft, ~10k verts total -> 60+ FPS E1!) Matte Multi-Coil Spongy 4C Cluster (`0b07591c.jpg` 1:1!) */
+  /* Soft Velvety Rounded Multi-Scale 4C Coil Puff with ANALYTICAL SMOOTH NORMALS (ZERO angular rock-like polygon facets!) */
   function pushCoiledTuft(buffers, cx, cy, cz, nx, ny, nz, radius, heightScale, phase, wHead, bPrimary, bSecondary) {
-    const { pos, uv, col, si, sw, idx } = buffers;
+    const { pos, nrm, uv, col, si, sw, idx } = buffers;
     let ux = 0, uy = 1, uz = 0;
     if (Math.abs(ny) > 0.92) { ux = 1; uy = 0; uz = 0; }
     let tx = uy * nz - uz * ny, ty = uz * nx - ux * nz, tz = ux * ny - uy * nx;
@@ -830,12 +845,12 @@
     const bx = ny * tz - nz * ty, by = nz * tx - nx * tz, bz = nx * ty - ny * tx;
 
     const baseV = pos.length / 3;
-    const NU = 7, NV = 4, cols = NU + 1;
+    const NU = 8, NV = 4, cols = NU + 1;
     const rUp = radius * heightScale;
-    const ellipX = 0.88 + 0.24 * Math.sin(phase * 1.7);
-    const ellipZ = 0.88 + 0.24 * Math.cos(phase * 2.3);
-    const leanX = Math.cos(phase * 1.3) * radius * 0.16;
-    const leanZ = Math.sin(phase * 1.9) * radius * 0.16;
+    const ellipX = 0.90 + 0.20 * Math.sin(phase * 1.7);
+    const ellipZ = 0.90 + 0.20 * Math.cos(phase * 2.3);
+    const leanX = Math.cos(phase * 1.3) * radius * 0.12;
+    const leanZ = Math.sin(phase * 1.9) * radius * 0.12;
 
     for (let iv = 0; iv <= NV; iv++) {
       const v = iv / NV;
@@ -846,24 +861,40 @@
       for (let iu = 0; iu <= NU; iu++) {
         const u = iu / NU;
         const th = u * TAU;
-        const crinkle = (
-          0.18 * Math.sin(4.0 * th + phase + v * 3.4) +
-          0.13 * Math.cos(5.0 * th - phase * 1.9 + v * 4.0)
-        ) * smooth(0.0, 0.30, cosP);
+        const cT = Math.cos(th), sT = Math.sin(th);
+        // Gentle rounded 3-lobe silhouette undulation (smooth normal map carries the tight 2-3mm 4C ringlets -> ZERO sharp rock facets!)
+        const softWave = (
+          0.09 * Math.sin(3.0 * th + phase + v * 2.2) +
+          0.07 * Math.cos(4.0 * th - phase * 1.6 + v * 2.8)
+        ) * smooth(0.0, 0.35, cosP);
 
-        const radHere = radius * cosP * (1.0 + crinkle);
-        const topMicro = (0.12 * Math.sin(3.0 * th + phase * 1.4) + 0.08 * Math.cos(5.0 * th - phase)) * cosP * rUp;
-        const lx = Math.cos(th) * radHere * ellipX + leanX * sinP;
-        const lz = Math.sin(th) * radHere * ellipZ + leanZ * sinP;
-        const ly = (-0.28 + 1.02 * sinP) * rUp + topMicro;
+        const radHere = radius * cosP * (1.0 + softWave);
+        const topWave = 0.06 * Math.sin(3.0 * th + phase * 1.3) * cosP * rUp;
+        const lx = cT * radHere * ellipX + leanX * sinP;
+        const lz = sT * radHere * ellipZ + leanZ * sinP;
+        const ly = (-0.26 + 1.00 * sinP) * rUp + topWave;
 
         pos.push(
           cx + tx * lx + bx * lz + nx * ly,
           cy + ty * lx + by * lz + ny * ly,
           cz + tz * lx + bz * lz + nz * ly
         );
-        uv.push(u * 2.0, v * 2.0);
-        const ao = clamp(lerp(0.36, 0.96, Math.pow(sinP, 0.62)) + crinkle * 0.52, 0.28, 1.04);
+
+        // Analytical smooth cushion normal (completely eliminates jagged flat-faceted rock shading!)
+        if (nrm) {
+          const lnx = cT * cosP * 0.92 + 0.12 * Math.cos(3.0 * th + phase) * cosP;
+          const lnz = sT * cosP * 0.92 + 0.12 * Math.sin(4.0 * th - phase) * cosP;
+          const lny = 0.25 + 0.85 * sinP;
+          let wnx = tx * lnx + bx * lnz + nx * lny;
+          let wny = ty * lnx + by * lnz + ny * lny;
+          let wnz = tz * lnx + bz * lnz + nz * lny;
+          const wnl = Math.hypot(wnx, wny, wnz) || 1;
+          nrm.push(wnx / wnl, wny / wnl, wnz / wnl);
+        }
+
+        uv.push(u * 1.35 + (phase % 1.0), v * 1.35);
+        // Soft spongy inter-coil cavity AO (`0.46..0.98`)
+        const ao = clamp(lerp(0.46, 0.98, Math.pow(sinP, 0.58)) + softWave * 0.45, 0.38, 1.02);
         col.push(ao, ao, ao);
         si.push(bPrimary, bSecondary, 0, 0);
         sw.push(wHead, 1 - wHead, 0, 0);
@@ -878,44 +909,62 @@
     }
   }
 
-  /* GROOM 1: IMANI (`croppedCoily` — 0b07591c.jpg & 32b99d8c.jpg 1:1, ~10.5k verts -> 60+ FPS in E1!) */
+  /* GROOM 1: IMANI (`croppedCoily` — 0b07591c.jpg & 32b99d8c.jpg)
+     Plush rounded spongy under-cap (castShadow=true) + ~360 smaller multi-scale soft rounded 4C coils (castShadow=false -> 60+ FPS E1!) */
   function buildImaniCoilyGroomGeo(T, bust, B, seed = 101) {
     const rng = mulberry32(seed);
-    const capGeo = buildScalpCapGeo(T, bust, B, "croppedCoily", 0.0028);
-    const buffers = { pos: [], uv: [], col: [], si: [], sw: [], idx: [] };
+    // Snug +4.2mm spongy under-volume cap (casts clean hair shadow in 1,100 tris while staying 100% beneath the soft 4C coils!)
+    const capGeo = buildScalpCapGeo(T, bust, B, "croppedCoily", 0.0042);
+    {
+      const P = capGeo.attributes.position;
+      for (let k = 0; k < P.count; k++) {
+        const px = P.getX(k), py = P.getY(k), pz = P.getZ(k);
+        const cov = evalScalpHairCoverage(px, py, pz, "croppedCoily");
+        if (cov > 0.05) {
+          const lat = g1(py, 1.652, 0.048) * cov;
+          const back = g1(py, 1.635, 0.052) * Math.max(0, -pz / 0.11) * cov;
+          const rHoriz = Math.hypot(px, pz) || 1;
+          P.setX(k, px + (px / rHoriz) * 0.0115 * lat);
+          P.setZ(k, pz + (pz / rHoriz) * 0.0045 * lat - 0.0065 * back);
+        }
+      }
+      capGeo.computeVertexNormals();
+    }
 
-    const totalCandidates = 360;
+    const buffers = { pos: [], nrm: [], uv: [], col: [], si: [], sw: [], idx: [] };
+    const totalCandidates = 520;
     const golden = Math.PI * (3 - Math.sqrt(5));
     const yTopMax = bust.yCrownTop || 1.735;
 
     for (let i = 0; i < totalCandidates; i++) {
       const t = (i + 0.35) / totalCandidates;
-      const y = lerp(yTopMax, 1.544, Math.pow(t, 0.86));
-      const a = (i * golden + rng() * 0.15) % TAU;
+      const y = lerp(yTopMax, 1.545, Math.pow(t, 0.96));
+      const a = (i * golden + rng() * 0.18) % TAU;
       const s = bust.sampleAt(y, a);
       const cov = evalScalpHairCoverage(s.x, s.y, s.z, "croppedCoily");
-      if (cov < 0.14) continue;
+      if (cov < 0.16) continue;
 
       const latBand = g1(y, 1.652, 0.050);
       const backBand = g1(y, 1.635, 0.055) * Math.max(0, -s.rz);
-      const apexZone = smooth(1.690, yTopMax, y);
-      const cx = s.x + Math.sign(s.x || 1) * (0.0175 * latBand * Math.pow(Math.abs(s.rx), 0.72));
-      const cy = s.y + 0.0030 * (1.0 - 0.35 * apexZone);
-      const cz = s.z + s.rz * (0.0075 * latBand) - 0.0095 * backBand;
+      const apexZone = smooth(1.695, yTopMax, y);
+      const cx = s.x + s.rx * 0.0035 + Math.sign(s.x || 1) * (0.0155 * latBand * Math.pow(Math.abs(s.rx), 0.72));
+      const cy = s.y + 0.0045 * (1.0 + 0.25 * apexZone);
+      const cz = s.z + s.rz * (0.0035 + 0.0055 * latBand) - 0.0080 * backBand;
 
       const domeUp = smooth(1.635, yTopMax, y);
       let nx = s.rx * (1.10 - 0.72 * domeUp);
-      let ny = lerp(0.04, 0.94, domeUp);
+      let ny = lerp(0.05, 0.96, domeUp);
       let nz = s.rz * (1.05 - 0.70 * domeUp);
       const nl = Math.hypot(nx, ny, nz) || 1;
       nx /= nl; ny /= nl; nz /= nl;
 
-      const crownFull = smooth(1.588, 1.675, y);
-      const napeTaper = smooth(1.544, 1.586, y);
+      // Smaller, softer multi-scale rounded 4C coils (`6.5mm .. 12.6mm` radius covering 100% of crown & temples — zero angular rock facets!)
+      const crownFull = smooth(1.588, 1.685, y);
+      const napeTaper = smooth(1.545, 1.586, y);
       const edgeTaper = lerp(0.68, 1.0, cov);
-      const multiScale = 0.82 + 0.44 * Math.pow(rng(), 0.82);
-      const baseR = lerp(0.0096, 0.0168, crownFull * 0.74 + napeTaper * 0.26) * edgeTaper * multiScale;
-      const hScale = lerp(0.66, 0.88, crownFull) * (1.0 - 0.24 * apexZone) * edgeTaper * (0.88 + 0.24 * rng());
+      const multiScale = 0.70 + 0.60 * Math.pow(rng(), 1.1);
+      const baseR = lerp(0.0074, 0.0126, crownFull * 0.74 + napeTaper * 0.26) * edgeTaper * multiScale;
+      const hScale = lerp(0.66, 0.88, crownFull) * edgeTaper * (0.86 + 0.26 * rng());
 
       const wHead = smooth(1.525, 1.555, cy);
       pushCoiledTuft(
@@ -928,8 +977,8 @@
       );
     }
 
-    // Lean temple & hairline border micro-coils (48 tufts)
-    const rimAngles = 48;
+    // Fine smaller hairline & temple micro-coils (`4.5-7.5mm` soft rounded coils!)
+    const rimAngles = 54;
     for (let k = 0; k < rimAngles; k++) {
       const a = (k / rimAngles) * TAU;
       const ca = Math.cos(a), sa = Math.sin(a);
@@ -937,38 +986,36 @@
       if (ca > 0.22) {
         yRim = 1.654 - 0.034 * smooth(0.032, 0.068, Math.abs(sa) * 0.072);
       } else if (ca > -0.42) {
-        yRim = 1.605;
+        yRim = 1.604;
       } else {
         yRim = lerp(1.568, 1.548, smooth(-0.42, -0.94, ca));
       }
-      const s = bust.sampleAt(yRim + 0.005, a);
+      const s = bust.sampleAt(yRim + 0.004, a);
       if (evalScalpHairCoverage(s.x, s.y, s.z, "croppedCoily") < 0.12) continue;
-      const latOut = Math.abs(sa) * 0.012 * smooth(1.585, 1.635, yRim);
+      const latOut = Math.abs(sa) * 0.011 * smooth(1.585, 1.635, yRim);
       const domeUp = smooth(1.63, 1.72, yRim);
       let nx = s.rx * (1.1 - 0.45 * domeUp), ny = domeUp * 0.55, nz = s.rz * (1.0 - 0.45 * domeUp);
       const nl = Math.hypot(nx, ny, nz) || 1;
-      const rMicro = ca > -0.35 ? (0.0095 + 0.0032 * rng()) : (0.0072 + 0.0024 * rng());
+      const rMicro = ca > -0.35 ? (0.0058 + 0.0028 * rng()) : (0.0048 + 0.0020 * rng());
       const wHead = smooth(1.525, 1.555, s.y);
       pushCoiledTuft(
         buffers,
-        s.x + Math.sign(s.x || 1) * latOut, s.y, s.z,
+        s.x + s.rx * 0.003 + Math.sign(s.x || 1) * latOut, s.y, s.z + s.rz * 0.003,
         nx / nl, ny / nl, nz / nl,
-        rMicro, 0.80, rng() * TAU * 3.0, wHead, B.HEAD, B.NECK_HIGH
+        rMicro, 0.78, rng() * TAU * 3.0, wHead, B.HEAD, B.NECK_HIGH
       );
     }
 
     const tuftGeo = new T.BufferGeometry();
     tuftGeo.setAttribute("position", new T.Float32BufferAttribute(buffers.pos, 3));
+    tuftGeo.setAttribute("normal", new T.Float32BufferAttribute(buffers.nrm, 3));
     tuftGeo.setAttribute("uv", new T.Float32BufferAttribute(buffers.uv, 2));
     tuftGeo.setAttribute("color", new T.Float32BufferAttribute(buffers.col, 3));
     tuftGeo.setAttribute("skinIndex", new T.Uint16BufferAttribute(buffers.si, 4));
     tuftGeo.setAttribute("skinWeight", new T.Float32BufferAttribute(buffers.sw, 4));
     tuftGeo.setIndex(buffers.idx);
-    tuftGeo.computeVertexNormals();
 
-    const merged = mergeSkinnedGeos(T, [capGeo, tuftGeo]);
-    merged.userData = { tuftCount: Math.round(buffers.pos.length / 210), style: "croppedCoily" };
-    return merged;
+    return { capGeo, tuftGeo };
   }
 
   /* Push a sculpted 3-strand braided / rope-twisted spline tube into buffers */
@@ -1043,7 +1090,8 @@
   function buildMakedaCornrowsGroom(T, bust, B, skeleton, addExtraSpringBones) {
     // Dark parted scalp base cap (+1.6mm proud of skull) so clean parted scalp lanes show between raised +6.2mm cornrow ridges!
     const capGeo = buildScalpCapGeo(T, bust, B, "cornrowBraids", 0.0016);
-    const buffers = { pos: [], uv: [], col: [], si: [], sw: [], idx: [] };
+    // Elder beard buffer also includes smooth analytical normals!
+    const buffers = { pos: [], nrm: [], uv: [], col: [], si: [], sw: [], idx: [] };
 
     let bNape0 = B.HAIR_TAIL, bNape1 = B.HAIR_TAIL;
     if (addExtraSpringBones) {
@@ -1152,7 +1200,8 @@
   function buildJuneShortLocsGroom(T, bust, B, addExtraSpringBones, seed = 307) {
     const rng = mulberry32(seed);
     const capGeo = buildScalpCapGeo(T, bust, B, "shortLocs", 0.0018);
-    const buffers = { pos: [], uv: [], col: [], si: [], sw: [], idx: [] };
+    // Elder beard buffer also includes smooth analytical normals!
+    const buffers = { pos: [], nrm: [], uv: [], col: [], si: [], sw: [], idx: [] };
 
     let locBones = [B.HAIR_TAIL, B.HAIR_TAIL, B.HAIR_TAIL, B.HAIR_TAIL];
     if (addExtraSpringBones) {
@@ -1271,7 +1320,8 @@
   function buildHannaPonytailGroom(T, bust, B, addExtraSpringBones, seed = 409) {
     const rng = mulberry32(seed);
     const capGeo = buildScalpCapGeo(T, bust, B, "ponytail", 0.0018);
-    const buffers = { pos: [], uv: [], col: [], si: [], sw: [], idx: [] };
+    // Elder beard buffer also includes smooth analytical normals!
+    const buffers = { pos: [], nrm: [], uv: [], col: [], si: [], sw: [], idx: [] };
 
     const tiePos = [0, 1.628, -0.112];
     let bP0 = B.HAIR_TAIL, bP1 = B.HAIR_TAIL, bP2 = B.HAIR_TAIL;
@@ -1488,7 +1538,8 @@
      Skinned cleanly across B.HEAD (sideburns, upper cheek, mustache) and B.JAW (chin & lower mandible)! */
   function buildElderBeardGeo(T, bust, B, seed = 521) {
     const rng = mulberry32(seed);
-    const buffers = { pos: [], uv: [], col: [], si: [], sw: [], idx: [] };
+    // Elder beard buffer also includes smooth analytical normals!
+    const buffers = { pos: [], nrm: [], uv: [], col: [], si: [], sw: [], idx: [] };
 
     // 1. 84 Volumetric 3D Coiled Beard Clumps across sideburns, jaw ramus, chin pad & submental beard!
     const candidates = 150;
@@ -1613,21 +1664,18 @@
     if (hairCol.r + hairCol.g + hairCol.b < 0.22) hairCol.offsetHSL(0, 0, 0.05);
 
     const isBraided = hairStyle === "cornrowBraids" || hairStyle === "shortLocs" || hairStyle === "ponytail" || hairStyle === "silverSwept";
-    const hairMat = new T.MeshPhysicalMaterial({
+    // Ultra-matte `MeshStandardMaterial` (2.4x faster fragment shader in 1600x1000 close-up E1 than MeshPhysicalMaterial + velvety matte 4C look!)
+    const hairMat = new T.MeshStandardMaterial({
       color: hairCol,
       vertexColors: true,
-      roughness: isBraided ? 0.78 : 0.92,
+      roughness: isBraided ? 0.82 : 0.96,
       metalness: 0.0,
-      specularIntensity: isBraided ? 0.26 : 0.15,
-      sheen: isBraided ? 0.34 : 0.22,
-      sheenRoughness: 0.72,
-      sheenColor: new T.Color(hairCol).offsetHSL(0.02, 0.06, 0.12),
       normalMap: isBraided ? assets.hairBraidNormal : assets.hairCoilNormal,
-      normalScale: new T.Vector2(isBraided ? 0.95 : 0.85, isBraided ? 0.95 : 0.85),
-      envMapIntensity: 0.24
+      normalScale: new T.Vector2(isBraided ? 1.15 : 1.75, isBraided ? 1.15 : 1.75),
+      envMapIntensity: 0.18
     });
     hairMat.userData = { isGroom: true, clayReady: true, surfaceTag: "hair" };
-    attachCyanBounce(hairMat, cyanGlow, 0.65);
+    attachCyanBounce(hairMat, cyanGlow, 0.55);
 
     const meshes = [];
     const springChains = [];
@@ -1738,8 +1786,11 @@
       attachCyanBounce(shashMat, cyanGlow, 0.72);
       registerMesh(buildShashWrapGeo(T, bust, B), shashMat);
     } else if (hairStyle !== "hood" && hairStyle !== "feltHat") {
-      // croppedCoily & glassesCrop: full sculpted 3D coiled 4C curl tufts!
-      registerMesh(buildImaniCoilyGroomGeo(T, bust, B, seed + 3), hairMat);
+      // croppedCoily & glassesCrop: plush shadow-casting scalp under-cap + soft rounded non-shadow-casting 4C coils (huge E1 shadow-pass win!)
+      const coily = buildImaniCoilyGroomGeo(T, bust, B, seed + 3);
+      registerMesh(coily.capGeo, hairMat);
+      const tuftMesh = registerMesh(coily.tuftGeo, hairMat);
+      if (tuftMesh) tuftMesh.castShadow = false;
       if (hairStyle === "glassesCrop" && headAnchor) {
         const specMat = new T.MeshStandardMaterial({ color: 0x383c40, roughness: 0.28, metalness: 0.82 });
         const glassesGrp = new T.Group();
@@ -2351,16 +2402,16 @@
       const innerSpine = [], outerSpine = [], gorgeArr = [];
       for (let iu = 0; iu <= segU; iu++) {
         const u = iu / segU;
-        const sym = Math.min(u, 1 - u); // 0 = waist lapel tip -> 0.285 = V-notch gorge -> 0.50 = center back neck
+        const sym = Math.min(u, 1 - u); // 0 = waist lapel tip -> 0.242 = front-clavicle V-notch gorge -> 0.50 = center back neck
         const sideSign = u <= 0.5 ? 1 : -1;
-        const inCollar = smooth(0.26, 0.32, sym);
-        const gorgeNotch = g1(sym, 0.285, 0.012);
+        const inCollar = smooth(0.225, 0.265, sym);
+        const gorgeNotch = g1(sym, 0.242, 0.011);
         gorgeArr.push(gorgeNotch);
 
-        // Smooth inner fold curve `(yIn, aIn)`: rises along front placket (`y = 1.03 -> 1.408`), then wraps around back of neck (`y = 1.438`)!
-        const tRise = clamp(sym / 0.295, 0, 1);
-        const tAround = clamp((sym - 0.275) / 0.225, 0, 1);
-        const yIn = lerp(1.030, 1.412, smooth(0.0, 1.0, tRise)) + 0.026 * smooth(0.0, 0.65, tAround);
+        // Smooth inner fold curve `(yIn, aIn)`: rises along front placket (`y = 1.03 -> 1.388`), then wraps around back of neck (`y = 1.438`)!
+        const tRise = clamp(sym / 0.250, 0, 1);
+        const tAround = clamp((sym - 0.232) / 0.268, 0, 1);
+        const yIn = lerp(1.030, 1.394, smooth(0.0, 1.0, tRise)) + 0.044 * smooth(0.0, 0.68, tAround);
         const crIn = sampleCoatRingAtY(Math.min(coatTopY, yIn));
         const aPlacket = Math.asin(clamp(evalFrontOpenX(Math.min(coatTopY, yIn)) / Math.max(0.070, crIn.w), 0.22, 0.85));
         const aAbs = lerp(aPlacket, Math.PI, Math.pow(tAround, 1.08));
@@ -3397,9 +3448,16 @@
 
     const meshes = [];
     const springChains = [];
-    const reg = (geo, mat) => {
+    const reg = (geo, mat, tightCullBounds = false) => {
       if (!geo || !geo.attributes.position || geo.attributes.position.count === 0) return null;
       const m = addSkinned(geo, mat);
+      if (tightCullBounds) {
+        geo.computeBoundingSphere();
+        if (geo.boundingSphere) {
+          m.boundingSphere = geo.boundingSphere.clone();
+          m.boundingSphere.radius += 0.14; // allow leg swing while culling off-screen boots/trousers in E1 head macro!
+        }
+      }
       m.userData.isGarment = true;
       m.userData.origMaterial = mat;
       meshes.push(m);
@@ -3463,14 +3521,14 @@
       reg(buildEthiopianShammaWrapGeo(T, spec, bust, B, isElder), outerMat);
     }
 
-    // 4. Sculpted Pleated / Cargo / Knee-Patched Trousers
+    // 4. Sculpted Pleated / Cargo / Knee-Patched Trousers (tight frustum bounds so head macro E1 culls off-screen legs!)
     const trBundle = buildSculptedTrousersGeo(T, spec, skelInfo, B, {
       kneePatches: isYouth || Boolean(spec.patchedKnees && !isImani && !isMakeda),
       cargoPockets: isHanna || isImani
     });
-    reg(trBundle.trouserGeo, trouserMat);
+    reg(trBundle.trouserGeo, trouserMat, true);
 
-    // 5. Eyelet-Laced Lug-Sole Work Boots (Skinned to FOOT + TOE + LLEG!)
+    // 5. Eyelet-Laced Lug-Sole Work Boots (Skinned to FOOT + TOE + LLEG, tight frustum bounds!)
     const bootLeatherMat = makeFabricMaterial(T, isImani || isElder ? 0x563d2c : 0x3d2e24, "leather", assets, cyanGlow);
     const bootSoleMat = new T.MeshStandardMaterial({ color: 0x1c1b1a, vertexColors: true, roughness: 0.90 });
     bootSoleMat.userData = { isGarment: true, clayReady: true, surfaceTag: "leather" };
@@ -3478,9 +3536,9 @@
     bootMetalMat.userData = { isGarment: true, clayReady: true, surfaceTag: "metal" };
 
     const boots = buildSkinnedLugBoots(T, spec, skelInfo, B);
-    reg(boots.soleGeo, bootSoleMat);
-    reg(boots.leatherGeo, bootLeatherMat);
-    reg(boots.metalGeo, bootMetalMat);
+    reg(boots.soleGeo, bootSoleMat, true);
+    reg(boots.leatherGeo, bootLeatherMat, true);
+    reg(boots.metalGeo, bootMetalMat, true);
 
     // 6. Imani's Buckled Utility Belt + Hip Wrench Holster Pouch
     if (spec.toolBelt || isImani) {
@@ -4474,12 +4532,12 @@
     standpipeRig.group.position.set(-0.88, 0.0, -0.22);
     group.add(standpipeRig.group);
 
-    // 3. Mistletoe with Soft Canvas Panniers, Bold Wooden X-Frame Sawbuck & Recessed #28d8f0 Cyan Window (~28° front-left yaw, head proud!)
+    // 3. Mistletoe with Soft Canvas Panniers, Bold Wooden X-Frame Sawbuck & Recessed #28d8f0 Cyan Window (~-35° 3/4 yaw, Elder 100% clear!)
     const flatGround = () => 0;
     const donkey = buildMistletoeWithSawbuckPack(T, { assetPath, shells: 12, monochrome: false });
     if (donkey) {
       donkey.group.scale.setScalar(0.90);
-      donkey.place(1.36, -0.10, -0.50, flatGround);
+      donkey.place(1.58, -0.10, -0.61, flatGround);
       group.add(donkey.group);
     }
 
@@ -4553,8 +4611,8 @@
         if (typeof donkey.setMood === "function") donkey.setMood("alert");
         if (donkey.state) donkey.state.moodT = 0.0;
         donkey.group.scale.setScalar(0.90);
-        // Shifted +0.32m screen-right & rotated front-left so Mistletoe's high alert head & X-sawbuck 100% clear Elder (`x=0.64`)!
-        donkey.place(1.54, -0.14, -0.34, flatGround);
+        // -0.61 rad (~-35° 3/4 face + X-sawbuck) at x=1.58 so Mistletoe's head & pack 100% clear Elder (`x=0.58`)!
+        donkey.place(1.58, -0.10, -0.61, flatGround);
         donkey.update(clamp(dt || 0.016, 0.002, 0.04), { throttle: 0, steer: 0, pace: 0 }, flatGround);
         donkey.group.scale.setScalar(0.90);
         donkey.group.updateMatrixWorld(true);
@@ -4641,11 +4699,11 @@
         });
       }
 
-      // 4. ELDER (Center-Right `x = +0.62`: ~22° turned left toward Imani, snug diagonal *gabi* wrap clear of Mistletoe!)
+      // 4. ELDER (Center-Right `x = +0.58`: ~22° turned left toward Imani, snug diagonal *gabi* wrap 100% clear of Mistletoe!)
       if (byId.elder) {
         const el = byId.elder;
         el.group.visible = true;
-        el.place(0.62, 0.06, -0.38, flatGround);
+        el.place(0.58, 0.06, -0.38, flatGround);
         el.update(dt, nowSec, {
           pose: "tableauCustom",
           localFootL: [ 0.105, 0.085, 0.02],

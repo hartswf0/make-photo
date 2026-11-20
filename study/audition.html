@@ -386,7 +386,7 @@
   <script src="../donkey/scion-groom-garments.js?v=v6sculpt1"></script>
   <script src="../donkey/characters.js?v=v6sculpt1"></script>
   <script src="../zones/world-architecture.js?v=v6sculpt1"></script>
-  <script src="./look-audition-mv.js?v=v6pass3"></script>
+  <script src="./look-audition-mv.js?v=v6pass5"></script>
   <script>
   (function () {
     "use strict";
@@ -958,6 +958,17 @@
               tab.plinth.material.color.setHex(0x98abc0);
               tab.plinth.material.roughness = 0.88;
             }
+            const waterDisc = tab.standpipeRig && tab.standpipeRig.waterSurface;
+            if (waterDisc && waterDisc.material && waterDisc.material.color) {
+              waterDisc.material = waterDisc.material.clone();
+              waterDisc.material.color.setHex(0x21282e);
+              waterDisc.material.roughness = 0.36;
+              waterDisc.material.metalness = 0.04;
+              if (waterDisc.material.clearcoat !== undefined) {
+                waterDisc.material.clearcoat = 0.32;
+                waterDisc.material.clearcoatRoughness = 0.30;
+              }
+            }
             const ironRoot = (tab.standpipeRig && tab.standpipeRig.standpipe) || tab.standpipe;
             if (ironRoot && typeof ironRoot.traverse === "function") {
               let sharedIronMat = null;
@@ -1010,7 +1021,7 @@
             if (clayLookOverride && typeof tab.setClayMode === "function") tab.setClayMode(true);
             const rawHint = tab.cameraHint || {};
             const h = refDef.id === "pump_closeup"
-              ? { ...rawHint, fov: 38, dist: 1.74, yaw: 0.0, pitch: 0.052, targetX: -0.05, targetY: 0.865, targetZ: 0.06 }
+              ? { ...rawHint, fov: 37, dist: 1.98, yaw: 0.0, pitch: 0.048, targetX: -0.04, targetY: 0.94, targetZ: 0.06 }
               : { ...rawHint, fov: rawHint.fov || 30, dist: Math.max(rawHint.dist || 4.66, 4.94), yaw: rawHint.yaw || 0, pitch: rawHint.pitch || 0.015, targetX: 0, targetY: 0.99, targetZ: 0 };
             if (h.fov) { camera.fov = h.fov; camera.updateProjectionMatrix(); }
             camState.dist = camState.wantDist = h.dist || 4.94;
@@ -1760,63 +1771,7 @@
     rebuildStage();
     if (!activeRefSceneId) evaluateCameraTargetForCut(resolveEffectiveCut(0), true);
 
-    function syncAudPumpCloseup(tab, dt = 0.016, nowSec = 0) {
-      if (!tab || tab.mode !== "pump_closeup" || !tab.standpipeRig || !tab.basin) return;
-      const rig = tab.standpipeRig;
-      const basin = tab.basin;
-      let basinH = 0.21;
-      const bMesh = basin.children && basin.children[0];
-      if (bMesh && bMesh.geometry) {
-        if (!bMesh.geometry.boundingBox) bMesh.geometry.computeBoundingBox();
-        if (bMesh.geometry.boundingBox) {
-          basinH = Math.max(0.14, bMesh.geometry.boundingBox.max.y - bMesh.geometry.boundingBox.min.y);
-        }
-      }
-      const rigWorldY = rig.group ? rig.group.position.y : -0.18;
-      const curBottomWorldY = rigWorldY + basin.position.y;
-      if (curBottomWorldY < 0.35) {
-        const standpipeLocalY = rig.standpipe ? rig.standpipe.position.y : 0.36;
-        const spoutWorldY = rigWorldY + standpipeLocalY + 0.633;
-        const wantBottomWorldY = Math.min(0.36, spoutWorldY - 0.16 - basinH);
-        const wantBasinLocalY = Math.max(basin.position.y, wantBottomWorldY - rigWorldY);
-        if (wantBasinLocalY - basin.position.y > 0.004) {
-          basin.position.y = wantBasinLocalY;
-          const savedLeverRot = rig.leverPivot ? rig.leverPivot.rotation.z : 0.09;
-          const savedLeverYaw = rig.leverPivot ? rig.leverPivot.rotation.y : 0.36;
-          if (typeof rig.stepPump === "function") {
-            rig.stepPump(nowSec, { gentle: true, leverAmp: 0.0, baseAngle: savedLeverRot, leverYaw: savedLeverYaw });
-          }
-          tab.group.updateMatrixWorld(true);
-          const june = tab.byId && tab.byId.june;
-          if (june && rig.rimAnchorCloseupR) {
-            const rimPos = new T.Vector3();
-            const palmRimR = new T.Vector3(-0.08, -0.98, -0.16).normalize();
-            const fDirRimR = new T.Vector3(-0.52, -0.08, 0.85).normalize();
-            rig.rimAnchorCloseupR.getWorldPosition(rimPos);
-            june.update(dt, nowSec, {
-              pose: "tableauCustom",
-              spinePitch: 0.18,
-              chestPitch: 0.05,
-              pelDrop: -0.02,
-              worldHandR: rimPos,
-              palmWorldR: palmRimR,
-              fDirWorldR: fDirRimR,
-              gripModeR: "bowlRim",
-              curlR: 0.42,
-              pocketPullR: 0.032,
-              localHandL: [0.16, 0.72, -0.02],
-              lookAt: { x: 0.48, y: rigWorldY + basin.position.y + basinH - 0.02, z: 0.16 },
-              neckLean: { pitch: 0.24, yaw: 0.12, roll: -0.03 },
-              emotion: "calm_neutral",
-              emotionIntensity: 0.20,
-              speaking: false,
-              visemeAmount: 0.0,
-              lodDist: 1.4
-            });
-          }
-        }
-      }
-    }
+    function syncAudPumpCloseup(_tab, _dt, _nowSec) {}
 
     /* ---------- Live 60 FPS Music Video Render Loop ---------- */
     let lastMs = performance.now();

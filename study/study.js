@@ -962,7 +962,7 @@
       note: "Makeda stage-left gripping the iron ball-knob lever in multi-fold shamma & cornrows; June stage-right with twisted locs resting fingers on the grooved shekla rim beside parabolic #33ccf2 cyan ripples.",
       night: false,
       sunDeg: 48,
-      cam: { fov: 37, dist: 1.72, yaw: 0.0, pitch: 0.055, targetX: -0.02, targetY: 0.875, targetZ: 0.08 },
+      cam: { fov: 37, dist: 1.98, yaw: 0.0, pitch: 0.048, targetX: -0.04, targetY: 0.94, targetZ: 0.06 },
       refTargetImg: "./ref_targets/ref_03_pump_closeup_jerikan.jpg",
       videoIds: ["V1", "M1", "M3", "E2"],
       orthoPlates: [
@@ -1877,73 +1877,24 @@
       return { ...base, dist: Math.max(base.dist || 4.66, 4.94), targetY: 0.99 };
     }
     if (st && st.id === "pump_closeup") {
+      // Pulled back ~10-12% (dist: 1.98 vs 1.74, targetY: 0.94) so Makeda's full face/cornrows, standpipe piston top,
+      // June's head/tunic, and the entire 4-ribbed shekla bowl + concentric ripples all sit cleanly in frame!
       return {
         ...base,
-        fov: 38,
-        dist: 1.74,
+        fov: 37,
+        dist: 1.98,
         yaw: 0.00,
-        pitch: 0.052,
-        targetX: -0.05,
-        targetY: 0.865,
+        pitch: 0.048,
+        targetX: -0.04,
+        targetY: 0.94,
         targetZ: 0.06
       };
     }
     return base;
   }
 
-  function syncPumpCloseupComposition(tableau, dt = 0.016, nowSec = 0) {
-    if (!tableau || tableau.mode !== "pump_closeup" || !tableau.standpipeRig || !tableau.basin) return;
-    const rig = tableau.standpipeRig;
-    const basin = tableau.basin;
-    let basinH = 0.21;
-    const bMesh = basin.children && basin.children[0];
-    if (bMesh && bMesh.geometry) {
-      if (!bMesh.geometry.boundingBox) bMesh.geometry.computeBoundingBox();
-      if (bMesh.geometry.boundingBox) {
-        basinH = Math.max(0.14, bMesh.geometry.boundingBox.max.y - bMesh.geometry.boundingBox.min.y);
-      }
-    }
-    const rigWorldY = rig.group ? rig.group.position.y : -0.18;
-    const curBottomWorldY = rigWorldY + basin.position.y;
-    if (curBottomWorldY < 0.35) {
-      const standpipeLocalY = rig.standpipe ? rig.standpipe.position.y : 0.36;
-      const spoutWorldY = rigWorldY + standpipeLocalY + 0.633;
-      const wantBottomWorldY = Math.min(0.36, spoutWorldY - 0.16 - basinH);
-      const wantBasinLocalY = Math.max(basin.position.y, wantBottomWorldY - rigWorldY);
-      if (wantBasinLocalY - basin.position.y > 0.004) {
-        basin.position.y = wantBasinLocalY;
-        const savedLeverRot = rig.leverPivot ? rig.leverPivot.rotation.z : 0.09;
-        const savedLeverYaw = rig.leverPivot ? rig.leverPivot.rotation.y : 0.36;
-        if (typeof rig.stepPump === "function") {
-          rig.stepPump(nowSec, { gentle: true, leverAmp: 0.0, baseAngle: savedLeverRot, leverYaw: savedLeverYaw });
-        }
-        tableau.group.updateMatrixWorld(true);
-        const june = tableau.byId && tableau.byId.june;
-        if (june && rig.rimAnchorCloseupR) {
-          rig.rimAnchorCloseupR.getWorldPosition(_pumpRimTmp);
-          june.update(dt, nowSec, {
-            pose: "tableauCustom",
-            spinePitch: 0.18,
-            chestPitch: 0.05,
-            pelDrop: -0.02,
-            worldHandR: _pumpRimTmp,
-            palmWorldR: _pumpPalmTmp,
-            fDirWorldR: _pumpFDirTmp,
-            gripModeR: "bowlRim",
-            curlR: 0.42,
-            pocketPullR: 0.032,
-            localHandL: [0.16, 0.72, -0.02],
-            lookAt: { x: 0.48, y: rigWorldY + basin.position.y + basinH - 0.02, z: 0.16 },
-            neckLean: { pitch: 0.24, yaw: 0.12, roll: -0.03 },
-            emotion: "calm_neutral",
-            emotionIntensity: 0.20,
-            speaking: false,
-            visemeAmount: 0.0,
-            lodDist: 1.4
-          });
-        }
-      }
-    }
+  function syncPumpCloseupComposition(_tableau, _dt, _nowSec) {
+    // Pulled-back dist=1.92, fov=37, targetY=0.905 frames both the piston top and 4-ribbed bowl naturally with zero pose override!
   }
 
   function calibrateRefTableauMaterials(tableau) {
@@ -1953,6 +1904,18 @@
       tableau.plinth.material = tableau.plinth.material.clone();
       tableau.plinth.material.color.setHex(0x98abc0);
       tableau.plinth.material.roughness = 0.88;
+    }
+    // 1b. Darken basin water disc to deep wet slate (#242b30) so it reads as dark liquid water (never flat pale grey!) and makes cyan ripples pop!
+    const waterDisc = tableau.standpipeRig && tableau.standpipeRig.waterSurface;
+    if (waterDisc && waterDisc.material && waterDisc.material.color) {
+      waterDisc.material = waterDisc.material.clone();
+      waterDisc.material.color.setHex(0x21282e);
+      waterDisc.material.roughness = 0.36;
+      waterDisc.material.metalness = 0.04;
+      if (waterDisc.material.clearcoat !== undefined) {
+        waterDisc.material.clearcoat = 0.32;
+        waterDisc.material.clearcoatRoughness = 0.30;
+      }
     }
     // 2. Lift weathered cast-iron standpipe (cap, 3 collar rings, column, lever & ball-knob) so metallic highlights & form
     //    pop cleanly above #26292e shadows without needing an HDRI environment map!

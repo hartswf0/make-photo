@@ -984,7 +984,7 @@
         vec3 evalLook(
           int mode, vec2 uv, vec2 effRes,
           vec3 raw, vec3 silverBase, vec3 tr, vec3 smoothRgb,
-          float lp, float lBiSkin, float lBiRaw, float lMacroRaw, float ed, float edClean, float edDepth, float vg,
+          float lp, float lBiSkin, float lBiRaw, float lMacroRaw, float ed, float edClean, float edBroad, float edDepth, float vg,
           float isGeo, float skinMask, float neutralBright, float catchSpark
         ) {
           if (mode < 0) return raw;
@@ -1056,47 +1056,51 @@
             vec3 apricotHi  = vec3(0.910, 0.698, 0.510); // #e8b282 sunlit apricot-sand lit facial & cloth plane
             vec3 creamHi    = vec3(0.965, 0.882, 0.788); // #f6e1c9 highest shamma sun crest
 
-            // Pore-free facial/skin region mask (holds steady down to lBiRaw ~0.014 so nostril/mouth/brow shadows NEVER break into speckles!)
+            // Pore-free facial/skin region mask (covers 100% of all 5 cast faces from deep shadow to sunlit forehead!)
             float wbWarmRB = smoothRgb.r - smoothRgb.b;
-            float wbRelWarm = wbWarmRB / max(smoothRgb.r, 0.022);
+            float wbRelWarm = wbWarmRB / max(smoothRgb.r, 0.020);
             float wbSkinRegion = clamp(max(skinMask,
-              isGeo * smoothstep(0.28, 0.50, wbRelWarm)
-                    * smoothstep(0.010, 0.036, wbWarmRB)
-                    * (1.0 - smoothstep(0.56, 0.78, lBiRaw))
-                    * smoothstep(0.014, 0.038, lBiRaw)
+              isGeo * smoothstep(0.20, 0.42, wbRelWarm)
+                    * smoothstep(0.008, 0.030, wbWarmRB)
+                    * (1.0 - smoothstep(0.60, 0.80, lMacroRaw))
+                    * smoothstep(0.028, 0.054, lMacroRaw)
             ), 0.0, 1.0);
 
-            // 1) FACES / SKIN: smooth bilateral plane luminance (wipes out 1-2px pore/normal noise -> zero black speckle dots around noses/mouths!)
+            // 1) FACES / SKIN: 100% pore-free macro/bilateral plane luminance (0% 1-2px raw/smooth5 noise -> zero facial speckle!)
             float lSmooth5 = lumRaw(smoothRgb);
-            float lFacePlane = clamp(mix(lSmooth5, lBiRaw, 0.78) + clamp(lBiRaw - lMacroRaw, -0.18, 0.18) * 0.72, 0.0, 1.0);
-            float wbSkinGamma = mix(0.62, 0.88, smoothstep(0.07, 0.28, lFacePlane));
-            float lFaceBoost = pow(max(lFacePlane, 0.0001), wbSkinGamma) * 1.04;
+            float lFaceSmooth = mix(lBiRaw, lMacroRaw, 0.42);
+            float lFacePlane = clamp(lFaceSmooth + clamp(lBiRaw - lMacroRaw, -0.16, 0.16) * 0.85, 0.0, 1.0);
+            float wbSkinGamma = mix(0.60, 0.86, smoothstep(0.06, 0.28, lFacePlane));
+            float lFaceBoost = pow(max(lFacePlane, 0.0001), wbSkinGamma) * 1.05;
 
-            // 2) GARMENTS / WOOD / DONKEY: asymmetric fold-valley relief carves bold graphic-novel #181d26 & #8e4926 shadow wedges on coat lapels, sleeves, pleats & trousers!
-            float lTight = mix(lumRaw(raw), lSmooth5, 0.62);
-            float valleyPull = min(0.0, lSmooth5 - lMacroRaw) * 2.85;
-            float ridgeLift  = max(0.0, lTight - lBiRaw) * 1.30;
-            float lClothLocal = clamp(lTight + clamp(valleyPull + ridgeLift, -0.32, 0.22), 0.0, 1.0);
+            // 2) GARMENTS / WOOD / DONKEY: smooth 5-tap + bilateral relief (eliminates muddy 1px fur-shell noise on Mistletoe while carving bold coat pleats!)
+            float lClothBase = mix(lSmooth5, lBiRaw, 0.48);
+            // Lift dark warm donkey fur (lMacroRaw 0.06..0.24) cleanly out of mud while keeping black hair/brows/beard (<0.05) solid #181d26 sumi-ink!
+            float darkWarmFur = isGeo * (1.0 - coolMask) * (1.0 - wbSkinRegion)
+                              * smoothstep(0.045, 0.085, lMacroRaw) * (1.0 - smoothstep(0.15, 0.28, lMacroRaw));
+            lClothBase = mix(lClothBase, pow(max(lClothBase, 0.0001), 0.70) * 1.06, darkWarmFur * 0.80);
+            float valleyPull = min(0.0, lSmooth5 - lMacroRaw) * mix(2.75, 1.10, darkWarmFur);
+            float ridgeLift  = max(0.0, lSmooth5 - lBiRaw) * 1.15;
+            float lClothLocal = clamp(lClothBase + clamp(valleyPull + ridgeLift, -0.30, 0.20), 0.0, 1.0);
 
-            float lq = mix(lClothLocal, lFaceBoost, wbSkinRegion * 0.94);
+            float lq = mix(lClothLocal, lFaceBoost, wbSkinRegion * 0.98);
             // Soft cotton/linen highlight roll-off so white shammas & June's tunic break into Sunlit-Sand (#e8b282) + Burnt-Sienna (#8e4926) folds!
             lq = mix(lq, 0.49 + (lq - 0.49) * 0.46, neutralBright * 0.85);
 
-            // Adaptive macro-albedo garment thresholds: keeps dark donkey fur & Hanna's charcoal top rich with #8e4926/#c06b3c lit planes
-            // while widening #181d26 / #8e4926 fold-shadow wedges across Imani's tan duster coat, sleeves, pleats & trousers!
-            float clothShCut  = mix(0.165, 0.355, smoothstep(0.14, 0.46, lMacroRaw));
-            float clothMidCut = mix(0.255, 0.505, smoothstep(0.14, 0.48, lMacroRaw));
-            float clothHiCut  = mix(0.390, 0.605, smoothstep(0.16, 0.50, lMacroRaw));
-            float shCut  = mix(clothShCut,  0.215, wbSkinRegion);
-            float midCut = mix(clothMidCut, 0.330, wbSkinRegion);
-            float hiCut  = mix(clothHiCut,  0.455, wbSkinRegion);
+            // Adaptive macro-albedo garment thresholds: keeps hair (<0.05) solid #181d26 ink, Mistletoe/Hanna top clean sienna, & tan coats bold wedges!
+            float clothShCut  = mix(0.205, 0.355, smoothstep(0.18, 0.46, lMacroRaw)) - darkWarmFur * 0.055;
+            float clothMidCut = mix(0.235, 0.505, smoothstep(0.15, 0.48, lMacroRaw));
+            float clothHiCut  = mix(0.365, 0.605, smoothstep(0.16, 0.50, lMacroRaw));
+            float shCut  = mix(clothShCut,  0.210, wbSkinRegion);
+            float midCut = mix(clothMidCut, 0.325, wbSkinRegion);
+            float hiCut  = mix(clothHiCut,  0.450, wbSkinRegion);
             vec3 warmBlocks = mix(sumiInk, siennaDeep, smoothstep(shCut, shCut + 0.028, lq));
             warmBlocks = mix(warmBlocks, terraMid, smoothstep(midCut, midCut + 0.036, lq));
             warmBlocks = mix(warmBlocks, apricotHi, smoothstep(hiCut, hiCut + 0.045, lq));
             warmBlocks = mix(warmBlocks, creamHi, smoothstep(0.80, 0.88, lq) * 0.55 * (1.0 - wbSkinRegion * 0.88));
 
             // Cool stone masonry, chapel double doors, shutters & sunlit slate ground quantization (solid #181d26 cast shadows & shutters!)
-            float lCool = clamp(lTight + clamp(lTight - lBiRaw, -0.18, 0.18) * 0.85, 0.0, 1.0);
+            float lCool = clamp(lSmooth5 + clamp(lSmooth5 - lBiRaw, -0.18, 0.18) * 0.85, 0.0, 1.0);
             float isLowerGround = 1.0 - smoothstep(0.18, 0.27, uv.y);
             float shadowCutCool = mix(0.30, 0.635, isLowerGround);
             vec3 coolBlocks = mix(sumiInk, slateStone, smoothstep(shadowCutCool, shadowCutCool + 0.035, lCool));
@@ -1106,9 +1110,11 @@
 
             vec3 wb = mix(warmBlocks, coolBlocks, coolMask);
 
-            // Clean Sumi-Ink (#181d26) contour & cloth-fold linework (zero 1px pore speckle on wbSkinRegion, crisp fold wedges on garments!):
-            float interiorEdge = edClean * mix(1.0, 0.06, wbSkinRegion);
-            float inkLine = clamp(max(smoothstep(0.16, 0.38, edDepth), smoothstep(0.068, 0.175, interiorEdge)), 0.0, 1.0) * isGeo * (1.0 - cMask * 0.88);
+            // Clean Sumi-Ink (#181d26) contour & structural fold linework:
+            // Gate interiorEdge by 6px edBroad (wiping out 1-2px pore & donkey-fur mud!) and gate dLap speckles off faces!
+            float wbInteriorEdge = min(edClean, edBroad * 1.22) * (1.0 - wbSkinRegion) * mix(1.0, 0.35, darkWarmFur);
+            float wbDepthEdge = mix(edDepth, smoothstep(0.28, 0.58, edDepth), wbSkinRegion);
+            float inkLine = clamp(max(smoothstep(0.16, 0.38, wbDepthEdge), smoothstep(0.075, 0.185, wbInteriorEdge)), 0.0, 1.0) * isGeo * (1.0 - cMask * 0.88);
             wb = mix(wb, sumiInk, inkLine * 0.96);
 
             // Selective #33ccf2 graphic-novel cyan spot-ink on water stream, concentric ripples, jerrycans & pack window!
@@ -1328,9 +1334,11 @@
           float lMacroRaw = blurL;
           float edBroad = ed;
           if (activeLook == 2 || activeLook == 3 || activeLook == 4) {
-            float biSum = lBase * 1.5;
-            float biW = 1.5;
-            float macroSum = lBase;
+            // Seed bilateral center from 4-neighbor blurL on woodblock so single-pixel pore spikes never bias bilateral weights!
+            float lSeed = activeLook == 4 ? blurL : lBase;
+            float biSum = lSeed * 1.25;
+            float biW = 1.25;
+            float macroSum = lSeed;
             float cR1E = 0.0, cR1W = 0.0, cR1N = 0.0, cR1S = 0.0;
             for (int k = 0; k < 8; k++) {
               float ang = float(k) * 0.78539816;
@@ -1342,7 +1350,7 @@
               if (k == 2) cR1N = tapL;
               if (k == 4) cR1W = tapL;
               if (k == 6) cR1S = tapL;
-              float w = exp(-abs(tapL - lBase) * 6.5);
+              float w = exp(-abs(tapL - lSeed) * 6.0);
               biSum += tapL * w;
               biW += w;
               macroSum += tapL;
@@ -1410,7 +1418,7 @@
           vec3 outCol = evalLook(
             activeLook, tileUv, effRes,
             raw, silverBase, tr, smoothRgb,
-            lp, lBiSkin, lBiRaw, lMacroRaw, ed, edClean, edDepth, vg,
+            lp, lBiSkin, lBiRaw, lMacroRaw, ed, edClean, edBroad, edDepth, vg,
             isGeo, skinMask, neutralBright, catchSpark
           );
 

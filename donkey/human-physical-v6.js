@@ -70,7 +70,7 @@
       craniumW: 1.004, craniumTop: 0.0005, foreheadBoss: 0.0036, browArch: 0.96,
       malarHigh: 1.08, malarWidth: 1.006, buccalFull: 0.0004,
       jawWidth: 0.962, gonionCrisp: 0.92, chinProj: 0.0866, chinWidth: 0.0296, chinLiftY: 0.0020,
-      noseBridge: 0.98, noseTipProj: 0.0985, noseTipLiftY: 0.0026, alarWidth: 0.0186,
+      noseBridge: 0.98, noseTipProj: 0.0985, noseTipLiftY: 0.0026, alarWidth: 0.0166,
       lipFullU: 1.06, lipFullL: 1.08, mouthWidth: 0.0256,
       neckHalfW: 0.0456, scmStrength: 1.08, larynxProm: 0.0007, earScale: 1.02, ageLines: 0.04, browFullness: 0.96
     },
@@ -81,7 +81,7 @@
       craniumW: 1.000, craniumTop: 0.0020, foreheadBoss: 0.0034, browArch: 0.96,
       malarHigh: 1.28, malarWidth: 1.028, buccalFull: -0.0002,
       jawWidth: 0.960, gonionCrisp: 1.05, chinProj: 0.0864, chinWidth: 0.0292, chinLiftY: 0.0022,
-      noseBridge: 0.98, noseTipProj: 0.0988, noseTipLiftY: 0.0028, alarWidth: 0.0192,
+      noseBridge: 0.98, noseTipProj: 0.0988, noseTipLiftY: 0.0028, alarWidth: 0.0170,
       lipFullU: 1.10, lipFullL: 1.12, mouthWidth: 0.0260,
       neckHalfW: 0.0458, scmStrength: 1.12, larynxProm: 0.0006, earScale: 1.00, ageLines: 0.08, browFullness: 1.04
     },
@@ -293,11 +293,11 @@
         };
         img.src = url;
       };
-      upgradeTexFromUrl(headNormal, dir + "human_head_normal_1k.png?v=v67");
-      upgradeTexFromUrl(headAo, dir + "human_head_ao_cavity_1k.jpg?v=v67");
-      upgradeTexFromUrl(headRoughness, dir + "human_head_roughness_pore_1k.jpg?v=v67");
-      upgradeTexFromUrl(handNormal, dir + "human_hand_normal_512.png?v=v67");
-      upgradeTexFromUrl(handAoRough, dir + "human_hand_ao_rough_512.jpg?v=v67");
+      upgradeTexFromUrl(headNormal, dir + "human_head_normal_1k.png?v=v69");
+      upgradeTexFromUrl(headAo, dir + "human_head_ao_cavity_1k.jpg?v=v69");
+      upgradeTexFromUrl(headRoughness, dir + "human_head_roughness_pore_1k.jpg?v=v69");
+      upgradeTexFromUrl(handNormal, dir + "human_hand_normal_512.png?v=v69");
+      upgradeTexFromUrl(handAoRough, dir + "human_hand_ao_rough_512.jpg?v=v69");
     }
 
     if (mapsCacheByThree) mapsCacheByThree.set(T, bundle);
@@ -401,7 +401,7 @@
         if (uJaw < 1.15) {
           const zPogo = p.chinProj;
           const labioDip = -0.0034 * g1(yBase, 1.5365 + chinLift * 0.4, 0.0056);
-          const pogoBall = 0.0034 * g1(yBase, yPogo, 0.0098);
+          const pogoBall = 0.0044 * g1(yBase, yPogo, 0.0104);
           const oralBarrel = -0.0024 * smooth(1.538, 1.568, yBase);
           const zApex = zPogo + pogoBall + labioDip + oralBarrel;
 
@@ -489,16 +489,16 @@
       // Soft rounded dorsum (wide gaussian -> ZERO faceted wedge/pyramid ridge) + round lobular tip
       const tDorsum = clamp((1.625 - yBase) / Math.max(0.015, 1.625 - tipY), 0, 1);
       const dorsumEnv = tDorsum * (1.0 - smooth(tipY - 0.002, tipY - 0.012, yBase)) * smooth(1.628, 1.616, yBase);
-      const bridgeW = lerp(0.0076, 0.0112, tDorsum);
+      const bridgeW = lerp(0.0068, 0.0092, tDorsum);
       const bridge = g1(ax, 0.0, bridgeW) * dorsumEnv * smooth(0.50, 0.98, ca);
       const sidewall = g1(ax, bridgeW * 1.30, 0.0062) * dorsumEnv * smooth(0.45, 0.95, ca);
 
-      const noseTip = g1(ax, 0.0, 0.0128) * g1(yBase, tipY, 0.0112) * smooth(0.58, 1.0, ca);
+      const noseTip = g1(ax, 0.0, 0.0102) * g1(yBase, tipY, 0.0108) * smooth(0.58, 1.0, ca);
       const columella = g1(ax, 0.0, 0.0050) * g1(yBase, tipY - 0.0072, 0.0068) * smooth(0.65, 1.0, ca);
       const subnasaleRamp = g1(ax, 0.0, 0.0150) * g1(yBase, tipY - 0.0130, 0.0085) * smooth(0.62, 1.0, ca);
 
       // Full rounded alar lobules flaring laterally + recessed oblique nostrils (0b07591c.jpg front & 3/4!)
-      const alar = g2(ax, yBase, alarW * 0.80, tipY - 0.0040, alarW * 0.36, 0.0058) * smooth(0.42, 0.96, ca);
+      const alar = g2(ax, yBase, alarW * 0.82, tipY - 0.0046, alarW * 0.32, 0.0052) * smooth(0.42, 0.96, ca);
       const alarGroove = g2(ax, yBase, alarW * 1.06, tipY - 0.0030, 0.0030, 0.0060) * smooth(0.45, 0.94, ca);
       const nDx = (ax - alarW * 0.48) / 0.0034;
       const nDy = (yBase - (tipY - 0.0072 - 0.0010 * (ax / Math.max(0.01, alarW)))) / 0.0021;
@@ -508,9 +508,9 @@
       const tipBall = tipAmp * noseTip;
       const noseMidZ = Math.max(dorsumRidge, tipBall) + 0.16 * Math.min(dorsumRidge, tipBall);
 
-      lz += -0.0016 * nasionDip + noseMidZ + (0.0064 * columella + 0.0046 * subnasaleRamp) * noseScale + 0.0105 * alar - 0.0024 * alarGroove - 0.0034 * nostrilHole;
+      lz += -0.0016 * nasionDip + noseMidZ + (0.0064 * columella + 0.0046 * subnasaleRamp) * noseScale + 0.0124 * alar - 0.0026 * alarGroove - 0.0034 * nostrilHole;
       ly += 0.0012 * nostrilHole;
-      lx += sLat * (0.0042 * alar - 0.0006 * alarGroove);
+      lx += sLat * (0.0028 * alar - 0.0008 * alarGroove);
 
       // Zygomatic Arch & Smooth 2.5x Wider-Falloff Malar-to-Buccal Flow (ZERO 3/4 cheek horizontal shelf!)
       const malarSweepY = 1.596 + 0.005 * smooth(0.036, 0.066, ax);
@@ -538,8 +538,8 @@
         const taperU = Math.pow(Math.max(0.0, 1.0 - Math.pow(Math.min(1.0, uM / 1.02), 1.85)), 0.82) * smooth(0.56, 1.0, ca);
         const taperL = Math.pow(Math.max(0.0, 1.0 - Math.pow(Math.min(1.0, uM / 0.96), 1.80)), 0.84) * smooth(0.56, 1.0, ca);
         const cupidPeak = 0.00155 * g1(ax, 0.0054, 0.0029) - 0.00070 * g1(ax, 0.0, 0.0021);
-        const uLip = g1(yBase, 1.5568 + cupidPeak - 0.0018 * Math.min(1.05, uM * uM), 0.0064) * taperU;
-        const lLip = g1(yBase, 1.5474 + 0.0014 * Math.min(1.05, uM * uM), 0.0070) * taperL;
+        const uLip = g1(yBase, 1.5570 + cupidPeak - 0.0018 * Math.min(1.05, uM * uM), 0.0070) * taperU;
+        const lLip = g1(yBase, 1.5472 + 0.0014 * Math.min(1.05, uM * uM), 0.0076) * taperL;
         const modiolusFill = g2(ax, yBase, mwLip * 0.78, 1.5525, 0.0075, 0.0068) * smooth(0.58, 0.96, ca);
 
         const rimaY = 1.5525 - 0.00035 * g1(ax, 0.0, 0.0040) + 0.00032 * g1(ax, 0.0080, 0.0040) + 0.00024 * smooth(0.58, 0.92, uM);
@@ -548,9 +548,9 @@
         const rima = g1(yBase, rimaY, 0.0013) * rimaGate;
 
         // Full forward vermilion volumes (+~3mm each vs Pass-3a) for true East African lip protrusion in 90° profile!
-        lz += (0.0044 * philSupport - 0.0010 * philDimple + 0.0012 * philRidge
-               + 0.0098 * uLip * p.lipFullU * lipScale
-               + 0.0100 * lLip * p.lipFullL * lipScale
+        lz += (0.0056 * philSupport - 0.0010 * philDimple + 0.0012 * philRidge
+               + 0.0128 * uLip * p.lipFullU * lipScale
+               + 0.0132 * lLip * p.lipFullL * lipScale
                + 0.0012 * modiolusFill
                - 0.0016 * rima);
       }
