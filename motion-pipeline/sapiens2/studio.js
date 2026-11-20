@@ -10,16 +10,76 @@ const CAST = {
   elder: { label: 'Elder', url: '../abyssinian-highlands/human-forge/assets/elder.glb' },
 };
 
-const CLIPS = [
-  { id: 'idle', label: 'Idle' },
-  { id: 'idle-talking', label: 'Talk' },
-  { id: 'walk', label: 'Walk' },
-  { id: 'walk-carry', label: 'Carry' },
-  { id: 'jog', label: 'Jog' },
-  { id: 'sprint', label: 'Sprint' },
-  { id: 'jump', label: 'Jump' },
-  { id: 'greeting', label: 'Greet' },
+const CLIP_GROUPS = [
+  {
+    title: 'Locomotion',
+    clips: [
+      { id: 'walk', label: 'Walk' },
+      { id: 'walk-relaxed', label: 'Relaxed' },
+      { id: 'walk-cautious', label: 'Cautious' },
+      { id: 'walk-happy', label: 'Happy' },
+      { id: 'walk-carry', label: 'Carry' },
+      { id: 'walk-backwards', label: 'Back' },
+      { id: 'jog', label: 'Jog' },
+      { id: 'sprint', label: 'Sprint' },
+    ],
+  },
+  {
+    title: 'Idle & Social',
+    clips: [
+      { id: 'idle', label: 'Idle' },
+      { id: 'idle-talking', label: 'Talk' },
+      { id: 'idle-listening', label: 'Listen' },
+      { id: 'idle-foldarms', label: 'Fold Arms' },
+      { id: 'greeting', label: 'Greet' },
+      { id: 'clapping', label: 'Clap' },
+      { id: 'yes', label: 'Yes' },
+    ],
+  },
+  {
+    title: 'Emotions',
+    clips: [
+      { id: 'angry', label: 'Angry' },
+      { id: 'confused', label: 'Confused' },
+      { id: 'reject', label: 'Reject' },
+      { id: 'victory', label: 'Victory' },
+      { id: 'pray', label: 'Pray' },
+    ],
+  },
+  {
+    title: 'Work & Carry',
+    clips: [
+      { id: 'push', label: 'Push' },
+      { id: 'rope-pull', label: 'Pull' },
+      { id: 'hammering', label: 'Hammer' },
+      { id: 'shovel-dig', label: 'Dig' },
+      { id: 'farm-watering', label: 'Water' },
+    ],
+  },
+  {
+    title: 'Stance & Climb',
+    clips: [
+      { id: 'crouch-idle', label: 'Crouch' },
+      { id: 'crouch-walk', label: 'Sneak' },
+      { id: 'sitting-idle', label: 'Sit' },
+      { id: 'sitting-talking', label: 'Sit Talk' },
+      { id: 'climb-ladder', label: 'Climb' },
+    ],
+  },
+  {
+    title: 'Action & Dance',
+    clips: [
+      { id: 'jump', label: 'Jump' },
+      { id: 'dance-simple', label: 'Dance' },
+      { id: 'dance-arm-pump', label: 'Pump' },
+      { id: 'dance-charleston', label: 'Charleston' },
+      { id: 'guitar-playing', label: 'Guitar' },
+    ],
+  },
 ];
+
+const CLIPS = CLIP_GROUPS.flatMap((g) => g.clips);
+const PRELOAD_CLIPS = ['idle', 'idle-talking', 'walk', 'walk-carry', 'greeting'];
 
 const COCO17_EDGES = [
   [0, 1], [0, 2], [1, 3], [2, 4],
@@ -220,10 +280,12 @@ async function loadCast(castKey) {
     speed: state.speed,
   });
 
-  await driver.loadLibrary(CLIPS.map((c) => c.id));
+  const initialClips = Array.from(new Set([state.clipName, ...PRELOAD_CLIPS]));
+  await driver.loadLibrary(initialClips);
   state.driver = driver;
   driver.play(state.clipName, { fadeDuration: 0 });
   if (state.paused) driver.pause();
+  driver.update(0);
 
   const cov = driver.getBoneCoverage(state.clipName);
   const covTxt = cov
@@ -455,6 +517,50 @@ async function loadSapiensManifest() {
   }
 }
 
+async function selectClip(clipId, fadeDuration = 0.25) {
+  state.clipName = clipId;
+  const clipWrap = $('clipButtons');
+  if (clipWrap) {
+    clipWrap.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.clip === clipId));
+  }
+  if (!state.driver) return;
+  if (!state.driver.hasClip(clipId)) {
+    $('hudStatus').textContent = `Loading ${clipId}…`;
+    await state.driver.loadClip(clipId);
+  }
+  state.driver.crossFadeTo(clipId, fadeDuration);
+  if (state.paused) state.driver.pause();
+  state.driver.update(0);
+  $('hudStatus').textContent = `${CAST[state.castKey].label} · ${clipId}`;
+}
+
+function focusHands(side = 'both') {
+  if (!state.avatarRoot) return;
+  state.avatarRoot.updateMatrixWorld(true);
+  const wL = state.bonesByName.get('wristL') || state.bonesByName.get('wrist.L');
+  const wR = state.bonesByName.get('wristR') || state.bonesByName.get('wrist.R');
+  if (!wL || !wR) return;
+  const pL = new THREE.Vector3();
+  const pR = new THREE.Vector3();
+  wL.getWorldPosition(pL);
+  wR.getWorldPosition(pR);
+  const target = new THREE.Vector3();
+  if (side === 'L') {
+    target.copy(pL);
+    camera.position.set(pL.x + 0.14, pL.y + 0.08, pL.z + 0.34);
+  } else if (side === 'R') {
+    target.copy(pR);
+    camera.position.set(pR.x - 0.14, pR.y + 0.08, pR.z + 0.34);
+  } else {
+    target.addVectors(pL, pR).multiplyScalar(0.5);
+    const span = Math.max(0.32, pL.distanceTo(pR));
+    camera.position.set(target.x, target.y + 0.10, target.z + span * 1.15 + 0.28);
+  }
+  controls.minDistance = 0.18;
+  controls.target.copy(target);
+  controls.update();
+}
+
 function wireUI() {
   // Cast selector
   const castSel = $('castSelect');
@@ -464,22 +570,24 @@ function wireUI() {
   castSel.value = state.castKey;
   castSel.addEventListener('change', () => loadCast(castSel.value));
 
-  // Clip buttons
+  // Categorized clip buttons (35 CC0 clips, lazy-loaded on demand)
   const clipWrap = $('clipButtons');
-  CLIPS.forEach((c) => {
-    const btn = document.createElement('button');
-    btn.textContent = c.label;
-    btn.dataset.clip = c.id;
-    if (c.id === state.clipName) btn.classList.add('on');
-    btn.addEventListener('click', () => {
-      state.clipName = c.id;
-      clipWrap.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.clip === c.id));
-      if (state.driver) {
-        state.driver.crossFadeTo(c.id, 0.25);
-        $('hudStatus').textContent = `${CAST[state.castKey].label} · ${c.id}`;
-      }
+  CLIP_GROUPS.forEach((group) => {
+    const hdr = document.createElement('div');
+    hdr.className = 'clip-cat';
+    hdr.textContent = group.title;
+    clipWrap.appendChild(hdr);
+    const row = document.createElement('div');
+    row.className = 'row';
+    group.clips.forEach((c) => {
+      const btn = document.createElement('button');
+      btn.textContent = c.label;
+      btn.dataset.clip = c.id;
+      if (c.id === state.clipName) btn.classList.add('on');
+      btn.addEventListener('click', () => selectClip(c.id));
+      row.appendChild(btn);
     });
-    clipWrap.appendChild(btn);
+    clipWrap.appendChild(row);
   });
 
   // Speed & toggles
@@ -599,7 +707,14 @@ function animate(now) {
 
 window.__STUDIO__ = {
   state,
+  THREE,
+  scene,
+  camera,
+  controls,
+  renderer,
   loadCast,
+  selectClip,
+  focusHands,
   getGLContext: () => renderer.getContext(),
   getSummary: () => ({
     cast: state.castKey,
@@ -611,6 +726,7 @@ window.__STUDIO__ = {
     e1Samples: state.e1Track ? state.e1Track.sample_count : 0,
     bones: state.bonesByName.size,
     clipsLoaded: state.driver ? state.driver.getClipNames().length : 0,
+    totalClips: CLIPS.length,
     glError: renderer.getContext().getError(),
   }),
 };

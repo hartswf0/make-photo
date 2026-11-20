@@ -104,6 +104,16 @@
     }
     .badge.ok { color: #b9f3ce; border-color: #2f7a4e; background: rgba(47, 122, 78, 0.25); }
     .badge.warn { color: #fbd29c; border-color: #8f5c23; background: rgba(143, 92, 35, 0.25); }
+    .clip-cat {
+      width: 100%;
+      font: 600 10px/1.2 ui-sans-serif, -apple-system, sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .clip-cat:first-child { margin-top: 0; }
+    #clipButtons button { padding: 3px 6px; font-size: 11.5px; }
     .meta {
       font: 11px/1.35 ui-monospace, Menlo, monospace;
       color: var(--muted);
@@ -171,8 +181,8 @@
       </div>
 
       <div class="card">
-        <h2>Mesh2Motion Clips (CC0)</h2>
-        <div class="row" id="clipButtons"></div>
+        <h2>Mesh2Motion Clips (35 CC0)</h2>
+        <div id="clipButtons" style="display:flex;flex-direction:column;gap:4px;"></div>
       </div>
 
       <div class="card">
@@ -250,7 +260,7 @@
     </aside>
   </div>
 
-  <script src="mesh2motion/m2m-retarget.js"></script>
-  <script type="module" src="sapiens2/studio.js"></script>
+  <script src="mesh2motion/m2m-retarget.js?v=2"></script>
+  <script type="module" src="sapiens2/studio.js?v=2"></script>
 </body>
 </html>

@@ -25,19 +25,52 @@
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
 
-  const VERSION = '1.0.0';
+  const VERSION = '1.2.0';
 
-  /** Curated CC0 humanoid clips in `motion-pipeline/mesh2motion/clips/` */
+  /** Curated CC0 humanoid clips in `motion-pipeline/mesh2motion/clips/` (36 clips, ~2.2 MB) */
   const CLIPS = Object.freeze({
     'rest-pose': 'rest-pose.glb',
-    idle: 'idle.glb',
-    'idle-talking': 'idle-talking.glb',
+    // Locomotion
     walk: 'walk.glb',
+    'walk-relaxed': 'walk-relaxed.glb',
+    'walk-cautious': 'walk-cautious.glb',
+    'walk-happy': 'walk-happy.glb',
     'walk-carry': 'walk-carry.glb',
+    'walk-backwards': 'walk-backwards.glb',
     jog: 'jog.glb',
     sprint: 'sprint.glb',
-    jump: 'jump.glb',
+    // Idle & Social
+    idle: 'idle.glb',
+    'idle-talking': 'idle-talking.glb',
+    'idle-listening': 'idle-listening.glb',
+    'idle-foldarms': 'idle-foldarms.glb',
     greeting: 'greeting.glb',
+    clapping: 'clapping.glb',
+    yes: 'yes.glb',
+    // Emotions & Gestures
+    angry: 'angry.glb',
+    confused: 'confused.glb',
+    reject: 'reject.glb',
+    victory: 'victory.glb',
+    pray: 'pray.glb',
+    // Work & Carry
+    push: 'push.glb',
+    'rope-pull': 'rope-pull.glb',
+    hammering: 'hammering.glb',
+    'shovel-dig': 'shovel-dig.glb',
+    'farm-watering': 'farm-watering.glb',
+    // Stance & Climb
+    'crouch-idle': 'crouch-idle.glb',
+    'crouch-walk': 'crouch-walk.glb',
+    'sitting-idle': 'sitting-idle.glb',
+    'sitting-talking': 'sitting-talking.glb',
+    'climb-ladder': 'climb-ladder.glb',
+    // Action & Dance
+    jump: 'jump.glb',
+    'dance-simple': 'dance-simple.glb',
+    'dance-arm-pump': 'dance-arm-pump.glb',
+    'dance-charleston': 'dance-charleston.glb',
+    'guitar-playing': 'guitar-playing.glb',
   });
 
   /** Curated CC0 quadruped clips in `motion-pipeline/mesh2motion/clips/` */
@@ -273,9 +306,113 @@
     return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
   }
 
+  function vDot(a, b) {
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  }
+
+  function vCross(a, b) {
+    return [
+      a[1] * b[2] - a[2] * b[1],
+      a[2] * b[0] - a[0] * b[2],
+      a[0] * b[1] - a[1] * b[0],
+    ];
+  }
+
   function vNormalize(v) {
     const l = Math.hypot(v[0], v[1], v[2]);
     return l < 1e-12 ? [0, 1, 0] : [v[0] / l, v[1] / l, v[2] / l];
+  }
+
+  function clamp(v, lo, hi) {
+    return v < lo ? lo : v > hi ? hi : v;
+  }
+
+  function qFromAxisAngle(axis, angle) {
+    const a = vNormalize(axis);
+    const half = angle * 0.5;
+    const s = Math.sin(half);
+    return qNormalize([a[0] * s, a[1] * s, a[2] * s, Math.cos(half)]);
+  }
+
+  /** Clamp a quaternion's rotation angle to at most `maxRad` radians */
+  function qClampAngle(q, maxRad) {
+    const n = qNormalize(q);
+    let w = n[3];
+    let sx = n[0], sy = n[1], sz = n[2];
+    if (w < 0) { w = -w; sx = -sx; sy = -sy; sz = -sz; }
+    const sinHalf = Math.hypot(sx, sy, sz);
+    if (sinHalf < 1e-8) return [0, 0, 0, 1];
+    const half = Math.atan2(sinHalf, w);
+    const maxHalf = maxRad * 0.5;
+    if (half <= maxHalf) return [sx, sy, sz, w];
+    const scale = Math.sin(maxHalf) / sinHalf;
+    return [sx * scale, sy * scale, sz * scale, Math.cos(maxHalf)];
+  }
+
+  /** Convert a 3x3 rotation matrix (row-major [m00,m01,m02, m10,m11,m12, m20,m21,m22]) to a unit quaternion */
+  function qFromMat3(m00, m01, m02, m10, m11, m12, m20, m21, m22) {
+    const trace = m00 + m11 + m22;
+    let x, y, z, w;
+    if (trace > 0) {
+      const s = 0.5 / Math.sqrt(trace + 1.0);
+      w = 0.25 / s;
+      x = (m21 - m12) * s;
+      y = (m02 - m20) * s;
+      z = (m10 - m01) * s;
+    } else if (m00 > m11 && m00 > m22) {
+      const s = 2.0 * Math.sqrt(1.0 + m00 - m11 - m22);
+      w = (m21 - m12) / s;
+      x = 0.25 * s;
+      y = (m01 + m10) / s;
+      z = (m02 + m20) / s;
+    } else if (m11 > m22) {
+      const s = 2.0 * Math.sqrt(1.0 + m11 - m00 - m22);
+      w = (m02 - m20) / s;
+      x = (m01 + m10) / s;
+      y = 0.25 * s;
+      z = (m12 + m21) / s;
+    } else {
+      const s = 2.0 * Math.sqrt(1.0 + m22 - m00 - m11);
+      w = (m10 - m01) / s;
+      x = (m02 + m20) / s;
+      y = (m12 + m21) / s;
+      z = 0.25 * s;
+    }
+    return qNormalize([x, y, z, w]);
+  }
+
+  /**
+   * Build exact 3D rotation quaternion mapping right-handed orthonormal basis (t0, t1, t2)
+   * onto right-handed orthonormal basis (s0, s1, s2): R = [s0 s1 s2] * [t0 t1 t2]^T.
+   */
+  function qFromBasisMatch(t0, t1, t2, s0, s1, s2) {
+    const m00 = s0[0] * t0[0] + s1[0] * t1[0] + s2[0] * t2[0];
+    const m01 = s0[0] * t0[1] + s1[0] * t1[1] + s2[0] * t2[1];
+    const m02 = s0[0] * t0[2] + s1[0] * t1[2] + s2[0] * t2[2];
+    const m10 = s0[1] * t0[0] + s1[1] * t1[0] + s2[1] * t2[0];
+    const m11 = s0[1] * t0[1] + s1[1] * t1[1] + s2[1] * t2[1];
+    const m12 = s0[1] * t0[2] + s1[1] * t1[2] + s2[1] * t2[2];
+    const m20 = s0[2] * t0[0] + s1[2] * t1[0] + s2[2] * t2[0];
+    const m21 = s0[2] * t0[1] + s1[2] * t1[1] + s2[2] * t2[1];
+    const m22 = s0[2] * t0[2] + s1[2] * t1[2] + s2[2] * t2[2];
+    return qFromMat3(m00, m01, m02, m10, m11, m12, m20, m21, m22);
+  }
+
+  /** Build right-handed orthonormal basis from forward + approximate across vector */
+  function makeHandBasis(fwdRaw, acrossRaw, sideSign) {
+    // sideSign: +1 for Left (fwd x (pinky - index) = dorsal, so palm = -norm),
+    //           -1 for Right (fwd x (pinky - index) = palm, so palm = +norm)
+    const fwd = vNormalize(fwdRaw);
+    const proj = vDot(acrossRaw, fwd);
+    const across = vNormalize([
+      acrossRaw[0] - proj * fwd[0],
+      acrossRaw[1] - proj * fwd[1],
+      acrossRaw[2] - proj * fwd[2],
+    ]);
+    const norm = vNormalize(vCross(fwd, across));
+    // palmDir ALWAYS points from back of hand toward palm on BOTH sides
+    const palmDir = sideSign > 0 ? [-norm[0], -norm[1], -norm[2]] : norm.slice();
+    return { fwd, across, norm, palmDir };
   }
 
   function qFromUnitVectors(from, to) {
@@ -492,25 +629,112 @@
       return null;
     };
 
-    // Build T-pose <-> A-pose arm alignment quaternions in world space
+    // Build full T-pose <-> A-pose arm + forearm + wrist rest-frame alignment in world space
     const armAlignByTarget = new Map();
+    const handBasisBySide = { L: null, R: null };
     if (opts.armBindAlign) {
-      for (let i = 0; i < ARM_ALIGN_PAIRS.length; i++) {
-        const pair = ARM_ALIGN_PAIRS[i];
-        const sA = srcNodes.get(pair.src);
-        const sB = srcNodes.get(pair.srcChild);
-        const tAName = resolveTargetNodeName(pair.tgt);
-        const tBName = resolveTargetNodeName(pair.tgtChild);
-        const tA = tAName ? tgtNodes.get(tAName) : null;
-        const tB = tBName ? tgtNodes.get(tBName) : null;
-        if (sA && sB && tA && tB) {
-          const srcDir = vSub(sB.worldP, sA.worldP);
-          const tgtDir = vSub(tB.worldP, tA.worldP);
-          // Rotation in world space taking target rest arm vector -> source rest arm vector
-          const qAlign = qFromUnitVectors(tgtDir, srcDir);
-          armAlignByTarget.set(tAName, qAlign);
+      const armSides = [
+        {
+          side: 'L',
+          sideSign: 1,
+          sUpper: 'upperarm_l', sLower: 'lowerarm_l', sHand: 'hand_l',
+          sIdx: 'index_01_l', sMid: 'middle_01_l', sPnk: 'pinky_01_l',
+          tUpper: 'upperarm01.L', tLower: 'lowerarm01.L', tHand: 'wrist.L',
+          tIdx: 'finger2-1.L', tMid: 'finger3-1.L', tPnk: 'finger5-1.L',
+        },
+        {
+          side: 'R',
+          sideSign: -1,
+          sUpper: 'upperarm_r', sLower: 'lowerarm_r', sHand: 'hand_r',
+          sIdx: 'index_01_r', sMid: 'middle_01_r', sPnk: 'pinky_01_r',
+          tUpper: 'upperarm01.R', tLower: 'lowerarm01.R', tHand: 'wrist.R',
+          tIdx: 'finger2-1.R', tMid: 'finger3-1.R', tPnk: 'finger5-1.R',
+        },
+      ];
+
+      for (let i = 0; i < armSides.length; i++) {
+        const cfg = armSides[i];
+        const sU = srcNodes.get(cfg.sUpper);
+        const sL = srcNodes.get(cfg.sLower);
+        const sH = srcNodes.get(cfg.sHand);
+        const tUName = resolveTargetNodeName(cfg.tUpper);
+        const tLName = resolveTargetNodeName(cfg.tLower);
+        const tHName = resolveTargetNodeName(cfg.tHand);
+        const tU = tUName ? tgtNodes.get(tUName) : null;
+        const tL = tLName ? tgtNodes.get(tLName) : null;
+        const tH = tHName ? tgtNodes.get(tHName) : null;
+
+        let qUpper = qIdentity();
+        if (sU && sL && tU && tL) {
+          qUpper = qFromUnitVectors(vSub(tL.worldP, tU.worldP), vSub(sL.worldP, sU.worldP));
+          armAlignByTarget.set(tUName, qUpper);
+        }
+
+        let qLower = qUpper;
+        if (sL && sH && tL && tH) {
+          // Straighten Anny's ~55° A-pose elbow bend into M2M's T-pose forearm line without twist
+          const tgtForearm = vSub(tH.worldP, tL.worldP);
+          const srcForearm = vSub(sH.worldP, sL.worldP);
+          const midForearm = qRotateVec(qUpper, tgtForearm);
+          const qElbowSwing = qFromUnitVectors(midForearm, srcForearm);
+          qLower = qNormalize(qMul(qElbowSwing, qUpper));
+          armAlignByTarget.set(tLName, qLower);
+        }
+
+        // Exact 3-axis hand basis match (finger forward, index->pinky across, palm normal)
+        const sIdx = srcNodes.get(cfg.sIdx);
+        const sMid = srcNodes.get(cfg.sMid);
+        const sPnk = srcNodes.get(cfg.sPnk);
+        const tIdxName = resolveTargetNodeName(cfg.tIdx);
+        const tMidName = resolveTargetNodeName(cfg.tMid);
+        const tPnkName = resolveTargetNodeName(cfg.tPnk);
+        const tIdx = tIdxName ? tgtNodes.get(tIdxName) : null;
+        const tMid = tMidName ? tgtNodes.get(tMidName) : null;
+        const tPnk = tPnkName ? tgtNodes.get(tPnkName) : null;
+
+        if (sH && sIdx && sMid && sPnk && tH && tIdx && tMid && tPnk) {
+          const srcBasis = makeHandBasis(
+            vSub(sMid.worldP, sH.worldP),
+            vSub(sPnk.worldP, sIdx.worldP),
+            cfg.sideSign
+          );
+          const tgtBasis = makeHandBasis(
+            vSub(tMid.worldP, tH.worldP),
+            vSub(tPnk.worldP, tIdx.worldP),
+            cfg.sideSign
+          );
+          const qWrist = qFromBasisMatch(
+            tgtBasis.fwd, tgtBasis.across, tgtBasis.norm,
+            srcBasis.fwd, srcBasis.across, srcBasis.norm
+          );
+          armAlignByTarget.set(tHName, qWrist);
+          handBasisBySide[cfg.side] = { srcBasis, tgtBasis, qWrist };
+        } else if (tHName) {
+          armAlignByTarget.set(tHName, qLower);
         }
       }
+    }
+
+    // Build anatomical finger descriptors so fingers curl strictly on their true palmar flexion
+    // plane (zero axial twist, zero scissoring, zero backward hyperextension)
+    const FINGER_CHAIN_NEXT = Object.freeze({
+      // Source next-joint lookup
+      thumb_01_l: 'thumb_02_l', thumb_02_l: 'thumb_03_l',
+      index_01_l: 'index_02_l', index_02_l: 'index_03_l',
+      middle_01_l: 'middle_02_l', middle_02_l: 'middle_03_l',
+      ring_01_l: 'ring_02_l', ring_02_l: 'ring_03_l',
+      pinky_01_l: 'pinky_02_l', pinky_02_l: 'pinky_03_l',
+      thumb_01_r: 'thumb_02_r', thumb_02_r: 'thumb_03_r',
+      index_01_r: 'index_02_r', index_02_r: 'index_03_r',
+      middle_01_r: 'middle_02_r', middle_02_r: 'middle_03_r',
+      ring_01_r: 'ring_02_r', ring_02_r: 'ring_03_r',
+      pinky_01_r: 'pinky_02_r', pinky_02_r: 'pinky_03_r',
+    });
+
+    function parseFingerMeta(rawTgtBone) {
+      const m = /^finger([1-5])-([1-3])\.([LR])$/.exec(rawTgtBone || '');
+      if (!m) return null;
+      return { digit: Number(m[1]), phalanx: Number(m[2]), side: m[3] };
     }
 
     // Determine mapped bones that exist on BOTH source tracks and target skeleton
@@ -533,7 +757,53 @@
         return;
       }
       if (mappedByTarget.has(tgtBone)) return;
-      const pair = { srcBone, tgtBone, track };
+
+      // Precompute anatomical finger geometry if this is a finger bone
+      let fingerInfo = null;
+      const fMeta = parseFingerMeta(rawTgtBone);
+      if (fMeta && handBasisBySide[fMeta.side]) {
+        const hb = handBasisBySide[fMeta.side];
+        const sEntry = srcNodes.get(srcBone);
+        const tEntry = tgtNodes.get(tgtBone);
+        const sNextName = FINGER_CHAIN_NEXT[srcBone];
+        const sNext = sNextName ? srcNodes.get(sNextName) : null;
+        const sPrev = sEntry && sEntry.parentName ? srcNodes.get(sEntry.parentName) : null;
+        const sDir = sNext && sEntry
+          ? vNormalize(vSub(sNext.worldP, sEntry.worldP))
+          : sPrev && sEntry
+            ? vNormalize(vSub(sEntry.worldP, sPrev.worldP))
+            : hb.srcBasis.fwd;
+
+        const tNextRaw = fMeta.phalanx < 3 ? `finger${fMeta.digit}-${fMeta.phalanx + 1}.${fMeta.side}` : null;
+        const tNextName = tNextRaw ? resolveTargetNodeName(tNextRaw) : null;
+        const tNext = tNextName ? tgtNodes.get(tNextName) : null;
+        const tPrev = tEntry && tEntry.parentName ? tgtNodes.get(tEntry.parentName) : null;
+        const tDir = tNext && tEntry
+          ? vNormalize(vSub(tNext.worldP, tEntry.worldP))
+          : tPrev && tEntry
+            ? vNormalize(vSub(tEntry.worldP, tPrev.worldP))
+            : hb.tgtBasis.fwd;
+
+        const sPalm = hb.srcBasis.palmDir;
+        const tPalm = hb.tgtBasis.palmDir;
+        const sFlexAxis = vNormalize(vCross(sDir, sPalm));
+        const tFlexAxis = vNormalize(vCross(tDir, tPalm));
+
+        fingerInfo = {
+          digit: fMeta.digit,
+          phalanx: fMeta.phalanx,
+          side: fMeta.side,
+          sDir,
+          sPalm,
+          sFlexAxis,
+          tDir,
+          tPalm,
+          tFlexAxis,
+          qWrist: hb.qWrist,
+        };
+      }
+
+      const pair = { srcBone, tgtBone, track, fingerInfo };
       mappedPairs.push(pair);
       mappedByTarget.set(tgtBone, pair);
     });
@@ -561,7 +831,7 @@
 
       const mapped = mappedByTarget.get(tgtBoneName);
       let worldQ;
-      if (mapped) {
+      if (mapped && !mapped.fingerInfo) {
         const srcEntry = srcNodes.get(mapped.srcBone);
         const srcRestW = srcEntry ? srcEntry.worldQ : qIdentity();
         const srcAnimW = evalSourceWorldQ(mapped.srcBone, time, srcCache);
@@ -584,23 +854,84 @@
 
     // 1. Retarget quaternion tracks
     for (let i = 0; i < mappedPairs.length; i++) {
-      const { tgtBone, track } = mappedPairs[i];
+      const { srcBone, tgtBone, track, fingerInfo } = mappedPairs[i];
       const tgtEntry = tgtNodes.get(tgtBone);
+      const tgtParentEntry = tgtEntry && tgtEntry.parentName ? tgtNodes.get(tgtEntry.parentName) : null;
+      const tgtParentRestW = tgtParentEntry ? tgtParentEntry.worldQ : qIdentity();
+      const srcEntry = srcNodes.get(srcBone);
+      const srcParentEntry = srcEntry && srcEntry.parentName ? srcNodes.get(srcEntry.parentName) : null;
+
       const times = new Float32Array(track.times);
       const values = new Float32Array(times.length * 4);
 
       for (let k = 0; k < times.length; k++) {
         const t = times[k];
         const srcCache = new Map();
-        const tgtCache = new Map();
+        let localQ;
 
-        const targetW = evalTargetWorldQ(tgtBone, t, srcCache, tgtCache);
-        const parentW = tgtEntry.parentName
-          ? evalTargetWorldQ(tgtEntry.parentName, t, srcCache, tgtCache)
-          : qIdentity();
+        if (fingerInfo && srcEntry) {
+          // Exact parent-relative source delta in M2M world rest frame:
+          // D_rel_W = conj(D_parent) * D_bone
+          const srcAnimW = evalSourceWorldQ(srcBone, t, srcCache);
+          const srcParentAnimW = srcParentEntry
+            ? evalSourceWorldQ(srcEntry.parentName, t, srcCache)
+            : qIdentity();
+          const dBone = qNormalize(qMul(srcAnimW, qConj(srcEntry.worldQ)));
+          const dParent = srcParentEntry
+            ? qNormalize(qMul(srcParentAnimW, qConj(srcParentEntry.worldQ)))
+            : qIdentity();
+          const dRelW = qNormalize(qMul(qConj(dParent), dBone));
 
-        // q_target_local = conj(Q_tgt_parent_W) * Q_tgt_W
-        const localQ = qNormalize(qMul(qConj(parentW), targetW));
+          let qRotW;
+          if (fingerInfo.digit === 1) {
+            // Thumb: conjugate source hand-local delta into Anny rest hand frame via qWrist, clamp angle
+            const qMapped = qNormalize(qMul(qConj(fingerInfo.qWrist), qMul(dRelW, fingerInfo.qWrist)));
+            const maxRad = fingerInfo.phalanx === 3 ? 1.05 : 0.88;
+            qRotW = qClampAngle(qMapped, maxRad);
+          } else {
+            // Index/Middle/Ring/Pinky: project strictly onto anatomical palmar flexion plane
+            // (+ optional small MCP splay, zero axial twist, zero backward hyperextension)
+            const vRot = qRotateVec(dRelW, fingerInfo.sDir);
+            const rawFlex = Math.atan2(vDot(vRot, fingerInfo.sPalm), vDot(vRot, fingerInfo.sDir));
+            // Anny's rest fingers have ~12° natural curl; gently scale PIP/DIP so fists stay clean
+            let flex, splay = 0;
+            if (fingerInfo.phalanx === 1) {
+              // MCP knuckle: small extension to deep flexion + gentle splay
+              flex = clamp(rawFlex * 0.90, -0.14, 1.42);
+              const rawSplay = Math.atan2(
+                vDot(vRot, fingerInfo.sFlexAxis),
+                Math.max(1e-4, Math.hypot(vDot(vRot, fingerInfo.sDir), vDot(vRot, fingerInfo.sPalm)))
+              );
+              // Flip splay sign across L/R? sFlexAxis = sDir x sPalm points toward pinky on L and index on R;
+              // tFlexAxis = tDir x tPalm has the EXACT SAME handedness, so rotating around tPalm by -rawSplay
+              // matches the exact anatomical radial/ulnar direction!
+              splay = clamp(-rawSplay * 0.65, -0.18, 0.18);
+            } else if (fingerInfo.phalanx === 2) {
+              // PIP middle joint: strict 1-DOF hinge (0° to 92° palmar flexion)
+              flex = clamp(rawFlex * 0.85, 0.0, 1.55);
+            } else {
+              // DIP tip joint: strict 1-DOF hinge (0° to 70° palmar flexion)
+              flex = clamp(rawFlex * 0.80, 0.0, 1.20);
+            }
+            const qFlex = qFromAxisAngle(fingerInfo.tFlexAxis, flex);
+            qRotW = Math.abs(splay) > 1e-4
+              ? qNormalize(qMul(qFromAxisAngle(fingerInfo.tPalm, splay), qFlex))
+              : qFlex;
+          }
+
+          // Convert Anny rest-world rotation directly to local space relative to rest parent
+          localQ = qNormalize(qMul(qConj(tgtParentRestW), qMul(qRotW, tgtEntry.worldQ)));
+        } else {
+          const tgtCache = new Map();
+          const targetW = evalTargetWorldQ(tgtBone, t, srcCache, tgtCache);
+          const parentW = tgtEntry.parentName
+            ? evalTargetWorldQ(tgtEntry.parentName, t, srcCache, tgtCache)
+            : qIdentity();
+
+          // q_target_local = conj(Q_tgt_parent_W) * Q_tgt_W
+          localQ = qNormalize(qMul(qConj(parentW), targetW));
+        }
+
         const o = k * 4;
         values[o] = localQ[0];
         values[o + 1] = localQ[1];
@@ -795,6 +1126,7 @@
         keepVerticalBounce: true,
         armBindAlign: true,
         includeFingers: true,
+        antiClip: true,
         defaultFade: 0.25,
         speed: 1.0,
       },
@@ -815,6 +1147,161 @@
     let speed = opts.speed;
     let paused = false;
     let lockRootMotion = !!opts.lockRootMotion;
+    let antiClip = opts.antiClip !== false;
+
+    // Cache bone refs + reusable scratch vectors/quats for zero-allocation torso anti-clipping
+    const bonesByName = new Map();
+    if (targetRoot && typeof targetRoot.traverse === 'function') {
+      targetRoot.traverse((o) => {
+        if (o && o.name && !bonesByName.has(o.name)) bonesByName.set(o.name, o);
+      });
+    }
+    const getBone = (nm) => bonesByName.get(nm) || bonesByName.get(nm.replace(/\./g, '')) || null;
+    const acBones = {
+      chest: getBone('spine01'),
+      mid: getBone('spine03'),
+      pelvis: getBone('spine05') || getBone('root'),
+      L: {
+        sideSign: 1,
+        upper: getBone('upperarm01.L'),
+        lower: getBone('lowerarm01.L'),
+        midArm: getBone('lowerarm02.L'),
+        wrist: getBone('wrist.L'),
+        knuckle: getBone('finger3-1.L'),
+      },
+      R: {
+        sideSign: -1,
+        upper: getBone('upperarm01.R'),
+        lower: getBone('lowerarm01.R'),
+        midArm: getBone('lowerarm02.R'),
+        wrist: getBone('wrist.R'),
+        knuckle: getBone('finger3-1.R'),
+      },
+    };
+    const _vChest = new THREE.Vector3();
+    const _vMid = new THREE.Vector3();
+    const _vPelvis = new THREE.Vector3();
+    const _vShL = new THREE.Vector3();
+    const _vShR = new THREE.Vector3();
+    const _vRight = new THREE.Vector3();
+    const _vUp = new THREE.Vector3();
+    const _vFwd = new THREE.Vector3();
+    const _vCenter = new THREE.Vector3();
+    const _vPt = new THREE.Vector3();
+    const _vRel = new THREE.Vector3();
+    const _vTarget = new THREE.Vector3();
+    const _vPivot = new THREE.Vector3();
+    const _vDir0 = new THREE.Vector3();
+    const _vDir1 = new THREE.Vector3();
+    const _qDeltaW = new THREE.Quaternion();
+    const _qParentW = new THREE.Quaternion();
+    const _qBoneW = new THREE.Quaternion();
+    const _qIdent = new THREE.Quaternion();
+
+    function pushBoneOutOfEllipsoid(pivotBone, testBone, center, rx, ry, rz, sideSign, damp) {
+      if (!pivotBone || !testBone || !pivotBone.parent) return false;
+      testBone.getWorldPosition(_vPt);
+      _vRel.subVectors(_vPt, center);
+      const lx = _vRel.dot(_vRight);
+      const ly = _vRel.dot(_vUp);
+      const lz = _vRel.dot(_vFwd);
+      const nx = lx / rx;
+      const ny = ly / ry;
+      const nz = lz / rz;
+      const d2 = nx * nx + ny * ny + nz * nz;
+      if (d2 >= 1.0) return false;
+
+      // Compute outward push target on the ellipsoid shell (margin 1.06)
+      const d = Math.sqrt(Math.max(1e-6, d2));
+      let outLx = lx / d;
+      let outLy = ly / d;
+      let outLz = lz / d;
+      // Bias slightly laterally outward so deep-center points never pop through the opposite side
+      if (d < 0.35) {
+        outLx = sideSign * rx * 0.85;
+        outLz = (lz >= -0.05 * rz ? 1 : -1) * rz * 0.65;
+      }
+      const scale = 1.06;
+      _vTarget
+        .copy(center)
+        .addScaledVector(_vRight, outLx * scale)
+        .addScaledVector(_vUp, outLy * 1.0)
+        .addScaledVector(_vFwd, outLz * scale);
+
+      pivotBone.getWorldPosition(_vPivot);
+      _vDir0.subVectors(_vPt, _vPivot);
+      _vDir1.subVectors(_vTarget, _vPivot);
+      if (_vDir0.lengthSq() < 1e-6 || _vDir1.lengthSq() < 1e-6) return false;
+      _vDir0.normalize();
+      _vDir1.normalize();
+      _qDeltaW.setFromUnitVectors(_vDir0, _vDir1);
+      if (damp < 1.0) {
+        _qDeltaW.slerp(_qIdent, 1.0 - damp);
+      }
+
+      pivotBone.parent.getWorldQuaternion(_qParentW);
+      pivotBone.getWorldQuaternion(_qBoneW);
+      _qBoneW.premultiply(_qDeltaW);
+      _qParentW.invert();
+      pivotBone.quaternion.copy(_qParentW).multiply(_qBoneW).normalize();
+      pivotBone.updateMatrixWorld(true);
+      return true;
+    }
+
+    function applyTorsoAntiClip() {
+      if (!antiClip || !acBones.chest || !acBones.mid || !acBones.pelvis) return;
+      if (!acBones.L.upper || !acBones.R.upper) return;
+
+      targetRoot.updateMatrixWorld(true);
+      acBones.chest.getWorldPosition(_vChest);
+      acBones.mid.getWorldPosition(_vMid);
+      acBones.pelvis.getWorldPosition(_vPelvis);
+      acBones.L.upper.getWorldPosition(_vShL);
+      acBones.R.upper.getWorldPosition(_vShR);
+
+      const halfSh = 0.5 * _vShL.distanceTo(_vShR);
+      const torsoLen = _vChest.distanceTo(_vPelvis);
+      if (halfSh < 0.04 || torsoLen < 0.08) return;
+
+      _vRight.subVectors(_vShL, _vShR).normalize();
+      _vUp.subVectors(_vChest, _vPelvis).normalize();
+      _vFwd.crossVectors(_vRight, _vUp).normalize();
+      _vRight.crossVectors(_vUp, _vFwd).normalize();
+
+      // Two overlapping torso ellipsoids: upper ribcage + lower abdomen/pelvis
+      const chestRx = halfSh * 0.94;
+      const chestRy = torsoLen * 0.44;
+      const chestRz = halfSh * 0.80;
+      const abdRx = halfSh * 0.90;
+      const abdRy = torsoLen * 0.44;
+      const abdRz = halfSh * 0.74;
+
+      const sides = [acBones.L, acBones.R];
+      for (let s = 0; s < sides.length; s++) {
+        const arm = sides[s];
+        const testBones = [arm.knuckle, arm.wrist, arm.midArm];
+        for (let iter = 0; iter < 2; iter++) {
+          // 1. Ribcage ellipsoid
+          _vCenter.lerpVectors(_vMid, _vChest, 0.45);
+          for (let t = 0; t < testBones.length; t++) {
+            const tb = testBones[t];
+            if (!tb) continue;
+            if (pushBoneOutOfEllipsoid(arm.upper, tb, _vCenter, chestRx, chestRy, chestRz, arm.sideSign, 0.85)) {
+              pushBoneOutOfEllipsoid(arm.lower, tb, _vCenter, chestRx, chestRy, chestRz, arm.sideSign, 0.75);
+            }
+          }
+          // 2. Abdomen / pelvis ellipsoid
+          _vCenter.lerpVectors(_vPelvis, _vMid, 0.45);
+          for (let t = 0; t < testBones.length; t++) {
+            const tb = testBones[t];
+            if (!tb) continue;
+            if (pushBoneOutOfEllipsoid(arm.upper, tb, _vCenter, abdRx, abdRy, abdRz, arm.sideSign, 0.85)) {
+              pushBoneOutOfEllipsoid(arm.lower, tb, _vCenter, abdRx, abdRy, abdRz, arm.sideSign, 0.75);
+            }
+          }
+        }
+      }
+    }
 
     function resolveUrl(nameOrUrl) {
       if (/^(https?:|\/|\.\.?\/)/.test(nameOrUrl) || nameOrUrl.endsWith('.glb')) {
@@ -963,6 +1450,18 @@
       if (!paused && deltaSeconds > 0) {
         mixer.update(deltaSeconds);
       }
+      if (antiClip && currentAction) {
+        applyTorsoAntiClip();
+      }
+    }
+
+    function setAntiClip(enabled) {
+      antiClip = !!enabled;
+      return antiClip;
+    }
+
+    function hasClip(name) {
+      return actions.has(name);
     }
 
     function getClipNames() {
@@ -1004,6 +1503,9 @@
       setSpeed,
       getSpeed,
       setRootMotionLock,
+      setAntiClip,
+      hasClip,
+      applyTorsoAntiClip,
       pause,
       resume,
       stop,

@@ -13,29 +13,21 @@ All `.glb` animation clips in `clips/` are sourced from the open-source **Mesh2M
 
 ## Curated Clip Manifest (`clips/`)
 
-### Humanoid Clips (9 files, 565,576 bytes)
+### Humanoid Clips (36 files)
 
-| Local File | Upstream Path (`static/assets/human/animations/`) | Size (bytes) | Purpose |
-| :--- | :--- | ---: | :--- |
-| `rest-pose.glb` | `rest-pose.glb` | 56,308 | Reference T-pose rest calibration |
-| `idle.glb` | `idle-a.glb` | 61,684 | Standing idle |
-| `idle-talking.glb` | `idle-talking.glb` | 69,116 | Conversational idle |
-| `walk.glb` | `walk.glb` | 62,692 | Standard walk cycle |
-| `walk-carry.glb` | `walk-carry.glb` | 61,472 | Carrying-load walk cycle |
-| `jog.glb` | `jog.glb` | 59,744 | Jogging locomotion |
-| `sprint.glb` | `sprint.glb` | 59,252 | Fast running / sprint |
-| `jump.glb` | `jump-2.glb` | 60,588 | Action jump |
-| `greeting.glb` | `greeting.glb` | 74,420 | Wave / social greeting |
+- **Calibration (1)**: `rest-pose.glb`
+- **Locomotion (8)**: `walk.glb`, `walk-relaxed.glb`, `walk-cautious.glb`, `walk-happy.glb`, `walk-carry.glb`, `walk-backwards.glb`, `jog.glb`, `sprint.glb`
+- **Idle & Social (7)**: `idle.glb` (`idle-a.glb`), `idle-talking.glb`, `idle-listening.glb`, `idle-foldarms.glb`, `greeting.glb`, `clapping.glb`, `yes.glb`
+- **Emotions & Gestures (5)**: `angry.glb`, `confused.glb`, `reject.glb`, `victory.glb`, `pray.glb`
+- **Work & Carry (5)**: `push.glb`, `rope-pull.glb`, `hammering.glb`, `shovel-dig.glb`, `farm-watering.glb`
+- **Stance & Climb (5)**: `crouch-idle.glb`, `crouch-walk.glb`, `sitting-idle.glb`, `sitting-talking.glb`, `climb-ladder.glb`
+- **Action & Dance (5)**: `jump.glb` (`jump-2.glb`), `dance-simple.glb`, `dance-arm-pump.glb`, `dance-charleston.glb`, `guitar-playing.glb`
 
-### Quadruped Clips (3 files, 165,168 bytes)
+### Quadruped Clips (3 files)
 
-| Local File | Upstream Path (`static/assets/horse/animations/`) | Size (bytes) | Purpose |
-| :--- | :--- | ---: | :--- |
-| `horse-idle.glb` | `idle.glb` | 54,896 | Quadruped standing idle |
-| `horse-walk.glb` | `walk.glb` | 55,592 | Quadruped walk cycle |
-| `horse-trot.glb` | `trot.glb` | 54,680 | Quadruped trot cycle |
+- `horse-idle.glb`, `horse-walk.glb`, `horse-trot.glb`
 
-**Total Curated Asset Size**: 730,444 bytes (~713 KB, well within the 2.5 MB budget).
+**Total Curated Asset Size**: 2,469,676 bytes (~2.36 MB across 39 CC0 `.glb` clips).
 
 ## CC0 1.0 Universal Summary
 
