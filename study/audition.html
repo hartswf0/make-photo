@@ -180,9 +180,9 @@
       position: fixed;
       left: 50%;
       transform: translateX(-50%);
-      bottom: 152px;
+      bottom: 82px;
       width: min(760px, calc(100vw - 32px));
-      padding: 8px 15px 9px;
+      padding: 7px 14px 8px;
       border-radius: 12px;
       background: rgba(12, 16, 18, 0.94);
       border: 1px solid rgba(78, 232, 255, 0.38);
@@ -190,7 +190,9 @@
       box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
       z-index: 6;
       pointer-events: auto;
+      transition: bottom 0.16s ease;
     }
+    body.rack-collapsed #lyric-strip { bottom: 48px; }
     .lyric-line {
       text-align: center;
       font: 400 clamp(15px, 1.75vw, 20px)/1.25 "Instrument Serif", Georgia, serif;
@@ -242,6 +244,12 @@
       display: flex; flex-direction: column; gap: 4px;
       z-index: 7; pointer-events: none;
     }
+    .rack-tabs {
+      display: flex; gap: 4px; align-items: center; pointer-events: auto;
+      flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+    }
+    .rack-tabs::-webkit-scrollbar { display: none; }
+    .pill-row[hidden] { display: none !important; }
     .pill-row {
       display: flex; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
       gap: 4px; align-items: center; pointer-events: auto;
@@ -420,16 +428,26 @@
       <button type="button" class="play-btn" id="btn-play">PAUSE</button>
       <span id="time-readout">00:12 / 04:43</span>
       <input type="range" id="song-scrub" min="0" max="283" step="0.2" value="12.2" aria-label="Scrub Cyan Jerikan timeline">
+      <button type="button" class="play-btn" id="btn-speak-lyric" title="Speak active lyric aloud with synced visemes">SPEAK PHRASE</button>
       <button type="button" class="audio-cta" id="btn-unmute">UNMUTE OGG</button>
     </div>
   </section>
 
   <div class="stage-bar">
-    <div class="pill-row" id="row-looks" aria-label="15 GPU Looks and 9-Look Contact Sheet"></div>
-    <div class="pill-row" id="row-cast" aria-label="Cast Lead and Rig Switcher"></div>
-    <div class="pill-row" id="row-sets" aria-label="5 In-Context Music Video Sets"></div>
-    <div class="pill-row" id="row-cuts" aria-label="Director Camera Cuts and Lenses"></div>
-    <div class="pill-row" id="row-motion" aria-label="Mesh2Motion CC0 Clip Audition and Sapiens Video Track"></div>
+    <div class="pill-row" id="row-looks" data-tab-panel="looks" aria-label="15 GPU Looks and 9-Look Contact Sheet"></div>
+    <div class="pill-row" id="row-cast" data-tab-panel="cast" hidden aria-label="Cast Lead and Rig Switcher"></div>
+    <div class="pill-row" id="row-sets" data-tab-panel="sets" hidden aria-label="5 In-Context Music Video Sets"></div>
+    <div class="pill-row" id="row-cuts" data-tab-panel="cuts" hidden aria-label="Director Camera Cuts and Lenses"></div>
+    <div class="pill-row" id="row-motion" data-tab-panel="motion" hidden aria-label="Mesh2Motion CC0 Clip Audition and Sapiens Video Track"></div>
+    <div class="rack-tabs" id="rack-tabs" aria-label="Control Rack Tabs">
+      <button type="button" class="pill active" data-tab="looks">Looks</button>
+      <button type="button" class="pill" data-tab="cast">Cast &amp; Rig</button>
+      <button type="button" class="pill" data-tab="sets">Sets &amp; Plates</button>
+      <button type="button" class="pill" data-tab="cuts">Camera</button>
+      <button type="button" class="pill" data-tab="motion">Motion</button>
+      <span class="pill-sep"></span>
+      <button type="button" class="pill" id="btn-rack-collapse" aria-pressed="false">Hide Bar</button>
+    </div>
   </div>
 
   <script src="../field-plates/fonts.js"></script>
@@ -446,7 +464,7 @@
   <script src="../zones/world-architecture.js?v=v6sculpt1"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-retarget.js?v=3"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=1"></script>
-  <script src="../motion-pipeline/anny-human-v7.js?v=1"></script>
+  <script src="../motion-pipeline/anny-human-v7.js?v=3"></script>
   <script src="./look-audition-mv.js?v=v7pass1"></script>
   <script>
   (function () {
@@ -538,7 +556,7 @@
     };
 
     let activeCastId = "imani";
-    let activeRigMode = "anny_v7"; // "anny_v7" (default) | "scion_v6"
+    let activeRigMode = "scion_v6"; // "scion_v6" (default — best sculpted faces/mouths) | "anny_v7" (1-click toggle)
     let activeSetIdx = 0;
     let activeRefSceneId = null; // null (MV set) | "ensemble" | "pump_closeup" | "clay_bust"
     let activeRefTableau = null;
@@ -1818,8 +1836,8 @@
 
       const rCast = $("row-cast");
       rCast.innerHTML = `<span class="row-tag">Cast Rig:</span>` +
-        `<button type="button" class="pill pill-cs" data-rig="anny_v7" title="Clothed Anny V7 (104-bone + Verlet Cloth + Mesh2Motion)">ANNY V7 (104B)</button>` +
-        `<button type="button" class="pill" data-rig="scion_v6" title="Scion V6 Procedural Human Rig">SCION V6</button>` +
+        `<button type="button" class="pill pill-cs" data-rig="scion_v6" title="Scion V6 Procedural Human Rig (Default)">SCION V6</button>` +
+        `<button type="button" class="pill" data-rig="anny_v7" title="Clothed Anny V7 (104-bone + Verlet Cloth + Mesh2Motion)">ANNY V7 (104B)</button>` +
         `<span class="pill-sep"></span><span class="row-tag">Cast Lead:</span>` +
         LAMV.MV_CAST.map(c =>
           `<button type="button" class="pill pill-cast" data-cast="${c.id}" title="${c.title}">${c.short}</button>`
@@ -2135,6 +2153,72 @@
       $("btn-play").textContent = song.isPlaying() ? "PAUSE" : "PLAY";
     });
 
+    /* ---------- Collapsible Bottom Control Rack Tabs ---------- */
+    let activeRackTab = "looks";
+    let rackCollapsed = false;
+    function setRackTab(tabId) {
+      activeRackTab = tabId || "looks";
+      rackCollapsed = false;
+      document.body.classList.remove("rack-collapsed");
+      document.querySelectorAll("[data-tab-panel]").forEach(el => {
+        el.hidden = el.dataset.tabPanel !== activeRackTab;
+      });
+      document.querySelectorAll("#rack-tabs [data-tab]").forEach(b => {
+        b.classList.toggle("active", b.dataset.tab === activeRackTab);
+      });
+      const cBtn = $("btn-rack-collapse");
+      if (cBtn) {
+        cBtn.textContent = "Hide Bar";
+        cBtn.setAttribute("aria-pressed", "false");
+      }
+    }
+    document.querySelectorAll("#rack-tabs [data-tab]").forEach(b => {
+      b.addEventListener("click", () => setRackTab(b.dataset.tab));
+    });
+    const collapseBtn = $("btn-rack-collapse");
+    if (collapseBtn) {
+      collapseBtn.addEventListener("click", () => {
+        rackCollapsed = !rackCollapsed;
+        document.body.classList.toggle("rack-collapsed", rackCollapsed);
+        document.querySelectorAll("[data-tab-panel]").forEach(el => {
+          el.hidden = rackCollapsed || el.dataset.tabPanel !== activeRackTab;
+        });
+        collapseBtn.textContent = rackCollapsed ? "Show Bar" : "Hide Bar";
+        collapseBtn.setAttribute("aria-pressed", String(rackCollapsed));
+      });
+    }
+
+    /* ---------- Speak Phrase (Web speechSynthesis + Synced Viseme Override) ---------- */
+    let phraseSpeech = { active: false, text: "", startMs: 0, durMs: 2600 };
+    function speakAuditionPhrase(customText) {
+      const text = String(customText || (lastVox && lastVox.lineText) || "Iron lever cracks before the rooster.").trim();
+      if (!text) return false;
+      phraseSpeech = {
+        active: true,
+        text,
+        startMs: performance.now(),
+        durMs: Math.max(1700, Math.min(5000, text.length * 70 + 450))
+      };
+      const btn = $("btn-speak-lyric");
+      if (btn) btn.textContent = "SPEAKING...";
+      if (typeof window !== "undefined" && "speechSynthesis" in window && typeof window.SpeechSynthesisUtterance === "function") {
+        try {
+          const utt = new window.SpeechSynthesisUtterance(text);
+          utt.rate = 0.94;
+          utt.pitch = 1.02;
+          utt.onend = () => {
+            phraseSpeech.active = false;
+            if (btn) btn.textContent = "SPEAK PHRASE";
+          };
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(utt);
+        } catch (_e) { /* silent fallback */ }
+      }
+      return true;
+    }
+    const speakLyricBtn = $("btn-speak-lyric");
+    if (speakLyricBtn) speakLyricBtn.addEventListener("click", () => speakAuditionPhrase());
+
     function resize() {
       const w = Math.max(1, wrap.clientWidth), h = Math.max(1, wrap.clientHeight);
       renderer.setPixelRatio((activeCastId === "ensemble" || w >= 1200) ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.25));
@@ -2430,7 +2514,15 @@
               }
             }
             if (typeof inst.setLyricSpeech === "function") {
-              if (singThisActor && vox.singing && !useSapiens) {
+              if (phraseSpeech.active && isLead && !useSapiens) {
+                const p01 = clamp((nowMs - phraseSpeech.startMs) / phraseSpeech.durMs, 0, 1);
+                inst.setLyricSpeech(phraseSpeech.text, p01, 0.92);
+                if (p01 >= 1) {
+                  phraseSpeech.active = false;
+                  const sb = $("btn-speak-lyric");
+                  if (sb) sb.textContent = "SPEAK PHRASE";
+                }
+              } else if (singThisActor && vox.singing && !useSapiens) {
                 inst.setLyricSpeech(vox.lineText, vox.lineProgress || 0, vox.vocalFormantEnv || vox.visemeAmount || 0);
               } else if (!useSapiens) {
                 inst.setLyricSpeech("", 0, 0);
@@ -2468,6 +2560,21 @@
         const neckLean = steadyMacro ? undefined : computeMusicalNeckLean(vox, nowSec, i, isLead, danceNow, effCut);
         if (i === 0 && neckLean) lastLeadNeckLeanDeg = neckLean.rollDeg;
 
+        // Phrase speech viseme override for Scion V6
+        let scionVis = singThisActor ? vox.viseme : "SIL";
+        let scionVisAmt = singThisActor ? (isLead ? vox.visemeAmount : vox.visemeAmount * 0.78) : 0.0;
+        if (phraseSpeech.active && isLead && window.AnnyHumanV7 && typeof window.AnnyHumanV7.sampleLyricViseme === "function") {
+          const p01 = clamp((nowMs - phraseSpeech.startMs) / phraseSpeech.durMs, 0, 1);
+          const sv = window.AnnyHumanV7.sampleLyricViseme(phraseSpeech.text, p01, 0.95);
+          scionVis = sv.viseme;
+          scionVisAmt = clamp(sv.jawOpen * 0.95 + sv.mouthWide * 0.25, 0, 0.95);
+          if (p01 >= 1) {
+            phraseSpeech.active = false;
+            const sb = $("btn-speak-lyric");
+            if (sb) sb.textContent = "SPEAK PHRASE";
+          }
+        }
+
         ch.update(dt, actorTime, {
           pose: runPose,
           lodDist: activeCastId === "ensemble" ? 8.5 : 0,
@@ -2477,10 +2584,10 @@
           emotion: vox.emotion,
           emotionIntensity: isLead ? 0.74 : 0.64,
           speaking: false,
-          viseme: (sapiensAngles && isLead && sapiensAngles.mouthOpenRatio > 0.08) ? "AA" : (singThisActor ? vox.viseme : "SIL"),
+          viseme: (sapiensAngles && isLead && sapiensAngles.mouthOpenRatio > 0.08) ? "AA" : scionVis,
           visemeAmount: (sapiensAngles && isLead)
             ? clamp(sapiensAngles.mouthOpenRatio * 0.78, 0, 0.75)
-            : (singThisActor ? (isLead ? vox.visemeAmount : vox.visemeAmount * 0.78) : 0.0),
+            : scionVisAmt,
           neckLean,
           handGestureL: hasPhone ? undefined : actorHand,
           handGestureR: hasPhone ? undefined : (isLead && danceNow ? "joyful_wave" : actorHand),

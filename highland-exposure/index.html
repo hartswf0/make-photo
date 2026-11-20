@@ -281,7 +281,23 @@ dialog .take-origin { font-size: .76rem; line-height: 1.4; margin: .3rem 0 .5rem
 @media(pointer:coarse) and (max-width:430px) {
   .step-grid { grid-template-columns: minmax(0,1fr); }
 }
-#world-memory-pill{display:inline-flex;align-items:center;gap:10px;padding:4px 10px;border:1px solid rgba(243,238,225,.22);border-radius:4px;background:rgba(24,33,30,.86);font:600 11px/1.2 Barlow,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#f3eee1}#world-memory-pill span{color:#f7b579}#highland-radio-host{position:absolute;right:clamp(14px,3.4vw,58px);top:70px;z-index:3;pointer-events:auto;max-width:280px}@media(max-width:720px){#highland-radio-host{top:64px;right:12px;max-width:240px}}</style></head>
+#world-memory-pill{display:inline-flex;align-items:center;gap:10px;padding:4px 10px;border:1px solid rgba(243,238,225,.22);border-radius:4px;background:rgba(24,33,30,.86);font:600 11px/1.2 Barlow,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#f3eee1}#world-memory-pill span{color:#f7b579}#highland-radio-host{position:absolute;right:clamp(14px,3.4vw,58px);top:70px;z-index:3;pointer-events:auto;max-width:280px}@media(max-width:720px){#highland-radio-host{top:64px;right:12px;max-width:240px}}
+#he-play-bar{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);z-index:5;display:flex;align-items:center;flex-wrap:wrap;justify-content:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(16,23,21,.88);border:1px solid rgba(40,216,240,.38);backdrop-filter:blur(6px);pointer-events:auto;max-width:calc(100vw - 24px)}
+.he-pill,.he-sel{font:700 10px/1 Barlow,Arial,sans-serif;letter-spacing:.10em;text-transform:uppercase;padding:7px 11px;border-radius:999px;border:1px solid rgba(243,238,225,.28);background:rgba(22,31,28,.92);color:#f3eee1;cursor:pointer;white-space:nowrap}
+.he-pill:hover,.he-sel:hover{border-color:#28d8f0}
+.he-pill.active{background:#28d8f0;color:#08161a;border-color:#28d8f0}
+#he-big-map-modal{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(8,13,15,.88);backdrop-filter:blur(6px)}
+#he-big-map-modal[hidden]{display:none}
+.he-map-card{width:min(820px,95vw);display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:10px;background:#101819;border:1px solid rgba(40,216,240,.46);color:#f3eee1}
+.he-map-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font:700 12px/1.2 Barlow,Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase}
+#he-map-readout{color:#28d8f0;font:600 11px/1.2 monospace}
+#he-big-map-canvas{width:100%;height:auto;max-height:66vh;aspect-ratio:640/440;border-radius:6px;border:1px solid rgba(40,216,240,.32);cursor:crosshair;background:#0d1a1e;display:block}
+@media (max-height:500px) and (orientation:landscape){
+  .topbar,.position,.footbar,#highland-radio-host,#near-context{display:none!important}
+  .touch-control{display:flex!important;bottom:10px;left:12px}
+  #he-play-bar{left:auto;right:12px;bottom:10px;transform:none;flex-direction:column;align-items:stretch;border-radius:12px;padding:6px;max-width:148px}
+}
+</style></head>
 <body><main id="field" aria-label="Playable Ethiopian highlands">
 <canvas id="land" tabindex="0" aria-label="Landscape. W and S move. A and D steer. Drag to look. R follows the road. P exposes a photograph. H hides or restores the controls."></canvas>
 <header class="hud topbar"><div class="field-title"><small>MAKE PHOTO <span>/</span> FIELD EXPEDITION</small><h1>Highland Exposure</h1></div><div class="top-actions"><button id="mute" aria-pressed="false">Sound off</button><button id="open-sampler" aria-label="Open field sampler" title="Field sampler (B)">Sampler</button><button id="open-desk" aria-label="Open field desk">Desk</button><button id="hide" aria-label="Hide all controls" title="Hide controls (H)">Hide</button></div></header>
@@ -300,6 +316,27 @@ dialog .take-origin { font-size: .76rem; line-height: 1.4; margin: .3rem 0 .5rem
 </aside>
 <div class="hud footbar"><div class="travel-control"><label for="mode">Travel</label><select id="mode"><option value="foot">On foot</option><option value="donkey">Pack donkey</option><option value="taxi">Taxi</option><option value="glider">Glider</option></select><button id="follow" aria-pressed="false">Follow road</button></div><div class="exposure"><button id="plate" aria-label="Expose a photograph (P)"><span class="shutter-dot"></span> Expose plate</button><button id="darkroom" aria-label="Open plate box">Plates <span id="count">0</span></button></div></div>
 <div class="hud touch-control" aria-label="Touch movement"><button data-key="a" aria-label="Turn left">↶</button><button data-key="w" aria-label="Move forward">↑</button><button data-key="s" aria-label="Move back">↓</button><button data-key="d" aria-label="Turn right">↷</button></div>
+<div class="hud" id="he-play-bar" role="toolbar" aria-label="Playable character and map controls">
+  <button type="button" class="he-pill active" id="he-cam-btn" aria-pressed="true" title="Toggle 3rd-Person / 1st-Person Camera (V)">CAM: 3RD</button>
+  <select class="he-sel" id="he-play-as" aria-label="Playable character selector">
+    <option value="imani">PLAY AS: IMANI</option>
+    <option value="june">PLAY AS: JUNE</option>
+    <option value="makeda">PLAY AS: MAKEDA</option>
+    <option value="elder">PLAY AS: ELDER</option>
+    <option value="hanna">PLAY AS: HANNA</option>
+  </select>
+  <button type="button" class="he-pill" id="he-map-btn" title="Open Click-to-Travel Map (M)">MAP (M)</button>
+</div>
+<div id="he-big-map-modal" hidden role="dialog" aria-label="Interactive Highland Topographic Map">
+  <div class="he-map-card">
+    <div class="he-map-head">
+      <span>HIGHLAND TOPOGRAPHIC MAP · CLICK ANYWHERE TO TRAVEL</span>
+      <span id="he-map-readout">CLICK ANY SPOT TO MOVE GROUNDED</span>
+      <button type="button" class="he-pill" id="he-map-close">CLOSE (ESC)</button>
+    </div>
+    <canvas id="he-big-map-canvas" width="640" height="440"></canvas>
+  </div>
+</div>
 <button id="unhide" aria-label="Show controls">Controls</button>
 <div id="boot" role="status">Opening the ridge…</div><noscript>Enable JavaScript to play this offline field.</noscript></main>
 <dialog id="desk" aria-labelledby="desk-title"><header><div><small>MAKE PHOTO / FIELD EXPEDITION</small><h2 id="desk-title">Field desk</h2></div><button id="close-desk" title="Return to the field (Esc)">Return to field</button></header><nav id="tabs" aria-label="Field desk"><button data-tab="travel">Controls</button><button data-tab="people">People</button><button data-tab="sampler">Sampler</button><button data-tab="photos">Plate box</button><button data-tab="survey">Terrain</button><button data-tab="logs">Validation</button></nav>
@@ -6478,7 +6515,11 @@ function makeFieldTools({
       if(desk.open||['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName))return;
       if(['BUTTON','A','SUMMARY'].includes(document.activeElement?.tagName)&&['Enter',' '].includes(e.key))return;
       const k=e.key.toLowerCase();if(keys.includes(k)){e.preventDefault();down.add(k);if(['a','d','arrowleft','arrowright','s','arrowdown'].includes(k))auto=false;return;}
-      if(e.repeat)return;if(fieldUI?.shortcut(k)){e.preventDefault();return;}if(k==='h'){setQuiet(!quiet);return;}if(k==='?')openDesk('travel');else if(k==='m')openDesk('survey');else if(k==='p')shoot();else if(k==='e')action();else if(k==='q')action(true);else if(k==='r')toggleTravel();else if(k==='c')openDesk('photos');
+      if(e.repeat)return;
+      if(k==='escape'&&by('he-big-map-modal')&&!by('he-big-map-modal').hidden){e.preventDefault();toggleHeBigMap(false);return;}
+      if(k==='v'){e.preventDefault();toggleHeCamera();return;}
+      if(k==='m'){e.preventDefault();toggleHeBigMap();return;}
+      if(fieldUI?.shortcut(k)){e.preventDefault();return;}if(k==='h'){setQuiet(!quiet);return;}if(k==='?')openDesk('travel');else if(k==='p')shoot();else if(k==='e')action();else if(k==='q')action(true);else if(k==='r')toggleTravel();else if(k==='c')openDesk('photos');
       else if(['1','2','3','4'].includes(k))goMode(['foot','donkey','taxi','glider'][Number(k)-1]);
       else if(k==='pageup'||k==='pagedown')pitch=clamp(pitch+(k==='pageup'?.09:-.09),-1.22,1.15);
     });
@@ -6620,12 +6661,93 @@ function makeFieldTools({
     hsBridge.mountRadio();
     window.addEventListener('pointerdown',()=>hsBridge.init(),{once:true,passive:true});
     window.addEventListener('keydown',()=>hsBridge.init(),{once:true,passive:true});
+    /* --- Always-Playable 3rd/1st-Person Camera, Character Selector & Click-to-Travel Big Map --- */
+    const HE_ROLE_MAP={imani:'imani',june:'june',makeda:'makeda',elder:'makeda',hanna:'hanna'};
+    function syncHeCamUI(){
+      const isThird=company.field(state).view==='third';
+      const btn=by('he-cam-btn');
+      if(btn){btn.textContent=isThird?'CAM: 3RD':'CAM: 1ST';btn.classList.toggle('active',isThird);btn.setAttribute('aria-pressed',String(isThird));}
+    }
+    function toggleHeCamera(){
+      const isThird=company.field(state).view==='third';
+      if(!company.field(state).active)selectPerson('imani');
+      setCamera(!isThird);syncHeCamUI();
+      announce(!isThird?'Camera: 3rd-Person Follow':'Camera: 1st-Person View');
+    }
+    function renderHeBigMap(){
+      const cvs=by('he-big-map-canvas');if(!cvs)return;
+      const g=cvs.getContext('2d');if(!g)return;
+      const W=cvs.width,H=cvs.height;
+      const span=2600,minX=state.x-span*0.5,minZ=state.z-span*0.5;
+      const cols=96,rows=66,cw=W/cols,ch=H/rows;
+      for(let r=0;r<rows;r++){
+        const wz=minZ+((r+0.5)/rows)*span;
+        for(let c=0;c<cols;c++){
+          const wx=minX+((c+0.5)/cols)*span;
+          const h=terrain.height(wx,wz),norm=clamp((h-1200)/2800,0,1);
+          const contour=Math.abs(h-40*Math.round(h/40))<4.5;
+          const base=Math.round(32+norm*110);
+          g.fillStyle=contour?`rgb(${Math.round(base*.65)},${Math.round(base*.95)},${Math.round(base*1.05)})`:`rgb(${Math.round(base*.72)},${Math.round(base*.84)},${Math.round(base*.76)})`;
+          g.fillRect(c*cw,r*ch,Math.ceil(cw)+1,Math.ceil(ch)+1);
+        }
+      }
+      const toPx=(wx,wz)=>[((wx-minX)/span)*W,((wz-minZ)/span)*H];
+      g.font='600 10px Barlow,Arial,sans-serif';
+      for(const st of (journey.stops||[])){
+        const [sx,sy]=toPx(st.x,st.z);
+        if(sx<-15||sx>W+15||sy<-15||sy>H+15)continue;
+        g.strokeStyle='#f7b579';g.lineWidth=2;g.beginPath();g.arc(sx,sy,6,0,Math.PI*2);g.stroke();
+        g.fillStyle='#f3eee1';g.fillText(st.name||st.id,sx+9,sy+3);
+      }
+      const [px,py]=toPx(state.x,state.z);
+      g.fillStyle='#28d8f0';g.beginPath();g.arc(px,py,6,0,Math.PI*2);g.fill();
+      if(by('he-map-readout'))by('he-map-readout').textContent=`POS (${Math.round(state.x)}, ${Math.round(state.z)}) · ELEV ${Math.round(terrain.height(state.x,state.z))} m · CLICK TO TRAVEL`;
+      cvs._mapBounds={minX,minZ,span};
+    }
+    function toggleHeBigMap(force){
+      const modal=by('he-big-map-modal');if(!modal)return;
+      const open=typeof force==='boolean'?force:modal.hidden;
+      modal.hidden=!open;
+      if(open)renderHeBigMap();
+    }
+    if(by('he-cam-btn'))by('he-cam-btn').onclick=toggleHeCamera;
+    if(by('he-play-as'))by('he-play-as').onchange=e=>{
+      const id=HE_ROLE_MAP[e.target.value]||'imani';
+      selectPerson(id);setCamera(true);syncHeCamUI();
+    };
+    if(by('he-map-btn'))by('he-map-btn').onclick=()=>toggleHeBigMap();
+    if(by('he-map-close'))by('he-map-close').onclick=()=>toggleHeBigMap(false);
+    if(by('he-big-map-canvas')){
+      const cvs=by('he-big-map-canvas');
+      cvs.onclick=e=>{
+        const b=cvs._mapBounds;if(!b)return;
+        const rect=cvs.getBoundingClientRect();
+        const u=clamp((e.clientX-rect.left)/Math.max(1,rect.width),0,1);
+        const v=clamp((e.clientY-rect.top)/Math.max(1,rect.height),0,1);
+        const wx=b.minX+u*b.span,wz=b.minZ+v*b.span;
+        const dist=Math.round(Math.hypot(wx-state.x,wz-state.z));
+        const elev=Math.round(terrain.height(wx,wz));
+        jump({x:wx,z:wz},'interactive map travel');
+        toggleHeBigMap(false);
+        announce(`Traveled ${dist} m · Elevation ${elev} m`);
+      };
+    }
+    // Default to 3rd-person playable character (Imani) on boot!
+    if(!company.field(state).active){selectPerson('imani');setCamera(true);}
+    syncHeCamUI();
+
     window.__HIGHLAND_EXPOSURE__={
       get audioReady(){return Boolean(window.HighlandSoundscape&&(typeof window.HighlandSoundscape.isReady==='function'?window.HighlandSoundscape.isReady():true));},
       get radioMounted(){return hsBridge.radioMounted;},
+      get cameraMode(){return company.field(state).view;},
+      get playAs(){return company.field(state).active||'imani';},
       get castAlive(){return company.roster(state,environment).map(r=>({id:r.id,name:r.name,pose:r.pose,y:Number(r.y.toFixed(3))}));},
       get memory(){return {...company.worldMemory};},
       unlockAudio:()=>hsBridge.init(),
+      setCameraMode:(m)=>{setCamera(m==='third');syncHeCamUI();},
+      setPlayAs:(id)=>{selectPerson(HE_ROLE_MAP[id]||'imani');setCamera(true);syncHeCamUI();},
+      openBigMap:(o=true)=>toggleHeBigMap(o),
+      teleport:(x,z)=>jump({x,z},'api map travel'),
       pumpOnce:()=>doCompany('fixture:lever','work'),
       talkTo:(id)=>doCompany(id,'meet')
     };

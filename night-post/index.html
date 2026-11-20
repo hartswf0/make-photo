@@ -1245,11 +1245,182 @@
       #focus-knob { width: 58px; height: 58px; }
       #focus-knob i { height: 22px; margin-top: -22px; }
     }
+
+    /* Clean Uncluttered Play Mode (90% pure 3D world by default) */
+    body.hud-clean #tape-bar,
+    body.hud-clean #np-carrier-bar,
+    body.hud-clean #np-can-meter,
+    body.hud-clean #np-actions-bar,
+    body.hud-clean #expedition-strip,
+    body.hud-clean #quick-bar,
+    body.hud-clean #keys,
+    body.hud-clean #cam-frame,
+    body.hud-clean #wedge-wrap,
+    body.hud-clean #ppc-left-ticks,
+    body.hud-clean #ppc-right-ticks,
+    body.hud-clean #ppc-dashes {
+      display: none !important;
+    }
+    body.hud-clean #top-left {
+      top: max(14px, env(safe-area-inset-top));
+      left: max(16px, env(safe-area-inset-left));
+      gap: 4px;
+    }
+    body.hud-clean #plate h1 { font-size: clamp(16px, 2vw, 22px); margin: 2px 0 0; }
+    body.hud-clean #hud-sub, body.hud-clean #thought { display: none; }
+    body.hud-clean #focus-dock #wifi-meter-box,
+    body.hud-clean #focus-dock .focus-row { display: none; }
+
+    /* Slim Play Controls Bar (Top-Center / Bottom-Center) */
+    #play-bar {
+      position: fixed;
+      left: 50%;
+      bottom: max(14px, calc(env(safe-area-inset-bottom) + 10px));
+      transform: translateX(-50%);
+      z-index: 12;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(12, 16, 20, .86);
+      border: 1px solid rgba(40, 216, 240, .38);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .55);
+      backdrop-filter: blur(8px);
+      pointer-events: auto;
+      max-width: calc(100vw - 24px);
+    }
+    body.intro-active #play-bar { opacity: 0; pointer-events: none; }
+    .play-pill, .play-select {
+      font: 700 10px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      padding: 7px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(241, 238, 230, .28);
+      background: rgba(20, 25, 28, .92);
+      color: var(--paper);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color .15s ease, background .15s ease, color .15s ease;
+    }
+    .play-pill:hover, .play-select:hover { border-color: #28d8f0; }
+    .play-pill.active, .play-pill[aria-pressed="true"] {
+      background: #28d8f0;
+      color: #06131c;
+      border-color: #28d8f0;
+    }
+    .play-select {
+      appearance: none;
+      padding-right: 14px;
+      color: #dff6ff;
+      border-color: rgba(40, 216, 240, .48);
+    }
+
+    /* Full-Screen Interactive Click-to-Travel Topographic Map */
+    #big-map-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 28;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(12px, 3vw, 28px);
+      background: rgba(7, 11, 14, .88);
+      backdrop-filter: blur(6px);
+    }
+    #big-map-modal[hidden] { display: none; }
+    .big-map-card {
+      width: min(860px, 96vw);
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: rgba(13, 18, 22, .97);
+      border: 1px solid rgba(40, 216, 240, .46);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .75);
+    }
+    .big-map-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .big-map-head h2 {
+      margin: 0;
+      font: 700 14px/1.1 Inter, system-ui, sans-serif;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: #dff6ff;
+    }
+    #big-map-readout {
+      font: 600 11px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+      color: #28d8f0;
+      letter-spacing: .06em;
+    }
+    #big-map-canvas {
+      width: 100%;
+      height: auto;
+      max-height: 68vh;
+      aspect-ratio: 720 / 480;
+      border-radius: 6px;
+      border: 1px solid rgba(40, 216, 240, .34);
+      background: #0b161d;
+      cursor: crosshair;
+      display: block;
+    }
+    .big-map-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font: 600 10px/1.2 Inter, system-ui, sans-serif;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .big-map-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .big-map-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+
+    /* Landscape Phone Play Layout */
+    @media (max-height: 500px) and (orientation: landscape) {
+      #top-left, #reel-col, #focus-dock, #wedge-wrap, #keys, #ppc-hud, #cam-frame, #np-radio-host {
+        display: none !important;
+      }
+      #field-move {
+        display: flex !important;
+        position: fixed;
+        left: max(12px, env(safe-area-inset-left));
+        bottom: max(12px, env(safe-area-inset-bottom));
+        z-index: 14;
+      }
+      #play-bar {
+        left: auto;
+        right: max(12px, env(safe-area-inset-right));
+        bottom: max(10px, env(safe-area-inset-bottom));
+        transform: none;
+        flex-direction: column;
+        align-items: stretch;
+        border-radius: 14px;
+        padding: 6px;
+        gap: 5px;
+        max-width: 156px;
+      }
+      .play-pill, .play-select {
+        padding: 8px 10px;
+        font-size: 9.5px;
+        text-align: center;
+      }
+    }
   </style>
   <link rel="stylesheet" href="./mobile.css?v=mach2026a">
   <link rel="stylesheet" href="./production.css?v=mach2026a">
 </head>
-<body>
+<body class="hud-clean">
   <audio id="jerikan-audio" src="../zones/cyan-jerikan.ogg" loop preload="auto"></audio>
   <div id="viewfinder">
     <canvas id="view" aria-label="Live expedition view"></canvas>
@@ -1637,9 +1808,43 @@
   <script src="../zones/machinima.js?v=v6sculpt1"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-retarget.js?v=3"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=1"></script>
+  <div id="play-bar" role="toolbar" aria-label="Playable character and action controls">
+    <button type="button" class="play-pill active" id="btn-cam-mode" aria-pressed="true" title="Toggle 3rd-Person / 1st-Person Camera (V)">CAM: 3RD</button>
+    <select class="play-select" id="sel-play-as" aria-label="Playable character selector">
+      <option value="imani">PLAY AS: IMANI</option>
+      <option value="june">PLAY AS: JUNE</option>
+      <option value="makeda">PLAY AS: MAKEDA</option>
+      <option value="elder">PLAY AS: ELDER</option>
+      <option value="hanna">PLAY AS: HANNA</option>
+    </select>
+    <button type="button" class="play-pill" id="btn-throw-obj" title="Throw Jerrycan or Highland Stone (G)">THROW (G)</button>
+    <button type="button" class="play-pill" id="btn-jump-foot" title="Jump (Space)">JUMP</button>
+    <button type="button" class="play-pill" id="btn-big-map" title="Open Click-to-Travel Topographic Map (M)">MAP (M)</button>
+    <button type="button" class="play-pill" id="btn-drive-pill" aria-pressed="false" title="Drive or Park Wagon (C)">DRIVE (C)</button>
+    <button type="button" class="play-pill" id="btn-hud-drawer" aria-pressed="false" title="Expand or Collapse Expedition Drawers">HUD</button>
+  </div>
+
+  <section id="big-map-modal" hidden aria-label="Interactive Click-to-Travel Topographic Map">
+    <div class="big-map-card">
+      <div class="big-map-head">
+        <h2>TOPOGRAPHIC MAP · CLICK ANYWHERE TO TRAVEL</h2>
+        <span id="big-map-readout">CLICK ANY SPOT TO TELEPORT GROUNDED</span>
+        <button type="button" class="play-pill" id="big-map-close">CLOSE (ESC)</button>
+      </div>
+      <canvas id="big-map-canvas" width="720" height="480" aria-label="Interactive topographic map"></canvas>
+      <div class="big-map-legend">
+        <span><i style="background:#28d8f0"></i>PLAYER</span>
+        <span><i style="background:#f4c462"></i>MISTLETOE</span>
+        <span><i style="background:#cbb182;border-radius:2px"></i>WAGON</span>
+        <span><i style="background:#18b4ff"></i>LIT CISTERN</span>
+        <span><i style="background:#ff9f43"></i>UNLIT CISTERN</span>
+      </div>
+    </div>
+  </section>
+
   <div id="np-radio-host" aria-label="Highland 4-station radio" style="position:fixed;right:14px;bottom:84px;z-index:18;pointer-events:auto;max-width:300px"></div>
-  <script src="./world-physics.js?v=1"></script>
-  <script src="../audio/highland-soundscape.js?v=1"></script>
-  <script src="./night-post.js?v=v6sculpt3"></script>
+  <script src="./world-physics.js?v=8"></script>
+  <script src="../audio/highland-soundscape.js?v=2"></script>
+  <script src="./night-post.js?v=v8play1"></script>
 </body>
 </html>

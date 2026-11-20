@@ -753,10 +753,36 @@
     const eyeZ = emL ? emL.z : (hm.cz + hm.rz * 0.65);
     const eyeSpanX = (emL && emR) ? Math.abs(emL.x - emR.x) * 0.5 : (hm.rx * 0.38);
     const mouthY = eyeY - eyeSpanX * 2.16;
-    const mouthZ = eyeZ + eyeSpanX * 1.15;
-    const mouthW = Math.max(0.028, eyeSpanX * 0.96);
+    const mouthW = Math.max(0.026, eyeSpanX * 0.94);
     const mouthH = eyeSpanX * 0.95;
     const browY = eyeY + eyeSpanX * 0.72;
+
+    const pHead = new THREE.Vector3();
+    const delta = new THREE.Vector3();
+    const headVerts = bodyData.regionVerts.head;
+    const eyeMask = bodyData.eyeVertMask;
+
+    // Measure exact front-surface Z of Anny's lips so the 3D oral cavity, teeth & tongue seat accurately
+    let lipSurfaceZ = eyeZ + eyeSpanX * 0.55;
+    let maxLipZ = -Infinity;
+    for (let idx = 0; idx < headVerts.length; idx++) {
+      const v = headVerts[idx];
+      if (eyeMask && eyeMask[v]) continue;
+      pHead.set(pos.getX(v), pos.getY(v), pos.getZ(v)).applyMatrix4(toHead);
+      if (Math.abs(pHead.x - hm.cx) < mouthW * 0.55 && Math.abs(pHead.y - mouthY) < eyeSpanX * 0.32) {
+        if (pHead.z > maxLipZ) maxLipZ = pHead.z;
+      }
+    }
+    if (Number.isFinite(maxLipZ)) lipSurfaceZ = maxLipZ;
+    const mouthZ = lipSurfaceZ;
+    bodyData.mouthMetrics = {
+      cx: hm.cx,
+      y: mouthY,
+      surfaceZ: lipSurfaceZ,
+      w: mouthW,
+      h: mouthH,
+      eyeSpanX,
+    };
 
     const mJaw = new Float32Array(vCount * 3);
     const mWide = new Float32Array(vCount * 3);
@@ -775,11 +801,6 @@
       mBrowUp[i] = val;
     }
 
-    const pHead = new THREE.Vector3();
-    const delta = new THREE.Vector3();
-    const headVerts = bodyData.regionVerts.head;
-    const eyeMask = bodyData.eyeVertMask;
-
     for (let idx = 0; idx < headVerts.length; idx++) {
       const v = headVerts[idx];
       if (eyeMask && eyeMask[v]) continue; // never deform eye verts
@@ -792,19 +813,33 @@
       // 1. Mouth & Jaw Region (strictly below nose base so nostrils/philtrum stay untouched)
       const dy = pHead.y - mouthY;
       const dz = pHead.z - mouthZ;
-      const rx = Math.abs(dx) / (mouthW * 1.55);
-      const ry = Math.abs(dy) / (mouthH * 1.65);
-      const rz = Math.max(0, -dz) / (hm.rz * 0.72);
+      const rx = Math.abs(dx) / (mouthW * 1.58);
+      const ry = Math.abs(dy) / (mouthH * 1.75);
+      const rz = Math.max(0, -dz) / (hm.rz * 0.78);
       const d2 = rx * rx + ry * ry + rz * rz;
-      if (d2 < 1.0 && pHead.y < mouthY + eyeSpanX * 0.45) {
+      if (d2 < 1.0 && pHead.y < mouthY + eyeSpanX * 0.48) {
         const falloff = (1 - d2) * (1 - d2);
-        const lowerW = clamp((mouthY + eyeSpanX * 0.08 - pHead.y) / (eyeSpanX * 0.42), 0, 1);
-        const upperW = clamp((pHead.y - mouthY) / (eyeSpanX * 0.35), 0, 1) * (1 - lowerW);
+        const horizMouth = clamp(1 - Math.abs(dx) / (mouthW * 1.08), 0, 1);
+        const horizCurve = horizMouth * horizMouth * (3 - 2 * horizMouth);
         const isLower = dy < 0.0;
 
-        // 0: jawOpen — smooth continuous lower-lip & chin drop (-14 mm) with zero seam-triangle tearing
-        const jawY = -eyeSpanX * 0.52 * lowerW * Math.pow(falloff, 0.78) + eyeSpanX * 0.10 * upperW * falloff;
-        const jawZ = -eyeSpanX * 0.14 * lowerW * falloff + eyeSpanX * 0.04 * upperW * falloff;
+        // Inner lip-line vertices recess strongly backward (-12..-16 mm) so the closed lip seam
+        // opens cleanly around the dark 3D oral cavity, curved ivory teeth & pink tongue.
+        const seamDist = Math.abs(dy) / (eyeSpanX * 0.22);
+        const seamW = seamDist < 1.0 ? (1 - seamDist * seamDist) * horizCurve : 0;
+
+        // Upper lip parts UP (+4..6 mm) while lower lip + chin hinge DOWN (-16..22 mm)
+        const upperW = dy > 0 ? clamp((eyeSpanX * 0.44 - dy) / (eyeSpanX * 0.44), 0, 1) * clamp(dy / (eyeSpanX * 0.08), 0, 1) * horizCurve : 0;
+        const lowerW = dy < eyeSpanX * 0.03 ? clamp((eyeSpanX * 0.03 - dy) / (eyeSpanX * 0.34), 0, 1) : 0;
+
+        // 0: jawOpen — true upper/lower lip parting + inner lip-seam recession into oral cavity
+        const jawY =
+          -eyeSpanX * 0.68 * lowerW * Math.pow(falloff, 0.72) +
+          eyeSpanX * 0.22 * upperW * Math.pow(falloff, 0.75);
+        const jawZ =
+          -eyeSpanX * 0.56 * seamW -
+          eyeSpanX * 0.14 * lowerW * falloff +
+          eyeSpanX * 0.06 * upperW * falloff;
         delta.set(0, jawY, jawZ).applyMatrix3(rotOnly);
         mJaw[v * 3] += delta.x;
         mJaw[v * 3 + 1] += delta.y;
@@ -1501,36 +1536,97 @@
     mountEye(emL, 1);
     mountEye(emR, -1);
 
-    // Recessed talking mouth interior (dark oral cavity + upper/lower ivory teeth + tongue)
+    // Recessed 3D oral cavity + curved ivory upper/lower dental arches + moving pink tongue
     const mouthGroup = new THREE.Group();
     mouthGroup.name = 'anny_v7_mouth_interior';
+    const mm = bodyData.mouthMetrics;
     const refEyeY = emL ? emL.y : (hm.cy + hm.ry * 0.08);
     const refEyeZ = emL ? emL.z : (hm.cz + hm.rz * 0.65);
     const refEyeSpan = (emL && emR) ? Math.abs(emL.x - emR.x) * 0.5 : (hm.rx * 0.38);
-    const mouthY = refEyeY - refEyeSpan * 2.16;
-    const mouthZ = refEyeZ + refEyeSpan * 0.38;
-    mouthGroup.position.set(hm.cx, mouthY - 0.003, mouthZ);
+    const mouthY = mm ? mm.y : (refEyeY - refEyeSpan * 2.16);
+    const mouthSurfaceZ = mm ? mm.surfaceZ : (refEyeZ + refEyeSpan * 0.55);
+    const mouthW = mm ? mm.w : Math.max(0.026, refEyeSpan * 0.94);
 
-    const cavGeo = new THREE.SphereGeometry(hm.rx * 0.21, 14, 10);
-    const toothGeo = new THREE.BoxGeometry(hm.rx * 0.22, hm.ry * 0.032, hm.rz * 0.05);
-    const tongueGeo = new THREE.SphereGeometry(hm.rx * 0.13, 10, 8);
-    disposables.push(cavGeo, toothGeo, tongueGeo);
+    // Seated cleanly behind the parted lips so receding lip-seam vertices frame the oral cavity
+    mouthGroup.position.set(hm.cx, mouthY - refEyeSpan * 0.05, mouthSurfaceZ - refEyeSpan * 0.22);
 
-    const cavity = new THREE.Mesh(cavGeo, cavityMat);
-    cavity.scale.set(1.08, 0.62, 0.45);
+    // Procedural subtle tooth-segmentation texture for realistic ivory dental arches
+    const teethArchMat = (() => {
+      const ck = 'mouth_teeth_arch_v3';
+      if (_materialCache.has(ck)) return _materialCache.get(ck);
+      const tw = 128, th = 32;
+      const td = new Uint8Array(tw * th * 4);
+      for (let y = 0; y < th; y++) {
+        const v = y / (th - 1);
+        for (let x = 0; x < tw; x++) {
+          const u = x / (tw - 1);
+          // 8 visible front teeth across the arch with soft inter-tooth shading
+          const toothPhase = (u * 8) % 1;
+          const groove = Math.min(toothPhase, 1 - toothPhase);
+          const sep = groove < 0.07 ? (0.84 + 0.16 * (groove / 0.07)) : 1.0;
+          const gumFade = v < 0.20 ? (0.88 + 0.12 * (v / 0.20)) : 1.0;
+          const shade = sep * gumFade;
+          const i = (y * tw + x) * 4;
+          td[i] = Math.round(245 * shade);
+          td[i + 1] = Math.round(237 * shade);
+          td[i + 2] = Math.round(222 * shade);
+          td[i + 3] = 255;
+        }
+      }
+      const ttex = new THREE.DataTexture(td, tw, th, THREE.RGBAFormat);
+      if (THREE.SRGBColorSpace) ttex.colorSpace = THREE.SRGBColorSpace;
+      ttex.needsUpdate = true;
+      const tm = new THREE.MeshStandardMaterial({
+        map: ttex,
+        color: 0xf7f1e5,
+        roughness: 0.24,
+        metalness: 0.02,
+        side: THREE.DoubleSide,
+      });
+      _materialCache.set(ck, tm);
+      return tm;
+    })();
+
+    const darkCavityMat = getSharedSolidMaterial(THREE, 'mouth_cavity_deep', {
+      color: 0x1a0608,
+      roughness: 0.95,
+      metalness: 0.0,
+      side: THREE.DoubleSide,
+    });
+    const pinkTongueMat = getSharedSolidMaterial(THREE, 'mouth_tongue_pink', {
+      color: 0xb65256,
+      roughness: 0.42,
+      metalness: 0.02,
+    });
+
+    const archR = mouthW * 0.62;
+    const archH = refEyeSpan * 0.135;
+    const cavGeo = new THREE.SphereGeometry(mouthW * 0.66, 16, 12);
+    const upperArchGeo = new THREE.CylinderGeometry(archR, archR * 0.96, archH, 18, 1, true, -0.78, 1.56);
+    const lowerArchGeo = new THREE.CylinderGeometry(archR * 0.90, archR * 0.86, archH * 0.84, 16, 1, true, -0.72, 1.44);
+    const tongueGeo = new THREE.SphereGeometry(mouthW * 0.38, 14, 10);
+    disposables.push(cavGeo, upperArchGeo, lowerArchGeo, tongueGeo);
+
+    // Deep dark oral cavity backdrop seated strictly inside the parted lips
+    const cavity = new THREE.Mesh(cavGeo, darkCavityMat);
+    cavity.position.set(0, -refEyeSpan * 0.05, -archR * 0.72);
+    cavity.scale.set(0.92, 0.58, 0.56);
     mouthGroup.add(cavity);
 
-    const upperTeeth = new THREE.Mesh(toothGeo, teethMat);
-    upperTeeth.position.set(0, hm.ry * 0.028, hm.rz * 0.045);
+    // Curved ivory upper dental arch (fixed to maxilla just behind upper lip)
+    const upperTeeth = new THREE.Mesh(upperArchGeo, teethArchMat);
+    upperTeeth.position.set(0, refEyeSpan * 0.045, -archR * 0.78);
     mouthGroup.add(upperTeeth);
 
-    const lowerTeeth = new THREE.Mesh(toothGeo, teethMat);
-    lowerTeeth.position.set(0, -hm.ry * 0.036, hm.rz * 0.032);
+    // Curved ivory lower dental arch (drops dynamically with jawOpen)
+    const lowerTeeth = new THREE.Mesh(lowerArchGeo, teethArchMat);
+    lowerTeeth.position.set(0, -refEyeSpan * 0.11, -archR * 0.82);
     mouthGroup.add(lowerTeeth);
 
-    const tongue = new THREE.Mesh(tongueGeo, tongueMat);
-    tongue.position.set(0, -hm.ry * 0.045, hm.rz * 0.02);
-    tongue.scale.set(0.95, 0.45, 0.85);
+    // Moving pink tongue seated inside the lower arch
+    const tongue = new THREE.Mesh(tongueGeo, pinkTongueMat);
+    tongue.position.set(0, -refEyeSpan * 0.14, -archR * 0.50);
+    tongue.scale.set(0.88, 0.38, 0.90);
     mouthGroup.add(tongue);
 
     mouthGroup.visible = false;
@@ -1543,9 +1639,11 @@
       upperLids,
       brows,
       mouthGroup,
+      upperTeeth,
       lowerTeeth,
       tongue,
       hm,
+      refEyeSpan,
     };
   }
 
@@ -2472,6 +2570,20 @@
       targetViseme.active = v > 0.08;
     }
 
+    function setVisemeShape(jawOpen, mouthWide, mouthRound, lipPress, visemeName) {
+      const j = clamp(Number(jawOpen) || 0, 0, 1);
+      const w = clamp(Number(mouthWide) || 0, 0, 1);
+      const r = clamp(Number(mouthRound) || 0, 0, 1);
+      const p = clamp(Number(lipPress) || 0, 0, 1);
+      hasExplicitSpeech = j > 0.02 || w > 0.05 || r > 0.05;
+      targetViseme.viseme = visemeName || (j > 0.12 ? 'AA' : 'SIL');
+      targetViseme.jawOpen = j;
+      targetViseme.mouthWide = w;
+      targetViseme.mouthRound = r;
+      targetViseme.lipPress = p;
+      targetViseme.active = hasExplicitSpeech;
+    }
+
     function setExpression(name) {
       const key = EXPRESSIONS[name] ? name : 'neutral';
       expressionName = key;
@@ -2536,12 +2648,14 @@
       }
     }
 
-    function update(dt) {
+    function update(dt, uOpts) {
       const h = clamp(Number(dt) || 0.016, 0.001, 0.05);
       simTime += h;
 
-      // 1. Exact foot-to-ground pinning
-      pinFeetToGround();
+      // 1. Exact foot-to-ground pinning (skipped during articulated ragdoll physics)
+      if (!uOpts || !uOpts.skipGroundPin) {
+        pinFeetToGround();
+      }
 
       // 2. Smooth GPU morph-target lip-sync & facial expression update
       const expr = EXPRESSIONS[expressionName] || EXPRESSIONS.neutral;
@@ -2596,15 +2710,18 @@
           faceRig.upperLids[i].rotation.x = lidAngle;
         }
         const jawNow = smoothMorph[0];
-        faceRig.mouthGroup.visible = jawNow > 0.05;
+        faceRig.mouthGroup.visible = jawNow > 0.06;
         if (faceRig.mouthGroup.visible) {
+          const sp = faceRig.refEyeSpan || (faceRig.hm.rx * 0.38);
           faceRig.mouthGroup.scale.set(
-            0.88 + Math.max(0, smoothMorph[1]) * 0.25 - smoothMorph[2] * 0.22,
-            0.38 + jawNow * 0.95,
+            0.90 + Math.max(0, smoothMorph[1]) * 0.22 - smoothMorph[2] * 0.24,
+            0.48 + jawNow * 0.92,
             1.0
           );
-          faceRig.lowerTeeth.position.y = -faceRig.hm.ry * (0.048 + jawNow * 0.085);
-          faceRig.tongue.position.y = -faceRig.hm.ry * (0.042 + jawNow * 0.055);
+          faceRig.lowerTeeth.position.y = -sp * (0.10 + jawNow * 0.28);
+          const tongueLift = (currentViseme.viseme === 'LL' || currentViseme.viseme === 'TH' || currentViseme.viseme === 'EE') ? 0.08 : 0.0;
+          faceRig.tongue.position.y = -sp * (0.14 + jawNow * 0.16 - tongueLift);
+          faceRig.tongue.rotation.x = -0.15 + tongueLift * 3.2;
         }
       }
 
@@ -2665,6 +2782,7 @@
       setWind,
       setLyricSpeech,
       setJawOpenness,
+      setVisemeShape,
       setExpression,
       getExpression,
       pinFeetToGround,
@@ -2863,6 +2981,7 @@
       setWind: (vx, vz) => (rig ? rig.setWind(vx, vz) : undefined),
       setLyricSpeech: (text, progress01, audioLevel) => (rig ? rig.setLyricSpeech(text, progress01, audioLevel) : null),
       setJawOpenness: (v) => (rig ? rig.setJawOpenness(v) : undefined),
+      setVisemeShape: (j, w, r, p, v) => (rig ? rig.setVisemeShape(j, w, r, p, v) : undefined),
       setExpression: (name) => (rig ? rig.setExpression(name) : 'neutral'),
       getExpression: () => (rig ? rig.getExpression() : 'neutral'),
       applySapiensPose: (sample, mode) => applySapiensPoseToRig(rig, sample, mode),
@@ -2880,7 +2999,7 @@
       update: (dt, uOpts) => {
         const skipDriver = uOpts && uOpts.skipDriver;
         if (driver && !skipDriver) driver.update(dt);
-        if (rig) rig.update(dt);
+        if (rig) rig.update(dt, uOpts);
       },
       dispose: () => {
         if (driver) driver.dispose();

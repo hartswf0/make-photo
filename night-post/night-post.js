@@ -2619,6 +2619,11 @@ void main(){
       sloshPct: 0,
       sloshSpilling: false,
       chassisIntegrity: 100,
+      cameraMode: "third",
+      playAs: "imani",
+      bigMapOpen: false,
+      throwCount: 0,
+      worldWaterDeliveredL: 0,
       donkeyCollapsed: false,
       pourAnim: null,
       danceTimer: 0,
@@ -2740,6 +2745,7 @@ void main(){
     const carrierPhys = NP_PHYS ? NP_PHYS.createCarrierBody({ eyeHeight: 1.68 }) : null;
     const waterSlosh = NP_PHYS ? NP_PHYS.createWaterSlosh() : null;
     const physParticles = NP_PHYS ? NP_PHYS.createPhysicsParticles(T, actorRoot) : null;
+    const projPool = NP_PHYS ? NP_PHYS.createProjectilePool(T, actorRoot) : null;
     const worldObstacles = [];
     let smokeClock = 0;
 
@@ -3534,6 +3540,353 @@ void main(){
           blend: 0.84,
           phaseOffset: (idx * 0.71) % 3.1
         });
+      });
+    }
+
+    /* ---------- Playable 3rd/1st-Person Character, Throw, Jump, Ragdoll Tumble & Big Interactive Map ---------- */
+    const PLAYABLE_CAST_MAP = {
+      imani: ["imani"],
+      june: ["june"],
+      makeda: ["makeda"],
+      elder: ["ferry_bekele", "queue_4", "convoy_elder_1", "compound_partner"],
+      hanna: ["ppc_op_female", "nell", "etta"]
+    };
+    const PLAYABLE_NAMES = { imani: "Imani", june: "June", makeda: "Makeda", elder: "Elder Bekele", hanna: "Hanna" };
+    let activeAvatar = null;
+    let activeAvatarSavedPos = null;
+    let throwAnimTimer = 0;
+
+    function resolvePlayableAvatar(roleKey) {
+      if (!cast || !Array.isArray(cast.list) || !cast.list.length) return null;
+      const ids = PLAYABLE_CAST_MAP[roleKey] || [roleKey];
+      for (const want of ids) {
+        const found = cast.list.find(c => c && c.state && c.state.id === want);
+        if (found) return found;
+      }
+      return cast.list[0];
+    }
+
+    function setPlayAs(roleKey, silent = false) {
+      if (!PLAYABLE_CAST_MAP[roleKey]) roleKey = "imani";
+      // Restore previous avatar if it wasn't imani
+      if (activeAvatar && activeAvatarSavedPos && state.playAs !== roleKey) {
+        activeAvatar.group.visible = true;
+        activeAvatar.group.rotation.x = 0;
+        activeAvatar.group.rotation.z = 0;
+        activeAvatar.group.position.set(activeAvatarSavedPos.x, activeAvatarSavedPos.y, activeAvatarSavedPos.z);
+        if (activeAvatar.state) {
+          activeAvatar.state.x = activeAvatarSavedPos.x;
+          activeAvatar.state.y = activeAvatarSavedPos.y;
+          activeAvatar.state.z = activeAvatarSavedPos.z;
+          activeAvatar.state.playerControlled = false;
+        }
+      }
+      state.playAs = roleKey;
+      activeAvatar = resolvePlayableAvatar(roleKey);
+      if (activeAvatar) {
+        activeAvatarSavedPos = {
+          x: activeAvatar.group.position.x,
+          y: activeAvatar.group.position.y,
+          z: activeAvatar.group.position.z
+        };
+        if (activeAvatar.state) activeAvatar.state.playerControlled = true;
+      }
+      if ($("sel-play-as")) $("sel-play-as").value = roleKey;
+      if (!silent) toast(`Playing as ${PLAYABLE_NAMES[roleKey] || roleKey} (${state.cameraMode === "third" ? "3rd-Person" : "1st-Person"})`);
+      return activeAvatar;
+    }
+    setPlayAs("imani", true);
+
+    function setCameraMode(mode, silent = false) {
+      state.cameraMode = mode === "first" ? "first" : "third";
+      const btn = $("btn-cam-mode");
+      if (btn) {
+        btn.textContent = state.cameraMode === "third" ? "CAM: 3RD" : "CAM: 1ST";
+        btn.classList.toggle("active", state.cameraMode === "third");
+        btn.setAttribute("aria-pressed", String(state.cameraMode === "third"));
+      }
+      if (state.cameraMode === "third") {
+        const backX = state.x + Math.sin(state.yaw) * 4.4;
+        const backZ = state.z + Math.cos(state.yaw) * 4.4;
+        state.chaseCamPos.set(backX, Math.max(driveSurfaceAt(backX, backZ) + 0.9, state.y + 0.7), backZ);
+        state.chaseLookAt.set(state.x, state.y - 0.15, state.z);
+      }
+      if (!silent) toast(`Camera: ${state.cameraMode === "third" ? "3rd-Person Follow" : "1st-Person View"}`);
+    }
+    function toggleCameraMode() {
+      setCameraMode(state.cameraMode === "third" ? "first" : "third");
+    }
+
+    function jumpPlayer() {
+      if (state.drivingCart || state.gliding || state.riding) return false;
+      if (!carrierPhys) return false;
+      const ok = carrierPhys.jump(9.8);
+      if (ok && window.HighlandSoundscape && typeof window.HighlandSoundscape.playFootstep === "function") {
+        window.HighlandSoundscape.playFootstep("rock", state.waterLiters || 0);
+      }
+      return ok;
+    }
+
+    function triggerPlayerTumble(intensity = 0.8) {
+      if (!carrierPhys || state.drivingCart || state.gliding) return false;
+      const dirX = -Math.sin(state.yaw);
+      const dirZ = -Math.cos(state.yaw);
+      carrierPhys.triggerTumble(dirX, dirZ, 7.2 * clamp(intensity, 0.5, 1.5), 1.35);
+      if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playRagdollThud === "function") {
+        window.HighlandSoundscape.playRagdollThud(clamp(intensity, 0.3, 1.0));
+      }
+      toast("Tumbling downhill — recovering footing...");
+      return true;
+    }
+
+    function onCarrierPhysicsEvent(evt) {
+      if (!evt) return;
+      if (evt.type === "hard_land" || evt.type === "tumble") {
+        if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playRagdollThud === "function") {
+          window.HighlandSoundscape.playRagdollThud(evt.intensity || 0.75);
+        }
+        toast("Hard cliff impact — ragdoll tumble!");
+      } else if (evt.type === "land") {
+        if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playFootstep === "function") {
+          window.HighlandSoundscape.playFootstep("dirt", state.waterLiters || 0);
+        }
+      }
+    }
+
+    function onProjectileBounce(evt) {
+      if (!evt) return;
+      if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playImpact === "function") {
+        window.HighlandSoundscape.playImpact(evt.intensity);
+      }
+      if (physParticles && evt.kind === "jerrycan") {
+        physParticles.spawnSpill(evt.x, evt.y + 0.15, evt.z, 0, 0, 5);
+      }
+      // If a thrown jerrycan lands right beside an unlit cistern, splash-ignite it!
+      if (evt.kind === "jerrycan" && evt.bounces === 1) {
+        for (const r of relays) {
+          if (!r.lit && Math.hypot(r.x - evt.x, r.z - evt.z) < 7.5) {
+            finishRelayIgnition(r);
+            break;
+          }
+        }
+      }
+    }
+
+    function throwObject(kindOverride) {
+      if (!projPool) return null;
+      const aimYaw = state.drivingCart ? (wagon.heading + Math.PI) : state.yaw;
+      const aimPitch = clamp(state.pitch || 0, -0.45, 0.65);
+      const fwdX = -Math.sin(aimYaw) * Math.cos(aimPitch);
+      const fwdZ = -Math.cos(aimYaw) * Math.cos(aimPitch);
+      const fwdY = Math.sin(aimPitch);
+      const speed = 16.8;
+      const spawnX = (state.drivingCart ? wagon.x : state.x) + fwdX * 0.9;
+      const spawnY = (state.drivingCart ? wagon.y + 2.2 : state.y - 0.15) + 0.25;
+      const spawnZ = (state.drivingCart ? wagon.z : state.z) + fwdZ * 0.9;
+      const item = projPool.launch({
+        kind: kindOverride,
+        x: spawnX, y: spawnY, z: spawnZ,
+        vx: fwdX * speed + (state.vx || 0) * 0.35,
+        vy: Math.max(4.8, 6.2 + fwdY * speed * 0.75),
+        vz: fwdZ * speed + (state.vz || 0) * 0.35
+      });
+      state.throwCount = projPool.totalThrown;
+      throwAnimTimer = 0.48;
+      if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playThrow === "function") {
+        window.HighlandSoundscape.playThrow();
+      }
+      toast(`Threw ${item && item.kind === "jerrycan" ? "20L Cyan Jerrycan" : "Highland Stone"}!`);
+      return item;
+    }
+
+    /* --- Full-Screen Interactive Click-to-Travel Topographic Map --- */
+    const BIG_MAP_SPAN_X = 760;
+    const BIG_MAP_SPAN_Z = 520;
+    let bigMapCenter = { x: -24, z: 0 };
+
+    function renderBigMap() {
+      const cvs = $("big-map-canvas");
+      if (!cvs) return;
+      const ctx = cvs.getContext("2d");
+      if (!ctx) return;
+      const W = cvs.width, H = cvs.height;
+      bigMapCenter = { x: state.x, z: state.z };
+      const minX = bigMapCenter.x - BIG_MAP_SPAN_X * 0.5;
+      const minZ = bigMapCenter.z - BIG_MAP_SPAN_Z * 0.5;
+      const toPx = (wx, wz) => [
+        ((wx - minX) / BIG_MAP_SPAN_X) * W,
+        ((wz - minZ) / BIG_MAP_SPAN_Z) * H
+      ];
+
+      // Sample topographic elevation grid
+      const cols = 144, rows = 96;
+      const cellW = W / cols, cellH = H / rows;
+      const grid = new Float32Array(cols * rows);
+      for (let r = 0; r < rows; r++) {
+        const wz = minZ + ((r + 0.5) / rows) * BIG_MAP_SPAN_Z;
+        for (let c = 0; c < cols; c++) {
+          const wx = minX + ((c + 0.5) / cols) * BIG_MAP_SPAN_X;
+          grid[r * cols + c] = groundAt(wx, wz);
+        }
+      }
+      for (let r = 0; r < rows; r++) {
+        const wz = minZ + ((r + 0.5) / rows) * BIG_MAP_SPAN_Z;
+        for (let c = 0; c < cols; c++) {
+          const wx = minX + ((c + 0.5) / cols) * BIG_MAP_SPAN_X;
+          const idx = r * cols + c;
+          const h = grid[idx];
+          const hw = c > 0 ? grid[idx - 1] : h;
+          const hn = r > 0 ? grid[idx - cols] : h;
+          const isWater = mw.wet(wx, wz) > -0.45;
+          const contour = Math.abs(h - 10 * Math.round(h / 10)) < 1.15;
+          const shade = clamp(46 + (hw - h) * 3.0 + (hn - h) * 1.8 + (h - 140) * 0.16, 18, 128);
+          if (isWater) {
+            ctx.fillStyle = "rgb(18, 72, 92)";
+          } else if (contour) {
+            ctx.fillStyle = `rgb(${Math.round(shade * 0.65)}, ${Math.round(shade * 0.92)}, ${Math.round(shade * 1.05)})`;
+          } else {
+            ctx.fillStyle = `rgb(${Math.round(shade * 0.72)}, ${Math.round(shade * 0.84)}, ${Math.round(shade * 0.88)})`;
+          }
+          ctx.fillRect(c * cellW, r * cellH, Math.ceil(cellW) + 1, Math.ceil(cellH) + 1);
+        }
+      }
+
+      // Subtle grid lines
+      ctx.strokeStyle = "rgba(40, 216, 240, 0.12)";
+      ctx.lineWidth = 1;
+      for (let gx = 1; gx < 6; gx++) {
+        ctx.beginPath(); ctx.moveTo((W * gx) / 6, 0); ctx.lineTo((W * gx) / 6, H); ctx.stroke();
+      }
+      for (let gy = 1; gy < 4; gy++) {
+        ctx.beginPath(); ctx.moveTo(0, (H * gy) / 4); ctx.lineTo(W, (H * gy) / 4); ctx.stroke();
+      }
+
+      // Draw all cisterns / relays
+      ctx.font = "600 10px Inter, system-ui, sans-serif";
+      ctx.textBaseline = "middle";
+      for (const r of relays) {
+        const [rx, ry] = toPx(r.x, r.z);
+        if (rx < -20 || rx > W + 20 || ry < -20 || ry > H + 20) continue;
+        ctx.strokeStyle = r.lit ? "#18b4ff" : "#ff9f43";
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(rx, ry, r.lit ? 10 : 7, 0, TAU); ctx.stroke();
+        ctx.fillStyle = r.lit ? "rgba(24, 180, 255, 0.32)" : "rgba(255, 159, 67, 0.25)";
+        ctx.fill();
+        ctx.fillStyle = "#f1eee6";
+        ctx.fillText(r.name.split(" ")[0], rx + 12, ry);
+      }
+
+      // Draw Wagon
+      const [wx, wy] = toPx(wagon.x, wagon.z);
+      ctx.fillStyle = "#cbb182";
+      ctx.fillRect(wx - 5, wy - 5, 10, 10);
+      ctx.fillStyle = "#f1eee6";
+      ctx.fillText("WAGON", wx + 9, wy);
+
+      // Draw Mistletoe
+      const [mx, my] = toPx(donkey.state.x, donkey.state.z);
+      ctx.fillStyle = "#f4c462";
+      ctx.beginPath(); ctx.arc(mx, my, 5, 0, TAU); ctx.fill();
+      ctx.fillStyle = "#ffe5a3";
+      ctx.fillText("MISTLETOE", mx + 9, my);
+
+      // Draw Player arrow
+      const [px, py] = toPx(state.x, state.z);
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(-state.yaw);
+      ctx.fillStyle = "#28d8f0";
+      ctx.beginPath();
+      ctx.moveTo(0, -10);
+      ctx.lineTo(7, 8);
+      ctx.lineTo(0, 4);
+      ctx.lineTo(-7, 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function teleportToWorld(wx, wz, label = "Map waypoint") {
+      const [cx, cz] = worldBoundsClamp(wx, wz);
+      const dist = Math.hypot(cx - state.x, cz - state.z);
+      const gy = driveSurfaceAt(cx, cz);
+      state.drivingCart = false;
+      state.riding = false;
+      state.gliding = false;
+      state.wagonCruise = 0;
+      state.x = cx;
+      state.z = cz;
+      state.y = gy + 1.68;
+      state.vx = 0; state.vz = 0;
+      if (carrierPhys) {
+        carrierPhys.vx = 0; carrierPhys.vy = 0; carrierPhys.vz = 0;
+        carrierPhys.grounded = true;
+        carrierPhys.tumbleTimer = 0;
+      }
+      // Bring Mistletoe safely beside player on ground
+      const [dx, dz] = worldBoundsClamp(cx + 2.8, cz + 1.8);
+      donkey.place(dx, dz, state.yaw + Math.PI, (x, z) => driveSurfaceAt(x, z));
+      if (state.cameraMode === "third") {
+        const backX = state.x + Math.sin(state.yaw) * 4.4;
+        const backZ = state.z + Math.cos(state.yaw) * 4.4;
+        state.chaseCamPos.set(backX, Math.max(driveSurfaceAt(backX, backZ) + 0.9, state.y + 0.7), backZ);
+        state.chaseLookAt.set(state.x, gy + 1.38, state.z);
+      }
+      toast(`Traveled ${Math.round(dist)} m to ${label} (Elev ${Math.round(gy)} m)`);
+      updateHUD();
+      return { x: cx, y: gy, z: cz, dist: Math.round(dist) };
+    }
+
+    function setBigMapOpen(open) {
+      const modal = $("big-map-modal");
+      if (!modal) return;
+      state.bigMapOpen = Boolean(open);
+      modal.hidden = !state.bigMapOpen;
+      if (state.bigMapOpen) {
+        renderBigMap();
+        if ($("big-map-readout")) {
+          $("big-map-readout").textContent = `POS (${Math.round(state.x)}, ${Math.round(state.z)}) · ELEV ${Math.round(groundAt(state.x, state.z))} m · CLICK ANYWHERE TO TRAVEL`;
+        }
+      }
+    }
+    function toggleBigMap() { setBigMapOpen(!state.bigMapOpen); }
+
+    if ($("btn-cam-mode")) $("btn-cam-mode").addEventListener("click", toggleCameraMode);
+    if ($("sel-play-as")) $("sel-play-as").addEventListener("change", e => setPlayAs(e.target.value));
+    if ($("btn-throw-obj")) $("btn-throw-obj").addEventListener("click", () => throwObject());
+    if ($("btn-jump-foot")) $("btn-jump-foot").addEventListener("click", () => jumpPlayer());
+    if ($("btn-big-map")) $("btn-big-map").addEventListener("click", toggleBigMap);
+    if ($("btn-drive-pill")) $("btn-drive-pill").addEventListener("click", () => toggleCart());
+    if ($("btn-hud-drawer")) {
+      $("btn-hud-drawer").addEventListener("click", () => {
+        const clean = document.body.classList.toggle("hud-clean");
+        $("btn-hud-drawer").setAttribute("aria-pressed", String(!clean));
+        $("btn-hud-drawer").classList.toggle("active", !clean);
+      });
+    }
+    if ($("big-map-close")) $("big-map-close").addEventListener("click", () => setBigMapOpen(false));
+    if ($("big-map-canvas")) {
+      const mapEl = $("big-map-canvas");
+      mapEl.addEventListener("pointermove", e => {
+        const rect = mapEl.getBoundingClientRect();
+        const u = clamp((e.clientX - rect.left) / Math.max(1, rect.width), 0, 1);
+        const v = clamp((e.clientY - rect.top) / Math.max(1, rect.height), 0, 1);
+        const wx = bigMapCenter.x + (u - 0.5) * BIG_MAP_SPAN_X;
+        const wz = bigMapCenter.z + (v - 0.5) * BIG_MAP_SPAN_Z;
+        const elev = groundAt(wx, wz);
+        const dist = Math.hypot(wx - state.x, wz - state.z);
+        if ($("big-map-readout")) {
+          $("big-map-readout").textContent = `TARGET (${Math.round(wx)}, ${Math.round(wz)}) · DIST ${Math.round(dist)} m · ELEV ${Math.round(elev)} m · CLICK TO TRAVEL`;
+        }
+      });
+      mapEl.addEventListener("click", e => {
+        const rect = mapEl.getBoundingClientRect();
+        const u = clamp((e.clientX - rect.left) / Math.max(1, rect.width), 0, 1);
+        const v = clamp((e.clientY - rect.top) / Math.max(1, rect.height), 0, 1);
+        const wx = bigMapCenter.x + (u - 0.5) * BIG_MAP_SPAN_X;
+        const wz = bigMapCenter.z + (v - 0.5) * BIG_MAP_SPAN_Z;
+        teleportToWorld(wx, wz, `(${Math.round(wx)}, ${Math.round(wz)})`);
+        setBigMapOpen(false);
       });
     }
     let machinima = null;
@@ -4384,10 +4737,44 @@ void main(){
       r.lit = true;
       for (const jc of r.cans) jc.userData.setFill(1);
       recomputeFilledCans();
-      if (r.poolMesh) { r.poolMesh.material = cyanWaterMat; r.poolMesh.position.y = .42; }
+      if (r.poolMesh) {
+        r.poolMesh.material = cyanWaterMat;
+        r.poolMesh.position.y = 0.56;
+        r.poolMesh.scale.set(1.06, 1.06, 1.06);
+      }
       if (r.beaconRing) r.beaconRing.material = beaconCyanMat;
       if (r.beaconCol) r.beaconCol.visible = false;
-      if (r.covRing) r.covRing.line.visible = true;
+      // Ignite glowing cyan relay beacon lamp & expanding WiFi ring on delivery
+      if (!r.deliveryLamp && r.group) {
+        const lampOrb = new T.Mesh(
+          new T.SphereGeometry(0.24, 14, 10),
+          new T.MeshBasicMaterial({ color: 0x3ef0ff })
+        );
+        lampOrb.position.set(1.8, 4.35, 0);
+        r.group.add(lampOrb);
+        const lampLight = new T.PointLight(0x28d8f0, 3.4, 28, 1.6);
+        lampLight.position.set(1.8, 4.6, 0);
+        r.group.add(lampLight);
+        r.deliveryLamp = { orb: lampOrb, light: lampLight };
+      }
+      if (r.covRing) {
+        r.covRing.line.visible = true;
+        r.covRingExpandT = 0.01;
+      }
+      state.worldWaterDeliveredL += (r.cans ? r.cans.length * 20 : 20);
+      try {
+        localStorage.setItem("nightPostWorldV8", JSON.stringify({
+          litRelayIds: relays.filter(x => x.lit).map(x => x.id),
+          filledCans: state.filledCans,
+          worldWaterDeliveredL: state.worldWaterDeliveredL,
+          playAs: state.playAs,
+          cameraMode: state.cameraMode,
+          updatedAt: Date.now()
+        }));
+      } catch (_) {}
+      if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playWaterDeliver === "function") {
+        window.HighlandSoundscape.playWaterDeliver();
+      }
       if (r.arcLine) r.arcLine.visible = true;
       state.wifiCharge = 1.0;
       state.donkeyWater = 1.0;
@@ -5925,6 +6312,11 @@ void main(){
         updateHUD();
         return;
       }
+      if (e.code === "Escape" && state.bigMapOpen) {
+        e.preventDefault();
+        setBigMapOpen(false);
+        return;
+      }
       if (e.code === "Escape" && (!fieldBandPicker.hidden || !fieldMap.hidden)) {
         e.preventDefault();
         showFieldTool("dial");
@@ -5939,7 +6331,7 @@ void main(){
       else if (e.code === "KeyC" && !e.repeat) toggleCart();
       else if (e.code === "KeyJ" && !e.repeat) toggleGlide();
       else if (e.code === "KeyR") toggleRegion();
-      else if (e.code === "KeyV" && !e.repeat) toggleRide();
+      else if (e.code === "KeyV" && !e.repeat) { if (e.shiftKey) toggleRide(); else toggleCameraMode(); }
       else if (e.code === "KeyP") pumpWell();
       else if (e.code === "KeyF") pourWifi();
       else if (e.code === "KeyK") triggerDance();
@@ -5947,13 +6339,17 @@ void main(){
       else if (e.code === "KeyU" && !e.repeat) { if (machinima) machinima.toggle("trailer"); }
       else if (e.code === "KeyY" && !e.repeat) toggleInWorldVideo();
       else if (e.code === "KeyZ" && DEMO && !e.repeat) { if (demo.withCh && demo.ui) { e.preventDefault(); demo.ui.input.focus(); } }
-      else if (e.code === "KeyM") openNpDispatch();
+      else if (e.code === "KeyM" && !e.repeat) toggleBigMap();
       else if (e.code === "Tab") { e.preventDefault(); switchNpCircuit(); }
       else if (e.code === "KeyT") syncResonantZone();
       else if (e.code === "KeyB") deployRig();
       else if (e.code === "KeyH") { state.ppcOn = !state.ppcOn; updateHUD(); }
-      else if (e.code === "KeyG") { state.groundGlass = !state.groundGlass; document.body.classList.toggle("ground-glass", state.groundGlass); }
-      else if (e.code === "Space") { e.preventDefault(); exposePlate(); }
+      else if (e.code === "KeyG" && !e.repeat) throwObject();
+      else if (e.code === "Space") {
+        e.preventDefault();
+        if (e.shiftKey || state.drivingCart || state.gliding) exposePlate();
+        else jumpPlayer();
+      }
       else if (e.code === "KeyQ") { state.tilt = clamp(state.tilt - .16, -.35, .35); updateHUD(); }
       else if (e.code === "KeyE") { state.tilt = clamp(state.tilt + .16, -.35, .35); updateHUD(); }
       else if (e.code >= "Digit1" && e.code <= "Digit6") { state.filterIdx = +e.code.slice(5) - 1; updateHUD(); }
@@ -6664,7 +7060,7 @@ void main(){
         const moveDirX = -sx * fwdInput + cz * sideInput;
         const moveDirZ = -cz * fwdInput - sx * sideInput;
         if (carrierPhys) {
-          carrierPhys.stepFoot(state, dt, moveDirX, moveDirZ, baseSpeed, state.waterLiters, driveSurfaceAt, worldBoundsClamp);
+          carrierPhys.stepFoot(state, dt, moveDirX, moveDirZ, baseSpeed, state.waterLiters, driveSurfaceAt, worldBoundsClamp, onCarrierPhysicsEvent);
           if (DEMO) {
             const r = demoResolve(state.x, state.z, .35);
             state.x = r[0]; state.z = r[1];
@@ -6687,7 +7083,34 @@ void main(){
         }
         donkey.state.y = driveSurfaceAt(donkey.state.x, donkey.state.z);
         donkey.group.position.set(donkey.state.x, donkey.state.y, donkey.state.z);
-        applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
+
+        // Always-playable 3rd-Person / 1st-Person Camera on foot
+        const footY = state.y - 1.68;
+        if (state.cameraMode === "third" && !state.introActive) {
+          const camDist = 4.35;
+          const camPitch = clamp(state.pitch || 0, -0.55, 0.55);
+          const camX = state.x + Math.sin(state.yaw) * camDist * Math.cos(camPitch);
+          const camZ = state.z + Math.cos(state.yaw) * camDist * Math.cos(camPitch);
+          const desiredCamY = footY + 2.18 - Math.sin(camPitch) * 2.2;
+          const safeCamY = Math.max(driveSurfaceAt(camX, camZ) + 0.65, desiredCamY);
+          tmpCamPos.set(camX, safeCamY, camZ);
+          tmpCamLook.set(state.x - Math.sin(state.yaw) * 1.8, footY + 1.38 + Math.sin(camPitch) * 0.9, state.z - Math.cos(state.yaw) * 1.8);
+          state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * 14));
+          state.chaseLookAt.lerp(tmpCamLook, 1 - Math.exp(-dt * 16));
+          applyLevelChaseCamera(state.chaseCamPos, state.chaseLookAt);
+        } else {
+          applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
+        }
+      }
+
+      if (throwAnimTimer > 0) throwAnimTimer = Math.max(0, throwAnimTimer - dt);
+      if (projPool) projPool.update(dt, driveSurfaceAt, onProjectileBounce);
+      for (const r of relays) {
+        if (r.covRing && r.covRing.line && r.covRingExpandT > 0 && r.covRingExpandT < 1) {
+          r.covRingExpandT = Math.min(1, r.covRingExpandT + dt * 0.85);
+          const sc = lerp(0.35, 1.32, 1 - Math.pow(1 - r.covRingExpandT, 3));
+          r.covRing.line.scale.set(sc, 1, sc);
+        }
       }
 
       /* --- Parked Wagon 4-Wheel Slope Alignment + Water Slosh & Spill Physics --- */
@@ -7055,6 +7478,28 @@ void main(){
         if (NP_PHYS && Array.isArray(cast.list)) {
           NP_PHYS.groundCastList(cast.list, driveSurfaceAt, carrierPhys ? carrierPhys.carryLeanRad : 0);
         }
+        // Position & pose active playable character for 3rd-person view (with ragdoll tumble!)
+        if (activeAvatar && activeAvatar.group && !state.drivingCart && !state.gliding && !state.riding) {
+          const showThird = state.cameraMode === "third" && !state.introActive;
+          activeAvatar.group.visible = showThird;
+          if (showThird) {
+            const footY = state.y - 1.68;
+            const tumbling = carrierPhys && carrierPhys.tumbleTimer > 0;
+            activeAvatar.group.position.set(state.x, tumbling ? footY + 0.35 : footY, state.z);
+            const spd = Math.hypot(state.vx || 0, state.vz || 0);
+            const targetHeading = spd > 0.35 ? Math.atan2(state.vx, state.vz) : (state.yaw + Math.PI);
+            activeAvatar.group.rotation.y = targetHeading;
+            activeAvatar.group.rotation.x = tumbling ? carrierPhys.tumblePitch : (throwAnimTimer > 0 ? Math.sin(throwAnimTimer * Math.PI * 2) * 0.25 : 0);
+            activeAvatar.group.rotation.z = tumbling ? carrierPhys.tumbleRoll : 0;
+            if (activeAvatar.state) {
+              activeAvatar.state.x = state.x;
+              activeAvatar.state.y = footY;
+              activeAvatar.state.z = state.z;
+              activeAvatar.state.heading = targetHeading;
+              activeAvatar.state.speed = spd;
+            }
+          }
+        }
       }
 
       // Sync 2086 Mistletoe 20L chalk-marked saddle cans + screening cues + station proximity
@@ -7263,7 +7708,21 @@ void main(){
             return as ? { id, clip: as.clip, loaded: as.loaded, blend: +as.blend.toFixed(2) } : null;
           }).filter(Boolean) : [],
           machinima: machinima ? machinima.getState() : null,
+          cameraMode: state.cameraMode,
+          playAs: state.playAs,
+          activeAvatarVisible: Boolean(activeAvatar && activeAvatar.group && activeAvatar.group.visible),
+          bigMapOpen: state.bigMapOpen,
+          throwCount: state.throwCount,
+          worldWaterDeliveredL: state.worldWaterDeliveredL,
           physics: {
+            gravity: NP_PHYS ? NP_PHYS.GRAVITY : 22.0,
+            wagonUnderbodySamples: vehPhys ? vehPhys.underbodySamples : 0,
+            wagonMaxSampledHeight: vehPhys ? +vehPhys.maxSampledHeight.toFixed(3) : 0,
+            wagonRideClearance: vehPhys ? vehPhys.rideClearance : 0,
+            wagonClearanceDelta: vehPhys ? +(vehPhys.y - vehPhys.maxSampledHeight).toFixed(3) : 0,
+            carrierGrounded: carrierPhys ? carrierPhys.grounded : true,
+            carrierTumbling: carrierPhys ? carrierPhys.tumbleTimer > 0 : false,
+            activeProjectiles: projPool ? projPool.activeCount : 0,
             waterLiters: +state.waterLiters.toFixed(2),
             waterKg: +state.waterLiters.toFixed(2),
             sloshX: waterSlosh ? +waterSlosh.sloshX.toFixed(3) : 0,
@@ -7354,6 +7813,14 @@ void main(){
       setKey: (code, down) => { keys[code] = !!down; }, toggleCart: () => toggleCart(), simOnce: dt => step(dt || .05),
       repairWagon: () => repairWagonAtStation(),
       triggerImpact: (sev = 22, type = "rock") => { if (vehPhys) { vehPhys.applyImpact(sev, type, onVehicleImpact); applyWagonVisuals(); updateHUD(); } },
+      setCameraMode: m => { setCameraMode(m); step(0.05); renderFrame(performance.now() * 0.001); },
+      setPlayAs: id => { setPlayAs(id); step(0.05); renderFrame(performance.now() * 0.001); },
+      throwObject: k => throwObject(k),
+      jumpPlayer: () => jumpPlayer(),
+      triggerTumble: i => triggerPlayerTumble(i),
+      openBigMap: (open = true) => setBigMapOpen(open),
+      teleportToWorld: (x, z, lbl) => teleportToWorld(x, z, lbl),
+      finishRelay: idx => { if (relays[idx]) finishRelayIgnition(relays[idx]); },
       triggerSlosh: (ix = 4.2, iz = 3.2) => { if (waterSlosh) waterSlosh.impulse(ix, iz); },
       setWaterLiters: L => { state.waterLiters = clamp(L, 0, 40); updateHUD(); },
       placeWagon: (wx, wz, hdg) => {

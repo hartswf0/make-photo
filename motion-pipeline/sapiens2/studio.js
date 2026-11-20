@@ -602,7 +602,728 @@ const soundEngine = (() => {
     }
   }
 
-  return { setEnabled, isEnabled: () => enabled, setRadioStation, update };
+  function playImpact(strength = 1.0) {
+    if (!enabled || !ctx || ctx.state !== 'running') return;
+    const s = Math.max(0.2, Math.min(1.6, strength));
+    triggerTone(125 * s, 36, 0.18, 0.16 * s, 'triangle');
+    triggerNoise(340, 1.4, 0.14, 0.12 * s, 'lowpass');
+  }
+
+  function playSplash(strength = 1.0) {
+    if (!enabled || !ctx || ctx.state !== 'running') return;
+    const s = Math.max(0.2, Math.min(1.5, strength));
+    triggerNoise(1200, 1.1, 0.28, 0.10 * s, 'bandpass');
+    triggerNoise(2400, 1.8, 0.18, 0.05 * s, 'highpass');
+  }
+
+  function playWhoosh() {
+    if (!enabled || !ctx || ctx.state !== 'running') return;
+    triggerNoise(620, 1.3, 0.16, 0.09, 'bandpass');
+    triggerTone(240, 110, 0.12, 0.05, 'sine');
+  }
+
+  function playFormantPulse(viseme, level = 0.7) {
+    if (!ctx || ctx.state !== 'running') return;
+    const fMap = { AA: 210, OH: 175, OO: 160, EE: 245, LL: 195, TH: 230, FF: 260, MM: 150 };
+    const f0 = fMap[viseme] || 190;
+    triggerTone(f0, f0 * 0.94, 0.11, 0.032 * level, 'triangle');
+  }
+
+  return {
+    setEnabled,
+    isEnabled: () => enabled,
+    setRadioStation,
+    update,
+    playImpact,
+    playSplash,
+    playWhoosh,
+    playFormantPulse,
+    ensureAudio,
+    getContext: () => ctx,
+  };
+})();
+
+// ---------------------------------------------------------------------------
+// Spoken Phrases (Web speechSynthesis + Formant Fallback) & Live Mic Lip-Sync
+// ---------------------------------------------------------------------------
+const SPOKEN_PHRASES = [
+  'Iron lever cracks before the rooster.',
+  'Carry the cyan up the ridge with me.',
+  'Watch the steep slope with that water.',
+  'The basin is filling.',
+];
+
+const voiceEngine = (() => {
+  let speaking = false;
+  let phraseText = '';
+  let phraseStartMs = 0;
+  let phraseDurMs = 2800;
+  let usingSynthFallback = false;
+  let fallbackPulseAccum = 0;
+
+  let micActive = false;
+  let micStream = null;
+  let micCtx = null;
+  let micAnalyser = null;
+  let micFreqData = null;
+  let lastMicViseme = 'SIL';
+
+  function setStatus(msg) {
+    const el = $('voiceStatus');
+    if (el) el.textContent = msg;
+  }
+
+  function stopSpeaking() {
+    speaking = false;
+    phraseText = '';
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try { window.speechSynthesis.cancel(); } catch (_) {}
+    }
+    const btn = $('btnSpeakPhrase');
+    if (btn) btn.classList.remove('live');
+  }
+
+  function speakPhrase(idxOrText) {
+    const text = typeof idxOrText === 'number'
+      ? (SPOKEN_PHRASES[idxOrText] || SPOKEN_PHRASES[0])
+      : String(idxOrText || SPOKEN_PHRASES[0]).trim();
+    if (!text) return false;
+
+    if (micActive) stopMic();
+    stopSpeaking();
+
+    phraseText = text;
+    phraseStartMs = performance.now();
+    // Estimate natural speaking duration (~14.5 chars/sec, min 1.7s)
+    phraseDurMs = Math.max(1700, Math.min(5500, text.length * 72 + 450));
+    speaking = true;
+    usingSynthFallback = false;
+    fallbackPulseAccum = 0;
+
+    const btn = $('btnSpeakPhrase');
+    if (btn) btn.classList.add('live');
+    setStatus(`Speaking: "${text}"`);
+
+    const hasSynth = typeof window !== 'undefined' && 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance === 'function';
+    if (hasSynth) {
+      try {
+        const utt = new window.SpeechSynthesisUtterance(text);
+        utt.rate = 0.94;
+        utt.pitch = 1.04;
+        utt.volume = 1.0;
+        const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+        const pref = voices.find((v) => /en/i.test(v.lang) && /(samantha|victoria|karen|zira|google us english|natural)/i.test(v.name))
+          || voices.find((v) => /en/i.test(v.lang));
+        if (pref) utt.voice = pref;
+        utt.onstart = () => {
+          phraseStartMs = performance.now();
+        };
+        utt.onend = () => {
+          speaking = false;
+          if (btn) btn.classList.remove('live');
+          setStatus('Voice ready. Click SPEAK PHRASE or MIC LIP-SYNC.');
+          if (state.character) state.character.setLyricSpeech('', 0, 0);
+        };
+        utt.onerror = () => {
+          usingSynthFallback = true;
+        };
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utt);
+      } catch (_) {
+        usingSynthFallback = true;
+      }
+    } else {
+      usingSynthFallback = true;
+    }
+
+    if (usingSynthFallback) {
+      soundEngine.ensureAudio();
+    }
+    return true;
+  }
+
+  async function startMic() {
+    if (micActive) return true;
+    stopSpeaking();
+    const btn = $('btnMicLipSync');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setStatus('Microphone API unavailable in this browser.');
+      return false;
+    }
+    setStatus('Requesting microphone permission...');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AC();
+      if (ctx.state === 'suspended') await ctx.resume();
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.42;
+      src.connect(analyser);
+
+      micStream = stream;
+      micCtx = ctx;
+      micAnalyser = analyser;
+      micFreqData = new Uint8Array(analyser.frequencyBinCount);
+      micActive = true;
+      if (btn) {
+        btn.classList.add('live');
+        btn.textContent = 'STOP MIC';
+      }
+      setStatus('MIC LIVE: Speak into your microphone to drive real-time lip-sync.');
+      return true;
+    } catch (err) {
+      stopMic();
+      setStatus(`Mic unavailable (${err && err.message ? err.message : 'denied'}).`);
+      return false;
+    }
+  }
+
+  function stopMic() {
+    micActive = false;
+    if (micStream) {
+      micStream.getTracks().forEach((t) => t.stop());
+      micStream = null;
+    }
+    if (micCtx) {
+      try { micCtx.close(); } catch (_) {}
+      micCtx = null;
+    }
+    micAnalyser = null;
+    micFreqData = null;
+    lastMicViseme = 'SIL';
+    const btn = $('btnMicLipSync');
+    if (btn) {
+      btn.classList.remove('live');
+      btn.textContent = 'MIC LIP-SYNC';
+    }
+    if (state.character) state.character.setVisemeShape(0, 0, 0, 0.05, 'SIL');
+    setStatus('Voice ready. Click SPEAK PHRASE or MIC LIP-SYNC.');
+  }
+
+  function toggleMic() {
+    if (micActive) {
+      stopMic();
+      return Promise.resolve(false);
+    }
+    return startMic();
+  }
+
+  function update(dt, ch) {
+    if (!ch) return;
+
+    if (micActive && micAnalyser && micFreqData && micCtx) {
+      micAnalyser.getByteFrequencyData(micFreqData);
+      const binHz = (micCtx.sampleRate * 0.5) / micFreqData.length;
+      const bandAvg = (hzLo, hzHi) => {
+        const i0 = Math.max(1, Math.floor(hzLo / binHz));
+        const i1 = Math.min(micFreqData.length - 1, Math.ceil(hzHi / binHz));
+        let sum = 0;
+        let cnt = 0;
+        for (let i = i0; i <= i1; i++) {
+          sum += micFreqData[i];
+          cnt++;
+        }
+        return cnt > 0 ? sum / (cnt * 255) : 0;
+      };
+
+      const lowE = bandAvg(120, 550);   // OH / OO
+      const midE = bandAvg(550, 1800);  // AA
+      const highE = bandAvg(1800, 4800);// EE / FF
+      const totalE = lowE * 0.35 + midE * 0.45 + highE * 0.20;
+
+      if (totalE < 0.045) {
+        lastMicViseme = 'SIL';
+        ch.setVisemeShape(0, 0, 0, 0.06, 'SIL');
+      } else {
+        const gain = Math.min(1.0, (totalE - 0.03) * 3.4);
+        let jaw = 0.25 * gain;
+        let wide = 0.10 * gain;
+        let round = 0.05 * gain;
+        let press = 0.0;
+        if (midE >= lowE * 0.92 && midE >= highE * 1.05) {
+          lastMicViseme = 'AA';
+          jaw = Math.min(1.0, 0.85 * gain);
+          wide = 0.42 * gain;
+          round = 0.10 * gain;
+        } else if (lowE > midE && lowE >= highE) {
+          lastMicViseme = lowE > midE * 1.35 ? 'OO' : 'OH';
+          jaw = Math.min(0.85, (lastMicViseme === 'OO' ? 0.42 : 0.70) * gain);
+          wide = 0.04 * gain;
+          round = Math.min(1.0, 0.92 * gain);
+        } else {
+          lastMicViseme = highE > midE * 1.4 ? 'FF' : 'EE';
+          jaw = Math.min(0.55, (lastMicViseme === 'FF' ? 0.20 : 0.36) * gain);
+          wide = Math.min(1.0, 0.88 * gain);
+          press = lastMicViseme === 'FF' ? 0.45 * gain : 0.0;
+        }
+        ch.setVisemeShape(jaw, wide, round, press, lastMicViseme);
+      }
+      if (state.frameCount % 6 === 0) {
+        setStatus(`MIC LIVE | Viseme: ${lastMicViseme} | Level: ${Math.round(totalE * 100)}%`);
+      }
+      return;
+    }
+
+    if (speaking && phraseText) {
+      const elapsed = performance.now() - phraseStartMs;
+      const p01 = Math.max(0, Math.min(1, elapsed / phraseDurMs));
+      const env = p01 < 0.94 ? (0.78 + 0.22 * Math.sin(elapsed * 0.022)) : 0;
+      const vis = ch.setLyricSpeech(phraseText, p01, env);
+      if (usingSynthFallback && vis && vis.active) {
+        fallbackPulseAccum += dt;
+        if (fallbackPulseAccum >= 0.13) {
+          fallbackPulseAccum = 0;
+          soundEngine.playFormantPulse(vis.viseme, env);
+        }
+      }
+      if (elapsed >= phraseDurMs + 180) {
+        speaking = false;
+        const btn = $('btnSpeakPhrase');
+        if (btn) btn.classList.remove('live');
+        ch.setLyricSpeech('', 0, 0);
+        setStatus('Voice ready. Click SPEAK PHRASE or MIC LIP-SYNC.');
+      }
+    }
+  }
+
+  return {
+    speakPhrase,
+    stopSpeaking,
+    toggleMic,
+    stopMic,
+    update,
+    isSpeaking: () => speaking,
+    isMicActive: () => micActive,
+  };
+})();
+
+// ---------------------------------------------------------------------------
+// Interactive Physics & Action System: Articulated Ragdoll Fall,
+// Ballistic 20L Cyan Jerrycan Throw + Splash, and Combat Fight / Punch
+// ---------------------------------------------------------------------------
+const physicsAction = (() => {
+  const _eul = new THREE.Euler(0, 0, 0, 'YXZ');
+  const _qTmp = new THREE.Quaternion();
+  const _vTmp = new THREE.Vector3();
+
+  // Articulated Ragdoll state (-22 m/s^2 gravity, floor bounce, smooth standup)
+  const ragdoll = {
+    active: false,
+    phase: 'idle', // 'fall' | 'settle' | 'recover'
+    t: 0,
+    pos: new THREE.Vector3(0, 0, 0),
+    vel: new THREE.Vector3(0, 0, 0),
+    rot: new THREE.Vector3(0, 0, 0),
+    angVel: new THREE.Vector3(0, 0, 0),
+    bounces: 0,
+    limbAngles: {},
+    limbVel: {},
+    recoverStartPos: new THREE.Vector3(),
+    recoverStartRot: new THREE.Vector3(),
+  };
+
+  // Thrown 20L cyan jerrycan ballistic rigidbody + splash droplets
+  const thrownCanGroup = new THREE.Group();
+  thrownCanGroup.name = 'physics_thrown_jerrycan';
+  const tShellMat = new THREE.MeshStandardMaterial({
+    color: 0x199ab0, roughness: 0.30, metalness: 0.08, transparent: true, opacity: 0.72,
+  });
+  const tWaterMat = new THREE.MeshStandardMaterial({
+    color: 0x28d8f0, emissive: 0x168da3, emissiveIntensity: 0.75, roughness: 0.18, transparent: true, opacity: 0.90,
+  });
+  const tIronMat = new THREE.MeshStandardMaterial({ color: 0x35373a, roughness: 0.50, metalness: 0.70 });
+  const tBody = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.28, 0.24), tShellMat);
+  tBody.castShadow = true;
+  thrownCanGroup.add(tBody);
+  const tWater = new THREE.Mesh(new THREE.BoxGeometry(0.155, 0.19, 0.21), tWaterMat);
+  tWater.position.y = -0.025;
+  thrownCanGroup.add(tWater);
+  const tHandle = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.013, 6, 12, Math.PI), tIronMat);
+  tHandle.position.y = 0.14;
+  thrownCanGroup.add(tHandle);
+  thrownCanGroup.visible = false;
+  scene.add(thrownCanGroup);
+
+  // Cyan splash droplet pool (14 droplets, zero per-frame alloc)
+  const splashPool = [];
+  const dropGeo = new THREE.SphereGeometry(0.024, 8, 6);
+  for (let i = 0; i < 14; i++) {
+    const m = new THREE.Mesh(dropGeo, tWaterMat);
+    m.visible = false;
+    scene.add(m);
+    splashPool.push({ mesh: m, vel: new THREE.Vector3(), life: 0, maxLife: 0.65 });
+  }
+
+  const throwState = {
+    active: false,
+    phase: 'idle', // 'windup' | 'flight'
+    t: 0,
+    launched: false,
+    pos: new THREE.Vector3(),
+    vel: new THREE.Vector3(),
+    rot: new THREE.Vector3(),
+    angVel: new THREE.Vector3(),
+    bounces: 0,
+  };
+
+  const fightState = {
+    active: false,
+    t: 0,
+    dur: 0.95,
+    hitFired: false,
+  };
+
+  function setStatus(msg) {
+    const el = $('physicsStatus');
+    if (el) el.textContent = msg;
+  }
+
+  function spawnSplash(x, y, z, power = 1.0) {
+    for (let i = 0; i < splashPool.length; i++) {
+      const d = splashPool[i];
+      const ang = (i / splashPool.length) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+      const spd = (1.1 + Math.random() * 1.8) * power;
+      d.mesh.position.set(x, Math.max(0.04, y), z);
+      d.mesh.scale.setScalar(0.75 + Math.random() * 0.7);
+      d.vel.set(Math.cos(ang) * spd, (1.4 + Math.random() * 1.8) * power, Math.sin(ang) * spd);
+      d.life = 0.55 + Math.random() * 0.35;
+      d.maxLife = d.life;
+      d.mesh.visible = true;
+    }
+    soundEngine.playSplash(power);
+  }
+
+  function resetCharacterTransform(ch) {
+    if (!ch || !ch.root) return;
+    ch.root.position.set(0, 0, 0);
+    ch.root.rotation.set(0, 0, 0);
+  }
+
+  function triggerRagdoll() {
+    const ch = state.character;
+    if (!ch) return false;
+    fightState.active = false;
+    ragdoll.active = true;
+    ragdoll.phase = 'fall';
+    ragdoll.t = 0;
+    ragdoll.bounces = 0;
+    ragdoll.pos.set(0, 0.02, 0);
+    ragdoll.vel.set((Math.random() - 0.5) * 1.2, 1.35, -2.1);
+    ragdoll.rot.set(0, 0, 0);
+    ragdoll.angVel.set(-4.6, (Math.random() - 0.5) * 1.6, (Math.random() - 0.5) * 2.2);
+
+    const joints = [
+      'spine05', 'spine03', 'spine01', 'neck01', 'head',
+      'upperarm01l', 'lowerarm01l', 'upperarm01r', 'lowerarm01r',
+      'upperleg01l', 'lowerleg01l', 'upperleg01r', 'lowerleg01r',
+    ];
+    for (const j of joints) {
+      ragdoll.limbAngles[j] = [0, 0, 0];
+      ragdoll.limbVel[j] = [
+        (Math.random() - 0.5) * 5.2,
+        (Math.random() - 0.5) * 2.4,
+        (Math.random() - 0.5) * 4.4,
+      ];
+    }
+    ch.setExpression('surprised');
+    soundEngine.playWhoosh();
+    setStatus('RAGDOLL FALL: -22 m/s^2 articulated collapse + floor bounce + recovery.');
+    return true;
+  }
+
+  function triggerThrowCan() {
+    const ch = state.character;
+    if (!ch) return false;
+    if (ragdoll.active) {
+      ragdoll.active = false;
+      resetCharacterTransform(ch);
+    }
+    fightState.active = false;
+    throwState.active = true;
+    throwState.phase = 'windup';
+    throwState.t = 0;
+    throwState.launched = false;
+    throwState.bounces = 0;
+    thrownCanGroup.visible = true;
+    ch.setExpression('strain');
+    soundEngine.playWhoosh();
+    setStatus('THROW CAN: Windup -> ballistic 20L cyan jerrycan launch, bounce & splash.');
+    return true;
+  }
+
+  function triggerFightPunch() {
+    const ch = state.character;
+    if (!ch) return false;
+    if (ragdoll.active) {
+      ragdoll.active = false;
+      resetCharacterTransform(ch);
+    }
+    fightState.active = true;
+    fightState.t = 0;
+    fightState.hitFired = false;
+    ch.setExpression('angry');
+    soundEngine.playWhoosh();
+    setStatus('FIGHT / PUNCH: 1-2 combat strike choreography + knockback recoil.');
+    return true;
+  }
+
+  function applyBoneOffset(ch, key, rx, ry, rz, solo) {
+    const bone = ch.bonesByNorm.get(key);
+    if (!bone) return;
+    _eul.set(rx, ry, rz, 'YXZ');
+    _qTmp.setFromEuler(_eul);
+    if (solo) {
+      const rest = ch.restQuats.get(bone.name);
+      if (rest) bone.quaternion.copy(rest).multiply(_qTmp);
+    } else {
+      bone.quaternion.multiply(_qTmp);
+    }
+  }
+
+  function update(dt, ch) {
+    // Update cyan splash droplets
+    for (let i = 0; i < splashPool.length; i++) {
+      const d = splashPool[i];
+      if (d.life <= 0) continue;
+      d.life -= dt;
+      if (d.life <= 0) {
+        d.mesh.visible = false;
+        continue;
+      }
+      d.vel.y -= 14.0 * dt;
+      d.mesh.position.addScaledVector(d.vel, dt);
+      if (d.mesh.position.y < 0.02) {
+        d.mesh.position.y = 0.02;
+        d.vel.y *= -0.3;
+        d.vel.x *= 0.6;
+        d.vel.z *= 0.6;
+      }
+      d.mesh.scale.setScalar(Math.max(0.05, (d.life / d.maxLife) * 1.1));
+    }
+
+    // 1. Articulated Ragdoll Fall & Smooth Recovery
+    if (ragdoll.active && ch) {
+      ragdoll.t += dt;
+      if (ragdoll.phase === 'fall') {
+        const G = -22.0;
+        ragdoll.vel.y += G * dt;
+        ragdoll.pos.addScaledVector(ragdoll.vel, dt);
+        ragdoll.rot.addScaledVector(ragdoll.angVel, dt);
+        ragdoll.angVel.multiplyScalar(Math.max(0, 1 - 1.4 * dt));
+
+        // Clamp tilt to horizontal courtyard floor impact (~-1.48 rad back collapse)
+        if (ragdoll.rot.x < -1.48) {
+          ragdoll.rot.x = -1.48;
+          ragdoll.angVel.x = Math.abs(ragdoll.angVel.x) * 0.28;
+        }
+        const floorY = 0.14;
+        if (ragdoll.pos.y <= floorY) {
+          ragdoll.pos.y = floorY;
+          if (Math.abs(ragdoll.vel.y) > 0.65) {
+            ragdoll.vel.y = -ragdoll.vel.y * 0.36;
+            ragdoll.vel.x *= 0.65;
+            ragdoll.vel.z *= 0.65;
+            ragdoll.bounces++;
+            soundEngine.playImpact(Math.min(1.3, Math.abs(ragdoll.vel.y) * 0.5));
+          } else {
+            ragdoll.vel.y = 0;
+            ragdoll.vel.x *= Math.max(0, 1 - 7 * dt);
+            ragdoll.vel.z *= Math.max(0, 1 - 7 * dt);
+          }
+        }
+
+        // Integrate articulated joint floppy momentum + anatomical joint limits
+        const limits = {
+          spine05: [-0.45, 0.55], spine03: [-0.45, 0.55], spine01: [-0.4, 0.5],
+          neck01: [-0.55, 0.55], head: [-0.65, 0.65],
+          upperarm01l: [-1.1, 1.3], lowerarm01l: [0.05, 1.6],
+          upperarm01r: [-1.1, 1.3], lowerarm01r: [0.05, 1.6],
+          upperleg01l: [-0.85, 0.9], lowerleg01l: [0.05, 1.45],
+          upperleg01r: [-0.85, 0.9], lowerleg01r: [0.05, 1.45],
+        };
+        for (const k of Object.keys(ragdoll.limbAngles)) {
+          const ang = ragdoll.limbAngles[k];
+          const vel = ragdoll.limbVel[k];
+          const lim = limits[k] || [-0.8, 0.8];
+          // Gravity torque pulling limbs toward courtyard floor
+          vel[0] += (k.includes('leg') ? -2.8 : 2.2) * dt;
+          for (let c = 0; c < 3; c++) {
+            vel[c] *= Math.max(0, 1 - 2.6 * dt);
+            ang[c] += vel[c] * dt;
+          }
+          ang[0] = Math.max(lim[0], Math.min(lim[1], ang[0]));
+          ang[1] = Math.max(-0.55, Math.min(0.55, ang[1]));
+          ang[2] = Math.max(-0.85, Math.min(0.85, ang[2]));
+          applyBoneOffset(ch, k, ang[0], ang[1], ang[2], true);
+        }
+
+        ch.root.position.copy(ragdoll.pos);
+        ch.root.rotation.set(ragdoll.rot.x, ragdoll.rot.y, ragdoll.rot.z);
+
+        if (ragdoll.t >= 2.15) {
+          ragdoll.phase = 'recover';
+          ragdoll.t = 0;
+          ragdoll.recoverStartPos.copy(ragdoll.pos);
+          ragdoll.recoverStartRot.copy(ragdoll.rot);
+          ch.setExpression('strain');
+          setStatus('RAGDOLL FALL: Recovering smoothly back to standing...');
+        }
+      } else if (ragdoll.phase === 'recover') {
+        const u = Math.min(1, ragdoll.t / 1.15);
+        const s = u * u * (3 - 2 * u);
+        ch.root.position.lerpVectors(ragdoll.recoverStartPos, _vTmp.set(0, 0, 0), s);
+        ch.root.rotation.set(
+          ragdoll.recoverStartRot.x * (1 - s),
+          ragdoll.recoverStartRot.y * (1 - s),
+          ragdoll.recoverStartRot.z * (1 - s)
+        );
+        for (const k of Object.keys(ragdoll.limbAngles)) {
+          const ang = ragdoll.limbAngles[k];
+          applyBoneOffset(ch, k, ang[0] * (1 - s), ang[1] * (1 - s), ang[2] * (1 - s), true);
+        }
+        if (u >= 1) {
+          ragdoll.active = false;
+          ragdoll.phase = 'idle';
+          resetCharacterTransform(ch);
+          ch.setExpression(state.expression);
+          setStatus('Ready: Articulated ragdoll, ballistic 20L jerrycan throw & combat punch.');
+        }
+      }
+    }
+
+    // 2. Throw 20L Cyan Jerrycan (Windup + Ballistic Flight + Bounce + Roll + Splash)
+    if (throwState.active && ch) {
+      throwState.t += dt;
+      if (throwState.phase === 'windup') {
+        const w = Math.min(1, throwState.t / 0.28);
+        // Windup twist right shoulder & torso back
+        applyBoneOffset(ch, 'spine03', -0.14 * w, -0.52 * w, 0, false);
+        applyBoneOffset(ch, 'upperarm01r', -1.25 * w, 0, -0.45 * w, false);
+        applyBoneOffset(ch, 'lowerarm01r', 0.95 * w, 0, 0, false);
+        const wristR = ch.bonesByNorm.get('wristr');
+        if (wristR) {
+          wristR.getWorldPosition(_vTmp);
+          thrownCanGroup.position.set(_vTmp.x, _vTmp.y - 0.05, _vTmp.z + 0.06);
+          thrownCanGroup.rotation.set(0.3 * w, -0.4 * w, 0.2 * w);
+        }
+        if (throwState.t >= 0.28) {
+          throwState.phase = 'flight';
+          throwState.launched = true;
+          throwState.pos.copy(thrownCanGroup.position);
+          throwState.vel.set(0.45, 3.6, 5.2);
+          throwState.rot.set(0, 0, 0);
+          throwState.angVel.set(7.2, 3.1, -4.4);
+          soundEngine.playWhoosh();
+        }
+      } else if (throwState.phase === 'flight') {
+        // Follow-through arm extension for first 0.45s after release
+        const ft = throwState.t - 0.28;
+        if (ft < 0.45) {
+          const f = Math.sin((ft / 0.45) * Math.PI);
+          applyBoneOffset(ch, 'spine03', 0.18 * f, 0.48 * f, 0, false);
+          applyBoneOffset(ch, 'upperarm01r', 0.95 * f, 0, -0.22 * f, false);
+          applyBoneOffset(ch, 'lowerarm01r', 0.2 * f, 0, 0, false);
+        }
+        throwState.vel.y -= 14.5 * dt;
+        throwState.pos.addScaledVector(throwState.vel, dt);
+        throwState.rot.addScaledVector(throwState.angVel, dt);
+        if (throwState.pos.y <= 0.14) {
+          throwState.pos.y = 0.14;
+          if (Math.abs(throwState.vel.y) > 0.7) {
+            const impact = Math.min(1.4, Math.abs(throwState.vel.y) * 0.3);
+            throwState.vel.y = -throwState.vel.y * 0.46;
+            throwState.vel.x *= 0.76;
+            throwState.vel.z *= 0.76;
+            throwState.angVel.multiplyScalar(0.72);
+            throwState.bounces++;
+            soundEngine.playImpact(impact);
+            spawnSplash(throwState.pos.x, 0.16, throwState.pos.z, impact);
+          } else {
+            throwState.vel.y = 0;
+            throwState.vel.x *= Math.max(0, 1 - 3.2 * dt);
+            throwState.vel.z *= Math.max(0, 1 - 3.2 * dt);
+            throwState.angVel.multiplyScalar(Math.max(0, 1 - 3.5 * dt));
+          }
+        }
+        thrownCanGroup.position.copy(throwState.pos);
+        thrownCanGroup.rotation.set(throwState.rot.x, throwState.rot.y, throwState.rot.z);
+        if (throwState.t >= 3.2) {
+          throwState.active = false;
+          thrownCanGroup.visible = false;
+          ch.setExpression(state.expression);
+          setStatus('Ready: Articulated ragdoll, ballistic 20L jerrycan throw & combat punch.');
+        }
+      }
+    }
+
+    // 3. Fight / Punch Choreography + Knockback Impulse
+    if (fightState.active && ch) {
+      fightState.t += dt;
+      const u = Math.min(1, fightState.t / fightState.dur);
+      // 0..0.38: Left Jab; 0.38..0.78: Right Cross; 0.78..1.0: Guard Recoil
+      let torsoYaw = 0;
+      let torsoPitch = 0;
+      let lArmX = 0, lElb = 0.95;
+      let rArmX = 0, rElb = 0.95;
+      let recoilZ = 0;
+
+      if (u < 0.38) {
+        const p = Math.sin((u / 0.38) * Math.PI);
+        torsoYaw = -0.34 * p;
+        torsoPitch = 0.10 * p;
+        lArmX = 1.28 * p;
+        lElb = 0.95 * (1 - 0.85 * p);
+        rArmX = 0.55;
+        recoilZ = 0.08 * p;
+      } else if (u < 0.78) {
+        const p = Math.sin(((u - 0.38) / 0.40) * Math.PI);
+        if (!fightState.hitFired && u > 0.54) {
+          fightState.hitFired = true;
+          soundEngine.playImpact(1.1);
+        }
+        torsoYaw = 0.52 * p;
+        torsoPitch = 0.16 * p;
+        rArmX = 1.42 * p;
+        rElb = 0.95 * (1 - 0.90 * p);
+        lArmX = 0.62;
+        recoilZ = 0.14 * p;
+      } else {
+        const p = 1 - (u - 0.78) / 0.22;
+        torsoYaw = 0.12 * p;
+        torsoPitch = -0.08 * p;
+        lArmX = 0.55 * p;
+        rArmX = 0.55 * p;
+        recoilZ = -0.10 * Math.sin(p * Math.PI);
+      }
+
+      applyBoneOffset(ch, 'spine03', torsoPitch, torsoYaw, 0, false);
+      applyBoneOffset(ch, 'spine01', torsoPitch * 0.5, torsoYaw * 0.6, 0, false);
+      applyBoneOffset(ch, 'upperarm01l', lArmX, 0, 0.18, false);
+      applyBoneOffset(ch, 'lowerarm01l', lElb, 0, 0, false);
+      applyBoneOffset(ch, 'upperarm01r', rArmX, 0, -0.18, false);
+      applyBoneOffset(ch, 'lowerarm01r', rElb, 0, 0, false);
+      ch.root.position.z = recoilZ;
+
+      if (u >= 1) {
+        fightState.active = false;
+        ch.root.position.z = 0;
+        ch.setExpression(state.expression);
+        setStatus('Ready: Articulated ragdoll, ballistic 20L jerrycan throw & combat punch.');
+      }
+    }
+  }
+
+  return {
+    triggerRagdoll,
+    triggerThrowCan,
+    triggerFightPunch,
+    update,
+    isRagdollActive: () => ragdoll.active,
+    isThrowActive: () => throwState.active,
+    isFightActive: () => fightState.active,
+  };
 })();
 
 // ---------------------------------------------------------------------------
@@ -1266,6 +1987,46 @@ function wireUI() {
   $('btnFaceCam').addEventListener('click', focusFace);
   $('btnFullCam').addEventListener('click', focusFullBody);
 
+  // Spoken Phrases & Live Microphone Lip-Sync
+  const btnSpeak = $('btnSpeakPhrase');
+  if (btnSpeak) {
+    btnSpeak.addEventListener('click', () => {
+      const idx = parseInt($('phraseSelect') ? $('phraseSelect').value : '0', 10) || 0;
+      voiceEngine.speakPhrase(idx);
+    });
+  }
+  const btnMic = $('btnMicLipSync');
+  if (btnMic) {
+    btnMic.addEventListener('click', () => voiceEngine.toggleMic());
+  }
+
+  // Interactive Physics & Action buttons
+  const btnRag = $('btnRagdoll');
+  if (btnRag) btnRag.addEventListener('click', () => physicsAction.triggerRagdoll());
+  const btnThrow = $('btnThrowCan');
+  if (btnThrow) btnThrow.addEventListener('click', () => physicsAction.triggerThrowCan());
+  const btnFight = $('btnFightPunch');
+  if (btnFight) btnFight.addEventListener('click', () => physicsAction.triggerFightPunch());
+
+  // Collapsible side drawers for responsive narrow / landscape phone screens
+  const appEl = $('app');
+  const toggleDrawer = (side) => {
+    if (!appEl) return;
+    if (side === 'left') appEl.classList.toggle('hide-left');
+    else appEl.classList.toggle('hide-right');
+    setTimeout(resize, 200);
+    resize();
+  };
+  const btnLeft = $('btnToggleLeft');
+  const btnRight = $('btnToggleRight');
+  if (btnLeft) btnLeft.addEventListener('click', () => toggleDrawer('left'));
+  if (btnRight) btnRight.addEventListener('click', () => toggleDrawer('right'));
+  if (appEl && window.innerWidth <= 1120) {
+    appEl.classList.add('hide-left', 'hide-right');
+    setTimeout(resize, 50);
+  }
+  window.__toggleDrawer = toggleDrawer;
+
   // Sapiens Tracked Video Scene controls
   $('sceneSelect').addEventListener('change', (e) => {
     selectTrackedScene(parseInt(e.target.value, 10) || 0);
@@ -1350,36 +2111,41 @@ function animate(now) {
   state.simTime += dt;
 
   const ch = state.character;
-  const skipDriver = state.sceneMode === 'solo' || state.webcamActive;
+  const ragActive = physicsAction.isRagdollActive();
+  const skipDriver = ragActive || state.sceneMode === 'solo' || state.webcamActive;
 
   if (ch) {
     if (ch.driver && !skipDriver) ch.driver.update(dt);
 
-    if (state.webcamActive && state.webcamSample) {
-      ch.applySapiensPose(state.webcamSample, 'solo');
-    } else if (state.activeSceneTrack) {
-      if (state.scenePlaying && state.sceneMode !== 'off') {
-        const vid = $('sceneVideo');
-        if (vid && !vid.paused && Number.isFinite(vid.currentTime)) {
-          state.sceneTime = vid.currentTime;
-        } else {
-          state.sceneTime += dt * state.speed;
+    if (!ragActive) {
+      if (state.webcamActive && state.webcamSample) {
+        ch.applySapiensPose(state.webcamSample, 'solo');
+      } else if (state.activeSceneTrack) {
+        if (state.scenePlaying && state.sceneMode !== 'off') {
+          const vid = $('sceneVideo');
+          if (vid && !vid.paused && Number.isFinite(vid.currentTime)) {
+            state.sceneTime = vid.currentTime;
+          } else {
+            state.sceneTime += dt * state.speed;
+          }
         }
-      }
-      const sample = sampleSceneTrack(state.activeSceneTrack, state.sceneTime);
-      if (sample) {
-        if (state.frameCount % 3 === 0) {
-          $('sceneTime').textContent = `${sample.t.toFixed(1)}s / ${sample.dur.toFixed(1)}s`;
-          if (state.scenePlaying) $('sceneScrub').value = String(sample.t);
-          drawSceneMiniCanvas(sample);
-        }
-        if (state.sceneMode !== 'off') {
-          ch.applySapiensPose(sample, state.sceneMode);
+        const sample = sampleSceneTrack(state.activeSceneTrack, state.sceneTime);
+        if (sample) {
+          if (state.frameCount % 3 === 0) {
+            $('sceneTime').textContent = `${sample.t.toFixed(1)}s / ${sample.dur.toFixed(1)}s`;
+            if (state.scenePlaying) $('sceneScrub').value = String(sample.t);
+            drawSceneMiniCanvas(sample);
+          }
+          if (state.sceneMode !== 'off') {
+            ch.applySapiensPose(sample, state.sceneMode);
+          }
         }
       }
     }
 
-    ch.update(dt, { skipDriver: true });
+    voiceEngine.update(dt, ch);
+    physicsAction.update(dt, ch);
+    ch.update(dt, { skipDriver: true, skipGroundPin: ragActive });
     const metrics = ch.getMetrics();
     soundEngine.update(dt, state.clipName, state.speed, state.paused, metrics ? metrics.jawOpen : 0);
   }
@@ -1413,6 +2179,12 @@ window.__STUDIO__ = {
   focusFace,
   focusFullBody,
   selectTrackedScene,
+  speakPhrase: (v) => voiceEngine.speakPhrase(v),
+  toggleMicLipSync: () => voiceEngine.toggleMic(),
+  triggerRagdoll: () => physicsAction.triggerRagdoll(),
+  triggerThrowCan: () => physicsAction.triggerThrowCan(),
+  triggerFightPunch: () => physicsAction.triggerFightPunch(),
+  toggleDrawer: (side) => window.__toggleDrawer && window.__toggleDrawer(side),
   getGLContext: () => renderer.getContext(),
   getSummary: () => ({
     v7: true,
@@ -1425,6 +2197,11 @@ window.__STUDIO__ = {
     fps: state.fps,
     sceneMode: state.sceneMode,
     trackedScenes: state.sceneManifest ? state.sceneManifest.scenes.length : 0,
+    speaking: voiceEngine.isSpeaking(),
+    micActive: voiceEngine.isMicActive(),
+    ragdollActive: physicsAction.isRagdollActive(),
+    throwActive: physicsAction.isThrowActive(),
+    fightActive: physicsAction.isFightActive(),
     metrics: state.character ? state.character.getMetrics() : null,
     bones: state.character ? state.character.bonesByName.size : 0,
     clipsLoaded: state.character ? state.character.getClipNames().length : 0,
