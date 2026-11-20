@@ -1179,7 +1179,19 @@ void main(){
       tetons.world.add(m);
     }
     tetonLayer("far", farColumns, farRows, [trim(config.near.bounds, 120), eastSeamCut], "far-surface", config.far.bounds, 0);
-    tetonLayer("near", 340, 360, [trim(config.detail.bounds, 17), trim(config.reach.bounds, 19), eastSeamCut], "near-surface", config.near.bounds, 1);
+    // Ahiya fine ground: the near layer's 11 m cells left feet up to 0.6 m off the drawn surface at the sets.
+    const AHIYA_PATCH = [-1976, -1284, -982, -348];   // west, east, south, north (z runs -north..-south)
+    tetonLayer("near", 340, 360, [trim(config.detail.bounds, 17), trim(config.reach.bounds, 19), eastSeamCut, trim(AHIYA_PATCH, 14)], "near-surface", config.near.bounds, 1);
+    {
+      const mat = new T.ShaderMaterial({
+        uniforms: { ...tetonMaterials, uSurface: U("near-surface") },
+        vertexShader: meshVertex, fragmentShader: printTerrainFragment,
+        polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2
+      });
+      const m = new T.Mesh(rasterMesh(unifiedGround, AHIYA_PATCH, 347, 318, { uvBounds: config.near.bounds }), mat);
+      m.renderOrder = 2; m.userData.terrain = true;
+      tetons.world.add(m);
+    }
     tetonLayer("reach", 500, 207, [], "near-surface", config.near.bounds, 2);
     tetonLayer("detail", 161, 161, [], "detail-surface", config.detail.bounds, 3);
 
@@ -5799,6 +5811,7 @@ void main(){
       else if (e.code === "KeyL") toggleLidar();
       else if (e.code === "KeyU" && !e.repeat) { if (machinima) machinima.toggle("trailer"); }
       else if (e.code === "KeyY" && !e.repeat) toggleInWorldVideo();
+      else if (e.code === "KeyZ" && DEMO && !e.repeat) { if (demo.open) demoClose(); else demoSpeak(); }
       else if (e.code === "KeyM") openNpDispatch();
       else if (e.code === "Tab") { e.preventDefault(); switchNpCircuit(); }
       else if (e.code === "KeyT") syncResonantZone();
@@ -6005,6 +6018,157 @@ void main(){
       return true;
     }
 
+    /* ---------- AHIYA PLAYABLE DEMO (?demo=ahiya): solid sets and people, human pace, slope-aware wagon, cast who answer ---------- */
+    const DEMO = urlParams.get("demo") === "ahiya";
+    const demo = { solids: null, grid: new Map(), near: null, open: null, ui: null, lastLine: {} };
+    const DEMO_BOX = [-1976, -1284, 348, 982];
+    function demoBuildSolids() {
+      demo.solids = []; demo.grid.clear();
+      const b = new T.Box3(), c = new T.Vector3(), e = mw.world;
+      e.updateMatrixWorld(true);
+      const moving = new Set([actorRoot, cast && cast.group, donkey && donkey.group, wagon && wagon.group].filter(Boolean));
+      const under = o => { for (let p = o; p; p = p.parent) if (moving.has(p)) return true; return false; };
+      e.traverse(o => {
+        if (!o.isMesh || o.isSkinnedMesh || o.isInstancedMesh || !o.visible || o.userData.terrain || !o.geometry) return;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        if (mats.some(m => !m || m.transparent || m.blending === T.AdditiveBlending || m.depthWrite === false)) return;
+        if (under(o)) return;
+        if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+        const lb = o.geometry.boundingBox; if (!lb || !isFinite(lb.min.x)) return;
+        b.copy(lb).applyMatrix4(o.matrixWorld); b.getCenter(c);
+        if (c.x < DEMO_BOX[0] || c.x > DEMO_BOX[1] || c.z < DEMO_BOX[2] || c.z > DEMO_BOX[3]) return;
+        const wx = b.max.x - b.min.x, wz = b.max.z - b.min.z, gy = driveSurfaceAt(c.x, c.z);
+        if (Math.max(wx, wz) > 40 || b.max.y - b.min.y < .45 || b.max.y - gy < .7 || b.min.y - gy > 1.5) return;
+        const m = o.matrixWorld.elements, sx = Math.hypot(m[0], m[1], m[2]), sy = Math.hypot(m[4], m[5], m[6]), sz = Math.hypot(m[8], m[9], m[10]);
+        let ux = 1, uz = 0, hx = wx / 2, hz = wz / 2;
+        if (sy > 1e-6 && Math.abs(m[5]) / sy > .9 && sx > 1e-6) {          // upright: keep its own yaw
+          ux = m[0] / sx; uz = m[2] / sx; hx = (lb.max.x - lb.min.x) * sx / 2; hz = (lb.max.z - lb.min.z) * sz / 2;
+        }
+        if (Math.min(hx, hz) < .02) return;                                  // sheets, curtains, screens stay passable
+        const sol = { x: c.x, z: c.z, ux, uz, hx, hz, r: Math.hypot(hx, hz) + .6 };
+        demo.solids.push(sol);
+        for (let gx = Math.floor((sol.x - sol.r) / 6); gx <= Math.floor((sol.x + sol.r) / 6); gx++)
+          for (let gz = Math.floor((sol.z - sol.r) / 6); gz <= Math.floor((sol.z + sol.r) / 6); gz++) {
+            const k = gx + "," + gz; (demo.grid.get(k) || demo.grid.set(k, []).get(k)).push(sol);
+          }
+      });
+    }
+    function demoResolve(x, z, r) {
+      if (!demo.solids) demoBuildSolids();
+      let hit = false;
+      for (let pass = 0; pass < 3; pass++) {
+        const list = demo.grid.get(Math.floor(x / 6) + "," + Math.floor(z / 6)); let moved = false;
+        if (list) for (const s of list) {
+          const dx = x - s.x, dz = z - s.z, lx = dx * s.ux + dz * s.uz, lz = -dx * s.uz + dz * s.ux;
+          const px = s.hx + r - Math.abs(lx), pz = s.hz + r - Math.abs(lz);
+          if (px <= 0 || pz <= 0) continue;
+          if (px < pz) { const d = px * Math.sign(lx || 1); x += d * s.ux; z += d * s.uz; }
+          else { const d = pz * Math.sign(lz || 1); x += -d * s.uz; z += d * s.ux; }
+          moved = hit = true;
+        }
+        if (cast) for (const ch of cast.list) {
+          if (!ch.group.visible) continue;
+          const dx = x - ch.state.x, dz = z - ch.state.z, d = Math.hypot(dx, dz), need = r + .38;
+          if (d < need && d > 1e-4) { x = ch.state.x + dx / d * need; z = ch.state.z + dz / d * need; moved = hit = true; }
+        }
+        if (!moved) break;
+      }
+      return [x, z, hit];
+    }
+    // What each Ahiya resident says, first matching line wins. c is the carrier's live ledger (liters, reserve, visited, watch).
+    const DEMO_LINES = {
+      saba: [
+        [c => c.liters <= 0, "Saba keeps one hand on the lever. \u201cThe map says full. I say what the gauge thread says. Draw to the chalk and no lower.\u201d"],
+        [c => c.liters <= c.reserve, "\u201cThat is travel water you are carrying. Four liters is for you and the donkey, not for the rack.\u201d"],
+        [c => true, "\u201cGood weight. Take it up the ridge before the watch turns. And bring my chalk back.\u201d"]],
+      rahel: [
+        [c => !c.visited.includes("beacon"), "Rahel does not look up from the phone. \u201cThird take. You hear a chair scrape just before the first note. That is the one my aunt wants.\u201d"],
+        [c => true, "\u201cShe gave leave for the house. The hill still has to write it to the water.\u201d"]],
+      aunt_lemlem: [
+        [c => c.liters <= 0, "The aunt glances at the dry can. \u201cA song does not travel in an empty can. Come back wet.\u201d"],
+        [c => true, "\u201cListening at home, yes. In public, once, and only if I am standing there to sing the answer.\u201d"]],
+      escort_yared: [[c => true, "Yared keeps filming the lamps. \u201cWalk on the left. The elders hold the right side of the trail.\u201d"]],
+      convoy_elder_1: [[c => true, "Abba Gebre shifts his gabi. \u201cThe beacon is for finding the road. The singing is for the people already on it.\u201d"]],
+      convoy_elder_2: [[c => true, "Memhir Solomon nods at the can. \u201cCarry it level. Spilled water forgets.\u201d"]],
+      ppc_op_male: [
+        [c => c.liters - c.reserve < 9, "Daniel taps the clipboard. \u201cThe rack takes nine liters above your chalk mark. You are short. The pump is downhill.\u201d"],
+        [c => true, "\u201cNine for cooling, then I can open the inner rack. Three versions of that verse are in the catalog.\u201d"]],
+      ppc_op_female: [
+        [c => !c.visited.includes("beacon"), "Hanna holds the radio away from her ear. \u201cNo leave from the white wall, no copy from this window.\u201d"],
+        [c => true, "\u201cI will label the lacquer with the aunt\u2019s name as custodian. Both singers stay on the take.\u201d"]],
+      compound_lead: [
+        [c => c.liters <= c.reserve, "Tesfaye looks at the can, then at the bowl. \u201cNot from your reserve. We wait.\u201d"],
+        [c => true, "\u201cSet it by the root bowl. Three liters wakes the sheet. The rest is yours to carry on.\u201d"]],
+      compound_partner: [[c => true, "Abba Desta checks the hitch. \u201cShe sang it wrong the first time and we all came in together. Keep that one.\u201d"]],
+      compound_child: [[c => true, "Biruk tilts the tablet toward you. The route glows where the cans are wet and nowhere else."]]
+    };
+    function demoUi() {
+      if (demo.ui) return demo.ui;
+      const el = document.createElement("div");
+      el.innerHTML = `<style>
+        #demo-hint,#demo-card,#demo-brief{position:fixed;left:50%;transform:translateX(-50%);z-index:60;font:14px/1.45 system-ui,sans-serif;color:#e9f6fb}
+        #demo-hint{bottom:calc(92px + env(safe-area-inset-bottom,0px));background:rgba(8,20,30,.86);border:1px solid #38e8ff;padding:8px 14px;cursor:pointer}
+        #demo-card{bottom:calc(92px + env(safe-area-inset-bottom,0px));width:min(520px,calc(100vw - 32px));background:rgba(8,20,30,.94);border:1px solid #38e8ff;padding:14px 16px}
+        #demo-card b{display:block;font-size:15px}#demo-card small{color:#8fd0de}#demo-card p{margin:8px 0 10px}
+        #demo-card button,#demo-brief button{font:13px system-ui,sans-serif;margin:0 6px 6px 0;padding:6px 10px;background:#0b2a38;color:#e9f6fb;border:1px solid #38e8ff;cursor:pointer}
+        #demo-card button:disabled{opacity:.45;cursor:default}#demo-card em{display:block;color:#ffd28a;font-style:normal;min-height:1.2em}
+        #demo-brief{top:calc(14px + env(safe-area-inset-top,0px));width:min(560px,calc(100vw - 32px));background:rgba(8,20,30,.94);border:1px solid #38e8ff;padding:12px 16px}
+        #demo-brief ul{margin:6px 0 8px;padding-left:18px}</style>
+        <div id="demo-brief"><b>Ahiya demo</b>
+          <ul><li>Walk with W A S D, hold Shift to run. Buildings and people are solid.</li>
+          <li>Step up to someone and press Z to speak. They answer to what you carry.</li>
+          <li>Press C for the wagon. Hills slow it and it cannot turn while standing still.</li></ul>
+          <button id="demo-brief-ok">Start at the Basalt Pump</button></div>
+        <div id="demo-hint" hidden></div>
+        <div id="demo-card" hidden><b id="demo-name"></b><small id="demo-role"></small><p id="demo-say"></p><div id="demo-acts"></div><em id="demo-res"></em><button id="demo-close">Step back</button></div>`;
+      document.body.append(el);
+      const q = id => el.querySelector("#" + id);
+      demo.ui = { hint: q("demo-hint"), card: q("demo-card"), name: q("demo-name"), role: q("demo-role"), say: q("demo-say"), acts: q("demo-acts"), res: q("demo-res"), brief: q("demo-brief") };
+      q("demo-brief-ok").onclick = () => { demo.ui.brief.hidden = true; };
+      q("demo-close").onclick = () => demoClose();
+      demo.ui.hint.onclick = () => demoSpeak();
+      return demo.ui;
+    }
+    function demoClose() { demo.open = null; if (demo.ui) demo.ui.card.hidden = true; }
+    function demoSpeak() {
+      const ch = demo.near; if (!ch) return;
+      const ui = demoUi(), c = npCarrier(), rules = DEMO_LINES[ch.state.id];
+      const line = rules ? (rules.find(r => { try { return r[0](c); } catch (e) { return false; } }) || rules[rules.length - 1])[1] : `${ch.state.name} nods and goes back to work.`;
+      demo.open = ch; ui.name.textContent = ch.state.name; ui.role.textContent = ch.state.role || ""; ui.say.textContent = line; ui.res.textContent = "";
+      ui.acts.innerHTML = "";
+      let opts = []; try { opts = npEngine.options(npState) || []; } catch (e) { opts = []; }
+      for (const o of opts.slice(0, 5)) {
+        const bt = document.createElement("button"); bt.textContent = o.label || o.id; bt.disabled = !o.enabled; if (!o.enabled && o.reason) bt.title = o.reason;
+        bt.onclick = () => { const r = runNpAction(o.id, true); ui.res.textContent = r && r.ok === false ? (r.reason || "Not possible here.") : `Done. ${npCarrier().liters} L aboard.`; demoSpeakRefresh(); };
+        ui.acts.append(bt);
+      }
+      ui.card.hidden = false; ui.hint.hidden = true;
+    }
+    function demoSpeakRefresh() { if (demo.open) { const keep = demo.ui.res.textContent; demo.near = demo.open; demoSpeak(); demo.ui.res.textContent = keep; } }
+    function demoTick(dt) {
+      const ui = demoUi();
+      if (!demo.started && state.ready && !state.introActive) {
+        demo.started = true; state.x = -1449; state.z = 772; state.y = driveSurfaceAt(state.x, state.z) + 1.68; state.yaw = 2.2;
+        donkey.place(state.x + 2.2, state.z + 1.4, state.yaw, (x, z) => driveSurfaceAt(x, z));
+      }
+      let best = null, bd = 2.6;
+      if (cast && !state.drivingCart && !state.riding) for (const ch of cast.list) {
+        if (!ch.group.visible) continue;
+        const d = Math.hypot(ch.state.x - state.x, ch.state.z - state.z); if (d < bd) { bd = d; best = ch; }
+      }
+      demo.near = demo.open || best;
+      if (demo.open) {
+        const ch = demo.open, d = Math.hypot(ch.state.x - state.x, ch.state.z - state.z);
+        if (d > 4.2) demoClose();
+        else {                                                             // the person turns to face whoever is speaking to them
+          const want = Math.atan2(state.x - ch.state.x, state.z - ch.state.z), df = Math.atan2(Math.sin(want - ch.state.heading), Math.cos(want - ch.state.heading));
+          ch.state.heading += df * (1 - Math.exp(-dt * 6)); ch.group.rotation.y = ch.state.heading;
+        }
+      }
+      const show = best && !demo.open;
+      ui.hint.hidden = !show; if (show) ui.hint.textContent = `Z \u00b7 Speak with ${best.state.name}`;
+    }
+
     function step(dt) {
       const manualFwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - stickY;
       const brakeInput = keys.KeyX || fieldHeld("KeyX");
@@ -6121,14 +6285,24 @@ void main(){
           : fwdInput > .08 ? clamp(fwdInput, .35, 1) * (turbo ? 42.0 : 25.0)
           : fwdInput < -.08 ? -clamp(-fwdInput, .55, 1) * (turbo ? 26.0 : 17.5) : 0) * flowSpeedMult;
         const accelRate = (Math.abs(fwdInput) <= .08 || brakeInput) ? 9.5 : 6.8;
-        wagon.speed = lerp(wagon.speed, targetSpeed, 1 - Math.exp(-dt * accelRate));
+        let demoTarget = targetSpeed;
+        if (DEMO) {                                                        // grade along the heading sets what the engine can hold
+          const sh = Math.sin(wagon.heading), ch = Math.cos(wagon.heading), dir = Math.sign(targetSpeed) || 1;
+          const grade = (driveSurfaceAt(wagon.x + sh * 1.65 * dir, wagon.z + ch * 1.65 * dir) - driveSurfaceAt(wagon.x - sh * 1.65 * dir, wagon.z - ch * 1.65 * dir)) / 3.3;
+          demoTarget = targetSpeed * .56 * (grade > .55 ? 0 : grade > 0 ? clamp(1 - grade * 2.2, .15, 1) : clamp(1 - grade * .4, 1, 1.2));
+        }
+        wagon.speed = lerp(wagon.speed, demoTarget, 1 - Math.exp(-dt * (DEMO ? accelRate * .45 : accelRate)));
         if (Math.abs(wagon.speed) < .06 && Math.abs(fwdInput) <= .08) wagon.speed = 0;
 
         const revFlip = (fwdInput < 0 && wagon.speed < -.5) ? -1 : 1;
-        wagon.heading -= sideInput * revFlip * 1.85 * dt;
+        // demo: yaw needs rolling wheels and is capped by tyre grip (0.7 g)
+        const yawRate = DEMO ? Math.min(1.85 * clamp(Math.abs(wagon.speed) / 4, 0, 1), 6.9 / Math.max(Math.abs(wagon.speed), 1)) : 1.85;
+        wagon.heading -= sideInput * revFlip * yawRate * dt;
         wagon.steerAngle = lerp(wagon.steerAngle, -sideInput * .38, 1 - Math.exp(-dt * 12));
 
-        [wagon.x, wagon.z] = worldBoundsClamp(wagon.x + Math.sin(wagon.heading) * wagon.speed * dt, wagon.z + Math.cos(wagon.heading) * wagon.speed * dt);
+        let wnx = wagon.x + Math.sin(wagon.heading) * wagon.speed * dt, wnz = wagon.z + Math.cos(wagon.heading) * wagon.speed * dt;
+        if (DEMO) { const r = demoResolve(wnx, wnz, 1.35); wnx = r[0]; wnz = r[1]; if (r[2]) wagon.speed *= Math.exp(-dt * 14); }
+        [wagon.x, wagon.z] = worldBoundsClamp(wnx, wnz);
         const surfY = driveSurfaceAt(wagon.x, wagon.z);
         wagon.y = lerp(wagon.y, surfY, 1 - Math.exp(-dt * 18));
 
@@ -6193,10 +6367,20 @@ void main(){
         }
       } else {
         /* --- ON FOOT (COLLISIONS OFF) + LEADING MISTLETOE --- */
-        const speed = (turbo ? 16.0 : 7.5) * flowSpeedMult;
+        const speed = DEMO ? (turbo ? 4.6 : 1.7) : (turbo ? 16.0 : 7.5) * flowSpeedMult;
         const sx = Math.sin(state.yaw), cz = Math.cos(state.yaw);
-        [state.x, state.z] = worldBoundsClamp(state.x + (-sx * fwdInput + cz * sideInput) * speed * dt, state.z + (-cz * fwdInput - sx * sideInput) * speed * dt);
-        state.y = lerp(state.y, driveSurfaceAt(state.x, state.z) + 1.68, 1 - Math.exp(-dt * 14));
+        let fnx = state.x + (-sx * fwdInput + cz * sideInput) * speed * dt, fnz = state.z + (-cz * fwdInput - sx * sideInput) * speed * dt;
+        if (DEMO) {
+          const run = Math.hypot(fnx - state.x, fnz - state.z);
+          if (run > 1e-6) {                                                // uphill costs pace; ground steeper than 45 degrees stops you
+            const grade = (driveSurfaceAt(fnx, fnz) - driveSurfaceAt(state.x, state.z)) / run;
+            const k = grade > 1 ? 0 : grade > 0 ? clamp(1 - grade * 1.6, .25, 1) : clamp(1 + grade * .5, .7, 1);
+            fnx = state.x + (fnx - state.x) * k; fnz = state.z + (fnz - state.z) * k;
+          }
+          const r = demoResolve(fnx, fnz, .35); fnx = r[0]; fnz = r[1];
+        }
+        [state.x, state.z] = worldBoundsClamp(fnx, fnz);
+        state.y = lerp(state.y, driveSurfaceAt(state.x, state.z) + 1.68, 1 - Math.exp(-dt * (DEMO ? 30 : 14)));
         const dx = state.x - donkey.state.x, dz = state.z - donkey.state.z, dist = Math.hypot(dx, dz);
         const stepFn = (x, z) => driveSurfaceAt(x, z);
         if (state.donkeyCollapsed || state.pourAnim) {
@@ -6426,6 +6610,7 @@ void main(){
         ropeGeo.attributes.position.needsUpdate = true;
       }
 
+      if (DEMO) demoTick(dt);
       if (cast) {
         cast.update(dt, nowSec, {
           state, donkey, wagon, camera, fieldRigGroup,
@@ -6683,7 +6868,11 @@ void main(){
       },
       setTouchStick: (fx, fy) => setStick(clamp(fx, -1, 1), -clamp(fy, -1, 1)),
       playIntro: startPrologue, skipIntro: () => finishIntro(false),
-      groundAt: (x, z) => driveSurfaceAt(x, z), ahiyaGround: () => AHIYA_GROUND_MODE
+      groundAt: (x, z) => driveSurfaceAt(x, z), ahiyaGround: () => AHIYA_GROUND_MODE,
+      demo: () => ({ on: DEMO, solids: demo.solids ? demo.solids.length : (DEMO ? (demoBuildSolids(), demo.solids.length) : 0), near: demo.near ? demo.near.state.id : null, open: demo.open ? demo.open.state.id : null,
+        say: demo.ui ? demo.ui.say.textContent : "", acts: demo.ui ? [...demo.ui.acts.children].map(b => [b.textContent, !b.disabled]) : [] }),
+      demoSpeak: () => demoSpeak(), demoResolve: (x, z, r) => demoResolve(x, z, r || .35), wagonState: () => ({ x: wagon.x, z: wagon.z, speed: wagon.speed, heading: wagon.heading }),
+      setKey: (code, down) => { keys[code] = !!down; }, toggleCart: () => toggleCart(), simOnce: dt => step(dt || .05)
     };
   }
 
