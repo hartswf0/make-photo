@@ -5811,7 +5811,7 @@ void main(){
       else if (e.code === "KeyL") toggleLidar();
       else if (e.code === "KeyU" && !e.repeat) { if (machinima) machinima.toggle("trailer"); }
       else if (e.code === "KeyY" && !e.repeat) toggleInWorldVideo();
-      else if (e.code === "KeyZ" && DEMO && !e.repeat) { if (demo.open) demoClose(); else demoSpeak(); }
+      else if (e.code === "KeyZ" && DEMO && !e.repeat) { if (demo.withCh && demo.ui) { e.preventDefault(); demo.ui.input.focus(); } }
       else if (e.code === "KeyM") openNpDispatch();
       else if (e.code === "Tab") { e.preventDefault(); switchNpCircuit(); }
       else if (e.code === "KeyT") syncResonantZone();
@@ -6020,7 +6020,7 @@ void main(){
 
     /* ---------- AHIYA PLAYABLE DEMO (?demo=ahiya): solid sets and people, human pace, slope-aware wagon, cast who answer ---------- */
     const DEMO = urlParams.get("demo") === "ahiya";
-    const demo = { solids: null, grid: new Map(), near: null, open: null, ui: null, lastLine: {} };
+    const demo = { solids: null, grid: new Map(), ui: null, withCh: null, line: null, keep: null };
     const DEMO_BOX = [-1976, -1284, 348, 982];
     function demoBuildSolids() {
       demo.solids = []; demo.grid.clear();
@@ -6075,98 +6075,252 @@ void main(){
       }
       return [x, z, hit];
     }
-    // What each Ahiya resident says, first matching line wins. c is the carrier's live ledger (liters, reserve, visited, watch).
-    const DEMO_LINES = {
-      saba: [
-        [c => c.liters <= 0, "Saba keeps one hand on the lever. \u201cThe map says full. I say what the gauge thread says. Draw to the chalk and no lower.\u201d"],
-        [c => c.liters <= c.reserve, "\u201cThat is travel water you are carrying. Four liters is for you and the donkey, not for the rack.\u201d"],
-        [c => true, "\u201cGood weight. Take it up the ridge before the watch turns. And bring my chalk back.\u201d"]],
-      rahel: [
-        [c => !c.visited.includes("beacon"), "Rahel does not look up from the phone. \u201cThird take. You hear a chair scrape just before the first note. That is the one my aunt wants.\u201d"],
-        [c => true, "\u201cShe gave leave for the house. The hill still has to write it to the water.\u201d"]],
-      aunt_lemlem: [
-        [c => c.liters <= 0, "The aunt glances at the dry can. \u201cA song does not travel in an empty can. Come back wet.\u201d"],
-        [c => true, "\u201cListening at home, yes. In public, once, and only if I am standing there to sing the answer.\u201d"]],
-      escort_yared: [[c => true, "Yared keeps filming the lamps. \u201cWalk on the left. The elders hold the right side of the trail.\u201d"]],
-      convoy_elder_1: [[c => true, "Abba Gebre shifts his gabi. \u201cThe beacon is for finding the road. The singing is for the people already on it.\u201d"]],
-      convoy_elder_2: [[c => true, "Memhir Solomon nods at the can. \u201cCarry it level. Spilled water forgets.\u201d"]],
-      ppc_op_male: [
-        [c => c.liters - c.reserve < 9, "Daniel taps the clipboard. \u201cThe rack takes nine liters above your chalk mark. You are short. The pump is downhill.\u201d"],
-        [c => true, "\u201cNine for cooling, then I can open the inner rack. Three versions of that verse are in the catalog.\u201d"]],
-      ppc_op_female: [
-        [c => !c.visited.includes("beacon"), "Hanna holds the radio away from her ear. \u201cNo leave from the white wall, no copy from this window.\u201d"],
-        [c => true, "\u201cI will label the lacquer with the aunt\u2019s name as custodian. Both singers stay on the take.\u201d"]],
-      compound_lead: [
-        [c => c.liters <= c.reserve, "Tesfaye looks at the can, then at the bowl. \u201cNot from your reserve. We wait.\u201d"],
-        [c => true, "\u201cSet it by the root bowl. Three liters wakes the sheet. The rest is yours to carry on.\u201d"]],
-      compound_partner: [[c => true, "Abba Desta checks the hitch. \u201cShe sang it wrong the first time and we all came in together. Keep that one.\u201d"]],
-      compound_child: [[c => true, "Biruk tilts the tablet toward you. The route glows where the cans are wet and nowhere else."]]
+    // ---- Conversation: what people know, keyed by topic. c is the carrier's live ledger (liters, reserve, visited, watch). ----
+    const DEMO_TOPICS = [
+      ["hello", /\b(hi|hello|hey|selam|salam|good (morning|evening|night))\b/],
+      ["who", /\b(who are you|your name|who is this|what do you do|what is your (job|work))\b/],
+      ["where", /\b(where|which way|road|path|how do i get|how far|direction)\b/],
+      ["chalk", /\b(chalk|reserve|mark|four lit)/],
+      ["song", /\b(song|take|takes|recording|rehearsal|harmony|verse|chair|music|sing|singing)\b/],
+      ["aunt", /\b(aunt|lemlem|custodian|household)\b/],
+      ["beacon", /\b(beacon|tower|mast|signal|wifi|white wall|wall)\b/],
+      ["archive", /\b(archive|hill|rack|catalog|lacquer|keeper)\b/],
+      ["compound", /\b(compound|yard|courtyard|sheet|bowl)\b/],
+      ["donkey", /\b(donkey|mule|animal|saddle)\b/],
+      ["phone", /\b(phone|show me|let me see|let me hear|play it)\b/],
+      ["water", /\b(water|liter|litre|liters|litres|can|jerikan|jerrycan|wet|dry|thirsty)\b/],
+      ["thanks", /\b(thanks|thank you|ameseginalehu)\b/],
+      ["bye", /\b(bye|goodbye|good bye|i must go|ciao)\b/]
+    ];
+    // Things you can ask a person to do. Each maps onto an action the water law already allows at this stop.
+    const DEMO_ASKS = [
+      [/\b(draw|fill|pump|top up)\b/, o => /^pump/.test(o.id), "pump"],
+      [/\b(cool|cooling|rack)\b/, o => /cool/i.test(o.id + " " + o.label), "handInspect"],
+      [/\b(leave|permission|permit|grant|allow|may i)\b/, o => /permi|leave|grant|sign|ask/i.test(o.id + " " + o.label), "listen"],
+      [/\b(write|copy|dock|label|load)\b/, o => /dock|write|copy|load/i.test(o.id + " " + o.label), "deskWrite"],
+      [/\b(screen|perform|play it for|show them)\b/, o => /^screen/.test(o.id), "screenWatch"],
+      [/\b(listen|hear|earphone)\b/, o => /^listen/.test(o.id), "listen"],
+      [/\b(tap|cup|public)\b/, o => /tap/i.test(o.id + " " + o.label), "pour"],
+      [/\b(water (the |my )?(donkey|animal)|give (her|him|it) a drink)\b/, o => /^water/.test(o.id), "pour"]
+    ];
+    const DEMO_STOP_OF = { saba: "basalt", rahel: "beacon", escort_yared: "beacon", convoy_elder_1: "beacon", convoy_elder_2: "beacon", aunt_lemlem: "beacon",
+      ppc_op_male: "hill", ppc_op_female: "hill", compound_lead: "compound", compound_partner: "compound", compound_child: "compound" };
+    const DEMO_SETS = { basalt: [-1460, 760, "the Basalt Pump"], beacon: [-1610, 590, "the white wall at the Cross-Beacon"], hill: [-1765, 540, "the Hill Archive"], compound: [-1680, 775, "the Daylight Compound"] };
+    const DEMO_KB = {
+      saba: { who: "“Saba. I keep this pump. I can close the intake even when the map up the hill says the tank is full.”",
+        water: c => c.liters <= 0 ? "“Your can is dry. Ask me to draw and I will work the lever, to the chalk and no lower.”" : `“${c.liters} liters aboard. The first four are for you and the donkey. The rest is yours to spend.”`,
+        chalk: "“The chalk line is the well’s reserve. Draw below it and I close this pump for two shift changes.”",
+        donkey: "“She is mine, the gray one. A wet saddle keeps a recording in order while it moves. Keep her watered.”",
+        song: "“Rahel wants the rehearsal from over the ridge. Songs are her business. Water is mine.”" },
+      rahel: { who: "“Rahel. I run sound on the night route. I know the singers by the chairs they move before a take.”",
+        song: "“Three rehearsal takes. In the third a chair scrapes stone just before the first note. That is the one.”",
+        aunt: "“My aunt keeps the takes. She is at the white wall. Ask her leave yourself, she likes to be asked.”",
+        phone: "Rahel turns the screen toward you. Three waveforms, the third with a small spike before it starts. “There. The chair.”",
+        water: "“A dry can loses its traveling copies. Keep it wet until the hill has written the label.”" },
+      aunt_lemlem: { who: "“Lemlem. Those three takes are in my keeping.”",
+        song: "“He came in early on the held note and we all followed him. Keep the wrong one too. It is the only one where we came in together.”",
+        aunt: "“Listening at home, yes. In public once, and only if I am standing there to sing the answer myself.”",
+        water: c => c.liters <= 0 ? "“A song does not travel in an empty can. Come back wet.”" : "“Good. Then it can travel. Ask me for leave and I will give it.”" },
+      escort_yared: { who: "“Yared. I film the convoy so the hill has a record of who walked.”", phone: "Yared tips his phone so you can see the lamps strung along the trail.",
+        where: null },
+      convoy_elder_1: { who: "“Gebre. I walk with the lamps.”", beacon: "“The beacon is for finding the road. The singing is for the people already on it.”" },
+      convoy_elder_2: { who: "“Solomon. I carry and I witness the signal.”", water: "“Carry it level. Spilled water forgets.”" },
+      ppc_op_male: { who: "“Daniel. I keep the log for the rack.”",
+        archive: c => c.liters - c.reserve < 9 ? "“The rack takes nine liters above your chalk mark and you are short. The pump is downhill.”" : "“Nine for cooling and I can open the inner rack. Ask me to cool it.”",
+        water: c => `“You have ${Math.max(0, c.liters - c.reserve)} liters above the mark. The rack wants nine.”`,
+        song: "“Three versions of that verse turn up in the catalog once the rack is cool.”" },
+      ppc_op_female: { who: "“Hanna. Radio and the monitor.”",
+        archive: c => !c.visited.includes("beacon") ? "“No leave from the white wall, no copy from this window.”" : "“I will label the lacquer with the aunt as custodian. Both singers stay on the take. Ask me to write it.”",
+        aunt: "“Her name goes on the seal. That is the rule here.”", phone: "Hanna turns the monitor. The route is drawn in cyan where the cans are wet." },
+      compound_lead: { who: "“Tesfaye. I unload and I pour.”",
+        compound: c => c.liters <= c.reserve ? "“Not from your reserve. We wait.”" : "“Set it by the root bowl. Three liters wakes the sheet. Ask me to screen it when the aunt has given leave.”",
+        water: c => c.liters <= c.reserve ? "“That is travel water. I will not take it.”" : "“Three liters for the sheet. The rest goes on with you.”" },
+      compound_partner: { who: "“Desta. I see to the hitch.”", song: "“She sang it wrong the first time and we all came in together. Keep that one.”", donkey: "“Bring her in the shade. The hitch post is by the wall.”" },
+      compound_child: { who: "“Biruk.”", phone: "Biruk tilts the tablet toward you. The route glows where the cans are wet and nowhere else.", beacon: "“When you can see the mast, the tablet works. Behind the ridge it does not.”" }
     };
+    const DEMO_SEND = { water: "saba", chalk: "saba", donkey: "saba", song: "rahel", aunt: "aunt_lemlem", beacon: "aunt_lemlem", archive: "ppc_op_male", compound: "compound_lead" };
+    function demoDirections(toId) {
+      const s = DEMO_SETS[toId]; if (!s) return "";
+      const dx = s[0] - state.x, dz = s[1] - state.z, d = Math.hypot(dx, dz), rise = driveSurfaceAt(s[0], s[1]) - driveSurfaceAt(state.x, state.z);
+      const brg = (Math.atan2(dx, -dz) * 180 / Math.PI + 360) % 360, comp = ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"][Math.round(brg / 45) % 8];
+      return `${s[2][0].toUpperCase() + s[2].slice(1)} is ${Math.round(d / 5) * 5} meters ${comp}, ${Math.abs(rise) < 3 ? "nearly level" : rise > 0 ? `${Math.round(rise)} meters up` : `${Math.round(-rise)} meters down`}.`;
+    }
+    const demoName = ch => String(ch.state.name).replace(/\s*\(.*\)\s*/, "");
+    const DEMO_ABOUT = { who: "my work", water: "the water", chalk: "the chalk mark", song: "the song", aunt: "the aunt’s leave", beacon: "the beacon", archive: "the rack", compound: "the yard", donkey: "the donkey", phone: "my phone" };
+    function demoAnswer(ch, text) {
+      const NAME = demoName(ch), id = ch.state.id, c = npCarrier(), kb = DEMO_KB[id] || {}, t = " " + text.toLowerCase().replace(/[^a-z0-9' ]+/g, " ") + " ";
+      // 1. a request: try the action the law allows here, and let the person report the outcome
+      for (const [re, pick, pose] of DEMO_ASKS) if (re.test(t)) {
+        let opts = []; try { opts = npEngine.options(npState) || []; } catch (e) { opts = []; }
+        const o = opts.find(pick);
+        if (o && DEMO_STOP_OF[id] === c.place) {
+          if (!o.enabled) return { say: `“${o.reason || "Not now."}”`, emotion: "determined_focus" };
+          const before = c.liters, r = runNpAction(o.id, true), after = npCarrier(), log = after.log && after.log.at(-1) ? after.log.at(-1).text : "";
+          if (r && r.ok === false) return { say: `“${r.reason || "That cannot be done here."}”`, emotion: "determined_focus" };
+          const delta = after.liters - before;
+          return { say: (log ? log.slice(0, 230) : "It is done.") + (delta ? ` (${delta > 0 ? "+" : ""}${delta} L)` : ""), pose, emotion: "happy_joy", hold: 3.2 };
+        }
+        if (o) break;
+      }
+      // 2. a topic this person knows, else point to who does
+      for (const [topic, re] of DEMO_TOPICS) if (re.test(t)) {
+        if (topic === "hello") return { say: `“Selam.” ${NAME} looks at your can. ` + (c.liters > 0 ? `“${c.liters} liters. Good.”` : "“Dry.”"), pose: "wave", hold: 1.6 };
+        if (topic === "thanks") return { say: "“Go well.”", emotion: "happy_joy" };
+        if (topic === "bye") return { say: "“Mind the grade in the dark.”", pose: "wave", hold: 1.6, end: true };
+        if (topic === "where") {
+          const named = Object.keys(DEMO_SETS).find(k => new RegExp(k === "basalt" ? "pump|basalt|water" : k === "beacon" ? "beacon|wall|aunt|mast" : k === "hill" ? "hill|archive|rack" : "compound|yard|sheet").test(t));
+          const next = named || ["basalt", "beacon", "hill", "compound"].find(k => !c.visited.includes(k)) || "compound";
+          return { say: `${NAME} points. “${demoDirections(next)}”`, gesture: "pointing_call" };
+        }
+        let line = kb[topic]; if (typeof line === "function") line = line(c);
+        if (line) return { say: line, pose: topic === "phone" ? "holdPhone" : (topic === "song" && id === "aunt_lemlem" ? "sing" : null), phone: topic === "phone", hold: topic === "phone" ? 4 : 0 };
+        const to = DEMO_SEND[topic], who = to && cast.byId && cast.byId[to] ? demoName(cast.byId[to]) : null;
+        if (who && to !== id) return { say: `“That is for ${who}. ${demoDirections(DEMO_STOP_OF[to])}”`, gesture: "pointing_call" };
+      }
+      const know = Object.keys(kb).filter(k => kb[k] && DEMO_ABOUT[k]).slice(0, 3).map(k => DEMO_ABOUT[k]);
+      return { say: `${NAME} waits. “Ask me about ${know.length ? know.join(know.length > 2 ? ", " : " or ") : "the road"}.”`, emotion: "determined_focus" };
+    }
     function demoUi() {
       if (demo.ui) return demo.ui;
       const el = document.createElement("div");
       el.innerHTML = `<style>
-        #demo-hint,#demo-card,#demo-brief{position:fixed;left:50%;transform:translateX(-50%);z-index:60;font:14px/1.45 system-ui,sans-serif;color:#e9f6fb}
-        #demo-hint{bottom:calc(92px + env(safe-area-inset-bottom,0px));background:rgba(8,20,30,.86);border:1px solid #38e8ff;padding:8px 14px;cursor:pointer}
-        #demo-card{bottom:calc(92px + env(safe-area-inset-bottom,0px));width:min(520px,calc(100vw - 32px));background:rgba(8,20,30,.94);border:1px solid #38e8ff;padding:14px 16px}
-        #demo-card b{display:block;font-size:15px}#demo-card small{color:#8fd0de}#demo-card p{margin:8px 0 10px}
-        #demo-card button,#demo-brief button{font:13px system-ui,sans-serif;margin:0 6px 6px 0;padding:6px 10px;background:#0b2a38;color:#e9f6fb;border:1px solid #38e8ff;cursor:pointer}
-        #demo-card button:disabled{opacity:.45;cursor:default}#demo-card em{display:block;color:#ffd28a;font-style:normal;min-height:1.2em}
-        #demo-brief{top:calc(14px + env(safe-area-inset-top,0px));width:min(560px,calc(100vw - 32px));background:rgba(8,20,30,.94);border:1px solid #38e8ff;padding:12px 16px}
-        #demo-brief ul{margin:6px 0 8px;padding-left:18px}</style>
-        <div id="demo-brief"><b>Ahiya demo</b>
-          <ul><li>Walk with W A S D, hold Shift to run. Buildings and people are solid.</li>
-          <li>Step up to someone and press Z to speak. They answer to what you carry.</li>
-          <li>Press C for the wagon. Hills slow it and it cannot turn while standing still.</li></ul>
-          <button id="demo-brief-ok">Start at the Basalt Pump</button></div>
-        <div id="demo-hint" hidden></div>
-        <div id="demo-card" hidden><b id="demo-name"></b><small id="demo-role"></small><p id="demo-say"></p><div id="demo-acts"></div><em id="demo-res"></em><button id="demo-close">Step back</button></div>`;
+        .dm{position:fixed;z-index:60;font:14px/1.45 system-ui,sans-serif;color:#e9f6fb}
+        #demo-bub{max-width:min(340px,70vw);background:rgba(8,20,30,.92);border:1px solid #38e8ff;border-radius:10px;padding:8px 12px;transform:translate(-50%,-100%);pointer-events:none}
+        #demo-bub b{display:block;font-size:12px;color:#8fd0de;font-weight:600}
+        #demo-you{left:50%;bottom:calc(132px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(233,246,251,.92);color:#0b1a22;border-radius:10px;padding:6px 12px;max-width:min(420px,80vw)}
+        #demo-say{left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:6px;width:min(460px,calc(100vw - 32px))}
+        #demo-say input{flex:1;min-width:0;font:14px system-ui,sans-serif;padding:8px 10px;background:rgba(8,20,30,.92);color:#e9f6fb;border:1px solid #38e8ff;border-radius:8px}
+        #demo-say button,#demo-phone button,#demo-brief button{font:12px system-ui,sans-serif;padding:6px 10px;background:#0b2a38;color:#e9f6fb;border:1px solid #38e8ff;border-radius:8px;cursor:pointer}
+        #demo-say button[aria-pressed="true"]{background:#38e8ff;color:#06222c}
+        #demo-phone{right:max(14px,env(safe-area-inset-right,0px));bottom:calc(88px + env(safe-area-inset-bottom,0px));width:196px;background:#0a1116;border:2px solid #26343c;border-radius:22px;padding:12px 12px 10px;box-shadow:0 0 24px rgba(56,232,255,.25)}
+        #demo-phone h4{margin:0 0 6px;font:600 11px system-ui,sans-serif;letter-spacing:.08em;color:#8fd0de;display:flex;justify-content:space-between}
+        #demo-can{position:relative;height:12px;background:#12232c;border-radius:6px;overflow:hidden}#demo-can i{position:absolute;inset:0 auto 0 0;background:#38e8ff}
+        #demo-can u{position:absolute;top:0;bottom:0;left:20%;width:2px;background:#fff}
+        #demo-phone p{margin:5px 0 0;font-size:12px;color:#b9d7df}#demo-thread{margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:118px;overflow:hidden;justify-content:flex-end}
+        #demo-thread span{font-size:11.5px;line-height:1.3;padding:4px 7px;border-radius:8px;background:#12232c;align-self:flex-start;max-width:100%}
+        #demo-thread span.me{background:#38e8ff;color:#06222c;align-self:flex-end}
+        #demo-brief{left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);width:min(520px,calc(100vw - 32px));background:rgba(8,20,30,.94);border:1px solid #38e8ff;border-radius:10px;padding:12px 16px}
+        #demo-brief ul{margin:6px 0 8px;padding-left:18px}
+        body.demo-clean #top-left,body.demo-clean #reel-col,body.demo-clean #rack-tray,body.demo-clean #wedge-wrap,body.demo-clean #focus-dock,body.demo-clean #keys,
+        body.demo-clean #ppc-hud,body.demo-clean #inworld-video-bar,body.demo-clean #field-status,body.demo-clean #field-tools,body.demo-clean #field-actions{display:none!important}
+        @media (max-width:640px){#demo-phone{width:150px}#demo-thread{max-height:70px}}</style>
+        <div id="demo-brief" class="dm"><b>Ahiya demo</b>
+          <ul><li>Walk up to anyone. They greet you. Press Z, then type or speak to them.</li>
+          <li>Ask for things in words: “draw” at the pump, “where is the archive”, “show me your phone”.</li>
+          <li>Your phone shows the water you carry and whether you can see the beacon.</li></ul>
+          <button id="demo-brief-ok">Begin at the Basalt Pump</button></div>
+        <div id="demo-bub" class="dm" hidden><b></b><span></span></div>
+        <div id="demo-you" class="dm" hidden></div>
+        <form id="demo-say" class="dm" hidden autocomplete="off"><input id="demo-in" maxlength="140" aria-label="Say something" placeholder=""><button type="button" id="demo-mic" aria-pressed="false">Mic</button><button type="submit">Say</button></form>
+        <div id="demo-phone" class="dm"><h4><span>CARRIER</span><span id="demo-sig"></span></h4><div id="demo-can"><i></i><u></u></div>
+          <p id="demo-lit"></p><p id="demo-los"></p><div id="demo-thread"></div><p><button type="button" id="demo-voice" aria-pressed="true">Voice on</button> <button type="button" id="demo-hud" aria-pressed="false">Full HUD</button></p></div>`;
       document.body.append(el);
       const q = id => el.querySelector("#" + id);
-      demo.ui = { hint: q("demo-hint"), card: q("demo-card"), name: q("demo-name"), role: q("demo-role"), say: q("demo-say"), acts: q("demo-acts"), res: q("demo-res"), brief: q("demo-brief") };
-      q("demo-brief-ok").onclick = () => { demo.ui.brief.hidden = true; };
-      q("demo-close").onclick = () => demoClose();
-      demo.ui.hint.onclick = () => demoSpeak();
-      return demo.ui;
+      const ui = demo.ui = { brief: q("demo-brief"), bub: q("demo-bub"), you: q("demo-you"), say: q("demo-say"), input: q("demo-in"), mic: q("demo-mic"), sig: q("demo-sig"), can: q("demo-can").firstElementChild,
+        lit: q("demo-lit"), los: q("demo-los"), thread: q("demo-thread"), voice: q("demo-voice") };
+      q("demo-brief-ok").onclick = () => { ui.brief.hidden = true; };
+      document.body.classList.add("demo-clean");
+      q("demo-hud").onclick = e => { const on = document.body.classList.toggle("demo-clean"); e.currentTarget.setAttribute("aria-pressed", !on); };
+      ui.say.addEventListener("submit", e => { e.preventDefault(); const v = ui.input.value.trim(); if (v) demoSay(v); ui.input.value = ""; ui.input.blur(); });
+      ui.input.addEventListener("keydown", e => { if (e.code === "Escape") ui.input.blur(); });
+      ui.voice.onclick = () => { demo.voice = !demo.voice; ui.voice.setAttribute("aria-pressed", demo.voice); ui.voice.textContent = demo.voice ? "Voice on" : "Voice off"; if (!demo.voice && window.speechSynthesis) speechSynthesis.cancel(); };
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) ui.mic.hidden = true;
+      else ui.mic.onclick = () => {
+        if (demo.rec) { demo.rec.stop(); return; }
+        const rec = demo.rec = new SR(); rec.lang = "en-US"; rec.interimResults = true; rec.maxAlternatives = 1; ui.mic.setAttribute("aria-pressed", "true");
+        rec.onresult = ev => { const r = ev.results[ev.results.length - 1]; ui.input.value = r[0].transcript; if (r.isFinal) { const v = ui.input.value.trim(); ui.input.value = ""; if (v) demoSay(v); } };
+        rec.onend = rec.onerror = () => { demo.rec = null; ui.mic.setAttribute("aria-pressed", "false"); };
+        try { rec.start(); } catch (e) { demo.rec = null; ui.mic.setAttribute("aria-pressed", "false"); }
+      };
+      demo.voice = true; demo.thread = [];
+      return ui;
     }
-    function demoClose() { demo.open = null; if (demo.ui) demo.ui.card.hidden = true; }
-    function demoSpeak() {
-      const ch = demo.near; if (!ch) return;
-      const ui = demoUi(), c = npCarrier(), rules = DEMO_LINES[ch.state.id];
-      const line = rules ? (rules.find(r => { try { return r[0](c); } catch (e) { return false; } }) || rules[rules.length - 1])[1] : `${ch.state.name} nods and goes back to work.`;
-      demo.open = ch; ui.name.textContent = ch.state.name; ui.role.textContent = ch.state.role || ""; ui.say.textContent = line; ui.res.textContent = "";
-      ui.acts.innerHTML = "";
-      let opts = []; try { opts = npEngine.options(npState) || []; } catch (e) { opts = []; }
-      for (const o of opts.slice(0, 5)) {
-        const bt = document.createElement("button"); bt.textContent = o.label || o.id; bt.disabled = !o.enabled; if (!o.enabled && o.reason) bt.title = o.reason;
-        bt.onclick = () => { const r = runNpAction(o.id, true); ui.res.textContent = r && r.ok === false ? (r.reason || "Not possible here.") : `Done. ${npCarrier().liters} L aboard.`; demoSpeakRefresh(); };
-        ui.acts.append(bt);
+    function demoThread(who, text, me) {
+      demo.thread.push([who, text, me]); if (demo.thread.length > 4) demo.thread.shift();
+      demo.ui.thread.innerHTML = ""; for (const [w, t, m] of demo.thread) { const s = document.createElement("span"); if (m) s.className = "me"; s.textContent = (m ? "" : w + ": ") + t; demo.ui.thread.append(s); }
+    }
+    // A person speaks: bubble over the head, mouth and hands move, the body holds a pose that fits, a voice reads it.
+    function demoSpeakAs(ch, r) {
+      const ui = demoUi(), text = r.say, dur = Math.max(1.8, r.hold || 0, 1.1 + text.length * .052);
+      if (demo.line && demo.line.ch !== ch) demoRestore();
+      if (!demo.line || demo.line.ch !== ch) demo.keep = { pose: ch.state.pose, opts: ch.state.poseOpts };
+      ch.setPose({ pose: r.pose || demo.keep.pose, speaking: true, emotion: r.emotion || "speaking_animated", emotionIntensity: .9,
+        handGestureL: r.gesture || "talking_gesticulate", handGestureR: r.pose ? undefined : "talking_gesticulate", expressiveArmGesture: true, phoneOut: r.phone ? true : undefined });
+      demo.line = { ch, text, t: 0, dur, end: r.end };
+      ui.bub.firstElementChild.textContent = demoName(ch); ui.bub.hidden = false;
+      demoThread(demoName(ch), text, false);
+      if (demo.voice && window.speechSynthesis) try {
+        speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text.replace(/[“”]/g, ""));
+        let h = 0; for (const k of ch.state.id) h = (h * 31 + k.charCodeAt(0)) % 97; u.pitch = .75 + (h % 50) / 100; u.rate = .95; speechSynthesis.speak(u);
+      } catch (e) { /* no voice available */ }
+    }
+    function demoRestore() {
+      if (demo.line && demo.keep) { const ch = demo.line.ch; ch.setPose(demo.keep.pose); ch.state.poseOpts = demo.keep.opts || {}; }
+      demo.line = null; if (demo.ui) demo.ui.bub.hidden = true;
+    }
+    function demoSay(text) {
+      const low = text.toLowerCase();
+      if (cast) for (const o of cast.list) {                                // calling a name turns you to that person
+        if (o === demo.withCh || !o.group.visible || Math.hypot(o.state.x - state.x, o.state.z - state.z) > 6) continue;
+        const first = demoName(o).split(" ").pop().toLowerCase();
+        if (first.length > 2 && low.includes(first)) { if (demo.line) demoRestore(); demo.withCh = o; demo.greeted = true; break; }
       }
-      ui.card.hidden = false; ui.hint.hidden = true;
+      const ch = demo.withCh; if (!ch) return null;
+      const ui = demoUi(); ui.you.textContent = text; ui.you.hidden = false; demo.youUntil = (demo.clock || 0) + 2600;
+      demoThread("You", text, true);
+      const r = demoAnswer(ch, text); demoSpeakAs(ch, r); return r.say;
     }
-    function demoSpeakRefresh() { if (demo.open) { const keep = demo.ui.res.textContent; demo.near = demo.open; demoSpeak(); demo.ui.res.textContent = keep; } }
+    const DEMO_FIXED = new Set(["recDesk", "kneelPour", "screenWatch", "seatedWatch", "unloadHandoff", "convoyWalk", "convoyPhoneWalk", "filmConvoy", "clerkWindow", "deskWrite", "deskNotes"]);
+    const demoV = new T.Vector3();
     function demoTick(dt) {
-      const ui = demoUi();
+      const ui = demoUi(), now = (demo.clock = (demo.clock || 0) + dt * 1000);
       if (!demo.started && state.ready && !state.introActive) {
         demo.started = true; state.x = -1449; state.z = 772; state.y = driveSurfaceAt(state.x, state.z) + 1.68; state.yaw = 2.2;
         donkey.place(state.x + 2.2, state.z + 1.4, state.yaw, (x, z) => driveSurfaceAt(x, z));
       }
-      let best = null, bd = 2.6;
+      // who you are with: nearest person within reach, held until you step well away
+      let best = null, bd = 2.8;
       if (cast && !state.drivingCart && !state.riding) for (const ch of cast.list) {
         if (!ch.group.visible) continue;
         const d = Math.hypot(ch.state.x - state.x, ch.state.z - state.z); if (d < bd) { bd = d; best = ch; }
       }
-      demo.near = demo.open || best;
-      if (demo.open) {
-        const ch = demo.open, d = Math.hypot(ch.state.x - state.x, ch.state.z - state.z);
-        if (d > 4.2) demoClose();
-        else {                                                             // the person turns to face whoever is speaking to them
+      const cur = demo.withCh, curD = cur ? Math.hypot(cur.state.x - state.x, cur.state.z - state.z) : 99;
+      if (cur && (curD > 4.4 || (best && best !== cur && bd < curD - .6))) { if (demo.line && demo.line.ch === cur) demoRestore(); demo.withCh = null; }
+      if (!demo.withCh && best) { demo.withCh = best; demo.metAt = now; demo.greeted = demo.greetedAt && demo.greetedAt[best.state.id] > now - 45000; }
+      const ch = demo.withCh;
+      if (ch) {
+        if (!demo.greeted && now - demo.metAt > 550) {                     // they speak first
+          demo.greeted = true; (demo.greetedAt = demo.greetedAt || {})[ch.state.id] = now;
+          demoSpeakAs(ch, demoAnswer(ch, "hello"));
+        }
+        if (!DEMO_FIXED.has(demo.keep && demo.line && demo.line.ch === ch ? demo.keep.pose : ch.state.pose)) {   // standing people turn to you
           const want = Math.atan2(state.x - ch.state.x, state.z - ch.state.z), df = Math.atan2(Math.sin(want - ch.state.heading), Math.cos(want - ch.state.heading));
-          ch.state.heading += df * (1 - Math.exp(-dt * 6)); ch.group.rotation.y = ch.state.heading;
+          ch.state.heading += df * (1 - Math.exp(-dt * 5)); ch.group.rotation.y = ch.state.heading;
         }
       }
-      const show = best && !demo.open;
-      ui.hint.hidden = !show; if (show) ui.hint.textContent = `Z \u00b7 Speak with ${best.state.name}`;
+      if (demo.line) {
+        const L = demo.line; L.t += dt;
+        ui.bub.lastElementChild.textContent = L.text.slice(0, Math.ceil(L.text.length * Math.min(1, L.t / (L.dur * .62))));
+        demoV.set(L.ch.state.x, L.ch.state.y + 1.98, L.ch.state.z).project(camera);
+        const on = demoV.z < 1 && Math.abs(demoV.x) < 1.1;
+        ui.bub.style.left = clamp((demoV.x * .5 + .5) * innerWidth, 150, innerWidth - 150) + "px"; ui.bub.style.top = clamp((-demoV.y * .5 + .5) * innerHeight, 70, innerHeight - 190) + "px";
+        ui.bub.hidden = !on;
+        if (L.t > L.dur) { const end = L.end; demoRestore(); if (end) demo.withCh = null; }
+      }
+      if (demo.youUntil && now > demo.youUntil) { ui.you.hidden = true; demo.youUntil = 0; }
+      ui.say.hidden = !ch; if (ch && document.activeElement !== ui.input) ui.input.placeholder = `Z · say something to ${demoName(ch)}`;
+      // phone: water aboard, and whether the beacon mast is in view over the real ridge
+      demo.phoneT = (demo.phoneT || 0) - dt;
+      if (demo.phoneT <= 0) {
+        demo.phoneT = .4; const c = npCarrier(), bx = -1610, bz = 590, top = driveSurfaceAt(bx, bz) + 40, eye = driveSurfaceAt(state.x, state.z) + 1.68, d = Math.hypot(bx - state.x, bz - state.z);
+        let los = true; for (let k = 1; k < 40 && los; k++) { const t = k / 40; if (eye + (top - eye) * t <= driveSurfaceAt(state.x + (bx - state.x) * t, state.z + (bz - state.z) * t)) los = false; }
+        const bars = c.liters <= 0 ? 0 : los ? (d < 320 ? 4 : 3) : 1; demo.signal = bars;
+        ui.sig.textContent = "▮".repeat(bars) + "▯".repeat(4 - bars);
+        ui.can.style.width = clamp(c.liters / 20 * 100, 0, 100) + "%";
+        ui.lit.textContent = `${c.liters} of 20 L · chalk at ${c.reserve} L`;
+        ui.los.textContent = c.liters <= 0 ? "Dry can: no signal" : los ? `Beacon in view, ${Math.round(d)} m` : "Ridge hides the beacon";
+      }
     }
 
     function step(dt) {
@@ -6869,9 +7023,9 @@ void main(){
       setTouchStick: (fx, fy) => setStick(clamp(fx, -1, 1), -clamp(fy, -1, 1)),
       playIntro: startPrologue, skipIntro: () => finishIntro(false),
       groundAt: (x, z) => driveSurfaceAt(x, z), ahiyaGround: () => AHIYA_GROUND_MODE,
-      demo: () => ({ on: DEMO, solids: demo.solids ? demo.solids.length : (DEMO ? (demoBuildSolids(), demo.solids.length) : 0), near: demo.near ? demo.near.state.id : null, open: demo.open ? demo.open.state.id : null,
-        say: demo.ui ? demo.ui.say.textContent : "", acts: demo.ui ? [...demo.ui.acts.children].map(b => [b.textContent, !b.disabled]) : [] }),
-      demoSpeak: () => demoSpeak(), demoResolve: (x, z, r) => demoResolve(x, z, r || .35), wagonState: () => ({ x: wagon.x, z: wagon.z, speed: wagon.speed, heading: wagon.heading }),
+      demo: () => ({ on: DEMO, solids: demo.solids ? demo.solids.length : (DEMO ? (demoBuildSolids(), demo.solids.length) : 0), withCh: demo.withCh ? demo.withCh.state.id : null, line: demo.line ? demo.line.text : "", pose: demo.withCh ? demo.withCh.state.pose : "",
+        speaking: demo.withCh ? Boolean(demo.withCh.state.poseOpts && demo.withCh.state.poseOpts.speaking) : false, signal: demo.signal, thread: demo.thread || [] }),
+      demoSay: t => demoSay(t), demoResolve: (x, z, r) => demoResolve(x, z, r || .35), wagonState: () => ({ x: wagon.x, z: wagon.z, speed: wagon.speed, heading: wagon.heading }),
       setKey: (code, down) => { keys[code] = !!down; }, toggleCart: () => toggleCart(), simOnce: dt => step(dt || .05)
     };
   }
