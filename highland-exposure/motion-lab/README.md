@@ -15,6 +15,20 @@ Controls: W A S D or the thumb stick to move, Shift or a full stick to run, drag
 | Bajaj | A Rapier ray-cast vehicle: one steered front wheel, two driven rear wheels, sprung and damped suspension, tyre grip for a dirt road, 400 kg, 4 kW at the wheel, air drag and rolling resistance, engine braking off the throttle. It is set back on its wheels if it lies on its side for 2 s. |
 | Talking | Walk up to someone and press E: they turn to you, greet you, talk with their jaw moving, and say their line from Highland Exposure. |
 
+## Sound
+
+All sound is real recordings from Freesound (CC0 and CC BY 4.0; credits in `licenses/SOUND-CREDITS.md`), placed in the world with spatial audio around the camera. It starts with your first tap or key.
+
+| Sound | What sets it off |
+|---|---|
+| Footsteps | each heel landing, as detected from the walking motion; gravel on the road, dirt at its edge, grass off it, stone on the wellhead platform; a running set when running |
+| Mistletoe | front hooves on each front-foot landing, the hind pair half a step later; braying every 35 to 90 s from her head; chewing when she grazes |
+| The pump | an iron knock each time Makeda's stroke reaches the bottom, and water running into the bowl while she pumps |
+| The bajaj | a starter and idle when you get in; the engine pitched by a three-speed gearbox model from the physics speed; on-board engine and tyre noise rising with speed; switched off if you leave it for 25 s |
+| Radio | in the bajaj, through a small speaker: Azmari FM, Azmari Bet live, Tewahedo chant, and Merkato loudspeaker ads, all field recordings from Ethiopia. R changes station. Each station keeps playing while you are away, so you come back mid-song. |
+| The place | wind that rises with height and speed and drops inside the wellhead, wind singing in the mast, the company's voices at the wellhead, a bird recorded in Ethiopia, sheep bells on the pasture, the Addis market far down the road, a dog by the house, gelada baboons from the Simien on the steepest slope |
+| Space | a short courtyard reverb that grows as you walk in among the wellhead walls |
+
 ## Measured here (headless Chromium, software renderer)
 
 | Test | Result |
@@ -27,6 +41,8 @@ Controls: W A S D or the thumb stick to move, Shift or a full stick to run, drag
 | Bajaj stop from 30 km/h | 10.6 m in 2.7 s |
 | Bajaj climbing 12 to 16 % on the real road | 14 to 21 km/h |
 | Bajaj hard turn at 25 km/h | about 8° of body roll, no tip-over |
+| Sound, 5 s walking | 10 footsteps fired by heel strikes |
+| Sound, 5 s leading Mistletoe | 10 front-hoof landings |
 
 `tests/measure_motion.cjs` and `tests/measure_bajaj.cjs` reproduce these with Playwright against a local server at the repository root.
 
@@ -37,7 +53,9 @@ Not measured: frame rate on a real phone or GPU (only a software renderer was av
 - The motion library has no clip for the things that matter most here: a 20 L can carried on the back with a strap, leading a donkey by the halter, working a lever pump, pouring coffee from a jebena. Makeda's pump stroke is a hammering clip blended at half strength; carrying uses a generic carry walk.
 - Mistletoe is a resized horse, not a donkey rig. Its gait timing is a horse's.
 - The bajaj body is modelled here from boxes and extruded profiles.
-- The people say one line each. There is no conversation beyond that in this lab.
+- The people say one line each. There is no conversation beyond that in this lab, and their lines are not voiced.
+- Nobody has listened to the mix on headphones yet; levels were set by numbers, not by ear.
+- Clothes are part of each figure's body mesh, so capes and shawls bend with the arms instead of hanging.
 
 ## Credits and licences
 
@@ -46,3 +64,4 @@ Not measured: frame rate on a real phone or GPU (only a software renderer was av
 - Physics: Rapier 0.14.0 (@dimforge/rapier3d-compat), Apache-2.0.
 - Rendering: three.js 0.160.0, MIT.
 - Terrain: Highland Exposure, from Copernicus GLO-30 per its release notes.
+- Sound: Freesound recordings by bruno.auzet, Vortichez, felix.blume, kyles, kalhan, Malik Escopette, StephenSaldanha and others; see `licenses/SOUND-CREDITS.md`.

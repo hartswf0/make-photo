@@ -15,14 +15,16 @@
 @media (hover:hover) and (pointer:fine){#joy{display:none}}
 #bub{position:fixed;transform:translate(-50%,-100%);max-width:min(380px,80vw);background:rgba(14,18,16,.86);border-radius:12px;padding:9px 13px;pointer-events:none;font:15px/1.4 Georgia,serif}
 #bub b{display:block;font:600 11px system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#e0b123;margin-bottom:2px}
+#toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:rgba(14,18,16,.8);border-radius:16px;padding:7px 14px;font:14px system-ui,sans-serif}
 #help{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:max(14px,env(safe-area-inset-right,0px));font:12px system-ui,sans-serif;color:#cfc9bb;text-align:right;opacity:.8;text-shadow:0 1px 2px #000}
-@media (pointer:coarse){#help{display:none}}
+@media (pointer:coarse){#toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:rgba(14,18,16,.8);border-radius:16px;padding:7px 14px;font:14px system-ui,sans-serif}
+#help{display:none}}
 </style></head>
 <body>
 <canvas id="c"></canvas><div id="boot">Loading</div>
-<div id="spd"></div><div id="help">W A S D move · Shift run · drag to look<br>E talk · F bajaj · G lead the donkey · Space brake</div>
+<div id="spd"></div><div id="help">W A S D move · Shift run · drag to look<br>E talk · F bajaj · G lead the donkey · Space brake · R radio<br>Sound starts with your first tap or key</div>
 <div id="acts"></div><div id="joy"><div id="knob"></div></div>
-<div id="bub" hidden><b id="bub-name"></b><span id="bub-text"></span></div>
+<div id="toast" hidden></div><div id="bub" hidden><b id="bub-name"></b><span id="bub-text"></span></div>
 <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
 <script type="module" src="./main.js"></script>
 </body></html>
