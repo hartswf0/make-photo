@@ -1,0 +1,80 @@
+{
+  "backend": "sapiens1-torchscript-0.3b",
+  "sapiens2_available_on_hf": true,
+  "sapiens2_gated": false,
+  "sapiens2_note": "facebook/sapiens2-{pose,normal,seg}-0.4b are public & ungated on HF (Sapiens2 License); require facebookresearch/sapiens2 package.",
+  "model_ids": [
+    "facebook/sapiens-normal-0.3b-torchscript",
+    "facebook/sapiens-pose-0.3b-torchscript"
+  ],
+  "license": "CC-BY-NC-4.0 (Meta Sapiens 1 TorchScript 0.3B)",
+  "device": "normal:mps, pose:mps",
+  "refs": [
+    {
+      "id": "ref_01_ensemble_jerikan",
+      "label": "ref 01 ensemble jerikan",
+      "source": "../study/ref_targets/ref_01_ensemble_jerikan.jpg",
+      "normal": "sapiens2/extracted/ref_01_ensemble_jerikan_normal.png",
+      "seg": "sapiens2/extracted/ref_01_ensemble_jerikan_seg.png",
+      "keypoints": "sapiens2/extracted/ref_01_ensemble_jerikan_keypoints.json",
+      "width": 1024,
+      "height": 576,
+      "valid_keypoints": 272,
+      "infer_sec": 7.7
+    },
+    {
+      "id": "ref_02_ensemble_risograph",
+      "label": "ref 02 ensemble risograph",
+      "source": "../study/ref_targets/ref_02_ensemble_risograph.jpg",
+      "normal": "sapiens2/extracted/ref_02_ensemble_risograph_normal.png",
+      "seg": "sapiens2/extracted/ref_02_ensemble_risograph_seg.png",
+      "keypoints": "sapiens2/extracted/ref_02_ensemble_risograph_keypoints.json",
+      "width": 1024,
+      "height": 576,
+      "valid_keypoints": 255,
+      "infer_sec": 5.99
+    },
+    {
+      "id": "ref_03_pump_closeup_jerikan",
+      "label": "ref 03 pump closeup jerikan",
+      "source": "../study/ref_targets/ref_03_pump_closeup_jerikan.jpg",
+      "normal": "sapiens2/extracted/ref_03_pump_closeup_jerikan_normal.png",
+      "seg": "sapiens2/extracted/ref_03_pump_closeup_jerikan_seg.png",
+      "keypoints": "sapiens2/extracted/ref_03_pump_closeup_jerikan_keypoints.json",
+      "width": 1024,
+      "height": 576,
+      "valid_keypoints": 264,
+      "infer_sec": 5.53
+    },
+    {
+      "id": "ref_04_ensemble_woodblock",
+      "label": "ref 04 ensemble woodblock",
+      "source": "../study/ref_targets/ref_04_ensemble_woodblock.jpg",
+      "normal": "sapiens2/extracted/ref_04_ensemble_woodblock_normal.png",
+      "seg": "sapiens2/extracted/ref_04_ensemble_woodblock_seg.png",
+      "keypoints": "sapiens2/extracted/ref_04_ensemble_woodblock_keypoints.json",
+      "width": 1024,
+      "height": 576,
+      "valid_keypoints": 272,
+      "infer_sec": 5.64
+    },
+    {
+      "id": "ref_05_clay_bust_turnaround",
+      "label": "ref 05 clay bust turnaround",
+      "source": "../study/ref_targets/ref_05_clay_bust_turnaround.jpg",
+      "normal": "sapiens2/extracted/ref_05_clay_bust_turnaround_normal.png",
+      "seg": "sapiens2/extracted/ref_05_clay_bust_turnaround_seg.png",
+      "keypoints": "sapiens2/extracted/ref_05_clay_bust_turnaround_keypoints.json",
+      "width": 1024,
+      "height": 341,
+      "valid_keypoints": 219,
+      "infer_sec": 5.67
+    }
+  ],
+  "video_track": {
+    "id": "E1_imani_emotions_speech_arc",
+    "file": "sapiens2/extracted/e1_mocap_track.json",
+    "duration_sec": 10.0,
+    "sample_count": 24
+  }
+}
