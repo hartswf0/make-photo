@@ -6071,6 +6071,10 @@ void main(){
           const dx = x - ch.state.x, dz = z - ch.state.z, d = Math.hypot(dx, dz), need = r + .38;
           if (d < need && d > 1e-4) { x = ch.state.x + dx / d * need; z = ch.state.z + dz / d * need; moved = hit = true; }
         }
+        if (r < 1 && donkey && donkey.state && !state.riding) {                // on foot you cannot walk into the donkey
+          const dx = x - donkey.state.x, dz = z - donkey.state.z, d = Math.hypot(dx, dz), need = r + 1.0;
+          if (d < need && d > 1e-4) { x = donkey.state.x + dx / d * need; z = donkey.state.z + dz / d * need; moved = hit = true; }
+        }
         if (!moved) break;
       }
       return [x, z, hit];
@@ -6185,6 +6189,7 @@ void main(){
       const el = document.createElement("div");
       el.innerHTML = `<style>
         .dm{position:fixed;z-index:60;font:14px/1.45 system-ui,sans-serif;color:#e9f6fb}
+        .dm[hidden],.dm [hidden]{display:none!important}
         #demo-bub{max-width:min(340px,70vw);background:rgba(8,20,30,.92);border:1px solid #38e8ff;border-radius:10px;padding:8px 12px;transform:translate(-50%,-100%);pointer-events:none}
         #demo-bub b{display:block;font-size:12px;color:#8fd0de;font-weight:600}
         #demo-you{left:50%;bottom:calc(132px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(233,246,251,.92);color:#0b1a22;border-radius:10px;padding:6px 12px;max-width:min(420px,80vw)}
@@ -6203,23 +6208,33 @@ void main(){
         #demo-brief ul{margin:6px 0 8px;padding-left:18px}
         body.demo-clean #top-left,body.demo-clean #reel-col,body.demo-clean #rack-tray,body.demo-clean #wedge-wrap,body.demo-clean #focus-dock,body.demo-clean #keys,
         body.demo-clean #ppc-hud,body.demo-clean #inworld-video-bar,body.demo-clean #field-status,body.demo-clean #field-tools,body.demo-clean #field-actions{display:none!important}
-        @media (max-width:640px){#demo-phone{width:150px}#demo-thread{max-height:70px}}</style>
+        #demo-sig{display:inline-flex;gap:2px;align-items:flex-end;height:12px}#demo-sig i{width:4px;background:#26343c;border-radius:1px}#demo-sig i.on{background:#38e8ff}
+        #demo-sig i:nth-child(1){height:4px}#demo-sig i:nth-child(2){height:7px}#demo-sig i:nth-child(3){height:10px}#demo-sig i:nth-child(4){height:12px}
+        #demo-phone h4{cursor:pointer}
+        @media (max-width:700px){
+          #demo-phone{top:calc(10px + env(safe-area-inset-top,0px));bottom:auto;right:max(10px,env(safe-area-inset-right,0px));width:auto;min-width:132px;max-width:60vw;padding:8px 10px;border-radius:14px}
+          #demo-phone.shut #demo-los,#demo-phone.shut #demo-thread,#demo-phone.shut #demo-btns{display:none}
+          #demo-phone.shut #demo-lit{margin-top:4px}
+          #demo-say{bottom:calc(150px + env(safe-area-inset-bottom,0px))}#demo-you{bottom:calc(196px + env(safe-area-inset-bottom,0px))}
+          #demo-brief{top:calc(64px + env(safe-area-inset-top,0px))}
+        }</style>
         <div id="demo-brief" class="dm"><b>Ahiya demo</b>
-          <ul><li>Walk up to anyone. They greet you. Press Z, then type or speak to them.</li>
+          <ul><li>Walk up to anyone. They greet you. Tap the bar that appears (or press Z), then type or speak.</li>
           <li>Ask for things in words: “draw” at the pump, “where is the archive”, “show me your phone”.</li>
           <li>Your phone shows the water you carry and whether you can see the beacon.</li></ul>
           <button id="demo-brief-ok">Begin at the Basalt Pump</button></div>
         <div id="demo-bub" class="dm" hidden><b></b><span></span></div>
         <div id="demo-you" class="dm" hidden></div>
         <form id="demo-say" class="dm" hidden autocomplete="off"><input id="demo-in" maxlength="140" aria-label="Say something" placeholder=""><button type="button" id="demo-mic" aria-pressed="false">Mic</button><button type="submit">Say</button></form>
-        <div id="demo-phone" class="dm"><h4><span>CARRIER</span><span id="demo-sig"></span></h4><div id="demo-can"><i></i><u></u></div>
-          <p id="demo-lit"></p><p id="demo-los"></p><div id="demo-thread"></div><p><button type="button" id="demo-voice" aria-pressed="true">Voice on</button> <button type="button" id="demo-hud" aria-pressed="false">Full HUD</button></p></div>`;
+        <div id="demo-phone" class="dm shut"><h4><span>CARRIER</span><span id="demo-sig"><i></i><i></i><i></i><i></i></span></h4><div id="demo-can"><i></i><u></u></div>
+          <p id="demo-lit"></p><p id="demo-los"></p><div id="demo-thread"></div><p id="demo-btns"><button type="button" id="demo-voice" aria-pressed="true">Voice on</button> <button type="button" id="demo-hud" aria-pressed="false">Full HUD</button></p></div>`;
       document.body.append(el);
       const q = id => el.querySelector("#" + id);
       const ui = demo.ui = { brief: q("demo-brief"), bub: q("demo-bub"), you: q("demo-you"), say: q("demo-say"), input: q("demo-in"), mic: q("demo-mic"), sig: q("demo-sig"), can: q("demo-can").firstElementChild,
         lit: q("demo-lit"), los: q("demo-los"), thread: q("demo-thread"), voice: q("demo-voice") };
       q("demo-brief-ok").onclick = () => { ui.brief.hidden = true; };
       document.body.classList.add("demo-clean");
+      const phone = q("demo-phone"); phone.firstElementChild.onclick = () => phone.classList.toggle("shut");
       q("demo-hud").onclick = e => { const on = document.body.classList.toggle("demo-clean"); e.currentTarget.setAttribute("aria-pressed", !on); };
       ui.say.addEventListener("submit", e => { e.preventDefault(); const v = ui.input.value.trim(); if (v) demoSay(v); ui.input.value = ""; ui.input.blur(); });
       ui.input.addEventListener("keydown", e => { if (e.code === "Escape") ui.input.blur(); });
@@ -6276,8 +6291,11 @@ void main(){
     function demoTick(dt) {
       const ui = demoUi(), now = (demo.clock = (demo.clock || 0) + dt * 1000);
       if (!demo.started && state.ready && !state.introActive) {
-        demo.started = true; state.x = -1449; state.z = 772; state.y = driveSurfaceAt(state.x, state.z) + 1.68; state.yaw = 2.2;
-        donkey.place(state.x + 2.2, state.z + 1.4, state.yaw, (x, z) => driveSurfaceAt(x, z));
+        demo.started = true;
+        const sb = cast && cast.byId && cast.byId.saba ? cast.byId.saba.state : { x: -1458.4, z: 761.8 };
+        state.x = sb.x + 4.6; state.z = sb.z + 4.4; state.y = driveSurfaceAt(state.x, state.z) + 1.68;
+        state.yaw = Math.atan2(-(sb.x - state.x), -(sb.z - state.z)); state.pitch = -.04;
+        donkey.place(state.x + 3.2, state.z + 3.0, state.yaw, (x, z) => driveSurfaceAt(x, z));
       }
       // who you are with: nearest person within reach, held until you step well away
       let best = null, bd = 2.8;
@@ -6309,6 +6327,8 @@ void main(){
         if (L.t > L.dur) { const end = L.end; demoRestore(); if (end) demo.withCh = null; }
       }
       if (demo.youUntil && now > demo.youUntil) { ui.you.hidden = true; demo.youUntil = 0; }
+      if (!ui.brief.hidden && demo.startXZ && Math.hypot(state.x - demo.startXZ[0], state.z - demo.startXZ[1]) > 1.5) ui.brief.hidden = true;
+      if (!demo.startXZ && demo.started) demo.startXZ = [state.x, state.z];
       ui.say.hidden = !ch; if (ch && document.activeElement !== ui.input) ui.input.placeholder = `Z · say something to ${demoName(ch)}`;
       // phone: water aboard, and whether the beacon mast is in view over the real ridge
       demo.phoneT = (demo.phoneT || 0) - dt;
@@ -6316,9 +6336,9 @@ void main(){
         demo.phoneT = .4; const c = npCarrier(), bx = -1610, bz = 590, top = driveSurfaceAt(bx, bz) + 40, eye = driveSurfaceAt(state.x, state.z) + 1.68, d = Math.hypot(bx - state.x, bz - state.z);
         let los = true; for (let k = 1; k < 40 && los; k++) { const t = k / 40; if (eye + (top - eye) * t <= driveSurfaceAt(state.x + (bx - state.x) * t, state.z + (bz - state.z) * t)) los = false; }
         const bars = c.liters <= 0 ? 0 : los ? (d < 320 ? 4 : 3) : 1; demo.signal = bars;
-        ui.sig.textContent = "▮".repeat(bars) + "▯".repeat(4 - bars);
+        [...ui.sig.children].forEach((b, i) => b.classList.toggle("on", i < bars));
         ui.can.style.width = clamp(c.liters / 20 * 100, 0, 100) + "%";
-        ui.lit.textContent = `${c.liters} of 20 L · chalk at ${c.reserve} L`;
+        ui.lit.textContent = `${c.liters} of 20 L · chalk at ${npWorld.limits.reserve} L`;
         ui.los.textContent = c.liters <= 0 ? "Dry can: no signal" : los ? `Beacon in view, ${Math.round(d)} m` : "Ridge hides the beacon";
       }
     }
