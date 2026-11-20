@@ -1,0 +1,4049 @@
+{
+  "world": "Abyssinian-Harar Vertical Open World",
+  "compiler_version": "SCION_DEMIURGE_1.0.0",
+  "compiled_at_unix": 1795138188.32,
+  "footprint_km": [
+    14.0,
+    14.0
+  ],
+  "crucible_corridor_km": [
+    2.0,
+    14.0
+  ],
+  "anisotropic_law": "40:1 horizontal inter-basin fault warp; 1:1 metric vertical relief (911m-4,550m ASL)",
+  "grid_posts": 561,
+  "post_spacing_m": 25.0,
+  "sector_count": 196,
+  "crucible_sector_count": 28,
+  "slod_sector_count": 168,
+  "seam_audit": {
+    "shared_borders_verified": 364,
+    "max_seam_gap_m": 0.0,
+    "pass": true
+  },
+  "subtractive_mlos": [
+    {
+      "mlo_id": "MLO_ROHA_SUNKEN_CRUCIFORM_01",
+      "sector_id": "S_09_07",
+      "center_xz_m": [
+        20.0,
+        2400.0
+      ],
+      "sanctuary_bollard_radius_m": 64.0,
+      "sanctuary_no_fly_dismount": true,
+      "rim_elev_m": 2500.0,
+      "trench_depth_m": 12.0,
+      "pit_half_extents_m": [
+        15.0,
+        15.0
+      ],
+      "dromos_portal_west": {
+        "entry_xz_m": [
+          -35.0,
+          2400.0
+        ],
+        "threshold_xz_m": [
+          5.0,
+          2400.0
+        ],
+        "width_m": 10.0,
+        "dignity_rule": "BAREFOOT_NON_COMBAT_ALL_VEHICLES_MOUNTS_GLIDERS_AND_PACK_NPCS_EXCLUDED"
+      },
+      "monolith_cruciform_bounds_m": {
+        "arm_span_m": 11.8,
+        "arm_width_m": 5.2,
+        "height_m": 11.8,
+        "conservation_truss_2026": true,
+        "provenance_note": "Synthesized strictly from published dimensional plans; zero Zamani TLS scan vertices ingested.",
+        "active_ghost": "[[GHOST::CLEAN_LALI_SFM]]"
+      }
+    }
+  ],
+  "source_vault_sha256": {
+    "orbital_macro_dem": {
+      "rel_path": "scion-demiurge/vault/orbital_dem16.bin",
+      "license": "Public Domain / Open Data \u2014 AWS Open Data Terrain Tiles (SRTM/GMTED/ETOPO1 z7)",
+      "citekey": "AWS_TERRARIUM_Z7_ETHIOPIA",
+      "role": "14x14 km outer SLOD massif horizon shell elevation baseline (6N-15N, 35E-42E)",
+      "bytes": 453600,
+      "sha256": "6ad42ec8b7bc34eaec0b5236c483cdccb560fa074c65ac2f6a341c87a1b717e3"
+    },
+    "abay_gorge_dem": {
+      "rel_path": "scion-demiurge/vault/blue_nile_gorge.dem16.bin",
+      "license": "Public Domain / Open Data \u2014 Copernicus GLO-30 / SRTM Terrarium z12",
+      "citekey": "COP30_ABAY_DEJEN_GOHATSION",
+      "role": "1:1 metric 1,500m Blue Nile Gorge basalt-limestone-sandstone canyon relief (1,004m-2,531.6m)",
+      "bytes": 294912,
+      "sha256": "08af1520c253e52efebca1fa82e9e7e9744813b74502df5cccfab20750c2007f"
+    },
+    "simien_escarpment_dem": {
+      "rel_path": "scion-demiurge/vault/simien_imet_gogo.dem16.bin",
+      "license": "Public Domain / Open Data \u2014 Copernicus GLO-30 / SRTM Terrarium z13",
+      "citekey": "COP30_SIMIEN_IMET_GOGO",
+      "role": "1:1 metric Simien flood-basalt cliff & afro-alpine escarpment relief (1,962.9m-4,550m)",
+      "bytes": 294912,
+      "sha256": "c2572ef9d35ccb31e0347239a27e461a6f6a79a1849a6c9609b5f798c119f4f9"
+    },
+    "ftw_gorge_parcels": {
+      "rel_path": "scion-demiurge/vault/fields_dem_gorge.bin",
+      "license": "CC-BY-4.0 \u2014 Fields of The World (FTW 2025 Sentinel-2 10m PRUE U-Net, Source Coop)",
+      "citekey": "FTW_2025_AMHARA_OROMIA",
+      "role": "Empirical smallholder stone-bund parcel polygons (~0.60ha calibration, jigsaw & riparian)",
+      "bytes": 723284,
+      "sha256": "44d6f4df9eec65c291a29dad55e17b2f9b99d47e282577a76e9ad7e0d7c7d449"
+    },
+    "ftw_simien_parcels": {
+      "rel_path": "scion-demiurge/vault/fields_dem_simien.bin",
+      "license": "CC-BY-4.0 \u2014 Fields of The World (FTW 2025 Sentinel-2 10m PRUE U-Net, Source Coop)",
+      "citekey": "FTW_2025_SIMIEN_DEGA",
+      "role": "Empirical Dega/Wurch contour-ribbon terrace & smallholder parcel boundaries",
+      "bytes": 6492,
+      "sha256": "3807eaa88794fb1158fcec59e39ea2aeb654fcd8508982a8e06beb77fe9cf86b"
+    }
+  },
+  "delta_delta_inquiries": [
+    {
+      "inquiry_id": "DD_01_ABAY_PROMINENCE_VS_ISUZU_GRADE",
+      "trigger": "Collision between locked 1:1 1,500m Blue Nile Gorge vertical drop inside 40:1 compressed 14km map and Isuzu FSR heavy-truck drivability (stall threshold 16.0% grade).",
+      "hidden_assumption": "Draping a switchback spline onto raw cliff spurs inherits 200%+ spur gradients instead of bench-cutting a monotonic arc-length profile z_road(s).",
+      "patch_A_naive_chord": {
+        "arterial_length_km": 12.52,
+        "p95_grade_pct": 191.73,
+        "max_grade_pct": 446.33,
+        "canyon_prominence_m": 1980.9,
+        "isuzu_climb_pass": false
+      },
+      "patch_B_civil_bench_cut_and_debias": {
+        "arterial_length_km": 63.63,
+        "p95_grade_pct": 12.64,
+        "max_grade_pct": 13.29,
+        "canyon_prominence_m": 1877.0,
+        "isuzu_climb_pass": true
+      },
+      "winner": "patch_B_civil_bench_cut_and_debias",
+      "constitutional_update": "Enforce civil bench-cut arc-length grade ceiling |dz/ds| <= 13.8% across 8-leg lateral traverses [-880m, +880m], cutting a 28m retaining bench into 1:1 cliffs."
+    }
+  ],
+  "sectors": [
+    {
+      "id": "S_00_00",
+      "row": 0,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        -7000,
+        -6000,
+        -6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3330.77,
+        3569.87
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "06f02bbe084940f7"
+    },
+    {
+      "id": "S_00_01",
+      "row": 0,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        -7000,
+        -5000,
+        -6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3330.03,
+        3594.82
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "e7c888bb4aefcc85"
+    },
+    {
+      "id": "S_00_02",
+      "row": 0,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        -7000,
+        -4000,
+        -6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3309.92,
+        3557.77
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "ce038c93dd1cc150"
+    },
+    {
+      "id": "S_00_03",
+      "row": 0,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        -7000,
+        -3000,
+        -6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3258.67,
+        3356.13
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "f536c4325fe18434"
+    },
+    {
+      "id": "S_00_04",
+      "row": 0,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        -7000,
+        -2000,
+        -6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3229.22,
+        3349.65
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "c9b8aa97afca5e24"
+    },
+    {
+      "id": "S_00_05",
+      "row": 0,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        -7000,
+        -1000,
+        -6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3173.48,
+        3305.84
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "41c53793e4843edb"
+    },
+    {
+      "id": "S_00_06",
+      "row": 0,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        -7000,
+        0,
+        -6000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3045.21,
+        3342.6
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "12b118585e8da157"
+    },
+    {
+      "id": "S_00_07",
+      "row": 0,
+      "col": 7,
+      "bbox_m": [
+        0,
+        -7000,
+        1000,
+        -6000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3045.21,
+        3450.09
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "284e2bf8517310c9"
+    },
+    {
+      "id": "S_00_08",
+      "row": 0,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        -7000,
+        2000,
+        -6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3227.54,
+        3419.89
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "e425fa3fc3253378"
+    },
+    {
+      "id": "S_00_09",
+      "row": 0,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        -7000,
+        3000,
+        -6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3254.18,
+        3541.9
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "8c77af17c0fc3b3e"
+    },
+    {
+      "id": "S_00_10",
+      "row": 0,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        -7000,
+        4000,
+        -6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3241.85,
+        3541.9
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "ad6a6c4732246d33"
+    },
+    {
+      "id": "S_00_11",
+      "row": 0,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        -7000,
+        5000,
+        -6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3266.81,
+        3392.05
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "bc10433cc68f8d3f"
+    },
+    {
+      "id": "S_00_12",
+      "row": 0,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        -7000,
+        6000,
+        -6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3212.07,
+        3349.91
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_3",
+      "sha256_16": "ecd3e99a57f6fddc"
+    },
+    {
+      "id": "S_00_13",
+      "row": 0,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        -7000,
+        7000,
+        -6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3212.07,
+        3361.04
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_3",
+      "sha256_16": "695b4d2b2b05c2c4"
+    },
+    {
+      "id": "S_01_00",
+      "row": 1,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        -6000,
+        -6000,
+        -5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2795.34,
+        3389.56
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "d1e166a348585a72"
+    },
+    {
+      "id": "S_01_01",
+      "row": 1,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        -6000,
+        -5000,
+        -5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2815.46,
+        3427.46
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "e740bb0cf790d93c"
+    },
+    {
+      "id": "S_01_02",
+      "row": 1,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        -6000,
+        -4000,
+        -5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2867.04,
+        3425.23
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "26c4602273524aed"
+    },
+    {
+      "id": "S_01_03",
+      "row": 1,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        -6000,
+        -3000,
+        -5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2872.15,
+        3355.67
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "cecf1a0d2c30dde1"
+    },
+    {
+      "id": "S_01_04",
+      "row": 1,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        -6000,
+        -2000,
+        -5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2751.27,
+        3347.42
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "463185299355e2bb"
+    },
+    {
+      "id": "S_01_05",
+      "row": 1,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        -6000,
+        -1000,
+        -5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2675.9,
+        3254.31
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "7f7ae0c7a3a885b5"
+    },
+    {
+      "id": "S_01_06",
+      "row": 1,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        -6000,
+        0,
+        -5000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2669.86,
+        3289.36
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "99ac5725763b1b75"
+    },
+    {
+      "id": "S_01_07",
+      "row": 1,
+      "col": 7,
+      "bbox_m": [
+        0,
+        -6000,
+        1000,
+        -5000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2641.4,
+        3365.43
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "3e58831217ff7df6"
+    },
+    {
+      "id": "S_01_08",
+      "row": 1,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        -6000,
+        2000,
+        -5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2775.14,
+        3411.65
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "433136901857ab55"
+    },
+    {
+      "id": "S_01_09",
+      "row": 1,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        -6000,
+        3000,
+        -5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2866.16,
+        3360.7
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "6c88bc59df5700ee"
+    },
+    {
+      "id": "S_01_10",
+      "row": 1,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        -6000,
+        4000,
+        -5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2811.98,
+        3309.04
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "ce9e1d3463c755fc"
+    },
+    {
+      "id": "S_01_11",
+      "row": 1,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        -6000,
+        5000,
+        -5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2818.48,
+        3346.04
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "e1c4f24bd9063b82"
+    },
+    {
+      "id": "S_01_12",
+      "row": 1,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        -6000,
+        6000,
+        -5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2775.1,
+        3337.73
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_3",
+      "sha256_16": "804cc034fbd36b01"
+    },
+    {
+      "id": "S_01_13",
+      "row": 1,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        -6000,
+        7000,
+        -5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2729.41,
+        3361.04
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_3",
+      "sha256_16": "442d1327f94f2800"
+    },
+    {
+      "id": "S_02_00",
+      "row": 2,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        -5000,
+        -6000,
+        -4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2581.37,
+        2815.46
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "d8e411c2306f9b61"
+    },
+    {
+      "id": "S_02_01",
+      "row": 2,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        -5000,
+        -5000,
+        -4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2634.91,
+        2867.04
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "12670cc8636108e6"
+    },
+    {
+      "id": "S_02_02",
+      "row": 2,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        -5000,
+        -4000,
+        -4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2683.05,
+        2886.13
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "ef6b7fce0161d74b"
+    },
+    {
+      "id": "S_02_03",
+      "row": 2,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        -5000,
+        -3000,
+        -4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2665.63,
+        2915.97
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "face622003f7c6d8"
+    },
+    {
+      "id": "S_02_04",
+      "row": 2,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        -5000,
+        -2000,
+        -4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2586.55,
+        2915.97
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "2bb6669d8b19c1a2"
+    },
+    {
+      "id": "S_02_05",
+      "row": 2,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        -5000,
+        -1000,
+        -4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2491.12,
+        2751.27
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "4f083c214ba8ac97"
+    },
+    {
+      "id": "S_02_06",
+      "row": 2,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        -5000,
+        0,
+        -4000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2405.65,
+        2691.89
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "ea86c1e263871f3a"
+    },
+    {
+      "id": "S_02_07",
+      "row": 2,
+      "col": 7,
+      "bbox_m": [
+        0,
+        -5000,
+        1000,
+        -4000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2405.65,
+        2775.14
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "7f06829973101ec0"
+    },
+    {
+      "id": "S_02_08",
+      "row": 2,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        -5000,
+        2000,
+        -4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2543.14,
+        2894.88
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "fde93a4f95823211"
+    },
+    {
+      "id": "S_02_09",
+      "row": 2,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        -5000,
+        3000,
+        -4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2599.93,
+        2985.05
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "dacea0cbb19060e7"
+    },
+    {
+      "id": "S_02_10",
+      "row": 2,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        -5000,
+        4000,
+        -4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2591.5,
+        2901.51
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "c6be2515c46720de"
+    },
+    {
+      "id": "S_02_11",
+      "row": 2,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        -5000,
+        5000,
+        -4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2521.67,
+        2863.79
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "1b7b8d531b1426bb"
+    },
+    {
+      "id": "S_02_12",
+      "row": 2,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        -5000,
+        6000,
+        -4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2435.63,
+        2818.48
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_3",
+      "sha256_16": "bc83ac9fd4a6d47a"
+    },
+    {
+      "id": "S_02_13",
+      "row": 2,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        -5000,
+        7000,
+        -4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2413.52,
+        2775.1
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_3",
+      "sha256_16": "4cf2d2f957998dd8"
+    },
+    {
+      "id": "S_03_00",
+      "row": 3,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        -4000,
+        -6000,
+        -3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2612.54,
+        2762.09
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "3be609d278a388e6"
+    },
+    {
+      "id": "S_03_01",
+      "row": 3,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        -4000,
+        -5000,
+        -3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2624.83,
+        2779.18
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "0095d49fcc06262a"
+    },
+    {
+      "id": "S_03_02",
+      "row": 3,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        -4000,
+        -4000,
+        -3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2598.87,
+        2772.62
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "fc73818e1c86e908"
+    },
+    {
+      "id": "S_03_03",
+      "row": 3,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        -4000,
+        -3000,
+        -3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2504.8,
+        2735.76
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_0",
+      "sha256_16": "1ce598496c5db338"
+    },
+    {
+      "id": "S_03_04",
+      "row": 3,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        -4000,
+        -2000,
+        -3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2481.22,
+        2794.9
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "54e61810a43dd5f6"
+    },
+    {
+      "id": "S_03_05",
+      "row": 3,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        -4000,
+        -1000,
+        -3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2413.57,
+        2676.95
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "7f29a34cd5cb56ae"
+    },
+    {
+      "id": "S_03_06",
+      "row": 3,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        -4000,
+        0,
+        -3000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2397.13,
+        2589.37
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "8ddac22f0b4f51d2"
+    },
+    {
+      "id": "S_03_07",
+      "row": 3,
+      "col": 7,
+      "bbox_m": [
+        0,
+        -4000,
+        1000,
+        -3000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2397.13,
+        2631.21
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_1",
+      "sha256_16": "9112101e1e4ad8e9"
+    },
+    {
+      "id": "S_03_08",
+      "row": 3,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        -4000,
+        2000,
+        -3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2437.09,
+        2680.71
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "ca4ecc3bd753bdde"
+    },
+    {
+      "id": "S_03_09",
+      "row": 3,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        -4000,
+        3000,
+        -3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2486.56,
+        2800.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "d9f087ae3c3bdc69"
+    },
+    {
+      "id": "S_03_10",
+      "row": 3,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        -4000,
+        4000,
+        -3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2539.75,
+        2793.12
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "46ad6fd02344a726"
+    },
+    {
+      "id": "S_03_11",
+      "row": 3,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        -4000,
+        5000,
+        -3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2494.38,
+        2664.35
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_2",
+      "sha256_16": "22adf2d858126484"
+    },
+    {
+      "id": "S_03_12",
+      "row": 3,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        -4000,
+        6000,
+        -3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2423.55,
+        2528.51
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_3",
+      "sha256_16": "dd44f68b4f709953"
+    },
+    {
+      "id": "S_03_13",
+      "row": 3,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        -4000,
+        7000,
+        -3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2404.51,
+        2465.59
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_0_3",
+      "sha256_16": "f1cc6ec76346f932"
+    },
+    {
+      "id": "S_04_00",
+      "row": 4,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        -3000,
+        -6000,
+        -2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2732.99,
+        2969.8
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "aa8da8bbccb9f761"
+    },
+    {
+      "id": "S_04_01",
+      "row": 4,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        -3000,
+        -5000,
+        -2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2626.77,
+        2923.45
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "20ab8489070baa1a"
+    },
+    {
+      "id": "S_04_02",
+      "row": 4,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        -3000,
+        -4000,
+        -2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2556.79,
+        2745.14
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "0d5ca87be028a592"
+    },
+    {
+      "id": "S_04_03",
+      "row": 4,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        -3000,
+        -3000,
+        -2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2510.21,
+        2776.19
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "84c86405b2e71f72"
+    },
+    {
+      "id": "S_04_04",
+      "row": 4,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        -3000,
+        -2000,
+        -2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2490.97,
+        2872.12
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "d06d380bfcc89e2d"
+    },
+    {
+      "id": "S_04_05",
+      "row": 4,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        -3000,
+        -1000,
+        -2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2433.9,
+        2672.96
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "3f9636bdb97af81f"
+    },
+    {
+      "id": "S_04_06",
+      "row": 4,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        -3000,
+        0,
+        -2000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2405.37,
+        2721.86
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "d58584d5d3db40ad"
+    },
+    {
+      "id": "S_04_07",
+      "row": 4,
+      "col": 7,
+      "bbox_m": [
+        0,
+        -3000,
+        1000,
+        -2000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2415.95,
+        2821.74
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "faf32ccc99855708"
+    },
+    {
+      "id": "S_04_08",
+      "row": 4,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        -3000,
+        2000,
+        -2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2464.43,
+        2889.91
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "256526dbc828736e"
+    },
+    {
+      "id": "S_04_09",
+      "row": 4,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        -3000,
+        3000,
+        -2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2530.08,
+        2851.38
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "fa15baefe3558664"
+    },
+    {
+      "id": "S_04_10",
+      "row": 4,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        -3000,
+        4000,
+        -2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2568.92,
+        2815.12
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "ee72c2c48bb869fe"
+    },
+    {
+      "id": "S_04_11",
+      "row": 4,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        -3000,
+        5000,
+        -2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2518.03,
+        2807.5
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "e68f89c8702e4049"
+    },
+    {
+      "id": "S_04_12",
+      "row": 4,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        -3000,
+        6000,
+        -2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2458.1,
+        2807.5
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_3",
+      "sha256_16": "1fc93a87d3b5895b"
+    },
+    {
+      "id": "S_04_13",
+      "row": 4,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        -3000,
+        7000,
+        -2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2457.31,
+        2647.71
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_3",
+      "sha256_16": "ef20517484f96248"
+    },
+    {
+      "id": "S_05_00",
+      "row": 5,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        -2000,
+        -6000,
+        -1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        1789.42,
+        2954.64
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "d59ff2a16355f41f"
+    },
+    {
+      "id": "S_05_01",
+      "row": 5,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        -2000,
+        -5000,
+        -1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2064.6,
+        2909.3
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "db2cee0df1aa370d"
+    },
+    {
+      "id": "S_05_02",
+      "row": 5,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        -2000,
+        -4000,
+        -1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2032.64,
+        2770.27
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "b1343bceaa966b43"
+    },
+    {
+      "id": "S_05_03",
+      "row": 5,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        -2000,
+        -3000,
+        -1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2018.44,
+        2831.79
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "4f432d2fee6dcef4"
+    },
+    {
+      "id": "S_05_04",
+      "row": 5,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        -2000,
+        -2000,
+        -1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1522.62,
+        2879.28
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "0face1db0d6482db"
+    },
+    {
+      "id": "S_05_05",
+      "row": 5,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        -2000,
+        -1000,
+        -1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1324.77,
+        2672.96
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "989db4c535641675"
+    },
+    {
+      "id": "S_05_06",
+      "row": 5,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        -2000,
+        0,
+        -1000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1298.44,
+        2746.98
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "02541d36c5d67f43"
+    },
+    {
+      "id": "S_05_07",
+      "row": 5,
+      "col": 7,
+      "bbox_m": [
+        0,
+        -2000,
+        1000,
+        -1000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1466.89,
+        2875.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "f6f7ab0b38b60c8c"
+    },
+    {
+      "id": "S_05_08",
+      "row": 5,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        -2000,
+        2000,
+        -1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        1873.32,
+        2911.4
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "15a050398e260433"
+    },
+    {
+      "id": "S_05_09",
+      "row": 5,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        -2000,
+        3000,
+        -1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        1899.22,
+        2856.35
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "53b5f0df7488585e"
+    },
+    {
+      "id": "S_05_10",
+      "row": 5,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        -2000,
+        4000,
+        -1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        1847.56,
+        2841.17
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "ae4c70f9474b549b"
+    },
+    {
+      "id": "S_05_11",
+      "row": 5,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        -2000,
+        5000,
+        -1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1626.91,
+        2794.75
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "4b68c0304dd8591b"
+    },
+    {
+      "id": "S_05_12",
+      "row": 5,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        -2000,
+        6000,
+        -1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1686.49,
+        2798.55
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_3",
+      "sha256_16": "060e90a964a83bb0"
+    },
+    {
+      "id": "S_05_13",
+      "row": 5,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        -2000,
+        7000,
+        -1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1724.75,
+        2648.96
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_3",
+      "sha256_16": "262ad99a4a35b042"
+    },
+    {
+      "id": "S_06_00",
+      "row": 6,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        -1000,
+        -6000,
+        0
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.01,
+        2099.56
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "16a0f658e72d921b"
+    },
+    {
+      "id": "S_06_01",
+      "row": 6,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        -1000,
+        -5000,
+        0
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.0,
+        2129.59
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "d435fc7e27891864"
+    },
+    {
+      "id": "S_06_02",
+      "row": 6,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        -1000,
+        -4000,
+        0
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.0,
+        2147.89
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "20ecd3fc0e925495"
+    },
+    {
+      "id": "S_06_03",
+      "row": 6,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        -1000,
+        -3000,
+        0
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.0,
+        2100.17
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "443fb10d4287054b"
+    },
+    {
+      "id": "S_06_04",
+      "row": 6,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        -1000,
+        -2000,
+        0
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.0,
+        2083.15
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "afab08328c4bcf68"
+    },
+    {
+      "id": "S_06_05",
+      "row": 6,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        -1000,
+        -1000,
+        0
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.0,
+        1976.49
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "e721f7df4aa5ac06"
+    },
+    {
+      "id": "S_06_06",
+      "row": 6,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        -1000,
+        0,
+        0
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.0,
+        1909.15
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "17f3672dd07430a0"
+    },
+    {
+      "id": "S_06_07",
+      "row": 6,
+      "col": 7,
+      "bbox_m": [
+        0,
+        -1000,
+        1000,
+        0
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.0,
+        2044.71
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "b27e902ad5f0400d"
+    },
+    {
+      "id": "S_06_08",
+      "row": 6,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        -1000,
+        2000,
+        0
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.0,
+        1990.42
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "5d74e5eb1c9be654"
+    },
+    {
+      "id": "S_06_09",
+      "row": 6,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        -1000,
+        3000,
+        0
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.0,
+        2022.98
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "02e94ed50739b137"
+    },
+    {
+      "id": "S_06_10",
+      "row": 6,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        -1000,
+        4000,
+        0
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.0,
+        2215.77
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "ceece1c530f09010"
+    },
+    {
+      "id": "S_06_11",
+      "row": 6,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        -1000,
+        5000,
+        0
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.0,
+        2304.05
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "d70ab4215e981fff"
+    },
+    {
+      "id": "S_06_12",
+      "row": 6,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        -1000,
+        6000,
+        0
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.0,
+        2045.65
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_3",
+      "sha256_16": "0e8ae0a921a2397f"
+    },
+    {
+      "id": "S_06_13",
+      "row": 6,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        -1000,
+        7000,
+        0
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "KOLLA",
+      "elev_range_m": [
+        998.0,
+        1830.23
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_3",
+      "sha256_16": "b336304cb58bbd79"
+    },
+    {
+      "id": "S_07_00",
+      "row": 7,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        0,
+        -6000,
+        1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1682.8,
+        2720.72
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "bd8ef66513a7f377"
+    },
+    {
+      "id": "S_07_01",
+      "row": 7,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        0,
+        -5000,
+        1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1579.02,
+        2715.91
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "3b86a52798c02a09"
+    },
+    {
+      "id": "S_07_02",
+      "row": 7,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        0,
+        -4000,
+        1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        1797.14,
+        2809.2
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "1c4f7f9499653d8c"
+    },
+    {
+      "id": "S_07_03",
+      "row": 7,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        0,
+        -3000,
+        1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1798.5,
+        2715.33
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_0",
+      "sha256_16": "f2f11063a23a459b"
+    },
+    {
+      "id": "S_07_04",
+      "row": 7,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        0,
+        -2000,
+        1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1796.78,
+        2699.05
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "80c7e89a43a5e732"
+    },
+    {
+      "id": "S_07_05",
+      "row": 7,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        0,
+        -1000,
+        1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1847.38,
+        2682.72
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "973202bcaf827a5a"
+    },
+    {
+      "id": "S_07_06",
+      "row": 7,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        0,
+        0,
+        1000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1228.0,
+        2637.06
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "a0f616c4e6fcdea3"
+    },
+    {
+      "id": "S_07_07",
+      "row": 7,
+      "col": 7,
+      "bbox_m": [
+        0,
+        0,
+        1000,
+        1000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1318.93,
+        2628.7
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_1",
+      "sha256_16": "6a22e2ed2240de10"
+    },
+    {
+      "id": "S_07_08",
+      "row": 7,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        0,
+        2000,
+        1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1559.37,
+        2688.27
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "ca592695cfb9036b"
+    },
+    {
+      "id": "S_07_09",
+      "row": 7,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        0,
+        3000,
+        1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1527.48,
+        2838.98
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "806c558a9741d7f3"
+    },
+    {
+      "id": "S_07_10",
+      "row": 7,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        0,
+        4000,
+        1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        1863.52,
+        2923.56
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "bda6d6fe278b69cd"
+    },
+    {
+      "id": "S_07_11",
+      "row": 7,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        0,
+        5000,
+        1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2045.65,
+        2875.18
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_2",
+      "sha256_16": "3f7e38b6a823fbe6"
+    },
+    {
+      "id": "S_07_12",
+      "row": 7,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        0,
+        6000,
+        1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1756.12,
+        2651.58
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_3",
+      "sha256_16": "07dc24a8eb60a583"
+    },
+    {
+      "id": "S_07_13",
+      "row": 7,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        0,
+        7000,
+        1000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WEYNA_DEGA",
+      "elev_range_m": [
+        1671.61,
+        2582.66
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_1_3",
+      "sha256_16": "3719b87124bc3db6"
+    },
+    {
+      "id": "S_08_00",
+      "row": 8,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        1000,
+        -6000,
+        2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2697.69,
+        2898.86
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "2fcea8bc36401b8b"
+    },
+    {
+      "id": "S_08_01",
+      "row": 8,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        1000,
+        -5000,
+        2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2657.25,
+        2874.51
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "187c31187a654e80"
+    },
+    {
+      "id": "S_08_02",
+      "row": 8,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        1000,
+        -4000,
+        2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2608.55,
+        2832.03
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "50bc90a5a5ebe5f9"
+    },
+    {
+      "id": "S_08_03",
+      "row": 8,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        1000,
+        -3000,
+        2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2551.63,
+        2765.71
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "eceb8388e5a0a312"
+    },
+    {
+      "id": "S_08_04",
+      "row": 8,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        1000,
+        -2000,
+        2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2537.81,
+        2712.7
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "6fe527b79c009286"
+    },
+    {
+      "id": "S_08_05",
+      "row": 8,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        1000,
+        -1000,
+        2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2534.2,
+        2760.12
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "29312a68f6084db2"
+    },
+    {
+      "id": "S_08_06",
+      "row": 8,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        1000,
+        0,
+        2000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2229.11,
+        2783.62
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "151af7a98b1b8a70"
+    },
+    {
+      "id": "S_08_07",
+      "row": 8,
+      "col": 7,
+      "bbox_m": [
+        0,
+        1000,
+        1000,
+        2000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2201.69,
+        2689.3
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "03ac421d44eb3a42"
+    },
+    {
+      "id": "S_08_08",
+      "row": 8,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        1000,
+        2000,
+        2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2501.67,
+        2731.79
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "1dfbad1108c38ae7"
+    },
+    {
+      "id": "S_08_09",
+      "row": 8,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        1000,
+        3000,
+        2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2596.91,
+        2838.98
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "8ecb292398664486"
+    },
+    {
+      "id": "S_08_10",
+      "row": 8,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        1000,
+        4000,
+        2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2720.37,
+        2910.51
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "6f88012d3ba68632"
+    },
+    {
+      "id": "S_08_11",
+      "row": 8,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        1000,
+        5000,
+        2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2572.61,
+        2916.49
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "1ab71396915a514b"
+    },
+    {
+      "id": "S_08_12",
+      "row": 8,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        1000,
+        6000,
+        2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2520.58,
+        2665.95
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_3",
+      "sha256_16": "7285b53ceaa6d705"
+    },
+    {
+      "id": "S_08_13",
+      "row": 8,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        1000,
+        7000,
+        2000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2518.94,
+        2650.07
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_3",
+      "sha256_16": "91c22233510e9b51"
+    },
+    {
+      "id": "S_09_00",
+      "row": 9,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        2000,
+        -6000,
+        3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2671.53,
+        2874.01
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "e1f4b9d0918387b7"
+    },
+    {
+      "id": "S_09_01",
+      "row": 9,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        2000,
+        -5000,
+        3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2610.36,
+        2838.87
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "0b367dfb117311d4"
+    },
+    {
+      "id": "S_09_02",
+      "row": 9,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        2000,
+        -4000,
+        3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2609.65,
+        2783.99
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "e2b5adadc91f743d"
+    },
+    {
+      "id": "S_09_03",
+      "row": 9,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        2000,
+        -3000,
+        3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2570.54,
+        2832.22
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "13c8a37ba703f3ae"
+    },
+    {
+      "id": "S_09_04",
+      "row": 9,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        2000,
+        -2000,
+        3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2570.54,
+        2808.1
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "a8c49f97fb7a51b1"
+    },
+    {
+      "id": "S_09_05",
+      "row": 9,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        2000,
+        -1000,
+        3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2540.19,
+        2771.59
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "d66acd0c7293daef"
+    },
+    {
+      "id": "S_09_06",
+      "row": 9,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        2000,
+        0,
+        3000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2500.0,
+        2771.01
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "537bef5d2ee26f1f"
+    },
+    {
+      "id": "S_09_07",
+      "row": 9,
+      "col": 7,
+      "bbox_m": [
+        0,
+        2000,
+        1000,
+        3000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2500.0,
+        2764.93
+      ],
+      "has_subtractive_mlo": true,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "f3b0aaa337398085"
+    },
+    {
+      "id": "S_09_08",
+      "row": 9,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        2000,
+        2000,
+        3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2635.39,
+        2757.05
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "73bc6aaa1f65ba9f"
+    },
+    {
+      "id": "S_09_09",
+      "row": 9,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        2000,
+        3000,
+        3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2606.22,
+        2816.16
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "a4adc4560de7e561"
+    },
+    {
+      "id": "S_09_10",
+      "row": 9,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        2000,
+        4000,
+        3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2605.04,
+        2840.67
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "ba502c1b949cac50"
+    },
+    {
+      "id": "S_09_11",
+      "row": 9,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        2000,
+        5000,
+        3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2580.32,
+        2763.46
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "91927ca5c898cb1d"
+    },
+    {
+      "id": "S_09_12",
+      "row": 9,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        2000,
+        6000,
+        3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2565.57,
+        2670.35
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_3",
+      "sha256_16": "2faff21d40a39e1c"
+    },
+    {
+      "id": "S_09_13",
+      "row": 9,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        2000,
+        7000,
+        3000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2576.62,
+        2683.48
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_3",
+      "sha256_16": "8a02e0b045cd427b"
+    },
+    {
+      "id": "S_10_00",
+      "row": 10,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        3000,
+        -6000,
+        4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2724.94,
+        3334.58
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "6fd3b23aa7ad5eae"
+    },
+    {
+      "id": "S_10_01",
+      "row": 10,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        3000,
+        -5000,
+        4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2655.0,
+        3486.53
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "04f094cf7712c32c"
+    },
+    {
+      "id": "S_10_02",
+      "row": 10,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        3000,
+        -4000,
+        4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2625.36,
+        3588.03
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "6116fdbe2ad44f4a"
+    },
+    {
+      "id": "S_10_03",
+      "row": 10,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        3000,
+        -3000,
+        4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2726.74,
+        3584.7
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "1ed9e846be856ebe"
+    },
+    {
+      "id": "S_10_04",
+      "row": 10,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        3000,
+        -2000,
+        4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2718.75,
+        3359.74
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "059218f69d875a45"
+    },
+    {
+      "id": "S_10_05",
+      "row": 10,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        3000,
+        -1000,
+        4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2697.47,
+        3319.83
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "7acb124513fbcf26"
+    },
+    {
+      "id": "S_10_06",
+      "row": 10,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        3000,
+        0,
+        4000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2672.9,
+        3345.26
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "b56b53a9689e11e9"
+    },
+    {
+      "id": "S_10_07",
+      "row": 10,
+      "col": 7,
+      "bbox_m": [
+        0,
+        3000,
+        1000,
+        4000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2696.34,
+        3381.73
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "b6ceaffe72a4cc56"
+    },
+    {
+      "id": "S_10_08",
+      "row": 10,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        3000,
+        2000,
+        4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2627.11,
+        3374.85
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "2d15cd996cab014a"
+    },
+    {
+      "id": "S_10_09",
+      "row": 10,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        3000,
+        3000,
+        4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2603.93,
+        3376.9
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "3dd8339dd740e208"
+    },
+    {
+      "id": "S_10_10",
+      "row": 10,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        3000,
+        4000,
+        4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2644.95,
+        3288.69
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "551fa928abdfd058"
+    },
+    {
+      "id": "S_10_11",
+      "row": 10,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        3000,
+        5000,
+        4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2632.9,
+        3392.12
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "71badf7bfe76411e"
+    },
+    {
+      "id": "S_10_12",
+      "row": 10,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        3000,
+        6000,
+        4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2638.98,
+        3393.6
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_3",
+      "sha256_16": "ca3b0f574268e452"
+    },
+    {
+      "id": "S_10_13",
+      "row": 10,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        3000,
+        7000,
+        4000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "DEGA",
+      "elev_range_m": [
+        2670.35,
+        3339.48
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_3",
+      "sha256_16": "6fdd6d274c0e9254"
+    },
+    {
+      "id": "S_11_00",
+      "row": 11,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        4000,
+        -6000,
+        5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3126.03,
+        4210.37
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "358218f919eb1871"
+    },
+    {
+      "id": "S_11_01",
+      "row": 11,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        4000,
+        -5000,
+        5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3299.15,
+        4244.98
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "0835955b40450723"
+    },
+    {
+      "id": "S_11_02",
+      "row": 11,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        4000,
+        -4000,
+        5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3486.53,
+        4244.54
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "cc31fcff76bed01a"
+    },
+    {
+      "id": "S_11_03",
+      "row": 11,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        4000,
+        -3000,
+        5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3359.74,
+        4198.23
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_0",
+      "sha256_16": "a08a4036ed5ac95f"
+    },
+    {
+      "id": "S_11_04",
+      "row": 11,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        4000,
+        -2000,
+        5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3210.01,
+        4151.42
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "198e221b42500ed4"
+    },
+    {
+      "id": "S_11_05",
+      "row": 11,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        4000,
+        -1000,
+        5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3231.21,
+        4185.32
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "f1bea8badd25f553"
+    },
+    {
+      "id": "S_11_06",
+      "row": 11,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        4000,
+        0,
+        5000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3113.73,
+        4061.89
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "45937da66fda51ce"
+    },
+    {
+      "id": "S_11_07",
+      "row": 11,
+      "col": 7,
+      "bbox_m": [
+        0,
+        4000,
+        1000,
+        5000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3157.43,
+        4049.59
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_1",
+      "sha256_16": "a2bb076934c71425"
+    },
+    {
+      "id": "S_11_08",
+      "row": 11,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        4000,
+        2000,
+        5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3169.59,
+        4009.43
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "7facd7cc3ffe98e5"
+    },
+    {
+      "id": "S_11_09",
+      "row": 11,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        4000,
+        3000,
+        5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3125.82,
+        4029.94
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "bf1cf02fed95aaa2"
+    },
+    {
+      "id": "S_11_10",
+      "row": 11,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        4000,
+        4000,
+        5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3171.65,
+        4137.46
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "1a5947abe64b53e1"
+    },
+    {
+      "id": "S_11_11",
+      "row": 11,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        4000,
+        5000,
+        5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3226.29,
+        4176.23
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_2",
+      "sha256_16": "2096aeb4955d22b2"
+    },
+    {
+      "id": "S_11_12",
+      "row": 11,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        4000,
+        6000,
+        5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3178.65,
+        4196.8
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_3",
+      "sha256_16": "6e3393e3eb239a2e"
+    },
+    {
+      "id": "S_11_13",
+      "row": 11,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        4000,
+        7000,
+        5000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3193.85,
+        4087.64
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_2_3",
+      "sha256_16": "465520079274e305"
+    },
+    {
+      "id": "S_12_00",
+      "row": 12,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        5000,
+        -6000,
+        6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3964.47,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_0",
+      "sha256_16": "557fbe6d812e70a0"
+    },
+    {
+      "id": "S_12_01",
+      "row": 12,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        5000,
+        -5000,
+        6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        4209.16,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_0",
+      "sha256_16": "0ebc9a9527c651d3"
+    },
+    {
+      "id": "S_12_02",
+      "row": 12,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        5000,
+        -4000,
+        6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        4198.23,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_0",
+      "sha256_16": "82280d3044aaf800"
+    },
+    {
+      "id": "S_12_03",
+      "row": 12,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        5000,
+        -3000,
+        6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3987.0,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_0",
+      "sha256_16": "3f41c55cb29beb26"
+    },
+    {
+      "id": "S_12_04",
+      "row": 12,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        5000,
+        -2000,
+        6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        4112.45,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_1",
+      "sha256_16": "928bfad99f4e3f81"
+    },
+    {
+      "id": "S_12_05",
+      "row": 12,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        5000,
+        -1000,
+        6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        4061.89,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_1",
+      "sha256_16": "1e63f4c5f6b42269"
+    },
+    {
+      "id": "S_12_06",
+      "row": 12,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        5000,
+        0,
+        6000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3826.81,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_1",
+      "sha256_16": "8778edd96f98a83d"
+    },
+    {
+      "id": "S_12_07",
+      "row": 12,
+      "col": 7,
+      "bbox_m": [
+        0,
+        5000,
+        1000,
+        6000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3933.2,
+        4433.26
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_1",
+      "sha256_16": "ebdd08b6939f0027"
+    },
+    {
+      "id": "S_12_08",
+      "row": 12,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        5000,
+        2000,
+        6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3986.54,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_2",
+      "sha256_16": "f7ac7919650080f7"
+    },
+    {
+      "id": "S_12_09",
+      "row": 12,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        5000,
+        3000,
+        6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3839.06,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_2",
+      "sha256_16": "0c8792730971c19b"
+    },
+    {
+      "id": "S_12_10",
+      "row": 12,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        5000,
+        4000,
+        6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        3959.43,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_2",
+      "sha256_16": "1a84c8d363a83f4b"
+    },
+    {
+      "id": "S_12_11",
+      "row": 12,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        5000,
+        5000,
+        6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        4137.46,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_2",
+      "sha256_16": "58c37fe58a2198df"
+    },
+    {
+      "id": "S_12_12",
+      "row": 12,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        5000,
+        6000,
+        6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        4006.44,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_3",
+      "sha256_16": "7a358e10786fd584"
+    },
+    {
+      "id": "S_12_13",
+      "row": 12,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        5000,
+        7000,
+        6000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        4006.79,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_3",
+      "sha256_16": "2fcd1a31805f47c7"
+    },
+    {
+      "id": "S_13_00",
+      "row": 13,
+      "col": 0,
+      "bbox_m": [
+        -7000,
+        6000,
+        -6000,
+        7000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2786.11,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_0",
+      "sha256_16": "c5460727999e24bb"
+    },
+    {
+      "id": "S_13_01",
+      "row": 13,
+      "col": 1,
+      "bbox_m": [
+        -6000,
+        6000,
+        -5000,
+        7000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2714.55,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_0",
+      "sha256_16": "3506434dca86c3a0"
+    },
+    {
+      "id": "S_13_02",
+      "row": 13,
+      "col": 2,
+      "bbox_m": [
+        -5000,
+        6000,
+        -4000,
+        7000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2806.4,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_0",
+      "sha256_16": "65e64912c3c3d4f8"
+    },
+    {
+      "id": "S_13_03",
+      "row": 13,
+      "col": 3,
+      "bbox_m": [
+        -4000,
+        6000,
+        -3000,
+        7000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2773.07,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_0",
+      "sha256_16": "b35465010c76718f"
+    },
+    {
+      "id": "S_13_04",
+      "row": 13,
+      "col": 4,
+      "bbox_m": [
+        -3000,
+        6000,
+        -2000,
+        7000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2742.54,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_1",
+      "sha256_16": "0168a911cd06fe24"
+    },
+    {
+      "id": "S_13_05",
+      "row": 13,
+      "col": 5,
+      "bbox_m": [
+        -2000,
+        6000,
+        -1000,
+        7000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2719.62,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_1",
+      "sha256_16": "545d625fb025727e"
+    },
+    {
+      "id": "S_13_06",
+      "row": 13,
+      "col": 6,
+      "bbox_m": [
+        -1000,
+        6000,
+        0,
+        7000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2583.29,
+        4550.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_1",
+      "sha256_16": "7aa426df01f7e944"
+    },
+    {
+      "id": "S_13_07",
+      "row": 13,
+      "col": 7,
+      "bbox_m": [
+        0,
+        6000,
+        1000,
+        7000
+      ],
+      "tier": "HD_CRUCIBLE",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2648.64,
+        4550.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_1",
+      "sha256_16": "4591d714aefc181e"
+    },
+    {
+      "id": "S_13_08",
+      "row": 13,
+      "col": 8,
+      "bbox_m": [
+        1000,
+        6000,
+        2000,
+        7000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2752.25,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_2",
+      "sha256_16": "3a986c4afa8ddd94"
+    },
+    {
+      "id": "S_13_09",
+      "row": 13,
+      "col": 9,
+      "bbox_m": [
+        2000,
+        6000,
+        3000,
+        7000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2838.93,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_2",
+      "sha256_16": "eecabe8d63cd932a"
+    },
+    {
+      "id": "S_13_10",
+      "row": 13,
+      "col": 10,
+      "bbox_m": [
+        3000,
+        6000,
+        4000,
+        7000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2788.11,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_2",
+      "sha256_16": "3e1765f44be05ee4"
+    },
+    {
+      "id": "S_13_11",
+      "row": 13,
+      "col": 11,
+      "bbox_m": [
+        4000,
+        6000,
+        5000,
+        7000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2853.35,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_2",
+      "sha256_16": "e2516c9c32ac2d67"
+    },
+    {
+      "id": "S_13_12",
+      "row": 13,
+      "col": 12,
+      "bbox_m": [
+        5000,
+        6000,
+        6000,
+        7000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2769.39,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_3",
+      "sha256_16": "7b0198b944ae5c0c"
+    },
+    {
+      "id": "S_13_13",
+      "row": 13,
+      "col": 13,
+      "bbox_m": [
+        6000,
+        6000,
+        7000,
+        7000
+      ],
+      "tier": "SLOD_SHELL",
+      "agro_belt": "WURCH",
+      "elev_range_m": [
+        2744.32,
+        4485.0
+      ],
+      "has_subtractive_mlo": false,
+      "slod_parent": "SLOD_Q_3_3",
+      "sha256_16": "721f76f2f339f397"
+    }
+  ]
+}

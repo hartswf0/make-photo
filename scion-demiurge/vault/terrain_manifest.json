@@ -1,0 +1,667 @@
+{
+  "pack": "ethiopia-highlands-real-dem-v1",
+  "title": "Abyssinian Massif & Horn of Africa Real-DEM Landscape Pack",
+  "worldSpanM": 2400.0,
+  "horizonSpanM": 16800.0,
+  "gridSize": 384,
+  "horizonGridSize": 129,
+  "biomes": {
+    "kolla": {
+      "maxElevM": 1500,
+      "label": "Kolla (Hot Lowland Gorge < 1,500 m)"
+    },
+    "woina_dega": {
+      "minElevM": 1500,
+      "maxElevM": 2300,
+      "label": "Woina Dega (Temperate Mid-Highland 1,500\u20132,300 m)"
+    },
+    "dega": {
+      "minElevM": 2300,
+      "maxElevM": 3200,
+      "label": "Dega (Cool Escarpment Highland 2,300\u20133,200 m)"
+    },
+    "wurch": {
+      "minElevM": 3200,
+      "label": "Wurch (Afro-Alpine Moorland > 3,200 m)"
+    }
+  },
+  "defaultRegion": "simien_imet_gogo",
+  "regionOrder": [
+    "simien_imet_gogo",
+    "gheralta_spires",
+    "blue_nile_gorge",
+    "gerd_belaya_escarpment"
+  ],
+  "regions": {
+    "simien_imet_gogo": {
+      "id": "simien_imet_gogo",
+      "name": "Simien Mountains \u00b7 Imet Gogo Promontory",
+      "subtitle": "3,926 m Oligocene Flood-Basalt Escarpment & Geech Abyss",
+      "regionStyle": "simien_basalt",
+      "lat": 13.2167,
+      "lon": 38.0833,
+      "bounds": {
+        "latSouth": 13.235752,
+        "latNorth": 13.293244,
+        "lonWest": 38.066966,
+        "lonEast": 38.126034,
+        "spanKmX": 6.4,
+        "spanKmY": 6.357,
+        "zoom": 13
+      },
+      "minElevM": 1962.88,
+      "maxElevM": 3926.5,
+      "reliefM": 1963.62,
+      "datumElevM": 3200.0,
+      "verticalScale": 0.6,
+      "worldSpanM": 2400.0,
+      "gridSize": 384,
+      "horizonSpanM": 16800.0,
+      "horizonGridSize": 129,
+      "horizonMinElevM": 1211.93,
+      "horizonMaxElevM": 4524.63,
+      "horizontalSpanKm": 6.4,
+      "cloudSeaElevM": 2580.0,
+      "cloudSeaWorldY": -372.0,
+      "waterPlane": null,
+      "files": {
+        "dem16Bin": "simien_imet_gogo.dem16.bin",
+        "horizon16Bin": "simien_imet_gogo.horizon16.bin",
+        "height16Png": "simien_imet_gogo_height16.png"
+      },
+      "source": "AWS Open Data Terrain Tiles (Terrarium SRTM/GMTED/ETOPO1 z11\u2013z13, https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png)",
+      "landmarks": {
+        "imetGogoLookout": {
+          "x": -59.53,
+          "y": 348.96,
+          "z": -288.18,
+          "elevM": 3781.6,
+          "label": "Imet Gogo Promontory",
+          "yaw": 0.35
+        },
+        "gliderLaunchPoint": {
+          "x": -87.53,
+          "y": 346.46,
+          "z": -300.18,
+          "elevM": 3777.4,
+          "label": "Imet Gogo Escarpment Launch",
+          "yaw": 0.25,
+          "launchDir": [
+            -0.32,
+            -0.18,
+            -0.93
+          ]
+        },
+        "churchCliffLedge": {
+          "x": 197.39,
+          "y": 333.46,
+          "z": -278.85,
+          "elevM": 3755.8,
+          "label": "Geech Rim Monolithic Sanctuary",
+          "yaw": -0.65
+        },
+        "standpipeRelay": {
+          "x": 56.08,
+          "y": 335.0,
+          "z": -265.98,
+          "elevM": 3758.3,
+          "label": "Simien Wurch Cyan Standpipe"
+        },
+        "geladaMeadow": {
+          "x": -147.26,
+          "y": 311.37,
+          "z": -128.46,
+          "elevM": 3719.0,
+          "label": "Gelada Cliff-Rim Meadow"
+        },
+        "waliaIbexLedge": {
+          "x": -77.53,
+          "y": 269.98,
+          "z": -383.18,
+          "elevM": 3650.0,
+          "label": "Walia Ibex Basalt Ledge"
+        },
+        "ethiopianWolfMoor": {
+          "x": 292.39,
+          "y": 321.65,
+          "z": -168.85,
+          "elevM": 3736.1,
+          "label": "Afro-Alpine Lobelia Moorland"
+        },
+        "abayRiverTerrace": {
+          "x": -380.0,
+          "y": -151.98,
+          "z": -640.0,
+          "elevM": 2946.7,
+          "label": "Geech Abyss Gorge Bench"
+        },
+        "gerdSaddleOverlook": {
+          "x": -154.53,
+          "y": 340.82,
+          "z": -263.18,
+          "elevM": 3768.0,
+          "label": "Western Escarpment Spur"
+        },
+        "carrierTrailWaypoints": [
+          {
+            "x": 312.39,
+            "y": 323.22,
+            "z": -183.85,
+            "elevM": 3738.7,
+            "label": "Trail 1"
+          },
+          {
+            "x": 197.39,
+            "y": 333.46,
+            "z": -278.85,
+            "elevM": 3755.8,
+            "label": "Trail 2"
+          },
+          {
+            "x": 56.08,
+            "y": 335.0,
+            "z": -265.98,
+            "elevM": 3758.3,
+            "label": "Trail 3"
+          },
+          {
+            "x": -59.53,
+            "y": 348.96,
+            "z": -288.18,
+            "elevM": 3781.6,
+            "label": "Trail 4"
+          },
+          {
+            "x": -147.26,
+            "y": 311.37,
+            "z": -128.46,
+            "elevM": 3719.0,
+            "label": "Trail 5"
+          }
+        ],
+        "cameraHero": {
+          "position": [
+            175.5,
+            414.0,
+            -403.2
+          ],
+          "target": [
+            -224.5,
+            114.0,
+            -598.2
+          ],
+          "fov": 50
+        }
+      }
+    },
+    "gheralta_spires": {
+      "id": "gheralta_spires",
+      "name": "Gheralta Mountains \u00b7 Tigray Spires",
+      "subtitle": "2,585 m Red-Gold Adigrat Sandstone Towers, Ambas & Cliff Sanctuaries",
+      "regionStyle": "gheralta_sandstone",
+      "lat": 13.9722,
+      "lon": 39.4286,
+      "bounds": {
+        "latSouth": 13.946147,
+        "latNorth": 13.99825,
+        "lonWest": 39.401755,
+        "lonEast": 39.455445,
+        "spanKmX": 5.8,
+        "spanKmY": 5.761,
+        "zoom": 13,
+        "note": "Real Gheralta\u2013Hawzen AWS Terrarium DEM + Adigrat Sandstone Spire Sub-Meter Relief"
+      },
+      "minElevM": 1953.1,
+      "maxElevM": 2588.0,
+      "reliefM": 634.9,
+      "datumElevM": 1965.0,
+      "verticalScale": 0.76,
+      "worldSpanM": 2400.0,
+      "gridSize": 384,
+      "horizonSpanM": 16800.0,
+      "horizonGridSize": 129,
+      "horizonMinElevM": 1950.0,
+      "horizonMaxElevM": 2570.0,
+      "horizontalSpanKm": 5.8,
+      "cloudSeaElevM": null,
+      "cloudSeaWorldY": null,
+      "waterPlane": null,
+      "files": {
+        "dem16Bin": "gheralta_spires.dem16.bin",
+        "horizon16Bin": "gheralta_spires.horizon16.bin",
+        "height16Png": "gheralta_spires_height16.png"
+      },
+      "source": "AWS Open Data Terrain Tiles (Terrarium SRTM/GMTED/ETOPO1 z11\u2013z13, https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png)",
+      "landmarks": {
+        "churchCliffLedge": {
+          "x": -52.0,
+          "y": 218.51,
+          "z": -44.0,
+          "elevM": 2252.5,
+          "label": "Abuna Yemata / Korkor Cliff Ledge",
+          "yaw": 0.12
+        },
+        "imetGogoLookout": {
+          "x": -55.0,
+          "y": 473.48,
+          "z": -155.0,
+          "elevM": 2588.0,
+          "label": "Korkor Amba Summit Overlook",
+          "yaw": 0.05
+        },
+        "gliderLaunchPoint": {
+          "x": -55.0,
+          "y": 469.45,
+          "z": -118.0,
+          "elevM": 2582.7,
+          "label": "Korkor Sandstone Spire Launch",
+          "yaw": 0.05,
+          "launchDir": [
+            0.06,
+            -0.16,
+            0.98
+          ]
+        },
+        "standpipeRelay": {
+          "x": 28.0,
+          "y": 3.91,
+          "z": 235.0,
+          "elevM": 1970.1,
+          "label": "Hawzen Acacia Plain Cyan Standpipe"
+        },
+        "monolithCourtPad": {
+          "x": -92.0,
+          "y": 3.26,
+          "z": 165.0,
+          "elevM": 1969.3,
+          "label": "Gheralta Sunken Cruciform Court"
+        },
+        "abayRiverTerrace": {
+          "x": 145.0,
+          "y": 12.82,
+          "z": 205.0,
+          "elevM": 1981.9,
+          "label": "Wadi Dry-Sandstone Terrace"
+        },
+        "gerdSaddleOverlook": {
+          "x": 205.0,
+          "y": 430.86,
+          "z": -215.0,
+          "elevM": 2531.9,
+          "label": "Eastern Amba Rim"
+        },
+        "carrierTrailWaypoints": [
+          {
+            "x": 95.0,
+            "y": 4.7,
+            "z": 285.0,
+            "elevM": 1971.2,
+            "label": "Trail 1"
+          },
+          {
+            "x": 28.0,
+            "y": 3.91,
+            "z": 235.0,
+            "elevM": 1970.1,
+            "label": "Trail 2"
+          },
+          {
+            "x": -16.0,
+            "y": 4.74,
+            "z": 145.0,
+            "elevM": 1971.2,
+            "label": "Trail 3"
+          },
+          {
+            "x": 24.0,
+            "y": 9.69,
+            "z": 62.0,
+            "elevM": 1977.8,
+            "label": "Trail 4"
+          },
+          {
+            "x": -20.0,
+            "y": 8.83,
+            "z": 10.0,
+            "elevM": 1976.6,
+            "label": "Trail 5"
+          },
+          {
+            "x": -52.0,
+            "y": 218.51,
+            "z": -44.0,
+            "elevM": 2252.5,
+            "label": "Trail 6"
+          }
+        ],
+        "cameraHero": {
+          "position": [
+            135.0,
+            42.0,
+            465.0
+          ],
+          "target": [
+            -78.0,
+            185.0,
+            -115.0
+          ],
+          "fov": 46
+        }
+      }
+    },
+    "blue_nile_gorge": {
+      "id": "blue_nile_gorge",
+      "name": "Blue Nile (Abay) Gorge \u00b7 Dejen\u2013Goha Tsion",
+      "subtitle": "1,532 m Multi-Tiered Basalt, Antalo Limestone & Red Sandstone Canyon",
+      "regionStyle": "abay_canyon",
+      "lat": 10.075,
+      "lon": 38.1917,
+      "bounds": {
+        "latSouth": 10.004924,
+        "latNorth": 10.145061,
+        "lonWest": 38.120534,
+        "lonEast": 38.262866,
+        "spanKmX": 15.6,
+        "spanKmY": 15.496,
+        "zoom": 12
+      },
+      "minElevM": 1004.0,
+      "maxElevM": 2531.6,
+      "reliefM": 1527.6,
+      "datumElevM": 1720.0,
+      "verticalScale": 0.56,
+      "worldSpanM": 2400.0,
+      "gridSize": 384,
+      "horizonSpanM": 16800.0,
+      "horizonGridSize": 129,
+      "horizonMinElevM": 990.22,
+      "horizonMaxElevM": 2600.65,
+      "horizontalSpanKm": 15.6,
+      "cloudSeaElevM": null,
+      "cloudSeaWorldY": null,
+      "waterPlane": {
+        "elevM": 1026.0,
+        "worldY": -388.64,
+        "kind": "abay_river",
+        "color": "#24c4e4",
+        "deepColor": "#134b5c",
+        "flowDir": [
+          -0.94,
+          -0.34
+        ]
+      },
+      "files": {
+        "dem16Bin": "blue_nile_gorge.dem16.bin",
+        "horizon16Bin": "blue_nile_gorge.horizon16.bin",
+        "height16Png": "blue_nile_gorge_height16.png"
+      },
+      "source": "AWS Open Data Terrain Tiles (Terrarium SRTM/GMTED/ETOPO1 z11\u2013z13, https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png)",
+      "landmarks": {
+        "abayRiverTerrace": {
+          "x": -40.73,
+          "y": -345.4,
+          "z": -134.73,
+          "elevM": 1103.2,
+          "label": "Abay Inner Sandstone Terrace",
+          "yaw": 0.4
+        },
+        "imetGogoLookout": {
+          "x": -911.75,
+          "y": 385.11,
+          "z": -924.28,
+          "elevM": 2407.7,
+          "label": "Dejen\u2013Goha Tsion Basalt Rim",
+          "yaw": 0.15
+        },
+        "churchCliffLedge": {
+          "x": -604.7,
+          "y": 13.63,
+          "z": -516.97,
+          "elevM": 1744.3,
+          "label": "Antalo Limestone Bench Sanctuary",
+          "yaw": 0.25
+        },
+        "gliderLaunchPoint": {
+          "x": -889.75,
+          "y": 385.44,
+          "z": -898.28,
+          "elevM": 2408.3,
+          "label": "Abay Canyon Rim Launch",
+          "yaw": 0.1,
+          "launchDir": [
+            0.12,
+            -0.2,
+            0.97
+          ]
+        },
+        "standpipeRelay": {
+          "x": -935.75,
+          "y": 384.36,
+          "z": -936.28,
+          "elevM": 2406.4,
+          "label": "Dejen Rim Cyan Relay"
+        },
+        "gerdSaddleOverlook": {
+          "x": -572.7,
+          "y": 7.2,
+          "z": -502.97,
+          "elevM": 1732.9,
+          "label": "Mid-Gorge Limestone Spur"
+        },
+        "carrierTrailWaypoints": [
+          {
+            "x": -935.75,
+            "y": 384.36,
+            "z": -936.28,
+            "elevM": 2406.4,
+            "label": "Gorge Switchback 1"
+          },
+          {
+            "x": -911.75,
+            "y": 385.11,
+            "z": -924.28,
+            "elevM": 2407.7,
+            "label": "Gorge Switchback 2"
+          },
+          {
+            "x": -773.58,
+            "y": 246.87,
+            "z": -740.99,
+            "elevM": 2160.8,
+            "label": "Gorge Switchback 3"
+          },
+          {
+            "x": -604.7,
+            "y": 13.63,
+            "z": -516.97,
+            "elevM": 1744.3,
+            "label": "Gorge Switchback 4"
+          },
+          {
+            "x": -294.52,
+            "y": -173.65,
+            "z": -306.74,
+            "elevM": 1409.9,
+            "label": "Gorge Switchback 5"
+          },
+          {
+            "x": -40.73,
+            "y": -345.4,
+            "z": -134.73,
+            "elevM": 1103.2,
+            "label": "Gorge Switchback 6"
+          }
+        ],
+        "cameraHero": {
+          "position": [
+            -360.7,
+            520.1,
+            -519.3
+          ],
+          "target": [
+            44.3,
+            -302.4,
+            105.7
+          ],
+          "fov": 52
+        }
+      }
+    },
+    "gerd_belaya_escarpment": {
+      "id": "gerd_belaya_escarpment",
+      "name": "GERD Saddle -> Mt. Belaya Escarpment",
+      "subtitle": "502 m Kolla Blue Nile Reservoir Rising to 2,549 m Terraced Dega Wall",
+      "regionStyle": "gerd_escarpment",
+      "lat": 11.2153,
+      "lon": 35.0931,
+      "bounds": {
+        "latSouth": 11.149879,
+        "latNorth": 11.298101,
+        "lonWest": 35.096444,
+        "lonEast": 35.247556,
+        "spanKmX": 16.5,
+        "spanKmY": 16.389,
+        "zoom": 12,
+        "gerdRef": [
+          11.2153,
+          35.0931
+        ]
+      },
+      "minElevM": 505.66,
+      "maxElevM": 2512.64,
+      "reliefM": 2006.98,
+      "datumElevM": 1220.0,
+      "verticalScale": 0.52,
+      "worldSpanM": 2400.0,
+      "gridSize": 384,
+      "horizonSpanM": 16800.0,
+      "horizonGridSize": 129,
+      "horizonMinElevM": 495.39,
+      "horizonMaxElevM": 2171.85,
+      "horizontalSpanKm": 16.5,
+      "cloudSeaElevM": null,
+      "cloudSeaWorldY": null,
+      "waterPlane": {
+        "elevM": 635.0,
+        "worldY": -304.2,
+        "kind": "gerd_reservoir",
+        "color": "#22c6e6",
+        "deepColor": "#0f4256",
+        "flowDir": [
+          -0.75,
+          0.66
+        ]
+      },
+      "files": {
+        "dem16Bin": "gerd_belaya_escarpment.dem16.bin",
+        "horizon16Bin": "gerd_belaya_escarpment.horizon16.bin",
+        "height16Png": "gerd_belaya_escarpment_height16.png"
+      },
+      "source": "AWS Open Data Terrain Tiles (Terrarium SRTM/GMTED/ETOPO1 z11\u2013z13, https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png)",
+      "landmarks": {
+        "gerdSaddleOverlook": {
+          "x": 560.84,
+          "y": 50.41,
+          "z": -197.39,
+          "elevM": 1317.0,
+          "label": "GERD Escarpment Spur Overlook",
+          "yaw": -1.35
+        },
+        "imetGogoLookout": {
+          "x": 1055.87,
+          "y": 662.0,
+          "z": -272.58,
+          "elevM": 2493.1,
+          "label": "Mt. Belaya Dega Escarpment Crest",
+          "yaw": -1.55
+        },
+        "gliderLaunchPoint": {
+          "x": 1033.87,
+          "y": 660.35,
+          "z": -272.58,
+          "elevM": 2489.9,
+          "label": "Belaya Western Wall Launch",
+          "yaw": -1.57,
+          "launchDir": [
+            -0.97,
+            -0.22,
+            -0.08
+          ]
+        },
+        "churchCliffLedge": {
+          "x": 723.76,
+          "y": 336.48,
+          "z": 234.99,
+          "elevM": 1867.1,
+          "label": "Belaya Dega Terrace Sanctuary",
+          "yaw": -1.4
+        },
+        "abayRiverTerrace": {
+          "x": 228.72,
+          "y": -293.03,
+          "z": 159.79,
+          "elevM": 656.5,
+          "label": "Blue Nile Reservoir Shore Landing",
+          "yaw": -1.5
+        },
+        "standpipeRelay": {
+          "x": 580.84,
+          "y": 52.23,
+          "z": -185.39,
+          "elevM": 1320.4,
+          "label": "Escarpment Monsoon Relay"
+        },
+        "carrierTrailWaypoints": [
+          {
+            "x": 228.72,
+            "y": -293.03,
+            "z": 159.79,
+            "elevM": 656.5,
+            "label": "Escarpment Trail 1"
+          },
+          {
+            "x": 394.78,
+            "y": -191.08,
+            "z": -18.8,
+            "elevM": 852.5,
+            "label": "Escarpment Trail 2"
+          },
+          {
+            "x": 560.84,
+            "y": 50.41,
+            "z": -197.39,
+            "elevM": 1317.0,
+            "label": "Escarpment Trail 3"
+          },
+          {
+            "x": 723.76,
+            "y": 336.48,
+            "z": 234.99,
+            "elevM": 1867.1,
+            "label": "Escarpment Trail 4"
+          },
+          {
+            "x": 1055.87,
+            "y": 662.0,
+            "z": -272.58,
+            "elevM": 2493.1,
+            "label": "Escarpment Trail 5"
+          }
+        ],
+        "cameraHero": {
+          "position": [
+            -680.0,
+            115.0,
+            260.0
+          ],
+          "target": [
+            380.0,
+            95.0,
+            -180.0
+          ],
+          "fov": 50
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,2537 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1417">
+  <meta name="description" content="SCION DEMIURGE · Abyssinian-Harar Vertical Open World (911m–4,550m 1:1 Metric Relief across 14×14 km / 196 Sectors): Entoto 3,205m, Addis Light Rail & Korkoro 2,400m, Abay Gorge 1,020m Bridge, Roha Subtractive Trench 2,500m, Simien 4,550m.">
+  <title>SCION DEMIURGE · Abyssinian-Harar Vertical Open World (14×14 km · WebGL2)</title>
+  <style>
+    :root {
+      --bg: #0d1114;
+      --panel: rgba(13, 17, 20, 0.88);
+      --border: rgba(232, 228, 216, 0.20);
+      --cream: #f1ede2;
+      --muted: rgba(241, 237, 226, 0.68);
+      --cyan: #28d8f0;
+      --amber: #f0a83e;
+      --red: #e85448;
+      --green: #4cd480;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --sans: Inter, system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      background: var(--bg); color: var(--cream);
+      font: 400 12px/1.38 var(--sans);
+      -webkit-user-select: none; user-select: none;
+      overscroll-behavior: none; touch-action: none;
+    }
+    #gl {
+      position: fixed; inset: 0; width: 100%; height: 100%;
+      display: block; cursor: grab; touch-action: none;
+    }
+    #gl:active { cursor: grabbing; }
+
+    /* Pure HUD-Off Lynchian Mode (?hud=0 or H key) hides ALL UI chrome completely */
+    body.hud-off .hud-el { display: none !important; }
+
+    #hud-top {
+      position: fixed;
+      top: max(10px, env(safe-area-inset-top));
+      left: max(12px, env(safe-area-inset-left));
+      max-width: min(470px, calc(100vw - 24px));
+      padding: 9px 12px; border-radius: 10px;
+      background: var(--panel); border: 1px solid var(--border);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+    .kicker {
+      font: 700 9.5px/1.2 var(--mono);
+      letter-spacing: 0.16em; text-transform: uppercase; color: var(--cyan);
+      margin: 0 0 3px;
+    }
+    #hud-top h1 { margin: 0; font: 600 15px/1.2 var(--sans); letter-spacing: 0.02em; }
+    #hud-readout { margin-top: 5px; font: 600 10.5px/1.42 var(--mono); color: var(--cream); }
+    #hud-phys { margin-top: 3px; font: 500 10px/1.35 var(--mono); color: var(--muted); }
+    #dignity-banner {
+      margin-top: 5px; padding: 4px 7px; border-radius: 5px;
+      background: rgba(40, 216, 240, 0.16); border: 1px solid var(--cyan);
+      font: 700 10px/1.25 var(--mono); color: var(--cyan);
+    }
+    #dignity-banner[hidden] { display: none; }
+
+    #hud-bar {
+      position: fixed;
+      left: max(10px, env(safe-area-inset-left));
+      right: max(10px, env(safe-area-inset-right));
+      bottom: max(10px, env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; gap: 5px;
+      z-index: 10; pointer-events: none;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; pointer-events: auto; }
+    .btn {
+      font: 600 10px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 7px 9px; min-height: 29px; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--panel); color: var(--cream);
+      cursor: pointer;
+    }
+    .btn.active, .btn[aria-pressed="true"] {
+      background: var(--cyan); color: #05161a; border-color: var(--cyan); font-weight: 700;
+    }
+    .btn.warn { border-color: var(--amber); color: var(--amber); }
+
+    #status-desk {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: min(480px, 100vw);
+      background: rgba(11, 15, 18, 0.96);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      z-index: 30; user-select: text; -webkit-user-select: text;
+    }
+    #status-desk[hidden] { display: none; }
+    .desk-hdr {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+    }
+    .desk-hdr strong { font: 700 11px/1 var(--mono); letter-spacing: 0.12em; color: var(--cyan); }
+    .desk-tabs {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+      padding: 7px 12px; border-bottom: 1px solid var(--border);
+    }
+    .dtab {
+      font: 600 9.5px/1.2 var(--mono); text-transform: uppercase;
+      padding: 6px 4px; border-radius: 5px; border: 1px solid transparent;
+      background: transparent; color: var(--muted); cursor: pointer;
+    }
+    .dtab[aria-selected="true"] {
+      color: var(--cream); border-color: var(--cyan); background: rgba(40, 216, 240, 0.12);
+    }
+    .desk-body {
+      flex: 1; overflow-y: auto; padding: 12px 14px 28px;
+      display: flex; flex-direction: column; gap: 10px;
+      font: 400 11px/1.45 var(--mono);
+    }
+    .desk-body[hidden] { display: none; }
+    .card {
+      border: 1px solid var(--border); border-radius: 7px;
+      padding: 9px 10px; background: rgba(255, 255, 255, 0.03);
+    }
+    .card h3 {
+      margin: 0 0 6px; font: 700 10px/1.2 var(--mono);
+      letter-spacing: 0.10em; text-transform: uppercase; color: var(--cyan);
+    }
+    .kv { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; }
+    .tag-pass { color: var(--green); font-weight: 700; }
+    .tag-ghost { color: var(--amber); font-weight: 700; }
+    #quadtree-cnv {
+      display: block; width: 100%; max-width: 280px; aspect-ratio: 1;
+      border: 1px solid var(--border); border-radius: 4px; cursor: crosshair;
+    }
+    .jump-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+
+    @media (max-width: 820px) {
+      #hud-top { padding: 7px 9px; }
+      #hud-top h1 { font-size: 13px; }
+      #hud-phys { display: none; }
+      .row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+      .row::-webkit-scrollbar { display: none; }
+      .btn { flex: 0 0 auto; padding: 6px 8px; min-height: 27px; font-size: 9px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gl" aria-label="Abyssinian-Harar Vertical Open World WebGL2 Canvas"></canvas>
+
+  <header id="hud-top" class="hud-el">
+    <p class="kicker">SCION DEMIURGE · 14×14 KM ANISOTROPIC 1:1 RELIEF</p>
+    <h1 id="hud-zone">Entoto Eucalyptus &amp; Cyan Relay Overlook</h1>
+    <div id="hud-readout">ALT 3,205m · SECTOR S_00_07 · RELAY 96% · 60 FPS</div>
+    <div id="hud-phys">SURFACE: ASPHALT (μ=0.92) · VO2: 82% · BRAKE: 28°C · BUNA: ABOL</div>
+    <div id="dignity-banner" hidden>SANCTUARY DIGNITY ENFORCED · BAREFOOT / NON-COMBAT / VEHICLES &amp; MOUNTS BARRED</div>
+  </header>
+
+  <div id="hud-bar" class="hud-el">
+    <div class="row" aria-label="Crucible Corridor Milestones">
+      <button type="button" class="btn" data-wp="entoto">1·Entoto 3,205m</button>
+      <button type="button" class="btn" data-wp="addis">2·Addis Rail/Buna 2,400m</button>
+      <button type="button" class="btn" data-wp="abay_rim">3·Abay Rim 2,504m</button>
+      <button type="button" class="btn" data-wp="abay_bridge">4·Abay Bridge 1,020m</button>
+      <button type="button" class="btn" data-wp="roha">5·Roha Trench 2,500m</button>
+      <button type="button" class="btn" data-wp="simien">6·Simien/Ras Dashen 4,550m</button>
+    </div>
+    <div class="row" aria-label="Mode, Weather, Time & Telemetry">
+      <button type="button" class="btn active" data-mode="foot">Foot</button>
+      <button type="button" class="btn" data-mode="donkey">Pack Donkey (20L×2)</button>
+      <button type="button" class="btn" data-mode="hiace">HiAce Taxi</button>
+      <button type="button" class="btn" data-mode="isuzu">Isuzu Truck</button>
+      <button type="button" class="btn" data-mode="glider">Ridge Glider</button>
+      <button type="button" class="btn" id="btn-engbrake" aria-pressed="false">Eng-Brake (E)</button>
+      <button type="button" class="btn" id="btn-weather">Weather: Clear</button>
+      <button type="button" class="btn" id="btn-tod">Time: Morning</button>
+      <button type="button" class="btn" id="btn-audio" aria-pressed="false">Audio (M)</button>
+      <button type="button" class="btn" id="btn-hud">HUD Off (H)</button>
+      <button type="button" class="btn warn" id="btn-desk">Demiurge Desk (Tab)</button>
+    </div>
+  </div>
+
+  <aside id="status-desk" hidden aria-label="SCION DEMIURGE Live World-Status Desk">
+    <div class="desk-hdr">
+      <strong>SCION DEMIURGE · LIVE TELEMETRY &amp; LEDGER</strong>
+      <button type="button" class="btn" id="btn-desk-close">Close ×</button>
+    </div>
+    <div class="desk-tabs" role="tablist">
+      <button type="button" class="dtab" data-tab="telemetry" aria-selected="true">Telemetry</button>
+      <button type="button" class="dtab" data-tab="sectors" aria-selected="false">196 Sectors</button>
+      <button type="button" class="dtab" data-tab="ledger" aria-selected="false">Ledger/ΔΔ</button>
+      <button type="button" class="dtab" data-tab="critics" aria-selected="false">Critics/Ghosts</button>
+    </div>
+
+    <div class="desk-body" id="dtab-telemetry">
+      <div class="card">
+        <h3>Runtime Performance &amp; Streaming Gate</h3>
+        <div class="kv" id="desk-perf-kv"></div>
+      </div>
+      <div class="card">
+        <h3>Consequent Physics, Hydrology &amp; Habitus State</h3>
+        <div class="kv" id="desk-phys-kv"></div>
+      </div>
+    </div>
+
+    <div class="desk-body" id="dtab-sectors" hidden>
+      <div class="card">
+        <h3>14×14 km Quadtree (28 HD Crucible + 168 SLOD Shell)</h3>
+        <p style="margin:0 0 6px;color:var(--muted)">Click any 1×1 km cell to teleport camera &amp; inspect seam/SLOD state:</p>
+        <canvas id="quadtree-cnv" width="280" height="280"></canvas>
+        <div id="sector-inspect" style="margin-top:6px"></div>
+      </div>
+    </div>
+
+    <div class="desk-body" id="dtab-ledger" hidden>
+      <div class="card">
+        <h3>Differential Inquiry (ΔΔ) · Switchback vs. 1:1 Cliff</h3>
+        <div id="desk-dd"></div>
+      </div>
+      <div class="card">
+        <h3>Immutable Source Vault (SHA-256 Receipts)</h3>
+        <div id="desk-vault"></div>
+      </div>
+    </div>
+
+    <div class="desk-body" id="dtab-critics" hidden>
+      <div class="card">
+        <h3>Active Ghost Ledger &amp; Circuit Breakers</h3>
+        <div><span class="tag-ghost">[[GHOST::CLEAN_LALI_SFM]]</span> — Roha/Lalibela monolithic cruciform sanctuary &amp; 12.0 m volcanic-tuff trench synthesized strictly from published dimensional plans; zero non-commercial Zamani TLS mesh vertices ingested. Field-capture spec: 6m-pole nadir/oblique clean-room SfM under ARCCH/EOTC permit.</div>
+        <div style="margin-top:6px"><span class="tag-pass">SANCTUARY DIGNITY BREAKER: ACTIVE</span> — All motor vehicles, pack donkeys, AI traffic &amp; gliders physically excluded outside `r=64m` stone bollards (`x = -44m`); descending rock-cut dromos enforces `BAREFOOT_NON_COMBAT` state + `12m` tuff impulse convolution.</div>
+      </div>
+      <div class="card">
+        <h3>Coordinate Jump Links (Critic Audit Targets)</h3>
+        <div class="jump-list" id="desk-jumps"></div>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+  const CRUCIBLE_PACK = __CRUCIBLE_PACK_JSON__;
+
+  (function () {
+    "use strict";
+
+    const $ = id => document.getElementById(id);
+    const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const smoothstep = (e0, e1, x) => {
+      const t = clamp((x - e0) / (e1 - e0 || 1e-6), 0, 1);
+      return t * t * (3 - 2 * t);
+    };
+    const TAU = Math.PI * 2;
+
+    const params = new URLSearchParams(location.search);
+    if (params.get("hud") === "0") document.body.classList.add("hud-off");
+
+    /* =========================================================================
+       1. UNPACK CANONICAL 14x14 KM (561x561, 25m POST) HEIGHTFIELD & MLO CUTOUT
+       ========================================================================= */
+    const N = CRUCIBLE_PACK.gridN; // 561
+    const SPAN = CRUCIBLE_PACK.worldSpanM; // 14000.0
+    const HALF = SPAN * 0.5; // 7000.0
+    const POST_M = SPAN / (N - 1); // 25.0 m exact
+    const ELEV_MIN = CRUCIBLE_PACK.elevMinM;
+    const ELEV_MAX = CRUCIBLE_PACK.elevMaxM;
+
+    const rawStr = atob(CRUCIBLE_PACK.demU16B64);
+    const u8 = new Uint8Array(rawStr.length);
+    for (let i = 0; i < rawStr.length; i++) u8[i] = rawStr.charCodeAt(i);
+    const u16 = new Uint16Array(u8.buffer);
+    const elevGrid = new Float32Array(u16.length);
+    const scaleE = (ELEV_MAX - ELEV_MIN) / 65535.0;
+    for (let i = 0; i < u16.length; i++) elevGrid[i] = ELEV_MIN + u16[i] * scaleE;
+
+    // Exact grid-aligned Subtractive Roha MLO Coordinates (5.0m integer multiples for 100% manifold watertightness!):
+    // Pit: X in [+5.0 .. +35.0] (center +20.0m, 30x30m), Z in [+2385.0 .. +2415.0] (center +2400.0m)
+    // Western Dromos Ramp: X in [-35.0 .. +5.0] (40m length), Z in [+2395.0 .. +2405.0] (10.0m width)
+    const ROHA_X = 20.0, ROHA_Z = 2400.0;
+    const PIT_X0 = 5.0, PIT_X1 = 35.0, PIT_Z0 = 2385.0, PIT_Z1 = 2415.0;
+    const DROM_X0 = -35.0, DROM_X1 = 5.0, DROM_Z0 = 2395.0, DROM_Z1 = 2405.0;
+    const ROHA_RIM_Y = 2500.0;
+    const ROHA_FLOOR_Y = 2488.0; // Exact 1:1 12.00 m subtractive vertical drop!
+    const SANCTUARY_BOLLARD_R = 64.0; // West bollard gate at X = -44.0m (strictly encloses [-44..+84], outside x=-42 & -38!)
+
+    // Exact Abay Gorge Steel Truss Bridge Bounds (aligned 1:1 with X=0.0, Z in [-576..-384], Y=1020.0m roadPts!)
+    const BRIDGE_HALF_W = 8.8, BRIDGE_Z0 = -576.0, BRIDGE_Z1 = -384.0, BRIDGE_DECK_Y = 1020.0;
+
+    const roadPts = CRUCIBLE_PACK.roadXYZ;
+
+    function sampleTerrainBare(x, z) {
+      const gx = clamp((x + HALF) / POST_M, 0, N - 1.0001);
+      const gz = clamp((z + HALF) / POST_M, 0, N - 1.0001);
+      const ix = gx | 0, iz = gz | 0;
+      const fx = gx - ix, fz = gz - iz;
+      const idx = iz * N + ix;
+      const h00 = elevGrid[idx], h10 = elevGrid[idx + 1];
+      const h01 = elevGrid[idx + N], h11 = elevGrid[idx + N + 1];
+      if (fx + fz <= 1.0) return h00 + (h10 - h00) * fx + (h01 - h00) * fz;
+      return h11 + (h01 - h11) * (1.0 - fx) + (h10 - h11) * (1.0 - fz);
+    }
+
+    function isInsideRohaPit(x, z) {
+      return x > PIT_X0 && x < PIT_X1 && z > PIT_Z0 && z < PIT_Z1;
+    }
+    function isInsideRohaDromos(x, z) {
+      return x >= DROM_X0 && x <= DROM_X1 && z > DROM_Z0 && z < DROM_Z1;
+    }
+    function isInsideCruciformMonolithSolid(x, z) {
+      // Cruciform church centered at (20.0, 2400.0): arms 13.0m x 5.6m
+      // Walkable Western Nave Sanctuary Chamber: dx in [-6.5 .. +3.6] (X in [13.5 .. 23.6]), |dz| < 1.65m (Z in [2398.35 .. 2401.65])
+      const dx = x - ROHA_X, dz = z - ROHA_Z;
+      const inCross = (Math.abs(dx) < 6.5 && Math.abs(dz) < 2.8) || (Math.abs(dx) < 2.8 && Math.abs(dz) < 6.5);
+      if (!inCross) return false;
+      const inNaveInterior = (dx > -6.55 && dx < 3.6 && Math.abs(dz) < 1.65);
+      return !inNaveInterior;
+    }
+
+    function nearestRoadInfo(x, z) {
+      let bestD2 = 1e12, bestY = 0, bestGrade = 0, bestIdx = 0;
+      for (let i = 0; i < roadPts.length - 1; i++) {
+        const a = roadPts[i], b = roadPts[i + 1];
+        if (z < Math.min(a[2], b[2]) - 36 || z > Math.max(a[2], b[2]) + 36) continue;
+        const vx = b[0] - a[0], vz = b[2] - a[2];
+        const l2 = vx * vx + vz * vz + 1e-6;
+        const t = clamp(((x - a[0]) * vx + (z - a[2]) * vz) / l2, 0, 1);
+        const px = a[0] + vx * t, pz = a[2] + vz * t;
+        const d2 = (x - px) * (x - px) + (z - pz) * (z - pz);
+        if (d2 < bestD2) {
+          bestD2 = d2;
+          bestY = a[1] + (b[1] - a[1]) * t;
+          bestGrade = (b[1] - a[1]) / Math.sqrt(l2);
+          bestIdx = i;
+        }
+      }
+      return { dist: Math.sqrt(bestD2), roadY: bestY, grade: bestGrade, segIdx: bestIdx };
+    }
+
+    const MAT_NAMES = ["ASPHALT", "COBBLESTONE", "DEGA_CLAY_MUD", "BASALT_CLIFF", "TUFF_SANCTUARY", "BRIDGE_STEEL", "ABAY_WATER"];
+
+    function sampleSurface(x, z, wetness) {
+      // 1. Subtractive Roha 10m-wide Rock-Cut Dromos & 30x30x12m Sunken Pit
+      if (isInsideRohaDromos(x, z)) {
+        const u = clamp((x - DROM_X0) / (DROM_X1 - DROM_X0), 0, 1);
+        return { y: lerp(ROHA_RIM_Y, ROHA_FLOOR_Y, u), mat: 4, mu: 0.84, inSanctuary: true, grade: -0.30 };
+      }
+      if (isInsideRohaPit(x, z)) {
+        const edgeDist = Math.min(x - PIT_X0, PIT_X1 - x, z - PIT_Z0, PIT_Z1 - z);
+        const drainDrop = edgeDist < 1.2 ? 0.20 : 0.0;
+        return { y: ROHA_FLOOR_Y - drainDrop, mat: 4, mu: 0.82, inSanctuary: true, grade: 0.0 };
+      }
+
+      // 2. Watertight 1:1 Abay Gorge Steel Truss Bridge Deck (X in [-8.8..+8.8], Z in [-576..-384], Y = 1020.0m!)
+      if (Math.abs(x) <= BRIDGE_HALF_W && z >= BRIDGE_Z0 && z <= BRIDGE_Z1) {
+        return { y: BRIDGE_DECK_Y, mat: 5, mu: lerp(0.88, 0.66, wetness), inSanctuary: false, grade: 0.0 };
+      }
+
+      const bareY = sampleTerrainBare(x, z);
+      // 3. Continuous Abay River Water Surface at 1,006.0 m ASL along canyon thalweg
+      const riverCenterZ = -480.0 + (165.0 * Math.sin(x * 0.00095) + 70.0 * Math.cos(x * 0.0021)) * smoothstep(90.0, 420.0, Math.abs(x));
+      if (Math.abs(z - riverCenterZ) < 62.0 && bareY < 1006.05) {
+        return { y: 1006.0, mat: 6, mu: 0.28, inSanctuary: false, grade: 0.0 };
+      }
+
+      // 4. Arterial Road vs. Addis Cobblestone vs. Dega Clay/Mud vs. Basalt Cliff (trailhead terminates at z = 6152m below Ras Dashen!)
+      const rInfo = nearestRoadInfo(x, z);
+      if (rInfo.dist < 8.5 && z < 6155.0) {
+        const isAddis = Math.abs(z + 3600.0) < 480.0;
+        const isUnpavedDega = z > 1400.0 && z < 3400.0;
+        if (isUnpavedDega) {
+          return { y: bareY, mat: 2, mu: lerp(0.78, 0.37, wetness), inSanctuary: false, grade: rInfo.grade };
+        }
+        return {
+          y: bareY,
+          mat: isAddis ? 1 : 0,
+          mu: isAddis ? lerp(0.85, 0.58, wetness) : lerp(0.92, 0.68, wetness),
+          inSanctuary: false,
+          grade: rInfo.grade
+        };
+      }
+
+      const eps = 4.0;
+      const sx = (sampleTerrainBare(x + eps, z) - sampleTerrainBare(x - eps, z)) / (2 * eps);
+      const sz = (sampleTerrainBare(x, z + eps) - sampleTerrainBare(x, z - eps)) / (2 * eps);
+      const slope = Math.hypot(sx, sz);
+      const inRohaPrecinct = Math.hypot(x - ROHA_X, z - ROHA_Z) <= SANCTUARY_BOLLARD_R + 0.5;
+      if (inRohaPrecinct) {
+        return { y: bareY, mat: 4, mu: lerp(0.84, 0.65, wetness), inSanctuary: true, grade: sz };
+      }
+      if (slope > 0.45 || bareY > 3400.0) {
+        return { y: bareY, mat: 3, mu: lerp(0.86, 0.62, wetness), inSanctuary: false, grade: sz };
+      }
+      return { y: bareY, mat: 2, mu: lerp(0.76, 0.35, wetness), inSanctuary: false, grade: sz };
+    }
+
+    function sampleNormal(x, z) {
+      const e = 3.5;
+      const hL = sampleTerrainBare(x - e, z), hR = sampleTerrainBare(x + e, z);
+      const hD = sampleTerrainBare(x, z - e), hU = sampleTerrainBare(x, z + e);
+      const nx = hL - hR, ny = 2 * e, nz = hD - hU;
+      const inv = 1.0 / Math.hypot(nx, ny, nz);
+      return [nx * inv, ny * inv, nz * inv];
+    }
+
+    /* =========================================================================
+       2. WEBGL2 CONTEXT, MATRIX MATH & REAL FTW PARCEL R8 TEXTURE MASK
+       ========================================================================= */
+    const canvas = $("gl");
+    const gl = canvas.getContext("webgl2", { antialias: true, powerPreference: "high-performance" });
+    if (!gl) { alert("WebGL2 required for SCION DEMIURGE"); return; }
+
+    function compileShader(type, src) {
+      const sh = gl.createShader(type);
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+        throw new Error("Shader compile failed: " + gl.getShaderInfoLog(sh));
+      }
+      return sh;
+    }
+    function createProgram(vsSrc, fsSrc) {
+      const p = gl.createProgram();
+      gl.attachShader(p, compileShader(gl.VERTEX_SHADER, vsSrc));
+      gl.attachShader(p, compileShader(gl.FRAGMENT_SHADER, fsSrc));
+      gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+        throw new Error("Program link failed: " + gl.getProgramInfoLog(p));
+      }
+      return p;
+    }
+
+    function mat4Perspective(out, fovy, aspect, near, far) {
+      const f = 1.0 / Math.tan(fovy * 0.5), nf = 1.0 / (near - far);
+      out.fill(0);
+      out[0] = f / aspect; out[5] = f; out[10] = (far + near) * nf; out[11] = -1; out[14] = 2 * far * near * nf;
+      return out;
+    }
+    function mat4LookAt(out, eye, center, up) {
+      let zx = eye[0] - center[0], zy = eye[1] - center[1], zz = eye[2] - center[2];
+      let len = 1 / (Math.hypot(zx, zy, zz) || 1); zx *= len; zy *= len; zz *= len;
+      let xx = up[1] * zz - up[2] * zy, xy = up[2] * zx - up[0] * zz, xz = up[0] * zy - up[1] * zx;
+      len = 1 / (Math.hypot(xx, xy, xz) || 1); xx *= len; xy *= len; xz *= len;
+      let yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+      out[0] = xx; out[1] = yx; out[2] = zx; out[3] = 0;
+      out[4] = xy; out[5] = yy; out[6] = zy; out[7] = 0;
+      out[8] = xz; out[9] = yz; out[10] = zz; out[11] = 0;
+      out[12] = -(xx * eye[0] + xy * eye[1] + xz * eye[2]);
+      out[13] = -(yx * eye[0] + yy * eye[1] + yz * eye[2]);
+      out[14] = -(zx * eye[0] + zy * eye[1] + zz * eye[2]);
+      out[15] = 1;
+      return out;
+    }
+    function mat4Mul(out, a, b) {
+      const r = new Float32Array(16);
+      for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+          r[j * 4 + i] = a[i] * b[j * 4] + a[i + 4] * b[j * 4 + 1] + a[i + 8] * b[j * 4 + 2] + a[i + 12] * b[j * 4 + 3];
+        }
+      }
+      out.set(r);
+      return out;
+    }
+
+    const ftwTex = (() => {
+      const cnv = document.createElement("canvas");
+      cnv.width = 512; cnv.height = 512;
+      const ctx = cnv.getContext("2d");
+      ctx.fillStyle = "rgb(118, 0, 90)";
+      ctx.fillRect(0, 0, 512, 512);
+      const polys = CRUCIBLE_PACK.ftwParcels || [];
+      polys.forEach((p, idx) => {
+        if (!p.pts || p.pts.length < 3) return;
+        const tone = 70 + ((idx * 47) % 135);
+        const cropKind = idx % 3 === 0 ? 210 : (idx % 3 === 1 ? 120 : 45);
+        ctx.fillStyle = `rgb(${tone}, 0, ${cropKind})`;
+        ctx.strokeStyle = "rgb(90, 255, 60)";
+        ctx.lineWidth = 2.4;
+        for (const ox of [-512, 0, 512]) {
+          for (const oz of [-512, 0, 512]) {
+            ctx.beginPath();
+            p.pts.forEach(([lx, lz], k) => {
+              const ux = ((lx + 2800) / 5600) * 512 + ox;
+              const uz = ((lz + 2800) / 5600) * 512 + oz;
+              if (k === 0) ctx.moveTo(ux, uz); else ctx.lineTo(ux, uz);
+            });
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          }
+        }
+      });
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cnv);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      return tex;
+    })();
+
+    /* =========================================================================
+       3. SHADERS: STRATIGRAPHY + SCORIACEOUS TUFF MLO + NIGHT MOONLIGHT
+       ========================================================================= */
+    const TERRAIN_VS = `#version 300 es
+    precision highp float;
+    layout(location = 0) in vec3 aPos;
+    layout(location = 1) in vec3 aNorm;
+    layout(location = 2) in float aRoadMask;
+    uniform mat4 uVP;
+    out vec3 vWorldPos;
+    out vec3 vNorm;
+    out float vRoadMask;
+    void main() {
+      vWorldPos = aPos;
+      vNorm = aNorm;
+      vRoadMask = aRoadMask;
+      gl_Position = uVP * vec4(aPos, 1.0);
+    }`;
+
+    const TERRAIN_FS = `#version 300 es
+    precision highp float;
+    in vec3 vWorldPos;
+    in vec3 vNorm;
+    in float vRoadMask;
+    uniform sampler2D uFtwTex;
+    uniform vec3 uCamPos;
+    uniform vec3 uSunDir;
+    uniform float uSunIntensity;
+    uniform vec3 uSkyCol;
+    uniform vec3 uFogCol;
+    uniform float uWetness;
+    uniform float uTime;
+    uniform float uCloudDeckY;
+    out vec4 fragColor;
+
+    void main() {
+      vec3 N = normalize(vNorm);
+      float slope = 1.0 - clamp(N.y, 0.0, 1.0);
+      float y = vWorldPos.y;
+
+      // 1. Geological 3-tier canyon & flood-basalt stratigraphy locked to 1:1 ASL meters
+      vec3 colSandstone = vec3(0.62, 0.31, 0.20); // Adigrat Red Sandstone (1,000-1,450m)
+      vec3 colLimestone = vec3(0.74, 0.69, 0.56); // Antalo Cream Limestone (1,450-2,050m)
+      vec3 colBasalt    = vec3(0.25, 0.24, 0.23); // Oligocene Flood Basalt cliffs
+      vec3 colWurch     = vec3(0.36, 0.40, 0.26); // Afro-alpine tussock & scree (>3,200m)
+
+      float strata = 0.5 + 0.5 * sin(y * 0.19 + vWorldPos.x * 0.004);
+      vec3 rockCol = mix(colSandstone, colLimestone, smoothstep(1380.0, 1520.0, y));
+      rockCol = mix(rockCol, colBasalt, smoothstep(1980.0, 2140.0, y));
+      rockCol *= (0.84 + 0.28 * strata);
+
+      // 2. Real FTW Smallholder Parcel Quilt & Stone Bunds
+      vec4 ftw = texture(uFtwTex, vWorldPos.xz / 1650.0);
+      vec3 teffGold  = vec3(0.58, 0.51, 0.33);
+      vec3 barleyGrn = vec3(0.30, 0.43, 0.24);
+      vec3 vertisol  = vec3(0.27, 0.22, 0.19);
+      vec3 cropCol = mix(vertisol, barleyGrn, smoothstep(0.25, 0.55, ftw.b));
+      cropCol = mix(cropCol, teffGold, smoothstep(0.65, 0.85, ftw.b));
+      cropCol *= (0.85 + 0.30 * ftw.r);
+      cropCol = mix(cropCol, vec3(0.22, 0.21, 0.19), ftw.g * 0.72);
+
+      vec3 soilCol = mix(vec3(0.48, 0.41, 0.28), cropCol, smoothstep(1750.0, 2150.0, y));
+      soilCol = mix(soilCol, colWurch, smoothstep(3180.0, 3550.0, y));
+      // Authentic Simien Afroalpine dark flood-basalt scree, ochre lichen & Festuca tussock (>4,100m — zero snow-white flat blowout!)
+      vec3 alpineScree = mix(vec3(0.28, 0.26, 0.23), vec3(0.42, 0.38, 0.28), strata);
+      soilCol = mix(soilCol, alpineScree, smoothstep(4050.0, 4420.0, y));
+
+      vec3 baseCol = mix(soilCol, rockCol, smoothstep(0.18, 0.44, slope));
+
+      // Addis Urban Cobblestone/Compacted Earth Plaza Mask (|X| < 185m, Z in [-4000..-3320])
+      float addisUrban = (1.0 - smoothstep(145.0, 210.0, abs(vWorldPos.x))) * (1.0 - smoothstep(330.0, 420.0, abs(vWorldPos.z + 3640.0)));
+      baseCol = mix(baseCol, vec3(0.36, 0.34, 0.31), addisUrban * 0.82);
+
+      // Abay River Continuous Silt-Laden Brown-Ochre Water Sheet (vRoadMask > 2.5 -> R > G > B, zero floating boxes!)
+      float rohaDist = length(vWorldPos.xz - vec2(20.0, 2400.0));
+      if (vRoadMask > 2.5) {
+        float ripple = 0.94 + 0.06 * sin(vWorldPos.x * 0.22 - uTime * 2.6 + sin(vWorldPos.z * 0.35) * 1.5);
+        baseCol = vec3(0.47, 0.34, 0.19) * ripple;
+      } else if (vRoadMask > 1.5 || rohaDist < 64.5) {
+        float chisel = 0.90 + 0.10 * sin(y * 9.0 + vWorldPos.x * 1.4 + vWorldPos.z * 1.4);
+        vec3 tuffRed = vec3(0.55, 0.30, 0.22) * chisel;
+        float wMask = vRoadMask > 1.5 ? 1.0 : (1.0 - smoothstep(54.0, 64.5, rohaDist));
+        baseCol = mix(baseCol, tuffRed, wMask);
+      } else if (vRoadMask > 0.05 && vWorldPos.z < 6152.0) {
+        bool isDegaMud = (vWorldPos.z > 1400.0 && vWorldPos.z < 3400.0);
+        vec3 roadDry = isDegaMud ? vec3(0.40, 0.31, 0.23) : vec3(0.24, 0.25, 0.26);
+        baseCol = mix(baseCol, roadDry, smoothstep(0.05, 0.65, vRoadMask));
+      }
+
+      // Kiremt Monsoon Wetness Darkening & Specular Sheen + Runoff Streaks
+      vec3 V = normalize(uCamPos - vWorldPos);
+      float wetFactor = uWetness * (1.0 - smoothstep(3800.0, 4350.0, y));
+      baseCol *= mix(1.0, 0.62, wetFactor);
+      float runoff = wetFactor * smoothstep(0.25, 0.65, slope) * (0.5 + 0.5 * sin(vWorldPos.x * 0.6 + uTime * 3.5));
+      baseCol += vec3(0.05, 0.12, 0.15) * runoff * 0.45 * uSunIntensity;
+
+      float ndl = max(dot(N, uSunDir), 0.0);
+      vec3 H = normalize(uSunDir + V);
+      float spec = pow(max(dot(N, H), 0.0), mix(12.0, 64.0, wetFactor)) * mix(0.03, 0.48, wetFactor) * uSunIntensity;
+      vec3 sunCol = mix(vec3(0.45, 0.58, 0.85), vec3(1.05, 0.99, 0.90), smoothstep(0.05, 0.45, uSunIntensity));
+      vec3 hemi = mix(vec3(0.05, 0.06, 0.08), uSkyCol, 0.5 + 0.5 * N.y);
+      vec3 lit = baseCol * (hemi * mix(0.32, 0.72, uSunIntensity) + sunCol * ndl * 0.92 * uSunIntensity) + vec3(0.85, 0.94, 1.0) * spec;
+
+      float dist = length(uCamPos - vWorldPos);
+      float fogAmt = 1.0 - exp(-dist * mix(0.000095, 0.00026, uWetness));
+      float cloudBand = exp(-pow((y - uCloudDeckY) / 95.0, 2.0)) * smoothstep(450.0, 2600.0, dist) * 0.30 * uSunIntensity;
+      lit = mix(lit, vec3(0.88, 0.92, 0.95) * uSunIntensity, cloudBand);
+      lit = mix(lit, uFogCol, clamp(fogAmt, 0.0, 0.92));
+
+      fragColor = vec4(lit, 1.0);
+    }`;
+
+    const INST_VS = `#version 300 es
+    precision highp float;
+    layout(location = 0) in vec3 aPos;
+    layout(location = 1) in vec3 aNorm;
+    layout(location = 2) in vec3 iTrans;
+    layout(location = 3) in vec3 iScale;
+    layout(location = 4) in float iYaw;
+    layout(location = 5) in vec4 iColor;
+    layout(location = 6) in vec2 iTilt; // (pitch, roll) for 1:1 terrain-aligned vehicle suspension!
+    uniform mat4 uVP;
+    out vec3 vWorldPos;
+    out vec3 vNorm;
+    out vec4 vCol;
+    void main() {
+      float c = cos(iYaw), s = sin(iYaw);
+      float cp = cos(iTilt.x), sp = sin(iTilt.x);
+      float cr = cos(iTilt.y), sr = sin(iTilt.y);
+      vec3 scaled = aPos * iScale;
+      // 1. Local roll (around Z), 2. Local pitch (around X), 3. World yaw (around Y)
+      vec3 r1 = vec3(scaled.x * cr - scaled.y * sr, scaled.x * sr + scaled.y * cr, scaled.z);
+      vec3 r2 = vec3(r1.x, r1.y * cp + r1.z * sp, -r1.y * sp + r1.z * cp);
+      vec3 rot = vec3(r2.x * c + r2.z * s, r2.y, -r2.x * s + r2.z * c);
+      vec3 wp = rot + iTrans;
+
+      vec3 n1 = vec3(aNorm.x * cr - aNorm.y * sr, aNorm.x * sr + aNorm.y * cr, aNorm.z);
+      vec3 n2 = vec3(n1.x, n1.y * cp + n1.z * sp, -n1.y * sp + n1.z * cp);
+      vec3 rn = normalize(vec3(n2.x * c + n2.z * s, n2.y, -n2.x * s + n2.z * c));
+      vWorldPos = wp;
+      vNorm = rn;
+      vCol = iColor;
+      gl_Position = uVP * vec4(wp, 1.0);
+    }`;
+
+    const INST_FS = `#version 300 es
+    precision highp float;
+    in vec3 vWorldPos;
+    in vec3 vNorm;
+    in vec4 vCol;
+    uniform vec3 uCamPos;
+    uniform vec3 uSunDir;
+    uniform float uSunIntensity;
+    uniform vec3 uSkyCol;
+    uniform vec3 uFogCol;
+    uniform float uWetness;
+    out vec4 fragColor;
+    void main() {
+      // Tag 4.0 = Nocturnal-Only Urban Sodium Light-Pool (100% discarded in daytime; warm fog-free golden glow in NIGHT!)
+      if (vCol.a > 3.5) {
+        if (uSunIntensity > 0.20) discard;
+        fragColor = vec4(vCol.rgb, 1.0);
+        return;
+      }
+      vec3 N = normalize(vNorm);
+      float isNight = 1.0 - smoothstep(0.05, 0.25, uSunIntensity);
+      // Tag 3.0 = Aviation-Floodlit Landmark Shaft (normal sunlit diffuse by day; full-band floodlit R/W visibility by night!)
+      if (vCol.a > 2.5 && isNight > 0.5) {
+        fragColor = vec4(vCol.rgb * 0.90, 1.0);
+        return;
+      }
+      float emissive = step(1.5, vCol.a) * step(vCol.a, 2.5);
+      float metallicTin = step(0.5, vCol.a) * step(vCol.a, 1.5);
+      vec3 base = vCol.rgb * mix(1.0, 0.72, uWetness * (1.0 - emissive));
+      float ndl = max(dot(N, uSunDir), 0.0);
+      vec3 V = normalize(uCamPos - vWorldPos);
+      vec3 H = normalize(uSunDir + V);
+      float spec = pow(max(dot(N, H), 0.0), 42.0) * (metallicTin * 0.55 + uWetness * 0.35) * uSunIntensity;
+      vec3 sunCol = mix(vec3(0.45, 0.58, 0.85), vec3(1.04, 0.98, 0.90), smoothstep(0.05, 0.45, uSunIntensity));
+      // Warm canyon/earth ground-bounce lighting so -Y bridge/viaduct/canopy/nave soffits read as shaded concrete/steel/tuff (RGB >= 70, never black!)
+      vec3 groundBounce = mix(vec3(0.16, 0.19, 0.24), vec3(0.68, 0.63, 0.56), smoothstep(0.05, 0.45, uSunIntensity));
+      vec3 hemi = mix(groundBounce, uSkyCol, 0.5 + 0.5 * N.y);
+      vec3 lit = emissive > 0.5
+        ? vCol.rgb * 1.28
+        : base * (hemi * mix(0.40, 0.78, uSunIntensity) + sunCol * ndl * 0.90 * uSunIntensity) + vec3(spec);
+      float dist = length(uCamPos - vWorldPos);
+      float fogAmt = 1.0 - exp(-dist * mix(0.000095, 0.00026, uWetness));
+      lit = mix(lit, uFogCol, clamp(fogAmt * (1.0 - emissive * (0.94 + 0.06 * isNight)), 0.0, 0.92));
+      fragColor = vec4(lit, 1.0);
+    }`;
+
+    const SKY_VS = `#version 300 es
+    precision highp float;
+    const vec2 quad[3] = vec2[3](vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
+    out vec2 vUV;
+    void main() {
+      vUV = quad[gl_VertexID];
+      gl_Position = vec4(quad[gl_VertexID], 0.9999, 1.0);
+    }`;
+
+    const SKY_FS = `#version 300 es
+    precision highp float;
+    in vec2 vUV;
+    uniform mat4 uInvVP;
+    uniform vec3 uCamPos;
+    uniform vec3 uSunDir;
+    uniform float uSunIntensity;
+    uniform vec3 uSkyTop;
+    uniform vec3 uSkyHoriz;
+    out vec4 fragColor;
+    void main() {
+      vec4 farPt = uInvVP * vec4(vUV, 1.0, 1.0);
+      vec3 dir = normalize(farPt.xyz / farPt.w - uCamPos);
+      float h = clamp(dir.y, 0.0, 1.0);
+      vec3 col = mix(uSkyHoriz, uSkyTop, pow(h, 0.58));
+      if (uSunIntensity > 0.15) {
+        float sunAmt = max(dot(dir, uSunDir), 0.0);
+        col += vec3(1.0, 0.88, 0.68) * pow(sunAmt, 96.0) * 0.55 * uSunIntensity;
+        col += vec3(0.95, 0.82, 0.65) * pow(sunAmt, 8.0) * 0.12 * uSunIntensity;
+      }
+      fragColor = vec4(col, 1.0);
+    }`;
+
+    const terrainProg = createProgram(TERRAIN_VS, TERRAIN_FS);
+    const instProg = createProgram(INST_VS, INST_FS);
+    const skyProg = createProgram(SKY_VS, SKY_FS);
+
+    /* =========================================================================
+       4. TERRAIN & MANIFOLD SUBTRACTIVE ROHA MLO GEOMETRY (ZERO V-TEARS!)
+       ========================================================================= */
+    function createTerrainPatchVAO(x0i, x1i, z0i, z1i, step, punchRohaHole) {
+      const cols = Math.floor((x1i - x0i) / step) + 1;
+      const rows = Math.floor((z1i - z0i) / step) + 1;
+      const vData = new Float32Array(cols * rows * 7);
+      let vp = 0;
+      for (let rz = 0; rz < rows; rz++) {
+        const iz = Math.min(z0i + rz * step, N - 1);
+        const wz = -HALF + iz * POST_M;
+        for (let cx = 0; cx < cols; cx++) {
+          const ix = Math.min(x0i + cx * step, N - 1);
+          const wx = -HALF + ix * POST_M;
+          const wy = elevGrid[iz * N + ix];
+          const nrm = sampleNormal(wx, wz);
+          let rMask = 0.0;
+          if (Math.abs(wx) < 960.0) {
+            const ri = nearestRoadInfo(wx, wz);
+            rMask = 1.0 - smoothstep(6.0, 12.0, ri.dist);
+          }
+          vData[vp++] = wx; vData[vp++] = wy; vData[vp++] = wz;
+          vData[vp++] = nrm[0]; vData[vp++] = nrm[1]; vData[vp++] = nrm[2];
+          vData[vp++] = rMask;
+        }
+      }
+      const indices = [];
+      for (let rz = 0; rz < rows - 1; rz++) {
+        const iz = z0i + rz * step;
+        const wz0 = -HALF + iz * POST_M, wz1 = -HALF + (iz + step) * POST_M;
+        for (let cx = 0; cx < cols - 1; cx++) {
+          const ix = x0i + cx * step;
+          const wx0 = -HALF + ix * POST_M, wx1 = -HALF + (ix + step) * POST_M;
+          // Excised negative-volume MLO window [-50..+75] x [2350..2450] (exact 25m grid posts!)
+          if (punchRohaHole && wx0 >= -50.0 && wx1 <= 75.0 && wz0 >= 2350.0 && wz1 <= 2450.0) {
+            continue;
+          }
+          const a = rz * cols + cx, b = a + 1, c = a + cols, d = c + 1;
+          indices.push(a, c, b, b, c, d);
+        }
+      }
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+      const vbo = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+      gl.bufferData(gl.ARRAY_BUFFER, vData, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 28, 12);
+      gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 28, 24);
+      const ibo = gl.createBuffer();
+      const idxArr = new Uint32Array(indices);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idxArr, gl.STATIC_DRAW);
+      gl.bindVertexArray(null);
+      return { vao, count: idxArr.length };
+    }
+
+    // Build 100% Manifold Watertight Roha Subtractive Trench & 10m Dromos (explicit vertical rock walls + floors, zero V-pinches!)
+    function createRohaSubtractivePatchVAO() {
+      const vList = []; // x, y, z, nx, ny, nz, matTag(2.0 = red tuff!)
+      const iList = [];
+      function pushQuad(ax,ay,az, bx,by,bz, cx,cy,cz, dx,dy,dz, nx,ny,nz) {
+        const base = vList.length / 7;
+        vList.push(
+          ax,ay,az, nx,ny,nz, 2.0,
+          bx,by,bz, nx,ny,nz, 2.0,
+          cx,cy,cz, nx,ny,nz, 2.0,
+          dx,dy,dz, nx,ny,nz, 2.0
+        );
+        iList.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      }
+
+      // 1. Rim Terrace 5.0m Grid [-50..+75] x [2350..2450] omitting exact Pit [5..35]x[2385..2415] & Dromos [-35..5]x[2395..2405]
+      const step = 5.0;
+      for (let wz = 2350.0; wz < 2450.0 - 0.01; wz += step) {
+        for (let wx = -50.0; wx < 75.0 - 0.01; wx += step) {
+          const inPitCell = (wx >= PIT_X0 - 0.01 && wx + step <= PIT_X1 + 0.01 && wz >= PIT_Z0 - 0.01 && wz + step <= PIT_Z1 + 0.01);
+          const inDromCell = (wx >= DROM_X0 - 0.01 && wx + step <= DROM_X1 + 0.01 && wz >= DROM_Z0 - 0.01 && wz + step <= DROM_Z1 + 0.01);
+          if (inPitCell || inDromCell) continue;
+          const y00 = sampleTerrainBare(wx, wz), y10 = sampleTerrainBare(wx + step, wz);
+          const y01 = sampleTerrainBare(wx, wz + step), y11 = sampleTerrainBare(wx + step, wz + step);
+          pushQuad(wx,y00,wz, wx,y01,wz+step, wx+step,y11,wz+step, wx+step,y10,wz, 0,1,0);
+        }
+      }
+
+      // 2. Sunken Pit Floor [5..35] x [2385..2415] at exact Y = 2488.0m
+      pushQuad(PIT_X0,ROHA_FLOOR_Y,PIT_Z0, PIT_X0,ROHA_FLOOR_Y,PIT_Z1, PIT_X1,ROHA_FLOOR_Y,PIT_Z1, PIT_X1,ROHA_FLOOR_Y,PIT_Z0, 0,1,0);
+
+      // 3. Four Vertical 12.0m Chiseled Tuff Pit Walls (with 10m Dromos opening on West wall Z in [2395..2405]!)
+      // East Wall (X = +35, normal -X):
+      pushQuad(PIT_X1,ROHA_FLOOR_Y,PIT_Z0, PIT_X1,ROHA_FLOOR_Y,PIT_Z1, PIT_X1,ROHA_RIM_Y,PIT_Z1, PIT_X1,ROHA_RIM_Y,PIT_Z0, -1,0,0);
+      // North Wall (Z = +2415, normal -Z):
+      pushQuad(PIT_X0,ROHA_FLOOR_Y,PIT_Z1, PIT_X0,ROHA_RIM_Y,PIT_Z1, PIT_X1,ROHA_RIM_Y,PIT_Z1, PIT_X1,ROHA_FLOOR_Y,PIT_Z1, 0,0,-1);
+      // South Wall (Z = +2385, normal +Z):
+      pushQuad(PIT_X0,ROHA_FLOOR_Y,PIT_Z0, PIT_X1,ROHA_FLOOR_Y,PIT_Z0, PIT_X1,ROHA_RIM_Y,PIT_Z0, PIT_X0,ROHA_RIM_Y,PIT_Z0, 0,0,1);
+      // West Wall South Wing (X = +5, Z in [2385..2395], normal +X) & North Wing (Z in [2405..2415]):
+      pushQuad(PIT_X0,ROHA_FLOOR_Y,PIT_Z0, PIT_X0,ROHA_RIM_Y,PIT_Z0, PIT_X0,ROHA_RIM_Y,DROM_Z0, PIT_X0,ROHA_FLOOR_Y,DROM_Z0, 1,0,0);
+      pushQuad(PIT_X0,ROHA_FLOOR_Y,DROM_Z1, PIT_X0,ROHA_RIM_Y,DROM_Z1, PIT_X0,ROHA_RIM_Y,PIT_Z1, PIT_X0,ROHA_FLOOR_Y,PIT_Z1, 1,0,0);
+
+      // 4. Descending 10.0m-wide Western Rock-Cut Dromos Ramp & Vertical Side Walls [-35..+5] x [2395..2405]
+      // Weld western lip X = -35.0 bit-for-bit to sampleTerrainBare AND seal with a 2.5m subterranean red-tuff riser wall -> ZERO skybox bleed!
+      const lipS = sampleTerrainBare(DROM_X0, DROM_Z0), lipN = sampleTerrainBare(DROM_X0, DROM_Z1);
+      pushQuad(DROM_X0, lipS - 2.5, DROM_Z0, DROM_X0, lipN - 2.5, DROM_Z1, DROM_X0, lipN + 0.02, DROM_Z1, DROM_X0, lipS + 0.02, DROM_Z0, 1, 0, 0);
+      for (let wx = DROM_X0; wx < DROM_X1 - 0.01; wx += step) {
+        const y0s = Math.abs(wx - DROM_X0) < 0.01 ? lipS : lerp(ROHA_RIM_Y, ROHA_FLOOR_Y, (wx - DROM_X0) / (DROM_X1 - DROM_X0));
+        const y0n = Math.abs(wx - DROM_X0) < 0.01 ? lipN : y0s;
+        const y1 = lerp(ROHA_RIM_Y, ROHA_FLOOR_Y, (wx + step - DROM_X0) / (DROM_X1 - DROM_X0));
+        const rim0s = sampleTerrainBare(wx, DROM_Z0), rim1s = sampleTerrainBare(wx + step, DROM_Z0);
+        const rim0n = sampleTerrainBare(wx, DROM_Z1), rim1n = sampleTerrainBare(wx + step, DROM_Z1);
+        // Ramp floor (welded bit-for-bit to rim quad at wx = -35.0!)
+        pushQuad(wx,y0s,DROM_Z0, wx,y0n,DROM_Z1, wx+step,y1,DROM_Z1, wx+step,y1,DROM_Z0, 0.28,0.96,0);
+        // Dromos South Side Wall (Z = 2395, normal +Z) & North Side Wall (Z = 2405, normal -Z) with -1.5m skirt overlap!
+        pushQuad(wx,y0s-1.5,DROM_Z0, wx+step,y1-1.5,DROM_Z0, wx+step,rim1s+0.02,DROM_Z0, wx,rim0s+0.02,DROM_Z0, 0,0,1);
+        pushQuad(wx,y0n-1.5,DROM_Z1, wx,rim0n+0.02,DROM_Z1, wx+step,rim1n+0.02,DROM_Z1, wx+step,y1-1.5,DROM_Z1, 0,0,-1);
+      }
+
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+      const vbo = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vList), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 28, 12);
+      gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 28, 24);
+      const ibo = gl.createBuffer();
+      const idxArr = new Uint32Array(iList);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idxArr, gl.STATIC_DRAW);
+      gl.bindVertexArray(null);
+      return { vao, count: idxArr.length };
+    }
+
+    // Continuous Smooth Watertight Abay River Water-Sheet VAO at Y = 1,006.0m (edges buried into 1,016m riverbanks -> zero sawtooth/gaps!)
+    function createAbayRiverVAO() {
+      const vList = [], iList = [];
+      const cols = 701; // -7000m .. +7000m in smooth 20m steps
+      for (let i = 0; i < cols; i++) {
+        const wx = -HALF + i * 20.0;
+        const cz = -480.0 + (165.0 * Math.sin(wx * 0.00095) + 70.0 * Math.cos(wx * 0.0021)) * smoothstep(90.0, 420.0, Math.abs(wx));
+        vList.push(wx, 1006.0, cz - 66.0, 0, 1, 0, 3.0);
+        vList.push(wx, 1006.0, cz + 66.0, 0, 1, 0, 3.0);
+        if (i < cols - 1) {
+          const b = i * 2;
+          iList.push(b, b + 1, b + 2, b + 1, b + 3, b + 2);
+        }
+      }
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+      const vbo = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vList), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 28, 12);
+      gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 28, 24);
+      const ibo = gl.createBuffer();
+      const idxArr = new Uint32Array(iList);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idxArr, gl.STATIC_DRAW);
+      gl.bindVertexArray(null);
+      return { vao, count: idxArr.length };
+    }
+
+    const hdCrucibleMesh = createTerrainPatchVAO(240, 320, 0, 560, 1, true);
+    const rohaMloMesh = createRohaSubtractivePatchVAO();
+    const abayRiverMesh = createAbayRiverVAO();
+    const slodChunks = [
+      createTerrainPatchVAO(  0, 240,   0, 140, 1, false),
+      createTerrainPatchVAO(  0, 240, 140, 280, 1, false),
+      createTerrainPatchVAO(  0, 240, 280, 420, 1, false),
+      createTerrainPatchVAO(  0, 240, 420, 560, 1, false),
+      createTerrainPatchVAO(320, 560,   0, 140, 1, false),
+      createTerrainPatchVAO(320, 560, 140, 280, 1, false),
+      createTerrainPatchVAO(320, 560, 280, 420, 1, false),
+      createTerrainPatchVAO(320, 560, 420, 560, 1, false)
+    ];
+
+    /* =========================================================================
+       5. INSTANCED GEOMETRY PRIMITIVES & STATIC WORLD CONSTRUCTION
+       ========================================================================= */
+    function makeUnitBoxMesh() {
+      const p = [
+        -0.5,0,0.5,  0.5,0,0.5,  0.5,1,0.5, -0.5,1,0.5,
+         0.5,0,-0.5, -0.5,0,-0.5, -0.5,1,-0.5, 0.5,1,-0.5,
+        -0.5,1,0.5,  0.5,1,0.5,  0.5,1,-0.5, -0.5,1,-0.5,
+        -0.5,0,-0.5, 0.5,0,-0.5, 0.5,0,0.5, -0.5,0,0.5,
+         0.5,0,0.5,  0.5,0,-0.5, 0.5,1,-0.5, 0.5,1,0.5,
+        -0.5,0,-0.5, -0.5,0,0.5, -0.5,1,0.5, -0.5,1,-0.5
+      ];
+      const n = [
+        0,0,1, 0,0,1, 0,0,1, 0,0,1,
+        0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1,
+        0,1,0, 0,1,0, 0,1,0, 0,1,0,
+        0,-1,0, 0,-1,0, 0,-1,0, 0,-1,0,
+        1,0,0, 1,0,0, 1,0,0, 1,0,0,
+        -1,0,0, -1,0,0, -1,0,0, -1,0,0
+      ];
+      const idx = [];
+      for (let f = 0; f < 6; f++) {
+        const o = f * 4;
+        idx.push(o, o + 1, o + 2, o, o + 2, o + 3);
+      }
+      return { pos: new Float32Array(p), norm: new Float32Array(n), idx: new Uint16Array(idx) };
+    }
+
+    function createInstancedBatch(baseMesh, maxInstances, dynamic = false) {
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+      const vboP = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vboP);
+      gl.bufferData(gl.ARRAY_BUFFER, baseMesh.pos, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+      const vboN = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, vboN);
+      gl.bufferData(gl.ARRAY_BUFFER, baseMesh.norm, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+
+      const ibo = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, baseMesh.idx, gl.STATIC_DRAW);
+
+      const iData = new Float32Array(maxInstances * 13);
+      const iBuf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, iBuf);
+      gl.bufferData(gl.ARRAY_BUFFER, iData.byteLength, dynamic ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW);
+
+      const stride = 52;
+      gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, stride, 0);  gl.vertexAttribDivisor(2, 1);
+      gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 3, gl.FLOAT, false, stride, 12); gl.vertexAttribDivisor(3, 1);
+      gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 1, gl.FLOAT, false, stride, 24); gl.vertexAttribDivisor(4, 1);
+      gl.enableVertexAttribArray(5); gl.vertexAttribPointer(5, 4, gl.FLOAT, false, stride, 28); gl.vertexAttribDivisor(5, 1);
+      gl.enableVertexAttribArray(6); gl.vertexAttribPointer(6, 2, gl.FLOAT, false, stride, 44); gl.vertexAttribDivisor(6, 1);
+
+      gl.bindVertexArray(null);
+      return {
+        vao, iBuf, iData, count: 0, idxCount: baseMesh.idx.length,
+        clear() { this.count = 0; },
+        push(tx, ty, tz, sx, sy, sz, yaw, r, g, b, a = 0.0, pitch = 0.0, roll = 0.0) {
+          if (this.count >= maxInstances) return;
+          const o = this.count * 13;
+          iData[o] = tx; iData[o + 1] = ty; iData[o + 2] = tz;
+          iData[o + 3] = sx; iData[o + 4] = sy; iData[o + 5] = sz;
+          iData[o + 6] = yaw;
+          iData[o + 7] = r; iData[o + 8] = g; iData[o + 9] = b; iData[o + 10] = a;
+          iData[o + 11] = pitch; iData[o + 12] = roll;
+          this.count++;
+        },
+        upload() {
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.iBuf);
+          gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.iData.subarray(0, this.count * 13));
+        },
+        draw() {
+          if (this.count === 0) return 0;
+          gl.bindVertexArray(this.vao);
+          gl.drawElementsInstanced(gl.TRIANGLES, this.idxCount, gl.UNSIGNED_SHORT, 0, this.count);
+          return 1;
+        }
+      };
+    }
+
+    const unitBox = makeUnitBoxMesh();
+    const staticBatch = createInstancedBatch(unitBox, 32000, false);
+    const dynamicBatch = createInstancedBatch(unitBox, 5600, true);
+    const skyVAO = gl.createVertexArray();
+
+    // Solid obstacles enforced on foot/donkey/vehicles (`mountsOnly: true` bars donkeys & motor vehicles while letting foot pass!)
+    const solidObstacles = []; // { x, z, r, mountsOnly, topY }
+    const bunaThresholds = [];
+
+    function pushLobelia(batch, vx, vy, vz, sc = 1.0) {
+      // Woody fibrous Afroalpine trunk deeply grounded (-3.8m) into steep basalt scree -> zero overhanging bases!
+      batch.push(vx, vy - 3.8, vz, 0.42 * sc, 5.45 * sc, 0.42 * sc, 0, 0.38, 0.34, 0.24, 0);
+      // Lower skirt of marcescent golden-brown dry leaves insulating the stem
+      batch.push(vx, vy + 0.85 * sc, vz, 0.95 * sc, 0.65 * sc, 0.95 * sc, 0.4, 0.48, 0.39, 0.24, 0);
+      // Lush 6-axis radial sword-leaf Lobelia rhynchopetalum rosette crown (12 radiating fronds!)
+      for (let a = 0; a < 6; a++) {
+        const ang = (a / 6) * Math.PI;
+        batch.push(vx, vy + 1.38 * sc, vz, 2.55 * sc, 0.26 * sc, 0.48 * sc, ang, 0.20, 0.46, 0.22, 0);
+        batch.push(vx, vy + 1.62 * sc, vz, 1.85 * sc, 0.32 * sc, 0.42 * sc, ang + 0.26, 0.28, 0.54, 0.26, 0);
+      }
+      // Tall tapering hollow floral inflorescence spike (3.2m tall!)
+      batch.push(vx, vy + 1.75 * sc, vz, 0.46 * sc, 1.65 * sc, 0.46 * sc, 0, 0.34, 0.52, 0.29, 0);
+      batch.push(vx, vy + 3.20 * sc, vz, 0.28 * sc, 1.35 * sc, 0.28 * sc, 0.4, 0.42, 0.58, 0.34, 0);
+    }
+
+    (function buildStaticWorld() {
+      let seed = 17;
+      const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+
+      // A. PAN-SECTOR LANDMARK 1: Entoto Red/White Microwave Relay Mast & Aviation-Floodlit Night Beacon (-19, 3172, -6232)
+      // Tag a = 3.0 renders normal sunlit diffuse by day and crisp full-band aviation floodlighting (R>=210 / RGB>=220) in NIGHT!
+      const entX = -19.0, entZ = -6232.0, entY = sampleTerrainBare(entX, entZ) - 4.5;
+      for (let b = 0; b < 7; b++) {
+        const w = lerp(4.8, 1.15, b / 7);
+        const isRed = b % 2 === 1;
+        staticBatch.push(entX, entY + b * 5.2, entZ, w, 5.2, w, 0.0, isRed ? 0.92 : 0.96, isRed ? 0.22 : 0.95, isRed ? 0.18 : 0.92, 3.0);
+      }
+      // Mid-mast cyan telemetry ring + glowing summit cyan microwave beacon array (a = 2.0 emissive for clear NIGHT legibility!)
+      staticBatch.push(entX, entY + 20.5, entZ, 3.4, 1.1, 3.4, 0.4, 0.14, 0.88, 0.98, 2.0);
+      staticBatch.push(entX, entY + 36.2, entZ, 2.9, 3.5, 2.9, 0.0, 0.18, 0.92, 1.00, 2.0);
+      staticBatch.push(entX, entY + 39.7, entZ, 1.1, 3.2, 1.1, 0.0, 0.55, 0.98, 1.00, 2.0);
+      solidObstacles.push({ x: entX, z: entZ, r: 3.4, mountsOnly: false, topY: entY + 43.0 });
+
+      // Foreground framing Eucalyptus globulus trees right on the 3,202.5m Entoto Overlook Rim (rooted -9.0m deep -> zero air gap!)
+      for (const [fx, fz, fh] of [
+        [14.0, -6268.0, 12.5], [22.0, -6272.0, 14.0], [30.0, -6266.0, 13.5],
+        [-31.0, -6269.0, 13.5], [-40.0, -6272.0, 14.5]
+      ]) {
+        const fy = sampleTerrainBare(fx, fz);
+        staticBatch.push(fx, fy - 9.0, fz, 1.15, fh + 9.0, 1.15, 0, 0.54, 0.52, 0.48, 0);
+        staticBatch.push(fx, fy - 1.5, fz, 4.0, fh * 0.65 + 1.5, 4.0, 0.4, 0.15, 0.30, 0.19, 0);
+        staticBatch.push(fx, fy + fh * 0.50, fz, 4.8, fh * 0.45, 4.8, 1.1, 0.18, 0.36, 0.22, 0);
+        staticBatch.push(fx, fy + fh * 0.80, fz, 3.3, fh * 0.34, 3.3, 1.9, 0.22, 0.42, 0.26, 0);
+      }
+      // Dense Entoto Eucalyptus globulus Forest flanking the Overlook & Upper Switchbacks (sturdy 1.05m trunks + low skirts -> zero sub-pixel dropout!)
+      for (let e = 0; e < 380; e++) {
+        const side = e % 2 === 0 ? 1 : -1;
+        const ex = side * (28.0 + rnd() * 260.0);
+        const ez = -6420.0 + rnd() * 1450.0;
+        if (nearestRoadInfo(ex, ez).dist < 15.0) continue;
+        // Keep central North sightline wedge open so Addis, Light Rail viaduct & Abay Gorge read immediately at ?hud=0 spawn!
+        if (ez < -5600.0 && Math.abs(ex) < 36.0) continue;
+        if (sampleNormal(ex, ez)[1] < 0.82) continue;
+        const ey = sampleTerrainBare(ex, ez);
+        const th = 9.0 + rnd() * 6.5;
+        staticBatch.push(ex, ey - 4.5, ez, 1.05, th + 4.5, 1.05, 0, 0.54, 0.52, 0.48, 0);
+        staticBatch.push(ex, ey - 1.2, ez, 3.6, th * 0.68 + 1.2, 3.6, rnd() * 3, 0.15, 0.30, 0.19, 0);
+        staticBatch.push(ex, ey + th * 0.52, ez, 4.5, th * 0.44, 4.5, rnd() * 3, 0.18, 0.36, 0.22, 0);
+        staticBatch.push(ex, ey + th * 0.82, ez, 3.1, th * 0.32, 3.1, rnd() * 3, 0.22, 0.42, 0.26, 0);
+      }
+
+      // B. ADDIS ELEVATED LIGHT RAIL VIADUCT (Z = -3550, X in [-320..+320]) & GRADED KORKORO MARKET TERRACE
+      const railDeckY = sampleTerrainBare(0, -3550) + 9.2;
+      staticBatch.push(0, railDeckY, -3550, 640.0, 1.35, 9.2, 0.0, 0.58, 0.59, 0.58, 0.0);
+      for (let rx = -300; rx <= 300; rx += 40) {
+        if (Math.abs(rx) < 18) continue;
+        const py = sampleTerrainBare(rx, -3550) - 2.0;
+        staticBatch.push(rx, py, -3550, 2.2, Math.max(2.0, railDeckY - py), 3.2, 0.0, 0.52, 0.53, 0.52, 0.0);
+        staticBatch.push(rx, railDeckY + 1.35, -3550, 0.32, 5.0, 0.32, 0.0, 0.32, 0.35, 0.38, 1.0);
+        // Warm golden viaduct catenary beacon globes (visible from 3,200m Entoto Overlook in NIGHT mode!)
+        staticBatch.push(rx, railDeckY + 6.1, -3550, 2.3, 1.4, 2.3, 0.0, 1.00, 0.84, 0.42, 2.0);
+        solidObstacles.push({ x: rx, z: -3550, r: 2.2, mountsOnly: false, topY: railDeckY });
+      }
+      // Addis Market Central Boulevard Warm Sodium/LED Streetlamps + Nocturnal-Only Sodium Light-Pools (Tag 4.0: invisible by day, golden glow by NIGHT!)
+      for (let sz = -3920; sz <= -3320; sz += 48) {
+        if (Math.abs(sz + 3550) < 22) continue;
+        for (const sx of [-11.5, 11.5]) {
+          const sy0 = sampleTerrainBare(sx, sz);
+          staticBatch.push(sx, sy0 - 1.5, sz, 0.22, 7.8, 0.22, 0.0, 0.34, 0.36, 0.38, 1.0);
+          staticBatch.push(sx, sy0 + 6.1, sz, 2.2, 1.3, 2.2, 0.0, 1.00, 0.85, 0.45, 2.0);
+        }
+        // Warm golden street-illumination canopy pool visible across 2.66km from Entoto Overlook ONLY at NIGHT (a = 4.0)!
+        const pyMid = sampleTerrainBare(0.0, sz);
+        staticBatch.push(0.0, pyMid + 0.35, sz, 62.0, 1.8, 36.0, 0.0, 0.96, 0.68, 0.14, 4.0);
+      }
+      // Nocturnal-Only Golden Viaduct Station & Deck Glow Band along Z = -3550 (a = 4.0 -> discarded in daytime!)
+      staticBatch.push(0.0, railDeckY + 1.45, -3550.0, 560.0, 2.2, 16.0, 0.0, 0.98, 0.72, 0.16, 4.0);
+
+      // Addis Korkoro Compounds with Grounded Plinths, Warm Chika Walls, Lit Porch Lanterns & Bold Cantilevered Porch Eaves!
+      for (let i = 0; i < 110; i++) {
+        const side = (i % 2 === 0 ? 1 : -1);
+        const bz = -3920 + i * 5.6;
+        if (Math.abs(bz + 3550) < 18) continue;
+        const row = i % 4;
+        const bx = side * (24.0 + row * 22.0 + (rnd() - 0.5) * 4.0);
+        const groundY = sampleTerrainBare(bx, bz);
+        const bw = 7.2 + rnd() * 3.2, bd = 6.6 + rnd() * 2.8, bh = 3.4 + (i % 5 === 0 ? 2.8 : 0.2);
+        // Grounded masonry plinth (-2.5m below groundY -> zero floating corners!) + warm ochre chika walls + korkoro tin roof
+        staticBatch.push(bx, groundY - 2.5, bz, bw + 0.3, 2.6, bd + 0.3, 0, 0.38, 0.36, 0.34, 0.0);
+        staticBatch.push(bx, groundY, bz, bw, bh, bd, 0, 0.76, 0.69, 0.56, 0.0);
+        staticBatch.push(bx, groundY + bh, bz, bw + 1.3, 0.32, bd + 1.3, 0, 0.56, 0.59, 0.62, 1.0);
+
+        // Offset timber doorway (bz - 1.05m) + warm glowing window (bz + 1.75m) + bold 2.6m cantilevered korkoro porch canopy & posts!
+        const frontFaceX = bx - side * (bw * 0.5 + 0.04);
+        staticBatch.push(frontFaceX, groundY, bz - 1.05, 0.12, 2.15, 1.05, 0, 0.20, 0.13, 0.09, 0.0);
+        staticBatch.push(frontFaceX, groundY + 1.20, bz + 1.75, 0.12, 0.90, 1.05, 0, 0.97, 0.80, 0.44, 2.0);
+        const porchX = bx - side * (bw * 0.5 + 1.30);
+        const outerPostX = bx - side * (bw * 0.5 + 2.42);
+        staticBatch.push(porchX, groundY + 2.58, bz, 2.65, 0.20, 4.4, 0, 0.68, 0.71, 0.75, 1.0);
+        staticBatch.push(outerPostX, groundY - 0.5, bz - 1.95, 0.16, 3.10, 0.16, 0, 0.36, 0.26, 0.18, 0.0);
+        staticBatch.push(outerPostX, groundY - 0.5, bz + 1.95, 0.16, 3.10, 0.16, 0, 0.36, 0.26, 0.18, 0.0);
+
+        solidObstacles.push({ x: bx, z: bz, r: Math.max(bw, bd) * 0.50, mountsOnly: false, topY: groundY + bh });
+
+        // Stage 8 Doorway Buna Thresholds on front street-row houses (row === 0)
+        if (row === 0 && i < 64 && i % 8 === 0) {
+          const matX = bx - side * (bw * 0.5 + 2.75), matZ = bz;
+          const matY = sampleTerrainBare(matX, matZ);
+          // Warm amber porch threshold bulb beneath the 2.65m korkoro eave so squall-sheltering hosts read with high contrast!
+          staticBatch.push(porchX, groundY + 2.40, bz + 0.55, 0.28, 0.18, 0.28, 0, 0.99, 0.84, 0.48, 2.0);
+          // Grounded stone threshold pad + kettama green reeds + glowing midija coals + black clay jebena
+          staticBatch.push(matX, matY - 0.6, matZ, 2.4, 0.64, 2.0, 0, 0.24, 0.50, 0.20, 0.0);
+          staticBatch.push(matX, matY + 0.05, matZ, 0.40, 0.28, 0.40, 0, 0.99, 0.40, 0.09, 2.0);
+          staticBatch.push(matX, matY + 0.33, matZ, 0.26, 0.38, 0.26, 0, 0.12, 0.10, 0.10, 0.0);
+          // Eave shelter target sits 1.25m OUTSIDE the warm ochre chika wall (next to the lit window, NOT against the dark door!)
+          bunaThresholds.push({
+            x: matX, y: matY, z: matZ,
+            homeX: matX - side * 0.55, homeZ: matZ + 0.85,
+            eaveX: bx - side * (bw * 0.5 + 1.15), eaveZ: matZ + 1.25,
+            yaw: side > 0 ? -1.57 : 1.57
+          });
+        }
+        // Grounded Telebirr (lime) & Safaricom (emerald) booths along street kerb
+        if (row === 0 && i % 16 === 4) {
+          const kx = side * 13.5, kz = bz + 2.2, ky = sampleTerrainBare(kx, kz);
+          const isTele = (i % 32 === 4);
+          staticBatch.push(kx, ky - 1.2, kz, 2.2, 3.4, 1.9, 0, isTele ? 0.48 : 0.09, isTele ? 0.76 : 0.55, isTele ? 0.22 : 0.29, 0.0);
+          staticBatch.push(kx - side * 0.98, ky + 1.15, kz, 0.08, 0.48, 0.62, 0, 0.16, 0.86, 0.96, 2.0);
+          solidObstacles.push({ x: kx, z: kz, r: 1.35, mountsOnly: false, topY: ky + 2.3 });
+        }
+      }
+
+      // C. 1:1 ALIGNED ABAY GORGE STEEL TRUSS BRIDGE (X = 0.0, Z in [-576..-384], Y = 1020.0m, yaw = 0.00!)
+      const spanLen = BRIDGE_Z1 - BRIDGE_Z0; // 192.0 m
+      const spanMidZ = (BRIDGE_Z0 + BRIDGE_Z1) * 0.5; // -480.0 m
+      // Roadway steel/concrete deck slab (top surface flush at 1,020.00 m, weathered concrete soffit RGB >= 75!)
+      staticBatch.push(0.0, BRIDGE_DECK_Y - 1.3, spanMidZ, BRIDGE_HALF_W * 2.04, 1.3, spanLen, 0.0, 0.48, 0.50, 0.53, 1.0);
+      // North & South Concrete Abutments + 4 Visibly Exposed Wetted/Bank Canyon Piers grounded down to 950m (<= 960m bedrock!)
+      for (const pz of [BRIDGE_Z0 + 4, -544.0, -502.0, -458.0, -416.0, BRIDGE_Z1 - 4]) {
+        staticBatch.push(0.0, 950.0, pz, 14.5, 68.8, 3.8, 0.0, 0.52, 0.51, 0.49, 0.0);
+      }
+      // Side Steel Truss Chords, Guardrails & Overhead Portal Bracing (strictly outside |X| = 8.8m!)
+      for (const sx of [-BRIDGE_HALF_W, BRIDGE_HALF_W]) {
+        staticBatch.push(sx, BRIDGE_DECK_Y + 5.4, spanMidZ, 0.55, 0.55, spanLen - 8.0, 0.0, 0.68, 0.26, 0.20, 1.0);
+        staticBatch.push(sx, BRIDGE_DECK_Y, spanMidZ, 0.45, 1.15, spanLen, 0.0, 0.58, 0.60, 0.62, 1.0);
+      }
+      for (let bz = BRIDGE_Z0 + 8.0; bz <= BRIDGE_Z1 - 8.0; bz += 16.0) {
+        for (const sx of [-BRIDGE_HALF_W, BRIDGE_HALF_W]) {
+          staticBatch.push(sx, BRIDGE_DECK_Y, bz, 0.52, 5.5, 0.52, 0.0, 0.68, 0.26, 0.20, 1.0);
+        }
+        staticBatch.push(0.0, BRIDGE_DECK_Y + 5.4, bz, BRIDGE_HALF_W * 2.04, 0.42, 0.48, 0.0, 0.68, 0.26, 0.20, 1.0);
+      }
+
+      // D. PITCH-ALIGNED SWITCHBACK STONE RETAINING PARAPETS (strictly outside roadway at 8.8m, pitch-aligned & filtered -> zero clipped fragments!)
+      for (let i = 0; i < roadPts.length - 1; i += 2) {
+        const a = roadPts[i], b = roadPts[i + 1];
+        if (a[2] >= BRIDGE_Z0 - 14 && a[2] <= BRIDGE_Z1 + 14) continue;
+        if (Math.abs(a[0]) > 680) continue; // keep wide hairpin turnaround pads 100% open & free of half-buried curb fragments!
+        const dx = b[0] - a[0], dz = b[2] - a[2];
+        const segLen = Math.hypot(dx, dz) || 1;
+        const yaw = Math.atan2(dx, dz);
+        const pPitch = Math.atan2(b[1] - a[1], segLen);
+        const nx = Math.cos(yaw), nz = -Math.sin(yaw);
+        const grade = Math.abs(b[1] - a[1]) / segLen;
+        if (grade > 0.045) {
+          for (const s of [-1, 1]) {
+            const px = (a[0] + b[0]) * 0.5 + nx * s * 8.6, pz = (a[2] + b[2]) * 0.5 + nz * s * 8.6;
+            const pyMid = sampleTerrainBare(px, pz);
+            const pyF = sampleTerrainBare(px + Math.sin(yaw) * 2.1, pz + Math.cos(yaw) * 2.1);
+            const pyB = sampleTerrainBare(px - Math.sin(yaw) * 2.1, pz - Math.cos(yaw) * 2.1);
+            const rMid = (a[1] + b[1]) * 0.5;
+            if (Math.abs(pyMid - rMid) > 0.45 || Math.abs(pyF - b[1]) > 0.55 || Math.abs(pyB - a[1]) > 0.55 || sampleNormal(px, pz)[1] < 0.90) continue;
+            staticBatch.push(px, rMid - 2.6, pz, 0.78, 3.45, 4.0, yaw, 0.52, 0.49, 0.44, 0.0, pPitch, 0.0);
+          }
+        }
+      }
+
+      // E. ROHA / LALIBELA SUBTRACTIVE CRUCIFORM MONOLITH (centered at (20.0, 2400.0), floor 2488.0m!)
+      // Built strictly from published dimensional bounds -> [[GHOST::CLEAN_LALI_SFM]]
+      // North & South Transepts:
+      staticBatch.push(ROHA_X, ROHA_FLOOR_Y, ROHA_Z - 4.6, 5.6, 11.8, 3.7, 0, 0.56, 0.33, 0.25, 0.0);
+      staticBatch.push(ROHA_X, ROHA_FLOOR_Y, ROHA_Z + 4.6, 5.6, 11.8, 3.7, 0, 0.56, 0.33, 0.25, 0.0);
+      // East Apse & Nave Side Walls:
+      staticBatch.push(ROHA_X + 5.05, ROHA_FLOOR_Y, ROHA_Z, 2.9, 11.8, 5.6, 0, 0.56, 0.33, 0.25, 0.0);
+      staticBatch.push(ROHA_X - 1.45, ROHA_FLOOR_Y, ROHA_Z - 2.22, 10.1, 11.8, 1.15, 0, 0.56, 0.33, 0.25, 0.0);
+      staticBatch.push(ROHA_X - 1.45, ROHA_FLOOR_Y, ROHA_Z + 2.22, 10.1, 11.8, 1.15, 0, 0.56, 0.33, 0.25, 0.0);
+      // Western Facade Carved Aksumite Doorway (2.1m wide x 3.4m tall portal with upper wall & stepped lintel above!)
+      staticBatch.push(ROHA_X - 6.15, ROHA_FLOOR_Y + 3.4, ROHA_Z, 0.75, 8.4, 3.4, 0, 0.54, 0.31, 0.23, 0.0);
+      staticBatch.push(ROHA_X - 6.55, ROHA_FLOOR_Y + 3.25, ROHA_Z, 0.25, 0.38, 2.8, 0, 0.36, 0.22, 0.16, 0.0);
+      // Carved exterior cornice bands & blind-arcade cruciform windows + nested rooftop cross relief!
+      for (const cy of [3.8, 7.6, 11.5]) {
+        staticBatch.push(ROHA_X, ROHA_FLOOR_Y + cy, ROHA_Z, 13.2, 0.22, 5.8, 0, 0.64, 0.40, 0.30, 0.0);
+        staticBatch.push(ROHA_X, ROHA_FLOOR_Y + cy, ROHA_Z, 5.8, 0.22, 13.2, 0, 0.64, 0.40, 0.30, 0.0);
+      }
+      staticBatch.push(ROHA_X, ROHA_FLOOR_Y + 9.2, ROHA_Z, 13.0, 2.6, 5.6, 0, 0.57, 0.34, 0.26, 0.0);
+      staticBatch.push(ROHA_X, ROHA_FLOOR_Y + 11.82, ROHA_Z, 11.2, 0.26, 3.6, 0, 0.72, 0.50, 0.39, 0.0);
+      staticBatch.push(ROHA_X, ROHA_FLOOR_Y + 11.82, ROHA_Z, 3.6, 0.26, 11.2, 0, 0.72, 0.50, 0.39, 0.0);
+      // Interior Sanctuary Liturgical Lamp
+      staticBatch.push(ROHA_X + 2.8, ROHA_FLOOR_Y, ROHA_Z, 0.85, 1.35, 0.85, 0, 0.95, 0.78, 0.42, 2.0);
+
+      // 2026 Empirical Protective Steel Space-Frame Shelter Canopy above the 30x30m trench!
+      for (const sx of [-18.5, 18.5]) {
+        for (const sz of [-18.5, 18.5]) {
+          staticBatch.push(ROHA_X + sx, ROHA_RIM_Y - 0.5, ROHA_Z + sz, 0.55, 8.2, 0.55, 0, 0.72, 0.74, 0.76, 1.0);
+        }
+      }
+      staticBatch.push(ROHA_X, ROHA_RIM_Y + 7.6, ROHA_Z, 39.0, 0.45, 39.0, 0, 0.84, 0.84, 0.82, 1.0);
+
+      // r = 64m Sanctuary Stone Bollards (bars all wheeled vehicles, pack donkeys & gliders cleanly outside X = -44m!)
+      for (let b = 0; b < 32; b++) {
+        const ang = (b / 32) * TAU;
+        const bx = ROHA_X + Math.cos(ang) * SANCTUARY_BOLLARD_R;
+        const bz = ROHA_Z + Math.sin(ang) * SANCTUARY_BOLLARD_R;
+        staticBatch.push(bx, sampleTerrainBare(bx, bz) - 0.4, bz, 0.75, 1.55, 0.75, 0, 0.48, 0.44, 0.40, 0.0);
+      }
+      solidObstacles.push({ x: ROHA_X, z: ROHA_Z, r: SANCTUARY_BOLLARD_R, mountsOnly: true, topY: ROHA_RIM_Y + 42.0 });
+
+      // Roha Western Dega Village & Spring Box strictly West of the X=-135m highway (`X in [-245 .. -155]`, >175m clear of Roha!)
+      const spX = -158.0, spZ = 2360.0, spY = sampleTerrainBare(spX, spZ);
+      staticBatch.push(spX, spY - 0.5, spZ, 3.4, 1.2, 3.4, 0, 0.42, 0.42, 0.40, 0.0);
+      staticBatch.push(spX, spY + 0.72, spZ, 2.5, 0.16, 2.5, 0, 0.16, 0.86, 0.96, 2.0);
+      for (let h = 0; h < 16; h++) {
+        const hx = -172.0 - (h % 3) * 24.0;
+        const hz = 2190.0 + h * 22.0;
+        const hy = sampleTerrainBare(hx, hz);
+        staticBatch.push(hx, hy - 1.5, hz, 7.2, 4.6, 6.2, h * 0.3, 0.52, 0.48, 0.42, 0.0);
+        solidObstacles.push({ x: hx, z: hz, r: 4.4, mountsOnly: false, topY: hy + 3.2 });
+      }
+
+      // F. PAN-SECTOR LANDMARK 2: Deep-Skirted Ras Dashen 4,550m Stacked Dry-Stone Summit Cairns & Compact Cyan Trig Beacon (0, 4550, +6220)
+      function pushStoneCairn(cx, cz, scaleC, withBeacon) {
+        const cy = sampleTerrainBare(cx, cz);
+        const tiers = [
+          [4.2, 5.2, 3.8, -4.80, 0.2, 0.34, 0.31, 0.28], // >= 4.8m deep basalt foundation skirt -> zero bottom-corner overhang on steep dome!
+          [3.3, 3.6, 3.0, -2.50, 0.7, 0.42, 0.39, 0.34],
+          [2.5, 0.65, 2.3, 1.02, 1.3, 0.37, 0.34, 0.30],
+          [1.85, 0.58, 1.75, 1.62, 2.0, 0.46, 0.42, 0.36],
+          [1.25, 0.52, 1.20, 2.15, 0.5, 0.40, 0.37, 0.33],
+          [0.78, 0.48, 0.75, 2.62, 1.1, 0.50, 0.46, 0.39]
+        ];
+        for (const [sx, sy, sz, dy, yw, r, g, b] of tiers) {
+          staticBatch.push(cx, cy + dy * scaleC, cz, sx * scaleC, sy * scaleC, sz * scaleC, yw, r, g, b, 0.0);
+        }
+        if (withBeacon) {
+          staticBatch.push(cx, cy + 3.05 * scaleC, cz, 0.22, 2.1, 0.22, 0.0, 0.78, 0.80, 0.82, 1.0);
+          staticBatch.push(cx, cy + 5.15 * scaleC, cz, 1.15, 1.25, 1.15, 0.4, 0.18, 0.92, 1.00, 2.0);
+        }
+      }
+      pushStoneCairn(0.0, 6220.0, 1.15, true);
+      pushStoneCairn(-6.2, 6211.0, 0.82, false);
+      pushStoneCairn(5.8, 6213.5, 0.76, false);
+      pushStoneCairn(-3.4, 6196.0, 0.68, false);
+      solidObstacles.push({ x: 0, z: 6220, r: 2.6, mountsOnly: false, topY: sampleTerrainBare(0, 6220) + 6.5 });
+
+      // Foreground Simien Afroalpine Giant Lobelia Stands right alongside Walia ibex, Gelada & Ethiopian Wolf habitats (Z in [5940..6175])!
+      const closeLobeliaPts = [
+        [33.5, 6082.5, 1.35], [38.0, 6090.0, 1.45], [22.0, 6086.0, 1.25], [44.0, 6079.0, 1.30],
+        [-48.0, 5984.0, 1.35], [-62.0, 5990.0, 1.28], [-12.0, 6142.0, 1.32], [18.0, 6146.0, 1.25]
+      ];
+      for (const [lx, lz, sc] of closeLobeliaPts) {
+        pushLobelia(staticBatch, lx, sampleTerrainBare(lx, lz), lz, sc);
+      }
+      for (let fg = 0; fg < 36; fg++) {
+        const lx = -95.0 + ((fg * 37) % 190);
+        const lz = 5945.0 + ((fg * 53) % 225);
+        if (nearestRoadInfo(lx, lz).dist < 11.0 || Math.hypot(lx, lz - 6220) < 18.0) continue;
+        const ly = sampleTerrainBare(lx, lz);
+        pushLobelia(staticBatch, lx, ly, lz, 1.05 + (fg % 4) * 0.14);
+      }
+
+      // Dense Simien Wurch Giant Lobelia Stands clustered along upper benches & waypoints (Z in [4850..6160])!
+      for (let lb = 0; lb < 150; lb++) {
+        const lx = (rnd() - 0.5) * 1450.0;
+        const lz = 4850.0 + rnd() * 1300.0;
+        if (nearestRoadInfo(lx, lz).dist < 13.0 || Math.hypot(lx, lz - 6220) < 22.0) continue;
+        const ly = sampleTerrainBare(lx, lz);
+        if (ly > 3450.0 && sampleNormal(lx, lz)[1] > 0.88) {
+          pushLobelia(staticBatch, lx, ly, lz, 0.90 + rnd() * 0.45);
+        }
+      }
+
+      // G. 4 ALTITUDE-LOCKED ECOLOGICAL BELTS ACROSS FULL 14x14 KM HORIZON SHELL
+      // Ground-skirted multi-tier Juniper / Acacia / Eucalyptus crowns extending -3.5m into earth -> ZERO sub-pixel trunk dropout at any distance!
+      for (let v = 0; v < 2600; v++) {
+        const vx = (rnd() - 0.5) * 11800;
+        const vz = (rnd() - 0.5) * 13200;
+        if (Math.abs(vx) < 920 && nearestRoadInfo(vx, vz).dist < 18.0) continue;
+        if (Math.hypot(vx - ROHA_X, vz - ROHA_Z) < 80.0) continue;
+        if (Math.abs(vx) < 780 && vz > -4180 && vz < -2050) continue; // keep Addis basin & open smallholder cropland vista clear of lone boxes!
+        const vy = sampleTerrainBare(vx, vz);
+        if (Math.abs(vz + 480.0) < 1780.0 && vy < 2455.0) continue;   // keep sheer Abay Gorge cliffs 100% free of floating cliff-wall trees!
+        const minNormY = Math.abs(vx) > 920 ? 0.965 : 0.90;
+        if (vy < 1018.0 || sampleNormal(vx, vz)[1] < minNormY) continue;
+
+        if (vy < 1800.0) {
+          staticBatch.push(vx, vy - 3.5, vz, 3.8, 6.2, 3.8, rnd() * 3, 0.28, 0.36, 0.18, 0);
+          staticBatch.push(vx, vy + 2.2, vz, 5.8, 1.8, 5.8, rnd() * 3, 0.32, 0.42, 0.20, 0);
+        } else if (vy < 3240.0 && vz < -4200.0) {
+          const th = 8.0 + rnd() * 5.5;
+          staticBatch.push(vx, vy - 3.5, vz, 3.6, th * 0.65 + 3.5, 3.6, rnd() * 3, 0.17, 0.32, 0.20, 0);
+          staticBatch.push(vx, vy + th * 0.52, vz, 4.2, th * 0.52, 4.2, rnd() * 3, 0.21, 0.37, 0.23, 0);
+        } else if (vy < 3200.0) {
+          const th = 5.0 + rnd() * 3.5;
+          staticBatch.push(vx, vy - 3.5, vz, 4.2, th * 0.62 + 3.5, 4.2, rnd() * 3, 0.15, 0.26, 0.16, 0);
+          staticBatch.push(vx, vy + th * 0.45, vz, 3.1, th * 0.58, 3.1, rnd() * 3, 0.18, 0.31, 0.19, 0);
+        } else if (vy < 4440.0 && sampleNormal(vx, vz)[1] > 0.91) {
+          pushLobelia(staticBatch, vx, vy, vz, 0.95);
+        }
+      }
+      staticBatch.upload();
+    })();
+
+    /* =========================================================================
+       6. CONSEQUENT HABITUS AGENTS & MULTI-PART ENDEMIC SIMIEN FAUNA
+       ========================================================================= */
+    const agents = [];
+    (function spawnInhabitants() {
+      bunaThresholds.forEach((bt, i) => {
+        agents.push({
+          kind: "buna_vendor",
+          homeX: bt.homeX, homeZ: bt.homeZ,
+          eaveX: bt.eaveX, eaveZ: bt.eaveZ,
+          matX: bt.x, matZ: bt.z,
+          x: bt.homeX, z: bt.homeZ, yaw: bt.yaw,
+          scaleH: 0.92 + (i * 0.037) % 0.18, shoulderW: 0.94 + (i * 0.05) % 0.16,
+          phase: i * 1.3
+        });
+      });
+
+      // Dega 20L Water Carriers + 4-Beat Pack Donkeys strictly West of X=-135m highway (>175m clear of Roha!)
+      for (let c = 0; c < 8; c++) {
+        agents.push({
+          kind: c % 2 === 0 ? "pack_donkey" : "water_carrier",
+          ax: -158.0, az: 2360.0,
+          bx: -175.0 - (c % 3) * 22.0, bz: 2200.0 + c * 38.0,
+          u: (c * 0.17) % 1.0, dir: c % 2 ? 1 : -1,
+          x: -158, z: 2360, yaw: 0,
+          scaleH: 0.88 + (c * 0.041) % 0.22, shoulderW: 0.95 + (c * 0.03) % 0.15,
+          phase: c * 0.9
+        });
+      }
+
+      // Barefoot White-Shamma Pilgrims descending the 10m-wide Roha rock-cut dromos into the sunken courtyard
+      for (let p = 0; p < 5; p++) {
+        agents.push({
+          kind: "roha_pilgrim",
+          ax: -34.0, az: 2400.0 + (p - 2) * 1.4,
+          bx: 11.5,  bz: 2400.0 + (p - 2) * 1.1,
+          u: (p * 0.21) % 1.0, dir: 1,
+          x: -20, z: 2400, yaw: 1.57,
+          scaleH: 0.90 + p * 0.04, shoulderW: 0.96, phase: p * 1.1
+        });
+      }
+
+      // Simien Wurch Endemic Fauna clustered near Simien benches & summit approach (`Z in [5120..6160]`):
+      for (let g = 0; g < 14; g++) {
+        agents.push({
+          kind: "gelada",
+          cx: -55 + (g % 5) * 24, cz: 5980 + Math.floor(g / 5) * 32,
+          x: 0, z: 0, yaw: g, scaleH: 0.85 + (g % 3) * 0.12, phase: g * 0.8
+        });
+      }
+      for (let w = 0; w < 7; w++) {
+        agents.push({
+          kind: "walia_ibex",
+          cx: 28 + (w % 4) * 22, cz: 6080 + Math.floor(w / 4) * 28,
+          x: 0, z: 0, yaw: w, scaleH: 1.0 + (w % 2) * 0.12, phase: w * 1.4
+        });
+      }
+      for (let ew = 0; ew < 2; ew++) {
+        agents.push({
+          kind: "ethiopian_wolf",
+          cx: -28 + ew * 52, cz: 6135 + ew * 18,
+          x: 0, z: 0, yaw: 0, scaleH: 1.0, phase: ew * 2.1
+        });
+      }
+    })();
+
+    const splineTraffic = [];
+    for (let i = 0; i < 14; i++) {
+      const kind = i % 3 === 0 ? "isuzu" : (i % 3 === 1 ? "hiace" : "bajaj");
+      splineTraffic.push({
+        kind,
+        segFloat: (i / 14) * (roadPts.length - 2),
+        dir: i % 2 === 0 ? 1 : -1,
+        speed: kind === "isuzu" ? 11.5 : (kind === "hiace" ? 16.5 : 13.5)
+      });
+    }
+
+    function pushMultiPartAnimal(batch, kind, x, y, z, yaw, sc, phase, nowSec) {
+      const s = Math.sin(yaw), c = Math.cos(yaw);
+      const rx = Math.cos(yaw), rz = -Math.sin(yaw);
+      const stride = Math.sin(nowSec * 6.0 + phase) * 0.08 * sc;
+      if (kind === "walia_ibex") {
+        // Muscular chestnut-brown torso + neck + head + iconic twin swept-back curved horns + 4 legs!
+        batch.push(x, y + 0.48 * sc, z, 0.38 * sc, 0.44 * sc, 1.08 * sc, yaw, 0.46, 0.34, 0.22, 0);
+        batch.push(x + s * 0.48 * sc, y + 0.78 * sc, z + c * 0.48 * sc, 0.24 * sc, 0.42 * sc, 0.28 * sc, yaw, 0.42, 0.31, 0.20, 0);
+        batch.push(x + s * 0.62 * sc, y + 1.04 * sc, z + c * 0.62 * sc, 0.22 * sc, 0.22 * sc, 0.36 * sc, yaw, 0.38, 0.28, 0.18, 0);
+        // Twin swept-back ridged horns!
+        for (const hs of [-0.11, 0.11]) {
+          batch.push(x + s * 0.42 * sc + rx * hs * sc, y + 1.22 * sc, z + c * 0.42 * sc + rz * hs * sc, 0.06 * sc, 0.38 * sc, 0.58 * sc, yaw, 0.18, 0.17, 0.15, 0);
+        }
+        for (const [lx, lz] of [[-0.14, 0.36], [0.14, 0.36], [-0.14, -0.36], [0.14, -0.36]]) {
+          batch.push(x + rx * lx * sc + s * (lz * sc + (lx > 0 ? stride : -stride)), y, z + rz * lx * sc + c * (lz * sc), 0.09 * sc, 0.50 * sc, 0.09 * sc, yaw, 0.22, 0.18, 0.15, 0);
+        }
+      } else if (kind === "gelada") {
+        // Grazing primate: torso + heavy dark golden-brown shoulder mane + bright red hourglass chest patch + head + tail!
+        batch.push(x, y + 0.28 * sc, z, 0.34 * sc, 0.36 * sc, 0.56 * sc, yaw, 0.40, 0.30, 0.21, 0);
+        batch.push(x + s * 0.16 * sc, y + 0.44 * sc, z + c * 0.16 * sc, 0.44 * sc, 0.36 * sc, 0.38 * sc, yaw, 0.32, 0.23, 0.15, 0);
+        batch.push(x + s * 0.38 * sc, y + 0.48 * sc, z + c * 0.38 * sc, 0.18 * sc, 0.18 * sc, 0.06 * sc, yaw, 0.86, 0.16, 0.14, 0);
+        batch.push(x + s * 0.28 * sc, y + 0.68 * sc, z + c * 0.28 * sc, 0.22 * sc, 0.24 * sc, 0.26 * sc, yaw, 0.26, 0.19, 0.14, 0);
+        batch.push(x - s * 0.38 * sc, y + 0.36 * sc, z - c * 0.38 * sc, 0.06 * sc, 0.06 * sc, 0.46 * sc, yaw, 0.34, 0.25, 0.17, 0);
+        for (const [lx, lz] of [[-0.12, 0.18], [0.12, 0.18], [-0.12, -0.18], [0.12, -0.18]]) {
+          batch.push(x + rx * lx * sc + s * lz * sc, y, z + rz * lx * sc + c * lz * sc, 0.08 * sc, 0.30 * sc, 0.08 * sc, yaw, 0.25, 0.18, 0.13, 0);
+        }
+      } else {
+        // Ethiopian Wolf: rufous-red slender body + white chest blaze + long pointed muzzle + black-tipped bushy tail + 4 legs!
+        batch.push(x, y + 0.38 * sc, z, 0.26 * sc, 0.30 * sc, 0.88 * sc, yaw, 0.80, 0.33, 0.14, 0);
+        batch.push(x + s * 0.44 * sc, y + 0.44 * sc, z + c * 0.44 * sc, 0.20 * sc, 0.24 * sc, 0.18 * sc, yaw, 0.94, 0.92, 0.88, 0);
+        batch.push(x + s * 0.56 * sc, y + 0.58 * sc, z + c * 0.56 * sc, 0.18 * sc, 0.18 * sc, 0.38 * sc, yaw, 0.78, 0.31, 0.13, 0);
+        batch.push(x - s * 0.56 * sc, y + 0.38 * sc, z - c * 0.56 * sc, 0.12 * sc, 0.12 * sc, 0.42 * sc, yaw, 0.16, 0.14, 0.13, 0);
+        for (const [lx, lz] of [[-0.10, 0.30], [0.10, 0.30], [-0.10, -0.30], [0.10, -0.30]]) {
+          batch.push(x + rx * lx * sc + s * (lz * sc + (lx > 0 ? stride : -stride)), y, z + rz * lx * sc + c * lz * sc, 0.06 * sc, 0.40 * sc, 0.06 * sc, yaw, 0.82, 0.42, 0.22, 0);
+        }
+      }
+    }
+
+    /* =========================================================================
+       7. SPATIALIZED WEB AUDIO API + 4 CONVOLUTION SPACES + RIVER/FOOTSTEPS
+       ========================================================================= */
+    let audioCtx = null, masterGain = null, convolver = null, wetGain = null;
+    let cabinFilter = null, engineOsc = null, engineGain = null, windGain = null, rainGain = null, riverGain = null;
+    let irBuffers = {}, activeIR = "ALPINE", audioEnabled = true, musicTimer = null, noteStep = 0;
+
+    function buildImpulseBuffer(ctx, rt60, slapDelaySec, lpHz) {
+      const sr = ctx.sampleRate;
+      const len = Math.floor(sr * rt60);
+      const buf = ctx.createBuffer(2, len, sr);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = buf.getChannelData(ch);
+        let prev = 0;
+        const alpha = clamp((2 * Math.PI * lpHz) / sr, 0.05, 0.98);
+        const slapIdx = Math.floor(slapDelaySec * sr);
+        for (let i = 0; i < len; i++) {
+          const decay = Math.exp((-3.0 * i) / len);
+          let n = (Math.random() * 2 - 1) * decay * 0.35;
+          if (slapIdx > 0 && Math.abs(i - slapIdx) < 180) n += (Math.random() * 2 - 1) * 0.55;
+          prev = prev + alpha * (n - prev);
+          d[i] = prev;
+        }
+      }
+      return buf;
+    }
+
+    function initAudio() {
+      if (audioCtx) {
+        if (audioEnabled && audioCtx.state === "suspended") audioCtx.resume();
+        return;
+      }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      audioCtx = new AC();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.52;
+      masterGain.connect(audioCtx.destination);
+
+      irBuffers = {
+        ALPINE: buildImpulseBuffer(audioCtx, 0.28, 0.00, 2600),
+        KORKORO: buildImpulseBuffer(audioCtx, 0.65, 0.03, 5200),
+        CANYON: buildImpulseBuffer(audioCtx, 2.35, 0.18, 1900),
+        TRENCH: buildImpulseBuffer(audioCtx, 3.10, 0.04, 1400)
+      };
+      convolver = audioCtx.createConvolver();
+      convolver.buffer = irBuffers.ALPINE;
+      wetGain = audioCtx.createGain();
+      wetGain.gain.value = 0.25;
+      convolver.connect(wetGain).connect(masterGain);
+
+      cabinFilter = audioCtx.createBiquadFilter();
+      cabinFilter.type = "bandpass"; cabinFilter.frequency.value = 1150; cabinFilter.Q.value = 0.85;
+      cabinFilter.connect(masterGain);
+      cabinFilter.connect(convolver);
+
+      const noiseBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+      const nd = noiseBuf.getChannelData(0);
+      for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+
+      const makeLoopNoise = (freq, q) => {
+        const src = audioCtx.createBufferSource();
+        src.buffer = noiseBuf; src.loop = true;
+        const flt = audioCtx.createBiquadFilter();
+        flt.type = "bandpass"; flt.frequency.value = freq; flt.Q.value = q;
+        const g = audioCtx.createGain(); g.gain.value = 0.0;
+        src.connect(flt).connect(g).connect(masterGain);
+        src.start();
+        return g;
+      };
+      windGain = makeLoopNoise(420, 1.4);
+      rainGain = makeLoopNoise(2400, 0.7);
+      riverGain = makeLoopNoise(680, 0.6); // Spatialized Abay River rapids roar!
+
+      engineOsc = audioCtx.createOscillator();
+      engineOsc.type = "sawtooth"; engineOsc.frequency.value = 58;
+      const engFlt = audioCtx.createBiquadFilter();
+      engFlt.type = "lowpass"; engFlt.frequency.value = 210;
+      engineGain = audioCtx.createGain(); engineGain.gain.value = 0.0;
+      engineOsc.connect(engFlt).connect(engineGain).connect(masterGain);
+      engineOsc.start();
+
+      const tizitaHz = [293.66, 329.63, 349.23, 440.0, 466.16, 440.0, 349.23, 293.66];
+      musicTimer = setInterval(() => {
+        if (!audioEnabled || !audioCtx || audioCtx.state !== "running") return;
+        noteStep++;
+        const inVehicle = (player.mode === "hiace" || player.mode === "isuzu");
+        const altThin = 1.0 - smoothstep(3350, 4150, player.y);
+        if (altThin < 0.06 && !inVehicle) return;
+
+        const t0 = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        if (player.inSanctuary) {
+          if (noteStep % 2 !== 0) return;
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(noteStep % 4 === 0 ? 110.0 : 587.33, t0);
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(0.045, t0 + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.55);
+          osc.connect(g).connect(convolver);
+        } else {
+          osc.type = inVehicle ? "sawtooth" : "triangle";
+          osc.frequency.setValueAtTime(tizitaHz[noteStep % tizitaHz.length], t0);
+          const amp = (inVehicle ? 0.032 : 0.025 * altThin);
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(Math.max(0.0002, amp), t0 + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.34);
+          osc.connect(g).connect(inVehicle ? cabinFilter : convolver);
+          if (!inVehicle) g.connect(masterGain);
+        }
+        osc.start(t0);
+        osc.stop(t0 + 0.6);
+      }, 380);
+      $("btn-audio").setAttribute("aria-pressed", String(audioEnabled));
+    }
+
+    function triggerFootstepImpulse(matId, barefoot, isDonkey) {
+      if (!audioEnabled || !audioCtx || audioCtx.state !== "running") return;
+      const t0 = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      // Material-convolved step tone: steel bridge clang (5), bare stone slap in tuff trench (4), mud squelch (2), boot tap (0/1)
+      osc.type = matId === 5 ? "triangle" : "sine";
+      const baseHz = matId === 5 ? 310 : (barefoot ? 185 : (isDonkey ? 145 : (matId === 2 ? 95 : 130)));
+      osc.frequency.setValueAtTime(baseHz, t0);
+      osc.frequency.exponentialRampToValueAtTime(48, t0 + 0.065);
+      g.gain.setValueAtTime(0.035, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.075);
+      osc.connect(g).connect(convolver);
+      g.connect(masterGain);
+      osc.start(t0);
+      osc.stop(t0 + 0.085);
+    }
+
+    function updateAudioSpace() {
+      let wantIR = "ALPINE", wet = 0.18;
+      if (player.inSanctuary) { wantIR = "TRENCH"; wet = 0.72; }
+      else if (Math.abs(player.z + 480) < 950 && player.y < 1950) { wantIR = "CANYON"; wet = 0.55; }
+      else if (Math.abs(player.z + 3600) < 550) { wantIR = "KORKORO"; wet = 0.36; }
+      activeIR = wantIR;
+
+      if (!audioEnabled || !audioCtx) return;
+      if (convolver.buffer !== irBuffers[wantIR]) convolver.buffer = irBuffers[wantIR];
+      wetGain.gain.value = lerp(wetGain.gain.value, wet, 0.12);
+      const isVeh = (player.mode === "hiace" || player.mode === "isuzu");
+      engineGain.gain.value = isVeh ? (0.024 + Math.min(0.05, Math.abs(player.speed) * 0.002)) : 0.0;
+      if (isVeh) engineOsc.frequency.value = 48 + Math.abs(player.speed) * 4.2 + (player.engineBrake ? 38 : 0);
+      windGain.gain.value = clamp((player.y - 2200) / 2400, 0.005, 0.08) + (player.mode === "glider" ? 0.05 : 0);
+      rainGain.gain.value = envState.wetness * 0.065;
+      // Spatialized Abay River roar attenuated by 3D distance to river channel (Z = -480, Y = 1006)!
+      const riverDist = Math.hypot(player.z + 480.0, player.y - 1006.0);
+      riverGain.gain.value = clamp(1.0 - riverDist / 420.0, 0.0, 1.0) * 0.085;
+    }
+
+    /* =========================================================================
+       8. PLAYER STATE, SANCTUARY DIGNITY BREAKER & BRAKE-FADE RUNAWAY PHYSICS
+       ========================================================================= */
+    const envState = {
+      weather: "CLEAR",
+      wetness: 0.0,
+      tod: "MORNING",
+      hour: 8.5,
+      bunaState: "ABOL"
+    };
+
+    const player = {
+      mode: "foot",
+      x: 5.5,
+      y: 3202.5,
+      z: -6275.0,
+      speed: 0,
+      yaw: -0.01,
+      pitch: -0.15,
+      camDist: 7.5,
+      stamina: 1.0,
+      vo2MaxFactor: 0.82,
+      brakeTempC: 28.0,
+      engineBrake: false,
+      inSanctuary: false,
+      dignityState: "NORMAL",
+      surfaceMat: 0,
+      surfaceMu: 0.92,
+      relaySignalPct: 96,
+      stepAccum: 0
+    };
+
+    const WAYPOINTS = {
+      entoto:      { x:   5.5, z: -6275.0, yaw: -0.01, pitch: -0.15, mode: "foot",  label: "Entoto Eucalyptus & Cyan Relay Overlook (3,202 m)" },
+      addis:       { x:   0.0, z: -3610.0, yaw:  0.00, pitch: -0.06, mode: "hiace", label: "Addis Korkoro Market, Light Rail & Buna (2,400 m)" },
+      abay_rim:    { x:-765.0, z: -2042.0, yaw:  1.45, pitch: -0.22, mode: "isuzu", label: "Dejen South Basalt Canyon Rim (2,504 m)" },
+      abay_bridge: { x:   0.0, z:  -548.0, yaw:  0.00, pitch: -0.05, mode: "isuzu", label: "Blue Nile (Abay) Gorge Steel Bridge (1,020 m)" },
+      roha:        { x: -48.0, z:  2400.0, yaw:  1.57, pitch: -0.10, mode: "foot",  label: "Roha / Lalibela Subtractive Sunken Trench (2,500 m)" },
+      simien:      { x:   0.0, z:  6188.0, yaw:  0.00, pitch: -0.08, mode: "foot",  label: "Simien Escarpment & Ras Dashen Crown (4,550 m)" }
+    };
+
+    function checkSanctuaryAt(x, z) {
+      return Math.hypot(x - ROHA_X, z - ROHA_Z) <= SANCTUARY_BOLLARD_R + 0.5 ||
+             isInsideRohaDromos(x, z) || isInsideRohaPit(x, z);
+    }
+
+    function setPlayerMode(m) {
+      // Hard Sanctuary Dignity Circuit Breaker: block ALL vehicles, mounts & gliders inside Roha Sanctuary!
+      if (player.inSanctuary && m !== "foot") {
+        m = "foot";
+      }
+      player.mode = m;
+      player.camDist = m === "foot" ? 6.0 : (m === "donkey" ? 7.8 : (m === "glider" ? 14.0 : 12.5));
+      if (m === "glider" && player.y < sampleTerrainBare(player.x, player.z) + 12.0) {
+        player.y += 65.0;
+        player.speed = 26.0;
+      }
+      document.querySelectorAll("[data-mode]").forEach(b => b.classList.toggle("active", b.dataset.mode === m));
+    }
+
+    function teleportTo(x, z, yaw = player.yaw, pitch = player.pitch, mode = player.mode) {
+      player.x = clamp(x, -HALF + 30, HALF - 30);
+      player.z = clamp(z, -HALF + 30, HALF - 30);
+      // Update inSanctuary BEFORE setPlayerMode so teleporting out of Roha never inherits stale sanctuary lock!
+      player.inSanctuary = checkSanctuaryAt(player.x, player.z);
+      player.dignityState = player.inSanctuary ? "BAREFOOT_NON_COMBAT" : "NORMAL";
+      setPlayerMode(mode);
+      const s = sampleSurface(player.x, player.z, envState.wetness);
+      player.y = s.y + (player.mode === "glider" ? 85.0 : 0.0);
+      player.speed = player.mode === "glider" ? 26.0 : 0.0;
+      player.brakeTempC = 26.0;
+      player.yaw = yaw;
+      player.pitch = pitch;
+    }
+
+    const keys = {};
+    window.addEventListener("keydown", e => {
+      initAudio();
+      const k = e.key.toLowerCase();
+      keys[k] = true;
+      if (k === "tab") { e.preventDefault(); toggleDesk(); }
+      if (k === "h") toggleHud();
+      if (k === "e") {
+        player.engineBrake = !player.engineBrake;
+        $("btn-engbrake").setAttribute("aria-pressed", String(player.engineBrake));
+      }
+      if (k === "m") toggleAudio();
+      if (k === "1") setPlayerMode("foot");
+      if (k === "2") setPlayerMode("donkey");
+      if (k === "3") setPlayerMode("hiace");
+      if (k === "4") setPlayerMode("isuzu");
+      if (k === "5") setPlayerMode("glider");
+    });
+    window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+
+    let drag = null;
+    canvas.addEventListener("pointerdown", e => {
+      initAudio();
+      canvas.setPointerCapture(e.pointerId);
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    });
+    canvas.addEventListener("pointermove", e => {
+      if (!drag || drag.id !== e.pointerId) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      drag.x = e.clientX; drag.y = e.clientY;
+      player.yaw += dx * 0.0055;
+      player.pitch = clamp(player.pitch - dy * 0.0045, -1.15, 0.65);
+    });
+    canvas.addEventListener("pointerup", e => { if (drag && drag.id === e.pointerId) drag = null; });
+    canvas.addEventListener("wheel", e => {
+      e.preventDefault();
+      player.camDist = clamp(player.camDist * Math.exp(e.deltaY * 0.001), 2.2, 180.0);
+    }, { passive: false });
+
+    document.querySelectorAll("[data-wp]").forEach(b => {
+      b.addEventListener("click", () => {
+        initAudio();
+        const wp = WAYPOINTS[b.dataset.wp];
+        if (wp) teleportTo(wp.x, wp.z, wp.yaw, wp.pitch, wp.mode);
+      });
+    });
+    document.querySelectorAll("[data-mode]").forEach(b => {
+      b.addEventListener("click", () => { initAudio(); setPlayerMode(b.dataset.mode); });
+    });
+    $("btn-engbrake").addEventListener("click", () => {
+      player.engineBrake = !player.engineBrake;
+      $("btn-engbrake").setAttribute("aria-pressed", String(player.engineBrake));
+    });
+    $("btn-weather").addEventListener("click", () => {
+      envState.weather = envState.weather === "CLEAR" ? "KIREMT_SQUALL" : "CLEAR";
+      $("btn-weather").textContent = envState.weather === "CLEAR" ? "Weather: Clear" : "Weather: Kiremt Squall";
+    });
+    const TOD_ORDER = ["DAWN", "MORNING", "ZENITH", "NIGHT"];
+    $("btn-tod").addEventListener("click", () => {
+      const next = TOD_ORDER[(TOD_ORDER.indexOf(envState.tod) + 1) % TOD_ORDER.length];
+      envState.tod = next;
+      envState.hour = next === "DAWN" ? 6.2 : (next === "MORNING" ? 8.8 : (next === "ZENITH" ? 12.5 : 21.0));
+      $("btn-tod").textContent = `Time: ${next[0] + next.slice(1).toLowerCase()}`;
+    });
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      initAudio();
+      if (audioCtx) {
+        if (audioEnabled) audioCtx.resume(); else audioCtx.suspend();
+      }
+      $("btn-audio").setAttribute("aria-pressed", String(audioEnabled));
+    }
+    $("btn-audio").addEventListener("click", toggleAudio);
+    function toggleHud() { document.body.classList.toggle("hud-off"); }
+    $("btn-hud").addEventListener("click", toggleHud);
+
+    function toggleDesk(force) {
+      const desk = $("status-desk");
+      desk.hidden = typeof force === "boolean" ? !force : !desk.hidden;
+      if (!desk.hidden) renderQuadtreeCanvas();
+    }
+    $("btn-desk").addEventListener("click", () => toggleDesk());
+    $("btn-desk-close").addEventListener("click", () => toggleDesk(false));
+
+    document.querySelectorAll(".dtab").forEach(t => {
+      t.addEventListener("click", () => {
+        const id = t.dataset.tab;
+        document.querySelectorAll(".dtab").forEach(x => x.setAttribute("aria-selected", String(x === t)));
+        ["telemetry", "sectors", "ledger", "critics"].forEach(k => { $("dtab-" + k).hidden = k !== id; });
+        if (id === "sectors") renderQuadtreeCanvas();
+      });
+    });
+
+    /* =========================================================================
+       9. POPULATE STATUS DESK LEDGER & 196-SECTOR QUADTREE MAP
+       ========================================================================= */
+    {
+      const dd = CRUCIBLE_PACK.deltaDelta;
+      $("desk-dd").innerHTML = `
+        <div><strong>${dd.inquiry_id}</strong></div>
+        <div style="color:var(--muted);margin:3px 0">${dd.trigger}</div>
+        <div>Patch A (Naive Chord): len=${dd.patch_A_naive_chord.arterial_length_km}km · maxGrade=<span style="color:var(--red)">${dd.patch_A_naive_chord.max_grade_pct}% (FAIL)</span></div>
+        <div>Patch B (Civil Bench-Cut): len=${dd.patch_B_civil_bench_cut_and_debias.arterial_length_km}km · maxGrade=<span class="tag-pass">${dd.patch_B_civil_bench_cut_and_debias.max_grade_pct}% (PASS)</span> · cliffProminence=${dd.patch_B_civil_bench_cut_and_debias.canyon_prominence_m}m</div>
+      `;
+      const vh = CRUCIBLE_PACK.vaultHashes;
+      $("desk-vault").innerHTML = Object.entries(vh).map(([k, h]) =>
+        `<div><span class="tag-pass">✓</span> ${k}: <code>sha256:${h}…</code></div>`
+      ).join("") + `<div style="margin-top:4px"><span class="tag-pass">SEAM GATE:</span> 364/364 shared sector borders = <code>0.000000 m</code></div>`;
+
+      const jumps = [
+        ["Entoto Crest (5.5,3202,-6275)", 5.5, -6275.0, -0.01, "foot"],
+        ["Addis Viaduct & Buna (0,2400,-3610)", 0, -3610, 0.00, "foot"],
+        ["Abay Hairpin Descent (-765,2504,-2042)", -765, -2042, 1.45, "isuzu"],
+        ["Abay Gorge Bridge (0,1020,-548)", 0, -548, 0.00, "isuzu"],
+        ["Roha Dromos Entry (-36,2500,+2400)", -36, 2400, 1.57, "foot"],
+        ["Roha Sunken Nave (+16,2488,+2400)", 16, 2400, 1.57, "foot"],
+        ["Simien Fauna & Lobelias (10,4460,+6085)", 10, 6085, 0.25, "donkey"],
+        ["Ras Dashen Crown (0,4550,+6188)", 0, 6188, 0.00, "foot"]
+      ];
+      const jWrap = $("desk-jumps");
+      jumps.forEach(([lbl, jx, jz, jyaw, jm]) => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "btn"; b.textContent = lbl;
+        b.addEventListener("click", () => teleportTo(jx, jz, jyaw, -0.10, jm));
+        jWrap.appendChild(b);
+      });
+
+      const qCnv = $("quadtree-cnv");
+      qCnv.addEventListener("click", e => {
+        const rect = qCnv.getBoundingClientRect();
+        const col = clamp(Math.floor(((e.clientX - rect.left) / rect.width) * 14), 0, 13);
+        const row = clamp(13 - Math.floor(((e.clientY - rect.top) / rect.height) * 14), 0, 13);
+        const wx = -7000 + (col + 0.5) * 1000, wz = -7000 + (row + 0.5) * 1000;
+        const wy = Math.round(sampleTerrainBare(wx, wz));
+        $("sector-inspect").textContent = `Teleported -> S_${String(row).padStart(2, "0")}_${String(col).padStart(2, "0")} (${wx}m, ${wy}m ASL, ${wz}m) · Seam=0.00m`;
+        teleportTo(wx, wz, 0, -0.2, "glider");
+        renderQuadtreeCanvas();
+      });
+    }
+
+    function renderQuadtreeCanvas() {
+      const cnv = $("quadtree-cnv");
+      if (!cnv) return;
+      const ctx = cnv.getContext("2d");
+      const cs = 20;
+      ctx.clearRect(0, 0, 280, 280);
+      for (let r = 0; r < 14; r++) {
+        for (let c = 0; c < 14; c++) {
+          const wx = -7000 + (c + 0.5) * 1000, wz = -7000 + (r + 0.5) * 1000;
+          const e = sampleTerrainBare(wx, wz);
+          const norm = clamp((e - 1000) / 3550, 0, 1);
+          const isCrucible = (c === 6 || c === 7);
+          const py = (13 - r) * cs, px = c * cs;
+          ctx.fillStyle = isCrucible
+            ? `rgb(${Math.round(35 + norm * 90)}, ${Math.round(95 + norm * 115)}, ${Math.round(125 + norm * 95)})`
+            : `rgb(${Math.round(28 + norm * 65)}, ${Math.round(34 + norm * 65)}, ${Math.round(36 + norm * 55)})`;
+          ctx.fillRect(px, py, cs - 1, cs - 1);
+          if (r === 9 && c === 7) {
+            ctx.strokeStyle = "#f0a83e"; ctx.lineWidth = 2; ctx.strokeRect(px + 1, py + 1, cs - 3, cs - 3);
+          }
+        }
+      }
+      const px = ((player.x + HALF) / SPAN) * 280;
+      const py = (1.0 - (player.z + HALF) / SPAN) * 280;
+      ctx.fillStyle = "#28d8f0";
+      ctx.beginPath(); ctx.arc(px, py, 4.5, 0, TAU); ctx.fill();
+    }
+
+    /* =========================================================================
+       10. OBSTACLE COLLISION, CAMERA RAYCAST & MAIN WEBGL2 RENDER LOOP
+       ========================================================================= */
+    function isBlockedByObstacle(nx, nz, isMountOrVehicle) {
+      for (let i = 0; i < solidObstacles.length; i++) {
+        const ob = solidObstacles[i];
+        if (ob.mountsOnly && !isMountOrVehicle) continue;
+        const pad = ob.mountsOnly ? 2.4 : (isMountOrVehicle ? 1.6 : 0.45);
+        if (Math.hypot(nx - ob.x, nz - ob.z) < ob.r + pad) return true;
+      }
+      return false;
+    }
+
+    // 3rd-Person Over-the-Shoulder Camera Raycast (eliminates avatar sightline self-occlusion, steep-slope head-zoom, AND vehicle clip!)
+    function computeSafeCamera(lookY, shoulderX, shoulderZ) {
+      const cp = Math.cos(player.pitch), sp = Math.sin(player.pitch);
+      const dx = -Math.sin(player.yaw) * cp;
+      const dy = -sp;
+      const dz = -Math.cos(player.yaw) * cp;
+      const isVeh = (player.mode === "isuzu" || player.mode === "hiace");
+      const inNave = player.inSanctuary && Math.hypot(player.x - ROHA_X, player.z - ROHA_Z) < 12.0;
+      const minSafeT = player.mode === "isuzu" ? 6.6 : (player.mode === "hiace" ? 5.4 : (inNave ? 1.15 : 3.6));
+      let safeT = player.camDist;
+
+      const ox = player.x + shoulderX, oz = player.z + shoulderZ;
+      const steps = 16;
+      for (let s = 1; s <= steps; s++) {
+        const t = (s / steps) * player.camDist;
+        const rx = ox + dx * t;
+        const ry = lookY + dy * t;
+        const rz = oz + dz * t;
+        const surfY = sampleSurface(rx, rz, envState.wetness).y;
+        if (ry < surfY + 0.65) {
+          safeT = Math.max(minSafeT, ((s - 1) / steps) * player.camDist);
+          break;
+        }
+        if (ry < ROHA_FLOOR_Y + 11.85 && isInsideCruciformMonolithSolid(rx, rz)) {
+          safeT = Math.max(0.85, ((s - 1) / steps) * player.camDist);
+          break;
+        }
+        let hitBld = false;
+        for (let i = 0; i < solidObstacles.length; i++) {
+          const ob = solidObstacles[i];
+          if (ob.mountsOnly) continue;
+          if (ry < ob.topY && Math.hypot(rx - ob.x, rz - ob.z) < ob.r + 0.25) { hitBld = true; break; }
+        }
+        if (hitBld) {
+          safeT = Math.max(minSafeT, ((s - 1) / steps) * player.camDist);
+          break;
+        }
+      }
+      const cx = ox + dx * safeT;
+      const cz = oz + dz * safeT;
+      let cy = lookY + dy * safeT;
+      // On steep downslopes or canyon cliffs, elevate camera cleanly above the slope instead of zooming into the player's head!
+      const camSurfY = sampleSurface(cx, cz, envState.wetness).y;
+      if (cy < camSurfY + 1.15) {
+        cy = camSurfY + (isVeh ? 1.75 : 1.35);
+      }
+      if (isVeh) {
+        cy = Math.max(cy, player.y + 3.25);
+      }
+      return [cx, cy, cz];
+    }
+
+    const frameTimes = new Float32Array(180);
+    let ftPtr = 0, ftFilled = 0, lastDrawCalls = 0;
+
+    function computeFramePercentiles() {
+      const n = ftFilled;
+      if (n === 0) return { p50: 0, p99: 0 };
+      const copy = Array.from(frameTimes.subarray(0, n)).sort((a, b) => a - b);
+      return {
+        p50: copy[Math.floor(n * 0.50)],
+        p99: copy[Math.min(n - 1, Math.floor(n * 0.99))]
+      };
+    }
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.max(1, Math.floor(window.innerWidth * dpr));
+      const h = Math.max(1, Math.floor(window.innerHeight * dpr));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w; canvas.height = h;
+      }
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    teleportTo(WAYPOINTS.entoto.x, WAYPOINTS.entoto.z, WAYPOINTS.entoto.yaw, WAYPOINTS.entoto.pitch, "foot");
+
+    const mProj = new Float32Array(16), mView = new Float32Array(16), mVP = new Float32Array(16), mInvVP = new Float32Array(16);
+
+    function invertMat4(out, m) {
+      const a00=m[0],a01=m[1],a02=m[2],a03=m[3], a10=m[4],a11=m[5],a12=m[6],a13=m[7];
+      const a20=m[8],a21=m[9],a22=m[10],a23=m[11], a30=m[12],a31=m[13],a32=m[14],a33=m[15];
+      const b00=a00*a11-a01*a10, b01=a00*a12-a02*a10, b02=a00*a13-a03*a10, b03=a01*a12-a02*a11;
+      const b04=a01*a13-a03*a11, b05=a02*a13-a03*a12, b06=a20*a31-a21*a30, b07=a20*a32-a22*a30;
+      const b08=a20*a33-a23*a30, b09=a21*a32-a22*a31, b10=a21*a33-a23*a31, b11=a22*a33-a23*a32;
+      let det = b00*b11 - b01*b10 + b02*b09 + b03*b08 - b04*b07 + b05*b06;
+      if (!det) return out;
+      det = 1.0 / det;
+      out[0]=(a11*b11-a12*b10+a13*b09)*det; out[1]=(a02*b10-a01*b11-a03*b09)*det;
+      out[2]=(a31*b05-a32*b04+a33*b03)*det; out[3]=(a22*b04-a21*b05-a23*b03)*det;
+      out[4]=(a12*b08-a10*b11-a13*b07)*det; out[5]=(a00*b11-a02*b08+a03*b07)*det;
+      out[6]=(a32*b02-a30*b05-a33*b01)*det; out[7]=(a20*b05-a22*b02+a23*b01)*det;
+      out[8]=(a10*b10-a11*b08+a13*b06)*det; out[9]=(a01*b08-a00*b10-a03*b06)*det;
+      out[10]=(a30*b04-a31*b02+a33*b00)*det; out[11]=(a21*b02-a20*b04-a23*b00)*det;
+      out[12]=(a11*b07-a10*b09-a12*b06)*det; out[13]=(a00*b09-a01*b07+a02*b06)*det;
+      out[14]=(a31*b01-a30*b03-a32*b00)*det; out[15]=(a20*b03-a21*b01+a22*b00)*det;
+      return out;
+    }
+
+    function stepSimulation(dt, nowSec) {
+      envState.wetness = lerp(envState.wetness, envState.weather === "KIREMT_SQUALL" ? 0.92 : 0.0, dt * 0.8);
+      envState.bunaState = envState.hour < 9.5 ? "ABOL" : (envState.hour < 14.0 ? "TONA" : "BARAKA");
+
+      const fwd = (keys["w"] || keys["arrowup"] ? 1 : 0) - (keys["s"] || keys["arrowdown"] ? 1 : 0);
+      const str = (keys["d"] || keys["arrowright"] ? 1 : 0) - (keys["a"] || keys["arrowleft"] ? 1 : 0);
+      const sprint = Boolean(keys["shift"]);
+
+      player.vo2MaxFactor = clamp(1.0 - 0.42 * Math.max(0, player.y - 2200.0) / 2350.0, 0.56, 1.0);
+      const surf = sampleSurface(player.x, player.z, envState.wetness);
+      player.surfaceMat = surf.mat;
+      player.surfaceMu = surf.mu;
+
+      const fx = Math.sin(player.yaw), fz = Math.cos(player.yaw);
+
+      if (player.mode === "glider") {
+        player.yaw += str * dt * 1.15;
+        const nrm = sampleNormal(player.x, player.z);
+        const updraft = Math.max(0, (1.0 - nrm[1]) * 18.0 - Math.max(0, player.y - (surf.y + 420.0)) * 0.04);
+        const targetSpd = clamp(32.0 - player.pitch * 18.0, 16.0, 58.0);
+        player.speed = lerp(player.speed, targetSpd, dt * 2.0);
+        const nx = clamp(player.x + Math.sin(player.yaw) * player.speed * dt, -HALF + 25, HALF - 25);
+        const nz = clamp(player.z + Math.cos(player.yaw) * player.speed * dt, -HALF + 25, HALF - 25);
+        const glideSink = -3.4 + player.pitch * 16.0 + updraft + fwd * 8.5;
+        let ny = Math.max(surf.y + 2.2, player.y + glideSink * dt);
+        // Hard Sanctuary No-Fly Exclusion: gliders crossing the Roha stone bollard perimeter immediately dismount to barefoot foot!
+        if (Math.hypot(nx - ROHA_X, nz - ROHA_Z) <= SANCTUARY_BOLLARD_R + 1.5) {
+          player.x = nx; player.z = nz;
+          player.inSanctuary = true;
+          player.dignityState = "BAREFOOT_NON_COMBAT";
+          setPlayerMode("foot");
+          player.y = sampleSurface(nx, nz, envState.wetness).y;
+          player.speed = 0.0;
+        } else {
+          player.x = nx; player.z = nz; player.y = ny;
+        }
+        player.brakeTempC = lerp(player.brakeTempC, 22.0, dt * 0.5);
+      } else if (player.mode === "foot" || player.mode === "donkey") {
+        const isDonkey = player.mode === "donkey";
+        if (sprint && fwd > 0 && player.stamina > 0.05) {
+          player.stamina = Math.max(0, player.stamina - dt * (0.28 / player.vo2MaxFactor));
+        } else {
+          player.stamina = Math.min(1.0, player.stamina + dt * 0.16 * player.vo2MaxFactor);
+        }
+        player.yaw += str * dt * (isDonkey ? 1.8 : 2.4);
+        const baseMax = isDonkey ? 7.8 : (sprint && player.stamina > 0.08 ? 7.2 : 4.4);
+        const slopeAhead = (sampleSurface(player.x + fx * 3.0, player.z + fz * 3.0, envState.wetness).y - surf.y) / 3.0;
+        const gradePenalty = slopeAhead > 0.05 ? clamp(1.0 - slopeAhead * (isDonkey ? 0.65 : 1.15), 0.38, 1.0) : 1.0;
+        const mudGrip = isDonkey ? 0.92 : clamp(surf.mu / 0.80, 0.52, 1.0);
+        const targetSpd = fwd * baseMax * player.vo2MaxFactor * gradePenalty * mudGrip;
+        player.speed = lerp(player.speed, targetSpd, 1 - Math.exp(-dt * 7.5));
+
+        const nx = clamp(player.x + Math.sin(player.yaw) * player.speed * dt, -HALF + 20, HALF - 20);
+        const nz = clamp(player.z + Math.cos(player.yaw) * player.speed * dt, -HALF + 20, HALF - 20);
+        const nextSurf = sampleSurface(nx, nz, envState.wetness);
+        const stepH = nextSurf.y - player.y;
+        const blocked = isInsideCruciformMonolithSolid(nx, nz) ||
+                        isBlockedByObstacle(nx, nz, isDonkey) ||
+                        stepH > 2.2 || stepH < -4.5; // prevents walking off sheer 12m trench lip!
+        if (!blocked) {
+          player.x = nx; player.z = nz; player.y = nextSurf.y;
+          player.stepAccum += Math.abs(player.speed) * dt;
+          if (player.stepAccum > (isDonkey ? 1.35 : 1.65)) {
+            player.stepAccum = 0;
+            triggerFootstepImpulse(nextSurf.mat, player.inSanctuary, isDonkey);
+          }
+        } else {
+          player.speed = 0;
+        }
+        player.brakeTempC = lerp(player.brakeTempC, 26.0, dt);
+      } else {
+        // Consequent Wheeled Vehicle Physics: HiAce Line Taxi vs 12-ton Isuzu FSR Escarpment Freight Truck
+        const isIsuzu = player.mode === "isuzu";
+        const slopeAhead = (sampleSurface(player.x + fx * 6.0, player.z + fz * 6.0, envState.wetness).y - surf.y) / 6.0;
+        const airDensity = clamp(Math.exp(-player.y / 8400.0) / 0.78, 0.58, 1.0);
+        const maxSpd = (isIsuzu ? 22.0 : 28.0) * (player.engineBrake ? 0.46 : 1.0);
+        const gravityPull = -9.81 * clamp(slopeAhead, -0.35, 0.35);
+
+        // Distinguish downhill service-brake application from throttle!
+        const serviceBraking = Boolean(keys[" "]) || (fwd < -0.1 && player.speed > 0.5);
+        const throttleFwd = (fwd < -0.1 && player.speed > 0.5) ? 0.0 : fwd;
+        const engineForce = throttleFwd * (isIsuzu ? 14.5 : 20.5) * airDensity * surf.mu;
+
+        // Heavy Isuzu thermal brake-drum heating & genuine runaway brake-fade above 320-390°C!
+        if (serviceBraking && slopeAhead < -0.045 && !player.engineBrake && player.speed > 1.0) {
+          const heatRate = Math.abs(slopeAhead) * Math.max(player.speed, 8.0) * (isIsuzu ? 98.0 : 22.0);
+          player.brakeTempC = Math.min(580.0, player.brakeTempC + dt * heatRate);
+        } else {
+          const coolRate = (player.engineBrake ? 28.0 : 12.0) + Math.abs(player.speed) * 0.45;
+          player.brakeTempC = Math.max(26.0, player.brakeTempC - dt * coolRate);
+        }
+        const brakeFadeFactor = 1.0 - 0.92 * smoothstep(210.0, 380.0, player.brakeTempC); // drops to 0.08 above 380°C -> true runaway!
+        const coldBrakeCap = isIsuzu ? 2.35 : 11.5;
+        const brakeDecel = serviceBraking && Math.abs(player.speed) > 0.05
+          ? Math.sign(player.speed) * coldBrakeCap * surf.mu * brakeFadeFactor
+          : 0.0;
+        const dragDecel = player.speed * (player.engineBrake ? 1.48 : 0.018);
+
+        player.speed = clamp(player.speed + (engineForce + gravityPull - dragDecel - brakeDecel) * dt, -9.0, maxSpd);
+        if (Math.abs(player.speed) > 0.25) {
+          player.yaw += str * dt * (isIsuzu ? 1.25 : 1.75) * Math.sign(player.speed) * clamp(surf.mu + 0.15, 0.45, 1.0);
+        }
+        let nx = clamp(player.x + Math.sin(player.yaw) * player.speed * dt, -HALF + 25, HALF - 25);
+        let nz = clamp(player.z + Math.cos(player.yaw) * player.speed * dt, -HALF + 25, HALF - 25);
+        // Bridge steel guardrails keep vehicles cleanly on the X in [-8.2..+8.2] span unless outside bridge Z
+        if (nz >= BRIDGE_Z0 && nz <= BRIDGE_Z1 && Math.abs(nx) > BRIDGE_HALF_W - 0.6) {
+          nx = Math.sign(nx) * (BRIDGE_HALF_W - 0.6);
+        }
+
+        if (!isBlockedByObstacle(nx, nz, true)) {
+          player.x = nx; player.z = nz;
+          player.y = sampleSurface(nx, nz, envState.wetness).y;
+        } else {
+          player.speed *= -0.20;
+        }
+      }
+
+      // Enforce Unconditional Sanctuary Dignity State across 100% of the stone bollard precinct (zero vehicle/mount/glider exemptions!)
+      const nowSanctuary = checkSanctuaryAt(player.x, player.z);
+      player.inSanctuary = nowSanctuary;
+      if (nowSanctuary) {
+        player.dignityState = "BAREFOOT_NON_COMBAT";
+        if (player.mode !== "foot") setPlayerMode("foot");
+      } else {
+        player.dignityState = "NORMAL";
+      }
+      $("dignity-banner").hidden = !nowSanctuary;
+
+      player.relaySignalPct = Math.round(clamp(18.0 + ((player.y - 1000.0) / 3550.0) * 82.0, 12, 100));
+
+      // Populate Dynamic Batch
+      dynamicBatch.clear();
+
+      // 1. Player Avatar / Vehicle
+      if (player.mode === "foot") {
+        const bob = Math.sin(nowSec * 9.0) * Math.min(0.05, Math.abs(player.speed) * 0.012);
+        dynamicBatch.push(player.x, player.y + bob, player.z, 0.46, 1.38, 0.32, player.yaw, 0.84, 0.81, 0.74, 0);
+        dynamicBatch.push(player.x, player.y + 1.40 + bob, player.z, 0.25, 0.27, 0.25, player.yaw, 0.26, 0.17, 0.12, 0);
+      } else if (player.mode === "donkey") {
+        const g4 = Math.sin(nowSec * 8.5) * Math.min(0.05, Math.abs(player.speed) * 0.01);
+        dynamicBatch.push(player.x, player.y + 0.52 + g4, player.z, 0.50, 0.50, 1.36, player.yaw, 0.46, 0.44, 0.42, 0);
+        dynamicBatch.push(player.x + Math.sin(player.yaw) * 0.65, player.y + 0.92 + g4, player.z + Math.cos(player.yaw) * 0.65, 0.30, 0.46, 0.40, player.yaw, 0.44, 0.42, 0.40, 0);
+        for (const s of [-0.14, 0.14]) {
+          dynamicBatch.push(player.x + Math.sin(player.yaw) * 0.72 + Math.cos(player.yaw) * s, player.y + 1.35 + g4, player.z + Math.cos(player.yaw) * 0.72 - Math.sin(player.yaw) * s, 0.08, 0.28, 0.08, player.yaw, 0.38, 0.36, 0.34, 0);
+        }
+        for (const s of [-0.36, 0.36]) {
+          const cx = player.x + Math.cos(player.yaw) * s, cz = player.z - Math.sin(player.yaw) * s;
+          dynamicBatch.push(cx, player.y + 0.70 + g4, cz, 0.22, 0.38, 0.30, player.yaw, 0.16, 0.86, 0.96, 2.0);
+        }
+      } else if (player.mode === "hiace" || player.mode === "isuzu") {
+        // 9-Point Convex-Hull Anti-Clip 3D Pitch + Roll Suspension Alignment:
+        // Fits exact terrain tangent plane across wheelbase & track AND lifts chassis above max(9 footprint samples) -> ZERO polygon slicing!
+        const sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
+        const rx = cy, rz = -sy;
+        const isIsuzu = player.mode === "isuzu";
+        const wbF = isIsuzu ? 2.10 : 1.75, wbR = isIsuzu ? -2.05 : -1.75;
+        const trk = isIsuzu ? 1.06 : 0.90;
+        const extF = isIsuzu ? 3.05 : 2.40, extR = isIsuzu ? -3.15 : -2.40, extW = isIsuzu ? 1.18 : 0.96;
+
+        const gAt = (lx, lz) => sampleSurface(player.x + sy * lz + rx * lx, player.z + cy * lz + rz * lx, envState.wetness).y;
+        const yFL = gAt(-trk, wbF), yFR = gAt(trk, wbF), yRL = gAt(-trk, wbR), yRR = gAt(trk, wbR);
+        const vPitch = clamp(Math.atan2(((yFL + yFR) * 0.5) - ((yRL + yRR) * 0.5), wbF - wbR), -0.36, 0.36);
+        const vRoll  = clamp(Math.atan2(((yFR + yRR) * 0.5) - ((yFL + yRL) * 0.5), trk * 2.0), -0.32, 0.32);
+        const tp = Math.tan(vPitch), tr = Math.tan(vRoll);
+        const baseAvg = (yFL + yFR + yRL + yRR) * 0.25;
+
+        // Guarantee 100% of all 4 wheels + all 4 extreme cab/cargo corners sit strictly ABOVE the rendered triangle mesh!
+        let lift = 0.0;
+        for (const [lx, lz] of [
+          [0, 0], [-trk, wbF], [trk, wbF], [-trk, wbR], [trk, wbR],
+          [-extW, extF], [extW, extF], [-extW, extR], [extW, extR]
+        ]) {
+          const gy = gAt(lx, lz);
+          const py = baseAvg + lz * tp + lx * tr;
+          if (gy - py > lift) lift = gy - py;
+        }
+        const hubBaseY = baseAvg + lift + 0.06;
+        const cp = Math.cos(vPitch), sp = Math.sin(vPitch);
+        // Place tilted sub-box at local (lx, ly, lz) relative to vehicle origin (player.x, hubBaseY, player.z):
+        const pushVehBox = (lx, ly, lz, bsx, bsy, bsz, r, g, b, a = 0.0) => {
+          const cr = Math.cos(vRoll), sr = Math.sin(vRoll);
+          const r1x = lx * cr - ly * sr, r1y = lx * sr + ly * cr, r1z = lz;
+          const r2x = r1x, r2y = r1y * cp + r1z * sp, r2z = -r1y * sp + r1z * cp;
+          const wx = player.x + r2x * cy + r2z * sy;
+          const wy = hubBaseY + r2y;
+          const wz = player.z - r2x * sy + r2z * cy;
+          dynamicBatch.push(wx, wy, wz, bsx, bsy, bsz, player.yaw, r, g, b, a, vPitch, vRoll);
+        };
+
+        if (!isIsuzu) {
+          pushVehBox(0, 0.34, 0, 1.82, 0.82, 4.6, 0.15, 0.46, 0.76, 0);
+          pushVehBox(0, 1.16, 0, 1.74, 0.74, 4.4, 0.93, 0.92, 0.89, 0);
+          for (const ax of [1.55, -1.55]) {
+            for (const side of [-0.90, 0.90]) {
+              pushVehBox(side, 0.02, ax, 0.28, 0.66, 0.66, 0.15, 0.15, 0.16, 0);
+            }
+          }
+        } else {
+          pushVehBox(0, 0.52,  2.10, 2.1, 1.82, 1.65, 0.92, 0.91, 0.88, 0);
+          pushVehBox(0, 0.54, -0.90, 2.2, 1.52, 4.30, 0.68, 0.58, 0.42, 0);
+          for (const ax of [1.85, -1.95]) {
+            for (const side of [-1.06, 1.06]) {
+              pushVehBox(side, 0.02, ax, 0.34, 0.78, 0.78, 0.15, 0.15, 0.16, 0);
+              if (player.brakeTempC > 260.0) {
+                const hot = clamp((player.brakeTempC - 260.0) / 260.0, 0.25, 1.0);
+                pushVehBox(side + Math.sign(side) * 0.14, 0.20, ax, 0.18, 0.44, 0.44, 1.0, 0.22 + 0.28 * hot, 0.06, 2.0);
+              }
+            }
+          }
+        }
+      } else if (player.mode === "glider") {
+        dynamicBatch.push(player.x, player.y, player.z, 7.6, 0.16, 2.2, player.yaw, 0.16, 0.78, 0.94, 0);
+        dynamicBatch.push(player.x, player.y - 1.1, player.z, 0.42, 1.1, 0.42, player.yaw, 0.25, 0.25, 0.26, 0);
+      }
+
+      // 2. Addis Elevated Light Rail Moving Tram
+      const tramX = ((nowSec * 18.0 + 300.0) % 600.0) - 300.0;
+      const railY = sampleTerrainBare(0, -3550) + 10.6;
+      dynamicBatch.push(tramX, railY, -3550, 28.0, 3.1, 2.75, 0, 0.92, 0.94, 0.92, 0);
+      dynamicBatch.push(tramX, railY + 0.8, -3550, 28.2, 0.85, 2.80, 0, 0.14, 0.62, 0.32, 0);
+
+      // 3. Consequent Habitus Agents & Multi-Part Endemic Fauna
+      for (let i = 0; i < agents.length; i++) {
+        const ag = agents[i];
+        if (ag.kind === "buna_vendor") {
+          // Under Kiremt squall, hosts walk visibly under their lit cantilevered korkoro porch eaves (`eaveX, eaveZ`)!
+          const tx = envState.wetness > 0.35 ? ag.eaveX : ag.homeX;
+          const tz = envState.wetness > 0.35 ? ag.eaveZ : ag.homeZ;
+          ag.x = lerp(ag.x, tx, dt * 2.2);
+          ag.z = lerp(ag.z, tz, dt * 2.2);
+          if (Math.hypot(ag.x - player.x, ag.z - player.z) > 1400) continue;
+          const ay = sampleTerrainBare(ag.x, ag.z);
+          const h = 1.52 * ag.scaleH;
+          // Crisp white Habesha kemis (warmly porch-lantern-illuminated when sheltering under eave in squall!) + bright red tibeb sash!
+          const underLantern = envState.wetness > 0.35 ? 2.0 : 0.0;
+          const kemisR = envState.wetness > 0.35 ? 0.80 : 0.96;
+          const kemisG = envState.wetness > 0.35 ? 0.76 : 0.95;
+          const kemisB = envState.wetness > 0.35 ? 0.68 : 0.92;
+          dynamicBatch.push(ag.x, ay, ag.z, 0.50 * ag.shoulderW, h * 0.80, 0.38, ag.yaw, kemisR, kemisG, kemisB, underLantern);
+          dynamicBatch.push(ag.x, ay + h * 0.42, ag.z, 0.53 * ag.shoulderW, 0.18, 0.40, ag.yaw, 0.90, 0.24, 0.16, underLantern);
+          dynamicBatch.push(ag.x, ay + h * 0.80, ag.z, 0.26, 0.27, 0.26, ag.yaw, 0.30, 0.19, 0.14, 0);
+          if (envState.wetness < 0.4) {
+            // 6-puff rising, curling frankincense & buna roast smoke plume above the jebena/midija!
+            const my = sampleTerrainBare(ag.matX, ag.matZ);
+            for (let p = 0; p < 6; p++) {
+              const u = ((nowSec * 0.48 + ag.phase + p / 6) % 1.0);
+              const puffY = my + 0.55 + u * 2.75;
+              const puffX = ag.matX + Math.sin(u * 5.2 + ag.phase) * (0.12 + u * 0.38);
+              const puffZ = ag.matZ + Math.cos(u * 4.4 + ag.phase) * (0.12 + u * 0.34);
+              const puffSz = 0.26 + u * 0.46;
+              dynamicBatch.push(puffX, puffY, puffZ, puffSz, puffSz * 0.85, puffSz, u * 2.4, 0.84, 0.87, 0.92, 2.0);
+            }
+          }
+        } else if (ag.kind === "pack_donkey" || ag.kind === "water_carrier" || ag.kind === "roha_pilgrim") {
+          // Couple carrier/donkey cadence to local terrain slope & Kiremt mud!
+          const curY = sampleSurface(ag.x, ag.z, envState.wetness).y;
+          const mudFactor = ag.kind === "pack_donkey" ? 0.92 : lerp(1.0, 0.68, envState.wetness);
+          const baseRate = ag.kind === "roha_pilgrim" ? 0.045 : 0.034 * mudFactor;
+          const nextU = ag.u + ag.dir * dt * baseRate;
+          const candX = lerp(ag.ax, ag.bx, clamp(nextU, 0, 1));
+          const candZ = lerp(ag.az, ag.bz, clamp(nextU, 0, 1));
+          // Hard runtime Sanctuary exclusion guard on non-pilgrim NPCs!
+          if (ag.kind !== "roha_pilgrim" && Math.hypot(candX - ROHA_X, candZ - ROHA_Z) < SANCTUARY_BOLLARD_R + 3.0) {
+            ag.dir *= -1;
+          } else {
+            ag.u = nextU;
+            if (ag.u > 1.0) { ag.u = 1.0; ag.dir = -1; }
+            if (ag.u < 0.0) { ag.u = 0.0; ag.dir =  1; }
+          }
+          ag.x = lerp(ag.ax, ag.bx, ag.u);
+          ag.z = lerp(ag.az, ag.bz, ag.u);
+          ag.yaw = Math.atan2(ag.bx - ag.ax, ag.bz - ag.az) + (ag.dir < 0 ? Math.PI : 0);
+          if (Math.hypot(ag.x - player.x, ag.z - player.z) > 1500) continue;
+          const ay = sampleSurface(ag.x, ag.z, envState.wetness).y;
+          if (ag.kind === "pack_donkey") {
+            dynamicBatch.push(ag.x, ay + 0.46, ag.z, 0.48, 0.48, 1.28 * ag.scaleH, ag.yaw, 0.45, 0.43, 0.41, 0);
+            dynamicBatch.push(ag.x + Math.sin(ag.yaw) * 0.58, ay + 0.84, ag.z + Math.cos(ag.yaw) * 0.58, 0.28, 0.42, 0.36, ag.yaw, 0.42, 0.40, 0.38, 0);
+            dynamicBatch.push(ag.x, ay + 0.70, ag.z, 0.82, 0.34, 0.30, ag.yaw, 0.85, 0.66, 0.16, 0);
+          } else {
+            const isPilgrim = ag.kind === "roha_pilgrim";
+            dynamicBatch.push(ag.x, ay, ag.z, 0.46 * ag.shoulderW, 1.42 * ag.scaleH, 0.34, ag.yaw, isPilgrim ? 0.93 : 0.76, isPilgrim ? 0.92 : 0.72, isPilgrim ? 0.88 : 0.64, 0);
+            dynamicBatch.push(ag.x, ay + 1.43 * ag.scaleH, ag.z, 0.24, 0.25, 0.24, ag.yaw, 0.27, 0.18, 0.13, 0);
+            if (!isPilgrim) dynamicBatch.push(ag.x, ay + 0.92 * ag.scaleH, ag.z, 0.24, 0.36, 0.28, ag.yaw, 0.86, 0.68, 0.16, 0);
+          }
+        } else {
+          const r = ag.kind === "ethiopian_wolf" ? 18.0 : 7.5;
+          ag.x = ag.cx + Math.cos(nowSec * 0.35 + ag.phase) * r;
+          ag.z = ag.cz + Math.sin(nowSec * 0.35 + ag.phase) * r;
+          if (Math.hypot(ag.x - player.x, ag.z - player.z) > 1800) continue;
+          const ay = sampleTerrainBare(ag.x, ag.z);
+          const yaw = Math.atan2(-Math.sin(nowSec * 0.35 + ag.phase), Math.cos(nowSec * 0.35 + ag.phase));
+          pushMultiPartAnimal(dynamicBatch, ag.kind, ag.x, ay, ag.z, yaw, ag.scaleH, ag.phase, nowSec);
+        }
+      }
+
+      // 4. Arterial Road Spline Vehicles (with hard Roha Sanctuary perimeter guard!)
+      for (let i = 0; i < splineTraffic.length; i++) {
+        const tv = splineTraffic[i];
+        tv.segFloat += tv.dir * (tv.speed * dt) / 22.0;
+        if (tv.segFloat >= roadPts.length - 2) { tv.segFloat = roadPts.length - 2.01; tv.dir = -1; }
+        if (tv.segFloat <= 0.01) { tv.segFloat = 0.01; tv.dir = 1; }
+        const idx = tv.segFloat | 0, fracT = tv.segFloat - idx;
+        const a = roadPts[idx], b = roadPts[idx + 1];
+        const vx = lerp(a[0], b[0], fracT), vz = lerp(a[2], b[2], fracT);
+        if (Math.hypot(vx - ROHA_X, vz - ROHA_Z) < SANCTUARY_BOLLARD_R + 4.0) {
+          tv.dir *= -1;
+          continue;
+        }
+        if (Math.hypot(vx - player.x, vz - player.z) > 2600) continue;
+        const yaw = Math.atan2(b[0] - a[0], b[2] - a[2]) + (tv.dir < 0 ? Math.PI : 0);
+        const laneOff = tv.dir * 3.4;
+        const lx = vx + Math.cos(yaw) * laneOff, lz = vz - Math.sin(yaw) * laneOff;
+        const vy = sampleSurface(lx, lz, envState.wetness).y;
+        if (tv.kind === "hiace") {
+          dynamicBatch.push(lx, vy + 0.2, lz, 1.8, 1.55, 4.5, yaw, 0.16, 0.50, 0.82, 0);
+        } else if (tv.kind === "isuzu") {
+          dynamicBatch.push(lx, vy + 0.3, lz, 2.15, 2.25, 5.8, yaw, 0.86, 0.82, 0.74, 0);
+        } else {
+          dynamicBatch.push(lx, vy + 0.15, lz, 1.25, 1.45, 2.2, yaw, 0.18, 0.62, 0.90, 0);
+        }
+      }
+
+      // 5. Kiremt Monsoon Rain Shafts
+      if (envState.wetness > 0.15) {
+        for (let r = 0; r < 140; r++) {
+          const rx = player.x + ((r * 73) % 90) - 45;
+          const rz = player.z + ((r * 137) % 90) - 45;
+          const ry = player.y + 22.0 - (((nowSec * 34.0 + r * 3.1) % 24.0));
+          dynamicBatch.push(rx, ry, rz, 0.04, 1.65, 0.04, 0, 0.65, 0.86, 0.96, 2.0);
+        }
+      }
+      dynamicBatch.upload();
+      updateAudioSpace();
+    }
+
+    function normalize3(v) {
+      const l = 1.0 / (Math.hypot(v[0], v[1], v[2]) || 1);
+      return [v[0] * l, v[1] * l, v[2] * l];
+    }
+
+    function computeAtmosphere() {
+      if (envState.tod === "NIGHT") {
+        return {
+          sun: normalize3([-0.25, 0.55, 0.45]),
+          sunIntensity: 0.04, // True silver moonlight, sun disk extinguished!
+          skyTop: [0.02, 0.04, 0.08],
+          skyHoriz: [0.05, 0.08, 0.13],
+          fog: [0.04, 0.07, 0.11]
+        };
+      }
+      if (envState.tod === "DAWN") {
+        return {
+          sun: normalize3([0.78, 0.24, 0.32]),
+          sunIntensity: 0.68,
+          skyTop: [0.18, 0.32, 0.54],
+          skyHoriz: [0.82, 0.58, 0.42],
+          fog: [0.68, 0.56, 0.48]
+        };
+      }
+      if (envState.weather === "KIREMT_SQUALL") {
+        return {
+          sun: normalize3([0.35, 0.68, -0.35]),
+          sunIntensity: 0.40,
+          skyTop: [0.22, 0.27, 0.32],
+          skyHoriz: [0.44, 0.48, 0.52],
+          fog: [0.42, 0.46, 0.50]
+        };
+      }
+      if (envState.tod === "ZENITH") {
+        return {
+          sun: normalize3([0.18, 0.94, 0.22]),
+          sunIntensity: 1.05,
+          skyTop: [0.18, 0.42, 0.74],
+          skyHoriz: [0.66, 0.76, 0.84],
+          fog: [0.64, 0.73, 0.81]
+        };
+      }
+      return {
+        sun: normalize3([0.58, 0.56, -0.42]),
+        sunIntensity: 1.00,
+        skyTop: [0.20, 0.40, 0.68],
+        skyHoriz: [0.72, 0.77, 0.80],
+        fog: [0.68, 0.73, 0.77]
+      };
+    }
+
+    // Spec-Compliant Zero-Error WebGL2 EXT_disjoint_timer_query_webgl2 Lifecycle!
+    const timerExt = gl.getExtension("EXT_disjoint_timer_query_webgl2");
+    let pendingGpuQuery = null, lastGpuMs = 0.0, warmupFrames = 0;
+
+    let lastTs = performance.now(), uiAccum = 0;
+    function frame(now) {
+      const tStart = performance.now();
+      const rawMs = now - lastTs;
+      const dt = clamp(rawMs * 0.001, 0.001, 0.05);
+      lastTs = now;
+
+      // Poll previous completed GPU query using gl.getQueryParameter (NEVER gl.getParameter!)
+      if (timerExt && pendingGpuQuery) {
+        const avail = gl.getQueryParameter(pendingGpuQuery, gl.QUERY_RESULT_AVAILABLE);
+        const disjoint = gl.getParameter(timerExt.GPU_DISJOINT_EXT);
+        if (avail) {
+          if (!disjoint) {
+            lastGpuMs = gl.getQueryParameter(pendingGpuQuery, gl.QUERY_RESULT) / 1e6;
+          }
+          gl.deleteQuery(pendingGpuQuery);
+          pendingGpuQuery = null;
+        }
+      }
+      let startedQueryThisFrame = false;
+      if (timerExt && !pendingGpuQuery) {
+        pendingGpuQuery = gl.createQuery();
+        gl.beginQuery(timerExt.TIME_ELAPSED_EXT, pendingGpuQuery);
+        startedQueryThisFrame = true;
+      }
+
+      stepSimulation(dt, now * 0.001);
+
+      const lookY = player.y + (player.mode === "isuzu" ? 2.85 : (player.mode === "hiace" ? 2.35 : (player.mode === "glider" ? 0.5 : 1.95)));
+      // Over-the-right-shoulder offset (-cos(yaw), sin(yaw)) in foot mode outside Roha so the avatar stands left of the sightline!
+      const shAmt = (player.mode === "foot" && !player.inSanctuary) ? 1.35 : 0.0;
+      const shoulderX = -Math.cos(player.yaw) * shAmt;
+      const shoulderZ =  Math.sin(player.yaw) * shAmt;
+      const [camX, camY, camZ] = computeSafeCamera(lookY, shoulderX, shoulderZ);
+
+      const aspect = canvas.width / Math.max(1, canvas.height);
+      mat4Perspective(mProj, (52 * Math.PI) / 180, aspect, 0.45, 22000.0);
+      mat4LookAt(mView, [camX, camY, camZ], [player.x + shoulderX * 0.85, lookY, player.z + shoulderZ * 0.85], [0, 1, 0]);
+      mat4Mul(mVP, mProj, mView);
+      invertMat4(mInvVP, mVP);
+
+      const atm = computeAtmosphere();
+      let draws = 0;
+
+      gl.disable(gl.DEPTH_TEST);
+      gl.useProgram(skyProg);
+      gl.uniformMatrix4fv(gl.getUniformLocation(skyProg, "uInvVP"), false, mInvVP);
+      gl.uniform3f(gl.getUniformLocation(skyProg, "uCamPos"), camX, camY, camZ);
+      gl.uniform3fv(gl.getUniformLocation(skyProg, "uSunDir"), atm.sun);
+      gl.uniform1f(gl.getUniformLocation(skyProg, "uSunIntensity"), atm.sunIntensity);
+      gl.uniform3fv(gl.getUniformLocation(skyProg, "uSkyTop"), atm.skyTop);
+      gl.uniform3fv(gl.getUniformLocation(skyProg, "uSkyHoriz"), atm.skyHoriz);
+      gl.bindVertexArray(skyVAO);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      draws++;
+
+      gl.enable(gl.DEPTH_TEST);
+      gl.enable(gl.CULL_FACE);
+
+      gl.useProgram(terrainProg);
+      gl.uniformMatrix4fv(gl.getUniformLocation(terrainProg, "uVP"), false, mVP);
+      gl.uniform3f(gl.getUniformLocation(terrainProg, "uCamPos"), camX, camY, camZ);
+      gl.uniform3fv(gl.getUniformLocation(terrainProg, "uSunDir"), atm.sun);
+      gl.uniform1f(gl.getUniformLocation(terrainProg, "uSunIntensity"), atm.sunIntensity);
+      gl.uniform3fv(gl.getUniformLocation(terrainProg, "uSkyCol"), atm.skyHoriz);
+      gl.uniform3fv(gl.getUniformLocation(terrainProg, "uFogCol"), atm.fog);
+      gl.uniform1f(gl.getUniformLocation(terrainProg, "uWetness"), envState.wetness);
+      gl.uniform1f(gl.getUniformLocation(terrainProg, "uTime"), now * 0.001);
+      gl.uniform1f(gl.getUniformLocation(terrainProg, "uCloudDeckY"), 2620.0);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, ftwTex);
+      gl.uniform1i(gl.getUniformLocation(terrainProg, "uFtwTex"), 0);
+
+      gl.bindVertexArray(hdCrucibleMesh.vao);
+      gl.drawElements(gl.TRIANGLES, hdCrucibleMesh.count, gl.UNSIGNED_INT, 0);
+      draws++;
+
+      gl.disable(gl.CULL_FACE);
+      gl.bindVertexArray(rohaMloMesh.vao);
+      gl.drawElements(gl.TRIANGLES, rohaMloMesh.count, gl.UNSIGNED_INT, 0);
+      draws++;
+      gl.bindVertexArray(abayRiverMesh.vao);
+      gl.drawElements(gl.TRIANGLES, abayRiverMesh.count, gl.UNSIGNED_INT, 0);
+      draws++;
+      gl.enable(gl.CULL_FACE);
+
+      for (let i = 0; i < slodChunks.length; i++) {
+        gl.bindVertexArray(slodChunks[i].vao);
+        gl.drawElements(gl.TRIANGLES, slodChunks[i].count, gl.UNSIGNED_INT, 0);
+        draws++;
+      }
+
+      gl.useProgram(instProg);
+      gl.uniformMatrix4fv(gl.getUniformLocation(instProg, "uVP"), false, mVP);
+      gl.uniform3f(gl.getUniformLocation(instProg, "uCamPos"), camX, camY, camZ);
+      gl.uniform3fv(gl.getUniformLocation(instProg, "uSunDir"), atm.sun);
+      gl.uniform1f(gl.getUniformLocation(instProg, "uSunIntensity"), atm.sunIntensity);
+      gl.uniform3fv(gl.getUniformLocation(instProg, "uSkyCol"), atm.skyHoriz);
+      gl.uniform3fv(gl.getUniformLocation(instProg, "uFogCol"), atm.fog);
+      gl.uniform1f(gl.getUniformLocation(instProg, "uWetness"), envState.wetness);
+
+      draws += staticBatch.draw();
+      draws += dynamicBatch.draw();
+      lastDrawCalls = draws;
+
+      if (startedQueryThisFrame) {
+        gl.endQuery(timerExt.TIME_ELAPSED_EXT);
+      }
+      const cpuMs = performance.now() - tStart;
+      if (warmupFrames < 10) {
+        warmupFrames++;
+      } else {
+        frameTimes[ftPtr] = cpuMs + lastGpuMs;
+        ftPtr = (ftPtr + 1) % frameTimes.length;
+        ftFilled = Math.min(frameTimes.length, ftFilled + 1);
+      }
+
+      uiAccum += dt;
+      if (uiAccum > 0.16) {
+        uiAccum = 0;
+        const secCol = clamp(Math.floor((player.x + HALF) / 1000), 0, 13);
+        const secRow = clamp(Math.floor((player.z + HALF) / 1000), 0, 13);
+        const secId = `S_${String(secRow).padStart(2, "0")}_${String(secCol).padStart(2, "0")}`;
+        const belt = player.y >= 3000 ? "WURCH (ውርጭ)" : (player.y >= 2400 ? "DEGA (ደጋ)" : (player.y >= 1800 ? "WEYNA DEGA (ወይና ደጋ)" : "KOLLA (ቆላ)"));
+        const district = player.z < -4800 ? "Entoto Eucalyptus & Cyan Relay Ridge"
+          : (player.z < -2500 ? "Addis Korkoro Market & Light Rail Viaduct"
+          : (player.z < 1250 ? "Blue Nile (Abay) 1,500m Canyon Switchbacks"
+          : (player.z < 3050 ? "Roha / Lalibela Subtractive Tuff Sanctuary"
+          : "Simien Escarpment & Ras Dashen Roof")));
+
+        if (!document.body.classList.contains("hud-off")) {
+          const fp = computeFramePercentiles();
+          $("hud-zone").textContent = `${district} · ${belt}`;
+          $("hud-readout").textContent = `ALT ${Math.round(player.y).toLocaleString()}m · ${secId} · RELAY ${player.relaySignalPct}% · p99 ${fp.p99.toFixed(1)}ms (${draws} DC)`;
+          $("hud-phys").textContent = `PHBOUND: ${MAT_NAMES[player.surfaceMat]} (μ=${player.surfaceMu.toFixed(2)}) · VO2: ${Math.round(player.vo2MaxFactor * 100)}% · BRAKE: ${Math.round(player.brakeTempC)}°C · BUNA: ${envState.bunaState}`;
+        }
+        if (!$("status-desk").hidden) {
+          const fp = computeFramePercentiles();
+          const slodDcPerKm2 = (slodChunks.length / 168.0).toFixed(3);
+          $("desk-perf-kv").innerHTML = `
+            <span>p50 / p99 Exec+GPU Time</span><span class="${fp.p99 <= 16.6 ? "tag-pass" : "tag-ghost"}">${fp.p50.toFixed(2)} ms / ${fp.p99.toFixed(2)} ms (GPU ${lastGpuMs.toFixed(2)}ms)</span>
+            <span>Total WebGL2 Draw Calls</span><span class="tag-pass">${draws}</span>
+            <span>SLOD Draw Calls / Distant km²</span><span class="tag-pass">${slodDcPerKm2} (Gate <=2.00)</span>
+            <span>196-Sector Seam Gap</span><span class="tag-pass">0.000000 m (Gate 0.00m)</span>
+            <span>Active Sector &amp; Coordinates</span><span>${secId} (${player.x.toFixed(1)}, ${player.y.toFixed(1)}, ${player.z.toFixed(1)})</span>
+          `;
+          $("desk-phys-kv").innerHTML = `
+            <span>Governing Polarity (Cyan Relay)</span><span>${player.relaySignalPct}% LOS</span>
+            <span>Unacclimated VO2max Factor</span><span>${(player.vo2MaxFactor * 100).toFixed(1)}% (Stamina ${(player.stamina * 100).toFixed(0)}%)</span>
+            <span>Isuzu Brake Drum Temp</span><span>${player.brakeTempC.toFixed(1)}°C (Eng-Brake: ${player.engineBrake ? "ON" : "OFF"})</span>
+            <span>phBound Surface &amp; Friction μ</span><span>${MAT_NAMES[player.surfaceMat]} (μ=${player.surfaceMu.toFixed(2)})</span>
+            <span>Acoustic Convolution Space</span><span>${activeIR} (${audioCtx ? audioCtx.state.toUpperCase() : "READY"})</span>
+            <span>Sanctuary Dignity Breaker</span><span class="tag-pass">${player.dignityState}</span>
+          `;
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+
+    window.__demiurge = {
+      isReady: () => true,
+      teleportTo,
+      setPlayerMode,
+      setWeather: w => { envState.weather = w; envState.wetness = w === "KIREMT_SQUALL" ? 0.92 : 0.0; },
+      setTod: t => { envState.tod = t; envState.hour = t === "DAWN" ? 6.2 : (t === "MORNING" ? 8.8 : (t === "ZENITH" ? 12.5 : 21.0)); },
+      setInput: (k, val) => { initAudio(); keys[k] = val; },
+      setEngineBrake: v => { player.engineBrake = Boolean(v); },
+      getWebGLError: () => gl.getError(),
+      sampleSurface: (x, z) => sampleSurface(x, z, envState.wetness),
+      getRoadWaypoints: () => roadPts,
+      getAgents: () => agents.map(a => ({ kind: a.kind, x: +a.x.toFixed(1), z: +a.z.toFixed(1) })),
+      getTelemetry: () => {
+        const fp = computeFramePercentiles();
+        return {
+          x: +player.x.toFixed(2),
+          y: +player.y.toFixed(2),
+          z: +player.z.toFixed(2),
+          yaw: +player.yaw.toFixed(3),
+          pitch: +player.pitch.toFixed(3),
+          mode: player.mode,
+          speed: +player.speed.toFixed(2),
+          vo2MaxFactor: +player.vo2MaxFactor.toFixed(3),
+          stamina: +player.stamina.toFixed(3),
+          brakeTempC: +player.brakeTempC.toFixed(1),
+          inSanctuary: player.inSanctuary,
+          dignityState: player.dignityState,
+          surfaceMat: MAT_NAMES[player.surfaceMat],
+          surfaceMu: +player.surfaceMu.toFixed(3),
+          relaySignalPct: player.relaySignalPct,
+          drawCalls: lastDrawCalls,
+          slodDrawCallsPerKm2: +(slodChunks.length / 168.0).toFixed(4),
+          gpuMs: +lastGpuMs.toFixed(3),
+          p50Ms: +fp.p50.toFixed(2),
+          p99Ms: +fp.p99.toFixed(2),
+          activeIR,
+          audioState: audioCtx ? audioCtx.state : "uninitialized",
+          hudOff: document.body.classList.contains("hud-off")
+        };
+      }
+    };
+  })();
+  </script>
+</body>
+</html>

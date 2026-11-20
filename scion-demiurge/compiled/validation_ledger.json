@@ -1,0 +1,279 @@
+{
+  "schema": "SCION_DEMIURGE_VALIDATION_LEDGER_1.0",
+  "world": "Abyssinian-Harar Vertical Open World",
+  "compiler_version": "SCION_DEMIURGE_1.0.0",
+  "verified_at_utc": "2026-11-20T01:53:06Z",
+  "world_thesis": {
+    "governing_polarity": "Higher elevation across the 911 m to 4,550 m flood-basalt stratigraphy yields clearer optical line-of-sight and cyan microwave relay signal while exacting steeper mechanical traction loss, 12-ton Isuzu FSR brake-drum heat/fade, unacclimated VO2max hypoxia (down to 0.581 at Ras Dashen), and 20L water-cargo cost.",
+    "anisotropic_compression_law": "Compress horizontal inter-basin distances 40:1 along Rift escarpment fault hinges into a 14 x 14 km (196 km^2, 196 1x1 km sectors) playable footprint while locking vertical cliff faces, the 1,500 m Blue Nile (Abay) Gorge drop (1,006 m river thalweg, 1,020 m steel truss deck), the 12.0 m Roha/Lalibela subtractive volcanic-tuff trench (2,500 m -> 2,488 m), and the 4,550 m Ras Dashen Afroalpine crown at 1:1 metric scale.",
+    "crucible_corridor": "2 x 14 km contiguous South-to-North vertical slice (28 high-detail crucible sectors embedded in 168 SLOD horizon sectors): Entoto Overlook Rim (3,202 m) -> Addis Korkoro Market & Elevated Light Rail (2,400 m) -> Abay Gorge Civil Bench-Cut Switchbacks & Steel Bridge (1,006 m / 1,020 m) -> Roha Subtractive Sanctuary Trench (2,500 m -> 2,488 m) -> Simien Escarpment & Ras Dashen Crown (4,550 m)."
+  },
+  "deliverables_sha256": {
+    "scion-demiurge/index.html": {
+      "bytes": 1013239,
+      "sha256": "cfd05f45e678a04849d46db85e5aeff445ec6411204401042460affe7e3f952a",
+      "role": "Self-contained dependency-free WebGL2 + Web Audio API playable runtime (< 1.02 MB vs. 25 MB GitHub Pages ceiling)"
+    },
+    "scion-demiurge/runtime/engine_template.html": {
+      "bytes": 132706,
+      "sha256": "ec4491f4118be0087fc20d339a14bebfa3790d384d81184dd55eac9833556ef6",
+      "role": "Unbundled WebGL2 + Web Audio engine source template"
+    },
+    "scion-demiurge/compiled/crucible_pack.json": {
+      "bytes": 880555,
+      "sha256": "2a7868173496d3347736c328bb91bb8bc57a133dbc8af403fa14d510a2f659cd",
+      "role": "Compiled 561x561 height/material pack, 862-vertex unfolded civil road spline, FTW cadastral plots, and subtractive MLO descriptors"
+    },
+    "scion-demiurge/compiled/sector_graph_196.json": {
+      "bytes": 79982,
+      "sha256": "2fc00085874b926b2b10d9ab0f61f296ea70f54d6441a8ddaba1574708c7c6ce",
+      "role": "Canonical 196-sector (14x14 km) streaming graph, seam contracts, source hashes, and delta-delta inquiry telemetry"
+    },
+    "scion-demiurge/compiler/compile_crucible.py": {
+      "bytes": 34528,
+      "sha256": "ee9d759b91a2a7799fb98c02a3d640f92762293a4d6f6279dc1dda548b0d3490",
+      "role": "Deterministic geodetic-to-runtime compiler and invariant verifier"
+    },
+    "scion-demiurge/compiler/build_single_file_runtime.py": {
+      "bytes": 902,
+      "sha256": "df4ec53eedf949d077c75600ff88ffc4638d70b8c726308ce18e330149586346",
+      "role": "Single-file HTML bundler injecting crucible_pack.json into engine_template.html"
+    },
+    "scion-demiurge/compiler/kinematic_probe.mjs": {
+      "bytes": 14859,
+      "sha256": "34e552ecee1ed7a0d1ebb4ccf37c7b0eff2269ef99d38c25c9600c1c04ad40c2",
+      "role": "Automated headless Chrome WebGL2 + kinematic + Sanctuary Dignity verification suite"
+    }
+  },
+  "immutable_source_vault": {
+    "scion-demiurge/vault/orbital_dem16.bin": {
+      "bytes": 453600,
+      "sha256": "6ad42ec8b7bc34eaec0b5236c483cdccb560fa074c65ac2f6a341c87a1b717e3",
+      "license": "Public Domain / Open Data — AWS Open Data Terrain Tiles (SRTM/GMTED/ETOPO1 z7)",
+      "citekey": "AWS_TERRARIUM_Z7_ETHIOPIA"
+    },
+    "scion-demiurge/vault/blue_nile_gorge.dem16.bin": {
+      "bytes": 294912,
+      "sha256": "08af1520c253e52efebca1fa82e9e7e9744813b74502df5cccfab20750c2007f",
+      "license": "Public Domain / Open Data — Copernicus GLO-30 via AWS Terrarium z12",
+      "citekey": "COPERNICUS_GLO30_ABAY_Z12"
+    },
+    "scion-demiurge/vault/simien_imet_gogo.dem16.bin": {
+      "bytes": 294912,
+      "sha256": "c2572ef9d35ccb31e0347239a27e461a6f6a79a1849a6c9609b5f798c119f4f9",
+      "license": "Public Domain / Open Data — Copernicus GLO-30 via AWS Terrarium z13",
+      "citekey": "COPERNICUS_GLO30_SIMIEN_Z13"
+    },
+    "scion-demiurge/vault/fields_dem_gorge.bin": {
+      "bytes": 723284,
+      "sha256": "44d6f4df9eec65c291a29dad55e17b2f9b99d47e282577a76e9ad7e0d7c7d449",
+      "license": "CC-BY-4.0 — Kerner et al. 2025, Fields of The World (FTW)",
+      "citekey": "FTW_2025_ETHIOPIA_GORGE_ABF1"
+    },
+    "scion-demiurge/vault/fields_dem_simien.bin": {
+      "bytes": 6492,
+      "sha256": "3807eaa88794fb1158fcec59e39ea2aeb654fcd8508982a8e06beb77fe9cf86b",
+      "license": "CC-BY-4.0 — Kerner et al. 2025, Fields of The World (FTW)",
+      "citekey": "FTW_2025_ETHIOPIA_SIMIEN_ABF1"
+    },
+    "scion-demiurge/vault/terrain_manifest.json": {
+      "bytes": 17503,
+      "sha256": "12395f2c04a5f10f5ad8de14c78dc1b977d250e024a60864547bb69c2b75bd2d",
+      "license": "Open-Data Provenance Manifest"
+    },
+    "scion-demiurge/vault/ftw_manifest.json": {
+      "bytes": 8770,
+      "sha256": "f75f61e9781d15d37baa92cd66b9b82022bba1d3496e0fea4ea94ebe54acf11e",
+      "license": "CC-BY-4.0 Attribution Manifest"
+    }
+  },
+  "epistemic_claims": {
+    "MEASURED": [
+      {
+        "claim_id": "M_01_FRAME_BUDGET_AND_SLOD",
+        "metric": "Hardware WebGL2 frame timing & SLOD draw-call density (1600x900 headless Chrome Metal/ANGLE)",
+        "threshold": "p99 <= 16.6 ms, SLOD <= 2.0 draw calls/km^2, gl.getError() == 0",
+        "measured_value": {
+          "kinematic_probe_p50_ms": 2.07,
+          "kinematic_probe_p99_ms": 4.82,
+          "blind_critic_sector_steady_state_p50_ms": {
+            "entoto": 3.27,
+            "addis": 2.25,
+            "abay": 2.97,
+            "roha": 2.74,
+            "simien": 3.35
+          },
+          "blind_critic_sector_steady_state_p99_ms": {
+            "entoto": 7.48,
+            "addis": 6.04,
+            "abay": 7.34,
+            "roha": 7.01,
+            "simien": 5.77
+          },
+          "total_draw_calls": 14,
+          "slod_draw_calls_per_km2": 0.0476,
+          "webgl2_errors": 0
+        },
+        "status": "PASS"
+      },
+      {
+        "claim_id": "M_02_SECTOR_SEAM_CONTINUITY",
+        "metric": "Shared vertex elevation error across all 364 adjacent borders of the 196 (1x1 km) sectors",
+        "threshold": "max_seam_gap_m == 0.000000 m",
+        "measured_value": {
+          "shared_borders_verified": 364,
+          "max_seam_gap_m": 0.0
+        },
+        "status": "PASS"
+      },
+      {
+        "claim_id": "M_03_DELTA_DELTA_ABAY_SWITCHBACKS",
+        "metric": "DD_01_ABAY_PROMINENCE_VS_ISUZU_GRADE comparative civil corridor compilation",
+        "threshold": "max_grade_pct <= 14.5% (< 16.0% heavy-truck stall limit) while preserving >= 1,450 m canyon prominence",
+        "measured_value": {
+          "patch_a_terrain_draped_length_km": 12.52,
+          "patch_a_max_grade_pct": 446.33,
+          "patch_a_verdict": "FAIL_STALL",
+          "patch_b_bench_cut_unfolded_length_km": 63.63,
+          "patch_b_max_grade_pct": 13.29,
+          "patch_b_preserved_prominence_m": 1877.0,
+          "patch_b_turnaround_pad_width_m": 68.0,
+          "patch_b_verdict": "PASS_SELECTED"
+        },
+        "status": "PASS"
+      },
+      {
+        "claim_id": "M_04_ISUZU_THERMAL_BRAKE_FADE_AND_BRIDGE",
+        "metric": "12-ton Isuzu FSR downhill brake-drum thermal fade vs. exhaust/engine-brake control and 1,020 m Abay steel bridge deck continuity",
+        "threshold": "Service-brake descent exceeds 380 C with runaway acceleration + visible glowing wheel drums; engineBrake keeps drums cool and speed controlled; bridge span maintains 1,020.0 m with 0 fall-throughs",
+        "measured_value": {
+          "kinematic_probe_peak_brake_temp_c": 580.0,
+          "blind_critic_brake_fade_temp_c": 450.6,
+          "blind_critic_runaway_speed_mps": 20.63,
+          "blind_critic_engine_brake_temp_c": 26.0,
+          "blind_critic_engine_brake_speed_mps": 0.78,
+          "abay_bridge_span_min_y_m": 1020.0,
+          "abay_bridge_span_max_y_m": 1020.0,
+          "abay_river_bank_min_y_outside_thalweg_m": 1012.76
+        },
+        "status": "PASS"
+      },
+      {
+        "claim_id": "M_05_KIREMT_MONSOON_COUPLING",
+        "metric": "Simultaneous surface friction drop, buna roasting smoke extinction, and vendor porch shelter relocation under KIREMT_SQUALL",
+        "threshold": "surfaceMu drops >= 40% on clay/mud, smoke puffs extinguish to 0, buna_vendor relocates beneath Korkoro porch eave",
+        "measured_value": {
+          "clear_surface_mu": 0.76,
+          "kiremt_squall_surface_mu": 0.383,
+          "mu_drop_pct": 49.6,
+          "clear_buna_smoke_puffs": 6,
+          "kiremt_buna_smoke_puffs": 0,
+          "vendor_relocation_xz_m": [
+            [16.8, -3919.2],
+            [18.9, -3918.8]
+          ]
+        },
+        "status": "PASS"
+      },
+      {
+        "claim_id": "M_06_SANCTUARY_CLEARANCES_AND_HYPOXIA",
+        "metric": "Roha Sanctuary Euclidean exclusion radii, subtractive courtyard depth, and Ras Dashen summit hypoxia/lithology",
+        "threshold": "Highway >= 64 m from Sanctuary center (20, 2400); non-pilgrim NPCs >= 64 m; trench depth == 12.0 m; summit 100% BASALT_CLIFF",
+        "measured_value": {
+          "min_highway_segment_dist_m": 155.0,
+          "min_non_pilgrim_npc_dist_m": 182.44,
+          "sanctuary_bollard_radius_m": 64.0,
+          "roha_rim_to_floor_drop_m": 12.0,
+          "ras_dashen_summit_elev_m": 4549.3,
+          "ras_dashen_vo2max_factor": 0.581,
+          "ras_dashen_basalt_cliff_coverage_pct": 100.0
+        },
+        "status": "PASS"
+      }
+    ],
+    "STRUCTURAL": [
+      {
+        "claim_id": "S_01_FOUR_LAYER_SANCTUARY_DIGNITY_CIRCUIT_BREAKER",
+        "mechanism": "Enforced across r = 64.0 m around (20.0, 2400.0) via: (1) Western highway reroute to X = -135 m (155.0 m clear), (2) physical stone bollard ring collision stopping vehicles at X <= -46.4 m, (3) mode-switch refusal + unconditional airborne glider auto-dismount to BAREFOOT_NON_COMBAT foot mode upon entering r <= 64.0 m, and (4) non-pilgrim AI spawn/update exclusion (>= 182.44 m).",
+        "verified_by": "rights-dignity-auditor (4d9a564d-0afd-4285-b5a1-0fcbdb027518) & blind-traversal-critic (97ea4b1c-c5a4-4d4e-a692-72c0914c3ecf)"
+      },
+      {
+        "claim_id": "S_02_WATERTIGHT_SUBTRACTIVE_MLO_PORTAL",
+        "mechanism": "Punches terrain mask inside x in [-35..+35], z in [2385..2415] while welding the western dromos ramp lip at x = -35.0 m directly to quantized sampleTerrainBare(-35.0, z) with a -2.5 m subterranean red-tuff riser skirt, eliminating Uint16 quantization slits across both day and night.",
+        "verified_by": "blind-traversal-critic (0 skybox bleed pixels in critic_wave6_20_roha_dromos_lip_morning.jpg & critic_wave6_21_roha_dromos_lip_night.jpg)"
+      },
+      {
+        "claim_id": "S_03_CONVEX_HULL_3D_VEHICLE_SUSPENSION",
+        "mechanism": "Samples a 9-point vehicle footprint across road/terrain heightfields to compute least-squares (pitch, roll) + convex-hull vertical wheel clearance passed via WebGL2 instanced attribute location=6 (vec2 iTilt), preventing diagonal cliff/turnaround mesh slicing on 68 m-wide switchback pads.",
+        "verified_by": "blind-traversal-critic (critic_wave6_17..19_abay_hairpin_*.jpg)"
+      },
+      {
+        "claim_id": "S_04_WEB_AUDIO_PROCEDURAL_CONVOLUTION_AND_SYNTHESIS",
+        "mechanism": "Zero-external-asset Web Audio graph synthesizing altitude wind, Kiremt rain noise, Isuzu diesel harmonics, brake-squeal thermal alarm, highland washint flute, and 4 procedural impulse-response (IR) convolution spaces (OPEN_PLATEAU, KORKORO, CANYON, TRENCH).",
+        "verified_by": "kinematic_probe.mjs & blind-traversal-critic activeIR transitions"
+      },
+      {
+        "claim_id": "S_05_OPEN_COMMERCIAL_VAULT_ISOLATION",
+        "mechanism": "All 5 binary geodetic/cadastral inputs and attribution manifests reside inside scion-demiurge/vault/ with verified SHA-256 parity and zero dependency on mutable sibling directories or restricted third-party scans.",
+        "verified_by": "rights-dignity-auditor (4d9a564d-0afd-4285-b5a1-0fcbdb027518)"
+      }
+    ],
+    "JUDGED": [
+      {
+        "claim_id": "J_01_BLIND_HUD_FREE_WAYFINDING_AND_PLACE_IDENTITY",
+        "evaluator": "Wave-6 Independent Blind Traversal Critic (97ea4b1c-c5a4-4d4e-a692-72c0914c3ecf)",
+        "conditions": "?hud=0 pure HUD-free mode (hudOff === true, 0 visible HUD DOM nodes), 32 inspected 1600x900 frames across MORNING, DAWN, ZENITH, NIGHT, and KIREMT_SQUALL",
+        "verdict": "BAR_MET",
+        "qualitative_summary": "Untouched Entoto spawn frames Addis Korkoro market and the moving green/white LRT viaduct dead-center over the player's right shoulder, flanked by Eucalyptus, the aviation-lit red/white + cyan Relay Mast (RGB >= 214/220 in NIGHT), and 1,085 warm golden Addis sodium pixels at night. Abay Gorge conveys genuine 1:1 1,500 m vertical consequence with 4 grounded bridge piers, silt-brown river containment, and glowing brake-fade drums. Roha's 12 m red-tuff subtractive courtyard and cruciform monolith nave read cleanly as sacred space under BAREFOOT_NON_COMBAT, and Simien's 4,550 m flood-basalt summit crown with Giant Lobelias, endemic fauna, and deep-skirted stone cairns avoids snow-white DEM clipping.",
+        "residual_non_blocking_note": "In narrow single-file pedestrian thresholds such as the Roha dromos centerline (x ≈ 5.5, z = 2400.0), a passing roha_pilgrim within 1.0 m of the 3rd-person camera can briefly (~0.3 s) intersect the camera near plane; optional future polish can dither or cull non-player humanoid instances within 1.1 m of camera eye."
+      },
+      {
+        "claim_id": "J_02_RIGHTS_PROVENANCE_AND_SANCTUARY_DIGNITY_AUDIT",
+        "evaluator": "Wave-6 Independent Rights, Provenance & Sanctuary Dignity Auditor (4d9a564d-0afd-4285-b5a1-0fcbdb027518)",
+        "verdict": "PASS",
+        "qualitative_summary": "Verified 100% open-commercial provenance (Public Domain AWS/Copernicus GLO-30 + CC-BY-4.0 FTW 2025), 0 restricted Zamani/UNESCO TLS scans, explicit [[GHOST::CLEAN_LALI_SFM]] logging across compiler/pack/UI, 155.00 m highway clearance, 182.44 m non-pilgrim NPC clearance, unconditional vehicle/donkey/glider exclusion across r = 64.0 m, and zero combat, looting, or extractive mechanics."
+      }
+    ],
+    "ACTIVE_GHOST": [
+      {
+        "ghost_id": "[[GHOST::CLEAN_LALI_SFM]]",
+        "missing_primary_archive": "Sub-centimeter photogrammetric / terrestrial laser scan (TLS) survey of the rock-hewn monolithic churches of Lalibela (Roha).",
+        "restriction_reason": "Existing high-resolution TLS point clouds (e.g., Zamani Project / University of Cape Town) carry non-commercial academic licensing restrictions and may not be ingested into an open-commercial world build.",
+        "current_runtime_proxy": "Clean-room parametric subtractive volcanic-tuff courtyard (30 x 30 x 12.0 m pit, 10 m western dromos ramp, 15 x 15 x 11.2 m cruciform basaltic-scoria monolith with walkable nave/transept portals and shaded soffits) governed by the r = 64.0 m BAREFOOT_NON_COMBAT dignity lock.",
+        "field_resolution_protocol": "Commission an authorized, non-intrusive ground-level and 6-meter telescopic-pole Structure-from-Motion (SfM) + cross-polarized albedo capture under written permit from the Ethiopian Authority for Research and Conservation of Cultural Heritage (ARCCH) and the Ethiopian Orthodox Tewahedo Church (EOTC) Lalibela Parish Council, scheduled strictly outside liturgical hours with zero drone overflight and explicit revenue-sharing / CC-BY-4.0 derivative clearance."
+      }
+    ]
+  },
+  "multi_wave_verification_history": [
+    {
+      "wave": 1,
+      "rights_auditor": { "id": "606457cd-3b30-439b-a107-64fb5b5ec2f1", "verdict": "HARD_REJECT", "cause": "Highway chord 31.7 m from Roha, pack_donkey crossing trench, glider allowed in pit" },
+      "blind_critic": { "id": "9d8f232e-e060-4ffa-a33f-0730e10630d9", "verdict": "BROKEN_INVARIANT", "cause": "72-deg misaligned Abay bridge, deformed-grid Roha V-pinch, WebGL2 timer query enum bug, weak brake fade, bright night sun" }
+    },
+    {
+      "wave": 2,
+      "rights_auditor": { "id": "4f71f32e-e669-4dc4-9abf-0238ce97e843", "verdict": "PASS" },
+      "blind_critic": { "id": "a9425c3a-f1f3-4f0b-93aa-5f4f0ecd1922", "verdict": "BROKEN_INVARIANT", "cause": "+89.5 m hill occluding Entoto spawn, r=56 m leaving western dromos entry uncovered & glider overflight, Isuzu roof camera clip, flat-clipped 4,550 m Simien snow sheet" }
+    },
+    {
+      "wave": 3,
+      "rights_auditor": { "id": "22de1c8f-8006-4bd4-8940-828807fc5015", "verdict": "PASS" },
+      "blind_critic": { "id": "d69da1b8-7e44-4f42-9fb9-1a46025d1729", "verdict": "BROKEN_INVARIANT", "cause": "+0.12 m 3rd-person Entoto terrace lip occlusion, segmented river boxes leaving dry gap under bridge, sub-pixel distant tree trunks, trailhead road leaking ASPHALT onto Ras Dashen summit" }
+    },
+    {
+      "wave": 4,
+      "rights_auditor": { "id": "4f0716a2-2c90-4f5c-a941-51839279514d", "verdict": "PASS" },
+      "blind_critic": { "id": "82f37892-8c79-41da-8b88-8add07428e3d", "verdict": "BROKEN_INVARIANT", "cause": "Dry 986.8 m bank depression outside Abay river ribbon, [0,0,0] black bridge/viaduct soffits, narrow 14 m road half-width clipping cliff triangles, centered avatar blocking Addis at spawn" }
+    },
+    {
+      "wave": 5,
+      "rights_auditor": { "id": "1070bb0b-7de9-4fd1-899c-a39db37c6746", "verdict": "PASS" },
+      "blind_critic": { "id": "7befdbbc-e78a-40e7-bd82-a474d273f43e", "verdict": "BROKEN_INVARIANT", "cause": "Un-pitched Isuzu clipping on tight switchback hairpins, 2.3 cm Uint16 quantization slit at Roha x=-35 m lip, 2 dark nocturnal Relay Mast bands + fog-crushed Addis night lights, 1.4 m summit cairn corner overhang" }
+    },
+    {
+      "wave": 6,
+      "rights_auditor": { "id": "4d9a564d-0afd-4285-b5a1-0fcbdb027518", "verdict": "PASS" },
+      "blind_critic": { "id": "97ea4b1c-c5a4-4d4e-a692-72c0914c3ecf", "verdict": "BAR_MET" }
+    }
+  ]
+}
