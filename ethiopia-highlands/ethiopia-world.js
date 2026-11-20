@@ -657,6 +657,21 @@
       hair: "turban", beard: "full", outer: "shamma", coatHex: 0xe6dfd0, shirtHex: 0x6a6358, trouserHex: 0x33312e
     });
 
+    const worldBridge = window.Mesh2MotionWorldBridge
+      ? window.Mesh2MotionWorldBridge.createWorldCastDriver(T, {
+          clipsBaseUrl: "../motion-pipeline/mesh2motion/clips",
+          preload: ["idle", "idle-talking", "walk", "walk-carry", "jog", "greeting"],
+          defaultBlend: 0.85,
+          defaultFade: 0.25
+        })
+      : null;
+    if (worldBridge) {
+      if (imani) worldBridge.registerActor("eth_imani", imani, { defaultClip: "idle", blend: 0.85 });
+      if (makeda) worldBridge.registerActor("eth_makeda", makeda, { defaultClip: "idle-talking", blend: 0.84, phaseOffset: 0.4 });
+      if (june) worldBridge.registerActor("eth_june", june, { defaultClip: "greeting", blend: 0.84, phaseOffset: 1.2 });
+      if (elder) worldBridge.registerActor("eth_elder", elder, { defaultClip: "idle-talking", blend: 0.84, phaseOffset: 2.1 });
+    }
+
     // Woven Catenary Lead Rope connecting Imani's right hand area to Mistletoe's halter ring
     const ROPE_PTS = 12;
     const ropeArr = new Float32Array(ROPE_PTS * 3);
@@ -1658,7 +1673,14 @@
         player: { x: +player.x.toFixed(2), y: +player.y.toFixed(2), z: +player.z.toFixed(2), speed: +player.speed.toFixed(2) },
         donkey: donkey ? { x: +donkey.state.x.toFixed(2), y: +donkey.group.position.y.toFixed(2), z: +donkey.state.z.toFixed(2) } : null,
         glider: { x: +glider.x.toFixed(2), y: +glider.y.toFixed(2), z: +glider.z.toFixed(2), agl: +glider.agl.toFixed(1), lift: +glider.orographicLift.toFixed(2) },
-        ecology: activeEcology ? activeEcology.getSummary({ x: refX, z: refZ }) : null
+        ecology: activeEcology ? activeEcology.getSummary({ x: refX, z: refZ }) : null,
+        worldBridge: worldBridge ? {
+          loadedClips: worldBridge.getLoadedClips(),
+          imani: worldBridge.getActorState("eth_imani"),
+          makeda: worldBridge.getActorState("eth_makeda"),
+          june: worldBridge.getActorState("eth_june"),
+          elder: worldBridge.getActorState("eth_elder")
+        } : null
       };
     }
 
@@ -1701,6 +1723,35 @@
       else stepWalkAndLead(dt, nowSec);
 
       stepSupportingCast(dt, nowSec);
+
+      if (worldBridge) {
+        if (imani && imani.group.visible) {
+          const spd = activeMode === "walk" ? player.speed : 0;
+          worldBridge.setActorLocomotion("eth_imani", {
+            speedMps: spd,
+            carrying: spd > 0.14 ? spd < 2.2 : true,
+            talking: false,
+            blend: 0.85
+          });
+        }
+        const relaySpecs = [
+          ["eth_makeda", makeda, true],
+          ["eth_june", june, false],
+          ["eth_elder", elder, true]
+        ];
+        for (let ri = 0; ri < relaySpecs.length; ri++) {
+          const [rid, ch, talks] = relaySpecs[ri];
+          if (!ch || !ch.group.visible) continue;
+          const dPlayer = Math.hypot(player.x - ch.state.x, player.z - ch.state.z);
+          worldBridge.setActorLocomotion(rid, {
+            speedMps: 0,
+            greeting: dPlayer < 6.5 || (rid === "eth_june" && dPlayer < 16),
+            talking: talks && dPlayer < 30,
+            blend: 0.84
+          });
+        }
+        worldBridge.update(dt);
+      }
 
       if (activeEcology) {
         playerVec.set(player.x, player.y, player.z);

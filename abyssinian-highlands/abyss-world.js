@@ -415,6 +415,18 @@
     };
     const imani = makeChar({ id: "abyss_imani", name: "Imani", skinHex: 0x3b261b, fem: 0.86, scale: 1.0, build: 1.0, hair: "croppedCoily", outer: "duster", coatHex: 0x3b403c, shirtHex: 0x5c605a, trouserHex: 0x2c3032, toolBelt: true });
     const farmer = makeChar({ id: "abyss_farmer", name: "Ploughman", skinHex: 0x3a2519, fem: 0.08, scale: 1.0, build: 1.04, hair: "turban", beard: "full", outer: "shamma", coatHex: 0xe6dfd0, shirtHex: 0x6a6358, trouserHex: 0x33312e });
+    const worldBridge = window.Mesh2MotionWorldBridge
+      ? window.Mesh2MotionWorldBridge.createWorldCastDriver(T, {
+          clipsBaseUrl: "../motion-pipeline/mesh2motion/clips",
+          preload: ["idle", "idle-talking", "walk", "walk-carry", "jog", "greeting"],
+          defaultBlend: 0.85,
+          defaultFade: 0.25
+        })
+      : null;
+    if (worldBridge) {
+      if (imani) worldBridge.registerActor("abyss_imani", imani, { defaultClip: "idle", blend: 0.85 });
+      if (farmer) worldBridge.registerActor("abyss_farmer", farmer, { defaultClip: "walk", blend: 0.82, phaseOffset: 0.6 });
+    }
     const ROPE_PTS = 12, ropeArr = new Float32Array(ROPE_PTS * 3), ropeGeo = new T.BufferGeometry();
     ropeGeo.setAttribute("position", new T.BufferAttribute(ropeArr, 3));
     const leadRope = new T.Line(ropeGeo, new T.LineBasicMaterial({ color: 0xb89d6f }));
@@ -1322,6 +1334,26 @@
         updateGroundCam(dt);
         if (S.mode === "walk" || S.busy || GC.dist < 500) stepCast(dt, nowSec);
         stepExtras(dt, nowSec);
+        if (worldBridge) {
+          if (imani && imani.group.visible) {
+            const spd = S.mode === "walk" ? player.speed : 0;
+            worldBridge.setActorLocomotion("abyss_imani", {
+              speedMps: spd,
+              carrying: spd > 0.14 ? spd < 2.2 : true,
+              blend: 0.85
+            });
+          }
+          if (farmer && farmer.group.visible) {
+            const dF = Math.hypot(player.x - farmer.state.x, player.z - farmer.state.z);
+            worldBridge.setActorLocomotion("abyss_farmer", {
+              speedMps: dF < 5.0 ? 0 : 1.15,
+              greeting: dF < 5.0,
+              talking: dF >= 5.0 && dF < 12.0,
+              blend: 0.82
+            });
+          }
+          worldBridge.update(dt);
+        }
         if (activeEcology && (S.mode === "walk" || (frameN & 1))) {
           _v.set(player.x, player.y, player.z);
           const dpos = donkey ? new T.Vector3(donkey.state.x, donkey.group.position.y, donkey.state.z) : null;
@@ -1342,7 +1374,12 @@
       diveTo, toOrbit, dropToWalk, setLook, setSeason, setColorBy, openSheet, buildCompare,
       state: () => ({ mode: S.mode, region: S.region, look: S.look, season: S.season, colorBy: S.colorBy, fps: S.fps, busy: S.busy,
         fields: fieldSet ? { total: fieldSet.total, inside: fieldSet.polys.length, key: fieldSet.key, byShape: fieldSet.byShape } : null,
-        player: { x: player.x, y: player.y, z: player.z }, gl: renderer.getContext().getError(), status: S.fieldStatus }),
+        player: { x: player.x, y: player.y, z: player.z }, gl: renderer.getContext().getError(), status: S.fieldStatus,
+        worldBridge: worldBridge ? {
+          loadedClips: worldBridge.getLoadedClips(),
+          imani: worldBridge.getActorState("abyss_imani"),
+          farmer: worldBridge.getActorState("abyss_farmer")
+        } : null }),
       setHiShape: k => { S.hiShape = k; markFieldsDirty(); },
       get terrain() { return activeTerrain; }, get fieldSet() { return fieldSet; }
     });

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#141615">
   <meta name="description" content="Donkey Water · Cyan Jerikan Music Video &amp; All-15-Shader Character Performance Audition Theater (Scion v5).">
@@ -372,6 +373,7 @@
     <div class="pill-row" id="row-cast" aria-label="Cast Lead Switcher"></div>
     <div class="pill-row" id="row-sets" aria-label="5 In-Context Music Video Sets"></div>
     <div class="pill-row" id="row-cuts" aria-label="Director Camera Cuts and Lenses"></div>
+    <div class="pill-row" id="row-motion" aria-label="Mesh2Motion CC0 Clip Audition"></div>
   </div>
 
   <script src="../field-plates/fonts.js"></script>
@@ -386,7 +388,9 @@
   <script src="../donkey/scion-groom-garments.js?v=v6sculpt1"></script>
   <script src="../donkey/characters.js?v=v6sculpt1"></script>
   <script src="../zones/world-architecture.js?v=v6sculpt1"></script>
-  <script src="./look-audition-mv.js?v=v6pass5"></script>
+  <script src="../motion-pipeline/mesh2motion/m2m-retarget.js?v=3"></script>
+  <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=1"></script>
+  <script src="./look-audition-mv.js?v=v6pass6"></script>
   <script>
   (function () {
     "use strict";
@@ -1282,6 +1286,7 @@
       renderer.shadowMap.needsUpdate = true;
 
       lastAutoSlot = -1;
+      syncWorldBridgeActors();
       syncHeaderAndHud(null);
       syncBarUI();
     }
@@ -1531,6 +1536,53 @@
         return `<button type="button" class="pill" data-cut="${c.id}">${lbl}</button>`;
       }).join("");
       rCuts.querySelectorAll("[data-cut]").forEach(b => b.addEventListener("click", () => setCut(b.dataset.cut)));
+
+      const rMotion = $("row-motion");
+      if (rMotion && LAMV.MV_MOTIONS) {
+        rMotion.innerHTML = `<span class="row-tag">Motion (M2M):</span>` + LAMV.MV_MOTIONS.map(m =>
+          `<button type="button" class="pill" data-motion="${m.id}" title="${m.desc}">${m.short}</button>`
+        ).join("");
+        rMotion.querySelectorAll("[data-motion]").forEach(b => b.addEventListener("click", () => setMotion(b.dataset.motion)));
+      }
+    }
+
+    let activeMotionId = "auto";
+    const worldBridge = window.Mesh2MotionWorldBridge
+      ? window.Mesh2MotionWorldBridge.createWorldCastDriver(T, {
+          clipsBaseUrl: "../motion-pipeline/mesh2motion/clips",
+          preload: ["idle", "idle-talking", "walk", "walk-carry", "dance-arm-pump", "greeting", "victory"],
+          defaultBlend: 0.88,
+          defaultFade: 0.25
+        })
+      : null;
+    const registeredBridgeIds = new Set();
+
+    function syncWorldBridgeActors() {
+      if (!worldBridge) return;
+      for (const oldId of registeredBridgeIds) {
+        try { worldBridge.unregisterActor(oldId); } catch (_e) { /* ignore */ }
+      }
+      registeredBridgeIds.clear();
+      for (let i = 0; i < activeActors.length; i++) {
+        const entry = activeActors[i];
+        if (!entry || !entry.ch || !entry.ch.bones) continue;
+        if (entry.role === "pump" || entry.role === "handoffA" || entry.role === "handoffB" || entry.role === "clay") continue;
+        const aid = `aud_${i}_${(entry.ch.state && entry.ch.state.id) || entry.role || "actor"}`;
+        entry._bridgeId = aid;
+        worldBridge.registerActor(aid, entry.ch, {
+          defaultClip: i === 0 ? "idle-talking" : "idle",
+          blend: 0.88,
+          phaseOffset: (i * 0.65) % 2.8
+        });
+        registeredBridgeIds.add(aid);
+      }
+    }
+
+    function setMotion(motionId) {
+      const m = (LAMV.MV_MOTIONS || []).find(x => x.id === motionId);
+      activeMotionId = m ? m.id : "auto";
+      syncBarUI();
+      return activeMotionId;
     }
 
     function syncBarUI() {
@@ -1564,6 +1616,11 @@
       });
       document.querySelectorAll("#row-cuts [data-cut]").forEach(b => {
         const act = b.dataset.cut === activeCutId;
+        b.classList.toggle("active", act);
+        b.setAttribute("aria-pressed", String(act));
+      });
+      document.querySelectorAll("#row-motion [data-motion]").forEach(b => {
+        const act = b.dataset.motion === activeMotionId;
         b.classList.toggle("active", act);
         b.setAttribute("aria-pressed", String(act));
       });
@@ -1925,6 +1982,19 @@
         if (neckLean) {
           applyAuditionFallbackNeckLean(ch, neckLean);
         }
+        if (worldBridge && entry._bridgeId && LAMV.resolveMotionClip) {
+          const res = LAMV.resolveMotionClip(activeMotionId, {
+            steadyMacro, danceNow, hasPhone, setId: setDef.id, isLead
+          });
+          if (res.clip && res.blend > 0.01) {
+            worldBridge.setClip(entry._bridgeId, res.clip, { blend: res.blend, fade: 0.25 });
+          } else {
+            worldBridge.setActorLocomotion(entry._bridgeId, { blend: 0 });
+          }
+        }
+      }
+      if (worldBridge && registeredBridgeIds.size > 0) {
+        worldBridge.update(dt);
       }
 
       if (activeDonkey && !activeRefTableau) {
@@ -1988,6 +2058,7 @@
       setSet,
       setScene,
       setCut,
+      setMotion,
       seek: sec => { song.seek(sec); return song.getTime(); },
       setPlaying: flag => song.setPlaying(flag),
       toggleUnmute: force => song.toggleUnmute(force),
@@ -2016,7 +2087,11 @@
           jawOpen: exp ? +exp.jawOpen.toFixed(3) : 0,
           neckLeanDeg: +lastLeadNeckLeanDeg.toFixed(1),
           actorCount: activeActors.length,
-          hasDonkey: Boolean(activeDonkey)
+          hasDonkey: Boolean(activeDonkey),
+          motionId: activeMotionId,
+          worldBridgeLoadedClips: worldBridge ? worldBridge.getLoadedClips() : [],
+          worldBridgeLead: (worldBridge && activeActors[0] && activeActors[0]._bridgeId)
+            ? worldBridge.getActorState(activeActors[0]._bridgeId) : null
         };
       }
     };

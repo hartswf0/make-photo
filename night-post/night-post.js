@@ -3439,6 +3439,25 @@ void main(){
     const cast = window.makeExpeditionCast ? window.makeExpeditionCast(T, {
       parent: actorRoot, surfaceAt: driveSurfaceAt, hasAhiya: true
     }) : null;
+    const worldBridge = (window.Mesh2MotionWorldBridge && cast && Array.isArray(cast.list))
+      ? window.Mesh2MotionWorldBridge.createWorldCastDriver(T, {
+          clipsBaseUrl: "../motion-pipeline/mesh2motion/clips",
+          preload: ["idle", "idle-talking", "walk", "walk-carry", "jog", "dance-arm-pump", "greeting"],
+          defaultBlend: 0.84,
+          defaultFade: 0.25
+        })
+      : null;
+    if (worldBridge && cast && Array.isArray(cast.list)) {
+      cast.list.forEach((ch, idx) => {
+        const cid = (ch.state && ch.state.id) || `cast_${idx}`;
+        const isCarrier = cid === "imani" || (ch.state && ch.state.role === "carrier");
+        worldBridge.registerActor(cid, ch, {
+          defaultClip: isCarrier ? "idle" : "idle-talking",
+          blend: 0.84,
+          phaseOffset: (idx * 0.71) % 3.1
+        });
+      });
+    }
     let machinima = null;
     captureInitialFilmStripAtlas();
 
@@ -6791,6 +6810,41 @@ void main(){
           machinimaActive: Boolean(machinima && machinima.isActive()),
           hideLabels: Boolean(machinima && machinima.areCaptionsHidden())
         });
+        if (worldBridge && Array.isArray(cast.list)) {
+          const dancingGlobal = state.danceTimer > 0;
+          const playerSpeed = Math.hypot(state.vx || 0, state.vz || 0);
+          const carryingCan = Boolean((npCarrier && npCarrier().liters > 0) || state.carryingCan);
+          for (let ci = 0; ci < cast.list.length; ci++) {
+            const ch = cast.list[ci];
+            if (!ch || !ch.group || !ch.group.visible) continue;
+            const st = ch.state || {};
+            const cid = st.id || `cast_${ci}`;
+            const pose = String(st.pose || "idle");
+            // Preserve exact prop/pump/saddle IK poses untouched
+            if (pose === "pump" || pose === "heaveSaddle20kg" || pose === "childReceive20kg" || pose === "convoyPhoneWalk" || pose === "ride" || pose === "driving") {
+              worldBridge.setActorLocomotion(cid, { blend: 0 });
+              continue;
+            }
+            const isCarrier = cid === "imani" || st.role === "carrier";
+            const distCam = Math.hypot((st.x || 0) - camera.position.x, (st.z || 0) - camera.position.z);
+            if (distCam > 85) continue;
+            const speedMps = isCarrier ? playerSpeed : (st.speed || (pose === "walk" ? 1.25 : pose === "jog" ? 2.6 : 0));
+            const isDance = dancingGlobal || pose === "eskista" || pose === "dance";
+            const isGreet = pose === "greeting" || pose === "wave" || (!isCarrier && !isDance && distCam < 5.5 && ((Math.floor(nowSec * 0.25) + ci) % 5 === 0));
+            const isTalk = Boolean(st.speaking) || pose === "talk" || (!isCarrier && !isDance && !isGreet && distCam < 24);
+            worldBridge.setActorLocomotion(cid, {
+              speedMps,
+              carrying: isCarrier ? carryingCan : Boolean(st.carryCan),
+              dancing: isDance,
+              greeting: isGreet,
+              talking: isTalk,
+              sitting: pose === "sit" || pose === "seated",
+              crouching: pose === "crouch",
+              blend: 0.84
+            });
+          }
+          worldBridge.update(dt);
+        }
       }
 
       // Sync 2086 Mistletoe 20L chalk-marked saddle cans + screening cues + station proximity
@@ -6978,6 +7032,12 @@ void main(){
           plates: state.plates.length,
           audioReady: audioEl.readyState >= 1,
           castCount: cast ? cast.list.length : 0,
+          worldBridgeLoadedClips: worldBridge ? worldBridge.getLoadedClips() : [],
+          worldBridgeActors: worldBridge && cast ? cast.list.slice(0, 6).map((c, i) => {
+            const id = (c.state && c.state.id) || `cast_${i}`;
+            const as = worldBridge.getActorState(id);
+            return as ? { id, clip: as.clip, loaded: as.loaded, blend: +as.blend.toFixed(2) } : null;
+          }).filter(Boolean) : [],
           machinima: machinima ? machinima.getState() : null
         };
       },

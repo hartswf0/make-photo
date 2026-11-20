@@ -4,10 +4,10 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 const CAST = {
-  adult_f: { label: 'Adult F (Imani)', url: '../abyssinian-highlands/human-forge/assets/adult_f.glb' },
-  child7: { label: 'Child 7y', url: '../abyssinian-highlands/human-forge/assets/child7.glb' },
-  adult_m: { label: 'Adult M', url: '../abyssinian-highlands/human-forge/assets/adult_m.glb' },
-  elder: { label: 'Elder', url: '../abyssinian-highlands/human-forge/assets/elder.glb' },
+  adult_f: { label: 'Imani (Adult F)', url: '../abyssinian-highlands/human-forge/assets/adult_f.glb' },
+  child7: { label: 'June (Child 7y)', url: '../abyssinian-highlands/human-forge/assets/child7.glb' },
+  adult_m: { label: 'Elder (Adult M)', url: '../abyssinian-highlands/human-forge/assets/adult_m.glb' },
+  elder: { label: 'Makeda (Elder)', url: '../abyssinian-highlands/human-forge/assets/elder.glb' },
 };
 
 const CLIP_GROUPS = [
@@ -155,6 +155,8 @@ const state = {
   clipName: 'idle',
   speed: 1.0,
   paused: false,
+  clothed: true,
+  wardrobe: null,
   wireframe: false,
   showSkeleton: false,
   lockRoot: true,
@@ -204,11 +206,16 @@ async function loadCast(castKey) {
   const info = CAST[castKey];
   if (!info) return;
   state.castKey = castKey;
+  if ($('castSelect')) $('castSelect').value = castKey;
   $('hudStatus').textContent = `Loading ${info.label}…`;
 
   if (state.driver) {
     state.driver.dispose();
     state.driver = null;
+  }
+  if (state.wardrobe) {
+    state.wardrobe.dispose();
+    state.wardrobe = null;
   }
   if (state.skeletonHelper) {
     scene.remove(state.skeletonHelper);
@@ -247,6 +254,12 @@ async function loadCast(castKey) {
 
   scene.add(root);
   state.avatarRoot = root;
+
+  if (window.Mesh2MotionWorldBridge && window.Mesh2MotionWorldBridge.dressAnnyCharacter) {
+    state.wardrobe = window.Mesh2MotionWorldBridge.dressAnnyCharacter(THREE, root, castKey, {
+      clothed: state.clothed,
+    });
+  }
 
   state.bonesByName.clear();
   state.restQuats.clear();
@@ -561,6 +574,18 @@ function focusHands(side = 'both') {
   controls.update();
 }
 
+function setClothed(flag) {
+  state.clothed = !!flag;
+  if (state.wardrobe) state.wardrobe.setClothed(state.clothed);
+  const btn = $('btnClothed');
+  if (btn) {
+    btn.classList.toggle('on', state.clothed);
+    btn.textContent = state.clothed ? 'Clothed Cast' : 'Base Mesh';
+  }
+  applyMaterialFlags(state.avatarRoot);
+  return state.clothed;
+}
+
 function wireUI() {
   // Cast selector
   const castSel = $('castSelect');
@@ -625,6 +650,11 @@ function wireUI() {
     if (state.driver) state.driver.setRootMotionLock(state.lockRoot);
   });
 
+  const btnClothed = $('btnClothed');
+  if (btnClothed) {
+    btnClothed.addEventListener('click', () => setClothed(!state.clothed));
+  }
+
   // Ref inspector controls
   $('refSelect').addEventListener('change', (e) => {
     state.refIndex = parseInt(e.target.value, 10) || 0;
@@ -676,6 +706,9 @@ function animate(now) {
   if (state.driver && state.e1Mode !== 'solo') {
     state.driver.update(dt);
   }
+  if (state.wardrobe) {
+    state.wardrobe.update(dt);
+  }
 
   if (state.e1Track) {
     if (state.e1Playing) {
@@ -714,10 +747,12 @@ window.__STUDIO__ = {
   renderer,
   loadCast,
   selectClip,
+  setClothed,
   focusHands,
   getGLContext: () => renderer.getContext(),
   getSummary: () => ({
     cast: state.castKey,
+    clothed: state.clothed,
     clip: state.clipName,
     fps: state.fps,
     e1Mode: state.e1Mode,

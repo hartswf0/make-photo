@@ -2146,6 +2146,32 @@
     MV_CAST,
     MV_SETS,
     MV_CUTS,
+    MV_MOTIONS: [
+      { id: "auto",           short: "Auto Epoch", clip: null,             desc: "Automatically selects Mesh2Motion CC0 clip per Cyan Jerikan epoch & set" },
+      { id: "walk",           short: "Walk",       clip: "walk",           desc: "Mesh2Motion natural walking cycle" },
+      { id: "walk-carry",     short: "Carry",      clip: "walk-carry",     desc: "Mesh2Motion 20L jerrycan carry stride" },
+      { id: "idle-talking",   short: "Talk",       clip: "idle-talking",   desc: "Mesh2Motion expressive conversational gesture" },
+      { id: "dance-arm-pump", short: "Dance",      clip: "dance-arm-pump", desc: "Mesh2Motion rhythmic arm-pump dance" },
+      { id: "greeting",       short: "Greeting",   clip: "greeting",       desc: "Mesh2Motion warm highland greeting wave" },
+      { id: "victory",        short: "Victory",    clip: "victory",        desc: "Mesh2Motion celebratory victory gesture" },
+      { id: "procedural",     short: "Procedural", clip: null,             desc: "Pure procedural Scion rig pose (0% Mesh2Motion blend)" }
+    ],
+    resolveMotionClip(motionId, ctx) {
+      const id = String(motionId || "auto").toLowerCase();
+      if (id === "procedural") return { clip: null, blend: 0 };
+      const found = LookAuditionMV.MV_MOTIONS.find(m => m.id === id);
+      if (found && found.clip) return { clip: found.clip, blend: 0.88 };
+      const c = ctx || {};
+      if (c.steadyMacro) return { clip: "idle", blend: 0.35 };
+      if (c.danceNow) return { clip: "dance-arm-pump", blend: 0.88 };
+      if (c.hasPhone) return { clip: "walk-carry", blend: 0.78 };
+      const setId = c.setId || "";
+      if (setId === "cosmic_addis_finale") return { clip: "dance-arm-pump", blend: 0.88 };
+      if (setId === "night_convoy_lantern") return { clip: "walk-carry", blend: 0.82 };
+      if (setId === "oxbow_screen_chorus") return { clip: c.isLead ? "greeting" : "idle-talking", blend: 0.85 };
+      if (setId === "relay_saddle_handoff") return { clip: "walk-carry", blend: 0.84 };
+      return { clip: c.isLead ? "idle-talking" : "idle", blend: 0.85 };
+    },
     resolveLook,
     wordToPhonemePair,
     evaluateVocalTimeline,
