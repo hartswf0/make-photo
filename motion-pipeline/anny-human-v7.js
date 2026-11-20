@@ -477,6 +477,9 @@
     const sw = geo.attributes.skinWeight;
     const skeletonBones = bodyMesh.skeleton.bones;
     const boneRegion = skeletonBones.map((b) => classifyAnnyBone(b.name));
+    const boneNormNames = skeletonBones.map((b) => normName(b.name));
+    const eyeLBoneIdx = boneNormNames.indexOf('eyel');
+    const eyeRBoneIdx = boneNormNames.indexOf('eyer');
 
     const vCount = pos.count;
     let minY = Infinity;
@@ -495,6 +498,8 @@
       head: [],
     };
     const vRegion = new Array(vCount);
+    const vDomBone = new Array(vCount);
+    const eyeVertMask = new Uint8Array(vCount); // 1 = eye.L, 2 = eye.R
 
     for (let v = 0; v < vCount; v++) {
       const vy = pos.getY(v);
@@ -502,14 +507,32 @@
       if (vy < minY) minY = vy;
       if (vy > maxY) maxY = vy;
 
+      const i0 = si.getX(v), i1 = si.getY(v), i2 = si.getZ(v), i3 = si.getW(v);
       const w0 = sw.getX(v), w1 = sw.getY(v), w2 = sw.getZ(v), w3 = sw.getW(v);
       let bestK = 0, bestW = w0;
       if (w1 > bestW) { bestK = 1; bestW = w1; }
       if (w2 > bestW) { bestK = 2; bestW = w2; }
       if (w3 > bestW) { bestK = 3; }
-      const bIdx = bestK === 0 ? si.getX(v) : bestK === 1 ? si.getY(v) : bestK === 2 ? si.getZ(v) : si.getW(v);
+      const bIdx = bestK === 0 ? i0 : bestK === 1 ? i1 : bestK === 2 ? i2 : i3;
       const reg = boneRegion[bIdx] || 'torso';
       vRegion[v] = reg;
+      vDomBone[v] = boneNormNames[bIdx] || 'root';
+
+      let wEyeL = 0, wEyeR = 0;
+      if (eyeLBoneIdx >= 0) {
+        if (i0 === eyeLBoneIdx) wEyeL += w0;
+        if (i1 === eyeLBoneIdx) wEyeL += w1;
+        if (i2 === eyeLBoneIdx) wEyeL += w2;
+        if (i3 === eyeLBoneIdx) wEyeL += w3;
+      }
+      if (eyeRBoneIdx >= 0) {
+        if (i0 === eyeRBoneIdx) wEyeR += w0;
+        if (i1 === eyeRBoneIdx) wEyeR += w1;
+        if (i2 === eyeRBoneIdx) wEyeR += w2;
+        if (i3 === eyeRBoneIdx) wEyeR += w3;
+      }
+      if (wEyeL > 0.45) eyeVertMask[v] = 1;
+      else if (wEyeR > 0.45) eyeVertMask[v] = 2;
 
       if (reg === 'torso' || reg === 'pelvis') {
         regionVerts.torso.push(v);
@@ -594,16 +617,33 @@
       bonePosLocal.set(key, tmpV.clone());
     }
 
-    // Head bounding box in head-bone local coordinates
+    // Head & exact eye-socket bounding boxes in head-bone local coordinates
     const headBone = bonesByNorm.get('head');
     const headMetrics = { cx: 0, cy: 0.08, cz: 0.01, rx: 0.075, ry: 0.095, rz: 0.085, minY: 0, maxY: 0.18, maxZ: 0.09 };
+    const eyeMetrics = { L: null, R: null };
     if (headBone) {
       const invHead = new THREE.Matrix4().copy(headBone.matrixWorld).invert();
       const headToBody = new THREE.Matrix4().multiplyMatrices(invHead, bodyMesh.matrixWorld);
       let hx0 = Infinity, hx1 = -Infinity, hy0 = Infinity, hy1 = -Infinity, hz0 = Infinity, hz1 = -Infinity;
+      const eAcc = [
+        null,
+        { sx: 0, sy: 0, sz: 0, x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: Infinity, z1: -Infinity, n: 0 },
+        { sx: 0, sy: 0, sz: 0, x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: Infinity, z1: -Infinity, n: 0 },
+      ];
       for (let idx = 0; idx < regionVerts.head.length; idx++) {
         const v = regionVerts.head[idx];
         tmpV.set(pos.getX(v), pos.getY(v), pos.getZ(v)).applyMatrix4(headToBody);
+        const em = eyeVertMask[v];
+        if (em === 1 || em === 2) {
+          const a = eAcc[em];
+          a.sx += tmpV.x; a.sy += tmpV.y; a.sz += tmpV.z; a.n++;
+          if (tmpV.x < a.x0) a.x0 = tmpV.x;
+          if (tmpV.x > a.x1) a.x1 = tmpV.x;
+          if (tmpV.y < a.y0) a.y0 = tmpV.y;
+          if (tmpV.y > a.y1) a.y1 = tmpV.y;
+          if (tmpV.z < a.z0) a.z0 = tmpV.z;
+          if (tmpV.z > a.z1) a.z1 = tmpV.z;
+        }
         if (tmpV.y < -0.02) continue; // skip lower neck
         if (tmpV.x < hx0) hx0 = tmpV.x;
         if (tmpV.x > hx1) hx1 = tmpV.x;
@@ -623,6 +663,49 @@
         headMetrics.maxY = hy1;
         headMetrics.maxZ = hz1;
       }
+      for (const [k, em] of [['L', 1], ['R', 2]]) {
+        const a = eAcc[em];
+        if (a.n > 8) {
+          const rX = (a.x1 - a.x0) * 0.5;
+          const rY = (a.y1 - a.y0) * 0.5;
+          const rZ = (a.z1 - a.z0) * 0.5;
+          eyeMetrics[k] = {
+            x: (a.x0 + a.x1) * 0.5,
+            y: (a.y0 + a.y1) * 0.5,
+            z: (a.z0 + a.z1) * 0.5,
+            r: Math.max(0.010, (rX + rY + rZ) / 3),
+            maxZ: a.z1,
+          };
+        }
+      }
+    }
+
+    // Measure exact foot bounding boxes in foot.L / foot.R bone local coordinates for minimalist sandals
+    const footMetrics = { L: null, R: null };
+    for (const [side, boneKey, regKey] of [['L', 'footl', 'footL'], ['R', 'footr', 'footR']]) {
+      const fb = bonesByNorm.get(boneKey);
+      const verts = regionVerts[regKey];
+      if (!fb || !verts.length) continue;
+      const invF = new THREE.Matrix4().copy(fb.matrixWorld).invert();
+      const fToBody = new THREE.Matrix4().multiplyMatrices(invF, bodyMesh.matrixWorld);
+      let fx0 = Infinity, fx1 = -Infinity, fy0 = Infinity, fy1 = -Infinity, fz0 = Infinity, fz1 = -Infinity;
+      for (let idx = 0; idx < verts.length; idx++) {
+        const v = verts[idx];
+        tmpV.set(pos.getX(v), pos.getY(v), pos.getZ(v)).applyMatrix4(fToBody);
+        if (tmpV.x < fx0) fx0 = tmpV.x;
+        if (tmpV.x > fx1) fx1 = tmpV.x;
+        if (tmpV.y < fy0) fy0 = tmpV.y;
+        if (tmpV.y > fy1) fy1 = tmpV.y;
+        if (tmpV.z < fz0) fz0 = tmpV.z;
+        if (tmpV.z > fz1) fz1 = tmpV.z;
+      }
+      if (fx1 > fx0) {
+        footMetrics[side] = {
+          minX: fx0, maxX: fx1, cx: (fx0 + fx1) * 0.5, w: fx1 - fx0,
+          minY: fy0, maxY: fy1, h: fy1 - fy0,
+          minZ: fz0, maxZ: fz1, cz: (fz0 + fz1) * 0.5, len: fz1 - fz0,
+        };
+      }
     }
 
     return {
@@ -631,20 +714,24 @@
       height,
       centerZ,
       vRegion,
+      vDomBone,
+      eyeVertMask,
       regionVerts,
       sampleTorsoRadius,
       bonePosLocal,
       headMetrics,
+      eyeMetrics,
+      footMetrics,
     };
   }
 
   /**
-   * Build 4 GPU morph targets directly onto Anny's SkinnedMesh geometry for real-time lip-sync:
-   *  0: jawOpen, 1: mouthWide, 2: mouthRound, 3: lipPress
+   * Build 6 GPU morph targets directly onto Anny's SkinnedMesh geometry for real-time lip-sync & expressions:
+   *  0: jawOpen, 1: mouthWide (smile), 2: mouthRound, 3: lipPress, 4: browDown, 5: browUp
    */
   function attachFacialLipSyncMorphs(THREE, bodyMesh, bodyData, headBone) {
     const geo = bodyMesh.geometry;
-    if (geo.morphAttributes && geo.morphAttributes.position && geo.morphAttributes.position.length >= 4) {
+    if (geo.morphAttributes && geo.morphAttributes.position && geo.morphAttributes.position.length >= 6) {
       return true;
     }
     if (!headBone) return false;
@@ -652,6 +739,8 @@
     const pos = geo.attributes.position;
     const vCount = pos.count;
     const hm = bodyData.headMetrics;
+    const emL = bodyData.eyeMetrics && bodyData.eyeMetrics.L;
+    const emR = bodyData.eyeMetrics && bodyData.eyeMetrics.R;
 
     bodyMesh.updateMatrixWorld(true);
     const invHead = new THREE.Matrix4().copy(headBone.matrixWorld).invert();
@@ -659,90 +748,129 @@
     const headRotToBody = new THREE.Matrix4().copy(toHead).invert();
     const rotOnly = new THREE.Matrix3().setFromMatrix4(headRotToBody);
 
-    // Mouth landmark in head-bone local coordinates
-    const mouthY = hm.cy - hm.ry * 0.44;
-    const mouthZ = hm.cz + hm.rz * 0.72;
-    const mouthW = hm.rx * 0.46;
-    const mouthH = hm.ry * 0.30;
+    // Exact anatomical landmarks anchored to measured eye sockets
+    const eyeY = emL ? emL.y : (hm.cy + hm.ry * 0.08);
+    const eyeZ = emL ? emL.z : (hm.cz + hm.rz * 0.65);
+    const eyeSpanX = (emL && emR) ? Math.abs(emL.x - emR.x) * 0.5 : (hm.rx * 0.38);
+    const mouthY = eyeY - eyeSpanX * 2.16;
+    const mouthZ = eyeZ + eyeSpanX * 1.15;
+    const mouthW = Math.max(0.028, eyeSpanX * 0.96);
+    const mouthH = eyeSpanX * 0.95;
+    const browY = eyeY + eyeSpanX * 0.72;
 
     const mJaw = new Float32Array(vCount * 3);
     const mWide = new Float32Array(vCount * 3);
     const mRound = new Float32Array(vCount * 3);
     const mPress = new Float32Array(vCount * 3);
+    const mBrowDn = new Float32Array(vCount * 3);
+    const mBrowUp = new Float32Array(vCount * 3);
 
-    // Copy base positions first (Three.js non-relative morph targets store target positions)
     for (let i = 0; i < vCount * 3; i++) {
       const val = pos.array[i];
       mJaw[i] = val;
       mWide[i] = val;
       mRound[i] = val;
       mPress[i] = val;
+      mBrowDn[i] = val;
+      mBrowUp[i] = val;
     }
 
     const pHead = new THREE.Vector3();
     const delta = new THREE.Vector3();
     const headVerts = bodyData.regionVerts.head;
+    const eyeMask = bodyData.eyeVertMask;
 
     for (let idx = 0; idx < headVerts.length; idx++) {
       const v = headVerts[idx];
+      if (eyeMask && eyeMask[v]) continue; // never deform eye verts
       pHead.set(pos.getX(v), pos.getY(v), pos.getZ(v)).applyMatrix4(toHead);
 
-      // Only affect front lower face around mouth & chin
-      if (pHead.z < hm.cz + hm.rz * 0.20) continue;
+      // Front face only
+      if (pHead.z < hm.cz + hm.rz * 0.12) continue;
       const dx = pHead.x - hm.cx;
+
+      // 1. Mouth & Jaw Region (strictly below nose base so nostrils/philtrum stay untouched)
       const dy = pHead.y - mouthY;
       const dz = pHead.z - mouthZ;
-
-      const rx = Math.abs(dx) / (mouthW * 1.45);
-      const ry = Math.abs(dy) / (mouthH * 1.75);
-      const rz = Math.max(0, -dz) / (hm.rz * 0.65);
+      const rx = Math.abs(dx) / (mouthW * 1.55);
+      const ry = Math.abs(dy) / (mouthH * 1.65);
+      const rz = Math.max(0, -dz) / (hm.rz * 0.72);
       const d2 = rx * rx + ry * ry + rz * rz;
-      if (d2 >= 1.0) continue;
+      if (d2 < 1.0 && pHead.y < mouthY + eyeSpanX * 0.45) {
+        const falloff = (1 - d2) * (1 - d2);
+        const lowerW = clamp((mouthY + eyeSpanX * 0.08 - pHead.y) / (eyeSpanX * 0.42), 0, 1);
+        const upperW = clamp((pHead.y - mouthY) / (eyeSpanX * 0.35), 0, 1) * (1 - lowerW);
+        const isLower = dy < 0.0;
 
-      const falloff = (1 - d2) * (1 - d2);
-      const isLower = dy <= 0.004;
+        // 0: jawOpen — smooth continuous lower-lip & chin drop (-14 mm) with zero seam-triangle tearing
+        const jawY = -eyeSpanX * 0.52 * lowerW * Math.pow(falloff, 0.78) + eyeSpanX * 0.10 * upperW * falloff;
+        const jawZ = -eyeSpanX * 0.14 * lowerW * falloff + eyeSpanX * 0.04 * upperW * falloff;
+        delta.set(0, jawY, jawZ).applyMatrix3(rotOnly);
+        mJaw[v * 3] += delta.x;
+        mJaw[v * 3 + 1] += delta.y;
+        mJaw[v * 3 + 2] += delta.z;
 
-      // 0: jawOpen (pulls lower lip & chin down and slightly back; lifts upper lip very slightly)
-      delta.set(
-        0,
-        isLower ? -hm.ry * 0.24 * falloff : hm.ry * 0.035 * falloff,
-        isLower ? -hm.rz * 0.06 * falloff : hm.rz * 0.015 * falloff
-      ).applyMatrix3(rotOnly);
-      mJaw[v * 3] += delta.x;
-      mJaw[v * 3 + 1] += delta.y;
-      mJaw[v * 3 + 2] += delta.z;
+        // 1: mouthWide / smile — pulls corners outward & UP + lifts cheeks warmly
+        const cornerSign = dx >= 0 ? 1 : -1;
+        const cornerFactor = clamp(Math.abs(dx) / Math.max(0.012, mouthW), 0, 1);
+        delta.set(
+          cornerSign * hm.rx * 0.16 * falloff * (0.35 + 0.65 * cornerFactor),
+          hm.ry * 0.115 * falloff * (0.25 + 0.75 * cornerFactor),
+          -hm.rz * 0.032 * falloff * cornerFactor
+        ).applyMatrix3(rotOnly);
+        mWide[v * 3] += delta.x;
+        mWide[v * 3 + 1] += delta.y;
+        mWide[v * 3 + 2] += delta.z;
 
-      // 1: mouthWide (pulls corners laterally outward & slightly up)
-      const cornerSign = dx >= 0 ? 1 : -1;
-      const cornerFactor = clamp(Math.abs(dx) / Math.max(0.01, mouthW), 0, 1);
-      delta.set(
-        cornerSign * hm.rx * 0.14 * falloff * (0.35 + 0.65 * cornerFactor),
-        hm.ry * 0.03 * falloff * cornerFactor,
-        -hm.rz * 0.025 * falloff
-      ).applyMatrix3(rotOnly);
-      mWide[v * 3] += delta.x;
-      mWide[v * 3 + 1] += delta.y;
-      mWide[v * 3 + 2] += delta.z;
+        // 2: mouthRound — purses lips inward horizontally & forward
+        delta.set(
+          -dx * 0.30 * falloff,
+          (isLower ? -hm.ry * 0.055 : hm.ry * 0.032) * falloff,
+          hm.rz * 0.14 * falloff
+        ).applyMatrix3(rotOnly);
+        mRound[v * 3] += delta.x;
+        mRound[v * 3 + 1] += delta.y;
+        mRound[v * 3 + 2] += delta.z;
 
-      // 2: mouthRound (purses lips inward horizontally & forward along +Z)
-      delta.set(
-        -dx * 0.26 * falloff,
-        (isLower ? -hm.ry * 0.04 : hm.ry * 0.02) * falloff,
-        hm.rz * 0.12 * falloff
-      ).applyMatrix3(rotOnly);
-      mRound[v * 3] += delta.x;
-      mRound[v * 3 + 1] += delta.y;
-      mRound[v * 3 + 2] += delta.z;
+        // 3: lipPress — draws upper & lower lips gently together
+        delta.set(
+          0,
+          (isLower ? hm.ry * 0.06 : -hm.ry * 0.06) * falloff,
+          -hm.rz * 0.03 * falloff
+        ).applyMatrix3(rotOnly);
+        mPress[v * 3] += delta.x;
+        mPress[v * 3 + 1] += delta.y;
+        mPress[v * 3 + 2] += delta.z;
+      }
 
-      // 3: lipPress (draws upper & lower lips gently together)
-      delta.set(
-        0,
-        (isLower ? hm.ry * 0.055 : -hm.ry * 0.055) * falloff,
-        -hm.rz * 0.03 * falloff
-      ).applyMatrix3(rotOnly);
-      mPress[v * 3] += delta.x;
-      mPress[v * 3 + 1] += delta.y;
-      mPress[v * 3 + 2] += delta.z;
+      // 2. Brow Region (angry/sad browDown & surprised/happy browUp)
+      const bdy = pHead.y - browY;
+      const brx = Math.abs(dx) / (eyeSpanX * 1.95);
+      const bry = Math.abs(bdy) / (hm.ry * 0.24);
+      const bd2 = brx * brx + bry * bry;
+      if (bd2 < 1.0 && pHead.z > eyeZ - hm.rz * 0.15) {
+        const bf = (1 - bd2) * (1 - bd2);
+        const innerBias = 1.0 - clamp(Math.abs(dx) / (eyeSpanX * 1.6), 0, 0.75);
+        // 4: browDown (furrow down & slightly inward)
+        delta.set(
+          -Math.sign(dx) * hm.rx * 0.035 * bf * innerBias,
+          -hm.ry * 0.095 * bf * (0.55 + 0.45 * innerBias),
+          hm.rz * 0.025 * bf
+        ).applyMatrix3(rotOnly);
+        mBrowDn[v * 3] += delta.x;
+        mBrowDn[v * 3 + 1] += delta.y;
+        mBrowDn[v * 3 + 2] += delta.z;
+
+        // 5: browUp (raise brow arch)
+        delta.set(
+          0,
+          hm.ry * 0.105 * bf,
+          0
+        ).applyMatrix3(rotOnly);
+        mBrowUp[v * 3] += delta.x;
+        mBrowUp[v * 3 + 1] += delta.y;
+        mBrowUp[v * 3 + 2] += delta.z;
+      }
     }
 
     geo.morphAttributes.position = [
@@ -750,10 +878,19 @@
       new THREE.Float32BufferAttribute(mWide, 3),
       new THREE.Float32BufferAttribute(mRound, 3),
       new THREE.Float32BufferAttribute(mPress, 3),
+      new THREE.Float32BufferAttribute(mBrowDn, 3),
+      new THREE.Float32BufferAttribute(mBrowUp, 3),
     ];
     geo.morphTargetsRelative = false;
-    bodyMesh.morphTargetDictionary = { jawOpen: 0, mouthWide: 1, mouthRound: 2, lipPress: 3 };
-    bodyMesh.morphTargetInfluences = [0, 0, 0, 0];
+    bodyMesh.morphTargetDictionary = {
+      jawOpen: 0,
+      mouthWide: 1,
+      mouthRound: 2,
+      lipPress: 3,
+      browDown: 4,
+      browUp: 5,
+    };
+    bodyMesh.morphTargetInfluences = [0, 0, 0, 0, 0, 0];
     return true;
   }
 
@@ -820,6 +957,168 @@
 
     const mesh = new THREE.SkinnedMesh(geo, material);
     mesh.name = name || 'anny_v7_garment';
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.frustumCulled = false;
+    mesh.bind(bodyMesh.skeleton, bodyMesh.bindMatrix);
+    return mesh;
+  }
+
+  /**
+   * Build a 100% continuous, seamless one-piece skinned garment directly from Anny's connected
+   * vertex manifold (exact 104-bone skinIndex/skinWeight, zero shoulder/waist/crotch gaps,
+   * boundary-smoothed clean hems & cuffs).
+   */
+  function buildManifoldGarment(THREE, bodyMesh, bodyData, spec) {
+    const srcGeo = bodyMesh.geometry;
+    const srcPos = srcGeo.attributes.position;
+    let srcNrm = srcGeo.attributes.normal;
+    if (!srcNrm) {
+      srcGeo.computeVertexNormals();
+      srcNrm = srcGeo.attributes.normal;
+    }
+    const srcSi = srcGeo.attributes.skinIndex;
+    const srcSw = srcGeo.attributes.skinWeight;
+    const srcIdx = srcGeo.index;
+    if (!srcIdx) return null;
+
+    const vCount = srcPos.count;
+    const { minY, height, centerZ, vDomBone } = bodyData;
+    const hScale = height / 1.65;
+
+    // 1. Mark included vertices via spec.includeVertex
+    const vIncluded = new Uint8Array(vCount);
+    for (let v = 0; v < vCount; v++) {
+      const x = srcPos.getX(v);
+      const y = srcPos.getY(v);
+      const z = srcPos.getZ(v);
+      const yn = (y - minY) / height;
+      if (spec.includeVertex(v, x, y, z, yn, vDomBone[v])) {
+        vIncluded[v] = 1;
+      }
+    }
+
+    // 2. Collect triangles where all 3 vertices are included (or >=2 if expandEdges)
+    const idxArr = srcIdx.array;
+    const triList = [];
+    const oldToNew = new Int32Array(vCount).fill(-1);
+    const newToOld = [];
+
+    for (let t = 0; t < idxArr.length; t += 3) {
+      const a = idxArr[t];
+      const b = idxArr[t + 1];
+      const c = idxArr[t + 2];
+      if (!vIncluded[a] || !vIncluded[b] || !vIncluded[c]) continue;
+      for (const ov of [a, b, c]) {
+        if (oldToNew[ov] < 0) {
+          oldToNew[ov] = newToOld.length;
+          newToOld.push(ov);
+        }
+      }
+      triList.push(oldToNew[a], oldToNew[b], oldToNew[c]);
+    }
+
+    const nV = newToOld.length;
+    if (nV < 12 || triList.length < 12) return null;
+
+    // 3. Detect open boundary edges (hems, cuffs, necklines) for Laplacian rim smoothing
+    const edgeCount = new Map();
+    const bAdj = new Map();
+    const addEdge = (u, v) => {
+      const lo = u < v ? u : v;
+      const hi = u < v ? v : u;
+      const key = lo * nV + hi;
+      edgeCount.set(key, (edgeCount.get(key) || 0) + 1);
+    };
+    for (let t = 0; t < triList.length; t += 3) {
+      addEdge(triList[t], triList[t + 1]);
+      addEdge(triList[t + 1], triList[t + 2]);
+      addEdge(triList[t + 2], triList[t]);
+    }
+    const isBoundary = new Uint8Array(nV);
+    for (const [key, cnt] of edgeCount.entries()) {
+      if (cnt === 1) {
+        const u = Math.floor(key / nV);
+        const v = key - u * nV;
+        isBoundary[u] = 1;
+        isBoundary[v] = 1;
+        if (!bAdj.has(u)) bAdj.set(u, []);
+        if (!bAdj.has(v)) bAdj.set(v, []);
+        bAdj.get(u).push(v);
+        bAdj.get(v).push(u);
+      }
+    }
+
+    // 4. Populate offset positions, UVs, and exact copied skinIndex/skinWeight
+    const outPos = new Float32Array(nV * 3);
+    const outUv = new Float32Array(nV * 2);
+    const outSi = new Uint16Array(nV * 4);
+    const outSw = new Float32Array(nV * 4);
+
+    for (let i = 0; i < nV; i++) {
+      const ov = newToOld[i];
+      const x = srcPos.getX(ov);
+      const y = srcPos.getY(ov);
+      const z = srcPos.getZ(ov);
+      const nx = srcNrm.getX(ov);
+      const ny = srcNrm.getY(ov);
+      const nz = srcNrm.getZ(ov);
+      const yn = (y - minY) / height;
+
+      const baseOff = typeof spec.offset === 'function'
+        ? spec.offset(ov, yn, x, z, isBoundary[i], vDomBone[ov])
+        : (spec.offset || 0.009) * hScale;
+
+      outPos[i * 3] = x + nx * baseOff;
+      outPos[i * 3 + 1] = y + ny * baseOff;
+      outPos[i * 3 + 2] = z + nz * baseOff;
+
+      const theta = Math.atan2(x, z - centerZ);
+      outUv[i * 2] = (theta / (Math.PI * 2) + 0.5) * (spec.uvScaleX || 1.0);
+      outUv[i * 2 + 1] = yn * (spec.uvScaleY || 2.8);
+
+      outSi[i * 4] = srcSi.getX(ov);
+      outSi[i * 4 + 1] = srcSi.getY(ov);
+      outSi[i * 4 + 2] = srcSi.getZ(ov);
+      outSi[i * 4 + 3] = srcSi.getW(ov);
+
+      outSw[i * 4] = srcSw.getX(ov);
+      outSw[i * 4 + 1] = srcSw.getY(ov);
+      outSw[i * 4 + 2] = srcSw.getZ(ov);
+      outSw[i * 4 + 3] = srcSw.getW(ov);
+    }
+
+    // 5. Smooth open boundary rims (4 passes) so hems, collars, and cuffs are crisp & never sawtooth
+    const tmpBuf = new Float32Array(nV * 3);
+    for (let pass = 0; pass < 4; pass++) {
+      tmpBuf.set(outPos);
+      for (const [u, nbrs] of bAdj.entries()) {
+        if (nbrs.length < 2) continue;
+        let sx = 0, sy = 0, sz = 0;
+        for (let k = 0; k < nbrs.length; k++) {
+          const nb = nbrs[k];
+          sx += outPos[nb * 3];
+          sy += outPos[nb * 3 + 1];
+          sz += outPos[nb * 3 + 2];
+        }
+        const inv = 1 / nbrs.length;
+        tmpBuf[u * 3] = lerp(outPos[u * 3], sx * inv, 0.55);
+        tmpBuf[u * 3 + 1] = lerp(outPos[u * 3 + 1], sy * inv, 0.65);
+        tmpBuf[u * 3 + 2] = lerp(outPos[u * 3 + 2], sz * inv, 0.55);
+      }
+      outPos.set(tmpBuf);
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(outPos, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(outUv, 2));
+    geo.setAttribute('skinIndex', new THREE.BufferAttribute(outSi, 4));
+    geo.setAttribute('skinWeight', new THREE.BufferAttribute(outSw, 4));
+    geo.setIndex(triList);
+    geo.computeVertexNormals();
+
+    const mesh = new THREE.SkinnedMesh(geo, spec.material);
+    mesh.name = spec.name || 'anny_v7_manifold_garment';
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.frustumCulled = false;
@@ -998,128 +1297,184 @@
   }
 
   /**
-   * Build sculpted laced lug-sole leather work boots (Imani, Elder, Makeda) or strapped
-   * Ethiopian leather sandals/ankle boots (June) cleanly covering the foot with soles at y = 0.
+   * Build clean minimalist Ethiopian leather sandals hugging the exact measured foot geometry:
+   * thin contoured leather sole + curved forefoot strap + slim ankle/heel strap at y = 0.
    */
-  function buildLacedBoot(THREE, footBone, side, heightScale, bootMat, soleMat, accentMat, disposables, isSandal) {
+  function buildEthiopianSandal(THREE, footBone, side, footM, heightScale, leatherMat, soleMat, disposables) {
     const group = new THREE.Group();
-    group.name = `anny_v7_boot_${side}`;
+    group.name = `anny_v7_sandal_${side}`;
     const s = heightScale / 1.65;
 
-    // Generous lugged boot sole (flat grounded base covering full foot footprint)
-    const soleGeo = new THREE.BoxGeometry(0.112 * s, 0.028 * s, 0.275 * s);
-    const upperGeo = new THREE.BoxGeometry(0.104 * s, isSandal ? 0.056 * s : 0.078 * s, 0.245 * s);
-    const cuffGeo = new THREE.CylinderGeometry(0.058 * s, 0.064 * s, isSandal ? 0.088 * s : 0.135 * s, 12);
-    const toeGeo = new THREE.SphereGeometry(0.054 * s, 10, 8);
-    const strapGeo = new THREE.BoxGeometry(0.108 * s, 0.012 * s, 0.022 * s);
-    disposables.push(soleGeo, upperGeo, cuffGeo, toeGeo, strapGeo);
+    const fm = footM || {
+      cx: 0, w: 0.088 * s, minY: -0.044 * s, maxY: 0.03 * s,
+      minZ: -0.052 * s, maxZ: 0.185 * s, cz: 0.066 * s, len: 0.237 * s,
+    };
+
+    const soleThick = 0.011 * s;
+    const soleW = Math.max(0.055 * s, fm.w * 1.04);
+    const soleLen = Math.max(0.14 * s, fm.len * 1.02);
+    const soleY = fm.minY - soleThick * 0.45;
+
+    // Rounded contoured leather sole using extruded pill/stadium shape
+    const hw = soleW * 0.48;
+    const hl = Math.max(0.01, soleLen * 0.5 - hw);
+    const shape = new THREE.Shape();
+    shape.moveTo(-hw, -hl);
+    shape.lineTo(-hw, hl);
+    shape.absarc(0, hl, hw, Math.PI, 0, true);
+    shape.lineTo(hw, -hl);
+    shape.absarc(0, -hl, hw, 0, Math.PI, true);
+
+    const soleGeo = new THREE.ExtrudeGeometry(shape, {
+      depth: soleThick,
+      bevelEnabled: true,
+      bevelThickness: 0.002 * s,
+      bevelSize: 0.002 * s,
+      bevelSegments: 2,
+      curveSegments: 12,
+    });
+    soleGeo.rotateX(Math.PI * 0.5);
+
+    const foreStrapGeo = new THREE.TorusGeometry(soleW * 0.50, 0.0075 * s, 6, 16, Math.PI);
+    const ankleStrapGeo = new THREE.TorusGeometry(soleW * 0.46, 0.0065 * s, 6, 16, Math.PI * 1.15);
+    disposables.push(soleGeo, foreStrapGeo, ankleStrapGeo);
 
     const sole = new THREE.Mesh(soleGeo, soleMat);
-    sole.position.set(0, -0.048 * s, 0.052 * s);
+    sole.position.set(fm.cx, soleY + soleThick * 0.5, fm.cz);
     sole.castShadow = true;
     sole.receiveShadow = true;
     group.add(sole);
 
-    const upper = new THREE.Mesh(upperGeo, bootMat);
-    upper.position.set(0, -0.002 * s, 0.044 * s);
-    upper.castShadow = true;
-    upper.receiveShadow = true;
-    group.add(upper);
+    // Forefoot leather strap arching cleanly across the instep
+    const foreStrap = new THREE.Mesh(foreStrapGeo, leatherMat);
+    foreStrap.position.set(fm.cx, soleY + soleThick * 0.35, fm.cz + soleLen * 0.14);
+    foreStrap.scale.set(1.02, 0.62, 1.35);
+    foreStrap.castShadow = true;
+    group.add(foreStrap);
 
-    const toe = new THREE.Mesh(toeGeo, bootMat);
-    toe.position.set(0, -0.012 * s, 0.156 * s);
-    toe.scale.set(1.04, 0.76, 1.18);
-    toe.castShadow = true;
-    group.add(toe);
-
-    const cuff = new THREE.Mesh(cuffGeo, bootMat);
-    cuff.position.set(0, (isSandal ? 0.044 : 0.064) * s, -0.012 * s);
-    cuff.castShadow = true;
-    group.add(cuff);
-
-    // Laces or leather sandal straps
-    const strapCount = isSandal ? 2 : 3;
-    for (let k = 0; k < strapCount; k++) {
-      const strap = new THREE.Mesh(strapGeo, accentMat);
-      strap.position.set(0, (0.018 + k * 0.026) * s, (0.056 - k * 0.016) * s);
-      group.add(strap);
-    }
+    // Slim ankle/heel leather strap
+    const ankleStrap = new THREE.Mesh(ankleStrapGeo, leatherMat);
+    ankleStrap.position.set(fm.cx, soleY + soleThick * 0.5 + 0.018 * s, fm.cz - soleLen * 0.20);
+    ankleStrap.rotation.x = -0.32;
+    ankleStrap.scale.set(0.98, 0.92, 1.0);
+    ankleStrap.castShadow = true;
+    group.add(ankleStrap);
 
     footBone.add(group);
-    return { group, soleLocalY: -0.062 * s };
+    return { group, soleLocalY: soleY - soleThick * 0.55 };
   }
 
   /**
-   * Build real 3D eyes (ivory-white sclera, dark iris, black pupil, wet specular catchlight,
-   * skin-toned blinking upper eyelids, sculpted expressive brows) + talking mouth interior
-   * (dark oral cavity, ivory upper/lower teeth, tongue) cleanly fitted to Anny's face.
+   * Strip Anny's built-in brown-skin eye.L / eye.R eyeball triangles from bodyMesh.geometry.index
+   * so Anny's sculpted eyelid sockets open directly onto our real 3D ophthalmic eyeballs.
    */
-  function buildEyesAndMouthV7(THREE, headBone, eyeL, eyeR, hm, palette, disposables) {
+  function stripAnnySkinEyeballs(bodyMesh, eyeVertMask) {
+    const geo = bodyMesh.geometry;
+    if (!geo || !geo.index || !eyeVertMask || geo.userData._eyesStripped) return 0;
+    const oldIdx = geo.index.array;
+    const kept = [];
+    let removed = 0;
+    for (let t = 0; t < oldIdx.length; t += 3) {
+      const a = oldIdx[t];
+      const b = oldIdx[t + 1];
+      const c = oldIdx[t + 2];
+      if (eyeVertMask[a] || eyeVertMask[b] || eyeVertMask[c]) {
+        removed++;
+        continue;
+      }
+      kept.push(a, b, c);
+    }
+    if (removed > 0) {
+      geo.setIndex(kept);
+      geo.userData._eyesStripped = true;
+    }
+    return removed;
+  }
+
+  /**
+   * Build real 3D ophthalmic eyes (bright ivory-white sclera, dark iris + hazel ring, black pupil,
+   * crisp wet catchlight, wide-open blinking eyelids) + recessed talking mouth interior
+   * (dark oral cavity, upper/lower ivory teeth, tongue) seated cleanly inside Anny's face.
+   */
+  function buildEyesAndMouthV7(THREE, bodyMesh, headBone, bodyData, palette, disposables) {
+    const hm = bodyData.headMetrics;
+    const emL = bodyData.eyeMetrics && bodyData.eyeMetrics.L;
+    const emR = bodyData.eyeMetrics && bodyData.eyeMetrics.R;
+
+    // Remove Anny's brown skin eyeball spheres so our real ophthalmic sclera/iris shine through!
+    stripAnnySkinEyeballs(bodyMesh, bodyData.eyeVertMask);
+
     const faceGroup = new THREE.Group();
     faceGroup.name = 'anny_v7_face_rig';
 
-    const scleraMat = getSharedSolidMaterial(THREE, 'eye_sclera', {
-      color: 0xf4efe6,
-      roughness: 0.18,
+    const scleraMat = getSharedSolidMaterial(THREE, 'eye_sclera_v2', {
+      color: 0xf7f3ea,
+      emissive: 0x2a2620,
+      emissiveIntensity: 0.35,
+      roughness: 0.16,
       metalness: 0.0,
     });
-    const irisMat = getSharedSolidMaterial(THREE, 'eye_iris', {
-      color: 0x2a180d,
+    const irisOuterMat = getSharedSolidMaterial(THREE, 'eye_iris_outer', {
+      color: 0x3b2010,
       roughness: 0.14,
+      metalness: 0.04,
+    });
+    const irisMat = getSharedSolidMaterial(THREE, 'eye_iris_v2', {
+      color: 0x1e0f07,
+      roughness: 0.12,
       metalness: 0.05,
     });
-    const pupilMat = getSharedSolidMaterial(THREE, 'eye_pupil', {
-      color: 0x090706,
-      roughness: 0.08,
-      metalness: 0.05,
+    const pupilMat = getSharedSolidMaterial(THREE, 'eye_pupil_v2', {
+      color: 0x050404,
+      roughness: 0.06,
+      metalness: 0.04,
     });
-    const catchMat = getSharedSolidMaterial(THREE, 'eye_catchlight', {
+    const catchMat = getSharedSolidMaterial(THREE, 'eye_catchlight_v2', {
       color: 0xffffff,
       roughness: 0.0,
       metalness: 0.0,
       emissive: 0xffffff,
-      emissiveIntensity: 0.85,
+      emissiveIntensity: 1.0,
     });
     const lidMat = getSharedSkinMaterial(THREE, palette);
-    const browMat = getSharedSolidMaterial(THREE, `brow_${palette.id}`, {
-      color: palette.hairHex,
-      roughness: 0.92,
-      metalness: 0.0,
-    });
     const cavityMat = getSharedSolidMaterial(THREE, 'mouth_cavity', {
-      color: 0x1b0b0b,
-      roughness: 0.95,
+      color: 0x160707,
+      roughness: 0.96,
     });
     const teethMat = getSharedSolidMaterial(THREE, 'mouth_teeth', {
-      color: 0xf2eadc,
-      roughness: 0.25,
+      color: 0xf4ede0,
+      roughness: 0.24,
     });
     const tongueMat = getSharedSolidMaterial(THREE, 'mouth_tongue', {
       color: 0x9b4644,
       roughness: 0.55,
     });
 
-    const eyeR_rad = Math.max(0.0105, hm.rx * 0.165);
-    const scleraGeo = new THREE.SphereGeometry(eyeR_rad, 14, 12);
-    const irisGeo = new THREE.CircleGeometry(eyeR_rad * 0.50, 14);
-    const pupilGeo = new THREE.CircleGeometry(eyeR_rad * 0.24, 12);
-    const catchGeo = new THREE.CircleGeometry(eyeR_rad * 0.10, 8);
-    const lidGeo = new THREE.SphereGeometry(eyeR_rad * 1.12, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.52);
-    const browGeo = new THREE.CapsuleGeometry(hm.rx * 0.032, hm.rx * 0.22, 4, 8);
-    disposables.push(scleraGeo, irisGeo, pupilGeo, catchGeo, lidGeo, browGeo);
+    const eyeR_rad = emL ? clamp(emL.r * 1.04, 0.011, 0.019) : Math.max(0.012, hm.rx * 0.18);
+    const scleraGeo = new THREE.SphereGeometry(eyeR_rad, 18, 14);
+    const irisOuterGeo = new THREE.CircleGeometry(eyeR_rad * 0.46, 16);
+    const irisGeo = new THREE.CircleGeometry(eyeR_rad * 0.38, 16);
+    const pupilGeo = new THREE.CircleGeometry(eyeR_rad * 0.20, 14);
+    const catchGeo = new THREE.CircleGeometry(eyeR_rad * 0.095, 10);
+    const lidGeo = new THREE.SphereGeometry(eyeR_rad * 1.07, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.46);
+    disposables.push(scleraGeo, irisOuterGeo, irisGeo, pupilGeo, catchGeo, lidGeo);
 
     const upperLids = [];
     const brows = [];
 
-    const mountEye = (eyeBone, sideSign) => {
+    const mountEye = (em, sideSign) => {
       const eg = new THREE.Group();
       eg.name = `anny_v7_eye_${sideSign < 0 ? 'R' : 'L'}`;
 
       const sclera = new THREE.Mesh(scleraGeo, scleraMat);
       eg.add(sclera);
 
+      const irisOuter = new THREE.Mesh(irisOuterGeo, irisOuterMat);
+      irisOuter.position.set(0, 0, eyeR_rad * 0.94);
+      eg.add(irisOuter);
+
       const iris = new THREE.Mesh(irisGeo, irisMat);
-      iris.position.set(0, 0, eyeR_rad * 0.96);
+      iris.position.set(0, 0, eyeR_rad * 0.97);
       eg.add(iris);
 
       const pupil = new THREE.Mesh(pupilGeo, pupilMat);
@@ -1127,67 +1482,54 @@
       eg.add(pupil);
 
       const catchlight = new THREE.Mesh(catchGeo, catchMat);
-      catchlight.position.set(eyeR_rad * 0.18, eyeR_rad * 0.20, eyeR_rad * 1.04);
+      catchlight.position.set(eyeR_rad * 0.15, eyeR_rad * 0.17, eyeR_rad * 1.04);
       eg.add(catchlight);
 
       const lid = new THREE.Mesh(lidGeo, lidMat);
-      lid.rotation.x = -0.35; // open rest angle
+      lid.rotation.x = -0.74; // wide-open rest angle so bright white sclera + iris are 100% clear
       eg.add(lid);
       upperLids.push(lid);
 
-      // Compute exact eye-socket position in headBone local space so eyes always face +Z forward
-      if (eyeBone) {
-        headBone.updateMatrixWorld(true);
-        const invHead = new THREE.Matrix4().copy(headBone.matrixWorld).invert();
-        const ePos = new THREE.Vector3();
-        eyeBone.getWorldPosition(ePos).applyMatrix4(invHead);
-        eg.position.set(ePos.x, ePos.y, ePos.z + eyeR_rad * 0.55);
+      if (em) {
+        eg.position.set(em.x, em.y, em.z + eyeR_rad * 0.08);
       } else {
-        eg.position.set(hm.cx + sideSign * hm.rx * 0.36, hm.cy + hm.ry * 0.08, hm.cz + hm.rz * 0.80);
+        eg.position.set(hm.cx + sideSign * hm.rx * 0.38, hm.cy + hm.ry * 0.08, hm.cz + hm.rz * 0.72);
       }
       faceGroup.add(eg);
-
-      // Expressive brow ridge seated cleanly above each eye socket
-      const brow = new THREE.Mesh(browGeo, browMat);
-      const baseY = eg.position.y + eyeR_rad * 1.45;
-      brow.position.set(eg.position.x, baseY, eg.position.z + eyeR_rad * 0.45);
-      brow.rotation.z = Math.PI * 0.5 - sideSign * 0.08;
-      faceGroup.add(brow);
-      brows.push({ mesh: brow, side: sideSign, baseY });
     };
 
-    mountEye(eyeL, 1);
-    mountEye(eyeR, -1);
+    mountEye(emL, 1);
+    mountEye(emR, -1);
 
-    // Talking mouth interior (oral cavity + upper/lower ivory teeth + tongue)
-    // Positioned anatomically below the actual eye line
+    // Recessed talking mouth interior (dark oral cavity + upper/lower ivory teeth + tongue)
     const mouthGroup = new THREE.Group();
     mouthGroup.name = 'anny_v7_mouth_interior';
-    const refEyeY = brows.length ? brows[0].baseY - eyeR_rad * 1.45 : (hm.cy + hm.ry * 0.08);
-    const refEyeZ = brows.length ? brows[0].mesh.position.z - eyeR_rad * 0.45 : (hm.cz + hm.rz * 0.78);
-    const mouthY = refEyeY - hm.ry * 0.66;
-    const mouthZ = refEyeZ - hm.rz * 0.14;
-    mouthGroup.position.set(hm.cx, mouthY, mouthZ);
+    const refEyeY = emL ? emL.y : (hm.cy + hm.ry * 0.08);
+    const refEyeZ = emL ? emL.z : (hm.cz + hm.rz * 0.65);
+    const refEyeSpan = (emL && emR) ? Math.abs(emL.x - emR.x) * 0.5 : (hm.rx * 0.38);
+    const mouthY = refEyeY - refEyeSpan * 2.16;
+    const mouthZ = refEyeZ + refEyeSpan * 0.38;
+    mouthGroup.position.set(hm.cx, mouthY - 0.003, mouthZ);
 
-    const cavGeo = new THREE.SphereGeometry(hm.rx * 0.24, 12, 10);
-    const toothGeo = new THREE.BoxGeometry(hm.rx * 0.32, hm.ry * 0.055, hm.rz * 0.10);
-    const tongueGeo = new THREE.SphereGeometry(hm.rx * 0.15, 10, 8);
+    const cavGeo = new THREE.SphereGeometry(hm.rx * 0.21, 14, 10);
+    const toothGeo = new THREE.BoxGeometry(hm.rx * 0.22, hm.ry * 0.032, hm.rz * 0.05);
+    const tongueGeo = new THREE.SphereGeometry(hm.rx * 0.13, 10, 8);
     disposables.push(cavGeo, toothGeo, tongueGeo);
 
     const cavity = new THREE.Mesh(cavGeo, cavityMat);
-    cavity.scale.set(1.05, 0.72, 0.65);
+    cavity.scale.set(1.08, 0.62, 0.45);
     mouthGroup.add(cavity);
 
     const upperTeeth = new THREE.Mesh(toothGeo, teethMat);
-    upperTeeth.position.set(0, hm.ry * 0.048, hm.rz * 0.075);
+    upperTeeth.position.set(0, hm.ry * 0.028, hm.rz * 0.045);
     mouthGroup.add(upperTeeth);
 
     const lowerTeeth = new THREE.Mesh(toothGeo, teethMat);
-    lowerTeeth.position.set(0, -hm.ry * 0.058, hm.rz * 0.068);
+    lowerTeeth.position.set(0, -hm.ry * 0.036, hm.rz * 0.032);
     mouthGroup.add(lowerTeeth);
 
     const tongue = new THREE.Mesh(tongueGeo, tongueMat);
-    tongue.position.set(0, -hm.ry * 0.045, hm.rz * 0.01);
+    tongue.position.set(0, -hm.ry * 0.045, hm.rz * 0.02);
     tongue.scale.set(0.95, 0.45, 0.85);
     mouthGroup.add(tongue);
 
@@ -1493,11 +1835,10 @@
     });
 
     if (archKey === 'adult_f') {
-      // Imani: Dense sculpted matte 4C afro crown seated cleanly behind forehead hairline + brass hoops
+      // Imani: Dense sculpted matte 4C afro crown seated cleanly behind forehead hairline
       const crownGeo = new THREE.IcosahedronGeometry(1, 2);
       const puffGeo = new THREE.IcosahedronGeometry(rx * 0.36, 1);
-      const hoopGeo = new THREE.TorusGeometry(rx * 0.16, rx * 0.022, 8, 16);
-      disposables.push(crownGeo, puffGeo, hoopGeo);
+      disposables.push(crownGeo, puffGeo);
 
       const core = new THREE.Mesh(crownGeo, hairMat);
       core.position.set(cx, cy + ry * 0.44, cz - rz * 0.40);
@@ -1524,13 +1865,6 @@
           puff.castShadow = true;
           group.add(puff);
         }
-      }
-
-      for (const side of [-1, 1]) {
-        const hoop = new THREE.Mesh(hoopGeo, brassMat);
-        hoop.position.set(cx + side * rx * 1.02, cy - ry * 0.18, cz - rz * 0.06);
-        hoop.rotation.y = Math.PI * 0.5;
-        group.add(hoop);
       }
     } else if (archKey === 'child7') {
       // June: Fitted hair base + spring-physics hanging twisted locs
@@ -1651,12 +1985,6 @@
       bun.scale.set(1.14, 0.94, 0.98);
       bun.castShadow = true;
       group.add(bun);
-
-      for (const side of [-1, 1]) {
-        const stud = new THREE.Mesh(studGeo, brassMat);
-        stud.position.set(cx + side * rx * 1.0, cy - ry * 0.18, cz - rz * 0.04);
-        group.add(stud);
-      }
     }
 
     headBone.add(group);
@@ -1750,29 +2078,43 @@
     const toeL = bonesByNorm.get('toe21l') || footL;
     const toeR = bonesByNorm.get('toe21r') || footR;
 
+    // Helper predicates for continuous one-piece connected manifold garments
+    const isLegBone = (b) => b.startsWith('pelvis') || b.startsWith('upperleg') || b.startsWith('lowerleg');
+    const isTorsoBone = (b) => b.startsWith('spine') || b.startsWith('clavicle') || b.startsWith('shoulder') || b === 'root';
+    const isUpperArmBone = (b) => b.startsWith('upperarm');
+    const isLowerArmBone = (b) => b.startsWith('lowerarm');
+    const isFullTrouserVert = (yn, b) => {
+      if (yn < 0.068) return false; // clean ankle cuff above sandal
+      if (isLegBone(b)) return true;
+      if ((b === 'spine05' || b === 'spine04' || b === 'root') && yn <= 0.565) return true;
+      return false;
+    };
+
     // -------------------------------------------------------------------------
-    // Archetype-Specific Tailored Garments + Verlet Cloth Panels
+    // Archetype-Specific Continuous One-Piece Skinned Garments + Verlet Cloth
     // -------------------------------------------------------------------------
     if (archKey === 'adult_f') {
-      // 1. Scoop inner tunic (smooth hem, clean scooped neckline)
+      // 1. Continuous scoop inner tunic (smooth hem, clean scooped neckline)
       const tunicMat = getSharedMaterial(THREE, 'imani_tunic', {
         baseHex: palette.tunicHex,
         mode: 'weave',
         repX: 4,
         repY: 4,
         roughness: 0.86,
+        doubleSide: true,
       });
-      addGarment(buildTorsoLoft(THREE, bodyMesh, bodyData, {
+      addGarment(buildManifoldGarment(THREE, bodyMesh, bodyData, {
         name: 'imani_v7_tunic',
         material: tunicMat,
-        rings: 14,
-        segs: 28,
-        yMin: 0.49,
-        yMax: (theta) => 0.81 - Math.max(0, Math.cos(theta)) * 0.055,
-        ease: 0.011,
+        includeVertex: (v, x, y, z, yn, b) => {
+          if (!isTorsoBone(b)) return false;
+          const scoop = z > centerZ ? 0.042 * Math.max(0, 1 - Math.abs(x) / (0.12 * hScale)) : 0.008;
+          return yn >= 0.49 && yn <= 0.825 - scoop;
+        },
+        offset: 0.0065,
       }));
 
-      // 2. Loose pleated cargo trousers (pelvis waist + both legs + side cargo pockets)
+      // 2. Continuous one-piece full-length tailored trousers (pelvis + waist + crotch + both legs)
       const trouserMat = getSharedMaterial(THREE, 'imani_trousers', {
         baseHex: palette.trouserHex,
         mode: 'twill',
@@ -1781,59 +2123,14 @@
         roughness: 0.88,
         doubleSide: true,
       });
-      addGarment(buildTorsoLoft(THREE, bodyMesh, bodyData, {
-        name: 'imani_v7_trouser_waist',
+      addGarment(buildManifoldGarment(THREE, bodyMesh, bodyData, {
+        name: 'imani_v7_trousers_onepiece',
         material: trouserMat,
-        rings: 8,
-        segs: 24,
-        yMin: 0.44,
-        yMax: 0.56,
-        ease: 0.018,
-      }));
-      addGarment(buildLimbTube(THREE, bodyMesh, bodyData, {
-        name: 'imani_v7_trouser_L',
-        material: trouserMat,
-        region: 'legL',
-        boneKeys: ['upperleg01l', 'lowerleg01l', 'footl'],
-        tStart: 0.03,
-        tEnd: 0.99,
-        rings: 16,
-        segs: 18,
-        pleats: 4,
-        ease: (v) => (0.018 - v * 0.004) * hScale,
-      }));
-      addGarment(buildLimbTube(THREE, bodyMesh, bodyData, {
-        name: 'imani_v7_trouser_R',
-        material: trouserMat,
-        region: 'legR',
-        boneKeys: ['upperleg01r', 'lowerleg01r', 'footr'],
-        tStart: 0.03,
-        tEnd: 0.99,
-        rings: 16,
-        segs: 18,
-        pleats: 4,
-        ease: (v) => (0.018 - v * 0.004) * hScale,
+        includeVertex: (v, x, y, z, yn, b) => isFullTrouserVert(yn, b),
+        offset: (v, yn) => (yn < 0.14 ? 0.012 : 0.010) * hScale,
       }));
 
-      // Side cargo pockets mounted on upperleg01.L/R
-      const cargoGeo = new THREE.BoxGeometry(0.024 * hScale, 0.135 * hScale, 0.115 * hScale);
-      disposables.push(cargoGeo);
-      if (thighL) {
-        const pkL = new THREE.Mesh(cargoGeo, trouserMat);
-        pkL.position.set(0.095 * hScale, -0.14 * hScale, 0.01 * hScale);
-        pkL.castShadow = true;
-        thighL.add(pkL);
-        attachedObjects.push(pkL);
-      }
-      if (thighR) {
-        const pkR = new THREE.Mesh(cargoGeo, trouserMat);
-        pkR.position.set(-0.095 * hScale, -0.14 * hScale, 0.01 * hScale);
-        pkR.castShadow = true;
-        thighR.add(pkR);
-        attachedObjects.push(pkR);
-      }
-
-      // 3. Clean tailored open-front duster coat (upper bodice + V-notch collar + rolled-cuff sleeves)
+      // 3. Continuous one-piece open-front tailored duster coat (torso + shoulders + full long sleeves)
       const coatMat = getSharedMaterial(THREE, 'imani_coat', {
         baseHex: palette.coatHex,
         mode: 'twill',
@@ -1842,68 +2139,28 @@
         roughness: 0.82,
         doubleSide: true,
       });
-      const lapelMat = getSharedMaterial(THREE, 'imani_lapel', {
-        baseHex: palette.coatTrimHex,
-        mode: 'twill',
-        repX: 2,
-        repY: 2,
-        roughness: 0.80,
-        doubleSide: true,
-      });
-
-      // Open-front upper duster bodice (waist 0.54 to collar 0.84, clean straight front edges + V-notch)
-      addGarment(buildTorsoLoft(THREE, bodyMesh, bodyData, {
-        name: 'imani_v7_duster_bodice',
+      addGarment(buildManifoldGarment(THREE, bodyMesh, bodyData, {
+        name: 'imani_v7_duster_onepiece',
         material: coatMat,
-        closed: false,
-        rings: 14,
-        segs: 26,
-        yMin: 0.535,
-        yMax: (theta) => 0.835 - Math.max(0, Math.cos(theta)) * 0.028,
-        openHalfAngle: (v) => lerp(0.32, 0.44, Math.pow(v, 1.3)),
-        ease: (v) => (0.024 + (1 - v) * 0.006) * hScale,
+        includeVertex: (v, x, y, z, yn, b) => {
+          const isSleeve = isUpperArmBone(b) || isLowerArmBone(b);
+          if (!isTorsoBone(b) && !isSleeve) return false;
+          if (!isSleeve) {
+            if (yn < 0.53 || yn > 0.842) return false;
+            // Clean open-front center placket revealing inner cream tunic
+            if (z > centerZ + 0.02 * hScale && Math.abs(x) < 0.056 * hScale) return false;
+          }
+          return true;
+        },
+        offset: (v, yn, x, z, isBnd, b) => {
+          if (isLowerArmBone(b)) return (isBnd ? 0.015 : 0.010) * hScale;
+          return 0.0125 * hScale;
+        },
       }));
 
-      // Crisp turned-back lapel strips along left & right front openings
-      addGarment(buildTorsoLoft(THREE, bodyMesh, bodyData, {
-        name: 'imani_v7_duster_collar',
-        material: lapelMat,
-        closed: false,
-        rings: 6,
-        segs: 18,
-        yMin: 0.785,
-        yMax: 0.842,
-        openHalfAngle: () => 0.42,
-        ease: 0.030 * hScale,
-      }));
-
-      // Full coat sleeves with rolled cuffs (snug onto deltoid shoulder)
-      addGarment(buildLimbTube(THREE, bodyMesh, bodyData, {
-        name: 'imani_v7_sleeve_L',
-        material: coatMat,
-        region: 'armL',
-        boneKeys: ['shoulder01l', 'upperarm01l', 'lowerarm01l', 'wristl'],
-        tStart: 0.06,
-        tEnd: 0.88,
-        rings: 16,
-        segs: 16,
-        ease: (v) => (v < 0.22 ? 0.010 : v > 0.86 ? 0.021 : 0.013) * hScale,
-      }));
-      addGarment(buildLimbTube(THREE, bodyMesh, bodyData, {
-        name: 'imani_v7_sleeve_R',
-        material: coatMat,
-        region: 'armR',
-        boneKeys: ['shoulder01r', 'upperarm01r', 'lowerarm01r', 'wristr'],
-        tStart: 0.06,
-        tEnd: 0.88,
-        rings: 16,
-        segs: 16,
-        ease: (v) => (v < 0.22 ? 0.010 : v > 0.86 ? 0.021 : 0.013) * hScale,
-      }));
-
-      // 4. REAL VERLET-SIMULATED FLARING LOWER DUSTER COAT PANEL (waist 0.545 down to mid-calf 0.21)
+      // 4. REAL VERLET-SIMULATED FLARING LOWER DUSTER COAT PANEL (waist 0.545 down to mid-calf 0.22)
       const waistY = minY + 0.545 * height;
-      const hemY = minY + 0.215 * height;
+      const hemY = minY + 0.225 * height;
       const openHalf = 0.62;
       const dusterCols = 17;
       const dusterRows = 7;
@@ -1920,14 +2177,13 @@
           const u = c / (cols - 1);
           const v = r / (rows - 1);
           const theta = lerp(openHalf, Math.PI * 2 - openHalf, u);
-          const rad = sampleTorsoRadius(0.545, theta) + (0.028 + v * 0.068) * hScale;
+          const rad = sampleTorsoRadius(0.545, theta) + (0.020 + v * 0.062) * hScale;
           out.set(Math.sin(theta) * rad, lerp(waistY, hemY, v), centerZ + Math.cos(theta) * rad);
         },
         samplePin: (c, cols, out) => {
           const u = c / (cols - 1);
           const theta = lerp(openHalf, Math.PI * 2 - openHalf, u);
-          const rad = sampleTorsoRadius(0.545, theta) + 0.028 * hScale;
-          // Transform local waist ring point by live spine05 world-to-root matrix
+          const rad = sampleTorsoRadius(0.545, theta) + 0.020 * hScale;
           _vB.set(Math.sin(theta) * rad, 0.01 * hScale, Math.cos(theta) * rad);
           spineLow.updateMatrixWorld(false);
           _vB.applyMatrix4(spineLow.matrixWorld);
@@ -1938,7 +2194,7 @@
       clothPanels.push(dusterPanel);
       garmentMeshes.push(dusterPanel.mesh);
 
-      // 5. Buckled leather tool-belt + brass buckle + side utility pouch
+      // 5. Buckled leather tool-belt + brass buckle
       const beltMat = getSharedMaterial(THREE, 'imani_belt', {
         baseHex: palette.beltHex,
         mode: 'leather',
@@ -1948,15 +2204,14 @@
       });
       const beltGroup = new THREE.Group();
       beltGroup.name = 'imani_v7_tool_belt';
-      const waistR = sampleTorsoRadius(0.55, 0) + 0.016 * hScale;
-      const beltGeo = new THREE.TorusGeometry(waistR, 0.015 * hScale, 8, 28);
-      const buckleGeo = new THREE.BoxGeometry(0.044 * hScale, 0.036 * hScale, 0.018 * hScale);
-      const pouchGeo = new THREE.BoxGeometry(0.046 * hScale, 0.072 * hScale, 0.068 * hScale);
-      disposables.push(beltGeo, buckleGeo, pouchGeo);
+      const waistR = sampleTorsoRadius(0.55, 0) + 0.014 * hScale;
+      const beltGeo = new THREE.TorusGeometry(waistR, 0.013 * hScale, 8, 28);
+      const buckleGeo = new THREE.BoxGeometry(0.042 * hScale, 0.032 * hScale, 0.016 * hScale);
+      disposables.push(beltGeo, buckleGeo);
 
       const belt = new THREE.Mesh(beltGeo, beltMat);
       belt.rotation.x = Math.PI * 0.5;
-      belt.scale.set(1.12, 0.90, 1.0);
+      belt.scale.set(1.10, 0.90, 1.0);
       belt.castShadow = true;
       beltGroup.add(belt);
 
@@ -1964,15 +2219,11 @@
       buckle.position.set(0, 0, waistR * 0.92);
       beltGroup.add(buckle);
 
-      const pouch = new THREE.Mesh(pouchGeo, beltMat);
-      pouch.position.set(waistR * 1.08, -0.02 * hScale, -0.01 * hScale);
-      pouch.castShadow = true;
-      beltGroup.add(pouch);
-
       spineLow.add(beltGroup);
       attachedObjects.push(beltGroup);
     } else if (archKey === 'child7') {
-      // June: Side-slit woven knit tunic + stitched knee-patch trousers + Verlet front/back tunic flaps
+      // June: Continuous one-piece woven knit tunic (torso + shoulders + short sleeves — ZERO bare shoulder gaps!)
+      // + Continuous one-piece full-length trousers (pelvis + waist + legs — ZERO bare waist/crotch gaps!)
       const tunicMat = getSharedMaterial(THREE, 'june_tunic', {
         baseHex: palette.tunicHex,
         accentHex: palette.tunicAccentHex,
@@ -1990,129 +2241,41 @@
         roughness: 0.86,
         doubleSide: true,
       });
-      const patchMat = getSharedSolidMaterial(THREE, 'june_patch', {
-        color: palette.patchHex,
-        roughness: 0.90,
-      });
 
-      addGarment(buildTorsoLoft(THREE, bodyMesh, bodyData, {
-        name: 'june_v7_knit_bodice',
+      addGarment(buildManifoldGarment(THREE, bodyMesh, bodyData, {
+        name: 'june_v7_knit_tunic_onepiece',
         material: tunicMat,
-        rings: 14,
-        segs: 24,
-        yMin: 0.52,
-        yMax: (theta) => 0.81 - Math.max(0, Math.cos(theta)) * 0.035,
-        ease: 0.018 * hScale,
-      }));
-      addGarment(buildLimbTube(THREE, bodyMesh, bodyData, {
-        name: 'june_v7_sleeve_L',
-        material: tunicMat,
-        region: 'armL',
-        boneKeys: ['upperarm01l', 'lowerarm01l'],
-        tStart: 0.0,
-        tEnd: 0.72,
-        rings: 10,
-        segs: 14,
-        ease: 0.015 * hScale,
-      }));
-      addGarment(buildLimbTube(THREE, bodyMesh, bodyData, {
-        name: 'june_v7_sleeve_R',
-        material: tunicMat,
-        region: 'armR',
-        boneKeys: ['upperarm01r', 'lowerarm01r'],
-        tStart: 0.0,
-        tEnd: 0.72,
-        rings: 10,
-        segs: 14,
-        ease: 0.015 * hScale,
-      }));
-      addGarment(buildTorsoLoft(THREE, bodyMesh, bodyData, {
-        name: 'june_v7_trouser_waist',
-        material: trouserMat,
-        rings: 6,
-        segs: 22,
-        yMin: 0.44,
-        yMax: 0.55,
-        ease: 0.014 * hScale,
-      }));
-      addGarment(buildLimbTube(THREE, bodyMesh, bodyData, {
-        name: 'june_v7_trouser_L',
-        material: trouserMat,
-        region: 'legL',
-        boneKeys: ['upperleg01l', 'lowerleg01l', 'footl'],
-        tStart: 0.0,
-        tEnd: 0.94,
-        rings: 14,
-        segs: 16,
-        ease: 0.018 * hScale,
-      }));
-      addGarment(buildLimbTube(THREE, bodyMesh, bodyData, {
-        name: 'june_v7_trouser_R',
-        material: trouserMat,
-        region: 'legR',
-        boneKeys: ['upperleg01r', 'lowerleg01r', 'footr'],
-        tStart: 0.0,
-        tEnd: 0.94,
-        rings: 14,
-        segs: 16,
-        ease: 0.018 * hScale,
+        includeVertex: (v, x, y, z, yn, b) => {
+          // Contiguous torso + clavicle + shoulder + upper bicep short-sleeve
+          if (b === 'upperarm01l' || b === 'upperarm01r') return yn >= 0.725;
+          if (!isTorsoBone(b)) return false;
+          const scoop = z > centerZ ? 0.028 * Math.max(0, 1 - Math.abs(x) / (0.10 * hScale)) : 0.008;
+          return yn >= 0.495 && yn <= 0.805 - scoop;
+        },
+        offset: 0.0095,
       }));
 
-      // Stitched knee patches on lowerleg01.L/R
-      const patchGeo = new THREE.BoxGeometry(0.056 * hScale, 0.068 * hScale, 0.016 * hScale);
-      disposables.push(patchGeo);
-      for (const kneeBone of [shinL, shinR]) {
-        if (!kneeBone) continue;
-        const p = new THREE.Mesh(patchGeo, patchMat);
-        p.position.set(0, 0.01 * hScale, 0.056 * hScale);
-        kneeBone.add(p);
-        attachedObjects.push(p);
-      }
-
-      // Verlet side-slit front & back tunic flaps
-      const flapTopY = minY + 0.53 * height;
-      const flapBotY = minY + 0.36 * height;
-      for (const sideCfg of [
-        { name: 'june_v7_flap_front', a0: -0.95, a1: 0.95 },
-        { name: 'june_v7_flap_back', a0: Math.PI - 0.95, a1: Math.PI + 0.95 },
-      ]) {
-        const panel = createVerletClothPanel(THREE, {
-          name: sideCfg.name,
-          material: tunicMat,
-          cols: 9,
-          rows: 5,
-          gravity: -8.2,
-          damping: 0.93,
-          flareOut: 1.1,
-          initPoint: (c, r, cols, rows, out) => {
-            const u = c / (cols - 1);
-            const v = r / (rows - 1);
-            const theta = lerp(sideCfg.a0, sideCfg.a1, u);
-            const rad = sampleTorsoRadius(0.53, theta) + (0.022 + v * 0.025) * hScale;
-            out.set(Math.sin(theta) * rad, lerp(flapTopY, flapBotY, v), centerZ + Math.cos(theta) * rad);
-          },
-          samplePin: (c, cols, out) => {
-            const u = c / (cols - 1);
-            const theta = lerp(sideCfg.a0, sideCfg.a1, u);
-            const rad = sampleTorsoRadius(0.53, theta) + 0.022 * hScale;
-            _vB.set(Math.sin(theta) * rad, 0.0, Math.cos(theta) * rad);
-            spineLow.updateMatrixWorld(false);
-            _vB.applyMatrix4(spineLow.matrixWorld);
-            out.copy(_vB).applyMatrix4(_matInv);
-          },
-        });
-        annyRoot.add(panel.mesh);
-        clothPanels.push(panel);
-        garmentMeshes.push(panel.mesh);
-      }
+      addGarment(buildManifoldGarment(THREE, bodyMesh, bodyData, {
+        name: 'june_v7_trousers_onepiece',
+        material: trouserMat,
+        includeVertex: (v, x, y, z, yn, b) => {
+          if (yn < 0.068) return false;
+          if (isLegBone(b)) return true;
+          if ((b === 'spine05' || b === 'spine04' || b === 'root') && yn <= 0.54) return true;
+          return false;
+        },
+        offset: 0.009,
+      }));
     } else {
-      // Makeda (elder) & Elder (adult_m): Tunic + Trousers + Diagonally Draped Multi-Fold Shamma/Gabi + Verlet Shoulder Drape
+      // Makeda (elder) & Elder (adult_m): Continuous one-piece long-sleeve tunic + one-piece trousers
+      // + Diagonally Draped Multi-Fold Shamma/Gabi + Verlet Shoulder Drape
       const tunicMat = getSharedMaterial(THREE, `${archKey}_tunic`, {
         baseHex: palette.tunicHex,
         mode: 'weave',
         repX: 4,
         repY: 4,
         roughness: 0.85,
+        doubleSide: true,
       });
       const trouserMat = getSharedMaterial(THREE, `${archKey}_trousers`, {
         baseHex: palette.trouserHex,
@@ -2133,58 +2296,26 @@
         doubleSide: true,
       });
 
-      addGarment(buildTorsoLoft(THREE, bodyMesh, bodyData, {
-        name: `${archKey}_v7_tunic`,
+      addGarment(buildManifoldGarment(THREE, bodyMesh, bodyData, {
+        name: `${archKey}_v7_tunic_onepiece`,
         material: tunicMat,
-        rings: 14,
-        segs: 26,
-        yMin: 0.44,
-        yMax: (theta) => 0.82 - Math.max(0, Math.cos(theta)) * 0.032,
-        ease: (v) => (0.018 + (1 - v) * 0.012) * hScale,
+        includeVertex: (v, x, y, z, yn, b) => {
+          const isSleeve = isUpperArmBone(b) || isLowerArmBone(b);
+          if (!isTorsoBone(b) && !isSleeve) return false;
+          if (!isSleeve) {
+            const scoop = z > centerZ ? 0.025 * Math.max(0, 1 - Math.abs(x) / (0.11 * hScale)) : 0.008;
+            return yn >= 0.44 && yn <= 0.832 - scoop;
+          }
+          return true;
+        },
+        offset: 0.0095,
       }));
-      addGarment(buildLimbTube(THREE, bodyMesh, bodyData, {
-        name: `${archKey}_v7_sleeve_L`,
-        material: tunicMat,
-        region: 'armL',
-        boneKeys: ['upperarm01l', 'lowerarm01l', 'wristl'],
-        tStart: 0.0,
-        tEnd: 0.88,
-        rings: 14,
-        segs: 16,
-        ease: 0.018 * hScale,
-      }));
-      addGarment(buildLimbTube(THREE, bodyMesh, bodyData, {
-        name: `${archKey}_v7_sleeve_R`,
-        material: tunicMat,
-        region: 'armR',
-        boneKeys: ['upperarm01r', 'lowerarm01r', 'wristr'],
-        tStart: 0.0,
-        tEnd: 0.88,
-        rings: 14,
-        segs: 16,
-        ease: 0.018 * hScale,
-      }));
-      addGarment(buildLimbTube(THREE, bodyMesh, bodyData, {
-        name: `${archKey}_v7_trouser_L`,
+
+      addGarment(buildManifoldGarment(THREE, bodyMesh, bodyData, {
+        name: `${archKey}_v7_trousers_onepiece`,
         material: trouserMat,
-        region: 'legL',
-        boneKeys: ['upperleg01l', 'lowerleg01l', 'footl'],
-        tStart: 0.0,
-        tEnd: 0.95,
-        rings: 14,
-        segs: 16,
-        ease: 0.022 * hScale,
-      }));
-      addGarment(buildLimbTube(THREE, bodyMesh, bodyData, {
-        name: `${archKey}_v7_trouser_R`,
-        material: trouserMat,
-        region: 'legR',
-        boneKeys: ['upperleg01r', 'lowerleg01r', 'footr'],
-        tStart: 0.0,
-        tEnd: 0.95,
-        rings: 14,
-        segs: 16,
-        ease: 0.022 * hScale,
+        includeVertex: (v, x, y, z, yn, b) => isFullTrouserVert(yn, b),
+        offset: 0.0085,
       }));
 
       // Diagonally draped multi-fold shamma / gabi wrap around chest & waist
@@ -2195,7 +2326,7 @@
         segs: 30,
         yMin: (theta) => 0.49 + Math.sin(theta) * 0.075,
         yMax: (theta) => 0.77 + Math.sin(theta) * 0.065,
-        ease: (v, u, theta) => (0.032 + Math.sin(v * Math.PI * 5) * 0.005 + Math.max(0, Math.sin(theta)) * 0.006) * hScale,
+        ease: (v, u, theta) => (0.024 + Math.sin(v * Math.PI * 5) * 0.004 + Math.max(0, Math.sin(theta)) * 0.005) * hScale,
       }));
 
       // Verlet-simulated hanging shoulder drape panel pinned to left shoulder
@@ -2231,27 +2362,24 @@
       garmentMeshes.push(drapePanel.mesh);
     }
 
-    // Laced lug-sole work boots (Imani/Elder/Makeda) or strapped Ethiopian sandals/ankle boots (June)
-    const isSandal = archKey === 'child7';
-    let bootSoleOffsetL = -0.062 * hScale;
-    let bootSoleOffsetR = -0.062 * hScale;
+    // Clean minimalist Ethiopian leather sandals (contoured thin sole + forefoot & ankle straps at y = 0)
+    let bootSoleOffsetL = -0.048 * hScale;
+    let bootSoleOffsetR = -0.048 * hScale;
     if (footL) {
-      const bL = buildLacedBoot(THREE, footL, 'L', height, bootMat, soleMat, brassMat, disposables, isSandal);
-      attachedObjects.push(bL.group);
-      bootSoleOffsetL = bL.soleLocalY;
+      const sL = buildEthiopianSandal(THREE, footL, 'L', bodyData.footMetrics.L, height, bootMat, soleMat, disposables);
+      attachedObjects.push(sL.group);
+      bootSoleOffsetL = sL.soleLocalY;
     }
     if (footR) {
-      const bR = buildLacedBoot(THREE, footR, 'R', height, bootMat, soleMat, brassMat, disposables, isSandal);
-      attachedObjects.push(bR.group);
-      bootSoleOffsetR = bR.soleLocalY;
+      const sR = buildEthiopianSandal(THREE, footR, 'R', bodyData.footMetrics.R, height, bootMat, soleMat, disposables);
+      attachedObjects.push(sR.group);
+      bootSoleOffsetR = sR.soleLocalY;
     }
 
-    // Real 3D eyes (ivory sclera + iris + pupil + catchlight + blinking lids + brows) & talking mouth interior
-    const eyeL = bonesByNorm.get('eyel');
-    const eyeR = bonesByNorm.get('eyer');
+    // Real 3D ophthalmic eyes (bright white sclera + iris + pupil + catchlight) & talking mouth interior
     let faceRig = null;
     if (headBone) {
-      faceRig = buildEyesAndMouthV7(THREE, headBone, eyeL, eyeR, bodyData.headMetrics, palette, disposables);
+      faceRig = buildEyesAndMouthV7(THREE, bodyMesh, headBone, bodyData, palette, disposables);
     }
 
     // Head groom
@@ -2281,7 +2409,7 @@
     let blinkPhase = 0;
     let currentViseme = { viseme: 'SIL', jawOpen: 0, mouthWide: 0, mouthRound: 0, lipPress: 0.05, active: false };
     const targetViseme = { viseme: 'SIL', jawOpen: 0, mouthWide: 0, mouthRound: 0, lipPress: 0.05, active: false };
-    const smoothMorph = [0, 0, 0, 0];
+    const smoothMorph = [0, 0, 0, 0, 0, 0];
     let lastFootMinY = groundY;
     const prevHeadPos = new THREE.Vector3();
     let hasPrevHead = false;
@@ -2429,22 +2557,30 @@
       const wantWide = clamp(targetViseme.mouthWide + expr.wide, -0.25, 1);
       const wantRound = clamp(Math.max(targetViseme.mouthRound, expr.round), 0, 1);
       const wantPress = clamp(Math.max(targetViseme.lipPress, expr.press), 0, 1);
+      const wantBrowDn = expr.browY < 0 ? clamp(-expr.browY * 140, 0, 1) : 0;
+      const wantBrowUp = expr.browY > 0 ? clamp(expr.browY * 110, 0, 1) : 0;
 
       const rate = 1 - Math.exp(-18 * h);
       smoothMorph[0] = lerp(smoothMorph[0], wantJaw, rate);
       smoothMorph[1] = lerp(smoothMorph[1], wantWide, rate);
       smoothMorph[2] = lerp(smoothMorph[2], wantRound, rate);
       smoothMorph[3] = lerp(smoothMorph[3], wantPress, rate);
+      smoothMorph[4] = lerp(smoothMorph[4], wantBrowDn, rate);
+      smoothMorph[5] = lerp(smoothMorph[5], wantBrowUp, rate);
 
       if (hasLipMorphs && bodyMesh.morphTargetInfluences) {
         bodyMesh.morphTargetInfluences[0] = smoothMorph[0];
         bodyMesh.morphTargetInfluences[1] = Math.max(0, smoothMorph[1]);
         bodyMesh.morphTargetInfluences[2] = smoothMorph[2];
         bodyMesh.morphTargetInfluences[3] = smoothMorph[3];
+        if (bodyMesh.morphTargetInfluences.length >= 6) {
+          bodyMesh.morphTargetInfluences[4] = smoothMorph[4];
+          bodyMesh.morphTargetInfluences[5] = smoothMorph[5];
+        }
         currentViseme = targetViseme;
       }
 
-      // 2b. Real 3D eyes (natural blink + expression lids/brows) & talking mouth interior
+      // 2b. Real 3D eyes (wide-open white sclera + natural blink) & talking mouth interior
       if (faceRig) {
         blinkTimer -= h;
         if (blinkTimer <= 0) {
@@ -2455,21 +2591,16 @@
           blinkPhase = Math.max(0, blinkPhase - h * 6.5);
         }
         const blinkAmt = Math.sin(blinkPhase * Math.PI);
-        const lidAngle = -0.36 + expr.lidDrop * 0.45 + blinkAmt * 0.82;
+        const lidAngle = -0.74 + expr.lidDrop * 0.35 + blinkAmt * 1.15;
         for (let i = 0; i < faceRig.upperLids.length; i++) {
           faceRig.upperLids[i].rotation.x = lidAngle;
         }
-        for (let i = 0; i < faceRig.brows.length; i++) {
-          const br = faceRig.brows[i];
-          br.mesh.position.y = br.baseY + expr.browY;
-          br.mesh.rotation.z = Math.PI * 0.5 - br.side * (0.08 + expr.browTilt);
-        }
         const jawNow = smoothMorph[0];
-        faceRig.mouthGroup.visible = jawNow > 0.06;
+        faceRig.mouthGroup.visible = jawNow > 0.05;
         if (faceRig.mouthGroup.visible) {
           faceRig.mouthGroup.scale.set(
-            0.85 + Math.max(0, smoothMorph[1]) * 0.28 - smoothMorph[2] * 0.22,
-            0.35 + jawNow * 0.95,
+            0.88 + Math.max(0, smoothMorph[1]) * 0.25 - smoothMorph[2] * 0.22,
+            0.38 + jawNow * 0.95,
             1.0
           );
           faceRig.lowerTeeth.position.y = -faceRig.hm.ry * (0.048 + jawNow * 0.085);

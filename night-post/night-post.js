@@ -2781,6 +2781,9 @@ void main(){
     function onVehicleImpact(evt) {
       if (physParticles) physParticles.spawnSparks(evt.x, evt.y, evt.z, Math.round(clamp(evt.severity * 0.7, 6, 20)));
       if (waterSlosh) waterSlosh.impulse((Math.random() - 0.5) * evt.severity * 0.35, -evt.severity * 0.28);
+      if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playImpact === "function") {
+        window.HighlandSoundscape.playImpact(clamp(evt.severity / 25, 0.15, 1));
+      }
       if (evt.severity >= 6) {
         toast(`Chassis impact (${evt.type}) · Integrity ${Math.round(evt.integrity)}%`, `Chassis ${Math.round(evt.integrity)}%`);
       }
@@ -6712,6 +6715,9 @@ void main(){
         if (sRes.spilledL > 0) {
           state.waterLiters = Math.max(0, state.waterLiters - sRes.spilledL);
           state.donkeyWater = clamp(state.donkeyWater - sRes.spilledL * 0.012, 0, 1);
+          if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playWaterSpill === "function") {
+            window.HighlandSoundscape.playWaterSpill(clamp(sRes.spilledL * 8, 0.2, 1));
+          }
           if (physParticles) {
             const sx = state.drivingCart ? wagon.x : donkey.state.x;
             const sy = state.drivingCart ? wagon.y + 2.35 : donkey.group.position.y + 1.12;
@@ -6723,6 +6729,69 @@ void main(){
         }
       }
       if (physParticles) physParticles.update(dt, driveSurfaceAt);
+
+      /* --- HighlandSoundscape Spatial Audio + 4-Station Radio Bridge --- */
+      if (window.HighlandSoundscape) {
+        const HS = window.HighlandSoundscape;
+        if (!window._npSoundscapeState) {
+          window._npSoundscapeState = { ready: false, radioMounted: false, stepDist: 0, lastX: state.x, lastZ: state.z, donkeyTimer: 11 };
+          const mountNpRadio = () => {
+            const host = document.getElementById("np-radio-host");
+            if (host && !window._npSoundscapeState.radioMounted && typeof HS.mountRadioHUD === "function") {
+              try { HS.mountRadioHUD(host); window._npSoundscapeState.radioMounted = true; } catch (e) {}
+            }
+          };
+          const unlockNpAudio = () => {
+            try {
+              if (typeof HS.init === "function") HS.init({ basePath: "../audio/" });
+              if (typeof HS.unlock === "function") HS.unlock();
+              mountNpRadio();
+              window._npSoundscapeState.ready = typeof HS.isReady === "function" ? Boolean(HS.isReady()) : true;
+            } catch (e) {}
+          };
+          mountNpRadio();
+          window.addEventListener("pointerdown", unlockNpAudio, { once: true, passive: true });
+          window.addEventListener("keydown", unlockNpAudio, { once: true, passive: true });
+        }
+        const nss = window._npSoundscapeState;
+        if (!nss.radioMounted && typeof HS.mountRadioHUD === "function") {
+          const host = document.getElementById("np-radio-host");
+          if (host) { try { HS.mountRadioHUD(host); nss.radioMounted = true; } catch (e) {} }
+        }
+        const camPos = { x: camera.position.x, y: camera.position.y, z: camera.position.z };
+        const camFwd = { x: -Math.sin(state.yaw), y: 0, z: -Math.cos(state.yaw) };
+        if (typeof HS.updateListener === "function") HS.updateListener(camPos, camFwd);
+        const nearWell = Math.hypot(state.x - well.x, state.z - well.z) < 28;
+        const biome = state.gliding || state.y > 42 ? "highland_cliff" : (nearWell ? "courtyard" : (state.y < 3.5 ? "gorge_water" : "valley_village"));
+        if (typeof HS.setBiome === "function") HS.setBiome(biome, state.y);
+        const moved = Math.hypot(state.x - nss.lastX, state.z - nss.lastZ);
+        nss.lastX = state.x; nss.lastZ = state.z;
+        if (!state.drivingCart && !state.riding && !state.gliding && moved > 0.001 && moved < 4) {
+          nss.stepDist += moved;
+          if (nss.stepDist >= 0.82) {
+            nss.stepDist = 0;
+            const surf = state.y < 2.2 ? "water" : (nearWell ? "stone" : (Math.abs(state.x) < 18 ? "gravel" : "grass"));
+            if (typeof HS.playFootstep === "function") HS.playFootstep(surf, state.waterLiters);
+          }
+        }
+        if (typeof HS.updateVehicleAudio === "function") {
+          const spd = state.drivingCart ? Math.abs(wagon.speed || 0) : 0;
+          const rpm01 = state.drivingCart ? clamp(0.18 + spd / 18, 0, 1) : 0;
+          const integrity01 = vehPhys ? clamp(vehPhys.integrity / 100, 0, 1) : 1;
+          HS.updateVehicleAudio({ x: wagon.x, y: wagon.y, z: wagon.z }, spd, rpm01, integrity01);
+        }
+        if (typeof HS.updatePumpAudio === "function") {
+          HS.updatePumpAudio({ x: well.x, y: well.y || 0, z: well.z }, state.pumpFlow > 0.05, 0.92);
+        }
+        nss.donkeyTimer -= dt;
+        if (nss.donkeyTimer <= 0) {
+          nss.donkeyTimer = 19 + Math.random() * 15;
+          if (Math.hypot(state.x - donkey.state.x, state.z - donkey.state.z) < 55 && typeof HS.playDonkeyCall === "function") {
+            HS.playDonkeyCall({ x: donkey.state.x, y: donkey.group.position.y + 1.1, z: donkey.state.z });
+          }
+        }
+        nss.ready = typeof HS.isReady === "function" ? Boolean(HS.isReady()) : nss.ready;
+      }
 
       /* --- Animated Pouring & Sequential Jerrycan Filling + Eskista Dance --- */
       if (state.pourAnim) {
@@ -7183,7 +7252,9 @@ void main(){
           totalRelays: relays.length,
           coveragePct: state.coveragePct,
           plates: state.plates.length,
-          audioReady: audioEl.readyState >= 1,
+          audioReady: audioEl.readyState >= 1 || Boolean(window.HighlandSoundscape),
+          soundscapeReady: Boolean(window.HighlandSoundscape && (typeof window.HighlandSoundscape.isReady === "function" ? window.HighlandSoundscape.isReady() : true)),
+          radioMounted: Boolean(window._npSoundscapeState && window._npSoundscapeState.radioMounted),
           castCount: cast ? cast.list.length : 0,
           worldBridgeLoadedClips: worldBridge ? worldBridge.getLoadedClips() : [],
           worldBridgeActors: worldBridge && cast ? cast.list.slice(0, 6).map((c, i) => {

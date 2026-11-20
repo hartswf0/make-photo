@@ -255,8 +255,9 @@ scene.add(courtyardSet);
 scene.add(darkGridSet);
 
 // ---------------------------------------------------------------------------
-// Real Interactive Clip Props (Jerrycan, Standpipe Pump + Shekla Bowl, Hammer,
-// Shovel, Stone Bench, Krar/Guitar)
+// Story-Authentic Interactive Props ONLY (20L Cyan Jerrycan centered between
+// both palms on Carry, Cast-Iron Standpipe Pump & Terracotta Shekla Bowl on
+// Water/Pump, Carved Stone Bench on Sit)
 // ---------------------------------------------------------------------------
 const propSystem = (() => {
   const worldProps = new THREE.Group();
@@ -281,24 +282,26 @@ const propSystem = (() => {
   });
   const ironMat = new THREE.MeshStandardMaterial({ color: 0x35373a, roughness: 0.52, metalness: 0.72 });
   const terracottaMat = new THREE.MeshStandardMaterial({ color: 0x9e5134, roughness: 0.84, metalness: 0.02 });
-  const woodMat = new THREE.MeshStandardMaterial({ color: 0x6b472a, roughness: 0.82, metalness: 0.02 });
   const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9e8f7a, roughness: 0.92, metalness: 0.02 });
 
-  // 1. 20L glowing #28d8f0 cyan jerrycan (hand-mounted)
+  // 1. 20L glowing #28d8f0 cyan jerrycan (world-space, centered cleanly between both palms on Carry)
   const jerrycan = new THREE.Group();
-  const canBody = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.30, 0.25), canShellMat);
-  canBody.position.set(0, -0.18, 0.02);
+  jerrycan.name = 'story_prop_jerrycan';
+  const canBody = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.28, 0.24), canShellMat);
+  canBody.position.set(0, -0.10, 0);
   canBody.castShadow = true;
   jerrycan.add(canBody);
-  const canWater = new THREE.Mesh(new THREE.BoxGeometry(0.155, 0.20, 0.22), cyanGlowMat);
-  canWater.position.set(0, -0.22, 0.02);
+  const canWater = new THREE.Mesh(new THREE.BoxGeometry(0.155, 0.19, 0.21), cyanGlowMat);
+  canWater.position.set(0, -0.13, 0);
   jerrycan.add(canWater);
-  const canHandle = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.014, 6, 12, Math.PI), ironMat);
-  canHandle.position.set(0, -0.03, 0.02);
+  const canHandle = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.013, 6, 12, Math.PI), ironMat);
+  canHandle.position.set(0, 0.04, 0);
   jerrycan.add(canHandle);
   const canCap = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.03, 10), ironMat);
-  canCap.position.set(0, -0.02, 0.09);
+  canCap.position.set(0, 0.05, 0.08);
   jerrycan.add(canCap);
+  jerrycan.visible = false;
+  worldProps.add(jerrycan);
 
   // 2. Cast-iron standpipe pump & ribbed terracotta shekla bowl + parabolic cyan stream
   const pumpSet = new THREE.Group();
@@ -351,32 +354,7 @@ const propSystem = (() => {
   pumpSet.add(waterStream);
   worldProps.add(pumpSet);
 
-  // 3. Hammer + timber post
-  const hammer = new THREE.Group();
-  const hShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.016, 0.34, 8), woodMat);
-  hShaft.position.set(0, 0.12, 0.04);
-  hShaft.rotation.x = Math.PI * 0.45;
-  hammer.add(hShaft);
-  const hHead = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, 0.115), ironMat);
-  hHead.position.set(0, 0.14, 0.21);
-  hammer.add(hHead);
-
-  const timberPost = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.095, 0.88, 10), woodMat);
-  timberPost.position.set(0.18, 0.44, 0.56);
-  timberPost.castShadow = true;
-  timberPost.receiveShadow = true;
-  worldProps.add(timberPost);
-
-  // 4. Highland shovel
-  const shovel = new THREE.Group();
-  const sShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 1.05, 8), woodMat);
-  sShaft.position.set(0, -0.22, 0.05);
-  shovel.add(sShaft);
-  const sBlade = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.22, 0.016), ironMat);
-  sBlade.position.set(0, -0.78, 0.05);
-  shovel.add(sBlade);
-
-  // 5. Carved stone bench
+  // 3. Carved stone bench (Sit / Sit Talk)
   const bench = new THREE.Group();
   bench.position.set(0, 0, -0.18);
   const seat = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.10, 0.42), stoneMat);
@@ -392,85 +370,49 @@ const propSystem = (() => {
   }
   worldProps.add(bench);
 
-  // 6. Ethiopian krar / acoustic guitar
-  const guitar = new THREE.Group();
-  const gBody = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.08, 16), woodMat);
-  gBody.rotation.x = Math.PI * 0.5;
-  guitar.add(gBody);
-  const gHole = new THREE.Mesh(new THREE.CircleGeometry(0.05, 14), ironMat);
-  gHole.position.z = 0.042;
-  guitar.add(gHole);
-  const gNeck = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.48, 0.025), woodMat);
-  gNeck.position.set(0.24, 0.12, 0.01);
-  gNeck.rotation.z = -Math.PI * 0.38;
-  guitar.add(gNeck);
-
   let enabled = true;
   let activeClip = 'idle';
-  let mountedParent = null;
-  let mountedProp = null;
-
-  function detachMounted() {
-    if (mountedProp && mountedParent) {
-      mountedParent.remove(mountedProp);
-    }
-    mountedProp = null;
-    mountedParent = null;
-  }
+  let activeChar = null;
+  const _wL = new THREE.Vector3();
+  const _wR = new THREE.Vector3();
 
   function syncToClip(clipId, character) {
     activeClip = clipId;
-    detachMounted();
+    activeChar = character || null;
 
+    jerrycan.visible = false;
     pumpSet.visible = false;
-    timberPost.visible = false;
     bench.visible = false;
     if (!enabled || !character) return;
 
-    const wristR = character.bonesByNorm.get('wristr');
-    const spineMid = character.bonesByNorm.get('spine03') || character.bonesByNorm.get('spine01');
-
-    if (clipId === 'walk-carry' || clipId === 'farm-watering') {
-      if (wristR) {
-        jerrycan.position.set(0, -0.02, 0.02);
-        wristR.add(jerrycan);
-        mountedProp = jerrycan;
-        mountedParent = wristR;
-      }
+    if (clipId === 'walk-carry') {
+      jerrycan.visible = true;
     }
-    if (clipId === 'dance-arm-pump' || clipId === 'farm-watering' || clipId === 'push' || clipId === 'rope-pull') {
+    if (clipId === 'dance-arm-pump' || clipId === 'farm-watering') {
       pumpSet.visible = true;
-    }
-    if (clipId === 'hammering') {
-      timberPost.visible = true;
-      if (wristR) {
-        wristR.add(hammer);
-        mountedProp = hammer;
-        mountedParent = wristR;
-      }
-    }
-    if (clipId === 'shovel-dig') {
-      if (wristR) {
-        wristR.add(shovel);
-        mountedProp = shovel;
-        mountedParent = wristR;
-      }
     }
     if (clipId === 'sitting-idle' || clipId === 'sitting-talking') {
       bench.visible = true;
-    }
-    if (clipId === 'guitar-playing' && spineMid) {
-      guitar.position.set(0.02, 0.04, 0.18);
-      guitar.rotation.set(0, 0, -0.25);
-      spineMid.add(guitar);
-      mountedProp = guitar;
-      mountedParent = spineMid;
     }
   }
 
   function update(tSec) {
     if (!enabled) return;
-    if (mountedProp === jerrycan) {
+    if (jerrycan.visible && activeChar) {
+      const wristL = activeChar.bonesByNorm.get('wristl');
+      const wristR = activeChar.bonesByNorm.get('wristr');
+      if (wristL && wristR) {
+        wristL.getWorldPosition(_wL);
+        wristR.getWorldPosition(_wR);
+        jerrycan.position.set(
+          (_wL.x + _wR.x) * 0.5,
+          Math.max(0.26, (_wL.y + _wR.y) * 0.5 - 0.02),
+          (_wL.z + _wR.z) * 0.5 + 0.06
+        );
+        const dx = _wL.x - _wR.x;
+        const dz = _wL.z - _wR.z;
+        jerrycan.rotation.set(0, Math.atan2(-dz, dx), 0);
+      }
       canWater.rotation.z = Math.sin(tSec * 5.2) * 0.14;
       canWater.rotation.x = Math.cos(tSec * 4.4) * 0.10;
     }
@@ -513,12 +455,54 @@ const soundEngine = (() => {
     return true;
   }
 
+  let hsInited = false;
+  function ensureHighlandSoundscape() {
+    if (!window.HighlandSoundscape) return null;
+    if (!hsInited) {
+      hsInited = true;
+      try {
+        window.HighlandSoundscape.init({
+          basePath: '../audio/',
+          cosmicAddisUrl: '../zones/cyan-jerikan.ogg',
+        });
+        window.HighlandSoundscape.setBiome('courtyard', 2400);
+      } catch (_) {}
+    }
+    return window.HighlandSoundscape;
+  }
+
   function setEnabled(flag) {
     enabled = !!flag;
     if (enabled && ensureAudio() && ctx.state === 'suspended') {
       ctx.resume().catch(() => {});
     }
+    const hs = ensureHighlandSoundscape();
+    if (hs) {
+      try {
+        if (enabled) {
+          hs.unlock();
+          hs.setMasterMute(false);
+          hs.setBiome('courtyard', 2400);
+        } else {
+          hs.setMasterMute(true);
+        }
+      } catch (_) {}
+    }
     return enabled;
+  }
+
+  function setRadioStation(stationIdx) {
+    const hs = ensureHighlandSoundscape();
+    if (!hs) return;
+    try {
+      if (stationIdx > 0) {
+        if (!enabled) setEnabled(true);
+        hs.toggleRadio(true);
+        hs.setStation(stationIdx - 1);
+      } else {
+        hs.toggleRadio(false);
+      }
+    } catch (_) {}
   }
 
   function triggerNoise(freq, q, dur, gainVal, type = 'bandpass') {
@@ -567,10 +551,15 @@ const soundEngine = (() => {
       stepAccum += dt * rate;
       if (stepAccum >= interval) {
         stepAccum -= interval;
-        // Gravel/stone footstep thud + subtle cloth swish
-        triggerNoise(420 + Math.random() * 140, 1.8, 0.09, isSprint ? 0.11 : 0.075);
-        triggerTone(115, 48, 0.08, 0.06, 'triangle');
-        triggerNoise(1600, 1.2, 0.14, 0.022, 'highpass');
+        const hs = window.HighlandSoundscape;
+        if (hs && hs.isReady && hs.isReady()) {
+          try { hs.playFootstep('stone', isSprint ? 72 : 58); } catch (_) {}
+        } else {
+          // Gravel/stone footstep thud + subtle cloth swish
+          triggerNoise(420 + Math.random() * 140, 1.8, 0.09, isSprint ? 0.11 : 0.075);
+          triggerTone(115, 48, 0.08, 0.06, 'triangle');
+          triggerNoise(1600, 1.2, 0.14, 0.022, 'highpass');
+        }
       }
     }
 
@@ -578,11 +567,21 @@ const soundEngine = (() => {
     auxAccum += dt * rate;
     if ((clipId === 'walk-carry' || clipId === 'farm-watering') && auxAccum >= 0.48) {
       auxAccum = 0;
-      triggerNoise(680 + Math.random() * 240, 2.4, 0.20, 0.045);
+      const hs = window.HighlandSoundscape;
+      if (hs && hs.isReady && hs.isReady()) {
+        try { hs.playWaterSpill(0.45); } catch (_) {}
+      } else {
+        triggerNoise(680 + Math.random() * 240, 2.4, 0.20, 0.045);
+      }
     } else if ((clipId === 'dance-arm-pump' || clipId === 'push') && auxAccum >= 0.65) {
       auxAccum = 0;
-      triggerTone(420, 190, 0.11, 0.055, 'square');
-      triggerNoise(920, 2.0, 0.16, 0.035);
+      const hs = window.HighlandSoundscape;
+      if (hs && hs.isReady && hs.isReady()) {
+        try { hs.updatePumpAudio({ x: 0.68, y: 0.8, z: 0.42 }, true, 0.72); } catch (_) {}
+      } else {
+        triggerTone(420, 190, 0.11, 0.055, 'square');
+        triggerNoise(920, 2.0, 0.16, 0.035);
+      }
     } else if (clipId === 'hammering' && auxAccum >= 0.58) {
       auxAccum = 0;
       triggerTone(280, 95, 0.12, 0.09, 'triangle');
@@ -603,7 +602,7 @@ const soundEngine = (() => {
     }
   }
 
-  return { setEnabled, isEnabled: () => enabled, update };
+  return { setEnabled, isEnabled: () => enabled, setRadioStation, update };
 })();
 
 // ---------------------------------------------------------------------------
@@ -794,8 +793,8 @@ function focusFace() {
   if (!head) return;
   const p = new THREE.Vector3();
   head.getWorldPosition(p);
-  controls.target.set(p.x, p.y + 0.04, p.z);
-  camera.position.set(p.x + 0.08, p.y + 0.07, p.z + 0.56);
+  controls.target.set(p.x, p.y - 0.005, p.z);
+  camera.position.set(p.x + 0.05, p.y + 0.015, p.z + 0.54);
   controls.update();
 }
 
@@ -1250,6 +1249,18 @@ function wireUI() {
     const on = soundEngine.setEnabled(!soundEngine.isEnabled());
     e.target.classList.toggle('on', on);
     e.target.textContent = on ? 'SOUND: ON' : 'SOUND: MUTE';
+  });
+
+  document.querySelectorAll('[data-radio]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.radio, 10) || 0;
+      document.querySelectorAll('[data-radio]').forEach((b) => b.classList.toggle('on', b === btn));
+      soundEngine.setRadioStation(idx);
+      if (idx > 0 && $('btnSound')) {
+        $('btnSound').classList.add('on');
+        $('btnSound').textContent = 'SOUND: ON';
+      }
+    });
   });
 
   $('btnFaceCam').addEventListener('click', focusFace);
