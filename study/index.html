@@ -206,6 +206,115 @@
       color: var(--cream);
     }
 
+    /* Gold-Standard v6 Reference Plates (R1 · Master Ensemble, R2 · Pump & Bowl Macro, R3 · Clay Bust Turnaround) */
+    .pill-ref {
+      border-color: rgba(12, 118, 148, 0.78);
+      background: rgba(218, 245, 252, 0.95);
+      color: #053542;
+      font-weight: 700;
+    }
+    body.night-mode .pill-ref {
+      border-color: rgba(78, 232, 255, 0.72);
+      background: rgba(10, 44, 54, 0.92);
+      color: #a8f6ff;
+    }
+    .pill-ref.active, .pill-ref[aria-pressed="true"] {
+      background: #085f78; color: #f4fcfd; border-color: #085f78;
+    }
+    body.night-mode .pill-ref.active, body.night-mode .pill-ref[aria-pressed="true"] {
+      background: #4ee8ff; color: #04181e; border-color: #4ee8ff;
+    }
+
+    /* Clean Unobstructed Cinema Framing on R1, R2 & R3 Reference Plates */
+    body.ref-plate-mode .plate-head {
+      padding: 5px 10px 6px;
+      max-width: min(460px, calc(100vw - 420px));
+      background: linear-gradient(135deg, rgba(230, 225, 214, 0.72) 0%, rgba(230, 225, 214, 0.24) 72%, rgba(230, 225, 214, 0) 100%);
+    }
+    body.ref-plate-mode .plate-head h1 {
+      font-size: clamp(17px, 1.9vw, 22px);
+    }
+    body.ref-plate-mode .plate-note {
+      display: none;
+    }
+    body.ref-plate-mode .stage-bar {
+      gap: 3px;
+      bottom: max(5px, env(safe-area-inset-bottom));
+    }
+    body.ref-plate-mode:not(.ref-tools-open) #director-row,
+    body.ref-plate-mode:not(.ref-tools-open) #focus-pills,
+    body.ref-plate-mode:not(.ref-tools-open) .stage-bar > .pill-row:last-child {
+      display: none;
+    }
+    body.ref-plate-mode #study-pills {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    body.ref-plate-mode #study-pills::-webkit-scrollbar { display: none; }
+    body.ref-plate-mode .pill {
+      padding: 4px 8px;
+      min-height: 23px;
+      font-size: 9px;
+    }
+    body.hud-clean-mode .plate-head,
+    body.hud-clean-mode #exp-hud,
+    body.hud-clean-mode .stage-bar {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Optional Side-by-Side Split / Onion-Skin Reference Target Overlay */
+    #ref-compare-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    #ref-compare-overlay[hidden] { display: none !important; }
+    #ref-compare-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center center;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+    #ref-compare-overlay.clay-aspect #ref-compare-img {
+      object-fit: contain;
+      background: rgba(220, 211, 204, 0.22);
+    }
+    #ref-compare-divider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 2px;
+      background: #33ccf2;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.55);
+      pointer-events: auto;
+      cursor: ew-resize;
+    }
+    #ref-compare-divider[hidden] { display: none !important; }
+    #ref-compare-divider::after {
+      content: "◀ LIVE 3D · REF TARGET ▶";
+      position: absolute;
+      top: 52px;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(14, 18, 22, 0.86);
+      border: 1px solid #33ccf2;
+      color: #dff9ff;
+      font: 700 8.5px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.08em;
+    }
+
     /* Flagship v5.2 Neck Leaning & Skin Continuity Pill (N1) + Emotion & Hand Acting Pills (E1, E2) */
     .pill-lean {
       border-color: rgba(14, 116, 108, 0.68);
@@ -570,16 +679,21 @@
 </head>
 <body>
   <div id="stage-wrap">
-    <canvas id="view" aria-label="3D Study Plate Stage for v4 Emotions, Open-Mouth Speech, 30-Bone Expressive Hands and 56-Bone Skeleton"></canvas>
+    <canvas id="view" aria-label="3D Study Plate Stage for v6 Sculpted Humans, Reference Tableaus, Clay Turnaround, FACS Speech and 30-Bone Hands"></canvas>
+    <div id="ref-compare-overlay" hidden aria-label="Reference Target Split and Onion-Skin Comparison">
+      <img id="ref-compare-img" src="./ref_targets/ref_01_ensemble_jerikan.jpg" alt="Target Reference Plate">
+      <div id="ref-compare-divider" title="Drag left/right to compare Live 3D WebGL against Reference Plate"></div>
+    </div>
   </div>
 
   <header class="plate-head">
-    <p class="eyebrow">Study Plate Workbench · v5.2 Character Performance Engine</p>
-    <h1 id="st-title">N1 · Leaning Neck, Jawline &amp; Body Skin Continuity</h1>
-    <p class="plate-meta"><span id="st-cat">85MM CERVICAL BIOMECHANICS &amp; SKIN CONTINUITY · 3-JOINT SCM LEAN</span> · <span id="st-mood-readout">NECK LEAN: CYCLE</span> · <span id="st-tri-readout">DRAG TO ORBIT · SCROLL TO 0.22M</span></p>
-    <p class="plate-note" id="st-note">Supple 3-joint cervical neck leaning (±24° SCM stretch, oblique portrait turn, -22° throat extension &amp; Eskista glide) with unbroken face-jaw-neck-clavicle-arm-hand skin continuity.</p>
+    <p class="eyebrow">Study Plate Workbench · v6 Sculpted Humans &amp; Calibrated Print Shaders</p>
+    <h1 id="st-title">R1 · Master Ensemble · Chapel, Standpipe &amp; Mistletoe</h1>
+    <p class="plate-meta"><span id="st-cat">35–50MM MASTER ENSEMBLE TABLEAU · 5 SCULPTED HUMANS + CYAN WATER</span> · <span id="st-mood-readout">LOOK: CYAN JERIKAN</span> · <span id="st-tri-readout">DRAG TO ORBIT · SCROLL TO 0.22M</span></p>
+    <p class="plate-note" id="st-note">Full 5-character highland ensemble (Makeda, June, Imani, Elder &amp; Hanna) beside Mistletoe, Stone Arch Chapel, Ball-Knob Standpipe &amp; Grooved Shekla Basin.</p>
     <nav class="nav-links" aria-label="Project links">
       <a href="./audition.html">MV Audition</a>
+      <a href="../ethiopia-highlands/">Ethiopia DEM</a>
       <a href="../donkey/">Donkey Study</a>
       <a href="./studio.html">V2G Studio</a>
       <a href="../zones/">Unified Zones</a>
@@ -635,15 +749,17 @@
 
   <script src="../field-plates/fonts.js"></script>
   <script src="../field-plates/three.js"></script>
-  <script src="../donkey/donkey.js?v=v52lean5"></script>
-  <script src="../donkey/scion-eye-globe.js?v=v52lean5"></script>
-  <script src="../donkey/scion-eyelids.js?v=v52lean5"></script>
-  <script src="../donkey/scion-neck.js?v=v52lean5"></script>
-  <script src="../donkey/human-sculpt-v3.js?v=v52lean5"></script>
-  <script src="../donkey/expressions-v4.js?v=v52lean5"></script>
-  <script src="../donkey/characters.js?v=v52lean5"></script>
-  <script src="../zones/world-architecture.js?v=v52lean5"></script>
-  <script src="./study.js?v=v52lean5"></script>
-  <script src="./look-audition-mv.js?v=v52lean5"></script>
+  <script src="../donkey/donkey.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-eye-globe.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-eyelids.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-neck.js?v=v6sculpt1"></script>
+  <script src="../donkey/human-physical-v6.js?v=v6sculpt1"></script>
+  <script src="../donkey/human-sculpt-v3.js?v=v6sculpt1"></script>
+  <script src="../donkey/expressions-v4.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-groom-garments.js?v=v6sculpt1"></script>
+  <script src="../donkey/characters.js?v=v6sculpt1"></script>
+  <script src="../zones/world-architecture.js?v=v6sculpt1"></script>
+  <script src="./study.js?v=v6pass3"></script>
+  <script src="./look-audition-mv.js?v=v6pass3"></script>
 </body>
 </html>

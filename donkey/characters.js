@@ -1203,8 +1203,10 @@
     const y = Math.sqrt(Math.max(0, l1 * l1 - x * x));
     const handRelUp = ik.D.dot(ik.charUp) / scale;
     const handRelFwd = ik.D.dot(ik.charFwd) / scale;
-    const maxElbowUp = handRelUp > 0.14 ? 0.16 : 0.02;
-    const minElbowFwd = -0.22;
+    const handRelLat = side * ik.D.dot(ik.charRight) / scale;
+    const maxElbowUp = handRelUp > -0.04 ? 0.36 : 0.05;
+    const minElbowLat = handRelLat < -0.015 ? -0.22 : -0.025;
+    const minElbowFwd = -0.26;
 
     let found = false;
     let bestScore = -1e12;
@@ -1223,9 +1225,9 @@
       const upv = ik.relE.dot(ik.charUp);
       const fwd = ik.relE.dot(ik.charFwd);
 
-      // Reject scarecrow winged elbows, sternum cross-overs, or backward neck-folding elbows
-      if (lat < -0.015) continue;
-      if (upv > maxElbowUp || upv < -0.32) continue;
+      // Reject scarecrow winged elbows, excessive sternum cross-overs, or backward neck-folding elbows
+      if (lat < minElbowLat) continue;
+      if (upv > maxElbowUp || upv < -0.34) continue;
       if (fwd < minElbowFwd) continue;
 
       let minClear = 1e6;
@@ -1899,6 +1901,8 @@
   /* ---------- Build One High-Resolution Donkey-Method Sculpted SkinnedMesh Character ---------- */
   function makeExpeditionCharacter(T, spec = {}) {
     const V3 = typeof window !== "undefined" ? window.HumanSculptV3 : null;
+    const V6 = typeof window !== "undefined" ? window.HumanPhysicalV6 : null;
+    const SGG = typeof window !== "undefined" ? window.ScionGroomGarments : null;
     const assets = getSharedAssets(T, spec.textureBase || spec.assetPath);
     const donkeyBase = resolveDonkeyBase(spec.textureBase || spec.assetPath);
     const assetsV3 = V3 ? V3.getAssetsV3(T, donkeyBase, true) : null;
@@ -1929,25 +1933,29 @@
     const hairCol = new T.Color(spec.hairHex !== undefined ? spec.hairHex : 0x1e1916);
     if (hairCol.r + hairCol.g + hairCol.b < 0.30) hairCol.offsetHSL(0, 0, 0.04);
 
-    // 100% Unified Skin PBR Constants across Face, Neck, Chest, Shoulders, Arms, Legs & Hands:
-    // roughness = 0.72, metalness = 0.0, envMapIntensity = 0.30, sssStrength = 0.36, sssWeight = 0.40!
-    const skinMat = new T.MeshStandardMaterial({
-      color: skinBase,
-      vertexColors: true,
-      roughness: V3 ? 0.72 : 0.50,
-      metalness: V3 ? 0.0 : 0.01,
-      envMapIntensity: V3 ? 0.30 : 1.0,
-      bumpMap: V3 ? null : assets.skinBump,
-      bumpScale: V3 ? 0.0 : 0.006
-    });
-    const skinMatPlain = new T.MeshStandardMaterial({
-      color: skinBase,
-      roughness: V3 ? 0.72 : 0.52,
-      metalness: V3 ? 0.0 : 0.01,
-      envMapIntensity: V3 ? 0.30 : 1.0,
-      bumpMap: V3 ? null : assets.skinBump,
-      bumpScale: V3 ? 0.0 : 0.005
-    });
+    // 100% Unified MeshPhysicalMaterial Skin PBR Constants across Face, Neck, Chest, Shoulders, Arms, Legs & Hands:
+    // roughness = 0.72, metalness = 0.0, sheen = 0.42, sheenRoughness = 0.68, warm peach-amber sheenColor!
+    const skinSheenCol = new T.Color(skinBase).lerp(new T.Color(0xe89872), 0.46);
+    const SkinMatCtor = T.MeshPhysicalMaterial || T.MeshStandardMaterial;
+    const makeUnifiedSkinMat = (roughVal, useVertCol) => {
+      const m = new SkinMatCtor({
+        color: skinBase,
+        vertexColors: Boolean(useVertCol),
+        roughness: V3 ? roughVal : 0.50,
+        metalness: V3 ? 0.0 : 0.01,
+        envMapIntensity: V3 ? 0.30 : 1.0,
+        sheen: 0.42,
+        sheenRoughness: 0.68,
+        sheenColor: skinSheenCol,
+        bumpMap: V3 ? null : assets.skinBump,
+        bumpScale: V3 ? 0.0 : 0.006
+      });
+      m.userData = m.userData || {};
+      m.userData.isSkin = true;
+      return m;
+    };
+    const skinMat = makeUnifiedSkinMat(0.72, true);
+    const skinMatPlain = makeUnifiedSkinMat(0.72, false);
     if (V3) {
       applyUnifiedBodySkinShader(T, skinMatPlain, { canonicalSkinUniform, cyanGlow: cyanGlowUniform, localOffsetY: 0.86 });
     } else {
@@ -1955,28 +1963,14 @@
     }
 
     // Skinned bare deltoid/upper-arm/forearm/wrist material locked 1:1 to ScionNeck & watertight V3 hand cuff!
-    const skinMatWrist = new T.MeshStandardMaterial({
-      color: skinBase,
-      roughness: V3 ? 0.72 : 0.50,
-      metalness: V3 ? 0.0 : 0.01,
-      envMapIntensity: V3 ? 0.30 : 1.0,
-      bumpMap: V3 ? null : assets.skinBump,
-      bumpScale: V3 ? 0.0 : 0.0055
-    });
+    const skinMatWrist = makeUnifiedSkinMat(0.72, false);
     if (V3) {
       applyUnifiedBodySkinShader(T, skinMatWrist, { canonicalSkinUniform, cyanGlow: cyanGlowUniform, localOffsetY: 0.0 });
     } else {
       applyRigidCyanBounce(skinMatWrist, cyanGlowUniform, 0.0);
     }
 
-    const skinMatHeadRigid = new T.MeshStandardMaterial({
-      color: skinBase,
-      roughness: V3 ? 0.72 : 0.48,
-      metalness: V3 ? 0.0 : 0.01,
-      envMapIntensity: V3 ? 0.30 : 1.0,
-      bumpMap: V3 ? null : assets.skinBump,
-      bumpScale: V3 ? 0.0 : 0.005
-    });
+    const skinMatHeadRigid = makeUnifiedSkinMat(0.72, false);
     if (V3) {
       applyUnifiedBodySkinShader(T, skinMatHeadRigid, { canonicalSkinUniform, cyanGlow: cyanGlowUniform, localOffsetY: 0.0 });
     } else {
@@ -2103,12 +2097,13 @@
     });
 
     /* --- 1. 56-Bone Anatomical Skeleton (+ 9 Volume/Garment/Hair Helpers = 65 THREE.Bones) --- */
+    const skelBuild = isYouth ? build * 0.78 : build;
     let skelInfo;
     if (V3) {
-      skelInfo = V3.createSkeleton56(T, build, fem);
+      skelInfo = V3.createSkeleton56(T, skelBuild, fem);
     } else {
-      const hipX0 = 0.094 * build;
-      const shX0 = (0.184 - 0.016 * fem) * build;
+      const hipX0 = 0.094 * skelBuild;
+      const shX0 = (0.184 - 0.016 * fem) * skelBuild;
       const LT = 0.40, LS = 0.39, LU = 0.275, LF = 0.255;
       const bArr = new Array(B_TOTAL_COUNT);
       for (let k = 0; k < B_TOTAL_COUNT; k++) bArr[k] = [0, 0, 0, 0];
@@ -2186,6 +2181,9 @@
     const hairStyle = spec.hair || "croppedCoily";
     let lids = [];
     let hairCtrl = null;
+    let garmentCtrl = null;
+    const useScionGroom = Boolean(SGG && typeof SGG.buildHair === "function");
+    const useScionGarments = Boolean(SGG && typeof SGG.buildGarmentsAndBoots === "function" && !isTankBareArms);
 
     let headMesh = null;
     let earsMesh = null;
@@ -2194,10 +2192,30 @@
       headMesh = addSkinned(V3.buildCranioMandibularHeadGeo(T, spec, V3.B), skinMat);
       earsMesh = addSkinned(V3.buildSculptedHumanEarsGeo(T, V3.B), skinMat);
       if (typeof V3.buildOralAnatomyAssembly === "function" && !group.userData._oralBuilt) {
-        V3.buildOralAnatomyAssembly(T, spec, skeleton, addSkinned, headAnchor, assets, assetsV3, cyanGlowUniform);
+        const addOralSkinned = V6
+          ? (geo, mat) => {
+              // Clone first so V3's cached singleton oralGeo is NEVER mutated repeatedly across characters!
+              const gClone = geo.clone();
+              gClone.translate(0, 0, -0.0012);
+              const om = addSkinned(gClone, mat);
+              om.userData.isOral = true;
+              return om;
+            }
+          : addSkinned;
+        V3.buildOralAnatomyAssembly(T, spec, skeleton, addOralSkinned, headAnchor, assets, assetsV3, cyanGlowUniform);
       }
       lids = V3.buildWetEyeAssembly(T, headAnchor, assetsV3, skinMatHeadRigid, spec);
-      hairCtrl = V3.buildVolumetricHairAssembly(T, spec, skeleton, addSkinned, headAnchor, assets, assetsV3, cyanGlowUniform);
+      if (useScionGroom) {
+        hairCtrl = SGG.buildHair(T, spec, {
+          B: V3.B,
+          addSkinned,
+          headAnchor,
+          skeleton,
+          cyanGlowUniform
+        });
+      } else {
+        hairCtrl = V3.buildVolumetricHairAssembly(T, spec, skeleton, addSkinned, headAnchor, assets, assetsV3, cyanGlowUniform);
+      }
     } else {
       const headRings = refineRings([
         { p: [0, 1.410, -0.010], w: 0.064, f: 0.062, b: 0.066, e: 0.96 },
@@ -2223,10 +2241,13 @@
         lLid.position.set(ex, ey, ez); headAnchor.add(lLid);
         lids.push({ eye, uLid, lLid, s });
       }
+      if (useScionGroom) {
+        hairCtrl = SGG.buildHair(T, spec, { addSkinned, headAnchor, skeleton, cyanGlowUniform });
+      }
     }
 
-    // Woven Ethiopian Headwear (shashWrap, turban, feltHat, hood) on B_HEAD
-    if (hairStyle === "shashWrap") {
+    // Woven Ethiopian Headwear (shashWrap & turban are built in 3D by ScionGroomGarments when present; keep feltHat & hood!)
+    if (!useScionGroom && hairStyle === "shashWrap") {
       const wrapMat = new T.MeshStandardMaterial({
         color: spec.wrapHex !== undefined ? spec.wrapHex : 0xc8c0b0,
         roughness: 0.92,
@@ -2245,7 +2266,7 @@
         seg: 30, orthoWeight: 0,
         disp: (r, sa, ca, v) => 1 + 0.038 * Math.sin(v * 22 + sa * 3)
       }), wrapMat));
-    } else if (hairStyle === "turban") {
+    } else if (!useScionGroom && hairStyle === "turban") {
       const turbMat = new T.MeshStandardMaterial({
         color: spec.wrapHex !== undefined ? spec.wrapHex : 0x5c5548,
         roughness: 0.92,
@@ -2767,10 +2788,20 @@
       return g;
     };
 
-    const torsoGeo = isTankBareArms
-      ? mergeSkinnedGeos(T, [buildTailoredTorsoGeo(), buildTankShoulderStrapsGeo()])
-      : buildTailoredTorsoGeo();
-    addSkinned(torsoGeo, shirtMat);
+    if (useScionGarments) {
+      garmentCtrl = SGG.buildGarmentsAndBoots(T, spec, {
+        B: V3 ? V3.B : undefined,
+        skelInfo,
+        addSkinned,
+        skinMatWrist,
+        cyanGlowUniform
+      });
+    } else {
+      const torsoGeo = isTankBareArms
+        ? mergeSkinnedGeos(T, [buildTailoredTorsoGeo(), buildTankShoulderStrapsGeo()])
+        : buildTailoredTorsoGeo();
+      addSkinned(torsoGeo, shirtMat);
+    }
 
     let shammaSleeveMat = null;
     if (outerStyle === "shamma") {
@@ -2842,7 +2873,7 @@
     if (isTankBareArms) {
       armSkinGeos.push(buildBareAxillaBridgeGeo());
     }
-    for (const s of [1, -1]) {
+    for (const s of (useScionGarments ? [] : [1, -1])) {
       const bCl   = s > 0 ? B_CLAV_L       : B_CLAV_R;
       const bUA   = s > 0 ? B_UARM_L       : B_UARM_R;
       const bElbV = s > 0 ? B_ELBOW_VOL_L  : B_ELBOW_VOL_R;
@@ -2999,12 +3030,7 @@
     let handL = null, handR = null;
     let handsMesh = null, handMat = null;
     if (V3 && assetsV3) {
-      handMat = new T.MeshStandardMaterial({
-        color: skinBase,
-        roughness: 0.72,
-        metalness: 0.0,
-        envMapIntensity: 0.30
-      });
+      handMat = makeUnifiedSkinMat(0.72, false);
       V3.applyPhotographicHandShader(T, handMat, {
         assetsV3,
         cyanGlow: handCyanGlowUniform,
@@ -3091,27 +3117,29 @@
 
     /* --- 5. Skinned Creased Work Trousers (With B_KNEE_VOL Volume Preservation) + Laced Leather Boots --- */
     const legGeos = [];
-    const pelvisTrouser = refineRings([
-      { p: [0, 0.785,  0.002], w: 0.156 * build, f: 0.105, b: 0.115, e: 0.86 },
-      { p: [0, 0.855,  0.002], w: 0.145 * build, f: 0.098, b: 0.106, e: 0.86 },
-      { p: [0, 0.902,  0.004], w: 0.136 * build, f: 0.092, b: 0.098, e: 0.88 }
-    ], 2);
-    legGeos.push(loftY(T, pelvisTrouser, {
-      seg: 28,
-      normX: build,
-      orthoWeight: 0.86,
-      color: (r, sa, ca, v) => 0.84 + 0.14 * v,
-      skin: (r, sa) => {
-        const y = r.p[1];
-        if (y > 0.835) return [B_PELVIS, B_LUMBAR, 1 - smooth(0.835, 0.96, y)];
-        const legB = sa >= 0 ? B_ULEG_L : B_ULEG_R;
-        const legW = (1 - smooth(0.785, 0.845, y)) * smooth(0.25, 0.85, Math.abs(sa)) * 0.55;
-        return [legB, B_PELVIS, legW];
-      }
-    }));
+    if (!useScionGarments) {
+      const pelvisTrouser = refineRings([
+        { p: [0, 0.785,  0.002], w: 0.156 * build, f: 0.105, b: 0.115, e: 0.86 },
+        { p: [0, 0.855,  0.002], w: 0.145 * build, f: 0.098, b: 0.106, e: 0.86 },
+        { p: [0, 0.902,  0.004], w: 0.136 * build, f: 0.092, b: 0.098, e: 0.88 }
+      ], 2);
+      legGeos.push(loftY(T, pelvisTrouser, {
+        seg: 28,
+        normX: build,
+        orthoWeight: 0.86,
+        color: (r, sa, ca, v) => 0.84 + 0.14 * v,
+        skin: (r, sa) => {
+          const y = r.p[1];
+          if (y > 0.835) return [B_PELVIS, B_LUMBAR, 1 - smooth(0.835, 0.96, y)];
+          const legB = sa >= 0 ? B_ULEG_L : B_ULEG_R;
+          const legW = (1 - smooth(0.785, 0.845, y)) * smooth(0.25, 0.85, Math.abs(sa)) * 0.55;
+          return [legB, B_PELVIS, legW];
+        }
+      }));
+    }
 
     const yKnee = 0.875 - L_THIGH, yAnk = 0.875 - L_THIGH - L_SHIN;
-    for (const s of [1, -1]) {
+    for (const s of (useScionGarments ? [] : [1, -1])) {
       const bUL  = s > 0 ? B_ULEG_L     : B_ULEG_R;
       const bKnV = s > 0 ? B_KNEE_VOL_L : B_KNEE_VOL_R;
       const bLL  = s > 0 ? B_LLEG_L     : B_LLEG_R;
@@ -3152,7 +3180,7 @@
       const boot = buildLacedWorkBoot(T, s, assets);
       bones[bFT].add(boot);
     }
-    addSkinned(mergeSkinnedGeos(T, legGeos), trouserMat);
+    if (legGeos.length) addSkinned(mergeSkinnedGeos(T, legGeos), trouserMat);
 
     /* --- 6. Signature Layered Outer Garments (y=1.392 Acromial Shoulders + y=1.422..1.430 Trapezius Collar Roll + ScionNeck Bust Guard) --- */
     const enforceOuterBustGuard = (px, py, pz, a, thickCloth, layer) => {
@@ -3172,7 +3200,7 @@
       return [px, py, pz];
     };
 
-    if (outerStyle === "duster" || outerStyle === "parka") {
+    if (!useScionGarments && (outerStyle === "duster" || outerStyle === "parka")) {
       const isParka = outerStyle === "parka";
       const hemY = isParka ? 0.58 : 0.42;
       const flare = isParka ? 1.18 : 1.28;
@@ -3251,7 +3279,7 @@
         }
       });
       addSkinned(coatGeo, outerMat);
-    } else if (outerStyle === "shamma") {
+    } else if (!useScionGarments && outerStyle === "shamma") {
       // Athletic acromial drape (y=1.392) + tailored cotton gabi collar roll at y=1.422..1.430m resting on the y=1.408m clavicles!
       const shThick = 0.0080;
       const shammaRings = refineRings([
@@ -3327,7 +3355,7 @@
         }
       });
       addSkinned(shGeo, outerMat);
-    } else if (outerStyle === "apron") {
+    } else if (!useScionGarments && outerStyle === "apron") {
       const apRings = refineRings([
         { p: [0, 0.48, 0.02], w: 0.185 * build, f: 0.136, b: 0.04, e: 0.88 },
         { p: [0, 0.88, 0.01], w: 0.168 * build, f: 0.128, b: 0.04, e: 0.88 },
@@ -3348,7 +3376,7 @@
     });
 
     /* --- 7. Character-Specific Belt, Mechanic's Wrenches/Satchel & Diegetic Handheld Props --- */
-    if (spec.toolBelt) {
+    if (!useScionGarments && spec.toolBelt) {
       const beltGrp = new T.Group();
       bones[B_PELVIS].add(beltGrp);
       const beltRing = new T.Mesh(
@@ -3381,7 +3409,7 @@
       }
     }
 
-    if (spec.satchel) {
+    if (!useScionGarments && spec.satchel) {
       const satGrp = new T.Group();
       bones[B_PELVIS].add(satGrp);
       const bag = new T.Mesh(roundedBox(T, 0.09, 0.21, 0.24, 0.022, 2), assets.leatherWorn);
@@ -3784,9 +3812,10 @@
       state.moodT += sDt;
 
       // Ground character root transform FIRST so any world-to-local or prop-anchor math uses exact frame
-      if (surfaceAt && group.parent && pose !== "drive") {
-        state.y = surfaceAt(state.x, state.z);
-        group.position.set(state.x, state.y + (spec.yOffset || 0), state.z);
+      if ((surfaceAt || opts.yOffset !== undefined) && group.parent && pose !== "drive") {
+        if (surfaceAt) state.y = surfaceAt(state.x, state.z);
+        const effYOff = opts.yOffset !== undefined ? opts.yOffset : (spec.yOffset || 0);
+        group.position.set(state.x, state.y + effYOff, state.z);
         group.rotation.set(0, state.heading, 0, "YXZ");
       }
       group.updateMatrixWorld(true);
@@ -5115,6 +5144,55 @@
         curlL = 0.85; curlR = 0.85;
         autoEmotion = Math.abs(steer) > 0.2 ? "determined_focus" : "happy_joy";
         autoEmotionIntensity = 0.74;
+      } else if (pose === "tableauCustom") {
+        allowBodyAssist = false;
+        const wShift = Math.sin(t * 0.52);
+        pelSwayX = opts.pelSwayX !== undefined ? opts.pelSwayX : (0.008 * wShift);
+        pelDrop  = opts.pelDrop  !== undefined ? opts.pelDrop  : (-0.005 * Math.abs(wShift));
+        pelFwdZ  = opts.pelFwdZ  !== undefined ? opts.pelFwdZ  : 0;
+        if (opts.spinePitch !== undefined) spinePitch = opts.spinePitch + 0.010 * breath;
+        if (opts.spineYaw   !== undefined) spineYaw   = opts.spineYaw;
+        if (opts.spineRoll  !== undefined) spineRoll  = opts.spineRoll;
+        if (opts.chestPitch !== undefined) chestPitch = opts.chestPitch + 0.012 * breath;
+        if (opts.chestYaw   !== undefined) chestYaw   = opts.chestYaw;
+        if (Array.isArray(opts.localFootL)) { fLx = opts.localFootL[0]; fLy = opts.localFootL[1]; fLz = opts.localFootL[2]; }
+        if (Array.isArray(opts.localFootR)) { fRx = opts.localFootR[0]; fRy = opts.localFootR[1]; fRz = opts.localFootR[2]; }
+        if (opts.footPitchL !== undefined) footPitchL = opts.footPitchL;
+        if (opts.footPitchR !== undefined) footPitchR = opts.footPitchR;
+        if (Array.isArray(opts.localHandL)) localTargetL.set(opts.localHandL[0], opts.localHandL[1], opts.localHandL[2]);
+        if (Array.isArray(opts.localHandR)) localTargetR.set(opts.localHandR[0], opts.localHandR[1], opts.localHandR[2]);
+        if (Array.isArray(opts.palmLocalL)) palmLocalL.set(opts.palmLocalL[0], opts.palmLocalL[1], opts.palmLocalL[2]).normalize();
+        if (Array.isArray(opts.palmLocalR)) palmLocalR.set(opts.palmLocalR[0], opts.palmLocalR[1], opts.palmLocalR[2]).normalize();
+        if (Array.isArray(opts.fDirLocalL)) fDirLocalL.set(opts.fDirLocalL[0], opts.fDirLocalL[1], opts.fDirLocalL[2]).normalize();
+        if (Array.isArray(opts.fDirLocalR)) fDirLocalR.set(opts.fDirLocalR[0], opts.fDirLocalR[1], opts.fDirLocalR[2]).normalize();
+        if (opts.worldHandL) {
+          useWorldHandL = true;
+          handTargetL.copy(opts.worldHandL);
+          toolLockL = opts.gripModeL || "sideWrap";
+        }
+        if (opts.worldHandR) {
+          useWorldHandR = true;
+          handTargetR.copy(opts.worldHandR);
+          toolLockR = opts.gripModeR || "sideWrap";
+        }
+        if (opts.palmWorldL) {
+          useWorldFrameL = true;
+          palmWorldL.copy(opts.palmWorldL).normalize();
+          if (opts.fDirWorldL) fDirWorldL.copy(opts.fDirWorldL).normalize();
+          else fDirWorldL.set(0, 0, 0);
+        }
+        if (opts.palmWorldR) {
+          useWorldFrameR = true;
+          palmWorldR.copy(opts.palmWorldR).normalize();
+          if (opts.fDirWorldR) fDirWorldR.copy(opts.fDirWorldR).normalize();
+          else fDirWorldR.set(0, 0, 0);
+        }
+        if (opts.gripModeL) gripModeL = opts.gripModeL;
+        if (opts.gripModeR) gripModeR = opts.gripModeR;
+        if (opts.curlL !== undefined) curlL = opts.curlL;
+        if (opts.curlR !== undefined) curlR = opts.curlR;
+        if (opts.pocketPullL !== undefined) pocketPullL = opts.pocketPullL;
+        if (opts.pocketPullR !== undefined) pocketPullR = opts.pocketPullR;
       } else {
         const wShift = Math.sin(t * 0.58);
         pelSwayX = 0.016 * wShift;
@@ -5345,6 +5423,9 @@
       opts._cervicalSolvedInUpdate = true;
 
       bones[B_JAW].rotation.set(Math.max(jawOpen, F.jaw) * 0.38, 0, 0);
+      if (isYouth) {
+        bones[B_HEAD].scale.setScalar(1.13);
+      }
 
       // 1. Pre-IK Axial & Clavicle Muscle Filter (so Leg & Arm IK solve from exact smoothed shoulder/hip roots with ZERO post-IK drift!)
       const snapNow = !state.musclesReady || state.teleported || pose !== state.lastPose || Math.abs(nowSec - state.lastNowSec) > 0.22;
@@ -5404,25 +5485,35 @@
 
       group.updateMatrixWorld(true);
 
-      // Solve Left & Right Leg 2-Bone IK + Toe Roll
-      charToWorld(fLx, fLy, fLz, footTargetL);
-      charToWorld(fRx, fRy, fRz, footTargetR);
+      // Solve Left & Right Leg 2-Bone IK + Toe Roll (with optional worldFootL / worldFootR plinth step locks!)
+      if (opts.worldFootL) footTargetL.copy(opts.worldFootL);
+      else charToWorld(fLx, fLy, fLz, footTargetL);
+      if (opts.worldFootR) footTargetR.copy(opts.worldFootR);
+      else charToWorld(fRx, fRy, fRz, footTargetR);
       if (surfaceAt && pose !== "drive") {
-        const gL = surfaceAt(footTargetL.x, footTargetL.z);
-        const gR = surfaceAt(footTargetR.x, footTargetR.z);
-        const liftL = (fLy - 0.085) * scale;
-        const liftR = (fRy - 0.085) * scale;
-        footTargetL.y = clamp(gL + 0.085 * scale + liftL, state.y - 0.26 * scale, state.y + 0.42 * scale);
-        footTargetR.y = clamp(gR + 0.085 * scale + liftR, state.y - 0.26 * scale, state.y + 0.42 * scale);
+        if (!opts.worldFootL) {
+          const gL = surfaceAt(footTargetL.x, footTargetL.z);
+          const liftL = (fLy - 0.085) * scale;
+          footTargetL.y = clamp(gL + 0.085 * scale + liftL, state.y - 0.26 * scale, state.y + 0.42 * scale);
+        }
+        if (!opts.worldFootR) {
+          const gR = surfaceAt(footTargetR.x, footTargetR.z);
+          const liftR = (fRy - 0.085) * scale;
+          footTargetR.y = clamp(gR + 0.085 * scale + liftR, state.y - 0.26 * scale, state.y + 0.42 * scale);
+        }
       }
       solveLimbIK(ik, bones[B_PELVIS], bones[B_ULEG_L], bones[B_LLEG_L], footTargetL, poleLeg, L_THIGH, L_SHIN, +1);
       solveLimbIK(ik, bones[B_PELVIS], bones[B_ULEG_R], bones[B_LLEG_R], footTargetR, poleLeg, L_THIGH, L_SHIN, +1);
 
       bones[B_PELVIS].updateWorldMatrix(false, true);
-      for (const [bLL, bFT, bToe, fPitch] of [[B_LLEG_L, B_FOOT_L, B_TOE_L, footPitchL], [B_LLEG_R, B_FOOT_R, B_TOE_R, footPitchR]]) {
+      for (const [bLL, bFT, bToe, fPitch, fYaw] of [
+        [B_LLEG_L, B_FOOT_L, B_TOE_L, footPitchL, opts.footYawL || 0],
+        [B_LLEG_R, B_FOOT_R, B_TOE_R, footPitchR, opts.footYawR || 0]
+      ]) {
         bones[bLL].getWorldQuaternion(ik.qUpper);
         ik.qUpperInv.copy(ik.qUpper).invert();
         bones[bFT].quaternion.copy(ik.qUpperInv).multiply(grpWorldQuat);
+        if (fYaw) bones[bFT].rotateY(fYaw);
         bones[bFT].rotateX(fPitch);
         bones[bToe].rotation.x = Math.max(0, fPitch) * 0.55;
       }
@@ -5444,11 +5535,16 @@
         else fDirWorldR.set(0, 0, 0);
       }
 
-      const isLongPump = pose === "pump" && pocketPullL > 0 && pocketPullL < 0.060;
+      const isLongPump = (pose === "pump" && pocketPullL > 0 && pocketPullL < 0.060)
+        || gripModeL === "pumpBar" || gripModeR === "pumpBar";
       const localPocketOffset = (side, mode, out) => {
         if (mode === "pumpBar") {
           // Seat mid-palm hollow (y=-0.052) 21.5mm from bar axis (14.5mm shaft + 7mm palm pad = 0.0mm flush contact on BOTH hands!)
           return isLongPump ? out.set(-side * 0.0215, -0.052, 0.008) : out.set(-side * 0.024, -0.066, 0.004);
+        }
+        if (mode === "bowlRim") {
+          // Seat distal index/middle fingerpads (y=-0.106) 0.000mm flush onto the grooved terracotta basin rim!
+          return out.set(-side * 0.005, -0.106, 0.008);
         }
         if (mode === "handleTop") return out.set(-side * 0.028, -0.072, 0.004);
         if (mode === "cradle" || mode === "underRib") return out.set(-side * 0.009, -0.068, 0.004);
@@ -5457,12 +5553,12 @@
 
       if (pocketPullL > 0) {
         if (fDirWorldL.lengthSq() > 1e-6) handTargetL.addScaledVector(fDirWorldL, -pocketPullL * scale);
-        const pPullL = gripModeL === "handleTop" ? 0.028 : gripModeL === "pumpBar" ? 0.025 : gripModeL === "wrap" ? 0.026 : 0.010;
+        const pPullL = gripModeL === "bowlRim" ? 0.008 : gripModeL === "handleTop" ? 0.028 : gripModeL === "pumpBar" ? 0.025 : gripModeL === "wrap" ? 0.026 : 0.010;
         handTargetL.addScaledVector(palmWorldL, -pPullL * scale);
       }
       if (pocketPullR > 0) {
         if (fDirWorldR.lengthSq() > 1e-6) handTargetR.addScaledVector(fDirWorldR, -pocketPullR * scale);
-        const pPullR = gripModeR === "handleTop" ? 0.028 : gripModeR === "pumpBar" ? 0.025 : gripModeR === "wrap" ? 0.026 : 0.010;
+        const pPullR = gripModeR === "bowlRim" ? 0.008 : gripModeR === "handleTop" ? 0.028 : gripModeR === "pumpBar" ? 0.025 : gripModeR === "wrap" ? 0.026 : 0.010;
         handTargetR.addScaledVector(palmWorldR, -pPullR * scale);
       }
 
@@ -5606,6 +5702,14 @@
         V3.updateKneeVolumeHelper(bones[B_FARM_R], bones[B_ELBOW_VOL_R]);
       }
 
+      // Step `three-vrm`-style damped spring-bone chains for sculpted hair grooms & multi-fold garments!
+      if (hairCtrl && typeof hairCtrl.update === "function") {
+        hairCtrl.update(sDt, nowSec, state.phase);
+      }
+      if (garmentCtrl && typeof garmentCtrl.update === "function") {
+        garmentCtrl.update(sDt, nowSec, state.phase);
+      }
+
       state.musclesReady = true;
       state.teleported = false;
       state.lastPose = pose;
@@ -5706,6 +5810,11 @@
       update,
       setFingerLod,
       setDebugSkeleton,
+      setClayMode(flag) {
+        if (SGG && typeof SGG.setClayMode === "function") SGG.setClayMode(group, flag);
+        else if (V6 && typeof V6.setClayMode === "function") V6.setClayMode(group, flag);
+        return charObj;
+      },
       isDebugSkeleton: () => Boolean(xraySkeleton && xraySkeleton.isEnabled()),
       skeletonInfo: { anatomicalBones: 56, totalBones: bones.length, fingerPhalanges: 30 },
       moods: Object.keys(MOODS).map(k => ({ id: k, label: MOODS[k].label })),
@@ -5799,6 +5908,10 @@
       group.userData.scionLids = initScionLids;
     }
 
+    charObj.spec = spec;
+    group.userData.spec = spec;
+    if (skinMatWrist && skinMatWrist.userData) skinMatWrist.userData.isSkin = true;
+
     if (V3) V3.registerCharacterInstance(charObj);
 
     // Attach HumanExpressionsV4 controller (FACS facial shader + Scion eyes/eyelids + jaw/teeth/tongue visemes + 30-bone expressive hands!)
@@ -5808,8 +5921,8 @@
         headMesh,
         earsMesh,
         handsMesh,
-        skinMat,
-        handMat,
+        skinMat: (headMesh && headMesh.material) || skinMat,
+        handMat: (handsMesh && handsMesh.material) || handMat,
         lids,
         scionEyes: charObj.scionEyes || (headAnchor && headAnchor.userData && headAnchor.userData.scionEyes) || null,
         scionLids: charObj.scionLids || (headAnchor && headAnchor.userData && headAnchor.userData.scionLids) || null,
@@ -5847,6 +5960,10 @@
         if (doR) state._userPinnedHandR = !clear;
         return v4SetHand(sideOrBoth, clear ? null : gestureId, t, intensity);
       };
+    }
+
+    if (V6 && typeof V6.upgradeCharacterSkinMeshes === "function") {
+      V6.upgradeCharacterSkinMeshes(T, charObj, spec);
     }
 
     return charObj;
@@ -5921,7 +6038,7 @@
       id: "makeda", name: "Makeda", role: "Grove Carrier · Root-Bowl Pour",
       x: -511.6, z: 98.0, heading: 1.92, scale: 0.98, build: 0.99, fem: 0.76,
       skinHex: 0x3c271c, hair: "cornrowBraids", hairHex: 0x141210,
-      outer: "parka", coatHex: 0x3a3e38, shirtHex: 0x484b44, trouserHex: 0x272928,
+      outer: "shamma", coatHex: 0xd8cfc0, shirtHex: 0x6e5948, trouserHex: 0x645244,
       satchel: true, patchedKnees: true, pose: "kneelPour"
     },
     {

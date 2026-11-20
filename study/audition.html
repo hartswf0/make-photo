@@ -337,6 +337,7 @@
     <p class="plate-note" id="mv-desc">Cast-iron standpipe gushing parabolic #28d8f0 water into a wheel-thrown terracotta bowl beside Mistletoe.</p>
     <nav class="nav-links" aria-label="Project navigation">
       <a href="./index.html">← Study Workbench</a>
+      <a href="../ethiopia-highlands/">Ethiopia DEM</a>
       <a href="../night-post/">2086 Night Post</a>
       <a href="../zones/">Unified Zones</a>
       <a href="../donkey/">Donkey Study</a>
@@ -375,15 +376,17 @@
 
   <script src="../field-plates/fonts.js"></script>
   <script src="../field-plates/three.js"></script>
-  <script src="../donkey/donkey.js?v=v52lean5"></script>
-  <script src="../donkey/scion-eye-globe.js?v=v52lean5"></script>
-  <script src="../donkey/scion-eyelids.js?v=v52lean5"></script>
-  <script src="../donkey/scion-neck.js?v=v52lean5"></script>
-  <script src="../donkey/human-sculpt-v3.js?v=v52lean5"></script>
-  <script src="../donkey/expressions-v4.js?v=v52lean5"></script>
-  <script src="../donkey/characters.js?v=v52lean5"></script>
-  <script src="../zones/world-architecture.js?v=v52lean5"></script>
-  <script src="./look-audition-mv.js?v=v52lean5"></script>
+  <script src="../donkey/donkey.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-eye-globe.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-eyelids.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-neck.js?v=v6sculpt1"></script>
+  <script src="../donkey/human-physical-v6.js?v=v6sculpt1"></script>
+  <script src="../donkey/human-sculpt-v3.js?v=v6sculpt1"></script>
+  <script src="../donkey/expressions-v4.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-groom-garments.js?v=v6sculpt1"></script>
+  <script src="../donkey/characters.js?v=v6sculpt1"></script>
+  <script src="../zones/world-architecture.js?v=v6sculpt1"></script>
+  <script src="./look-audition-mv.js?v=v6pass3"></script>
   <script>
   (function () {
     "use strict";
@@ -403,11 +406,14 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = T.PCFShadowMap;
+    renderer.localClippingEnabled = true;
     renderer.toneMapping = T.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.09;
 
     const scene = new T.Scene();
     const PAPER_COLOR = new T.Color(0xd7d2c7);
+    const REF_SKY_COLOR = new T.Color(0xe6e1d6);
+    const CLAY_STUDIO_COLOR = new T.Color(0xdfd7cd);
     const DUSK_COLOR  = new T.Color(0xbdb7ab);
     const NIGHT_COLOR = new T.Color(0x121618);
     scene.background = PAPER_COLOR.clone();
@@ -472,8 +478,38 @@
 
     let activeCastId = "imani";
     let activeSetIdx = 0;
+    let activeRefSceneId = null; // null (MV set) | "ensemble" | "pump_closeup" | "clay_bust"
+    let activeRefTableau = null;
+    let clayLookOverride = false;
     let activeCutId = "auto";
     let lastAutoSlot = -1;
+
+    const AUD_REF_SCENES = [
+      {
+        id: "ensemble",
+        short: "R1 · Master Ensemble",
+        title: "R1 · Master Ensemble · Chapel, Standpipe & Mistletoe",
+        desc: "5-character highland ensemble (Makeda, June, Imani, Elder & Hanna) + Mistletoe + Stone Arch Chapel + Standpipe & Shekla Basin.",
+        sunDeg: 52,
+        defaultLook: "jerikan"
+      },
+      {
+        id: "pump_closeup",
+        short: "R2 · Pump & Bowl",
+        title: "R2 · Standpipe Ball-Knob & Grooved Bowl Two-Shot",
+        desc: "Makeda gripping the cast-iron ball-knob lever + June resting fingers on the grooved shekla rim beside concentric cyan ripples.",
+        sunDeg: 48,
+        defaultLook: "jerikan"
+      },
+      {
+        id: "clay_bust",
+        short: "R3 · Clay Turnaround",
+        title: "R3 · Sculptor's Clay Bust Turnaround (0° · 35° · 90°)",
+        desc: "Front 0°, Three-Quarter 35°, and Profile 90° matte #7d7770 sculptor's clay turnaround on #dfd7cd studio backdrop.",
+        sunDeg: 40,
+        defaultLook: "raw"
+      }
+    ];
 
     let activeActors = [];
     let activeDonkey = null;
@@ -580,6 +616,44 @@
       activePump = null;
       activeHandoff = null;
       activeOxbowScreen = null;
+      activeRefTableau = null;
+    }
+
+    function applyAudClayMode(targetRoot, enabled) {
+      if (!targetRoot) return;
+      const root = targetRoot.group || targetRoot;
+      if (window.ScionGroomGarments && typeof window.ScionGroomGarments.setClayMode === "function") {
+        window.ScionGroomGarments.setClayMode(root, Boolean(enabled));
+        if (window.HumanPhysicalV6 && typeof window.HumanPhysicalV6.setClayMode === "function") return;
+      } else if (window.HumanPhysicalV6 && typeof window.HumanPhysicalV6.setClayMode === "function") {
+        window.HumanPhysicalV6.setClayMode(root, Boolean(enabled));
+        return;
+      }
+      root.traverse(o => {
+        if (!o.isMesh || !o.material) return;
+        if (enabled) {
+          if (!o.userData._preClayMat) o.userData._preClayMat = o.material;
+          const nm = String(o.name || "").toLowerCase();
+          const origM = Array.isArray(o.userData._preClayMat) ? o.userData._preClayMat[0] : o.userData._preClayMat;
+          if (nm.includes("cornea") && origM && origM.transparent) { o.visible = false; o.userData._clayHid = true; return; }
+          const isHair = nm.includes("hair") || nm.includes("coil") || nm.includes("loc") || nm.includes("braid") || nm.includes("beard");
+          const isCollar = nm.includes("coat") || nm.includes("duster") || nm.includes("collar") || nm.includes("shamma") || nm.includes("shirt");
+          const M = T.MeshPhysicalMaterial || T.MeshStandardMaterial;
+          const cm = new M({
+            color: isHair ? 0x4b4744 : (isCollar ? 0x948e88 : 0x7d7770),
+            roughness: isHair ? 0.88 : 0.78, metalness: 0.0,
+            normalMap: origM ? (origM.normalMap || null) : null,
+            aoMap: origM ? (origM.aoMap || null) : null,
+            side: origM ? origM.side : T.FrontSide
+          });
+          if (origM && origM.clippingPlanes) cm.clippingPlanes = origM.clippingPlanes;
+          o.material = cm;
+        } else if (o.userData._preClayMat) {
+          o.material = o.userData._preClayMat;
+          delete o.userData._preClayMat;
+          if (o.userData._clayHid) { o.visible = true; delete o.userData._clayHid; }
+        }
+      });
     }
 
     const performerPool = new Map();
@@ -787,6 +861,187 @@
 
     function rebuildStage() {
       clearStage();
+      const refDef = activeRefSceneId ? AUD_REF_SCENES.find(r => r.id === activeRefSceneId) : null;
+      if (refDef) {
+        renderer.setPixelRatio(wrap.clientWidth >= 1400 ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.5));
+        renderer.setSize(Math.max(1, wrap.clientWidth), Math.max(1, wrap.clientHeight), false);
+        document.body.classList.remove("night-mode");
+        camState.night = false;
+        camState.sunDeg = refDef.sunDeg;
+        const isClay = refDef.id === "clay_bust";
+        scene.background.copy(isClay ? CLAY_STUDIO_COLOR : REF_SKY_COLOR);
+        scene.fog.density = 0.0;
+        groundDisc.visible = false;
+        hemi.intensity = isClay ? 1.02 : 1.18;
+        hemi.color.setHex(0xf6f2e9);
+        hemi.groundColor.setHex(isClay ? 0x6e6862 : 0x766e64);
+        sun.intensity = isClay ? 2.38 : 2.46;
+        sun.color.setHex(0xfffaf0);
+        rim.intensity = isClay ? 0.56 : 0.84;
+        rim.color.setHex(isClay ? 0xece6de : 0xcceef9);
+        bounceLight.intensity = isClay ? 0.28 : 0.24;
+        catchLight.visible = !isClay;
+        cyanStageLight.visible = false;
+        $("lyric-strip").hidden = true;
+
+        if (isClay) {
+          camera.fov = 18;
+          camera.updateProjectionMatrix();
+          const cId = (activeCastId === "ensemble" || activeCastId === "daniel") ? "imani" : activeCastId;
+          const castObj = LAMV.MV_CAST.find(c => c.id === cId) || LAMV.MV_CAST[0];
+          const charScale = castObj.spec.scale || 1.0;
+          const yLift = (1.0 - charScale) * 1.52;
+          const clipPlane = new T.Plane(new T.Vector3(0, 1, 0), -1.318);
+          const slots = [
+            { k: "front", x: -0.315, yaw: 0.0 },
+            { k: "threeQ", x: 0.015, yaw: 36 * (Math.PI / 180) },
+            { k: "profile", x: 0.335, yaw: 90 * (Math.PI / 180) }
+          ];
+          slots.forEach(sl => {
+            const rayAng = Math.atan2(-sl.x, 1.92);
+            const ch = window.makeExpeditionCharacter(T, {
+              ...castObj.spec,
+              id: `aud_clay_${castObj.id}_${sl.k}`,
+              x: sl.x, z: 0, yOffset: yLift, heading: sl.yaw + rayAng, pose: "idle"
+            });
+            if (ch.label && ch.label.sprite) ch.label.sprite.visible = false;
+            ch.place(sl.x, 0, sl.yaw + rayAng, flatGround);
+            ch.update(0.016, 0, { pose: "idle", surfaceAt: flatGround, emotion: "neutral", emotionIntensity: 0.25, viseme: "SIL", visemeAmount: 1 });
+            applyAudClayMode(ch, true);
+            ch.group.traverse(o => {
+              if (!o.isMesh || !o.material) return;
+              const mats = Array.isArray(o.material) ? o.material : [o.material];
+              for (let mi = 0; mi < mats.length; mi++) {
+                const m = mats[mi];
+                if (!m) continue;
+                m.clippingPlanes = [clipPlane];
+                m.clipShadows = true;
+                m.needsUpdate = true;
+              }
+            });
+            stageRoot.add(ch.group);
+            activeActors.push({ ch, role: "clay", pose: "idle", baseX: sl.x, baseZ: 0, baseHeading: sl.yaw + rayAng });
+          });
+          camState.dist = camState.wantDist = 1.92;
+          camState.yaw = camState.wantYaw = 0.0;
+          camState.pitch = camState.wantPitch = 0.005;
+          camState.targetX = camState.wantTargetX = 0.0;
+          camState.targetY = camState.wantTargetY = 1.535;
+          camState.targetZ = camState.wantTargetZ = 0.0;
+        } else {
+          camera.fov = 30;
+          camera.updateProjectionMatrix();
+          const SGG = window.ScionGroomGarments;
+          if (SGG && typeof SGG.buildMasterTableau === "function") {
+            const tab = SGG.buildMasterTableau(T, { mode: refDef.id, assetPath: "../donkey/", includeGround: false });
+            const tRoot = tab.root || tab.group;
+            if (tRoot) {
+              const floorGeo = new T.PlaneGeometry(36, 13.5, 1, 28);
+              floorGeo.rotateX(-Math.PI * 0.5);
+              const pA = floorGeo.attributes.position;
+              const vCols = new Float32Array(pA.count * 3);
+              const cNear = new T.Color(0x9fb2c6), cFar = new T.Color(0xb8c8da), cTmp = new T.Color();
+              for (let fi = 0; fi < pA.count; fi++) {
+                const wZ = pA.getZ(fi) + 0.95;
+                const hm = clamp((-1.90 - wZ) / 3.80, 0, 1);
+                cTmp.copy(cNear).lerp(cFar, hm * hm * (3 - 2 * hm));
+                vCols[fi * 3] = cTmp.r; vCols[fi * 3 + 1] = cTmp.g; vCols[fi * 3 + 2] = cTmp.b;
+              }
+              floorGeo.setAttribute("color", new T.BufferAttribute(vCols, 3));
+              const fl = new T.Mesh(floorGeo, new T.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.94, metalness: 0.0 }));
+              fl.position.set(0, -0.002, 0.95);
+              fl.receiveShadow = true;
+              tRoot.add(fl);
+            }
+            if (tab.plinth && tab.plinth.material && tab.plinth.material.color) {
+              tab.plinth.material = tab.plinth.material.clone();
+              tab.plinth.material.color.setHex(0x98abc0);
+              tab.plinth.material.roughness = 0.88;
+            }
+            const ironRoot = (tab.standpipeRig && tab.standpipeRig.standpipe) || tab.standpipe;
+            if (ironRoot && typeof ironRoot.traverse === "function") {
+              let sharedIronMat = null;
+              ironRoot.traverse(o => {
+                if (!o.isMesh || !o.material || !o.material.color) return;
+                const tag = o.material.userData && o.material.userData.surfaceTag;
+                const isCyan = Boolean(o.material.userData && (o.material.userData.isWaterCyan || tag === "cyan_water"));
+                if (isCyan || o.name === "scionStream" || o.name === "scionStreamCore") return;
+                if (!sharedIronMat) {
+                  sharedIronMat = o.material.clone();
+                  sharedIronMat.color.setHex(0x525a64);
+                  sharedIronMat.roughness = 0.35;
+                  sharedIronMat.metalness = 0.14;
+                  if (sharedIronMat.clearcoat !== undefined) {
+                    sharedIronMat.clearcoat = 0.46;
+                    sharedIronMat.clearcoatRoughness = 0.26;
+                  }
+                  if (sharedIronMat.emissive) {
+                    sharedIronMat.emissive.setHex(0x14171c);
+                    sharedIronMat.emissiveIntensity = 0.32;
+                  }
+                  sharedIronMat.userData = { ...(o.material.userData || {}), surfaceTag: "iron" };
+                }
+                o.material = sharedIronMat;
+              });
+            }
+            if (tab.chapel && typeof tab.chapel.traverse === "function") {
+              tab.chapel.traverse(o => {
+                if (!o.isMesh || !o.material || !o.material.color) return;
+                const tag = o.material.userData && o.material.userData.surfaceTag;
+                if (tag === "wood" && o.position.x < -0.45) {
+                  o.material = o.material.clone(); o.material.map = null; o.material.color.setHex(0x7c8a98);
+                } else if (tag === "shutter" && o.position.y < 2.35) {
+                  o.material = o.material.clone(); o.material.color.setHex(0x36414d);
+                } else if (tag === "mortar") {
+                  o.material = o.material.clone(); o.material.color.setHex(0xb4c4d6);
+                }
+              });
+            }
+            stageRoot.add(tRoot);
+            activeRefTableau = tab;
+            activeDonkey = tab.donkey || null;
+            activePump = tab.standpipe || null;
+            if (Array.isArray(tab.actors)) {
+              tab.actors.forEach((a, idx) => {
+                const ch = a.ch || a;
+                activeActors.push({ ch, role: idx === 0 ? "lead" : "chorus", pose: "tableau" });
+              });
+            }
+            if (clayLookOverride && typeof tab.setClayMode === "function") tab.setClayMode(true);
+            const rawHint = tab.cameraHint || {};
+            const h = refDef.id === "pump_closeup"
+              ? { ...rawHint, fov: 38, dist: 1.74, yaw: 0.0, pitch: 0.052, targetX: -0.05, targetY: 0.865, targetZ: 0.06 }
+              : { ...rawHint, fov: rawHint.fov || 30, dist: Math.max(rawHint.dist || 4.66, 4.94), yaw: rawHint.yaw || 0, pitch: rawHint.pitch || 0.015, targetX: 0, targetY: 0.99, targetZ: 0 };
+            if (h.fov) { camera.fov = h.fov; camera.updateProjectionMatrix(); }
+            camState.dist = camState.wantDist = h.dist || 4.94;
+            camState.yaw = camState.wantYaw = h.yaw || 0;
+            camState.pitch = camState.wantPitch = h.pitch || 0.022;
+            const tx = h.targetX !== undefined ? h.targetX : (Array.isArray(h.target) ? h.target[0] : 0);
+            const ty = h.targetY !== undefined ? h.targetY : (Array.isArray(h.target) ? h.target[1] : 0.99);
+            const tz = h.targetZ !== undefined ? h.targetZ : (Array.isArray(h.target) ? h.target[2] : 0);
+            camState.targetX = camState.wantTargetX = tx;
+            camState.targetY = camState.wantTargetY = ty;
+            camState.targetZ = camState.wantTargetZ = tz;
+            if (typeof tab.update === "function") {
+              tab.update(0.016, 0, {});
+              syncAudPumpCloseup(tab, 0.016, 0);
+            }
+          }
+        }
+        activeCutId = "orbit";
+        renderer.shadowMap.autoUpdate = false;
+        renderer.shadowMap.needsUpdate = true;
+        syncHeaderAndHud(null);
+        syncBarUI();
+        return;
+      }
+
+      $("lyric-strip").hidden = false;
+      groundDisc.visible = true;
+      if (camera.fov !== 35) {
+        camera.fov = 35;
+        camera.updateProjectionMatrix();
+      }
       const setDef = LAMV.MV_SETS[activeSetIdx];
       const castDef = LAMV.MV_CAST.find(c => c.id === activeCastId) || LAMV.MV_CAST[0];
       const capDpr = (castDef.isEnsemble || wrap.clientWidth >= 1400) ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.5);
@@ -1124,7 +1379,22 @@
 
     /* ---------- UI Pill Racks & Controls ---------- */
     function setLook(idOrIdx) {
-      post.setLook(idOrIdx);
+      const rawS = String(idOrIdx || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+      if (rawS === "clay" || rawS === "clay_sculpt") {
+        clayLookOverride = true;
+        post.setLook("raw");
+        if (activeRefTableau && typeof activeRefTableau.setClayMode === "function") activeRefTableau.setClayMode(true);
+        activeActors.forEach(a => applyAudClayMode(a.ch, true));
+      } else {
+        if (clayLookOverride) {
+          clayLookOverride = false;
+          if (activeRefSceneId !== "clay_bust") {
+            if (activeRefTableau && typeof activeRefTableau.setClayMode === "function") activeRefTableau.setClayMode(false);
+            activeActors.forEach(a => applyAudClayMode(a.ch, false));
+          }
+        }
+        post.setLook(idOrIdx);
+      }
       if (post.isContactSheet()) {
         post.setContactSheet(false);
         csOverlay.setVisible(false);
@@ -1148,11 +1418,36 @@
       const found = LAMV.MV_CAST.find(c => c.id === String(castId).toLowerCase());
       activeCastId = found ? found.id : "imani";
       rebuildStage();
-      evaluateCameraTargetForCut(resolveEffectiveCut(0), true);
+      if (!activeRefSceneId) evaluateCameraTargetForCut(resolveEffectiveCut(0), true);
       return activeCastId;
     }
 
+    function resolveAudRefScene(rawId) {
+      const low = String(rawId || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+      if (low === "ensemble" || low === "r1" || low === "master_ensemble" || low === "tableau") return "ensemble";
+      if (low === "pump_closeup" || low === "r2" || low === "pump_macro" || low === "pump_bowl") return "pump_closeup";
+      if (low === "clay_bust" || low === "r3" || low === "clay" || low === "clay_turnaround" || low === "bust_turnaround") return "clay_bust";
+      return null;
+    }
+
+    function setScene(sceneId, keepLook = false) {
+      const mapped = resolveAudRefScene(sceneId);
+      if (!mapped) return setSet(sceneId, false);
+      activeRefSceneId = mapped;
+      const refDef = AUD_REF_SCENES.find(r => r.id === mapped);
+      if (!keepLook && refDef && !post.isContactSheet()) {
+        clayLookOverride = false;
+        post.setLook(refDef.defaultLook);
+      }
+      rebuildStage();
+      return refDef;
+    }
+
     function setSet(idxOrId, keepTime = false) {
+      const maybeRef = typeof idxOrId === "string" ? resolveAudRefScene(idxOrId) : null;
+      if (maybeRef) return setScene(maybeRef, false);
+      activeRefSceneId = null;
+      activeCutId = "auto";
       let idx = 0;
       if (typeof idxOrId === "number") idx = clamp(Math.round(idxOrId), 0, LAMV.MV_SETS.length - 1);
       else {
@@ -1197,6 +1492,9 @@
       for (const lid of LAMV.UI_LOOK_ORDER) {
         const lObj = LAMV.resolveLook(lid);
         lHtml += `<button type="button" class="pill" data-look="${lObj.id}" title="${lObj.name}: ${lObj.desc}">${lObj.short}</button>`;
+        if (lid === "raw") {
+          lHtml += `<button type="button" class="pill" data-look="clay" title="CLAY SCULPT: Matte #7d7770 sculptor's clay form audit">Clay Sculpt</button>`;
+        }
       }
       rLooks.innerHTML = lHtml;
       $("btn-cs-grid").addEventListener("click", () => setContactSheet(!post.isContactSheet()));
@@ -1209,9 +1507,11 @@
       rCast.querySelectorAll("[data-cast]").forEach(b => b.addEventListener("click", () => setCast(b.dataset.cast)));
 
       const rSets = $("row-sets");
-      rSets.innerHTML = `<span class="row-tag">MV Set:</span>` + LAMV.MV_SETS.map(s =>
-        `<button type="button" class="pill" data-set="${s.idx}" title="${s.desc}">${s.short}</button>`
-      ).join("");
+      rSets.innerHTML = `<span class="row-tag">Ref Plates:</span>` +
+        AUD_REF_SCENES.map(r => `<button type="button" class="pill pill-cs" data-ref-scene="${r.id}" title="${r.desc}">${r.short}</button>`).join("") +
+        `<span class="pill-sep"></span><span class="row-tag">MV Set:</span>` +
+        LAMV.MV_SETS.map(s => `<button type="button" class="pill" data-set="${s.idx}" title="${s.desc}">${s.short}</button>`).join("");
+      rSets.querySelectorAll("[data-ref-scene]").forEach(b => b.addEventListener("click", () => setScene(b.dataset.refScene, false)));
       rSets.querySelectorAll("[data-set]").forEach(b => b.addEventListener("click", () => setSet(+b.dataset.set, false)));
 
       const rCuts = $("row-cuts");
@@ -1225,13 +1525,14 @@
     function syncBarUI() {
       const curLook = post.getLook();
       const csOn = post.isContactSheet();
+      const clayOn = !csOn && (clayLookOverride || (activeRefSceneId === "clay_bust" && curLook.id === "raw"));
       const csBtn = $("btn-cs-grid");
       if (csBtn) {
         csBtn.classList.toggle("active", csOn);
         csBtn.setAttribute("aria-pressed", String(csOn));
       }
       document.querySelectorAll("#row-looks [data-look]").forEach(b => {
-        const act = !csOn && b.dataset.look === curLook.id;
+        const act = !csOn && (b.dataset.look === "clay" ? clayOn : (!clayOn && b.dataset.look === curLook.id));
         b.classList.toggle("active", act);
         b.setAttribute("aria-pressed", String(act));
       });
@@ -1240,8 +1541,13 @@
         b.classList.toggle("active", act);
         b.setAttribute("aria-pressed", String(act));
       });
+      document.querySelectorAll("#row-sets [data-ref-scene]").forEach(b => {
+        const act = activeRefSceneId === b.dataset.refScene;
+        b.classList.toggle("active", act);
+        b.setAttribute("aria-pressed", String(act));
+      });
       document.querySelectorAll("#row-sets [data-set]").forEach(b => {
-        const act = +b.dataset.set === activeSetIdx;
+        const act = !activeRefSceneId && +b.dataset.set === activeSetIdx;
         b.classList.toggle("active", act);
         b.setAttribute("aria-pressed", String(act));
       });
@@ -1264,19 +1570,26 @@
     let lastHudUpdateMs = 0;
 
     function syncHeaderAndHud(vox) {
-      const setDef = LAMV.MV_SETS[activeSetIdx];
+      const refDef = activeRefSceneId ? AUD_REF_SCENES.find(r => r.id === activeRefSceneId) : null;
+      const setDef = refDef || LAMV.MV_SETS[activeSetIdx];
       const castDef = LAMV.MV_CAST.find(c => c.id === activeCastId) || LAMV.MV_CAST[0];
       const lookObj = post.getLook();
       const cutDef = LAMV.MV_CUTS.find(c => c.id === activeCutId) || LAMV.MV_CUTS[0];
 
-      const headerSig = `${setDef.id}|${castDef.id}|${lookObj.id}|${post.isContactSheet()}|${cutDef.id}`;
+      const headerSig = `${setDef.id}|${castDef.id}|${lookObj.id}|${clayLookOverride}|${post.isContactSheet()}|${cutDef.id}`;
       if (headerSig !== lastHeaderSig) {
         lastHeaderSig = headerSig;
         $("mv-title").textContent = setDef.title;
         $("mv-desc").textContent = setDef.desc;
-        $("mv-look-badge").textContent = post.isContactSheet() ? "⊞ 9-LOOK CONTACT SHEET" : `LOOK: ${lookObj.name}`;
-        $("mv-cast-badge").textContent = `STAR: ${castDef.short.replace("★ ", "").toUpperCase()}`;
-        $("mv-cut-badge").textContent = cutDef.id === "neck" ? "LEANING NECK, V-JAW & CLAVICLE (0.78M)" : cutDef.label;
+        $("mv-look-badge").textContent = post.isContactSheet()
+          ? "⊞ 9-LOOK CONTACT SHEET"
+          : (clayLookOverride || activeRefSceneId === "clay_bust")
+            ? "LOOK: CLAY SCULPT"
+            : `LOOK: ${lookObj.name}`;
+        $("mv-cast-badge").textContent = refDef && refDef.id !== "clay_bust"
+          ? "CAST: MASTER TABLEAU"
+          : `STAR: ${castDef.short.replace("★ ", "").toUpperCase()}`;
+        $("mv-cut-badge").textContent = refDef ? "1:1 REFERENCE PLATE FRAMING" : (cutDef.id === "neck" ? "LEANING NECK, V-JAW & CLAVICLE (0.78M)" : cutDef.label);
       }
 
       if (vox) {
@@ -1405,11 +1718,21 @@
     resize();
 
     const params = new URLSearchParams(window.location.search);
-    if (params.get("cast")) activeCastId = params.get("cast").toLowerCase();
+    if (params.get("cast") || params.get("actor")) activeCastId = (params.get("cast") || params.get("actor")).toLowerCase();
+    const rawSceneParam = params.get("scene") || params.get("study");
+    if (rawSceneParam) {
+      const mappedRef = resolveAudRefScene(rawSceneParam);
+      if (mappedRef) activeRefSceneId = mappedRef;
+    }
     if (params.get("set") !== null) {
       const sRaw = params.get("set");
-      const foundSet = LAMV.MV_SETS.findIndex(s => s.id === sRaw || String(s.idx) === sRaw || String(s.idx + 1) === sRaw);
-      if (foundSet >= 0) activeSetIdx = foundSet;
+      const mappedSetRef = resolveAudRefScene(sRaw);
+      if (mappedSetRef) {
+        activeRefSceneId = mappedSetRef;
+      } else {
+        const foundSet = LAMV.MV_SETS.findIndex(s => s.id === sRaw || String(s.idx) === sRaw || String(s.idx + 1) === sRaw);
+        if (foundSet >= 0) activeSetIdx = foundSet;
+      }
     }
     if (params.get("t") !== null) {
       song.seek(+params.get("t"));
@@ -1419,13 +1742,81 @@
     if (params.get("cut")) activeCutId = params.get("cut").toLowerCase();
     const lookParam = (params.get("look") || "").toLowerCase();
     const isSheetLook = lookParam === "sheet" || lookParam === "contact" || lookParam === "9-look";
-    if (lookParam && !isSheetLook) post.setLook(params.get("look"));
+    if (lookParam && !isSheetLook) {
+      if (lookParam === "clay" || lookParam === "clay_sculpt") {
+        clayLookOverride = true;
+        post.setLook("raw");
+      } else {
+        post.setLook(params.get("look"));
+      }
+    } else if (activeRefSceneId && !isSheetLook) {
+      const refD = AUD_REF_SCENES.find(r => r.id === activeRefSceneId);
+      if (refD) post.setLook(refD.defaultLook);
+    }
     if (isSheetLook || params.get("contact") === "1" || params.get("contactSheet") === "1") {
       setContactSheet(true);
     }
 
     rebuildStage();
-    evaluateCameraTargetForCut(resolveEffectiveCut(0), true);
+    if (!activeRefSceneId) evaluateCameraTargetForCut(resolveEffectiveCut(0), true);
+
+    function syncAudPumpCloseup(tab, dt = 0.016, nowSec = 0) {
+      if (!tab || tab.mode !== "pump_closeup" || !tab.standpipeRig || !tab.basin) return;
+      const rig = tab.standpipeRig;
+      const basin = tab.basin;
+      let basinH = 0.21;
+      const bMesh = basin.children && basin.children[0];
+      if (bMesh && bMesh.geometry) {
+        if (!bMesh.geometry.boundingBox) bMesh.geometry.computeBoundingBox();
+        if (bMesh.geometry.boundingBox) {
+          basinH = Math.max(0.14, bMesh.geometry.boundingBox.max.y - bMesh.geometry.boundingBox.min.y);
+        }
+      }
+      const rigWorldY = rig.group ? rig.group.position.y : -0.18;
+      const curBottomWorldY = rigWorldY + basin.position.y;
+      if (curBottomWorldY < 0.35) {
+        const standpipeLocalY = rig.standpipe ? rig.standpipe.position.y : 0.36;
+        const spoutWorldY = rigWorldY + standpipeLocalY + 0.633;
+        const wantBottomWorldY = Math.min(0.36, spoutWorldY - 0.16 - basinH);
+        const wantBasinLocalY = Math.max(basin.position.y, wantBottomWorldY - rigWorldY);
+        if (wantBasinLocalY - basin.position.y > 0.004) {
+          basin.position.y = wantBasinLocalY;
+          const savedLeverRot = rig.leverPivot ? rig.leverPivot.rotation.z : 0.09;
+          const savedLeverYaw = rig.leverPivot ? rig.leverPivot.rotation.y : 0.36;
+          if (typeof rig.stepPump === "function") {
+            rig.stepPump(nowSec, { gentle: true, leverAmp: 0.0, baseAngle: savedLeverRot, leverYaw: savedLeverYaw });
+          }
+          tab.group.updateMatrixWorld(true);
+          const june = tab.byId && tab.byId.june;
+          if (june && rig.rimAnchorCloseupR) {
+            const rimPos = new T.Vector3();
+            const palmRimR = new T.Vector3(-0.08, -0.98, -0.16).normalize();
+            const fDirRimR = new T.Vector3(-0.52, -0.08, 0.85).normalize();
+            rig.rimAnchorCloseupR.getWorldPosition(rimPos);
+            june.update(dt, nowSec, {
+              pose: "tableauCustom",
+              spinePitch: 0.18,
+              chestPitch: 0.05,
+              pelDrop: -0.02,
+              worldHandR: rimPos,
+              palmWorldR: palmRimR,
+              fDirWorldR: fDirRimR,
+              gripModeR: "bowlRim",
+              curlR: 0.42,
+              pocketPullR: 0.032,
+              localHandL: [0.16, 0.72, -0.02],
+              lookAt: { x: 0.48, y: rigWorldY + basin.position.y + basinH - 0.02, z: 0.16 },
+              neckLean: { pitch: 0.24, yaw: 0.12, roll: -0.03 },
+              emotion: "calm_neutral",
+              emotionIntensity: 0.20,
+              speaking: false,
+              visemeAmount: 0.0,
+              lodDist: 1.4
+            });
+          }
+        }
+      }
+    }
 
     /* ---------- Live 60 FPS Music Video Render Loop ---------- */
     let lastMs = performance.now();
@@ -1448,7 +1839,7 @@
       const steadyMacro = effCut === "eyes";
 
       // Step Set I standpipe pump & parabolic cyan stream
-      if (activePump && typeof window.stepStandpipePump === "function") {
+      if (activePump && !activeRefTableau && typeof window.stepStandpipePump === "function") {
         pumpGrips.pumpPhase = nowSec * 3.5;
         window.stepStandpipePump(activePump, pumpGrips.pumpPhase, pumpGrips);
       }
@@ -1481,8 +1872,13 @@
         activeOxbowScreen.update(nowSec);
       }
 
-      // Update Lead & Ensemble Performers
-      for (let i = 0; i < activeActors.length; i++) {
+      // Update Lead & Ensemble Performers (or Reference Tableau / Clay Turnaround)
+      if (activeRefTableau && typeof activeRefTableau.update === "function") {
+        activeRefTableau.update(dt, nowSec, { surfaceAt: flatGround, beatPulse: vox.beatPulse });
+        syncAudPumpCloseup(activeRefTableau, dt, nowSec);
+      } else if (activeRefSceneId === "clay_bust") {
+        // Keep 3 sculptor's busts steady at 0°, 35°, 90°
+      } else for (let i = 0; i < activeActors.length; i++) {
         const entry = activeActors[i];
         const ch = entry.ch;
 
@@ -1576,15 +1972,17 @@
         }
       }
 
-      if (activeDonkey) {
+      if (activeDonkey && !activeRefTableau) {
         activeDonkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 2, drop: 0 }, flatGround);
       }
 
       // Snap cleanly on Auto-Director musical bar cuts; track live bone target smoothly within each shot!
-      const autoSlot = activeCutId === "auto" ? Math.floor((vox.barIndex || 0) / 2) : -2;
-      const cutChanged = activeCutId === "auto" && autoSlot !== lastAutoSlot;
-      if (cutChanged) lastAutoSlot = autoSlot;
-      evaluateCameraTargetForCut(effCut, cutChanged);
+      if (!activeRefSceneId) {
+        const autoSlot = activeCutId === "auto" ? Math.floor((vox.barIndex || 0) / 2) : -2;
+        const cutChanged = activeCutId === "auto" && autoSlot !== lastAutoSlot;
+        if (cutChanged) lastAutoSlot = autoSlot;
+        evaluateCameraTargetForCut(effCut, cutChanged);
+      }
 
       const k = 1 - Math.exp(-dt * 9.5);
       camState.yaw = lerp(camState.yaw, camState.wantYaw, k);
@@ -1633,6 +2031,7 @@
       setContactSheet,
       setCast,
       setSet,
+      setScene,
       setCut,
       seek: sec => { song.seek(sec); return song.getTime(); },
       setPlaying: flag => song.setPlaying(flag),

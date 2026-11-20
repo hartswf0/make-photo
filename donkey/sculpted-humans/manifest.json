@@ -1,0 +1,106 @@
+{
+  "version": "6.1.0",
+  "generator": "Blender 3.4.1 + NumPy Anatomical Sculptor & 1K PBR Baker",
+  "vertexCount": 9402,
+  "triangleCount": 17864,
+  "gridCount": 7832,
+  "baseMouthVertex": 9010,
+  "nMouth": 48,
+  "vMouth": 7,
+  "orbBounds": [
+    0.002,
+    0.06,
+    1.594,
+    1.638
+  ],
+  "orbGridShape": [
+    24,
+    28
+  ],
+  "layout": {
+    "pos": [
+      0,
+      112824
+    ],
+    "bindPos": [
+      112824,
+      112824
+    ],
+    "nrmInt16": [
+      225648,
+      56412
+    ],
+    "uvUint16": [
+      282060,
+      37608
+    ],
+    "earUint8": [
+      319668,
+      9402
+    ],
+    "idxUint16": [
+      329072,
+      107184
+    ],
+    "imaniOrbFloat32": [
+      1123952,
+      2688
+    ],
+    "morphs": {
+      "makeda": {
+        "dPosOffset": 436256,
+        "dPosBytes": 56412,
+        "dBindOffset": 492668,
+        "dBindBytes": 56412,
+        "dNrmOffset": 549080,
+        "dNrmBytes": 56412,
+        "orbOffset": 605492,
+        "orbBytes": 2688
+      },
+      "june": {
+        "dPosOffset": 608180,
+        "dPosBytes": 56412,
+        "dBindOffset": 664592,
+        "dBindBytes": 56412,
+        "dNrmOffset": 721004,
+        "dNrmBytes": 56412,
+        "orbOffset": 777416,
+        "orbBytes": 2688
+      },
+      "elder": {
+        "dPosOffset": 780104,
+        "dPosBytes": 56412,
+        "dBindOffset": 836516,
+        "dBindBytes": 56412,
+        "dNrmOffset": 892928,
+        "dNrmBytes": 56412,
+        "orbOffset": 949340,
+        "orbBytes": 2688
+      },
+      "hanna": {
+        "dPosOffset": 952028,
+        "dPosBytes": 56412,
+        "dBindOffset": 1008440,
+        "dBindBytes": 56412,
+        "dNrmOffset": 1064852,
+        "dNrmBytes": 56412,
+        "orbOffset": 1121264,
+        "orbBytes": 2688
+      }
+    }
+  },
+  "maps": {
+    "headNormal": "human_head_normal_1k.png",
+    "headAoCavity": "human_head_ao_cavity_1k.jpg",
+    "headRoughnessPore": "human_head_roughness_pore_1k.jpg",
+    "handNormal": "human_hand_normal_512.png",
+    "handAoRough": "human_hand_ao_rough_512.jpg"
+  },
+  "phenotypes": {
+    "imani": "Imani (Slender Warm Lead \u2014 0b07591c North Star)",
+    "makeda": "Makeda (Regal High Cheekbones \u2014 0bc287c6 Left)",
+    "june": "June (~10-11 yr Child Craniofacial Proportions \u2014 0bc287c6 Right)",
+    "elder": "Elder (Mature Highland Osteology \u2014 32b99d8c Turban & Beard)",
+    "hanna": "Hanna (Focused Athletic Specialist \u2014 32b99d8c Far Right)"
+  }
+}

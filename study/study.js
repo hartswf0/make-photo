@@ -926,6 +926,122 @@
       kfIds: ["kf04", "kf08", "kf12", "kf15"],
       sheet: "./generated/study_sheet_characters.jpg",
       sheetCap: "Unified Linear Dermal Albedo (canonicalSkinLin) + Diagonal Oval V-Mandible + 3-Joint C-Curve Cervical Leaning & Dynamic SCM Relief."
+    },
+
+    /* ---------- 3 Gold-Standard v6 Reference Plates (Indices 16, 17, 18 — Hero Default!) ---------- */
+    {
+      id: "ensemble",
+      isRefPlate: true,
+      defaultLook: "jerikan",
+      short: "R1 · Master Ensemble",
+      title: "R1 · Master Ensemble · Chapel, Standpipe & Mistletoe",
+      cat: "35–50MM MASTER TABLEAU (32b99d8c · 2ea91143 · 735822c2) · 5 CAST + DONKEY",
+      note: "Exact 5-character highland ensemble (Makeda, June, Imani, Elder & Hanna) + Mistletoe + Stone Semicircular-Arch Chapel + Ball-Knob Standpipe & Grooved Shekla Basin with selective #33ccf2 cyan water.",
+      night: false,
+      sunDeg: 52,
+      cam: { fov: 30, dist: 5.85, yaw: 0.0, pitch: 0.022, targetX: 0.0, targetY: 0.96, targetZ: 0.0 },
+      refTargetImg: "./ref_targets/ref_01_ensemble_jerikan.jpg",
+      videoIds: ["V1", "E4", "M6", "V2"],
+      orthoPlates: [
+        { src: "./ref_targets/ref_01_ensemble_jerikan.jpg", label: "32b99d8c · Cyan Jerikan Target" },
+        { src: "./ref_targets/ref_02_ensemble_risograph.jpg", label: "2ea91143 · Risograph Stipple Target" },
+        { src: "./ref_targets/ref_04_ensemble_woodblock.jpg", label: "735822c2 · Woodblock Print Target" },
+        { src: "./ref_targets/ref_03_pump_closeup_jerikan.jpg", label: "0bc287c6 · Pump & Bowl Target" }
+      ],
+      kfIds: ["kf02", "kf06", "kf15", "kf16"],
+      sheet: "./ref_targets/ref_01_ensemble_jerikan.jpg",
+      sheetCap: "Gold-Standard Master Ensemble Reference Plate (32b99d8c.jpg) — 5 Sculpted Cast + Mistletoe + Stone Arch Chapel + Standpipe & Basin."
+    },
+    {
+      id: "pump_closeup",
+      isRefPlate: true,
+      defaultLook: "jerikan",
+      short: "R2 · Pump & Bowl Macro",
+      title: "R2 · Standpipe Ball-Knob & Grooved Bowl Two-Shot",
+      cat: "50MM CLOSE-UP TWO-SHOT (0bc287c6) · MAKEDA, JUNE & CONCENTRIC CYAN RIPPLES",
+      note: "Makeda stage-left gripping the iron ball-knob lever in multi-fold shamma & cornrows; June stage-right with twisted locs resting fingers on the grooved shekla rim beside parabolic #33ccf2 cyan ripples.",
+      night: false,
+      sunDeg: 48,
+      cam: { fov: 37, dist: 1.72, yaw: 0.0, pitch: 0.055, targetX: -0.02, targetY: 0.875, targetZ: 0.08 },
+      refTargetImg: "./ref_targets/ref_03_pump_closeup_jerikan.jpg",
+      videoIds: ["V1", "M1", "M3", "E2"],
+      orthoPlates: [
+        { src: "./ref_targets/ref_03_pump_closeup_jerikan.jpg", label: "0bc287c6 · Pump & Bowl Two-Shot Target" },
+        { src: "./ref_targets/ref_01_ensemble_jerikan.jpg", label: "32b99d8c · Full Master Ensemble" }
+      ],
+      kfIds: ["kf02", "kf04", "kf16"],
+      sheet: "./ref_targets/ref_03_pump_closeup_jerikan.jpg",
+      sheetCap: "Gold-Standard Close-Up Pump & Bowl Reference Plate (0bc287c6.jpg) — Closed-loop ball-knob & grooved basin-rim hand contact + concentric white-rimmed cyan ripples."
+    },
+    {
+      id: "clay_bust",
+      isRefPlate: true,
+      isClayTurnaround: true,
+      defaultLook: "raw",
+      short: "R3 · Clay Turnaround",
+      title: "R3 · Sculptor's Clay Bust Turnaround (0° · 35° · 90°)",
+      cat: "105MM SCULPTURAL BUST TURNAROUND (0b07591c) · FRONT, 3/4 & 90° PROFILE",
+      note: "Pure 3D craniofacial & groom form audit on #dfd7cd studio backdrop: Front (0°), Three-Quarter (35°) & Profile (90°) busts in matte #7d7770 sculptor's clay across all 5 cast phenotypes.",
+      night: false,
+      sunDeg: 40,
+      cam: { fov: 18, dist: 1.92, yaw: 0.0, pitch: 0.005, targetX: 0.0, targetY: 1.535, targetZ: 0.0 },
+      refTargetImg: "./ref_targets/ref_05_clay_bust_turnaround.jpg",
+      videoIds: ["M2", "E1", "M3", "M4"],
+      orthoPlates: [
+        { src: "./ref_targets/ref_05_clay_bust_turnaround.jpg", label: "0b07591c · Clay Bust Turnaround Target" },
+        { src: "./ref_targets/ref_03_pump_closeup_jerikan.jpg", label: "0bc287c6 · Makeda & June Close-Up" }
+      ],
+      kfIds: ["kf08", "kf12", "kf15"],
+      sheet: "./ref_targets/ref_05_clay_bust_turnaround.jpg",
+      sheetCap: "Gold-Standard Sculptor's Clay Bust Turnaround (0b07591c.jpg) — Front 0°, Three-Quarter 35°, and Profile 90°."
+    }
+  ];
+
+  const CLAY_CAST_SPECS = [
+    {
+      id: "imani",
+      short: "Imani (0b07591c Ref)",
+      spec: {
+        id: "clay_imani", name: "Imani", skinHex: 0x3b261b, fem: 0.86, scale: 1.0, build: 1.0,
+        hair: "croppedCoily", outer: "duster", coatHex: 0x4a433c, shirtHex: 0x5c605a,
+        trouserHex: 0x2c3032, toolBelt: true
+      }
+    },
+    {
+      id: "makeda",
+      short: "Makeda · Cornrows",
+      spec: {
+        id: "clay_makeda", name: "Makeda", skinHex: 0x3c271c, fem: 0.88, scale: 0.98, build: 1.0,
+        hair: "cornrowBraids", outer: "shamma", coatHex: 0xc8c0b0, shirtHex: 0x52483e,
+        trouserHex: 0x2d3032, satchel: true
+      }
+    },
+    {
+      id: "june",
+      short: "June · Twisted Locs",
+      spec: {
+        id: "clay_june", name: "June", skinHex: 0x3f291e, fem: 0.56, scale: 0.80, build: 0.96,
+        hair: "shortLocs", outer: "none", shirtHex: 0xb2a48c, trouserHex: 0x343635,
+        tibebTrim: true, patchedKnees: true
+      }
+    },
+    {
+      id: "elder",
+      short: "Elder · Turban & Beard",
+      spec: {
+        id: "clay_elder", name: "Elder Berhanu", skinHex: 0x3f291d, fem: 0.10, scale: 1.02, build: 1.05,
+        hair: "turban", wrapHex: 0x625a4c, beard: true, hairHex: 0x1a1715,
+        outer: "shamma", coatHex: 0xb6ae9e, shirtHex: 0x5c5042, trouserHex: 0x2b2d2e
+      }
+    },
+    {
+      id: "hanna",
+      short: "Hanna · Braided Ponytail",
+      spec: {
+        id: "clay_hanna", name: "Hanna", skinHex: 0x8f6b56, fem: 0.82, scale: 0.97, build: 0.98,
+        hair: "ponytail", hairHex: 0x2a1f18, outer: "none", shirtHex: 0x36312d,
+        trouserHex: 0x2c2926, rolledSleeves: true
+      }
     }
   ];
 
@@ -1041,11 +1157,14 @@
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFShadowMap;
+  renderer.localClippingEnabled = true;
   renderer.toneMapping = T.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.09;
 
   const scene = new T.Scene();
   const PAPER_COLOR = new T.Color(0xd9d5cb);
+  const REF_SKY_COLOR = new T.Color(0xe6e1d6);
+  const CLAY_STUDIO_COLOR = new T.Color(0xdfd7cd);
   const NIGHT_COLOR = new T.Color(0x141615);
   scene.background = PAPER_COLOR.clone();
 
@@ -1182,12 +1301,15 @@
   }
 
   function syncTightShadowFrustum(st) {
+    const isEnsemble = st && st.id === "ensemble";
+    const isPumpMacro = st && st.id === "pump_closeup";
+    const isClayBust = st && st.id === "clay_bust";
     const isLargeArch = st && st.id.startsWith("arch_") && st.id !== "arch_props";
-    const isMacroNow = !isLargeArch && (camState.dist < 1.35 || (st && st.isMacro && camState.dist < 1.65));
-    const modeKey = isLargeArch ? "arch" : (isMacroNow ? "macro" : "human");
-    const shBound = isLargeArch ? 9.5 : (isMacroNow ? 0.96 : 3.4);
-    sun.shadow.bias = isLargeArch ? -0.0003 : (isMacroNow ? -0.00007 : -0.00018);
-    sun.shadow.normalBias = isLargeArch ? 0.012 : (isMacroNow ? 0.0032 : 0.0068);
+    const isMacroNow = !isLargeArch && !isEnsemble && !isPumpMacro && !isClayBust && (camState.dist < 1.35 || (st && st.isMacro && camState.dist < 1.65));
+    const modeKey = isEnsemble ? "ensemble" : isPumpMacro ? "pump_closeup" : isClayBust ? "clay_bust" : isLargeArch ? "arch" : (isMacroNow ? "macro" : "human");
+    const shBound = isEnsemble ? 4.4 : isPumpMacro ? 1.55 : isClayBust ? 1.85 : isLargeArch ? 9.5 : (isMacroNow ? 0.96 : 3.4);
+    sun.shadow.bias = isLargeArch ? -0.0003 : isClayBust ? -0.00012 : (isMacroNow ? -0.00007 : -0.00016);
+    sun.shadow.normalBias = isLargeArch ? 0.012 : isClayBust ? 0.0042 : (isMacroNow ? 0.0032 : 0.0062);
     if (modeKey !== lastShadowMode || Math.abs(sun.shadow.camera.right - shBound) > 0.02) {
       lastShadowMode = modeKey;
       sun.shadow.camera.left = -shBound;
@@ -1202,18 +1324,43 @@
 
   function setPaperMode(isNight) {
     camState.night = isNight;
+    const st = STUDIES[activeStudyIdx];
+    const isClay = Boolean(st && st.isClayTurnaround);
+    const isRefOutdoor = Boolean(st && st.isRefPlate && !isClay);
     document.body.classList.toggle("night-mode", isNight);
-    scene.background.copy(isNight ? NIGHT_COLOR : PAPER_COLOR);
-    hemi.intensity = isNight ? 0.42 : 1.56;
-    hemi.groundColor.setHex(isNight ? 0x1d2426 : 0x968b7c);
-    sun.intensity = isNight ? 0.58 : 2.48;
-    rim.intensity = isNight ? 0.78 : 1.02;
-    bounceLight.intensity = isNight ? 0.18 : 0.48;
-    catchLight.intensity = isNight ? 0.18 : 0.28;
-    shadowCatcher.material.opacity = isNight ? 0.55 : 0.28;
-    ringMat.color.setHex(isNight ? 0x3be0f5 : 0x8a867c);
+    if (isClay && !isNight) {
+      // Three-point matte sculptor's clay lighting on #dfd7cd studio backdrop (0b07591c.jpg)
+      scene.background.copy(CLAY_STUDIO_COLOR);
+      hemi.color.setHex(0xf7f2eb);
+      hemi.groundColor.setHex(0x6e6862);
+      hemi.intensity = 1.02;
+      sun.color.setHex(0xfffaf2);
+      sun.intensity = 2.38;
+      rim.color.setHex(0xece6de);
+      rim.intensity = 0.56;
+      bounceLight.color.setHex(0xe5dcd2);
+      bounceLight.intensity = 0.28;
+      catchLight.intensity = 0.10;
+      shadowCatcher.visible = false;
+      plinthRing.visible = false;
+    } else {
+      hemi.color.setHex(0xf5f1e8);
+      rim.color.setHex(0xd4eef8);
+      bounceLight.color.setHex(0xf6dfc6);
+      scene.background.copy(isNight ? NIGHT_COLOR : (isRefOutdoor ? REF_SKY_COLOR : PAPER_COLOR));
+      hemi.intensity = isNight ? 0.42 : (isRefOutdoor ? 1.18 : 1.56);
+      hemi.groundColor.setHex(isNight ? 0x1d2426 : (isRefOutdoor ? 0x766e64 : 0x968b7c));
+      sun.intensity = isNight ? 0.58 : (isRefOutdoor ? 2.46 : 2.48);
+      rim.intensity = isNight ? 0.78 : (isRefOutdoor ? 0.84 : 1.02);
+      bounceLight.intensity = isNight ? 0.18 : (isRefOutdoor ? 0.24 : 0.48);
+      catchLight.intensity = isNight ? 0.18 : (isRefOutdoor ? 0.36 : 0.28);
+      shadowCatcher.visible = !isRefOutdoor;
+      plinthRing.visible = !isRefOutdoor;
+      shadowCatcher.material.opacity = isNight ? 0.55 : 0.28;
+      ringMat.color.setHex(isNight ? 0x3be0f5 : 0x8a867c);
+    }
     $("btn-paper").setAttribute("aria-pressed", String(!isNight));
-    $("btn-paper").textContent = isNight ? "Mode: Night" : "Mode: Study Paper";
+    $("btn-paper").textContent = isNight ? "Mode: Night" : (isClay ? "Mode: Clay Studio" : "Mode: Study Paper");
   }
 
   let drag = null, pinchDist = 0;
@@ -1258,7 +1405,7 @@
   }, { passive: true });
 
   /* ---------- Stage State, Showcases & Live Expression Director ---------- */
-  let activeStudyIdx = 15;
+  let activeStudyIdx = 16;
   let activeActors = [];
   let activeDonkey = null;
   let activeStudyPump = null;
@@ -1269,7 +1416,19 @@
   let activeEmotionsStage = null;
   let activeHandActingStage = null;
   let activeNeckLeanStage = null;
+  let activeRefTableau = null;
+  let activeClayTurnaround = null;
+  let activeClayCastId = "imani";
+  let claySculptOverride = false;
+  let userToggledDrawer = false;
   let activeFocusKey = "default";
+
+  // Optional Side-by-Side Split / Onion-Skin Reference Target Comparison State
+  const refCompareState = {
+    mode: "off", // "off" | "split" | "onion"
+    splitPct: 50,
+    lookId: "jerikan"
+  };
 
   // Live Stage Expression, Neck Lean & Speech Director State (works across ALL studies!)
   const directorState = {
@@ -1421,9 +1580,571 @@
     activeEmotionsStage = null;
     activeHandActingStage = null;
     activeNeckLeanStage = null;
+    activeRefTableau = null;
+    activeClayTurnaround = null;
     followTargetFn = null;
     activeFocusKey = "default";
     applyEvenSkinLightMode(false);
+  }
+
+  /* ---------- Reference Target Split / Onion-Skin Overlay & Clay Mode Bridge ---------- */
+  function resolveRefCompareSrc(st, lookId) {
+    if (!st) return "./ref_targets/ref_01_ensemble_jerikan.jpg";
+    if (st.id === "clay_bust" || lookId === "clay") {
+      return "./ref_targets/ref_05_clay_bust_turnaround.jpg";
+    }
+    if (st.id === "pump_closeup") {
+      return "./ref_targets/ref_03_pump_closeup_jerikan.jpg";
+    }
+    if (lookId === "risograph") return "./ref_targets/ref_02_ensemble_risograph.jpg";
+    if (lookId === "woodblock") return "./ref_targets/ref_04_ensemble_woodblock.jpg";
+    return st.refTargetImg || "./ref_targets/ref_01_ensemble_jerikan.jpg";
+  }
+
+  function syncRefCompareOverlay() {
+    const ov = $("ref-compare-overlay");
+    const img = $("ref-compare-img");
+    const div = $("ref-compare-divider");
+    if (!ov || !img || !div) return;
+    const st = STUDIES[activeStudyIdx];
+    const mode = refCompareState.mode;
+    if (mode === "off") {
+      ov.hidden = true;
+      return;
+    }
+    ov.hidden = false;
+    const targetSrc = resolveRefCompareSrc(st, refCompareState.lookId);
+    if (img.getAttribute("src") !== targetSrc) {
+      img.setAttribute("src", targetSrc);
+    }
+    const isClay = Boolean((st && st.id === "clay_bust") || refCompareState.lookId === "clay");
+    ov.classList.toggle("clay-aspect", isClay);
+    const pct = clamp(refCompareState.splitPct, 5, 95);
+    if (mode === "split") {
+      img.style.opacity = "1";
+      img.style.clipPath = `inset(0 0 0 ${pct}%)`;
+      div.hidden = false;
+      div.style.left = `${pct}%`;
+    } else {
+      img.style.opacity = "0.48";
+      img.style.clipPath = "none";
+      div.hidden = true;
+    }
+  }
+
+  function setRefCompareMode(mode, splitPct) {
+    const m = String(mode || "off").toLowerCase();
+    refCompareState.mode = (m === "split" || m === "onion") ? m : "off";
+    if (splitPct !== undefined && Number.isFinite(+splitPct)) {
+      refCompareState.splitPct = clamp(+splitPct, 5, 95);
+    }
+    syncRefCompareOverlay();
+    if (STUDIES[activeStudyIdx]) renderModePills(STUDIES[activeStudyIdx]);
+    return { ...refCompareState };
+  }
+
+  // Bind draggable split-wipe divider once
+  (function bindRefDividerDrag() {
+    const div = $("ref-compare-divider");
+    if (!div || !wrap) return;
+    let draggingSplit = false;
+    div.addEventListener("pointerdown", e => {
+      e.stopPropagation();
+      div.setPointerCapture(e.pointerId);
+      draggingSplit = true;
+    });
+    div.addEventListener("pointermove", e => {
+      if (!draggingSplit) return;
+      const rect = wrap.getBoundingClientRect();
+      const pct = ((e.clientX - rect.left) / Math.max(1, rect.width)) * 100;
+      refCompareState.splitPct = clamp(pct, 5, 95);
+      syncRefCompareOverlay();
+    });
+    div.addEventListener("pointerup", () => { draggingSplit = false; });
+  })();
+
+  function applyClayModeToTarget(targetObj, enabled) {
+    if (!targetObj) return;
+    const root = targetObj.group || targetObj;
+    const hasNativeSGG = Boolean(window.ScionGroomGarments && typeof window.ScionGroomGarments.setClayMode === "function");
+    const hasNativeV6 = Boolean(window.HumanPhysicalV6 && typeof window.HumanPhysicalV6.setClayMode === "function");
+    if (hasNativeSGG) {
+      window.ScionGroomGarments.setClayMode(root, Boolean(enabled));
+      if (hasNativeV6) return;
+    } else if (hasNativeV6) {
+      window.HumanPhysicalV6.setClayMode(root, Boolean(enabled));
+      return;
+    }
+    // Resilient fallback matte sculptor's clay (#7d7770 skin, #4a4642 hair coils, #96908a collar) if HumanPhysicalV6 not yet loaded
+    root.traverse(o => {
+      if (!o.isMesh || !o.material) return;
+      if (String(o.name || "").toLowerCase().includes("xray")) return;
+      if (enabled) {
+        if (!o.userData._preClayMaterial) {
+          o.userData._preClayMaterial = o.material;
+        }
+        const nm = String(o.name || "").toLowerCase();
+        const isHair = nm.includes("hair") || nm.includes("coil") || nm.includes("loc") || nm.includes("braid") || nm.includes("beard");
+        const isCollar = nm.includes("coat") || nm.includes("duster") || nm.includes("collar") || nm.includes("shamma") || nm.includes("shirt");
+        const origM = Array.isArray(o.userData._preClayMaterial) ? o.userData._preClayMaterial[0] : o.userData._preClayMaterial;
+        if (nm.includes("cornea") && origM && origM.transparent) {
+          o.visible = false;
+          o.userData._clayHiddenCornea = true;
+          return;
+        }
+        const clayHex = isHair ? 0x4b4744 : (isCollar ? 0x948e88 : 0x7d7770);
+        const MatCtor = T.MeshPhysicalMaterial || T.MeshStandardMaterial;
+        const clayMat = new MatCtor({
+          color: clayHex,
+          roughness: isHair ? 0.88 : 0.78,
+          metalness: 0.0,
+          normalMap: origM ? (origM.normalMap || null) : null,
+          bumpMap: origM ? (origM.bumpMap || null) : null,
+          bumpScale: origM && origM.bumpScale ? origM.bumpScale : 0.004,
+          aoMap: origM ? (origM.aoMap || null) : null,
+          side: origM ? origM.side : T.FrontSide
+        });
+        if (clayMat.sheen !== undefined) {
+          clayMat.sheen = 0.16;
+          clayMat.sheenRoughness = 0.82;
+          clayMat.sheenColor = new T.Color(0xc8bfb6);
+        }
+        if (origM && origM.clippingPlanes) {
+          clayMat.clippingPlanes = origM.clippingPlanes;
+        }
+        o.material = clayMat;
+      } else if (o.userData._preClayMaterial) {
+        o.material = o.userData._preClayMaterial;
+        delete o.userData._preClayMaterial;
+        if (o.userData._clayHiddenCornea) {
+          o.visible = true;
+          delete o.userData._clayHiddenCornea;
+        }
+      }
+    });
+  }
+
+  function applyClipPlanesToSubtree(root, planes) {
+    if (!root) return;
+    root.traverse(o => {
+      if (!o.isMesh || !o.material) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (let i = 0; i < mats.length; i++) {
+        const m = mats[i];
+        if (!m) continue;
+        m.clippingPlanes = planes;
+        m.clipShadows = true;
+        m.needsUpdate = true;
+      }
+    });
+  }
+
+  function applyClaySculptOverrideState(flag) {
+    claySculptOverride = Boolean(flag);
+    const st = STUDIES[activeStudyIdx];
+    const effectiveClay = claySculptOverride || Boolean(st && st.isClayTurnaround);
+    if (activeRefTableau && typeof activeRefTableau.setClayMode === "function") {
+      activeRefTableau.setClayMode(effectiveClay);
+    }
+    for (const item of activeActors) {
+      if (item && item.ch) {
+        applyClayModeToTarget(item.ch, effectiveClay);
+      }
+    }
+    if (st && st.isClayTurnaround && activeClayTurnaround && activeClayTurnaround.clipPlane) {
+      for (const item of activeActors) {
+        if (item && item.ch && item.ch.group) {
+          item.ch.group.traverse(o => {
+            if (!o.isMesh || !o.material) return;
+            const mats = Array.isArray(o.material) ? o.material : [o.material];
+            for (const m of mats) {
+              if (m) {
+                m.clippingPlanes = [activeClayTurnaround.clipPlane];
+                m.clipShadows = true;
+              }
+            }
+          });
+        }
+      }
+    }
+  }
+
+  function buildClayBustTurnaroundStage(castId) {
+    const found = CLAY_CAST_SPECS.find(c => c.id === String(castId || "imani").toLowerCase()) || CLAY_CAST_SPECS[0];
+    activeClayCastId = found.id;
+    const charScale = found.spec.scale || 1.0;
+    // Align smaller child (June) head height with adult eye-line (1.53m) and cut cleanly across mid-chest / lapel base!
+    const yLift = (1.0 - charScale) * 1.52;
+    const cutY = 1.318;
+    const clipPlane = new T.Plane(new T.Vector3(0, 1, 0), -cutY);
+
+    // 3 horizontal busts matching 0b07591c.jpg (~87% vertical frame height, tight top headroom):
+    // Left (0° Front), Center (+36° Three-Quarter facing right), Right (+90° Profile facing right)
+    // Pre-compensate camera ray angle atan2(x, camDist) so Left bust is seen dead-on 0.0° frontal and Right bust is seen dead-on 90.0° profile!
+    const camDist = 1.92;
+    const bustSlots = [
+      { key: "front",   label: "Front 0°",          x: -0.315, targetYaw: 0.0 },
+      { key: "threeQ",  label: "Three-Quarter 35°", x:  0.015, targetYaw: 36 * DEG },
+      { key: "profile", label: "Profile 90°",       x:  0.335, targetYaw: 90 * DEG }
+    ];
+
+    for (let i = 0; i < bustSlots.length; i++) {
+      const slot = bustSlots[i];
+      const rayAngle = Math.atan2(-slot.x, camDist);
+      const compensatedHeading = slot.targetYaw + rayAngle;
+      const ch = spawnActor({
+        ...found.spec,
+        id: `${found.spec.id}_${slot.key}`,
+        name: `${found.spec.name} (${slot.label})`,
+        x: slot.x,
+        z: 0.0,
+        yOffset: yLift,
+        heading: compensatedHeading,
+        pose: "idle"
+      });
+      if (ch.label && ch.label.sprite) ch.label.sprite.visible = false;
+      ch.update(0.016, 0, {
+        pose: "idle",
+        surfaceAt: flatGround,
+        emotion: "neutral",
+        emotionIntensity: 0.25,
+        speaking: false,
+        viseme: "SIL",
+        visemeAmount: 1.0
+      });
+      applyClayModeToTarget(ch, true);
+      applyClipPlanesToSubtree(ch.group, [clipPlane]);
+    }
+
+    activeClayTurnaround = {
+      castId: found.id,
+      clipPlane,
+      cutY,
+      yLift
+    };
+    return activeClayTurnaround;
+  }
+
+  function ensureCourtyardGroundForRef(rootGroup) {
+    // Sunlit limestone-dust courtyard slab (cool B > R bias so woodblock maps ground to #7c8690 cool slate + #181d26 shadows,
+    // while jerikan renders #c6c0b4 warm sunlit dust and risograph renders #f2deb6 gold-cream stipple + #453b80 indigo shadows!)
+    let hasWideFloor = false;
+    rootGroup.traverse(o => {
+      if (o.isMesh && o.geometry && o.userData && o.userData.isTableauGround) {
+        hasWideFloor = true;
+      }
+    });
+    if (!hasWideFloor) {
+      const floorGeo = new T.PlaneGeometry(36, 13.5, 1, 28);
+      floorGeo.rotateX(-Math.PI * 0.5);
+      const posAttr = floorGeo.attributes.position;
+      const colors = new Float32Array(posAttr.count * 3);
+      const nearCol = new T.Color(0x9fb2c6); // sunlit cool-tagged limestone-dust (keeps B > R under warm sun!)
+      const farCol  = new T.Color(0xb8c8da); // soft atmospheric horizon lighten (still B > R for woodblock!)
+      const tmpC = new T.Color();
+      for (let i = 0; i < posAttr.count; i++) {
+        const worldZ = posAttr.getZ(i) + 0.95; // spans [-5.80 .. +7.70]
+        const hMix = clamp((-1.90 - worldZ) / 3.80, 0, 1);
+        const sMix = hMix * hMix * (3 - 2 * hMix);
+        tmpC.copy(nearCol).lerp(farCol, sMix);
+        colors[i * 3]     = tmpC.r;
+        colors[i * 3 + 1] = tmpC.g;
+        colors[i * 3 + 2] = tmpC.b;
+      }
+      floorGeo.setAttribute("color", new T.BufferAttribute(colors, 3));
+      const floorMat = new T.MeshStandardMaterial({
+        color: 0xffffff,
+        vertexColors: true,
+        roughness: 0.94,
+        metalness: 0.0
+      });
+      const floorMesh = new T.Mesh(floorGeo, floorMat);
+      floorMesh.position.set(0, -0.002, 0.95);
+      floorMesh.receiveShadow = true;
+      floorMesh.userData.isTableauGround = true;
+      floorMesh.userData.surfaceTag = "stone";
+      rootGroup.add(floorMesh);
+    }
+  }
+
+  const _pumpRimTmp = new T.Vector3();
+  const _pumpPalmTmp = new T.Vector3(-0.08, -0.98, -0.16).normalize();
+  const _pumpFDirTmp = new T.Vector3(-0.52, -0.08, 0.85).normalize();
+
+  function getRefTableauCameraPreset(st, tableau) {
+    const base = (tableau && tableau.cameraHint) ? tableau.cameraHint : (st && st.cam ? st.cam : {});
+    if (st && st.id === "ensemble") {
+      return { ...base, dist: Math.max(base.dist || 4.66, 4.94), targetY: 0.99 };
+    }
+    if (st && st.id === "pump_closeup") {
+      return {
+        ...base,
+        fov: 38,
+        dist: 1.74,
+        yaw: 0.00,
+        pitch: 0.052,
+        targetX: -0.05,
+        targetY: 0.865,
+        targetZ: 0.06
+      };
+    }
+    return base;
+  }
+
+  function syncPumpCloseupComposition(tableau, dt = 0.016, nowSec = 0) {
+    if (!tableau || tableau.mode !== "pump_closeup" || !tableau.standpipeRig || !tableau.basin) return;
+    const rig = tableau.standpipeRig;
+    const basin = tableau.basin;
+    let basinH = 0.21;
+    const bMesh = basin.children && basin.children[0];
+    if (bMesh && bMesh.geometry) {
+      if (!bMesh.geometry.boundingBox) bMesh.geometry.computeBoundingBox();
+      if (bMesh.geometry.boundingBox) {
+        basinH = Math.max(0.14, bMesh.geometry.boundingBox.max.y - bMesh.geometry.boundingBox.min.y);
+      }
+    }
+    const rigWorldY = rig.group ? rig.group.position.y : -0.18;
+    const curBottomWorldY = rigWorldY + basin.position.y;
+    if (curBottomWorldY < 0.35) {
+      const standpipeLocalY = rig.standpipe ? rig.standpipe.position.y : 0.36;
+      const spoutWorldY = rigWorldY + standpipeLocalY + 0.633;
+      const wantBottomWorldY = Math.min(0.36, spoutWorldY - 0.16 - basinH);
+      const wantBasinLocalY = Math.max(basin.position.y, wantBottomWorldY - rigWorldY);
+      if (wantBasinLocalY - basin.position.y > 0.004) {
+        basin.position.y = wantBasinLocalY;
+        const savedLeverRot = rig.leverPivot ? rig.leverPivot.rotation.z : 0.09;
+        const savedLeverYaw = rig.leverPivot ? rig.leverPivot.rotation.y : 0.36;
+        if (typeof rig.stepPump === "function") {
+          rig.stepPump(nowSec, { gentle: true, leverAmp: 0.0, baseAngle: savedLeverRot, leverYaw: savedLeverYaw });
+        }
+        tableau.group.updateMatrixWorld(true);
+        const june = tableau.byId && tableau.byId.june;
+        if (june && rig.rimAnchorCloseupR) {
+          rig.rimAnchorCloseupR.getWorldPosition(_pumpRimTmp);
+          june.update(dt, nowSec, {
+            pose: "tableauCustom",
+            spinePitch: 0.18,
+            chestPitch: 0.05,
+            pelDrop: -0.02,
+            worldHandR: _pumpRimTmp,
+            palmWorldR: _pumpPalmTmp,
+            fDirWorldR: _pumpFDirTmp,
+            gripModeR: "bowlRim",
+            curlR: 0.42,
+            pocketPullR: 0.032,
+            localHandL: [0.16, 0.72, -0.02],
+            lookAt: { x: 0.48, y: rigWorldY + basin.position.y + basinH - 0.02, z: 0.16 },
+            neckLean: { pitch: 0.24, yaw: 0.12, roll: -0.03 },
+            emotion: "calm_neutral",
+            emotionIntensity: 0.20,
+            speaking: false,
+            visemeAmount: 0.0,
+            lodDist: 1.4
+          });
+        }
+      }
+    }
+  }
+
+  function calibrateRefTableauMaterials(tableau) {
+    if (!tableau) return;
+    // 1. Lighten concrete step plinth to pale weathered cool limestone (#8e8a82 in jerikan, #6d7782 cool slate in woodblock)
+    if (tableau.plinth && tableau.plinth.material && tableau.plinth.material.color) {
+      tableau.plinth.material = tableau.plinth.material.clone();
+      tableau.plinth.material.color.setHex(0x98abc0);
+      tableau.plinth.material.roughness = 0.88;
+    }
+    // 2. Lift weathered cast-iron standpipe (cap, 3 collar rings, column, lever & ball-knob) so metallic highlights & form
+    //    pop cleanly above #26292e shadows without needing an HDRI environment map!
+    const ironRoot = (tableau.standpipeRig && tableau.standpipeRig.standpipe) || tableau.standpipe;
+    if (ironRoot && typeof ironRoot.traverse === "function") {
+      let sharedIronMat = null;
+      ironRoot.traverse(o => {
+        if (!o.isMesh || !o.material || !o.material.color) return;
+        const tag = o.material.userData && o.material.userData.surfaceTag;
+        const isCyan = Boolean(o.material.userData && (o.material.userData.isWaterCyan || tag === "cyan_water"));
+        if (isCyan || o.name === "scionStream" || o.name === "scionStreamCore") return;
+        if (!sharedIronMat) {
+          sharedIronMat = o.material.clone();
+          sharedIronMat.color.setHex(0x525a64);
+          sharedIronMat.roughness = 0.35;
+          sharedIronMat.metalness = 0.14;
+          if (sharedIronMat.clearcoat !== undefined) {
+            sharedIronMat.clearcoat = 0.46;
+            sharedIronMat.clearcoatRoughness = 0.26;
+          }
+          if (sharedIronMat.emissive) {
+            sharedIronMat.emissive.setHex(0x14171c);
+            sharedIronMat.emissiveIntensity = 0.32;
+          }
+          sharedIronMat.userData = { ...(o.material.userData || {}), surfaceTag: "iron" };
+        }
+        o.material = sharedIronMat;
+      });
+    }
+    // 3. Calibrate Chapel arch double doors (cool slate-grey #6d7782), window shutters (dark slate -> sumi-ink #181d26 in woodblock),
+    //    and limestone arch/baseboard, while preserving the right corner timber post (x > -0.35) in warm cedar/terracotta (#b6683c)!
+    if (tableau.chapel && typeof tableau.chapel.traverse === "function") {
+      tableau.chapel.traverse(o => {
+        if (!o.isMesh || !o.material || !o.material.color) return;
+        const tag = o.material.userData && o.material.userData.surfaceTag;
+        if (tag === "wood" && o.position.x < -0.45) {
+          o.material = o.material.clone();
+          o.material.map = null; // keep woodPlankNormal vertical grooves while neutralizing orange albedo!
+          o.material.color.setHex(0x7c8a98); // weathered cool slate-grey plank doors (#6d7782 in woodblock)!
+        } else if (tag === "shutter" && o.position.y < 2.35) {
+          o.material = o.material.clone();
+          o.material.color.setHex(0x36414d); // weathered dark slate shutters (B > R -> #181d26 in woodblock, natural dark slate in jerikan!)
+        } else if (tag === "mortar") {
+          o.material = o.material.clone();
+          o.material.color.setHex(0xb4c4d6); // pale cool limestone arch & baseboard (B > R)
+        }
+      });
+    }
+  }
+
+  function buildFallbackMasterTableau(T, opts = {}) {
+    const mode = opts.mode === "pump_closeup" ? "pump_closeup" : "ensemble";
+    const root = new T.Group();
+    ensureCourtyardGroundForRef(root);
+
+    // Stone Semicircular-Arch Chapel on left half (x: -3.2 .. +0.02) with cool slate stone & warm timber corner post
+    if (window.makeArchitectureStudyPiece) {
+      const chapel = window.makeArchitectureStudyPiece(T, "chapel");
+      chapel.position.set(-1.55, 0, -2.10);
+      chapel.traverse(o => {
+        if (o.isMesh && o.material) {
+          o.castShadow = false;
+          o.receiveShadow = true;
+        }
+      });
+      root.add(chapel);
+
+      const plinthMat = new T.MeshStandardMaterial({ color: 0x666f78, roughness: 0.90 });
+      const plinth = new T.Mesh(new T.BoxGeometry(1.48, 0.28, 0.86), plinthMat);
+      plinth.position.set(-1.12, 0.14, 0.04);
+      plinth.castShadow = true; plinth.receiveShadow = true;
+      root.add(plinth);
+
+      const props = window.makeArchitectureStudyPiece(T, "props");
+      const standpipe = props.children[1].clone();
+      standpipe.position.set(-1.02, 0.28, 0.02);
+      standpipe.rotation.y = 0.0;
+      root.add(standpipe);
+
+      const basin = props.children[2].clone();
+      basin.position.set(-0.62, 0.28, 0.06);
+      root.add(basin);
+
+      const actors = [];
+      const mk = spec => {
+        const ch = window.makeExpeditionCharacter(T, spec);
+        if (!ch.userData) ch.userData = ch.group.userData;
+        if (window.HumanExpressionsV4 && typeof window.HumanExpressionsV4.ensureController === "function") {
+          window.HumanExpressionsV4.ensureController(ch);
+        }
+        if (ch.label && ch.label.sprite) ch.label.sprite.visible = false;
+        ch.place(spec.x || 0, spec.z || 0, spec.heading || 0, flatGround);
+        root.add(ch.group);
+        actors.push({ id: spec.roleId, name: spec.name, ch, spec });
+        return ch;
+      };
+
+      mk({
+        roleId: "makeda", id: "fb_makeda", name: "Makeda", x: -1.96, z: 0.10, heading: 0.42,
+        skinHex: 0x3c271c, fem: 0.88, hair: "cornrowBraids", outer: "shamma", coatHex: 0xc8c0b0,
+        shirtHex: 0x52483e, trouserHex: 0x34302c, satchel: true, pose: "pump"
+      });
+      mk({
+        roleId: "june", id: "fb_june", name: "June", x: -1.24, z: 0.34, heading: 0.52,
+        scale: 0.78, build: 0.96, fem: 0.56, skinHex: 0x3f291e, hair: "shortLocs",
+        outer: "none", shirtHex: 0xc8bca8, trouserHex: 0x423c36, patchedKnees: true, pose: "idle"
+      });
+
+      let donkey = null;
+      if (mode === "ensemble") {
+        mk({
+          roleId: "imani", id: "fb_imani", name: "Imani", x: -0.08, z: 0.36, heading: 0.08,
+          skinHex: 0x3b261b, fem: 0.86, hair: "croppedCoily", outer: "duster", coatHex: 0x4e453c,
+          shirtHex: 0x555e68, trouserHex: 0x3b3530, toolBelt: true, pose: "idle"
+        });
+        mk({
+          roleId: "elder", id: "fb_elder", name: "Elder Berhanu", x: 0.74, z: 0.22, heading: -0.18,
+          scale: 1.02, build: 1.05, fem: 0.10, skinHex: 0x3f291d, hair: "turban", wrapHex: 0x6e6254,
+          beard: true, hairHex: 0x1a1715, outer: "shamma", coatHex: 0xcac0b0, shirtHex: 0x5c5042,
+          trouserHex: 0x35312d, pose: "idle"
+        });
+        mk({
+          roleId: "hanna", id: "fb_hanna", name: "Hanna", x: 2.08, z: 0.24, heading: -1.18,
+          scale: 0.97, fem: 0.82, skinHex: 0x8f6b56, hair: "ponytail", hairHex: 0x281e17,
+          outer: "none", shirtHex: 0x2c2825, trouserHex: 0x36312d, rolledSleeves: true, pose: "tieRope"
+        });
+        if (window.makeDonkey) {
+          donkey = window.makeDonkey({ assetPath: "../donkey/", shells: 10, monochrome: true, contactShadow: true, alwaysHalter: true });
+          donkey.setCargo([{ kg: 14, slot: "L" }, { kg: 14, slot: "R" }, { kg: 8, slot: "T" }]);
+          const glowMat = new T.MeshStandardMaterial({ color: 0x33ccf2, emissive: 0x18a8d8, emissiveIntensity: 1.25, roughness: 0.16 });
+          donkey.pack.traverse(obj => {
+            if (obj.isGroup && Math.abs(Math.abs(obj.position.x) - 0.095) < 0.01 && Math.abs(obj.position.y + 0.225) < 0.02) {
+              const s = Math.sign(obj.position.x) || 1;
+              const pouch = new T.Mesh(new T.BoxGeometry(0.024, 0.17, 0.125), glowMat);
+              pouch.position.set(s * 0.108, 0.02, 0.085);
+              obj.add(pouch);
+            }
+          });
+          donkey.place(1.48, 0.12, -0.32, flatGround);
+          root.add(donkey.group);
+        }
+      }
+
+      const pGrips = {
+        pumpGripL: new T.Vector3(), pumpGripR: new T.Vector3(),
+        pumpGripWorld: new T.Vector3(), pumpBarDir: new T.Vector3(), pumpPhase: 0
+      };
+
+      return {
+        root,
+        group: root,
+        mode,
+        actors,
+        donkey,
+        standpipe,
+        basin,
+        chapel,
+        cameraHint: mode === "pump_closeup"
+          ? { fov: 30, dist: 1.88, yaw: 0.0, pitch: 0.03, targetX: -1.04, targetY: 1.18, targetZ: 0.10 }
+          : { fov: 30, dist: 5.75, yaw: 0.0, pitch: 0.02, targetX: 0.04, targetY: 0.96, targetZ: 0.10 },
+        setClayMode(flag) {
+          for (const a of actors) applyClayModeToTarget(a.ch, flag);
+        },
+        update(dt, nowSec) {
+          if (typeof window.stepStandpipePump === "function") {
+            pGrips.pumpPhase = nowSec * 2.8;
+            window.stepStandpipePump(standpipe, pGrips.pumpPhase, pGrips);
+          }
+          for (const a of actors) {
+            if (a.id === "makeda") {
+              a.ch.update(dt, nowSec, {
+                pose: "pump", surfaceAt: flatGround, pumpPhase: pGrips.pumpPhase,
+                pumpGripL: pGrips.pumpGripL, pumpGripR: pGrips.pumpGripR,
+                worldGripL: pGrips.pumpGripL, worldGripR: pGrips.pumpGripR,
+                pumpGripWorld: pGrips.pumpGripWorld, pumpBarDir: pGrips.pumpBarDir,
+                emotion: "determined_focus", emotionIntensity: 0.55
+              });
+            } else if (a.id === "imani") {
+              a.ch.update(dt, nowSec, {
+                pose: "idle", surfaceAt: flatGround,
+                emotion: "happy_joy", emotionIntensity: 0.62,
+                neckLean: { roll: 6 * DEG, pitch: -2 * DEG, yaw: -12 * DEG, glideX: 0 }
+              });
+            } else {
+              a.ch.update(dt, nowSec, { pose: a.spec.pose || "idle", surfaceAt: flatGround, emotion: "neutral", emotionIntensity: 0.4 });
+            }
+          }
+          if (donkey) donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 2, drop: 0 }, flatGround);
+        }
+      };
+    }
+    return { root, group: root, mode, actors: [], update() {} };
   }
 
   function spawnDonkeyWithSightWindow(x, z, heading) {
@@ -2126,11 +2847,90 @@
     });
   }
 
+  function appendRefComparePills(row) {
+    const tag = document.createElement("span");
+    tag.className = "row-tag";
+    tag.textContent = "Ref Compare:";
+    row.appendChild(tag);
+    const modes = [
+      ["off", "Live 3D"],
+      ["split", "⊞ Split vs Ref"],
+      ["onion", "◐ Onion 50%"]
+    ];
+    for (const [mKey, lbl] of modes) {
+      const b = document.createElement("button");
+      b.type = "button";
+      const isAct = refCompareState.mode === mKey;
+      b.className = "pill pill-focus" + (isAct ? " active" : "");
+      b.setAttribute("aria-pressed", String(isAct));
+      b.textContent = lbl;
+      b.addEventListener("click", () => setRefCompareMode(mKey));
+      row.appendChild(b);
+    }
+    const toolsBtn = document.createElement("button");
+    toolsBtn.type = "button";
+    const toolsOpen = document.body.classList.contains("ref-tools-open");
+    toolsBtn.className = "pill pill-focus" + (toolsOpen ? " active" : "");
+    toolsBtn.textContent = toolsOpen ? "▴ Hide Lenses & FACS" : "▾ Lenses & FACS";
+    toolsBtn.addEventListener("click", () => {
+      document.body.classList.toggle("ref-tools-open");
+      renderModePills(STUDIES[activeStudyIdx]);
+    });
+    row.appendChild(toolsBtn);
+  }
+
+  function setClayCharacter(castId) {
+    const found = CLAY_CAST_SPECS.find(c => c.id === String(castId || "imani").toLowerCase()) || CLAY_CAST_SPECS[0];
+    activeClayCastId = found.id;
+    if (STUDIES[activeStudyIdx]?.id !== "clay_bust") {
+      loadStudy("clay_bust");
+    } else {
+      loadStudy("clay_bust");
+    }
+    return activeClayCastId;
+  }
+
   function renderModePills(st) {
     const row = $("mode-pills");
     if (!row) return;
     row.innerHTML = "";
-    if (st.id === "neck_lean_skin" && activeNeckLeanStage) {
+    if (st.id === "clay_bust") {
+      const tag = document.createElement("span");
+      tag.className = "row-tag";
+      tag.textContent = "Sculpt Cast:";
+      row.appendChild(tag);
+      for (const c of CLAY_CAST_SPECS) {
+        const b = document.createElement("button");
+        b.type = "button";
+        const isAct = activeClayCastId === c.id;
+        b.className = "pill pill-focus" + (isAct ? " active" : "");
+        b.setAttribute("aria-pressed", String(isAct));
+        b.textContent = c.short;
+        b.addEventListener("click", () => setClayCharacter(c.id));
+        row.appendChild(b);
+      }
+      const sep = document.createElement("span");
+      sep.className = "pill-sep";
+      row.appendChild(sep);
+      appendRefComparePills(row);
+    } else if (st.id === "ensemble" || st.id === "pump_closeup") {
+      appendRefComparePills(row);
+      const sep = document.createElement("span");
+      sep.className = "pill-sep";
+      row.appendChild(sep);
+      const jumpBtn = document.createElement("button");
+      jumpBtn.type = "button";
+      jumpBtn.className = "pill pill-focus";
+      jumpBtn.textContent = st.id === "ensemble" ? "↗ Zoom R2 · Pump & Bowl" : "↖ Back to R1 · Master Ensemble";
+      jumpBtn.addEventListener("click", () => loadStudy(st.id === "ensemble" ? "pump_closeup" : "ensemble"));
+      row.appendChild(jumpBtn);
+      const clayJump = document.createElement("button");
+      clayJump.type = "button";
+      clayJump.className = "pill pill-focus";
+      clayJump.textContent = "↗ R3 · Clay Turnaround";
+      clayJump.addEventListener("click", () => loadStudy("clay_bust"));
+      row.appendChild(clayJump);
+    } else if (st.id === "neck_lean_skin" && activeNeckLeanStage) {
       const nl = activeNeckLeanStage;
       const castItems = [
         [0, "Imani · Bare-Arm Hero"],
@@ -2240,7 +3040,61 @@
       row.appendChild(b);
     };
 
-    if (st.id === "neck_lean_skin" && activeNeckLeanStage) {
+    if (st.id === "ensemble") {
+      const hint = (activeRefTableau && activeRefTableau.cameraHint) || st.cam;
+      addChip("default", "Master Ensemble (1:1 Ref)", () => {
+        followTargetFn = null;
+        setCameraPreset(hint, false);
+      });
+      addChip("pump_pair", "Makeda & June Pump", () => {
+        followTargetFn = null;
+        setCameraPreset({ fov: 30, dist: 2.05, yaw: 0.0, pitch: 0.03, targetX: -1.18, targetY: 1.18, targetZ: 0.06 });
+      });
+      addChip("center_pair", "Imani & Elder", () => {
+        followTargetFn = null;
+        setCameraPreset({ fov: 30, dist: 2.15, yaw: 0.0, pitch: 0.025, targetX: 0.30, targetY: 1.28, targetZ: 0.22 });
+      });
+      addChip("donkey_hanna", "Mistletoe & Hanna", () => {
+        followTargetFn = null;
+        setCameraPreset({ fov: 30, dist: 2.15, yaw: -0.05, pitch: 0.03, targetX: 1.72, targetY: 1.14, targetZ: 0.14 });
+      });
+      for (const [keyId, lbl] of [["imani", "Imani 0.42m"], ["makeda", "Makeda 0.42m"], ["june", "June 0.38m"], ["elder", "Elder 0.44m"], ["hanna", "Hanna 0.42m"]]) {
+        addChip(`ens_${keyId}`, lbl, () => focusActor(keyId, "head", keyId === "june" ? 0.38 : 0.42));
+      }
+    } else if (st.id === "pump_closeup") {
+      const hint = getRefTableauCameraPreset(st, activeRefTableau);
+      addChip("default", "Two-Shot (1:1 0bc287c6)", () => {
+        followTargetFn = null;
+        setCameraPreset(hint, false);
+      });
+      addChip("makeda_head", "Makeda & Cornrows", () => focusActor("makeda", "head", 0.42));
+      addChip("june_head", "June & Twisted Locs", () => focusActor("june", "head", 0.38));
+      addChip("knob_grip", "Ball-Knob Hand Grip", () => focusActor("makeda", "handR", 0.36));
+      addChip("bowl_rim", "Bowl Rim & Ripples", () => {
+        followTargetFn = null;
+        const bx = activeRefTableau?.basin ? activeRefTableau.basin.position.x : -0.62;
+        const by = activeRefTableau?.basin ? activeRefTableau.basin.position.y + 0.34 : 0.62;
+        const bz = activeRefTableau?.basin ? activeRefTableau.basin.position.z : 0.06;
+        setCameraPreset({ fov: 30, dist: 0.68, yaw: 0.08, pitch: 0.22, targetX: bx, targetY: by, targetZ: bz });
+      });
+    } else if (st.id === "clay_bust") {
+      addChip("default", "3-Bust Turnaround (0° · 35° · 90°)", () => {
+        followTargetFn = null;
+        setCameraPreset(st.cam, false);
+      });
+      addChip("bust_front", "Zoom Front (0°)", () => {
+        followTargetFn = null;
+        setCameraPreset({ fov: 18, dist: 1.36, yaw: 0.0, pitch: 0.005, targetX: -0.46, targetY: 1.535, targetZ: 0.0 });
+      });
+      addChip("bust_34", "Zoom Three-Quarter (35°)", () => {
+        followTargetFn = null;
+        setCameraPreset({ fov: 18, dist: 1.36, yaw: 0.0, pitch: 0.005, targetX: 0.00, targetY: 1.535, targetZ: 0.0 });
+      });
+      addChip("bust_prof", "Zoom Profile (90°)", () => {
+        followTargetFn = null;
+        setCameraPreset({ fov: 18, dist: 1.36, yaw: 0.0, pitch: 0.005, targetX: 0.46, targetY: 1.535, targetZ: 0.0 });
+      });
+    } else if (st.id === "neck_lean_skin" && activeNeckLeanStage) {
       for (const m of N1_FOCUS_MODES) {
         const b = document.createElement("button");
         b.type = "button";
@@ -2420,7 +3274,16 @@
     }
     const raw = String(idxOrId || "").trim();
     if (/^\d+$/.test(raw)) return clamp(+raw, 0, STUDIES.length - 1);
-    const low = raw.toLowerCase();
+    const low = raw.toLowerCase().replace(/[\s-]+/g, "_");
+    if (low === "ensemble" || low === "r1" || low === "master_ensemble" || low === "master" || low === "tableau" || low === "32b99d8c") {
+      return STUDIES.findIndex(s => s.id === "ensemble");
+    }
+    if (low === "pump_closeup" || low === "r2" || low === "pump_macro" || low === "pump_bowl" || low === "standpipe_closeup" || low === "two_shot" || low === "0bc287c6") {
+      return STUDIES.findIndex(s => s.id === "pump_closeup");
+    }
+    if (low === "clay_bust" || low === "r3" || low === "clay" || low === "clay_turnaround" || low === "bust_turnaround" || low === "bust" || low === "sculpt" || low === "0b07591c") {
+      return STUDIES.findIndex(s => s.id === "clay_bust");
+    }
     if (low === "n1" || low === "neck" || low === "lean" || low === "neck_lean" || low === "skin" || low === "neck_lean_skin") {
       return STUDIES.findIndex(s => s.id === "neck_lean_skin");
     }
@@ -2430,23 +3293,41 @@
     if (low === "e2" || low === "gestures" || low === "hand_acting" || low === "exp_hand_acting") {
       return STUDIES.findIndex(s => s.id === "exp_hand_acting");
     }
-    if (low === "m1" || low === "macro a" || low === "macro_a" || low === "hands") return STUDIES.findIndex(s => s.id === "macro_hands");
-    if (low === "m2" || low === "macro b" || low === "macro_b" || low === "portraits" || low === "faces") return STUDIES.findIndex(s => s.id === "macro_portraits");
-    if (low === "m3" || low === "macro c" || low === "macro_c" || low === "skeleton") return STUDIES.findIndex(s => s.id === "macro_skeleton");
-    const found = STUDIES.findIndex(s => s.id.toLowerCase() === low || s.short.toLowerCase().includes(low));
-    return found >= 0 ? found : STUDIES.findIndex(s => s.id === "neck_lean_skin");
+    if (low === "m1" || low === "macro_a" || low === "hands") return STUDIES.findIndex(s => s.id === "macro_hands");
+    if (low === "m2" || low === "macro_b" || low === "portraits" || low === "faces") return STUDIES.findIndex(s => s.id === "macro_portraits");
+    if (low === "m3" || low === "macro_c" || low === "skeleton") return STUDIES.findIndex(s => s.id === "macro_skeleton");
+    const found = STUDIES.findIndex(s => s.id.toLowerCase() === low || s.short.toLowerCase().replace(/[\s-]+/g, "_").includes(low));
+    return found >= 0 ? found : STUDIES.findIndex(s => s.id === "ensemble");
   }
 
   function loadStudy(idxOrId) {
     activeStudyIdx = resolveStudyIndex(idxOrId);
     const st = STUDIES[activeStudyIdx];
     clearStage();
+
+    // Auto-manage full-bleed widescreen viewport for R1, R2, R3 Reference Plates (unless user manually toggled Ref Sheet drawer)
+    document.body.classList.toggle("ref-plate-mode", Boolean(st.isRefPlate));
+    if (!userToggledDrawer && window.innerWidth > 980) {
+      const wantDrawerClosed = Boolean(st.isRefPlate);
+      document.body.classList.toggle("drawer-closed", wantDrawerClosed);
+      if ($("btn-drawer")) {
+        $("btn-drawer").setAttribute("aria-pressed", String(!wantDrawerClosed));
+        $("btn-drawer").textContent = wantDrawerClosed ? "Ref Sheet ▴" : "Ref Sheet ▾";
+      }
+      applyResizeNow();
+    }
+
+    if (st.sunDeg !== undefined) {
+      camState.sunDeg = st.sunDeg;
+      if ($("sun-angle")) $("sun-angle").value = String(st.sunDeg);
+    }
     setPaperMode(st.night);
 
     applySkeletonStateToActors(Boolean(st.autoSkeleton || userSkeletonPinned));
 
-    if (camera.fov !== 34) {
-      camera.fov = 34;
+    const wantFov = st.cam.fov || 34;
+    if (camera.fov !== wantFov) {
+      camera.fov = wantFov;
       camera.updateProjectionMatrix();
     }
     camState.dist = camState.wantDist = st.cam.dist;
@@ -2461,7 +3342,52 @@
     const isLargeArch = st.id.startsWith("arch_") && st.id !== "arch_props";
     plinthRing.scale.setScalar(isLargeArch ? 3.2 : (st.isMacro ? 0.92 : 1.15));
 
-    if (st.id === "neck_lean_skin") {
+    if (st.id === "ensemble" || st.id === "pump_closeup") {
+      const mode = st.id === "pump_closeup" ? "pump_closeup" : "ensemble";
+      const SGG = window.ScionGroomGarments;
+      const tableau = (SGG && typeof SGG.buildMasterTableau === "function")
+        ? SGG.buildMasterTableau(T, { mode, assetPath: "../donkey/", includeGround: false })
+        : buildFallbackMasterTableau(T, { mode });
+      const tGroup = tableau.root || tableau.group;
+      if (tGroup) {
+        ensureCourtyardGroundForRef(tGroup);
+        calibrateRefTableauMaterials(tableau);
+        stageRoot.add(tGroup);
+      }
+      activeRefTableau = tableau;
+      activeDonkey = tableau.donkey || null;
+      activeStudyPump = tableau.standpipe || null;
+
+      if (Array.isArray(tableau.actors)) {
+        for (const a of tableau.actors) {
+          const ch = a.ch || a;
+          if (!ch || !ch.group) continue;
+          if (skeletonXRayActive && typeof ch.setDebugSkeleton === "function") {
+            ch.setDebugSkeleton(true);
+          }
+          activeActors.push({
+            ch,
+            pose: "tableau",
+            baseX: ch.group.position.x,
+            baseZ: ch.group.position.z,
+            baseHeading: ch.state?.heading || 0
+          });
+        }
+      }
+      if (claySculptOverride) {
+        applyClaySculptOverrideState(true);
+      }
+      if (tableau.cameraHint || st.cam) {
+        setCameraPreset(getRefTableauCameraPreset(st, tableau), true);
+      }
+      if (typeof tableau.update === "function") {
+        tableau.update(0.016, 0, {});
+        syncPumpCloseupComposition(tableau, 0.016, 0);
+      }
+    } else if (st.id === "clay_bust") {
+      buildClayBustTurnaroundStage(activeClayCastId);
+      setCameraPreset(st.cam, true);
+    } else if (st.id === "neck_lean_skin") {
       // N1: Flagship 85mm Leaning Neck, Oval V-Jawline & Face-Neck-Chest-Shoulder-Arm-Hand Skin Continuity Stage!
       const plinthMat = new T.MeshStandardMaterial({ color: 0x383733, roughness: 0.88, metalness: 0.05 });
       const junePlinth = new T.Mesh(new T.CylinderGeometry(0.16, 0.18, 0.36, 32), plinthMat);
@@ -2881,6 +3807,10 @@
       b.classList.toggle("active", isAct);
       b.setAttribute("aria-pressed", String(isAct));
     });
+    if (window.__study && typeof window.__study.applySceneDefaultLook === "function") {
+      window.__study.applySceneDefaultLook(st.defaultLook || "raw");
+    }
+    syncRefCompareOverlay();
     renderVisemeHudChips();
     renderModePills(st);
     renderFocusPills(st);
@@ -2888,9 +3818,9 @@
     renderMatchedTab(st);
   }
 
-  /* ---------- Populate UI Pills (Flagship N1 Neck Lean & Skin First, Followed by E1, E2, M1..M3 & Classic 1..10) ---------- */
+  /* ---------- Populate UI Pills (Gold-Standard R1, R2, R3 Reference Plates First, Followed by N1, E1, E2, M1..M3 & Classic 1..10) ---------- */
   const pillsWrap = $("study-pills");
-  const PILL_ORDER = [15, 13, 14, 10, 11, 12, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const PILL_ORDER = [16, 17, 18, -1, 15, 13, 14, 10, 11, 12, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
   for (const idx of PILL_ORDER) {
     if (idx === -1) {
       const sep = document.createElement("span");
@@ -2902,7 +3832,7 @@
     const st = STUDIES[idx];
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "pill" + (st.isNeckLean ? " pill-lean" : st.isExp ? " pill-exp" : st.isMacro ? " pill-macro" : "");
+    b.className = "pill" + (st.isRefPlate ? " pill-ref" : st.isNeckLean ? " pill-lean" : st.isExp ? " pill-exp" : st.isMacro ? " pill-macro" : "");
     b.dataset.studyIdx = String(idx);
     b.textContent = st.short;
     b.addEventListener("click", () => loadStudy(idx));
@@ -3156,10 +4086,17 @@
     updateSunDirection();
   });
   $("btn-drawer").addEventListener("click", () => {
+    userToggledDrawer = true;
     const closed = document.body.classList.toggle("drawer-closed");
     $("btn-drawer").setAttribute("aria-pressed", String(!closed));
     $("btn-drawer").textContent = closed ? "Ref Sheet ▴" : "Ref Sheet ▾";
     setTimeout(resize, 260);
+  });
+  window.addEventListener("keydown", e => {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    if (e.key === "h" || e.key === "H") {
+      document.body.classList.toggle("hud-clean-mode");
+    }
   });
 
   bindDirectorSliders();
@@ -3198,18 +4135,38 @@
     $("btn-drawer").textContent = "Ref Sheet ▴";
   }
 
-  /* ---------- Initial Plate Selection (Defaulting to Flagship N1 · Leaning Neck, Jawline & Skin Continuity!) ---------- */
+  /* ---------- Initial Plate Selection (Defaulting to R1 · Master Ensemble Hero Plate, supporting ?scene= & ?study=!) ---------- */
   const urlParams = new URLSearchParams(location.search);
-  const rawStudyParam = urlParams.get("study");
-  const defaultIdx = STUDIES.findIndex(s => s.id === "neck_lean_skin");
+  if (urlParams.get("drawer") === "1" || urlParams.get("drawer") === "open") {
+    userToggledDrawer = true;
+    document.body.classList.remove("drawer-closed");
+  } else if (urlParams.get("drawer") === "0" || urlParams.get("drawer") === "closed") {
+    userToggledDrawer = true;
+    document.body.classList.add("drawer-closed");
+  }
+  if (urlParams.get("hud") === "0" || urlParams.get("clean") === "1") {
+    document.body.classList.add("hud-clean-mode");
+  }
+  const rawActorParam = urlParams.get("actor") || urlParams.get("cast") || urlParams.get("char");
+  if (rawActorParam) {
+    const foundClay = CLAY_CAST_SPECS.find(c => c.id === String(rawActorParam).toLowerCase());
+    if (foundClay) activeClayCastId = foundClay.id;
+  }
+  const rawStudyParam = urlParams.get("scene") !== null ? urlParams.get("scene")
+    : urlParams.get("study") !== null ? urlParams.get("study")
+    : urlParams.get("plate");
+  const defaultIdx = STUDIES.findIndex(s => s.id === "ensemble");
   loadStudy(rawStudyParam !== null ? rawStudyParam : (defaultIdx >= 0 ? defaultIdx : 0));
   if (urlParams.get("leanMode") || (STUDIES[activeStudyIdx]?.id === "neck_lean_skin" && urlParams.get("mode"))) {
     applyNeckLeanMode(urlParams.get("leanMode") || urlParams.get("mode"), true);
   } else if (urlParams.get("mode")) {
     applyEmotionMode(urlParams.get("mode"), true);
   }
-  if (urlParams.get("actor") !== null && STUDIES[activeStudyIdx]?.id === "neck_lean_skin") {
-    setNeckLeanActor(urlParams.get("actor"), true);
+  if (rawActorParam && STUDIES[activeStudyIdx]?.id === "neck_lean_skin") {
+    setNeckLeanActor(rawActorParam, true);
+  }
+  if (urlParams.get("compare")) {
+    setRefCompareMode(urlParams.get("compare"), urlParams.get("split") ? +urlParams.get("split") : undefined);
   }
   if (urlParams.get("neckLean") !== null) {
     setNeckLeanAngle(+urlParams.get("neckLean"));
@@ -3666,7 +4623,39 @@
     ));
 
     let inspectNeckLeanUsed = null;
-    for (let actorIdx = 0; actorIdx < activeActors.length; actorIdx++) {
+    if (activeRefTableau && typeof activeRefTableau.update === "function") {
+      for (const item of activeActors) {
+        if (item.ch && item.ch.userData) {
+          item.ch.userData.emotionOverride = dirOverride || null;
+        }
+      }
+      activeRefTableau.update(dt, nowSec, {
+        emotionOverride: dirOverride,
+        mood: forcedMood,
+        surfaceAt: flatGround
+      });
+      syncPumpCloseupComposition(activeRefTableau, dt, nowSec);
+    } else if (activeClayTurnaround) {
+      // Steady classical sculptor's 3-bust turnaround (0°, 35°, 90°) — preserve exact headings without camera gaze tracking!
+      for (let actorIdx = 0; actorIdx < activeActors.length; actorIdx++) {
+        const item = activeActors[actorIdx];
+        if (!item.ch || !item.ch.group.visible) continue;
+        if (item.ch.userData) {
+          item.ch.userData.emotionOverride = dirOverride || null;
+        }
+        item.ch.update(0.0, 0.0, {
+          pose: "idle",
+          surfaceAt: flatGround,
+          lookAt: undefined,
+          emotion: dirOverride?.emotion || "neutral",
+          emotionIntensity: dirOverride?.intensity !== undefined ? dirOverride.intensity : 0.25,
+          speaking: Boolean(dirOverride?.speaking),
+          viseme: dirOverride?.viseme || "SIL",
+          visemeAmount: dirOverride?.visemeAmount !== undefined ? dirOverride.visemeAmount : 1.0,
+          neckLean: dirOverride?.neckLean
+        });
+      }
+    } else for (let actorIdx = 0; actorIdx < activeActors.length; actorIdx++) {
       const item = activeActors[actorIdx];
       if (!item.ch || !item.ch.group.visible) continue;
       const opts = {
@@ -3968,7 +4957,7 @@
       }
     }
 
-    if (activeDonkey) {
+    if (activeDonkey && !activeRefTableau) {
       activeDonkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: 2, drop: 0 }, flatGround);
     }
 
@@ -3997,7 +4986,8 @@
     updateSunDirection();
 
     const cp = Math.cos(camState.pitch), sp = Math.sin(camState.pitch);
-    const effDist = camState.dist * (camera.aspect < 0.85 ? clamp(0.88 / camera.aspect, 1.0, 1.52) : 1.0);
+    const wideRefMinAspect = (st.id === "ensemble" || st.id === "clay_bust") ? 1.56 : 0.85;
+    const effDist = camState.dist * (camera.aspect < wideRefMinAspect ? clamp((wideRefMinAspect + 0.04) / Math.max(0.45, camera.aspect), 1.0, 1.85) : 1.0);
     camera.position.set(
       camState.targetX + Math.sin(camState.yaw) * cp * effDist,
       camState.targetY + sp * effDist,
@@ -4050,7 +5040,7 @@
     liveTelemetry.handGestureL = liveHandLNow;
     liveTelemetry.handGestureR = liveHandRNow;
 
-    const showHud = Boolean(st.isExp || st.isNeckLean || dirOverride || liveJawNow > 0.04 || Math.abs(neckTelemetry.rollDeg) > 1.5 || liveEmoNow !== "neutral");
+    const showHud = !st.isRefPlate && Boolean(st.isExp || st.isNeckLean || dirOverride || liveJawNow > 0.04 || Math.abs(neckTelemetry.rollDeg) > 1.5 || liveEmoNow !== "neutral");
     if (hudEl) {
       hudEl.hidden = !showHud;
       if (showHud) {
@@ -4088,11 +5078,13 @@
       ? "56-BONE X-RAY ACTIVE"
       : dirOverride
         ? `DIRECTOR: ${directorState.preset.toUpperCase()} (${Math.round(neckTelemetry.rollDeg)}°)`
-        : st.isNeckLean
-          ? `NECK LEAN: ${(activeNeckLeanStage?.mode || "CYCLE").toUpperCase()} (${neckTelemetry.rollDeg > 0 ? "+" : ""}${Math.round(neckTelemetry.rollDeg)}°)`
-          : st.isExp
-            ? `FACS: ${String(liveEmoNow).replace(/_/g, " ").toUpperCase()}`
-            : `MOOD: ${(forcedMood || "AUTO").toUpperCase()}`;
+        : st.isRefPlate
+          ? `LOOK: ${String((window.__study && window.__study.getLook && window.__study.getLook().name) || refCompareState.lookId).toUpperCase()}`
+          : st.isNeckLean
+            ? `NECK LEAN: ${(activeNeckLeanStage?.mode || "CYCLE").toUpperCase()} (${neckTelemetry.rollDeg > 0 ? "+" : ""}${Math.round(neckTelemetry.rollDeg)}°)`
+            : st.isExp
+              ? `FACS: ${String(liveEmoNow).replace(/_/g, " ").toUpperCase()}`
+              : `MOOD: ${(forcedMood || "AUTO").toUpperCase()}`;
 
     if (evenSkinLightActive && !camState.night) {
       updateSunDirection();
@@ -4126,6 +5118,16 @@
     customFrameHook: null,
     customRenderHook: null,
     loadStudy,
+    setScene: loadStudy,
+    setClayCharacter,
+    setClaySculptOverride: applyClaySculptOverrideState,
+    setRefCompare: setRefCompareMode,
+    isClayScene: () => Boolean(STUDIES[activeStudyIdx]?.isClayTurnaround),
+    getActiveSceneDefaultLook: () => STUDIES[activeStudyIdx]?.defaultLook || "raw",
+    onLookChanged: lookId => {
+      refCompareState.lookId = lookId || "raw";
+      syncRefCompareOverlay();
+    },
     setNeckLeanMode: (modeKey, snap = true) => applyNeckLeanMode(modeKey, snap),
     setNeckLeanAngle: (deg, opts) => setNeckLeanAngle(deg, opts),
     setNeckLeanActor: (actorIdxOrId, snap = true) => setNeckLeanActor(actorIdxOrId, snap),
@@ -4200,10 +5202,15 @@
       actorCount: activeActors.length,
       boneCount: activeActors[0]?.ch?.bones?.length || 0,
       hasHumanSculptV3: Boolean(window.HumanSculptV3),
+      hasHumanPhysicalV6: Boolean(window.HumanPhysicalV6),
+      hasScionGroomGarments: Boolean(window.ScionGroomGarments),
       hasHumanExpressionsV4: Boolean(window.HumanExpressionsV4),
       hasScionEyeGlobe: Boolean(window.ScionEyeGlobe),
       hasScionEyelids: Boolean(window.ScionEyelids),
       hasScionNeck: Boolean(window.ScionNeck),
+      clayCastId: activeClayCastId,
+      refCompareMode: refCompareState.mode,
+      usingScionTableau: Boolean(activeRefTableau && window.ScionGroomGarments),
       macroVideosLive: MACRO_VIDEOS_LIVE,
       liveVideoCount: STUDY_VIDEOS.filter(isVideoAvailable).length,
       hasDonkey: Boolean(activeDonkey),

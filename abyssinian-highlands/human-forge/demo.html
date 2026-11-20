@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>human-forge — allometric Anny rig · DQS neck · 3-view bust</title>
+<style>
+html,body{margin:0;height:100%;background:#1a1816;color:#e7ded2;font:13px/1.35 ui-monospace,Menlo,monospace;overflow:hidden}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#ui{position:fixed;top:8px;left:8px;width:262px;max-height:calc(100% - 16px);overflow:auto;background:rgba(20,18,16,.82);border:1px solid #4a423a;padding:8px 10px;border-radius:6px}
+#ui h1{font-size:13px;margin:0 0 6px;color:#f0c987}
+label{display:block;margin:5px 0 0}label span{float:right;color:#f0c987}
+input[type=range]{width:100%}button,select{background:#2b2622;color:#e7ded2;border:1px solid #6a5d50;border-radius:4px;padding:3px 7px;margin:2px 2px 0 0;font:inherit;cursor:pointer}
+button.on{background:#7a5a2c}#hud{position:fixed;right:10px;bottom:8px;color:#a99a87;text-align:right}
+.lab{position:fixed;color:#c9bba8;font-size:12px;bottom:34px;text-align:center;pointer-events:none}
+@media(max-width:600px){#ui{width:calc(100% - 36px);max-height:38%}}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="ui"><h1>human-forge · Anny/CC0 allometric rig</h1>
+<div>figure <select id="fig"></select></div>
+<div>view <button data-v="bust" class="on">bust 0°/35°/90°</button><button data-v="full">full</button></div>
+<div>draw <button data-m="solid" class="on">solid</button><button data-m="wire">wire</button><button data-m="xray">bone X-ray</button></div>
+<label>age centile z <span id="o_z">0</span><input id="z" type="range" min="-2" max="2" step=".05" value="0"></label>
+<label>neck lean (°) <span id="o_lean">0</span><input id="lean" type="range" min="-24" max="24" step=".5" value="0"></label>
+<label>neck flex/ext (°) <span id="o_flex">0</span><input id="flex" type="range" min="-22" max="40" step=".5" value="0"></label>
+<label>forearm pronation (°) <span id="o_pro">0</span><input id="pro" type="range" min="0" max="160" step="1" value="0"></label>
+<label>arm lowering (°) <span id="o_arm">62</span><input id="arm" type="range" min="0" max="95" step="1" value="62"></label>
+<label>elbow flex (°) <span id="o_elb">20</span><input id="elb" type="range" min="0" max="140" step="1" value="20"></label>
+<label>Eskista amp <span id="o_esk">0</span><input id="esk" type="range" min="0" max="1" step=".05" value="0"></label>
+<label>IK pump-lever reach (R) <span id="o_ik">off</span><input id="ik" type="range" min="-1" max="1" step=".02" value="-1"></label>
+<div id="info" style="margin-top:6px;color:#a99a87"></div></div>
+<div id="hud"></div>
+<script src="assets/human-assets.js"></script><script src="allometric-rig.js"></script>
+<script>
+(()=>{
+const cv=document.getElementById('c'),gl=cv.getContext('webgl2',{antialias:true});
+if(!gl){document.body.insertAdjacentHTML('beforeend','<p style="margin:80px">WebGL2 unavailable</p>');return;}
+if(!gl.getExtension('EXT_color_buffer_float')){} 
+const rig=AllometricRig.create(gl),$=id=>document.getElementById(id);
+const keys=['child7','adult_f','adult_m','elder'],figs={};keys.forEach(k=>{figs[k]=rig.addFigure(k);$('fig').add(new Option(figs[k].meta.label,k));});
+$('fig').value='adult_m';
+const S={fig:'adult_m',view:'bust',mode:'solid',yaw:0};
+// ---- mat4
+const ortho=(l,r,b,t,n,f)=>{const m=new Float32Array(16);m[0]=2/(r-l);m[5]=2/(t-b);m[10]=-2/(f-n);m[12]=-(r+l)/(r-l);m[13]=-(t+b)/(t-b);m[14]=-(f+n)/(f-n);m[15]=1;return m;};
+const persp=(fy,a,n,f)=>{const t=1/Math.tan(fy/2),m=new Float32Array(16);m[0]=t/a;m[5]=t;m[10]=(f+n)/(n-f);m[11]=-1;m[14]=2*f*n/(n-f);return m;};
+const mul=(a,b)=>{const o=new Float32Array(16);for(let i=0;i<4;i++)for(let j=0;j<4;j++){let s=0;for(let k=0;k<4;k++)s+=a[k*4+j]*b[i*4+k];o[i*4+j]=s;}return o;};
+const look=(e,c)=>{let z=[e[0]-c[0],e[1]-c[1],e[2]-c[2]],l=Math.hypot(...z);z=z.map(v=>v/l);let x=[z[2],0,-z[0]];l=Math.hypot(...x);x=x.map(v=>v/l);const y=[z[1]*x[2]-z[2]*x[1],z[2]*x[0]-z[0]*x[2],z[0]*x[1]-z[1]*x[0]];
+ const m=new Float32Array(16);m.set([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-(x[0]*e[0]+x[1]*e[1]+x[2]*e[2]),-(y[0]*e[0]+y[1]*e[1]+y[2]*e[2]),-(z[0]*e[0]+z[1]*e[1]+z[2]*e[2]),1]);return m;};
+const rotY=a=>{const c=Math.cos(a),s=Math.sin(a);return new Float32Array([c,0,-s,0,0,1,0,0,s,0,c,0,0,0,0,1]);};
+// ---- dials
+const val=id=>+$(id).value;
+function applyPose(){const f=figs[S.fig];
+ const o={neckLeanDeg:val('lean'),neckFlexDeg:val('flex'),pronationDeg:val('pro'),armDownDeg:val('arm'),elbowFlexDeg:val('elb'),eskistaAmp:val('esk')};
+ f.setCentile(val('z'));f.setPose(o);
+ for(const [k,u] of [['z',''],['lean','°'],['flex','°'],['pro','°'],['arm','°'],['elb','°'],['esk','']])$('o_'+k).textContent=$(k).value+u;
+ const r=val('ik');
+ if(r<=-1){f.ik2('R',null);f.ik2('L',null);$('o_ik').textContent='off';}
+ else{const h=f.baseHeight;$('o_ik').textContent=r.toFixed(2);
+  f.ik2('R',[-0.17*h/1.7-0.04,h*(0.62+0.18*r),h*(0.16+0.1*(1-r))]);}
+ $('info').textContent=f.meta.label+' · '+f.height.toFixed(3)+' m · '+f.headsTall.toFixed(2)+' heads · '+f.nv+' verts';
+}
+['z','lean','flex','pro','arm','elb','esk','ik'].forEach(id=>$(id).addEventListener('input',applyPose));
+$('fig').onchange=()=>{S.fig=$('fig').value;applyPose();};
+document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{S.view=b.dataset.v;document.querySelectorAll('[data-v]').forEach(x=>x.classList.toggle('on',x===b));});
+document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{S.mode=b.dataset.m;document.querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on',x===b));});
+applyPose();
+function resize(){const d=Math.min(devicePixelRatio||1,2);cv.width=innerWidth*d;cv.height=innerHeight*d;}addEventListener('resize',resize);resize();
+let t0=performance.now(),frames=0,fps=0,tl=t0;const W=window.__forge={fps:0,figs,S,applyPose,rig};
+function draw(now){
+ const f=figs[S.fig],H=f.height,W_=cv.width,H_=cv.height;gl.viewport(0,0,W_,H_);gl.disable(gl.SCISSOR_TEST);gl.clearColor(.78,.74,.69,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.enable(gl.DEPTH_TEST);
+ const esk=val('esk');if(esk>0){f.pose.eskista=(now/1600)%1;f.setPose({});}
+ if(S.view==='bust'){
+  const yaws=[0,35,90],uiw=innerWidth>600?280*Math.min(devicePixelRatio||1,2):0,aw=W_-uiw,pw=aw/3;
+  const cy=H*0.845,half=H*0.215;
+  yaws.forEach((y,i)=>{const x=uiw+i*pw;gl.viewport(x,0,pw,H_);gl.enable(gl.SCISSOR_TEST);gl.scissor(x,0,pw,H_);
+   const asp=pw/H_,hh=Math.max(half,half*0.62/asp*0+half),P=ortho(-hh*asp,hh*asp,-hh,hh,0.1,20);
+   const V=look([0,cy,4],[0,cy,0]),M=rotY(y*Math.PI/180);
+   gl.clear(gl.DEPTH_BUFFER_BIT);
+   f.draw({viewProj:mul(P,V),model:M,mode:S.mode,clipY:0.79*f.baseHeight,light:[.5,.6,.8],eye:[0,cy,4]});});
+  gl.disable(gl.SCISSOR_TEST);
+ }else{
+  const asp=W_/H_,P=persp(.6,asp,.1,50),yaw=now/6000,r=H*2.6,V=look([Math.sin(yaw)*r,H*.55,Math.cos(yaw)*r],[0,H*.5,0]);
+  f.draw({viewProj:mul(P,V),model:new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]),mode:S.mode,light:[.5,.8,.7],eye:[Math.sin(yaw)*r,H*.55,Math.cos(yaw)*r]});
+ }
+ frames++;if(now-tl>500){fps=frames*1000/(now-tl);frames=0;tl=now;W.fps=fps;$('hud').textContent=fps.toFixed(0)+' fps · '+S.view+' · '+S.mode+' · gl.getError='+gl.getError();}
+ requestAnimationFrame(draw);}
+requestAnimationFrame(draw);
+})();
+</script></body></html>

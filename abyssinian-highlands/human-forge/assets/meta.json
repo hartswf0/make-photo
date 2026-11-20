@@ -1,0 +1,94 @@
+{
+ "child7": {
+  "label": "Child, 7 y (6.0-head)",
+  "info": {
+   "pivot": [
+    0.0,
+    1.0169166816693027,
+    0.026126668732831412
+   ],
+   "stature": 1.218250015002636,
+   "head_h": 0.20133333333333336,
+   "heads_tall": 6.050910670542893,
+   "head_scale": 1.0536416003876223,
+   "anny_age": 0.215
+  },
+  "nverts": 13718,
+  "ntris": 27420,
+  "hair_verts": 229,
+  "hair_tris": 346,
+  "glb_bytes": 1007616,
+  "blob_bytes": 543172,
+  "layout": null,
+  "bones": null
+ },
+ "adult_f": {
+  "label": "Adult woman (7.5-head)",
+  "info": {
+   "pivot": [
+    0.0,
+    1.3838631099784742,
+    0.04563648349738644
+   ],
+   "stature": 1.5971964433118075,
+   "head_h": 0.21333333333333337,
+   "heads_tall": 7.486858328024097,
+   "head_scale": 0.9870287913927449,
+   "anny_age": 0.52
+  },
+  "nverts": 13718,
+  "ntris": 27420,
+  "hair_verts": 244,
+  "hair_tris": 386,
+  "glb_bytes": 1007588,
+  "blob_bytes": 543812,
+  "layout": null,
+  "bones": null
+ },
+ "adult_m": {
+  "label": "Adult man (7.5-head)",
+  "info": {
+   "pivot": [
+    0.0,
+    1.4953224851852676,
+    0.03431698731430827
+   ],
+   "stature": 1.724655818518601,
+   "head_h": 0.2293333333333334,
+   "heads_tall": 7.520301534238084,
+   "head_scale": 1.0207222272439673,
+   "anny_age": 0.55
+  },
+  "nverts": 13718,
+  "ntris": 27420,
+  "hair_verts": 576,
+  "hair_tris": 924,
+  "glb_bytes": 1007580,
+  "blob_bytes": 556004,
+  "layout": null,
+  "bones": null
+ },
+ "elder": {
+  "label": "Elder (7.5-head)",
+  "info": {
+   "pivot": [
+    0.0,
+    1.3690835460265272,
+    0.0418156500556198
+   ],
+   "stature": 1.579750212693194,
+   "head_h": 0.21066666666666678,
+   "heads_tall": 7.498814300758828,
+   "head_scale": 0.9988157049765417,
+   "anny_age": 0.88
+  },
+  "nverts": 13718,
+  "ntris": 27420,
+  "hair_verts": 268,
+  "hair_tris": 419,
+  "glb_bytes": 1007608,
+  "blob_bytes": 544660,
+  "layout": null,
+  "bones": null
+ }
+}

@@ -1,0 +1,13 @@
+{
+ "pack": "abyssinian-orbital-dem-v1",
+ "width": 420,
+ "height": 540,
+ "latSouth": 6.0,
+ "latNorth": 15.0,
+ "lonWest": 35.0,
+ "lonEast": 42.0,
+ "minElevM": -525.6,
+ "maxElevM": 4317.7,
+ "source": "AWS Open Data Terrain Tiles (Terrarium: SRTM/GMTED/ETOPO1) z7, https://registry.opendata.aws/terrain-tiles/ ; bilinear resample to 1/60 deg grid",
+ "note": "Real elevations; mesh rendering is stylized (vertical exaggeration, hillshade colouring)."
+}

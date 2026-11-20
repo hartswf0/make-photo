@@ -1,0 +1,493 @@
+{
+ "name": "abyssinian-highlands field-pack",
+ "built": "2026-11-19",
+ "source": "Fields of The World global (PRUE model on Sentinel-2, 10 m), predictions/vectors/alpha/results-by-admin, year 2025",
+ "sourceUrl": "https://source.coop/tge-labs/ftw-global-data",
+ "license": "CC-BY-4.0 (Taylor Geospatial et al.; Robinson et al. 2026 arXiv:2605.11055)",
+ "format": {
+  "magic": "ABF1",
+  "header": "<4s I nf, I nv, I 0, f32 x0,y0,x1,y1 (window bbox)",
+  "arrays": [
+   "u32 offsets[nf+1]",
+   "f32 area_m2[nf]",
+   "i16 xy[nv*2] (value+32768)/65535*window span + window min",
+   "u8 orient[nf] (*180/255 deg, long axis, CCW from east)",
+   "u8 shape[nf]",
+   "u8 crop[nf] (all 0 = unknown)"
+  ]
+ },
+ "shapeClasses": [
+  "unknown",
+  "jigsaw",
+  "contour-ribbon",
+  "riparian-strip",
+  "lowland-block"
+ ],
+ "cropClasses": [
+  "unknown"
+ ],
+ "simplifyToleranceM": 7.0,
+ "minAreaM2": 300.0,
+ "shapeClassNote": "Geometry heuristics (elongation, rectangle fill ratio, area) on real FTW polygons; not ground-truth labels.",
+ "synthetic": false,
+ "regions": {
+  "tana": {
+   "file": "fields_tana.bin",
+   "bytes": 209828,
+   "regionBbox": [
+    37.0,
+    11.4,
+    37.8,
+    12.3
+   ],
+   "windowBbox": [
+    37.0,
+    11.96,
+    37.16,
+    12.12
+   ],
+   "fieldsInRegionAfterFilter": 781684,
+   "fields": 6441,
+   "vertices": 34733,
+   "sourceFiles": [
+    "ET_AM.parquet"
+   ],
+   "areaHistHa": {
+    "bins": [
+     0,
+     0.05,
+     0.1,
+     0.25,
+     0.5,
+     1,
+     2,
+     5,
+     20,
+     "inf"
+    ],
+    "counts": [
+     1920,
+     2463,
+     1640,
+     317,
+     65,
+     20,
+     9,
+     6,
+     1
+    ]
+   },
+   "medianAreaHa": 0.068,
+   "shareByShape": {
+    "unknown": 0.0003,
+    "jigsaw": 0.9568,
+    "contour-ribbon": 0.0391,
+    "riparian-strip": 0.0037,
+    "lowland-block": 0.0
+   },
+   "countByShape": {
+    "unknown": 2,
+    "jigsaw": 6163,
+    "contour-ribbon": 252,
+    "riparian-strip": 24,
+    "lowland-block": 0
+   },
+   "meanVertices": 5.39
+  },
+  "dem_simien": {
+   "file": "fields_dem_simien.bin",
+   "bytes": 6492,
+   "regionBbox": [
+    38.067,
+    13.2358,
+    38.126,
+    13.2932
+   ],
+   "windowBbox": [
+    38.067,
+    13.2358,
+    38.126,
+    13.2932
+   ],
+   "fieldsInRegionAfterFilter": -1,
+   "fields": 139,
+   "vertices": 1231,
+   "sourceFiles": [
+    "ET_AM.parquet",
+    "ET_TI.parquet"
+   ],
+   "areaHistHa": {
+    "bins": [
+     0,
+     0.05,
+     0.1,
+     0.25,
+     0.5,
+     1,
+     2,
+     5,
+     20,
+     "inf"
+    ],
+    "counts": [
+     24,
+     50,
+     40,
+     15,
+     4,
+     1,
+     2,
+     1,
+     2
+    ]
+   },
+   "medianAreaHa": 0.097,
+   "shareByShape": {
+    "unknown": 0.0216,
+    "jigsaw": 0.9496,
+    "contour-ribbon": 0.0288,
+    "riparian-strip": 0.0,
+    "lowland-block": 0.0
+   },
+   "countByShape": {
+    "unknown": 3,
+    "jigsaw": 132,
+    "contour-ribbon": 4,
+    "riparian-strip": 0,
+    "lowland-block": 0
+   },
+   "meanVertices": 8.86,
+   "exemplar": false,
+   "note": "clipped to real-DEM tile bounds; all real polygons whose bbox-centre lies in the tile (no density selection)"
+  },
+  "dem_gheralta": {
+   "file": "fields_dem_gheralta.bin",
+   "bytes": 134172,
+   "regionBbox": [
+    39.4018,
+    13.9461,
+    39.4554,
+    13.9983
+   ],
+   "windowBbox": [
+    39.4018,
+    13.9461,
+    39.4554,
+    13.9983
+   ],
+   "fieldsInRegionAfterFilter": -1,
+   "fields": 3584,
+   "vertices": 23678,
+   "sourceFiles": [
+    "ET_TI.parquet"
+   ],
+   "areaHistHa": {
+    "bins": [
+     0,
+     0.05,
+     0.1,
+     0.25,
+     0.5,
+     1,
+     2,
+     5,
+     20,
+     "inf"
+    ],
+    "counts": [
+     784,
+     1049,
+     1148,
+     363,
+     167,
+     55,
+     16,
+     2,
+     0
+    ]
+   },
+   "medianAreaHa": 0.096,
+   "shareByShape": {
+    "unknown": 0.0003,
+    "jigsaw": 0.9542,
+    "contour-ribbon": 0.0438,
+    "riparian-strip": 0.0017,
+    "lowland-block": 0.0
+   },
+   "countByShape": {
+    "unknown": 1,
+    "jigsaw": 3420,
+    "contour-ribbon": 157,
+    "riparian-strip": 6,
+    "lowland-block": 0
+   },
+   "meanVertices": 6.61,
+   "exemplar": false,
+   "note": "clipped to real-DEM tile bounds; all real polygons whose bbox-centre lies in the tile (no density selection)"
+  },
+  "dem_gorge": {
+   "file": "fields_dem_gorge.bin",
+   "bytes": 723284,
+   "regionBbox": [
+    38.1205,
+    10.0049,
+    38.2629,
+    10.1451
+   ],
+   "windowBbox": [
+    38.1205,
+    10.0049,
+    38.2629,
+    10.1451
+   ],
+   "fieldsInRegionAfterFilter": -1,
+   "fields": 19592,
+   "vertices": 126934,
+   "sourceFiles": [
+    "ET_AM.parquet",
+    "ET_OR.parquet"
+   ],
+   "areaHistHa": {
+    "bins": [
+     0,
+     0.05,
+     0.1,
+     0.25,
+     0.5,
+     1,
+     2,
+     5,
+     20,
+     "inf"
+    ],
+    "counts": [
+     4307,
+     6036,
+     5957,
+     2133,
+     819,
+     240,
+     84,
+     16,
+     0
+    ]
+   },
+   "medianAreaHa": 0.098,
+   "shareByShape": {
+    "unknown": 0.0002,
+    "jigsaw": 0.9607,
+    "contour-ribbon": 0.0376,
+    "riparian-strip": 0.0014,
+    "lowland-block": 0.0001
+   },
+   "countByShape": {
+    "unknown": 3,
+    "jigsaw": 18823,
+    "contour-ribbon": 737,
+    "riparian-strip": 28,
+    "lowland-block": 1
+   },
+   "meanVertices": 6.48,
+   "exemplar": false,
+   "note": "clipped to real-DEM tile bounds; all real polygons whose bbox-centre lies in the tile (no density selection)"
+  },
+  "dem_gerd": {
+   "file": "fields_dem_gerd.bin",
+   "bytes": 99572,
+   "regionBbox": [
+    35.0964,
+    11.1499,
+    35.2476,
+    11.2981
+   ],
+   "windowBbox": [
+    35.0964,
+    11.1499,
+    35.2476,
+    11.2981
+   ],
+   "fieldsInRegionAfterFilter": -1,
+   "fields": 3087,
+   "vertices": 16394,
+   "sourceFiles": [
+    "ET_BE.parquet",
+    "ET_AM.parquet"
+   ],
+   "areaHistHa": {
+    "bins": [
+     0,
+     0.05,
+     0.1,
+     0.25,
+     0.5,
+     1,
+     2,
+     5,
+     20,
+     "inf"
+    ],
+    "counts": [
+     1107,
+     1125,
+     680,
+     118,
+     38,
+     14,
+     4,
+     1,
+     0
+    ]
+   },
+   "medianAreaHa": 0.068,
+   "shareByShape": {
+    "unknown": 0.0,
+    "jigsaw": 0.987,
+    "contour-ribbon": 0.0123,
+    "riparian-strip": 0.0006,
+    "lowland-block": 0.0
+   },
+   "countByShape": {
+    "unknown": 0,
+    "jigsaw": 3047,
+    "contour-ribbon": 38,
+    "riparian-strip": 2,
+    "lowland-block": 0
+   },
+   "meanVertices": 5.31,
+   "exemplar": false,
+   "note": "clipped to real-DEM tile bounds; all real polygons whose bbox-centre lies in the tile (no density selection)"
+  },
+  "ex_block": {
+   "file": "fields_ex_block.bin",
+   "bytes": 72052,
+   "regionBbox": [
+    36.35,
+    11.31,
+    36.39,
+    11.35
+   ],
+   "windowBbox": [
+    36.35,
+    11.31,
+    36.39,
+    11.35
+   ],
+   "fieldsInRegionAfterFilter": -1,
+   "fields": 1829,
+   "vertices": 12972,
+   "sourceFiles": [
+    "ET_BE.parquet"
+   ],
+   "areaHistHa": {
+    "bins": [
+     0,
+     0.05,
+     0.1,
+     0.25,
+     0.5,
+     1,
+     2,
+     5,
+     20,
+     "inf"
+    ],
+    "counts": [
+     427,
+     574,
+     485,
+     174,
+     85,
+     40,
+     27,
+     17,
+     0
+    ]
+   },
+   "medianAreaHa": 0.088,
+   "shareByShape": {
+    "unknown": 0.0011,
+    "jigsaw": 0.9366,
+    "contour-ribbon": 0.0481,
+    "riparian-strip": 0.0055,
+    "lowland-block": 0.0087
+   },
+   "countByShape": {
+    "unknown": 2,
+    "jigsaw": 1713,
+    "contour-ribbon": 88,
+    "riparian-strip": 10,
+    "lowland-block": 16
+   },
+   "meanVertices": 7.09,
+   "exemplar": true,
+   "note": "Pawe/Metekel state-farm area (best real compact >=0.8 ha parcels found in FTW Ethiopia; elsewhere than the highland tiles)"
+  },
+  "ex_riparian": {
+   "file": "fields_ex_riparian.bin",
+   "bytes": 129652,
+   "regionBbox": [
+    37.06,
+    11.69,
+    37.1,
+    11.73
+   ],
+   "windowBbox": [
+    37.06,
+    11.69,
+    37.1,
+    11.73
+   ],
+   "fieldsInRegionAfterFilter": -1,
+   "fields": 2471,
+   "vertices": 25608,
+   "sourceFiles": [
+    "ET_AM.parquet"
+   ],
+   "areaHistHa": {
+    "bins": [
+     0,
+     0.05,
+     0.1,
+     0.25,
+     0.5,
+     1,
+     2,
+     5,
+     20,
+     "inf"
+    ],
+    "counts": [
+     234,
+     509,
+     796,
+     488,
+     240,
+     147,
+     44,
+     11,
+     2
+    ]
+   },
+   "medianAreaHa": 0.175,
+   "shareByShape": {
+    "unknown": 0.0012,
+    "jigsaw": 0.9365,
+    "contour-ribbon": 0.0619,
+    "riparian-strip": 0.0004,
+    "lowland-block": 0.0
+   },
+   "countByShape": {
+    "unknown": 3,
+    "jigsaw": 2314,
+    "contour-ribbon": 153,
+    "riparian-strip": 1,
+    "lowland-block": 0
+   },
+   "meanVertices": 10.36,
+   "exemplar": true,
+   "note": "Tana basin west shore (Gilgel Abay lowland strips); densest narrow elongated polygons in the 5 regions"
+  }
+ },
+ "totalBytes": 1375052,
+ "note": "Old densest-window packs for simien/gheralta/gorge/metekel were dropped (no overlap with DEM tiles) in favour of dem_* packs clipped to DEM tile bounds; ex_* are exemplars from other places."
+}

@@ -1,0 +1,133 @@
+{
+ "heads": {
+  "child7": {
+   "stature_m": 1.2182,
+   "head_m": 0.2012,
+   "heads_tall": 6.054,
+   "target": 6,
+   "tol": 0.15,
+   "pass": true
+  },
+  "adult_f": {
+   "stature_m": 1.5972,
+   "head_m": 0.213,
+   "heads_tall": 7.498,
+   "target": 7.5,
+   "tol": 0.2,
+   "pass": true
+  },
+  "adult_m": {
+   "stature_m": 1.7247,
+   "head_m": 0.229,
+   "heads_tall": 7.531,
+   "target": 7.5,
+   "tol": 0.2,
+   "pass": true
+  },
+  "elder": {
+   "stature_m": 1.5797,
+   "head_m": 0.2103,
+   "heads_tall": 7.512,
+   "target": 7.5,
+   "tol": 0.2,
+   "pass": true
+  }
+ },
+ "jacobian": {
+  "child7": {
+   "rest_negative_tris": 16,
+   "neck": {
+    "worst_new_neg": 0,
+    "worst_minAreaRatio": 0.36,
+    "samples": 25
+   },
+   "pronation": {
+    "worst_new_neg": 0,
+    "worst_minAreaRatio": 0.062,
+    "samples": 32,
+    "elbow_flex_fold_neg": {
+     "20": 0,
+     "90": 8
+    }
+   },
+   "pass": true
+  },
+  "adult_f": {
+   "rest_negative_tris": 20,
+   "neck": {
+    "worst_new_neg": 0,
+    "worst_minAreaRatio": 0.425,
+    "samples": 25
+   },
+   "pronation": {
+    "worst_new_neg": 0,
+    "worst_minAreaRatio": 0.128,
+    "samples": 32,
+    "elbow_flex_fold_neg": {
+     "20": 0,
+     "90": 4
+    }
+   },
+   "pass": true
+  },
+  "adult_m": {
+   "rest_negative_tris": 6,
+   "neck": {
+    "worst_new_neg": 0,
+    "worst_minAreaRatio": 0.441,
+    "samples": 25
+   },
+   "pronation": {
+    "worst_new_neg": 0,
+    "worst_minAreaRatio": 0.113,
+    "samples": 32,
+    "elbow_flex_fold_neg": {
+     "20": 0,
+     "90": 6
+    }
+   },
+   "pass": true
+  },
+  "elder": {
+   "rest_negative_tris": 4,
+   "neck": {
+    "worst_new_neg": 0,
+    "worst_minAreaRatio": 0.413,
+    "samples": 25
+   },
+   "pronation": {
+    "worst_new_neg": 0,
+    "worst_minAreaRatio": 0.099,
+    "samples": 32,
+    "elbow_flex_fold_neg": {
+     "20": 0,
+     "90": 6
+    }
+   },
+   "pass": true
+  }
+ },
+ "ik": {
+  "child7": {
+   "samples": 40,
+   "worst_error_mm": 0,
+   "pass": true
+  },
+  "adult_f": {
+   "samples": 40,
+   "worst_error_mm": 0,
+   "pass": true
+  },
+  "adult_m": {
+   "samples": 40,
+   "worst_error_mm": 0,
+   "pass": true
+  },
+  "elder": {
+   "samples": 40,
+   "worst_error_mm": 0,
+   "pass": true
+  }
+ },
+ "pass": true
+}

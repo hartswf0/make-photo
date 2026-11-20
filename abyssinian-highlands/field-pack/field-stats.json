@@ -1,0 +1,310 @@
+{
+ "tana": {
+  "fields": 6441,
+  "areaHistHa": {
+   "bins": [
+    0,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1,
+    2,
+    5,
+    20,
+    "inf"
+   ],
+   "counts": [
+    1920,
+    2463,
+    1640,
+    317,
+    65,
+    20,
+    9,
+    6,
+    1
+   ]
+  },
+  "medianAreaHa": 0.068,
+  "shareByShape": {
+   "unknown": 0.0003,
+   "jigsaw": 0.9568,
+   "contour-ribbon": 0.0391,
+   "riparian-strip": 0.0037,
+   "lowland-block": 0.0
+  },
+  "countByShape": {
+   "unknown": 2,
+   "jigsaw": 6163,
+   "contour-ribbon": 252,
+   "riparian-strip": 24,
+   "lowland-block": 0
+  },
+  "meanVertices": 5.39
+ },
+ "dem_simien": {
+  "fields": 139,
+  "areaHistHa": {
+   "bins": [
+    0,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1,
+    2,
+    5,
+    20,
+    "inf"
+   ],
+   "counts": [
+    24,
+    50,
+    40,
+    15,
+    4,
+    1,
+    2,
+    1,
+    2
+   ]
+  },
+  "medianAreaHa": 0.097,
+  "shareByShape": {
+   "unknown": 0.0216,
+   "jigsaw": 0.9496,
+   "contour-ribbon": 0.0288,
+   "riparian-strip": 0.0,
+   "lowland-block": 0.0
+  },
+  "countByShape": {
+   "unknown": 3,
+   "jigsaw": 132,
+   "contour-ribbon": 4,
+   "riparian-strip": 0,
+   "lowland-block": 0
+  },
+  "meanVertices": 8.86
+ },
+ "dem_gheralta": {
+  "fields": 3584,
+  "areaHistHa": {
+   "bins": [
+    0,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1,
+    2,
+    5,
+    20,
+    "inf"
+   ],
+   "counts": [
+    784,
+    1049,
+    1148,
+    363,
+    167,
+    55,
+    16,
+    2,
+    0
+   ]
+  },
+  "medianAreaHa": 0.096,
+  "shareByShape": {
+   "unknown": 0.0003,
+   "jigsaw": 0.9542,
+   "contour-ribbon": 0.0438,
+   "riparian-strip": 0.0017,
+   "lowland-block": 0.0
+  },
+  "countByShape": {
+   "unknown": 1,
+   "jigsaw": 3420,
+   "contour-ribbon": 157,
+   "riparian-strip": 6,
+   "lowland-block": 0
+  },
+  "meanVertices": 6.61
+ },
+ "dem_gorge": {
+  "fields": 19592,
+  "areaHistHa": {
+   "bins": [
+    0,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1,
+    2,
+    5,
+    20,
+    "inf"
+   ],
+   "counts": [
+    4307,
+    6036,
+    5957,
+    2133,
+    819,
+    240,
+    84,
+    16,
+    0
+   ]
+  },
+  "medianAreaHa": 0.098,
+  "shareByShape": {
+   "unknown": 0.0002,
+   "jigsaw": 0.9607,
+   "contour-ribbon": 0.0376,
+   "riparian-strip": 0.0014,
+   "lowland-block": 0.0001
+  },
+  "countByShape": {
+   "unknown": 3,
+   "jigsaw": 18823,
+   "contour-ribbon": 737,
+   "riparian-strip": 28,
+   "lowland-block": 1
+  },
+  "meanVertices": 6.48
+ },
+ "dem_gerd": {
+  "fields": 3087,
+  "areaHistHa": {
+   "bins": [
+    0,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1,
+    2,
+    5,
+    20,
+    "inf"
+   ],
+   "counts": [
+    1107,
+    1125,
+    680,
+    118,
+    38,
+    14,
+    4,
+    1,
+    0
+   ]
+  },
+  "medianAreaHa": 0.068,
+  "shareByShape": {
+   "unknown": 0.0,
+   "jigsaw": 0.987,
+   "contour-ribbon": 0.0123,
+   "riparian-strip": 0.0006,
+   "lowland-block": 0.0
+  },
+  "countByShape": {
+   "unknown": 0,
+   "jigsaw": 3047,
+   "contour-ribbon": 38,
+   "riparian-strip": 2,
+   "lowland-block": 0
+  },
+  "meanVertices": 5.31
+ },
+ "ex_block": {
+  "fields": 1829,
+  "areaHistHa": {
+   "bins": [
+    0,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1,
+    2,
+    5,
+    20,
+    "inf"
+   ],
+   "counts": [
+    427,
+    574,
+    485,
+    174,
+    85,
+    40,
+    27,
+    17,
+    0
+   ]
+  },
+  "medianAreaHa": 0.088,
+  "shareByShape": {
+   "unknown": 0.0011,
+   "jigsaw": 0.9366,
+   "contour-ribbon": 0.0481,
+   "riparian-strip": 0.0055,
+   "lowland-block": 0.0087
+  },
+  "countByShape": {
+   "unknown": 2,
+   "jigsaw": 1713,
+   "contour-ribbon": 88,
+   "riparian-strip": 10,
+   "lowland-block": 16
+  },
+  "meanVertices": 7.09
+ },
+ "ex_riparian": {
+  "fields": 2471,
+  "areaHistHa": {
+   "bins": [
+    0,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1,
+    2,
+    5,
+    20,
+    "inf"
+   ],
+   "counts": [
+    234,
+    509,
+    796,
+    488,
+    240,
+    147,
+    44,
+    11,
+    2
+   ]
+  },
+  "medianAreaHa": 0.175,
+  "shareByShape": {
+   "unknown": 0.0012,
+   "jigsaw": 0.9365,
+   "contour-ribbon": 0.0619,
+   "riparian-strip": 0.0004,
+   "lowland-block": 0.0
+  },
+  "countByShape": {
+   "unknown": 3,
+   "jigsaw": 2314,
+   "contour-ribbon": 153,
+   "riparian-strip": 1,
+   "lowland-block": 0
+  },
+  "meanVertices": 10.36
+ }
+}

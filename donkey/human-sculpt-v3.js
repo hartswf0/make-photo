@@ -4,6 +4,32 @@
 (function () {
   "use strict";
 
+  // Auto-bridge human-physical-v6.js if a legacy HTML page loaded human-sculpt-v3.js without it
+  if (typeof window !== "undefined" && !window.HumanPhysicalV6 && typeof document !== "undefined") {
+    try {
+      const scripts = document.getElementsByTagName("script");
+      for (let i = scripts.length - 1; i >= 0; i--) {
+        const src = scripts[i].src || "";
+        const m = src.match(/^(.*\/donkey\/)human-sculpt-v3\.js(\?.*)?$/);
+        if (m) {
+          const v6Url = m[1] + "human-physical-v6.js" + (m[2] || "?v=v6sculpt1");
+          if (typeof XMLHttpRequest !== "undefined") {
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", v6Url, false);
+            xhr.send(null);
+            if (xhr.status >= 200 && xhr.status < 400 && xhr.responseText) {
+              // eslint-disable-next-line no-new-func
+              new Function(xhr.responseText)();
+            }
+          }
+          break;
+        }
+      }
+    } catch (_e) {
+      // Graceful fallback if synchronous XHR is blocked
+    }
+  }
+
   const TAU = Math.PI * 2;
   const DEG = Math.PI / 180;
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -581,44 +607,47 @@
           sideLumScale.value = lerp(1.0, clamp(fLum / sLum, 0.72, 1.38), 0.86);
         }
       };
+      const hasV6 = typeof window !== "undefined" && Boolean(window.HumanPhysicalV6);
       portraits[key] = {
-        front: loadSmartTex(a.frontUrl, 256, 256, neutralSkinFallback(a.hex), {
-          onLoad: texOrImg => {
-            // Sample clean mid-tone facial dermis (mid-cheek, lower-medial cheek, forehead mid-side) strictly away from specular flash & dark shadow!
-            const p1L = sampleMidCheekRgbLin(texOrImg, 0.385, 0.435);
-            const p1R = sampleMidCheekRgbLin(texOrImg, 0.615, 0.435);
-            const p2L = sampleMidCheekRgbLin(texOrImg, 0.415, 0.365);
-            const p2R = sampleMidCheekRgbLin(texOrImg, 0.585, 0.365);
-            const p3L = sampleMidCheekRgbLin(texOrImg, 0.440, 0.650);
-            const p3R = sampleMidCheekRgbLin(texOrImg, 0.560, 0.650);
+        front: hasV6
+          ? makeFallbackCanvasTex(T, 32, 32, neutralSkinFallback(a.hex))
+          : loadSmartTex(a.frontUrl, 256, 256, neutralSkinFallback(a.hex), {
+              onLoad: texOrImg => {
+                const p1L = sampleMidCheekRgbLin(texOrImg, 0.385, 0.435);
+                const p1R = sampleMidCheekRgbLin(texOrImg, 0.615, 0.435);
+                const p2L = sampleMidCheekRgbLin(texOrImg, 0.415, 0.365);
+                const p2R = sampleMidCheekRgbLin(texOrImg, 0.585, 0.365);
+                const p3L = sampleMidCheekRgbLin(texOrImg, 0.440, 0.650);
+                const p3R = sampleMidCheekRgbLin(texOrImg, 0.560, 0.650);
 
-            const mixSpec = (aV, bV) => lerp(Math.min(aV, bV), 0.5 * (aV + bV), 0.42);
-            const rawR = 0.44 * mixSpec(p1L.r, p1R.r) + 0.34 * mixSpec(p2L.r, p2R.r) + 0.22 * mixSpec(p3L.r, p3R.r);
-            const rawG = 0.44 * mixSpec(p1L.g, p1R.g) + 0.34 * mixSpec(p2L.g, p2R.g) + 0.22 * mixSpec(p3L.g, p3R.g);
-            const rawB = 0.44 * mixSpec(p1L.b, p1R.b) + 0.34 * mixSpec(p2L.b, p2R.b) + 0.22 * mixSpec(p3L.b, p3R.b);
+                const mixSpec = (aV, bV) => lerp(Math.min(aV, bV), 0.5 * (aV + bV), 0.42);
+                const rawR = 0.44 * mixSpec(p1L.r, p1R.r) + 0.34 * mixSpec(p2L.r, p2R.r) + 0.22 * mixSpec(p3L.r, p3R.r);
+                const rawG = 0.44 * mixSpec(p1L.g, p1R.g) + 0.34 * mixSpec(p2L.g, p2R.g) + 0.22 * mixSpec(p3L.g, p3R.g);
+                const rawB = 0.44 * mixSpec(p1L.b, p1R.b) + 0.34 * mixSpec(p2L.b, p2R.b) + 0.22 * mixSpec(p3L.b, p3R.b);
 
-            // Un-bake studio key-light gain (~0.47x deep melanin / ~0.54x olive-tan) & harmonize 18% with archetype undertone (1.05x)
-            const unbake = a.unbake || 0.50;
-            const hLin = hexToLinVec3(a.hex, 1.05);
-            const cR = Math.max(0.002, 0.82 * (rawR * unbake) + 0.18 * hLin.x);
-            const cG = Math.max(0.002, 0.82 * (rawG * unbake) + 0.18 * hLin.y);
-            const cB = Math.max(0.002, 0.82 * (rawB * unbake) + 0.18 * hLin.z);
+                const unbake = a.unbake || 0.50;
+                const hLin = hexToLinVec3(a.hex, 1.05);
+                const cR = Math.max(0.002, 0.82 * (rawR * unbake) + 0.18 * hLin.x);
+                const cG = Math.max(0.002, 0.82 * (rawG * unbake) + 0.18 * hLin.y);
+                const cB = Math.max(0.002, 0.82 * (rawB * unbake) + 0.18 * hLin.z);
 
-            fLum = 0.5 * (p1L.lum + p1R.lum);
-            canonicalSkinLin.value.set(cR, cG, cB);
-            cheekSkinLin.value.set(cR, cG, cB);
-            orbitalSkinLin.value.set(cR, cG, cB);
-            for (let i = 0; i < lidListeners.length; i++) lidListeners[i](canonicalSkinLin.value);
-            syncLum();
-          }
-        }),
-        side: loadSmartTex(a.sideUrl, 256, 256, neutralSkinFallback(a.hex), {
-          onLoad: texOrImg => {
-            const cs = sampleMidCheekRgbLin(texOrImg, 0.46, 0.46);
-            sLum = cs.lum;
-            syncLum();
-          }
-        }),
+                fLum = 0.5 * (p1L.lum + p1R.lum);
+                canonicalSkinLin.value.set(cR, cG, cB);
+                cheekSkinLin.value.set(cR, cG, cB);
+                orbitalSkinLin.value.set(cR, cG, cB);
+                for (let i = 0; i < lidListeners.length; i++) lidListeners[i](canonicalSkinLin.value);
+                syncLum();
+              }
+            }),
+        side: hasV6
+          ? makeFallbackCanvasTex(T, 32, 32, neutralSkinFallback(a.hex))
+          : loadSmartTex(a.sideUrl, 256, 256, neutralSkinFallback(a.hex), {
+              onLoad: texOrImg => {
+                const cs = sampleMidCheekRgbLin(texOrImg, 0.46, 0.46);
+                sLum = cs.lum;
+                syncLum();
+              }
+            }),
         frontU: fFit.uVec,
         frontV: fFit.vVec,
         sideU:  sFit.uVec,
@@ -919,6 +948,9 @@
         FLUSH PALPEBRAL EYELIDS + ROUNDED EARS + HIGH-CONTRAST WET EYES (v4)
      ============================================================================ */
   function buildCranioMandibularHeadGeo(T, spec, B) {
+    if (typeof window !== "undefined" && window.HumanPhysicalV6 && typeof window.HumanPhysicalV6.buildSculptedHeadBustGeo === "function") {
+      return window.HumanPhysicalV6.buildSculptedHeadBustGeo(T, spec || {}, B);
+    }
     const noseLen = spec.noseLen || 1.0;
     const lipFull = spec.lipFull !== undefined ? spec.lipFull : 1.0;
     const fem = spec.fem !== undefined ? spec.fem : 0.65;
@@ -1581,6 +1613,9 @@
 
   /* Sculpted Multi-Fold Rounded Human Ear (Smooth C-Helix, Antihelix, Concha Cavum, Tragus, Earlobe — ZERO Pointy Spike or Crease!) */
   function buildSculptedHumanEarsGeo(T, B) {
+    if (typeof window !== "undefined" && window.HumanPhysicalV6 && typeof window.HumanPhysicalV6.buildEmptyWeldedEarsStubGeo === "function") {
+      return window.HumanPhysicalV6.buildEmptyWeldedEarsStubGeo(T, B);
+    }
     const pos = [], uv = [], col = [], si = [], sw = [], faceMeta = [], facsMeta = [], idx = [];
     const NU = 24, NV = 16;
 
@@ -1949,14 +1984,14 @@
     "  float lipSign = fMeta.x;\n" +
     "  float lidMob = fMeta.y;\n" +
     "  float rimaEdge = fMeta.w;\n" +
-    "  // 1. Smile (AU12 + AU6) & Smooth Soulful Sad Grief (AU15 + AU1 + AU17) oral commissures + malar cheek lift\n" +
+    "  // 1. Smile (AU12 + AU6) & Natural Clamped Sad Grief (AU15 + AU1 + AU17 — ZERO 4c62f3d6 mouth inversion!)\n" +
     "  float wComm = facsG2(ax, bp.y, 0.0245, 1.5525, 0.0155, 0.0140) * fwd;\n" +
-    "  float wSadComm = facsG2(ax, bp.y, 0.0235, 1.5510, 0.0185, 0.0195) * fwd;\n" +
+    "  float wSadComm = facsG2(ax, bp.y, 0.0240, 1.5515, 0.0145, 0.0130) * fwd;\n" +
     "  float wCheek = facsG2(ax, bp.y, 0.0440, 1.5880, 0.0230, 0.0190) * fwd;\n" +
-    "  float wSadMid = facsG2(ax, bp.y, 0.0, 1.5515, 0.0195, 0.0110) * fwd;\n" +
-    "  d.x += sx * (0.0046 * smile + 0.0042 * stretch) * wComm + sx * 0.0010 * sad * wSadComm;\n" +
-    "  d.y += 0.0052 * smile * wComm - 0.0052 * sad * wSadComm + 0.0022 * sad * wSadMid;\n" +
-    "  d.z += (-0.0018 * smile - 0.0014 * stretch) * wComm - 0.0008 * sad * wSadComm * (1.0 - rimaEdge) + 0.0026 * sad * wSadMid;\n" +
+    "  float sadClamp = clamp(sad, 0.0, 0.85);\n" +
+    "  d.x += sx * (0.0046 * smile + 0.0042 * stretch) * wComm + sx * 0.0006 * sadClamp * wSadComm;\n" +
+    "  d.y += 0.0050 * smile * wComm - 0.0022 * sadClamp * wSadComm;\n" +
+    "  d.z += (-0.0018 * smile - 0.0014 * stretch) * wComm - 0.0005 * sadClamp * wSadComm * (1.0 - rimaEdge);\n" +
     "  d.y += 0.0032 * smile * wCheek;\n" +
     "  d.z += 0.0024 * smile * wCheek;\n" +
     "  d.x += sx * 0.0015 * smile * wCheek;\n" +
@@ -1992,9 +2027,9 @@
     "  float wAlar = facsG2(ax, bp.y, 0.0165, 1.578, 0.011, 0.009) * fwd;\n" +
     "  d.x += sx * 0.0022 * noseWr * wAlar;\n" +
     "  d.y += 0.0022 * noseWr * wAlar;\n" +
-    "  float wChin = facsG2(ax, bp.y, 0.0, 1.525, 0.020, 0.014) * fwd;\n" +
-    "  d.y += (0.0046 * chinUp + 0.0026 * sad) * wChin;\n" +
-    "  d.z += (0.0024 * chinUp + 0.0016 * sad) * wChin;\n" +
+    "  float wChin = facsG2(ax, bp.y, 0.0, 1.522, 0.019, 0.011) * (1.0 - smoothstep(1.532, 1.542, bp.y)) * fwd;\n" +
+    "  d.y += (0.0026 * chinUp + 0.0014 * sadClamp) * wChin;\n" +
+    "  d.z += (0.0016 * chinUp + 0.0009 * sadClamp) * wChin;\n" +
     "  // 4. Brows: Oblique Inner Grief Arch (AU1), Outer Arch (AU2) & Glabellar Furrow (AU4)\n" +
     "  float wBrowIn  = facsG2(ax, bp.y, 0.0130, 1.636, 0.0175, 0.0165) * fwd;\n" +
     "  float wBrowOut = facsG2(ax, bp.y, 0.0370, 1.638, 0.0185, 0.0155) * fwd;\n" +
@@ -2843,7 +2878,9 @@
 
     const g = new T.BufferGeometry();
     g.setAttribute("position", new T.BufferAttribute(pos, 3));
-    g.setAttribute("uv", new T.BufferAttribute(uvs, 2));
+    const handBaseUvAttr = new T.BufferAttribute(uvs, 2);
+    g.setAttribute("uv", handBaseUvAttr);
+    g.setAttribute("uv1", handBaseUvAttr);
     g.setAttribute("aHandUv", new T.BufferAttribute(handUv, 2));
     g.setAttribute("aHandMeta", new T.BufferAttribute(handMeta, 4));
     g.setAttribute("skinIndex", new T.BufferAttribute(si, 4));
@@ -2859,6 +2896,8 @@
   function applyPhotographicHandShader(T, mat, cfg) {
     const assetsV3 = cfg.assetsV3;
     const cyanGlow = cfg.cyanGlow;
+    mat.userData = mat.userData || {};
+    mat.userData.cyanGlow = cyanGlow;
     const uHandCfg = {
       value: new T.Vector4(
         cfg.photoMix !== undefined ? cfg.photoMix : 0.86,
@@ -2992,6 +3031,16 @@
      6. 30-BONE PHALANX ARTICULATION + FOREARM TWIST + ELBOW/KNEE VOLUME SOLVERS
      ============================================================================ */
   function poseHandPhalanges(bones, side, curlBase, spread = 0.22, mode = "wrap", nowSec = 0) {
+    if (typeof window !== "undefined" && window.HumanPhysicalV6) {
+      if (mode === "ballKnob") {
+        window.HumanPhysicalV6.poseCylinderOrBallGrip(bones, B, side, curlBase || 1.0, true);
+        return;
+      }
+      if (mode === "bowlRim") {
+        window.HumanPhysicalV6.poseBowlRimRest(bones, B, side, curlBase || 1.0);
+        return;
+      }
+    }
     const cBase = clamp(curlBase, 0, 1.20);
     const baseIdx = side > 0 ? B.L_THUMB_1 : B.R_THUMB_1;
     const th1 = bones[baseIdx], th2 = bones[baseIdx + 1], th3 = bones[baseIdx + 2];
@@ -3865,7 +3914,7 @@
      ============================================================================ */
   let cachedOralGeo = null;
   function buildOralDentitionAndTongueGeo(T) {
-    if (cachedOralGeo) return cachedOralGeo;
+    if (cachedOralGeo) return cachedOralGeo.clone();
 
     const pos = [], uv = [], col = [], oralMeta = [], si = [], sw = [], idx = [];
     // Tooth arch boundaries along |u| in [0, 1]: Central(0..0.17), Lateral(0.17..0.31), Canine(0.31..0.47), Premolar1(0.47..0.68), Premolar2/Molar(0.68..1.0)
@@ -4552,6 +4601,9 @@
   }
 
   function evalOrbitalSkinZ(px, py, spec = {}) {
+    if (typeof window !== "undefined" && window.HumanPhysicalV6 && typeof window.HumanPhysicalV6.evalOrbitalSkinZ === "function") {
+      return window.HumanPhysicalV6.evalOrbitalSkinZ(px, py, spec);
+    }
     const noseLen = spec.noseLen || 1.0;
     const fem = spec.fem !== undefined ? spec.fem : 0.65;
     const ax = Math.abs(px);
@@ -4605,9 +4657,37 @@
       ch.scionLids = scionLids;
       if (ch.userData) ch.userData.scionLids = scionLids;
     }
+    // Automatically upgrade character skin, eyelids & hands to HumanPhysicalV6 MeshPhysicalMaterial!
+    const T_Ref = (typeof window !== "undefined" && window.THREE) || null;
+    if (typeof window !== "undefined" && window.HumanPhysicalV6 && T_Ref) {
+      window.HumanPhysicalV6.upgradeCharacterSkinMeshes(T_Ref, ch);
+    }
+    // Ensure 3D Sculpted Maxillary/Mandibular Dental Arches & Articulated Tongue are present even when ScionGroomGarments replaces buildVolumetricHairAssembly!
+    if (T_Ref && ch.group && ch.group.traverse) {
+      let hasOral = false;
+      let refSkinned = null;
+      ch.group.traverse(obj => {
+        if (obj.geometry && obj.geometry.attributes && obj.geometry.attributes.aOralMeta) hasOral = true;
+        if (!refSkinned && obj.isSkinnedMesh && obj.skeleton && obj.geometry && obj.geometry.attributes && obj.geometry.attributes.aFaceMeta) {
+          refSkinned = obj;
+        }
+      });
+      if (!hasOral && refSkinned && refSkinned.parent) {
+        const facsRef = (ch.v6Skin && ch.v6Skin.facsUniforms) || findCharacterFacsBundle(ch.group) || createSharedFacsUniformBundle(T_Ref);
+        const oralGeo = buildOralDentitionAndTongueGeo(T_Ref);
+        const oralMat = createOralDentitionMat(T_Ref, facsRef);
+        const oralMesh = new T_Ref.SkinnedMesh(oralGeo, oralMat);
+        oralMesh.name = "scionOralDentitionTongue";
+        oralMesh.frustumCulled = false;
+        oralMesh.castShadow = false;
+        oralMesh.receiveShadow = false;
+        oralMesh.bind(refSkinned.skeleton, refSkinned.bindMatrix);
+        refSkinned.parent.add(oralMesh);
+      }
+    }
     // Automatically attach HumanExpressionsV4 controller if loaded on page!
-    if (typeof window !== "undefined" && window.HumanExpressionsV4 && window.THREE) {
-      window.HumanExpressionsV4.attachCharacterExpressionController(window.THREE, ch, {
+    if (typeof window !== "undefined" && window.HumanExpressionsV4 && T_Ref) {
+      window.HumanExpressionsV4.attachCharacterExpressionController(T_Ref, ch, {
         scionEyes,
         scionLids
       });
