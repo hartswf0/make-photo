@@ -217,7 +217,7 @@ function syncVehicle() {
 }
 /* ---------------- people ---------------- */
 const CAST = {
-  imani: { file: 'Imani', role: 'Field composer', idle: 'idle-listening', talk: 'idle-talking', line: 'Leave the first beat empty. I’ll bring the string in on two. Take this recorder. The metal lid gives us the first short sound.' },
+  imani: { file: 'Imani', role: 'Field composer', idle: 'idle-subtle', talk: 'idle-talking', line: 'Leave the first beat empty. I’ll bring the string in on two. Take this recorder. The metal lid gives us the first short sound.' },
   makeda: { file: 'Makeda', role: 'Wellhead operator', idle: 'pump', talk: 'idle-talking', line: 'Listen at the pin, then at the lip of the bowl. It is the same stroke from two different places.' },
   june: { file: 'June', role: 'Basin listener', idle: 'idle-subtle', talk: 'idle-talking', line: 'I put my finger on the rim after the tap. Listen for the part that disappears.' },
   berhanu: { file: 'Berhanu', role: 'Timekeeper', idle: 'idle-foldarms', talk: 'idle-talking', line: 'I wait until the water stops before ringing. Otherwise you lose the end of it.' },
