@@ -4,6 +4,7 @@ After Ansel Adams ("You don’t take a photograph, you make it"): haul 8×10 pla
 Live GitHub Pages `.html` test URLs (`https://hartswf0.github.io/make-photo/...`):
 - [`index.html`](https://hartswf0.github.io/make-photo/index.html) — Expedition hub & inline Music Video embed
 - [`study/index.html`](https://hartswf0.github.io/make-photo/study/index.html) — **People, Props & Architecture 3D Study Workbench** (10 interactive study plates, 16 `ZZlDs10FCZk` reference cuts, 3 orthographic/motion sheets & 6 AI video generation briefs)
+- [`highland-exposure/`](https://hartswf0.github.io/make-photo/highland-exposure/) — **Highland Exposure**, the game: carry 20 L from Entoto ridge to the relay under Ras Dashen, on foot, by pack donkey, taxi or glider, with the Dawn Wellhead figures. [`highland-exposure/trailer.html`](https://hartswf0.github.io/make-photo/highland-exposure/trailer.html) is a 40-second trailer filmed inside the game.
 - [`night-post/index.html`](https://hartswf0.github.io/make-photo/night-post/index.html) — **DONKEY WATER, 2086 · Night Post** (Western Basin)
 - [`night-post/index.html?circuit=ahiya`](https://hartswf0.github.io/make-photo/night-post/index.html?circuit=ahiya) — **Ahiya Highlands** by night (Rahel)
 - [`night-post/companion.html`](https://hartswf0.github.io/make-photo/night-post/companion.html) — Turn-based Dispatch Ledger companion (syncs with 3D game via `localStorage`)
