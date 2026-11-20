@@ -211,8 +211,6 @@
       background: rgba(16, 19, 22, .80);
       color: var(--paper);
       cursor: pointer;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
       transition: transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
     }
     .cinema-btn:hover { transform: translateY(-1px); border-color: var(--cyan); }
@@ -242,8 +240,6 @@
       border: 1px solid rgba(24, 180, 255, .34);
       border-radius: 8px;
       padding: 12px 16px;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
     }
     #cinema-shot-kicker {
       display: block;
@@ -549,10 +545,8 @@
       gap: 5px;
       padding: 8px 10px;
       border-radius: 7px;
-      background: rgba(14, 17, 20, .86);
+      background: rgba(14, 17, 20, .92);
       border: 1px solid rgba(24, 180, 255, .42);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
       max-width: 470px;
       box-shadow: 0 6px 24px rgba(0, 0, 0, .48);
     }
@@ -703,9 +697,28 @@
       text-transform: uppercase;
       color: var(--paper);
       font-variant-numeric: tabular-nums;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
     }
+    #phys-pill {
+      border-color: rgba(40, 216, 240, .48);
+      color: #dff6ff;
+      background: rgba(12, 16, 20, .90);
+    }
+    #phys-pill.spilling {
+      border-color: #28d8f0;
+      color: #ffffff;
+      background: rgba(12, 62, 82, .92);
+    }
+    #phys-pill.damaged {
+      border-color: #f4b642;
+      color: #ffe29a;
+    }
+    #btn-repair-wagon {
+      border-color: #28d8f0;
+      color: #06131c;
+      background: #28d8f0;
+      cursor: pointer;
+    }
+    #btn-repair-wagon[hidden] { display: none; }
     .water-track {
       width: 62px;
       height: 6px;
@@ -876,8 +889,6 @@
       background: var(--panel);
       border: 1px solid var(--brass-dim);
       border-radius: 8px;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
       z-index: 9;
       display: flex;
       flex-direction: column;
@@ -1011,8 +1022,6 @@
       padding: 6px 9px;
       text-align: right;
       font-variant-numeric: tabular-nums;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
     }
     #finder-pct {
       display: block;
@@ -1126,11 +1135,11 @@
       box-shadow: inset 0 0 0 2px #22d0ff, 0 0 10px rgba(34, 208, 255, .65);
     }
     .swatch.resonant::before {
-      content: "♪";
+      content: "*";
       position: absolute;
       top: 1px;
       left: 3px;
-      font-size: 8px;
+      font-size: 9px;
       line-height: 1;
       color: #22d0ff;
     }
@@ -1264,14 +1273,14 @@
     <p id="field-notice" role="status"></p>
     <progress id="field-progress" aria-label="Prologue progress" max="1" value="0" hidden></progress>
     <div class="field-links">
-      <a class="field-key" href="../" aria-label="Return to expedition index">‹ Index</a>
+      <a class="field-key" href="../" aria-label="Return to expedition index">Index</a>
       <a class="field-key" href="../study/" aria-label="Open v6 Sculpted Human & Print Shader Study">3D Study</a>
       <a class="field-key" href="../ethiopia-highlands/" aria-label="Open Ethiopian Highlands Satellite DEM Pack">Ethiopia</a>
       <button class="field-key" id="field-dispatch-btn" type="button" aria-label="Open 2086 Dispatch Book">Dispatch</button>
-      <button class="field-key" id="field-switch-btn" type="button" aria-label="Switch carrier circuit">⇄ Route</button>
-      <button class="field-key" id="field-trailer-btn" type="button" aria-label="Watch In-World Trailer and Machinima">🎬 Trailer</button>
-      <button class="field-key" id="field-video-btn" type="button" aria-label="Watch Donkey Water Music Video">▶ Video</button>
-      <button class="field-key" id="field-pause" type="button" aria-label="Pause tape" hidden>Ⅱ Tape</button>
+      <button class="field-key" id="field-switch-btn" type="button" aria-label="Switch carrier circuit">Route</button>
+      <button class="field-key" id="field-trailer-btn" type="button" aria-label="Watch In-World Trailer and Machinima">Trailer</button>
+      <button class="field-key" id="field-video-btn" type="button" aria-label="Watch Donkey Water Music Video">Video</button>
+      <button class="field-key" id="field-pause" type="button" aria-label="Pause tape" hidden>Pause Tape</button>
       <button class="field-key" id="field-undo" type="button" aria-label="Undo last camera adjustment" hidden>Undo</button>
     </div>
   </header>
@@ -1282,7 +1291,7 @@
         aria-label="Lens band. Choose another control.">
         <span id="field-band-code" aria-hidden="true">B4</span>
         <span id="field-tool-name" aria-live="polite">Lens</span>
-        <span class="field-band-chevron" aria-hidden="true">⌄</span>
+        <span class="field-band-chevron" aria-hidden="true">v</span>
         <span id="field-tool-dots" aria-hidden="true"></span>
       </button>
       <button class="field-key" type="button" id="field-map-toggle" aria-expanded="false" aria-controls="field-map">Map</button>
@@ -1342,7 +1351,7 @@
   </div>
 
   <div id="field-intro" class="field-corner" role="group" aria-label="Enter expedition">
-    <button class="field-key" type="button" id="field-prologue">🎬 Trailer</button>
+    <button class="field-key" type="button" id="field-prologue">Trailer</button>
     <button class="field-key" type="button" id="field-summit">Summit jump</button>
     <button class="field-key field-shutter" type="button" id="field-enter">Enter overlook</button>
     <button class="field-key field-shutter" type="button" id="field-skip" hidden>Skip prologue</button>
@@ -1356,7 +1365,7 @@
     <div class="ppc-c ppc-br"></div>
     <div id="ppc-rec"><i class="rec-dot"></i><span>REC PPC</span></div>
     <div id="ppc-dashes">----</div>
-    <div id="ppc-wifi">(((•))) -38 dBm · PUEBLO 1/5 (20%)</div>
+    <div id="ppc-wifi">TX -38 dBm · PUEBLO 1/5 (20%)</div>
     <div id="ppc-left-ticks">
       <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
       <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
@@ -1374,7 +1383,7 @@
     <div class="loader-bar" aria-hidden="true"></div>
     <div class="loader-actions" id="loader-actions" hidden>
       <button class="field-key" type="button" id="loader-retry">Retry</button>
-      <a class="field-key" href="../">‹ Index</a>
+      <a class="field-key" href="../">Index</a>
     </div>
   </div>
 
@@ -1387,14 +1396,14 @@
       <h1 class="cinema-h1">NIGHT POST</h1>
       <p class="cinema-sub">Ahiya Area Network · “On the last run to Silver Ford, a girl asks for eight seconds of sound from a film everyone thinks they know.”</p>
       <div class="cinema-actions">
-        <button type="button" class="cinema-btn primary" id="intro-skip">▶ Begin Western Shift (Imani &amp; Mistletoe)</button>
-        <button type="button" class="cinema-btn" id="intro-ahiya">☾ Enter Ahiya Night Route (Rahel)</button>
-        <button type="button" class="cinema-btn" id="intro-trailer">🎬 Explainer Trailer (1:16)</button>
-        <button type="button" class="cinema-btn" id="intro-mv">♫ 3D Music Video (4:43)</button>
-        <button type="button" class="cinema-btn" id="intro-video">▶ Screen Video</button>
-        <a class="cinema-btn link-btn" href="../study/">⊞ v6 Sculpt &amp; Print Study</a>
-        <a class="cinema-btn link-btn" href="../ethiopia-highlands/">⛰ Ethiopian Highlands</a>
-        <a class="cinema-btn link-btn" href="./companion.html">⊞ Companion Ledger</a>
+        <button type="button" class="cinema-btn primary" id="intro-skip">Begin Western Shift (Imani &amp; Mistletoe)</button>
+        <button type="button" class="cinema-btn" id="intro-ahiya">Enter Ahiya Night Route (Rahel)</button>
+        <button type="button" class="cinema-btn" id="intro-trailer">Explainer Trailer (1:16)</button>
+        <button type="button" class="cinema-btn" id="intro-mv">3D Music Video (4:43)</button>
+        <button type="button" class="cinema-btn" id="intro-video">Screen Video</button>
+        <a class="cinema-btn link-btn" href="../study/">v6 Sculpt &amp; Print Study</a>
+        <a class="cinema-btn link-btn" href="../ethiopia-highlands/">Ethiopian Highlands</a>
+        <a class="cinema-btn link-btn" href="./companion.html">Companion Ledger</a>
         <a class="cinema-btn link-btn" href="./world-bible.pdf" target="_blank" rel="noopener">World Bible PDF</a>
       </div>
     </div>
@@ -1404,14 +1413,14 @@
         <p id="cinema-shot-line">“Iron lever cracks before the rooster — take this cyan WiFi water from my well.”</p>
         <div class="montage-track"><em id="cinema-shot-bar"></em></div>
       </div>
-      <button type="button" class="cinema-btn" id="montage-skip">Skip Prologue (Esc) →</button>
+      <button type="button" class="cinema-btn" id="montage-skip">Skip Prologue (Esc)</button>
     </div>
   </section>
 
   <div id="top-left">
     <header id="plate">
       <div class="kicker-row">
-        <a class="home-link" href="../">← Index</a>
+        <a class="home-link" href="../">Index</a>
         <span class="kicker">DONKEY WATER, 2086 · NIGHT POST · AHIYA AREA NETWORK</span>
       </div>
       <h1 id="zone-title">Overlook Wellhead · Zone IV</h1>
@@ -1425,9 +1434,9 @@
         <span id="np-watch-clock">SHIFT 1 · WATCH 00/18 · 18:00 DUSK · STRENGTH 6/6</span>
       </div>
       <div class="np-route-btns">
-        <button type="button" class="np-mini-btn" id="np-switch-btn" title="Switch Carrier Circuit">⇄ Ahiya (Rahel)</button>
-        <button type="button" class="np-mini-btn aqua" id="np-dispatch-btn">⊞ Dispatch Book (M)</button>
-        <a class="np-mini-btn" href="./companion.html" title="Open companion literary ledger">Ledger ↗</a>
+        <button type="button" class="np-mini-btn" id="np-switch-btn" title="Switch Carrier Circuit">Switch: Ahiya (Rahel)</button>
+        <button type="button" class="np-mini-btn aqua" id="np-dispatch-btn">Dispatch Book (M)</button>
+        <a class="np-mini-btn" href="./companion.html" title="Open companion literary ledger">Ledger</a>
       </div>
     </div>
 
@@ -1455,7 +1464,7 @@
 
     <div id="tape-bar" aria-label="Scion C60 Spatial Radio Deck">
       <div class="tape-top">
-        <button type="button" id="tape-btn" aria-pressed="false">▶ Play Tape</button>
+        <button type="button" id="tape-btn" aria-pressed="false">Play Tape</button>
         <div class="tape-reels" aria-hidden="true"><span class="reel"></span><span class="reel"></span></div>
         <span id="tape-title">Cyan Jerikan Over Cosmic Addis</span>
         <span id="tape-time">00:00 / 04:43</span>
@@ -1466,8 +1475,8 @@
           <div id="tape-scrub" role="slider" aria-label="Seek cassette track" aria-valuemin="0" aria-valuemax="283" aria-valuenow="0"><span id="tape-fill"></span></div>
           <div class="tape-sub">
             <button type="button" id="tape-spatial-btn" aria-pressed="true">3D BURRO TX</button>
-            <button type="button" id="tape-trailer-btn" title="In-World Explainer Trailer, 3D Music Video & Machinima Recorder (U)">🎬 TRAILER / MACHINIMA</button>
-            <button type="button" id="tape-video-btn" title="Watch DONKEY WATER SCIFI In-World (Y)">▶ SCREEN</button>
+            <button type="button" id="tape-trailer-btn" title="In-World Explainer Trailer, 3D Music Video & Machinima Recorder (U)">TRAILER / MACHINIMA</button>
+            <button type="button" id="tape-video-btn" title="Watch DONKEY WATER SCIFI In-World (Y)">SCREEN</button>
             <span id="tape-falloff">5.0m · -0 dB</span>
           </div>
         </div>
@@ -1481,6 +1490,8 @@
         <span class="water-track"><em id="water-bar-fill"></em></span>
         <strong id="water-val">100%</strong>
       </div>
+      <div class="exp-pill" id="phys-pill">WATER LOAD 20.0 kg | SLOSH 0% | CHASSIS 100%</div>
+      <button type="button" class="exp-pill" id="btn-repair-wagon" hidden>REPAIR WAGON</button>
       <div class="exp-pill" id="cans-pill">Cans 6/72 · Switchback 162m</div>
       <button type="button" class="exp-pill" id="res-pill" title="Tune to Song-Resonant Tonal Zone (T)">Epoch I · Z-I · [T] Sync</button>
     </div>
@@ -1581,9 +1592,9 @@
         <button type="button" class="chip" data-np-tab="log" aria-pressed="false">Carrier Log</button>
         <button type="button" class="chip" data-np-tab="law" aria-pressed="false">Field Law</button>
         <button type="button" class="chip" data-np-tab="plates" aria-pressed="false">8×10 Plates</button>
-        <button type="button" class="chip" data-np-tab="video" aria-pressed="false">▶ Music Video</button>
-        <a class="chip" href="./companion.html" style="text-decoration:none">Companion ↗</a>
-        <a class="chip" href="./world-bible.pdf" target="_blank" rel="noopener" style="text-decoration:none">World Bible ↗</a>
+        <button type="button" class="chip" data-np-tab="video" aria-pressed="false">Music Video</button>
+        <a class="chip" href="./companion.html" style="text-decoration:none">Companion</a>
+        <a class="chip" href="./world-bible.pdf" target="_blank" rel="noopener" style="text-decoration:none">World Bible</a>
         <button type="button" class="chip" id="np-disp-close">Close</button>
       </div>
     </header>
@@ -1626,6 +1637,7 @@
   <script src="../zones/machinima.js?v=v6sculpt1"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-retarget.js?v=3"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=1"></script>
+  <script src="./world-physics.js?v=1"></script>
   <script src="./night-post.js?v=v6sculpt2"></script>
 </body>
 </html>

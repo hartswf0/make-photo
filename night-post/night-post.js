@@ -1947,7 +1947,7 @@ void main(){
     showWorldFault("The 3D view could not start. Retry or return to the index.", error);
     return;
   }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.toneMapping = T.NoToneMapping;
   let contextLost = false;
   canvas.addEventListener("webglcontextlost", () => {
@@ -2185,7 +2185,7 @@ void main(){
 
     loft(body, coach, [[-2.61, .72, .08, .07], [-2.5, .77, .72, .24], [-2.1, .83, .93, .38], [-1.47, .87, .98, .43],
       [-.9, .88, .99, .45], [.1, .89, .97, .43], [1.1, .88, .96, .40], [1.99, .81, .94, .36], [2.44, .78, .75, .30], [2.59, .76, .016, .029]], 34, 30, .55);
-    loft(body, coach, [[-2.6, .91, .045, .026], [-2.46, 1.04, .43, .22], [-2.14, 1.14, .58, .215], [-1.65, 1.22, .62, .214],
+    const hoodMesh = loft(body, coach, [[-2.6, .91, .045, .026], [-2.46, 1.04, .43, .22], [-2.14, 1.14, .58, .215], [-1.65, 1.22, .62, .214],
       [-1.15, 1.25, .68, .23], [-.79, 1.24, .69, .21]], 28, 22, .68);
     loft(body, charcoal, [[-1.26, 1.35, .72, .048], [-1.04, 1.65, .76, .17], [-.77, 1.75, .83, .32], [-.38, 1.78, .85, .34], [.52, 1.80, .86, .34],
       [1.43, 1.77, .85, .32], [2.04, 1.73, .78, .27], [2.33, 1.59, .70, .15], [2.48, 1.29, .67, .044]], 28, 28, .63);
@@ -2227,7 +2227,7 @@ void main(){
       for (let k = -2; k <= 2; k++) billet(body, nickel, k * .072, 1.35 + i * .025, z, .016, .015, .167);
       billet(body, nickel, 0, .60 + i * .062, -2.567 + i * .008, .99 - i * .031, .035, .050);
     }
-    billet(body, nickel, 0, .467, -2.59, 1.77, .121, .17);
+    const frontBumper = billet(body, nickel, 0, .467, -2.59, 1.77, .121, .17);
     billet(body, nickel, 0, .446, 2.535, 1.85, .123, .19);
     for (const s of [-1, 1]) {
       billet(body, nickel, s * .58, .495, -2.658, .105, .245, .17);
@@ -2266,6 +2266,7 @@ void main(){
 
     return {
       group: root, inner, chassis: body, wheels, beacon: wagonBeacon, roofStandSpot,
+      hoodMesh, frontBumper,
       x: -15.5, z: 4.8, y: 155, heading: -Math.PI * .52, speed: 0, steerAngle: 0, pitch: 0, roll: 0,
       get deckY() { return this.y + 2.30; }
     };
@@ -2614,6 +2615,10 @@ void main(){
       pumpLeverPhase: 0,
       wifiCharge: 1.0,
       donkeyWater: 1.0,
+      waterLiters: 20.0,
+      sloshPct: 0,
+      sloshSpilling: false,
+      chassisIntegrity: 100,
       donkeyCollapsed: false,
       pourAnim: null,
       danceTimer: 0,
@@ -2710,7 +2715,7 @@ void main(){
       const btn = $("btn-region");
       if (btn) {
         btn.setAttribute("aria-pressed", String(next !== "tetons"));
-        btn.textContent = next === "ridge" ? "Shuttle → Abyss/Tetons (R)" : next === "abyss" ? "Shuttle → Half Dome (R)" : "World Shuttle (R)";
+        btn.textContent = next === "ridge" ? "Shuttle: Abyss/Tetons (R)" : next === "abyss" ? "Shuttle: Half Dome (R)" : "World Shuttle (R)";
       }
     }
 
@@ -2728,6 +2733,76 @@ void main(){
     wagon.heading = -Math.PI * .52;
     wagon.group.position.set(wagon.x, wagon.y, wagon.z);
     wagon.group.rotation.y = wagon.heading;
+
+    const NP_PHYS = window.NightPostPhysics || null;
+    const vehPhys = NP_PHYS ? NP_PHYS.createVehicleBody({ x: wagon.x, y: wagon.y, z: wagon.z, heading: wagon.heading }) : null;
+    if (vehPhys) vehPhys.syncFrom(wagon.x, wagon.y, wagon.z, wagon.heading, driveSurfaceAt);
+    const carrierPhys = NP_PHYS ? NP_PHYS.createCarrierBody({ eyeHeight: 1.68 }) : null;
+    const waterSlosh = NP_PHYS ? NP_PHYS.createWaterSlosh() : null;
+    const physParticles = NP_PHYS ? NP_PHYS.createPhysicsParticles(T, actorRoot) : null;
+    const worldObstacles = [];
+    let smokeClock = 0;
+
+    function applyWagonVisuals() {
+      if (!vehPhys) return;
+      wagon.x = vehPhys.x;
+      wagon.y = vehPhys.y;
+      wagon.z = vehPhys.z;
+      wagon.heading = vehPhys.heading;
+      wagon.speed = vehPhys.speed;
+      wagon.steerAngle = vehPhys.steerAngle;
+      wagon.pitch = vehPhys.pitch;
+      wagon.roll = vehPhys.roll;
+      state.chassisIntegrity = Math.round(vehPhys.integrity);
+
+      wagon.group.position.set(wagon.x, wagon.y, wagon.z);
+      wagon.group.rotation.set(0, wagon.heading, 0, "YXZ");
+      const shake = vehPhys.damageShake > 0 ? (Math.sin(performance.now() * 0.08) * 0.04 * vehPhys.damageShake) : 0;
+      wagon.chassis.position.y = vehPhys.heave + shake;
+      wagon.chassis.rotation.x = vehPhys.pitch;
+      wagon.chassis.rotation.z = vehPhys.roll;
+
+      if (wagon.frontBumper) {
+        wagon.frontBumper.position.z = -2.59 + vehPhys.bumperDent;
+        wagon.frontBumper.rotation.y = vehPhys.bumperDent * 0.72;
+        wagon.frontBumper.rotation.z = -vehPhys.bumperDent * 0.35;
+      }
+      if (wagon.hoodMesh) {
+        wagon.hoodMesh.rotation.x = vehPhys.hoodTilt;
+        wagon.hoodMesh.position.y = vehPhys.hoodTilt * 0.12;
+      }
+      for (let wi = 0; wi < wagon.wheels.length; wi++) {
+        const w = wagon.wheels[wi];
+        w.mount.position.y = w.baseY + (vehPhys.wheelOffsets[wi] || 0);
+        if (w.front) w.mount.rotation.y = wagon.steerAngle;
+      }
+    }
+
+    function onVehicleImpact(evt) {
+      if (physParticles) physParticles.spawnSparks(evt.x, evt.y, evt.z, Math.round(clamp(evt.severity * 0.7, 6, 20)));
+      if (waterSlosh) waterSlosh.impulse((Math.random() - 0.5) * evt.severity * 0.35, -evt.severity * 0.28);
+      if (evt.severity >= 6) {
+        toast(`Chassis impact (${evt.type}) · Integrity ${Math.round(evt.integrity)}%`, `Chassis ${Math.round(evt.integrity)}%`);
+      }
+    }
+
+    function repairWagonAtStation() {
+      if (!vehPhys) return false;
+      const nearRepair = Math.hypot(well.x - wagon.x, well.z - wagon.z) < 28 ||
+        relays.some(r => Math.hypot(r.x - wagon.x, r.z - wagon.z) < 28) ||
+        Math.hypot(well.x - state.x, well.z - state.z) < 28 ||
+        relays.some(r => Math.hypot(r.x - state.x, r.z - state.z) < 28);
+      if (!nearRepair) {
+        toast("Drive or walk within 28 m of a relay station or wellhead to repair chassis.", "Move to relay to repair");
+        return false;
+      }
+      vehPhys.repair(100);
+      applyWagonVisuals();
+      updateHUD();
+      toast("Relay workshop restored Cruiser Woody chassis to 100% integrity.", "Chassis repaired 100%");
+      return true;
+    }
+    if ($("btn-repair-wagon")) $("btn-repair-wagon").addEventListener("click", repairWagonAtStation);
 
     const donkey = window.makeDonkey({
       assetPath: "../donkey/",
@@ -3535,13 +3610,13 @@ void main(){
       const flight = state.glide.landing ? "LANDING" : state.donkeyOnRoof ? "WAGON FLIGHT" : "GLIDE";
       const wagonRev = wagon.speed < -.3 || state.wagonCruise < 0;
       const veh = state.gliding ? `${flight} ${Math.round(state.glide.speed)} m/s (${state.glide.vy >= 0 ? "+" : ""}${state.glide.vy.toFixed(1)} vy) · `
-                : state.drivingCart ? `CRUISER WAGON${wagonRev ? " REV" : ""} ${Math.abs(wagon.speed).toFixed(1)} m/s (ROOF BURRO) · `
+                : state.drivingCart ? `CRUISER WAGON${wagonRev ? " REV" : ""} ${Math.abs(wagon.speed).toFixed(1)} m/s · `
                 : state.riding ? "RIDING MISTLETOE · " : "";
       $("hud-sub").textContent = `${rTag} · ${veh}${m.label} · FOCUS ${state.focusDist.toFixed(1)} m · ${fl.name}`;
       $("focus-dist-val").textContent = `${state.focusDist.toFixed(1)} m`;
       $("focus-look-val").textContent = state.soloLook >= 0 ? `SOLO · ${activeLook.name}` : `FOCUS · ${activeLook.name}`;
       $("wedge-caption").textContent = `${rTag} · Meter Z-${ROMAN[state.meteredZone]} · WiFi ${state.frameWifiPct}% · Alt ${fmtElev(state.antennaElev)} · Forest ${state.unlockedGroves}/${forestGroves.length}`;
-      $("ppc-wifi").textContent = `(((•))) ${state.signalDbm} dBm · FRAME ${state.frameWifiPct}% · ALT ${fmtElev(state.antennaElev)} · FOREST ${state.unlockedGroves}/${forestGroves.length}`;
+      $("ppc-wifi").textContent = `TX ${state.signalDbm} dBm · FRAME ${state.frameWifiPct}% · ALT ${fmtElev(state.antennaElev)} · FOREST ${state.unlockedGroves}/${forestGroves.length}`;
       if ($("finder-pct")) $("finder-pct").textContent = `IN-FRAME WIFI ${state.frameWifiPct}%`;
       if ($("finder-alt")) $("finder-alt").textContent = `ALT ${fmtElev(state.antennaElev)} · FOREST ${state.unlockedGroves}/${forestGroves.length}`;
       if ($("finder-bar")) $("finder-bar").style.width = `${clamp(state.frameWifiPct, 4, 100)}%`;
@@ -3560,11 +3635,26 @@ void main(){
 
       const cp = $("cans-pill");
       if (cp) {
-        const dirs = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"];
+        const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
         const dIdx = ((Math.round((state.nextRelayAzDeg / 45)) % 8) + 8) % 8;
         cp.textContent = state.nextRelayDist < 9999
           ? `CANS ${state.filledCans}/${state.totalCans} · ${state.nextRelayName.split(" ")[0]} ${Math.round(state.nextRelayDist)}m ${dirs[dIdx]}`
           : `CANS ${state.filledCans}/${state.totalCans} · ALL LIT`;
+      }
+      const pp = $("phys-pill");
+      if (pp) {
+        const integ = vehPhys ? Math.round(vehPhys.integrity) : state.chassisIntegrity;
+        pp.textContent = `WATER LOAD ${state.waterLiters.toFixed(1)} kg | SLOSH ${state.sloshPct}% | CHASSIS ${integ}%`;
+        pp.classList.toggle("spilling", Boolean(state.sloshSpilling));
+        pp.classList.toggle("damaged", integ < 60);
+      }
+      const rb = $("btn-repair-wagon");
+      if (rb && vehPhys) {
+        const nearRepair = Math.hypot(well.x - wagon.x, well.z - wagon.z) < 28 ||
+          relays.some(r => Math.hypot(r.x - wagon.x, r.z - wagon.z) < 28) ||
+          Math.hypot(well.x - state.x, well.z - state.z) < 28 ||
+          relays.some(r => Math.hypot(r.x - state.x, r.z - state.z) < 28);
+        rb.hidden = !(vehPhys.integrity < 99.5 && nearRepair);
       }
       const rp = $("res-pill"), ep = SONG_EPOCHS[state.songEpochIdx];
       if (rp && ep) {
@@ -3700,8 +3790,11 @@ void main(){
         wagon.heading = st.yaw + Math.PI; wagon.speed = 0;
       }
       wagon.y = driveSurfaceAt(wagon.x, wagon.z);
-      wagon.group.position.set(wagon.x, wagon.y, wagon.z);
-      wagon.group.rotation.set(0, wagon.heading, 0, "YXZ");
+      if (vehPhys) { vehPhys.syncFrom(wagon.x, wagon.y, wagon.z, wagon.heading, driveSurfaceAt); applyWagonVisuals(); }
+      else {
+        wagon.group.position.set(wagon.x, wagon.y, wagon.z);
+        wagon.group.rotation.set(0, wagon.heading, 0, "YXZ");
+      }
       const dx = st.donkeyX ?? (state.x + fwdX * 5.2 + rgtX * 1.85);
       const dz = st.donkeyZ ?? (state.z + fwdZ * 5.2 + rgtZ * 1.85);
       const dh = st.donkeyH ?? (st.yaw - 1.15);
@@ -3832,7 +3925,7 @@ void main(){
       const clk = npEngine.clock(c.watch), freeL = npEngine.free(c);
       if ($("np-route-tag")) setText("np-route-tag", `${q.name.toUpperCase()} · ${q.carrier.toUpperCase()} & ${q.animal.toUpperCase()}`);
       if ($("np-watch-clock")) setText("np-watch-clock", `SHIFT ${c.day} · WATCH ${String(c.watch).padStart(2, "0")}/18 · ${clk} · STR ${c.strength}/6`);
-      if ($("np-switch-btn")) setText("np-switch-btn", npState.active === "west" ? "⇄ Ahiya (Rahel)" : "⇄ West (Imani)");
+      if ($("np-switch-btn")) setText("np-switch-btn", npState.active === "west" ? "Switch: Ahiya (Rahel)" : "Switch: West (Imani)");
       if ($("np-can-readout")) setText("np-can-readout", `${c.liters}/20 L ABOARD (${c.reserve} L CHALK · ${freeL} L FREE)`);
       const wInfo = c.wells[c.place], wDef = npWorld.wells[c.place];
       if ($("np-well-readout")) setText("np-well-readout", wInfo ? `WELL ${wInfo.stock}/${wDef.capacity} L (FLOOR ${wDef.floor} L${wInfo.resting ? " · RESTING" : ""})` : pl.name.toUpperCase());
@@ -3893,8 +3986,8 @@ void main(){
               allowfullscreen></iframe>
           </div>
           <div class="chip-grid" style="margin-top:8px;">
-            <a class="chip" href="../music-video.html" style="text-decoration:none;">Open Full Screening Room &amp; Lyrics ↗</a>
-            <a class="chip" href="https://www.youtube.com/watch?v=ZZlDs10FCZk" target="_blank" rel="noopener" style="text-decoration:none;">Watch on YouTube ↗</a>
+            <a class="chip" href="../music-video.html" style="text-decoration:none;">Open Full Screening Room &amp; Lyrics</a>
+            <a class="chip" href="https://www.youtube.com/watch?v=ZZlDs10FCZk" target="_blank" rel="noopener" style="text-decoration:none;">Watch on YouTube</a>
           </div>`;
         return;
       }
@@ -4122,7 +4215,7 @@ void main(){
         tray.innerHTML = `
           <div class="tray-head"><h2>Focus Pull Mode &amp; Summits</h2><button type="button" class="chip" id="tr-close">Done</button></div>
           <p class="tray-note">${MODES[state.modeIdx].desc}</p>
-          <button type="button" class="chip wide" id="md-replay">▶ Replay Cinematic Prologue</button>
+          <button type="button" class="chip wide" id="md-replay">Replay Cinematic Prologue</button>
           <div class="chip-grid">${MODES.map((m, i) => `<button type="button" class="chip wide" data-mode="${i}" aria-pressed="${state.modeIdx === i}">${m.label} — ${m.sub}</button>`).join("")}</div>
           <div class="sec-label">Summit Base-Jump Launches (J)</div>
           <div class="chip-grid">${SUMMITS.map((s, idx) => `<button type="button" class="chip wide" data-summit="${idx}">${s.name}</button>`).join("")}</div>
@@ -4225,7 +4318,7 @@ void main(){
     function syncTapeUI() {
       const playing = !audioEl.paused && !audioEl.ended;
       $("tape-btn").setAttribute("aria-pressed", String(playing));
-      $("tape-btn").textContent = playing ? "❚❚ Pause Tape" : "▶ Play Tape";
+      $("tape-btn").textContent = playing ? "Pause Tape" : "Play Tape";
       document.body.classList.toggle("tape-playing", playing);
       updateHUD();
     }
@@ -4433,7 +4526,7 @@ void main(){
     }
 
     function findPourTarget() {
-      let closest = null, bestD = 44;
+      let closest = null, bestD = 14;
       for (const r of relays) {
         if (r.lit) continue;
         const d = Math.min(Math.hypot(r.x - state.x, r.z - state.z), Math.hypot(r.x - donkey.state.x, r.z - donkey.state.z));
@@ -4444,20 +4537,36 @@ void main(){
 
     function pourWifi() {
       const closest = findPourTarget();
-      if (closest) startPourAnim(closest);
-      else if (Math.hypot(well.x - state.x, well.z - state.z) < 22) { pumpWell(); pingSignal(); }
-      else pingSignal();
+      if (closest) {
+        if (state.waterLiters <= 0.5) {
+          toast("No water aboard to pour — pump at a wellhead or lit cistern first (P).", "No water aboard");
+          return;
+        }
+        startPourAnim(closest);
+      } else if (Math.hypot(well.x - state.x, well.z - state.z) < 16) {
+        pumpWell();
+        pingSignal();
+      } else {
+        toast("Move within 14 m of an unlit cistern basin with water aboard to pour.", "Move closer to basin");
+        pingSignal();
+      }
     }
     $("btn-pour").addEventListener("click", pourWifi);
 
     function pumpWell() {
       state.pumpFlow = 1.0; state.pumpLeverPhase = .01; state.wifiCharge = 1.0;
       state.donkeyWater = 1.0;
+      state.waterLiters = 40.0;
       state.donkeyCollapsed = false;
       donkey.state.collapsed = false; donkey.state.downWant = false; donkey.state.stamina = 1.0;
+      if (vehPhys && vehPhys.integrity < 99.5) {
+        const nearRepair = Math.hypot(well.x - wagon.x, well.z - wagon.z) < 28 ||
+          relays.some(r => Math.hypot(r.x - wagon.x, r.z - wagon.z) < 28);
+        if (nearRepair) { vehPhys.repair(100); applyWagonVisuals(); }
+      }
       audio.pumpClank(); donkey.feed(); donkey.soothe();
       updateHUD();
-      toast("Cyan WiFi Water fills Mistletoe & her 20L jerrycans (100% Hydrated)!", "Mistletoe hydrated · 100%");
+      toast("Cyan WiFi Water fills carrier & Mistletoe tanks (40.0 kg load · 100% Hydrated)!", "Refilled 40.0 L · 100%");
       if (state.trayTab === "burro") renderTray();
     }
     $("btn-pump").addEventListener("click", pumpWell);
@@ -4472,18 +4581,20 @@ void main(){
       state.drivingCart = !state.drivingCart;
       if (state.drivingCart) {
         state.cartYawOffset = 0; state.cartPitchOffset = 0;
-        state.donkeyOnRoof = true; state.roofMountT = 0;
-        state.roofJumpStart.set(donkey.state.x, donkey.group.position.y, donkey.state.z);
+        // Mistletoe stays strictly terrain-grounded beside the wagon (never perched on roof)
+        state.donkeyOnRoof = false; state.roofMountT = 0;
+        if (vehPhys) vehPhys.syncFrom(wagon.x, wagon.y, wagon.z, wagon.heading, driveSurfaceAt);
         state.chaseCamPos.copy(camera.position);
         state.chaseLookAt.set(wagon.x, wagon.y + 1.8, wagon.z);
-        toast("Cruiser Woody (Collisions OFF) · Mistletoe on roof-deck! Drive continuously anywhere — no fences!", "Mistletoe on roof deck");
+        toast("Cruiser Woody (4-Wheel Suspension & Slope Gravity ON) · Mistletoe trots beside you on terrain.", "Driving Cruiser Woody");
       } else {
+        if (vehPhys) vehPhys.speed = 0;
         wagon.speed = 0; state.donkeyOnRoof = false;
         const dx = wagon.x + Math.cos(wagon.heading) * 2.8, dz = wagon.z - Math.sin(wagon.heading) * 2.8;
         state.x = dx; state.z = dz; state.y = driveSurfaceAt(dx, dz) + 1.68;
         state.yaw = wagon.heading + Math.PI; state.pitch = -.05;
         donkey.place(wagon.x - Math.cos(wagon.heading) * 2.4, wagon.z + Math.sin(wagon.heading) * 2.4, wagon.heading, (x, z) => driveSurfaceAt(x, z));
-        toast("Parked Cruiser Woody — Mistletoe hops down.", "Wagon parked");
+        toast("Parked Cruiser Woody — Mistletoe waits beside you.", "Wagon parked");
       }
       syncStickVisual();
       sampleMeter();
@@ -4633,7 +4744,8 @@ void main(){
       state.focusDist = 18.0; state.focusLook = Z.look; state.focusPulse = 1.0;
       wagon.x = Z.x + 6.5; wagon.z = Z.pz - 5.5; wagon.y = driveSurfaceAt(wagon.x, wagon.z);
       wagon.heading = state.yaw + Math.PI; wagon.speed = 0;
-      wagon.group.position.set(wagon.x, wagon.y, wagon.z); wagon.group.rotation.set(0, wagon.heading, 0, "YXZ");
+      if (vehPhys) { vehPhys.syncFrom(wagon.x, wagon.y, wagon.z, wagon.heading, driveSurfaceAt); applyWagonVisuals(); }
+      else { wagon.group.position.set(wagon.x, wagon.y, wagon.z); wagon.group.rotation.set(0, wagon.heading, 0, "YXZ"); }
       donkey.place(Z.x - 1.5, Z.pz + 2.5, state.yaw + Math.PI, (x, z) => driveSurfaceAt(x, z));
       applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
       initRain(); updateHUD();
@@ -4695,14 +4807,15 @@ void main(){
         arch.updateArchitecture(nowSec);
       }
       if (inWorldVideoMode !== "mp4") {
-        const cinFrame = Math.floor(nowSec * 15);
+        const cinFrame = Math.floor(nowSec * (npScreeningMode ? 12 : 4));
         if (cinFrame !== npLastCinFrame) {
           npLastCinFrame = cinFrame;
           draw2086CinemaFrame(nowSec, npScreeningMode || (state.region === "ahiya" ? "AHIYA" : npState.active === "ahiya" ? "AR-03" : "WF-08"));
         }
       }
 
-      if (Math.abs(camera.position.x + 480) < 920 && Math.abs(camera.position.z) < 620) {
+      renderFrame._reflTick = ((renderFrame._reflTick || 0) + 1) % 3;
+      if (renderFrame._reflTick === 0 && Math.abs(camera.position.x + 480) < 920 && Math.abs(camera.position.z) < 620) {
         const refY = mw.water(clamp(camera.position.x, -1620, -240), clamp(camera.position.z, -400, 400));
         mw.renderReflection(nowSec, w, h, refY, camera);
       }
@@ -4804,7 +4917,7 @@ void main(){
       return { rightM, aheadM, relRad, relDeg: relRad * 180 / Math.PI };
     }
     function turnCueFromDeg(deg) {
-      const cues = ["↑ Ahead", "↗ Right", "→ Right", "↘ Back-R", "↓ Behind", "↙ Back-L", "← Left", "↖ Left"];
+      const cues = ["N Ahead", "NE Right", "E Right", "SE Back-R", "S Behind", "SW Back-L", "W Left", "NW Left"];
       return cues[((Math.round(deg / 45) % 8) + 8) % 8];
     }
 
@@ -6473,51 +6586,33 @@ void main(){
           state.yaw = lookHdg + Math.PI;
         }
       } else if (state.drivingCart) {
-        /* --- CRUISER WOODY STATION WAGON (PHYSICS & COLLISIONS OFF + SUSPENSION SPRING) --- */
-        const targetSpeed = (brakeInput ? 0
-          : fwdInput > .08 ? clamp(fwdInput, .35, 1) * (turbo ? 42.0 : 25.0)
-          : fwdInput < -.08 ? -clamp(-fwdInput, .55, 1) * (turbo ? 26.0 : 17.5) : 0) * flowSpeedMult;
-        const accelRate = (Math.abs(fwdInput) <= .08 || brakeInput) ? 9.5 : 6.8;
-        let demoTarget = targetSpeed;
-        if (DEMO) {                                                        // grade along the heading sets what the engine can hold
-          const sh = Math.sin(wagon.heading), ch = Math.cos(wagon.heading), dir = Math.sign(targetSpeed) || 1;
-          const grade = (driveSurfaceAt(wagon.x + sh * 1.65 * dir, wagon.z + ch * 1.65 * dir) - driveSurfaceAt(wagon.x - sh * 1.65 * dir, wagon.z - ch * 1.65 * dir)) / 3.3;
-          demoTarget = targetSpeed * .56 * (grade > .55 ? 0 : grade > 0 ? clamp(1 - grade * 2.2, .15, 1) : clamp(1 - grade * .4, 1, 1.2));
+        /* --- CRUISER WOODY STATION WAGON (60 Hz 4-WHEEL SUSPENSION, SLOPE GRAVITY & DAMAGE) --- */
+        if (vehPhys) {
+          vehPhys.step(dt, {
+            fwd: fwdInput,
+            side: sideInput,
+            brake: brakeInput,
+            turbo,
+            flowSpeedMult,
+            waterLiters: state.waterLiters
+          }, driveSurfaceAt, worldObstacles, worldBoundsClamp, onVehicleImpact);
+          applyWagonVisuals();
+          for (const w of wagon.wheels) {
+            w.spin.rotation.x -= (wagon.speed * dt) / .394;
+          }
+          if (vehPhys.integrity < 50 && physParticles) {
+            smokeClock += dt;
+            if (smokeClock > 0.14) {
+              smokeClock = 0;
+              const sinH = Math.sin(wagon.heading), cosH = Math.cos(wagon.heading);
+              physParticles.spawnSmoke(wagon.x + sinH * 1.9, wagon.y + 1.35, wagon.z + cosH * 1.9, 1);
+            }
+          }
         }
-        wagon.speed = lerp(wagon.speed, demoTarget, 1 - Math.exp(-dt * (DEMO ? accelRate * .45 : accelRate)));
-        if (Math.abs(wagon.speed) < .06 && Math.abs(fwdInput) <= .08) wagon.speed = 0;
-
-        const revFlip = (fwdInput < 0 && wagon.speed < -.5) ? -1 : 1;
-        // demo: yaw needs rolling wheels and is capped by tyre grip (0.7 g)
-        const yawRate = DEMO ? Math.min(1.85 * clamp(Math.abs(wagon.speed) / 4, 0, 1), 6.9 / Math.max(Math.abs(wagon.speed), 1)) : 1.85;
-        wagon.heading -= sideInput * revFlip * yawRate * dt;
-        wagon.steerAngle = lerp(wagon.steerAngle, -sideInput * .38, 1 - Math.exp(-dt * 12));
-
-        let wnx = wagon.x + Math.sin(wagon.heading) * wagon.speed * dt, wnz = wagon.z + Math.cos(wagon.heading) * wagon.speed * dt;
-        if (DEMO) { const r = demoResolve(wnx, wnz, 1.35); wnx = r[0]; wnz = r[1]; if (r[2]) wagon.speed *= Math.exp(-dt * 14); }
-        [wagon.x, wagon.z] = worldBoundsClamp(wnx, wnz);
-        const surfY = driveSurfaceAt(wagon.x, wagon.z);
-        wagon.y = lerp(wagon.y, surfY, 1 - Math.exp(-dt * 18));
-
-        const sinH = Math.sin(wagon.heading), cosH = Math.cos(wagon.heading);
-        const fH = driveSurfaceAt(wagon.x + sinH * 1.65, wagon.z + cosH * 1.65);
-        const rH = driveSurfaceAt(wagon.x - sinH * 1.65, wagon.z - cosH * 1.65);
-        wagon.pitch = lerp(wagon.pitch, clamp(Math.atan2(fH - rH, 3.30) * .65, -.16, .16), 1 - Math.exp(-dt * 12));
-        wagon.roll = lerp(wagon.roll, clamp(-sideInput * Math.min(1, Math.abs(wagon.speed) / 20) * .045, -.05, .05), 1 - Math.exp(-dt * 10));
-
-        wagon.group.position.set(wagon.x, wagon.y, wagon.z);
-        wagon.group.rotation.y = wagon.heading;
-        wagon.chassis.position.y = Math.sin(nowSec * 9.5) * .018 * clamp(Math.abs(wagon.speed) / 20, 0, 1);
-        wagon.chassis.rotation.x = wagon.pitch;
-        wagon.chassis.rotation.z = wagon.roll;
-
-        for (const w of wagon.wheels) {
-          w.mount.position.y = .394;
-          w.spin.rotation.x -= (wagon.speed * dt) / .394;
-          if (w.front) w.mount.rotation.y = wagon.steerAngle;
+        // Keep Mistletoe strictly terrain-grounded beside the vehicle (NEVER perched on car roof)
+        if (NP_PHYS) {
+          NP_PHYS.keepCompanionGrounded(donkey, wagon, dt, driveSurfaceAt, worldBoundsClamp);
         }
-
-        poseRoofRider(dt);
 
         if (lookPointer === null && Math.abs(wagon.speed) > .5) {
           state.cartYawOffset = lerp(state.cartYawOffset, 0, 1 - Math.exp(-dt * 2.4));
@@ -6541,6 +6636,7 @@ void main(){
         const effThrottle = state.donkeyCollapsed ? 0 : fwdInput;
         donkey.update(dt, { throttle: effThrottle, steer: -sideInput, pace: turbo ? 2 : state.gaitIdx, near: 0, drop: 0 }, stepFn);
         [donkey.state.x, donkey.state.z] = worldBoundsClamp(donkey.state.x, donkey.state.z);
+        donkey.state.y = driveSurfaceAt(donkey.state.x, donkey.state.z);
         donkey.group.position.set(donkey.state.x, donkey.state.y, donkey.state.z);
 
         const aheadX = donkey.state.x + Math.sin(donkey.state.heading) * 2.5, aheadZ = donkey.state.z + Math.cos(donkey.state.heading) * 2.5;
@@ -6559,21 +6655,23 @@ void main(){
           state.yaw = lookHdg + Math.PI;
         }
       } else {
-        /* --- ON FOOT (COLLISIONS OFF) + LEADING MISTLETOE --- */
-        const speed = DEMO ? (turbo ? 4.6 : 1.7) : (turbo ? 16.0 : 7.5) * flowSpeedMult;
+        /* --- ON FOOT (GRAVITY, TERRAIN-SOLE GROUNDING & 0-40 kg WATER-LOAD WEIGHT) + LEADING MISTLETOE --- */
+        const baseSpeed = DEMO ? (turbo ? 4.6 : 1.7) : (turbo ? 13.5 : 6.8) * flowSpeedMult;
         const sx = Math.sin(state.yaw), cz = Math.cos(state.yaw);
-        let fnx = state.x + (-sx * fwdInput + cz * sideInput) * speed * dt, fnz = state.z + (-cz * fwdInput - sx * sideInput) * speed * dt;
-        if (DEMO) {
-          const run = Math.hypot(fnx - state.x, fnz - state.z);
-          if (run > 1e-6) {                                                // uphill costs pace; ground steeper than 45 degrees stops you
-            const grade = (driveSurfaceAt(fnx, fnz) - driveSurfaceAt(state.x, state.z)) / run;
-            const k = grade > 1 ? 0 : grade > 0 ? clamp(1 - grade * 1.6, .25, 1) : clamp(1 + grade * .5, .7, 1);
-            fnx = state.x + (fnx - state.x) * k; fnz = state.z + (fnz - state.z) * k;
+        const moveDirX = -sx * fwdInput + cz * sideInput;
+        const moveDirZ = -cz * fwdInput - sx * sideInput;
+        if (carrierPhys) {
+          carrierPhys.stepFoot(state, dt, moveDirX, moveDirZ, baseSpeed, state.waterLiters, driveSurfaceAt, worldBoundsClamp);
+          if (DEMO) {
+            const r = demoResolve(state.x, state.z, .35);
+            state.x = r[0]; state.z = r[1];
+            state.y = driveSurfaceAt(state.x, state.z) + 1.68;
           }
-          const r = demoResolve(fnx, fnz, .35); fnx = r[0]; fnz = r[1];
+        } else {
+          let fnx = state.x + moveDirX * baseSpeed * dt, fnz = state.z + moveDirZ * baseSpeed * dt;
+          [state.x, state.z] = worldBoundsClamp(fnx, fnz);
+          state.y = driveSurfaceAt(state.x, state.z) + 1.68;
         }
-        [state.x, state.z] = worldBoundsClamp(fnx, fnz);
-        state.y = lerp(state.y, driveSurfaceAt(state.x, state.z) + 1.68, 1 - Math.exp(-dt * (DEMO ? 30 : 14)));
         const dx = state.x - donkey.state.x, dz = state.z - donkey.state.z, dist = Math.hypot(dx, dz);
         const stepFn = (x, z) => driveSurfaceAt(x, z);
         if (state.donkeyCollapsed || state.pourAnim) {
@@ -6584,8 +6682,47 @@ void main(){
         } else {
           donkey.update(dt, { throttle: 0, steer: 0, pace: 0, near: dist < 3.5 ? 1 : 0, drop: 0 }, stepFn);
         }
+        donkey.state.y = driveSurfaceAt(donkey.state.x, donkey.state.z);
+        donkey.group.position.set(donkey.state.x, donkey.state.y, donkey.state.z);
         applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
       }
+
+      /* --- Parked Wagon 4-Wheel Slope Alignment + Water Slosh & Spill Physics --- */
+      if (vehPhys && !state.drivingCart && !state.gliding) {
+        vehPhys.stepParked(dt, driveSurfaceAt, worldBoundsClamp);
+        applyWagonVisuals();
+        if (vehPhys.integrity < 50 && physParticles) {
+          smokeClock += dt;
+          if (smokeClock > 0.24) {
+            smokeClock = 0;
+            const sinH = Math.sin(wagon.heading), cosH = Math.cos(wagon.heading);
+            physParticles.spawnSmoke(wagon.x + sinH * 1.9, wagon.y + 1.35, wagon.z + cosH * 1.9, 1);
+          }
+        }
+      }
+      if (waterSlosh && !state.introActive) {
+        const sloshDrive = state.drivingCart && vehPhys
+          ? { accelFwd: vehPhys.accelFwd, accelLat: vehPhys.accelLat, pitch: vehPhys.pitch, roll: vehPhys.roll }
+          : carrierPhys
+            ? { accelFwd: carrierPhys.accelZ, accelLat: carrierPhys.accelX, pitch: carrierPhys.grade * 0.45, roll: 0 }
+            : { accelFwd: 0, accelLat: 0, pitch: 0, roll: 0 };
+        const sRes = waterSlosh.step(dt, sloshDrive, state.waterLiters);
+        state.sloshPct = sRes.pct;
+        state.sloshSpilling = sRes.spilling;
+        if (sRes.spilledL > 0) {
+          state.waterLiters = Math.max(0, state.waterLiters - sRes.spilledL);
+          state.donkeyWater = clamp(state.donkeyWater - sRes.spilledL * 0.012, 0, 1);
+          if (physParticles) {
+            const sx = state.drivingCart ? wagon.x : donkey.state.x;
+            const sy = state.drivingCart ? wagon.y + 2.35 : donkey.group.position.y + 1.12;
+            const sz = state.drivingCart ? wagon.z : donkey.state.z;
+            const bvx = state.drivingCart && vehPhys ? vehPhys.vx : (state.vx || 0);
+            const bvz = state.drivingCart && vehPhys ? vehPhys.vz : (state.vz || 0);
+            physParticles.spawnSpill(sx, sy, sz, bvx, bvz, 3);
+          }
+        }
+      }
+      if (physParticles) physParticles.update(dt, driveSurfaceAt);
 
       /* --- Animated Pouring & Sequential Jerrycan Filling + Eskista Dance --- */
       if (state.pourAnim) {
@@ -6634,6 +6771,7 @@ void main(){
           pourGroup.visible = false;
           donkeyRig.rotation.x = 0;
           state.pourAnim = null;
+          state.waterLiters = Math.max(0, state.waterLiters - 6.0);
           finishRelayIgnition(r);
         }
       } else {
@@ -6845,6 +6983,9 @@ void main(){
           }
           worldBridge.update(dt);
         }
+        if (NP_PHYS && Array.isArray(cast.list)) {
+          NP_PHYS.groundCastList(cast.list, driveSurfaceAt, carrierPhys ? carrierPhys.carryLeanRad : 0);
+        }
       }
 
       // Sync 2086 Mistletoe 20L chalk-marked saddle cans + screening cues + station proximity
@@ -6883,8 +7024,8 @@ void main(){
               ? `Teton Range · ${(Math.hypot(mw.tetonRange.x - state.x, mw.tetonRange.z - state.z) / 1000).toFixed(1)} km`
               : state.gliding
                 ? `${state.donkeyOnRoof ? "Wagon flight · Mistletoe aboard" : "Mistletoe gliding"} · Alt ${fmtElev(state.antennaElev)}`
-                : state.donkeyOnRoof
-                  ? `Cruiser Woody (No Collisions/Fences) · Cans ${state.filledCans}/${state.totalCans} · Next ${state.nextRelayName.split(" ")[0]} ${Math.round(state.nextRelayDist)}m.`
+                : state.drivingCart
+                  ? `Cruiser Woody (Chassis ${vehPhys ? Math.round(vehPhys.integrity) : 100}% · Load ${state.waterLiters.toFixed(1)} kg) · Cans ${state.filledCans}/${state.totalCans} · Next ${state.nextRelayName.split(" ")[0]} ${Math.round(state.nextRelayDist)}m.`
                   : `Unified World (${state.region === "ridge" ? "Half Dome" : state.region === "abyss" ? "Abyssal Sanctuary" : "Grand Teton"}) · Song ${SONG_EPOCHS[state.songEpochIdx].hint}`;
         if (!useFieldLayout() && (!audioEl.paused || audioEl.currentTime > 0)) {
           const curT = audioEl.currentTime, dur = Number.isFinite(audioEl.duration) ? audioEl.duration : 283;
@@ -6915,6 +7056,18 @@ void main(){
       if (urlParams.get("trailer") === "1") machinima.start("trailer", 0);
       else if (urlParams.get("musicvideo") === "1") machinima.start("musicvideo", 0);
       else if (urlParams.get("machinima") === "1") machinima.start("dolly", 0);
+    }
+    // Register solid world obstacles (wellhead, cistern pedestals, forest trunks) for vehicle collision physics
+    worldObstacles.push({ x: well.x, z: well.z, r: 1.6, kind: "wellhead" });
+    for (const r of relays) worldObstacles.push({ x: r.x, z: r.z, r: 2.2, kind: "cistern" });
+    for (const g of forestGroves) {
+      if (g.meshes) {
+        for (const item of g.meshes) {
+          if (item && item.mesh) {
+            worldObstacles.push({ x: g.x + item.mesh.position.x, z: g.z + item.mesh.position.z, r: 1.1, kind: "tree" });
+          }
+        }
+      }
     }
     initRain();
     syncIntroUI();
@@ -7038,7 +7191,28 @@ void main(){
             const as = worldBridge.getActorState(id);
             return as ? { id, clip: as.clip, loaded: as.loaded, blend: +as.blend.toFixed(2) } : null;
           }).filter(Boolean) : [],
-          machinima: machinima ? machinima.getState() : null
+          machinima: machinima ? machinima.getState() : null,
+          physics: {
+            waterLiters: +state.waterLiters.toFixed(2),
+            waterKg: +state.waterLiters.toFixed(2),
+            sloshX: waterSlosh ? +waterSlosh.sloshX.toFixed(3) : 0,
+            sloshZ: waterSlosh ? +waterSlosh.sloshZ.toFixed(3) : 0,
+            sloshMag: waterSlosh ? +waterSlosh.magnitude.toFixed(3) : 0,
+            sloshPct: state.sloshPct,
+            spilling: state.sloshSpilling,
+            totalSpilledL: waterSlosh ? +waterSlosh.totalSpilledL.toFixed(3) : 0,
+            integrity: vehPhys ? +vehPhys.integrity.toFixed(1) : 100,
+            bumperDent: vehPhys ? +vehPhys.bumperDent.toFixed(3) : 0,
+            hoodTilt: vehPhys ? +vehPhys.hoodTilt.toFixed(3) : 0,
+            airborne: vehPhys ? vehPhys.airborne : false,
+            slopeDeg: vehPhys ? +(vehPhys.slopeAngle * 180 / Math.PI).toFixed(2) : 0,
+            wheelOffsets: vehPhys ? vehPhys.wheelOffsets.map(v => +v.toFixed(3)) : [0, 0, 0, 0],
+            carryLeanRad: carrierPhys ? +carrierPhys.carryLeanRad.toFixed(3) : 0,
+            carrierSpeedMult: carrierPhys ? +carrierPhys.speedMult.toFixed(3) : 1,
+            donkeyGroundGap: +(donkey.group.position.y - driveSurfaceAt(donkey.state.x, donkey.state.z)).toFixed(3),
+            obstacleCount: worldObstacles.length,
+            particleCount: physParticles ? physParticles.activeCount : 0
+          }
         };
       },
       getCast: () => cast ? cast.list.map(c => ({
@@ -7106,7 +7280,16 @@ void main(){
       demo: () => ({ on: DEMO, solids: demo.solids ? demo.solids.length : (DEMO ? (demoBuildSolids(), demo.solids.length) : 0), withCh: demo.withCh ? demo.withCh.state.id : null, line: demo.line ? demo.line.text : "", pose: demo.withCh ? demo.withCh.state.pose : "",
         speaking: demo.withCh ? Boolean(demo.withCh.state.poseOpts && demo.withCh.state.poseOpts.speaking) : false, signal: demo.signal, thread: demo.thread || [] }),
       demoSay: t => demoSay(t), demoResolve: (x, z, r) => demoResolve(x, z, r || .35), wagonState: () => ({ x: wagon.x, z: wagon.z, speed: wagon.speed, heading: wagon.heading }),
-      setKey: (code, down) => { keys[code] = !!down; }, toggleCart: () => toggleCart(), simOnce: dt => step(dt || .05)
+      setKey: (code, down) => { keys[code] = !!down; }, toggleCart: () => toggleCart(), simOnce: dt => step(dt || .05),
+      repairWagon: () => repairWagonAtStation(),
+      triggerImpact: (sev = 22, type = "rock") => { if (vehPhys) { vehPhys.applyImpact(sev, type, onVehicleImpact); applyWagonVisuals(); updateHUD(); } },
+      triggerSlosh: (ix = 4.2, iz = 3.2) => { if (waterSlosh) waterSlosh.impulse(ix, iz); },
+      setWaterLiters: L => { state.waterLiters = clamp(L, 0, 40); updateHUD(); },
+      placeWagon: (wx, wz, hdg) => {
+        wagon.x = wx; wagon.z = wz; wagon.heading = hdg ?? wagon.heading;
+        wagon.y = driveSurfaceAt(wx, wz);
+        if (vehPhys) { vehPhys.syncFrom(wagon.x, wagon.y, wagon.z, wagon.heading, driveSurfaceAt); applyWagonVisuals(); }
+      }
     };
   }
 

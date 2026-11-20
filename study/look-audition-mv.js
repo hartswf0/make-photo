@@ -212,7 +212,7 @@
     },
     {
       id: "ensemble",
-      short: "★ Full Ensemble",
+      short: "Full Ensemble",
       title: "Full Ensemble · 5-Voice Highland Arkestra",
       isEnsemble: true
     }
@@ -277,7 +277,7 @@
   ];
 
   const MV_CUTS = [
-    { id: "auto",    short: "🎬 Auto Director", label: "AUTO DIRECTOR CUT" },
+    { id: "auto",    short: "Auto Director",   label: "AUTO DIRECTOR CUT" },
     { id: "face",    short: "Face 0.36m",       label: "85MM VOCAL FACE & EYES" },
     { id: "eyes",    short: "Eyes 0.20m",       label: "100MM SCION EYE & LASH MACRO" },
     { id: "neck",    short: "Neck & Collar",    label: "SCION NECK, CLAVICLE & COLLAR (0.44M)" },
@@ -287,38 +287,113 @@
     { id: "orbit",   short: "Free Orbit",       label: "FREE ORBIT & ZOOM" }
   ];
 
-  /* ---------- 3. Word-to-Phoneme Viseme Mapper & Synced 104 BPM Vocal Score ---------- */
-  // Maps English/Amharic lyric words into realistic (onset consonant -> stressed vowel -> coda) viseme tuples!
-  function wordToPhonemePair(rawWord) {
+  /* ---------- 3. Deterministic Word-Level Lyric Phoneme Scheduler (Syllable-Timed Visemes) ---------- */
+  // Parses English/Amharic lyric words into deterministic syllable-timed viseme sequences
+  // (SIL / MM / FF / AA / EE / OH / OO / TH / LL / IH) so the mouth articulates real words
+  // and closes cleanly to SIL during instrumental bars and inter-phrase pauses.
+  const PHONEME_CACHE = new Map();
+
+  function wordToSyllableVisemes(rawWord) {
     const w = String(rawWord || "").toLowerCase().replace(/[^a-z]/g, "");
-    if (!w) return ["IH", "AA"];
+    if (!w) return [{ viseme: "SIL", weight: 0.0, dur: 1.0 }];
+    const cached = PHONEME_CACHE.get(w);
+    if (cached) return cached;
 
-    let onset = null;
-    if (/^(m|b|p)/.test(w)) onset = "MM";
-    else if (/^(f|v)/.test(w)) onset = "FF";
-    else if (/^th/.test(w)) onset = "TH";
-    else if (/^(w|wh|qu)/.test(w)) onset = "OO";
-    else if (/^(l|n|t|d|r|s|z|k|c|g)/.test(w)) onset = "LL";
+    const seq = [];
+    let i = 0;
+    const len = w.length;
 
-    let vowel = "AA";
-    if (/(oo|ou|u|ew|ue|wo)/.test(w) && !/(out|our|ound|up|un|um|us|ut|ub)/.test(w)) {
-      vowel = "OO";
-    } else if (/(ow|oa|or|o|au|aw)/.test(w) && !/(on|of|from)/.test(w)) {
-      vowel = "OH";
-    } else if (/(ee|ea|ie|ey|iy|i$|y$|wi|fi|ki)/.test(w) && !/(my|by|sky|dial)/.test(w)) {
-      vowel = "EE";
-    } else if (/(^in|^it|^is|ll|ic|id|ig|im|ip|en|et|el|er)/.test(w) && !/(iron|jerikan|light)/.test(w)) {
-      vowel = "IH";
-    } else {
-      vowel = "AA";
+    while (i < len) {
+      const rest = w.slice(i);
+      // 1. Digraph / consonant onset
+      if (rest.startsWith("th")) {
+        seq.push({ viseme: "TH", weight: 0.56, dur: 0.65 });
+        i += 2;
+        continue;
+      }
+      if (rest.startsWith("sh") || rest.startsWith("ch")) {
+        seq.push({ viseme: "OH", weight: 0.44, dur: 0.60 });
+        i += 2;
+        continue;
+      }
+      if (rest.startsWith("wh") || rest.startsWith("qu")) {
+        seq.push({ viseme: "OO", weight: 0.54, dur: 0.70 });
+        i += 2;
+        continue;
+      }
+      const ch = w[i];
+      // 2. Vowel nuclei (diphthongs & digraphs first)
+      if (/^[aeiouy]/.test(ch)) {
+        if (/^(oo|ew|ue|ou)/.test(rest) && !/^(out|our|ound)/.test(rest)) {
+          seq.push({ viseme: "OO", weight: 0.58, dur: 1.35 });
+          i += 2;
+        } else if (/^(ee|ea|ie|ey|iy)/.test(rest)) {
+          seq.push({ viseme: "EE", weight: 0.56, dur: 1.30 });
+          i += 2;
+        } else if (/^(ow|oa|au|aw|or)/.test(rest)) {
+          seq.push({ viseme: "OH", weight: 0.62, dur: 1.35 });
+          i += 2;
+        } else if (/^(ai|ay|ei)/.test(rest)) {
+          seq.push({ viseme: "EE", weight: 0.54, dur: 1.25 });
+          i += 2;
+        } else if (ch === "a") {
+          seq.push({ viseme: "AA", weight: 0.68, dur: 1.35 });
+          i += 1;
+        } else if (ch === "o") {
+          seq.push({ viseme: "OH", weight: 0.60, dur: 1.30 });
+          i += 1;
+        } else if (ch === "u") {
+          seq.push({ viseme: "OO", weight: 0.54, dur: 1.25 });
+          i += 1;
+        } else if (ch === "e") {
+          // Silent trailing 'e' in English (e.g. "stone", "blade", "tape")
+          if (i === len - 1 && len > 2 && !/[aeiouy]/.test(w[i - 1])) {
+            i += 1;
+          } else {
+            seq.push({ viseme: "EE", weight: 0.50, dur: 1.15 });
+            i += 1;
+          }
+        } else {
+          // 'i' or 'y'
+          seq.push({ viseme: "IH", weight: 0.48, dur: 1.10 });
+          i += 1;
+        }
+        continue;
+      }
+      // 3. Single consonants
+      if (ch === "m" || ch === "b" || ch === "p") {
+        seq.push({ viseme: "MM", weight: 0.78, dur: 0.62 });
+      } else if (ch === "f" || ch === "v") {
+        seq.push({ viseme: "FF", weight: 0.58, dur: 0.60 });
+      } else if (ch === "w") {
+        seq.push({ viseme: "OO", weight: 0.52, dur: 0.65 });
+      } else if (ch === "l" || ch === "n" || ch === "t" || ch === "d" || ch === "r" || ch === "s" || ch === "z") {
+        seq.push({ viseme: "LL", weight: 0.44, dur: 0.50 });
+      } else if (ch === "k" || ch === "c" || ch === "g" || ch === "j") {
+        seq.push({ viseme: "IH", weight: 0.36, dur: 0.46 });
+      }
+      i += 1;
     }
 
-    let coda = null;
-    if (/(m|b|p)$/.test(w)) coda = "MM";
-    else if (/(f|v)$/.test(w)) coda = "FF";
-    else if (/th$/.test(w)) coda = "TH";
-    else if (/(l|n|t|d)$/.test(w)) coda = "LL";
+    // Deduplicate consecutive identical visemes to avoid micro-stutter
+    const compact = [];
+    for (let k = 0; k < seq.length; k++) {
+      if (compact.length && compact[compact.length - 1].viseme === seq[k].viseme) {
+        compact[compact.length - 1].dur += seq[k].dur * 0.45;
+      } else {
+        compact.push(seq[k]);
+      }
+    }
+    const result = compact.length ? compact : [{ viseme: "IH", weight: 0.40, dur: 1.0 }];
+    PHONEME_CACHE.set(w, result);
+    return result;
+  }
 
+  function wordToPhonemePair(rawWord) {
+    const seq = wordToSyllableVisemes(rawWord);
+    const vowel = (seq.find(s => s.viseme === "AA" || s.viseme === "EE" || s.viseme === "OH" || s.viseme === "OO" || s.viseme === "IH") || seq[0]).viseme;
+    const onset = seq.length > 1 && seq[0].viseme !== vowel ? seq[0].viseme : null;
+    const coda = seq.length > 1 && seq[seq.length - 1].viseme !== vowel ? seq[seq.length - 1].viseme : null;
     return [onset, vowel, coda];
   }
 
@@ -330,8 +405,7 @@
       emotion: "determined_focus", altEmotion: "relief_sigh",
       hand: "cupped_water_plea", dance: false,
       lines: [
-        { sub: 0.0, dur: 4.8, breath: true, text: "Intro · Warm cassette tape wakes before the rooster", vocal: "Humming warm Tezeta prelude… mm — oh — ah" },
-        { sub: 5.6, dur: 5.4, breath: false, text: "“Mm — dawn water rising in the iron pipe / Wake the highland tape”" }
+        { sub: 0.0, dur: 11.4, instrumental: true, text: "Intro · Warm cassette tape wakes before the rooster." }
       ]
     },
     {
@@ -474,7 +548,8 @@
     }
 
     const lineElapsed = localT - activeLine.sub;
-    const inPhrase = lineElapsed >= 0 && lineElapsed <= activeLine.dur;
+    const isInstrumental = Boolean(activeLine.instrumental);
+    const inPhrase = !isInstrumental && lineElapsed >= 0 && lineElapsed <= activeLine.dur;
     const cleanPhrase = (activeLine.vocal || activeLine.text).replace(/[“”"—·/]/g, " ").replace(/\s+/g, " ").trim();
     const words = cleanPhrase.split(" ").filter(Boolean);
 
@@ -485,34 +560,57 @@
     let isBreathing = !inPhrase;
 
     if (inPhrase && words.length > 0) {
-      const u = clamp(lineElapsed / Math.max(0.2, activeLine.dur), 0, 0.9999);
-      activeWordIdx = Math.floor(u * words.length);
-      activeWord = words[activeWordIdx] || "";
-      const wordU = fract(u * words.length);
-      const [onset, vowel, coda] = wordToPhonemePair(activeWord);
-
-      if (onset && wordU < 0.22) {
-        viseme = onset;
-        visemeAmount = onset === "MM" ? 0.88 : 0.76;
-      } else if (coda && wordU > 0.82) {
-        viseme = coda;
-        visemeAmount = coda === "MM" ? 0.84 : 0.70;
-      } else {
-        viseme = vowel;
-        // Natural syllabic bell curve so jaw pulses smoothly on every sung syllable!
-        const syllEnv = 0.62 + 0.36 * Math.sin(clamp((wordU - 0.12) / 0.74, 0, 1) * Math.PI);
-        visemeAmount = clamp(syllEnv, 0.45, 0.92);
+      // Weight each word's time slice by its total syllable phoneme duration so multisyllable words
+      // ("jerikan", "shoulder", "Arkestra") are timed accurately instead of equal-width robotic flaps.
+      const wordSeqs = words.map(w => wordToSyllableVisemes(w));
+      let totalDur = 0;
+      const wordDurs = new Array(words.length);
+      for (let wi = 0; wi < words.length; wi++) {
+        let wd = 0.35; // brief natural inter-word breath/transition slot
+        for (let pi = 0; pi < wordSeqs[wi].length; pi++) wd += wordSeqs[wi][pi].dur;
+        wordDurs[wi] = wd;
+        totalDur += wd;
       }
-    } else {
-      // Breath intake between phrases!
-      const breathPh = clamp((lineElapsed - activeLine.dur) / 0.85, 0, 1);
-      if (breathPh > 0.12 && breathPh < 0.68) {
-        viseme = "IH";
-        visemeAmount = 0.22 * Math.sin(((breathPh - 0.12) / 0.56) * Math.PI);
-      } else {
+
+      const u = clamp(lineElapsed / Math.max(0.25, activeLine.dur), 0, 0.9999);
+      let cursor = u * totalDur;
+      activeWordIdx = words.length - 1;
+      for (let wi = 0; wi < words.length; wi++) {
+        if (cursor <= wordDurs[wi] || wi === words.length - 1) {
+          activeWordIdx = wi;
+          break;
+        }
+        cursor -= wordDurs[wi];
+      }
+      activeWord = words[activeWordIdx] || "";
+
+      const seq = wordSeqs[activeWordIdx];
+      const wordSpan = Math.max(0.01, wordDurs[activeWordIdx] - 0.35);
+      if (cursor > wordSpan) {
+        // Brief natural inter-word closure -> prevents jaw hanging wide open across words!
         viseme = "SIL";
         visemeAmount = 0.0;
+      } else {
+        let pCur = cursor;
+        let chosen = seq[seq.length - 1];
+        let localU = 0.5;
+        for (let pi = 0; pi < seq.length; pi++) {
+          if (pCur <= seq[pi].dur || pi === seq.length - 1) {
+            chosen = seq[pi];
+            localU = clamp(pCur / Math.max(0.05, seq[pi].dur), 0, 1);
+            break;
+          }
+          pCur -= seq[pi].dur;
+        }
+        viseme = chosen.viseme;
+        // Smooth raised-cosine syllable pulse (zero harsh snapping, never stuck at 1.0 gaping O-mouth)
+        const env = 0.35 + 0.65 * Math.sin(localU * Math.PI);
+        visemeAmount = clamp(chosen.weight * env, 0.0, 0.78);
       }
+    } else {
+      // Instrumental bars and inter-phrase pauses: mouth rests cleanly closed (SIL)
+      viseme = "SIL";
+      visemeAmount = 0.0;
     }
 
     // 104 BPM 6/8 Ethio-jazz beat math (1 dotted-quarter beat = 60/104 = 0.57692s; 2-beat bar = 1.1538s; 6/8 compound bar = 1.7308s)
@@ -521,11 +619,14 @@
     const barIndex = Math.floor(beatFloat / 3); // ~1.73s per 3-beat measure
     const useAlt = (barIndex % 4) >= 2;
 
+    const lineProgress = inPhrase ? clamp(lineElapsed / Math.max(0.25, activeLine.dur), 0, 1) : 0;
+
     return {
       songTime: t,
       epoch,
       canonicalLyric,
       lineText: activeLine.text,
+      lineProgress,
       words,
       activeWord,
       activeWordIdx,
@@ -700,14 +801,24 @@
       vocalFormantEnv = lerp(vocalFormantEnv, rawVocal, clamp(sDt * 18.0, 0, 1));
       highBrassEnv = lerp(highBrassEnv, rawHigh, clamp(sDt * 12.0, 0, 1));
 
-      // Modulate syllable aperture with real-time WebAudio vocal formant energy when live!
+      // Gate and modulate syllable aperture with real-time WebAudio vocal formant energy when live!
+      let finalVis = vox.viseme;
       let finalVisAmt = vox.visemeAmount;
-      if (gotLiveSpectrum && vox.singing && vox.viseme !== "MM") {
-        finalVisAmt = clamp(vox.visemeAmount * (0.62 + 0.68 * vocalFormantEnv), 0.28, 0.95);
+      if (!playing) {
+        finalVis = "SIL";
+        finalVisAmt = 0.0;
+      } else if (gotLiveSpectrum && vox.singing) {
+        if (vocalFormantEnv < 0.075) {
+          finalVis = "SIL";
+          finalVisAmt = 0.0;
+        } else if (finalVis !== "MM") {
+          finalVisAmt = clamp(vox.visemeAmount * (0.48 + 0.72 * vocalFormantEnv), 0.12, 0.78);
+        }
       }
 
       return {
         ...vox,
+        viseme: finalVis,
         visemeAmount: finalVisAmt,
         playing,
         audioUnmuted,
@@ -1609,14 +1720,12 @@
         gap: 5px;
         padding: 3px 7px;
         border-radius: 5px;
-        background: rgba(12, 15, 16, 0.78);
+        background: rgba(12, 15, 16, 0.92);
         border: 1px solid rgba(242, 238, 228, 0.24);
         color: #f4f0e6;
         font: 700 9.5px/1.15 ui-monospace, "SF Mono", Menlo, monospace;
         letter-spacing: 0.07em;
         text-transform: uppercase;
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
         pointer-events: none;
       }
       .lamv-cs-badge em {
@@ -1704,7 +1813,7 @@
         max-width: min(620px, calc(100vw - 420px));
         padding: 7px 14px;
         border-radius: 999px;
-        background: rgba(12, 16, 18, 0.84);
+        background: rgba(12, 16, 18, 0.94);
         border: 1px solid rgba(78, 232, 255, 0.45);
         color: #f4f1e8;
         font: 500 12px/1.3 "Instrument Serif", Georgia, serif;
@@ -1714,8 +1823,6 @@
         display: flex;
         align-items: center;
         gap: 9px;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
         box-shadow: 0 6px 24px rgba(0, 0, 0, 0.26);
       }
       .lamv-mv-subbar[hidden] { display: none !important; }
@@ -1798,7 +1905,7 @@
     if (navLinks && !navLinks.querySelector('a[href*="audition.html"]')) {
       const a = document.createElement("a");
       a.href = "./audition.html";
-      a.textContent = "♪ MV Audition";
+      a.textContent = "MV Audition";
       a.style.borderColor = "#0b8ba6";
       navLinks.insertBefore(a, navLinks.firstChild);
     }
@@ -1811,7 +1918,7 @@
       <span class="lamv-mv-epoch" id="lamv-sub-epoch">I · WELLHEAD</span>
       <span class="lamv-mv-lyric" id="lamv-sub-lyric">“Iron lever cracks before the rooster”</span>
       <span class="lamv-mv-vis" id="lamv-sub-vis">SIL</span>
-      <button type="button" class="pill pill-look" id="lamv-sub-audio" style="pointer-events:auto">🔊 Audio</button>
+      <button type="button" class="pill pill-look" id="lamv-sub-audio" style="pointer-events:auto">AUDIO</button>
     `;
     document.body.appendChild(mvSubBar);
 
@@ -1819,7 +1926,7 @@
     if (subAudioBtn) {
       subAudioBtn.addEventListener("click", async () => {
         const unmuted = await song.toggleUnmute();
-        subAudioBtn.textContent = unmuted ? "🔊 Live OGG" : "🔇 Muted";
+        subAudioBtn.textContent = unmuted ? "LIVE OGG" : "MUTED";
         subAudioBtn.classList.toggle("active", unmuted);
       });
     }
@@ -1864,7 +1971,7 @@
       if (mvBtn) {
         mvBtn.classList.toggle("active", mvModeActive);
         mvBtn.setAttribute("aria-pressed", String(mvModeActive));
-        mvBtn.textContent = mvModeActive ? "⏹ Stop MV Sync" : "▶ MV Song Sync";
+        mvBtn.textContent = mvModeActive ? "STOP MV SYNC" : "MV SONG SYNC";
       }
       mvSubBar.hidden = !mvModeActive;
     }
@@ -1878,9 +1985,9 @@
       }
       html += `<button type="button" class="pill pill-look" data-clay-look="1" aria-pressed="false" title="CLAY SCULPT — Matte #7d7770 sculptor's clay form audit (0b07591c.jpg)">Clay Sculpt</button>`;
       html += `<span class="pill-sep" aria-hidden="true"></span>`;
-      html += `<button type="button" class="pill pill-look pill-look-cs" data-contact-toggle="1" aria-pressed="false" title="Render live scene across 9 signature shaders simultaneously in a 3×3 darkroom grid">⊞ 9-Look Sheet</button>`;
-      html += `<button type="button" class="pill pill-look pill-mv-btn" data-mv-toggle="1" aria-pressed="false" title="Drive active study actors with synced Cyan Jerikan vocals, phoneme visemes & 104 BPM groove">▶ MV Song Sync</button>`;
-      html += `<a class="lamv-audition-link" href="./audition.html" title="Open Full-Screen 5-Set Music Video & Character Audition Theater">↗ MV Theater</a>`;
+      html += `<button type="button" class="pill pill-look pill-look-cs" data-contact-toggle="1" aria-pressed="false" title="Render live scene across 9 signature shaders simultaneously in a 3×3 darkroom grid">9-LOOK SHEET</button>`;
+      html += `<button type="button" class="pill pill-look pill-mv-btn" data-mv-toggle="1" aria-pressed="false" title="Drive active study actors with synced Cyan Jerikan vocals, phoneme visemes & 104 BPM groove">MV SONG SYNC</button>`;
+      html += `<a class="lamv-audition-link" href="./audition.html" title="Open Full-Screen 5-Set Music Video & Character Audition Theater">MV THEATER</a>`;
       html += `<span class="pill-sep" aria-hidden="true"></span>`;
       for (const lid of UI_LOOK_ORDER) {
         if (lid === "jerikan" || lid === "risograph" || lid === "woodblock" || lid === "raw") continue;
@@ -1991,7 +2098,7 @@
       if (opts.unmute) {
         song.toggleUnmute(true).then(unmuted => {
           if (subAudioBtn) {
-            subAudioBtn.textContent = unmuted ? "🔊 Live OGG" : "🔇 Muted";
+            subAudioBtn.textContent = unmuted ? "LIVE OGG" : "MUTED";
             subAudioBtn.classList.toggle("active", unmuted);
           }
         });
@@ -2173,6 +2280,7 @@
       return { clip: c.isLead ? "idle-talking" : "idle", blend: 0.85 };
     },
     resolveLook,
+    wordToSyllableVisemes,
     wordToPhonemePair,
     evaluateVocalTimeline,
     formatHighlightedLyricHtml,

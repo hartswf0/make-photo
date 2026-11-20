@@ -90,62 +90,525 @@ const COCO17_EDGES = [
 
 const $ = (id) => document.getElementById(id);
 
+// ---------------------------------------------------------------------------
+// Three.js Renderer (60+ FPS: pixelRatio capped <= 1.5, clean soft shadows)
+// ---------------------------------------------------------------------------
 const canvas = $('viewport');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.08;
+renderer.toneMappingExposure = 1.06;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x141311);
-scene.fog = new THREE.FogExp2(0x141311, 0.045);
+const COURTYARD_SKY = new THREE.Color(0xcabca5);
+const DARK_BG = new THREE.Color(0x141311);
+const courtyardFog = new THREE.FogExp2(0xcabca5, 0.032);
+const darkFog = new THREE.FogExp2(0x141311, 0.045);
 
-const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 60);
-camera.position.set(0.0, 1.38, 3.1);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 70);
+camera.position.set(0.35, 1.32, 3.15);
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.target.set(0, 0.92, 0);
-controls.minDistance = 0.8;
-controls.maxDistance = 8.0;
-controls.maxPolarAngle = Math.PI * 0.52;
+controls.minDistance = 0.32;
+controls.maxDistance = 8.5;
+controls.maxPolarAngle = Math.PI * 0.51;
 
-// Studio 3-point warm editorial lighting
-scene.add(new THREE.HemisphereLight(0xf6e9d7, 0x26211c, 0.85));
-const keyLight = new THREE.DirectionalLight(0xfff1dc, 2.2);
-keyLight.position.set(2.4, 4.2, 3.0);
+// Warm sunlit highland 3-point lighting
+const hemiLight = new THREE.HemisphereLight(0xfff4e0, 0x615242, 0.95);
+scene.add(hemiLight);
+
+const keyLight = new THREE.DirectionalLight(0xfff0d4, 2.35);
+keyLight.position.set(2.8, 5.2, 3.4);
 keyLight.castShadow = true;
 keyLight.shadow.mapSize.set(1024, 1024);
 keyLight.shadow.camera.near = 0.5;
-keyLight.shadow.camera.far = 14;
-keyLight.shadow.camera.left = -2.2;
-keyLight.shadow.camera.right = 2.2;
-keyLight.shadow.camera.top = 2.6;
-keyLight.shadow.camera.bottom = -0.6;
+keyLight.shadow.camera.far = 16;
+keyLight.shadow.camera.left = -2.8;
+keyLight.shadow.camera.right = 2.8;
+keyLight.shadow.camera.top = 3.0;
+keyLight.shadow.camera.bottom = -0.8;
 keyLight.shadow.bias = -0.0005;
 scene.add(keyLight);
 
-const rimLight = new THREE.DirectionalLight(0x88b4e8, 0.95);
-rimLight.position.set(-2.6, 2.5, -2.5);
+const rimLight = new THREE.DirectionalLight(0x8bb8e8, 0.85);
+rimLight.position.set(-2.6, 2.8, -2.8);
 scene.add(rimLight);
 
-// Ground disc + subtle grid
-const ground = new THREE.Mesh(
-  new THREE.CircleGeometry(4.5, 48),
-  new THREE.MeshStandardMaterial({ color: 0x1e1b18, roughness: 0.92, metalness: 0.04 })
-);
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
+// ---------------------------------------------------------------------------
+// Environments: Sunlit Highland Stone Courtyard & Chapel Wall vs Dark Grid
+// ---------------------------------------------------------------------------
+function buildCourtyardEnvironment() {
+  const group = new THREE.Group();
+  group.name = 'highland_courtyard_set';
 
-const grid = new THREE.GridHelper(6, 24, 0x4b4236, 0x28231e);
-grid.position.y = 0.002;
-scene.add(grid);
+  const stoneMat = new THREE.MeshStandardMaterial({ color: 0xb7a48a, roughness: 0.92, metalness: 0.02 });
+  const plinthMat = new THREE.MeshStandardMaterial({ color: 0xc5b296, roughness: 0.88, metalness: 0.03 });
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0xcdbc9f, roughness: 0.94, metalness: 0.01 });
+  const trimMat = new THREE.MeshStandardMaterial({ color: 0x8d765c, roughness: 0.90, metalness: 0.02 });
+  const timberMat = new THREE.MeshStandardMaterial({ color: 0x4f3523, roughness: 0.86, metalness: 0.02 });
+  const foliageMat = new THREE.MeshStandardMaterial({ color: 0x4b5d3b, roughness: 0.92, metalness: 0.0 });
 
+  // Broad limestone courtyard floor
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(14, 48), stoneMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -0.002;
+  floor.receiveShadow = true;
+  group.add(floor);
+
+  // Subtle radial stone paving ring around character
+  const plinth = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.85, 0.04, 36), plinthMat);
+  plinth.position.y = -0.02;
+  plinth.receiveShadow = true;
+  group.add(plinth);
+
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.76, 1.88, 36), trimMat);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.001;
+  ring.receiveShadow = true;
+  group.add(ring);
+
+  // Back sunlit Ethiopian highland chapel wall with recessed arched doorway
+  const backWall = new THREE.Mesh(new THREE.BoxGeometry(9.5, 3.6, 0.45), wallMat);
+  backWall.position.set(0, 1.8, -3.9);
+  backWall.receiveShadow = true;
+  backWall.castShadow = true;
+  group.add(backWall);
+
+  // Wall cornice & pilasters
+  const cornice = new THREE.Mesh(new THREE.BoxGeometry(9.8, 0.22, 0.62), trimMat);
+  cornice.position.set(0, 3.62, -3.88);
+  cornice.castShadow = true;
+  group.add(cornice);
+
+  for (const px of [-3.4, -1.4, 1.4, 3.4]) {
+    const pilaster = new THREE.Mesh(new THREE.BoxGeometry(0.36, 3.6, 0.56), trimMat);
+    pilaster.position.set(px, 1.8, -3.84);
+    pilaster.castShadow = true;
+    pilaster.receiveShadow = true;
+    group.add(pilaster);
+  }
+
+  // Recessed timber chapel door
+  const door = new THREE.Mesh(new THREE.BoxGeometry(1.35, 2.25, 0.14), timberMat);
+  door.position.set(0, 1.12, -3.66);
+  door.receiveShadow = true;
+  group.add(door);
+
+  const lintel = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.18, 0.26), trimMat);
+  lintel.position.set(0, 2.32, -3.64);
+  lintel.castShadow = true;
+  group.add(lintel);
+
+  // Low courtyard stone balustrades flanking left & right
+  for (const side of [-1, 1]) {
+    const lowWall = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.85, 5.2), wallMat);
+    lowWall.position.set(side * 4.2, 0.42, -1.4);
+    lowWall.castShadow = true;
+    lowWall.receiveShadow = true;
+    group.add(lowWall);
+
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.10, 5.3), trimMat);
+    cap.position.set(side * 4.2, 0.88, -1.4);
+    group.add(cap);
+  }
+
+  // Distant highland acacia tree silhouette behind wall
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.18, 2.9, 8), timberMat);
+  trunk.position.set(-2.9, 1.45, -5.0);
+  trunk.rotation.z = 0.08;
+  group.add(trunk);
+
+  const canopy = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.2, 0.55, 14), foliageMat);
+  canopy.position.set(-2.8, 3.15, -5.0);
+  canopy.castShadow = true;
+  group.add(canopy);
+
+  return group;
+}
+
+function buildDarkGridEnvironment() {
+  const group = new THREE.Group();
+  group.name = 'dark_grid_set';
+  const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(4.5, 48),
+    new THREE.MeshStandardMaterial({ color: 0x1e1b18, roughness: 0.92, metalness: 0.04 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  group.add(ground);
+
+  const grid = new THREE.GridHelper(6, 24, 0x4b4236, 0x28231e);
+  grid.position.y = 0.002;
+  group.add(grid);
+  return group;
+}
+
+const courtyardSet = buildCourtyardEnvironment();
+const darkGridSet = buildDarkGridEnvironment();
+scene.add(courtyardSet);
+scene.add(darkGridSet);
+
+// ---------------------------------------------------------------------------
+// Real Interactive Clip Props (Jerrycan, Standpipe Pump + Shekla Bowl, Hammer,
+// Shovel, Stone Bench, Krar/Guitar)
+// ---------------------------------------------------------------------------
+const propSystem = (() => {
+  const worldProps = new THREE.Group();
+  worldProps.name = 'interactive_world_props';
+  scene.add(worldProps);
+
+  const cyanGlowMat = new THREE.MeshStandardMaterial({
+    color: 0x28d8f0,
+    emissive: 0x168da3,
+    emissiveIntensity: 0.65,
+    roughness: 0.20,
+    metalness: 0.05,
+    transparent: true,
+    opacity: 0.88,
+  });
+  const canShellMat = new THREE.MeshStandardMaterial({
+    color: 0x199ab0,
+    roughness: 0.35,
+    metalness: 0.08,
+    transparent: true,
+    opacity: 0.68,
+  });
+  const ironMat = new THREE.MeshStandardMaterial({ color: 0x35373a, roughness: 0.52, metalness: 0.72 });
+  const terracottaMat = new THREE.MeshStandardMaterial({ color: 0x9e5134, roughness: 0.84, metalness: 0.02 });
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x6b472a, roughness: 0.82, metalness: 0.02 });
+  const stoneMat = new THREE.MeshStandardMaterial({ color: 0x9e8f7a, roughness: 0.92, metalness: 0.02 });
+
+  // 1. 20L glowing #28d8f0 cyan jerrycan (hand-mounted)
+  const jerrycan = new THREE.Group();
+  const canBody = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.30, 0.25), canShellMat);
+  canBody.position.set(0, -0.18, 0.02);
+  canBody.castShadow = true;
+  jerrycan.add(canBody);
+  const canWater = new THREE.Mesh(new THREE.BoxGeometry(0.155, 0.20, 0.22), cyanGlowMat);
+  canWater.position.set(0, -0.22, 0.02);
+  jerrycan.add(canWater);
+  const canHandle = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.014, 6, 12, Math.PI), ironMat);
+  canHandle.position.set(0, -0.03, 0.02);
+  jerrycan.add(canHandle);
+  const canCap = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.03, 10), ironMat);
+  canCap.position.set(0, -0.02, 0.09);
+  jerrycan.add(canCap);
+
+  // 2. Cast-iron standpipe pump & ribbed terracotta shekla bowl + parabolic cyan stream
+  const pumpSet = new THREE.Group();
+  pumpSet.position.set(0.68, 0, 0.42);
+  const standBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.14, 14), stoneMat);
+  standBase.position.y = 0.07;
+  standBase.castShadow = true;
+  standBase.receiveShadow = true;
+  pumpSet.add(standBase);
+  const standPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.068, 0.92, 12), ironMat);
+  standPipe.position.y = 0.56;
+  standPipe.castShadow = true;
+  pumpSet.add(standPipe);
+  const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.028, 0.24, 10), ironMat);
+  spout.position.set(-0.12, 0.84, 0);
+  spout.rotation.z = Math.PI * 0.42;
+  pumpSet.add(spout);
+  const leverPivot = new THREE.Group();
+  leverPivot.position.set(0, 0.96, 0);
+  const leverBar = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.018, 0.52, 8), ironMat);
+  leverBar.position.set(0.18, 0.05, 0);
+  leverBar.rotation.z = -Math.PI * 0.36;
+  leverPivot.add(leverBar);
+  pumpSet.add(leverPivot);
+
+  // Ribbed terracotta shekla bowl + water surface + ripples
+  const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.16, 0.22, 18, 1, true), terracottaMat);
+  bowl.position.set(-0.26, 0.11, 0);
+  bowl.material = terracottaMat.clone();
+  bowl.material.side = THREE.DoubleSide;
+  bowl.castShadow = true;
+  pumpSet.add(bowl);
+  const bowlWater = new THREE.Mesh(new THREE.CircleGeometry(0.21, 18), cyanGlowMat);
+  bowlWater.rotation.x = -Math.PI / 2;
+  bowlWater.position.set(-0.26, 0.17, 0);
+  pumpSet.add(bowlWater);
+  const ripple = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.065, 18), cyanGlowMat);
+  ripple.rotation.x = -Math.PI / 2;
+  ripple.position.set(-0.26, 0.174, 0);
+  pumpSet.add(ripple);
+
+  // Parabolic cyan water stream from spout into shekla bowl
+  const streamPts = [];
+  for (let i = 0; i <= 12; i++) {
+    const t = i / 12;
+    streamPts.push(new THREE.Vector3(-0.21 - t * 0.07, 0.80 - t * t * 0.63, 0));
+  }
+  const streamGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(streamPts), 14, 0.015, 7, false);
+  const waterStream = new THREE.Mesh(streamGeo, cyanGlowMat);
+  pumpSet.add(waterStream);
+  worldProps.add(pumpSet);
+
+  // 3. Hammer + timber post
+  const hammer = new THREE.Group();
+  const hShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.016, 0.34, 8), woodMat);
+  hShaft.position.set(0, 0.12, 0.04);
+  hShaft.rotation.x = Math.PI * 0.45;
+  hammer.add(hShaft);
+  const hHead = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, 0.115), ironMat);
+  hHead.position.set(0, 0.14, 0.21);
+  hammer.add(hHead);
+
+  const timberPost = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.095, 0.88, 10), woodMat);
+  timberPost.position.set(0.18, 0.44, 0.56);
+  timberPost.castShadow = true;
+  timberPost.receiveShadow = true;
+  worldProps.add(timberPost);
+
+  // 4. Highland shovel
+  const shovel = new THREE.Group();
+  const sShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 1.05, 8), woodMat);
+  sShaft.position.set(0, -0.22, 0.05);
+  shovel.add(sShaft);
+  const sBlade = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.22, 0.016), ironMat);
+  sBlade.position.set(0, -0.78, 0.05);
+  shovel.add(sBlade);
+
+  // 5. Carved stone bench
+  const bench = new THREE.Group();
+  bench.position.set(0, 0, -0.18);
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.10, 0.42), stoneMat);
+  seat.position.y = 0.44;
+  seat.castShadow = true;
+  seat.receiveShadow = true;
+  bench.add(seat);
+  for (const bx of [-0.34, 0.34]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.40, 0.36), stoneMat);
+    leg.position.set(bx, 0.20, 0);
+    leg.castShadow = true;
+    bench.add(leg);
+  }
+  worldProps.add(bench);
+
+  // 6. Ethiopian krar / acoustic guitar
+  const guitar = new THREE.Group();
+  const gBody = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.08, 16), woodMat);
+  gBody.rotation.x = Math.PI * 0.5;
+  guitar.add(gBody);
+  const gHole = new THREE.Mesh(new THREE.CircleGeometry(0.05, 14), ironMat);
+  gHole.position.z = 0.042;
+  guitar.add(gHole);
+  const gNeck = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.48, 0.025), woodMat);
+  gNeck.position.set(0.24, 0.12, 0.01);
+  gNeck.rotation.z = -Math.PI * 0.38;
+  guitar.add(gNeck);
+
+  let enabled = true;
+  let activeClip = 'idle';
+  let mountedParent = null;
+  let mountedProp = null;
+
+  function detachMounted() {
+    if (mountedProp && mountedParent) {
+      mountedParent.remove(mountedProp);
+    }
+    mountedProp = null;
+    mountedParent = null;
+  }
+
+  function syncToClip(clipId, character) {
+    activeClip = clipId;
+    detachMounted();
+
+    pumpSet.visible = false;
+    timberPost.visible = false;
+    bench.visible = false;
+    if (!enabled || !character) return;
+
+    const wristR = character.bonesByNorm.get('wristr');
+    const spineMid = character.bonesByNorm.get('spine03') || character.bonesByNorm.get('spine01');
+
+    if (clipId === 'walk-carry' || clipId === 'farm-watering') {
+      if (wristR) {
+        jerrycan.position.set(0, -0.02, 0.02);
+        wristR.add(jerrycan);
+        mountedProp = jerrycan;
+        mountedParent = wristR;
+      }
+    }
+    if (clipId === 'dance-arm-pump' || clipId === 'farm-watering' || clipId === 'push' || clipId === 'rope-pull') {
+      pumpSet.visible = true;
+    }
+    if (clipId === 'hammering') {
+      timberPost.visible = true;
+      if (wristR) {
+        wristR.add(hammer);
+        mountedProp = hammer;
+        mountedParent = wristR;
+      }
+    }
+    if (clipId === 'shovel-dig') {
+      if (wristR) {
+        wristR.add(shovel);
+        mountedProp = shovel;
+        mountedParent = wristR;
+      }
+    }
+    if (clipId === 'sitting-idle' || clipId === 'sitting-talking') {
+      bench.visible = true;
+    }
+    if (clipId === 'guitar-playing' && spineMid) {
+      guitar.position.set(0.02, 0.04, 0.18);
+      guitar.rotation.set(0, 0, -0.25);
+      spineMid.add(guitar);
+      mountedProp = guitar;
+      mountedParent = spineMid;
+    }
+  }
+
+  function update(tSec) {
+    if (!enabled) return;
+    if (mountedProp === jerrycan) {
+      canWater.rotation.z = Math.sin(tSec * 5.2) * 0.14;
+      canWater.rotation.x = Math.cos(tSec * 4.4) * 0.10;
+    }
+    if (pumpSet.visible) {
+      leverPivot.rotation.z = Math.sin(tSec * 4.2) * 0.34;
+      const pulse = (tSec * 1.8) % 1;
+      ripple.scale.setScalar(0.6 + pulse * 2.1);
+      waterStream.scale.set(1, 0.92 + 0.08 * Math.sin(tSec * 14), 1);
+    }
+  }
+
+  function setEnabled(flag, character) {
+    enabled = !!flag;
+    syncToClip(activeClip, character);
+  }
+
+  return { syncToClip, update, setEnabled, isEnabled: () => enabled };
+})();
+
+// ---------------------------------------------------------------------------
+// WebAudio Procedural Foley Engine (Footsteps, Cloth, Water, Pump, Claps, Voice)
+// ---------------------------------------------------------------------------
+const soundEngine = (() => {
+  let ctx = null;
+  let noiseBuf = null;
+  let enabled = false;
+  let stepAccum = 0;
+  let auxAccum = 0;
+  let voiceAccum = 0;
+
+  function ensureAudio() {
+    if (ctx) return true;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    ctx = new AC();
+    const len = ctx.sampleRate * 0.5;
+    noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const ch = noiseBuf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+    return true;
+  }
+
+  function setEnabled(flag) {
+    enabled = !!flag;
+    if (enabled && ensureAudio() && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    return enabled;
+  }
+
+  function triggerNoise(freq, q, dur, gainVal, type = 'bandpass') {
+    if (!enabled || !ctx || ctx.state !== 'running') return;
+    const now = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuf;
+    const flt = ctx.createBiquadFilter();
+    flt.type = type;
+    flt.frequency.setValueAtTime(freq, now);
+    flt.Q.setValueAtTime(q, now);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(gainVal, now);
+    g.gain.exponentialRampToValueAtTime(0.0005, now + dur);
+    src.connect(flt).connect(g).connect(ctx.destination);
+    src.start(now);
+    src.stop(now + dur);
+  }
+
+  function triggerTone(freq0, freq1, dur, gainVal, wave = 'sine') {
+    if (!enabled || !ctx || ctx.state !== 'running') return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = wave;
+    osc.frequency.setValueAtTime(freq0, now);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq1), now + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(gainVal, now);
+    g.gain.exponentialRampToValueAtTime(0.0005, now + dur);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + dur);
+  }
+
+  function update(dt, clipId, speed, paused, jawOpen) {
+    if (!enabled || paused || !ctx || ctx.state !== 'running') return;
+    const rate = Math.max(0.2, speed || 1);
+
+    // Footsteps & cloth rustle on locomotion / dance / jump
+    const isSprint = clipId === 'sprint';
+    const isJog = clipId === 'jog';
+    const isWalk = clipId.startsWith('walk') || clipId === 'crouch-walk';
+    const isDance = clipId.startsWith('dance') || clipId === 'jump';
+    if (isWalk || isJog || isSprint || isDance) {
+      const interval = isSprint ? 0.28 : isJog ? 0.36 : isDance ? 0.44 : 0.54;
+      stepAccum += dt * rate;
+      if (stepAccum >= interval) {
+        stepAccum -= interval;
+        // Gravel/stone footstep thud + subtle cloth swish
+        triggerNoise(420 + Math.random() * 140, 1.8, 0.09, isSprint ? 0.11 : 0.075);
+        triggerTone(115, 48, 0.08, 0.06, 'triangle');
+        triggerNoise(1600, 1.2, 0.14, 0.022, 'highpass');
+      }
+    }
+
+    // Clip-specific foley
+    auxAccum += dt * rate;
+    if ((clipId === 'walk-carry' || clipId === 'farm-watering') && auxAccum >= 0.48) {
+      auxAccum = 0;
+      triggerNoise(680 + Math.random() * 240, 2.4, 0.20, 0.045);
+    } else if ((clipId === 'dance-arm-pump' || clipId === 'push') && auxAccum >= 0.65) {
+      auxAccum = 0;
+      triggerTone(420, 190, 0.11, 0.055, 'square');
+      triggerNoise(920, 2.0, 0.16, 0.035);
+    } else if (clipId === 'hammering' && auxAccum >= 0.58) {
+      auxAccum = 0;
+      triggerTone(280, 95, 0.12, 0.09, 'triangle');
+      triggerNoise(1100, 3.0, 0.08, 0.06);
+    } else if (clipId === 'clapping' && auxAccum >= 0.36) {
+      auxAccum = 0;
+      triggerNoise(1350, 1.6, 0.07, 0.10);
+    }
+
+    // Soft formant vocal murmur synced to jawOpen
+    if (jawOpen > 0.18) {
+      voiceAccum += dt;
+      if (voiceAccum >= 0.16) {
+        voiceAccum = 0;
+        const basePitch = 175 + Math.random() * 55;
+        triggerTone(basePitch, basePitch * 0.92, 0.14, 0.028 * jawOpen, 'triangle');
+      }
+    }
+  }
+
+  return { setEnabled, isEnabled: () => enabled, update };
+})();
+
+// ---------------------------------------------------------------------------
+// State & Loaders
+// ---------------------------------------------------------------------------
 const gltfLoader = new GLTFLoader();
 gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 window.MeshoptDecoder = MeshoptDecoder;
@@ -156,28 +619,55 @@ const state = {
   speed: 1.0,
   paused: false,
   clothed: true,
-  wardrobe: null,
+  propsOn: true,
+  setMode: 'courtyard', // 'courtyard' | 'dark'
+  expression: 'neutral',
   wireframe: false,
   showSkeleton: false,
   lockRoot: true,
-  e1Mode: 'off', // 'off' | 'additive' | 'solo'
-  e1Playing: true,
-  e1Time: 0,
-  driver: null,
-  avatarRoot: null,
+  character: null,
   skeletonHelper: null,
-  bonesByName: new Map(),
-  restQuats: new Map(),
-  manifest: null,
-  e1Track: null,
-  refView: 'normal', // 'rgb' | 'normal' | 'seg'
+  // Sapiens tracked video scenes (E1..E4)
+  sceneManifest: null,
+  activeSceneIdx: 0,
+  activeSceneTrack: null,
+  sceneTrackCache: new Map(),
+  sceneMode: 'off', // 'off' | 'additive' | 'solo'
+  scenePlaying: true,
+  sceneTime: 0,
+  // Live Webcam MediaPipe driver
+  webcamActive: false,
+  webcamStream: null,
+  webcamSample: null,
+  // Static Sapiens refs
+  refManifest: null,
+  refView: 'normal',
   refOverlay: true,
   refIndex: 0,
   refKpCache: new Map(),
+  // FPS
   fps: 60,
   frameCount: 0,
   fpsAccum: 0,
+  simTime: 0,
 };
+
+function applySetMode(mode) {
+  state.setMode = mode === 'dark' ? 'dark' : 'courtyard';
+  const isCourtyard = state.setMode === 'courtyard';
+  courtyardSet.visible = isCourtyard;
+  darkGridSet.visible = !isCourtyard;
+  scene.background = isCourtyard ? COURTYARD_SKY : DARK_BG;
+  scene.fog = isCourtyard ? courtyardFog : darkFog;
+  hemiLight.intensity = isCourtyard ? 0.98 : 0.85;
+  keyLight.intensity = isCourtyard ? 2.4 : 2.15;
+  const btn = $('btnSet');
+  if (btn) {
+    btn.classList.toggle('on', isCourtyard);
+    btn.textContent = isCourtyard ? 'Set: Courtyard' : 'Set: Dark Grid';
+  }
+}
+applySetMode('courtyard');
 
 function resize() {
   const rect = canvas.parentElement.getBoundingClientRect();
@@ -190,129 +680,140 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-function applyMaterialFlags(root) {
-  if (!root) return;
-  root.traverse((o) => {
-    if (o.isMesh && o.material) {
-      const mats = Array.isArray(o.material) ? o.material : [o.material];
-      for (const m of mats) {
-        m.wireframe = state.wireframe;
-      }
-    }
-  });
+// ---------------------------------------------------------------------------
+// Cast & Clip Management (Powered by AnnyHumanV7)
+// ---------------------------------------------------------------------------
+function autoExpressionForClip(clipId) {
+  if (clipId === 'idle-talking' || clipId === 'sitting-talking' || clipId === 'greeting') return 'talking';
+  if (clipId === 'walk-happy' || clipId === 'victory' || clipId === 'clapping' || clipId.startsWith('dance')) return 'happy';
+  if (clipId === 'angry' || clipId === 'reject') return 'angry';
+  if (clipId === 'walk-carry' || clipId === 'push' || clipId === 'rope-pull' || clipId === 'hammering') return 'strain';
+  if (clipId === 'confused') return 'surprised';
+  return 'neutral';
+}
+
+function setExpression(exprKey) {
+  state.expression = exprKey;
+  if ($('exprSelect')) $('exprSelect').value = exprKey;
+  if (state.character) state.character.setExpression(exprKey);
 }
 
 async function loadCast(castKey) {
   const info = CAST[castKey];
-  if (!info) return;
+  if (!info || !window.AnnyHumanV7) return;
   state.castKey = castKey;
   if ($('castSelect')) $('castSelect').value = castKey;
-  $('hudStatus').textContent = `Loading ${info.label}…`;
+  $('hudStatus').textContent = `Loading ${info.label}...`;
 
-  if (state.driver) {
-    state.driver.dispose();
-    state.driver = null;
-  }
-  if (state.wardrobe) {
-    state.wardrobe.dispose();
-    state.wardrobe = null;
-  }
   if (state.skeletonHelper) {
     scene.remove(state.skeletonHelper);
     state.skeletonHelper = null;
   }
-  if (state.avatarRoot) {
-    scene.remove(state.avatarRoot);
-    state.avatarRoot = null;
+  if (state.character) {
+    scene.remove(state.character.root);
+    state.character.dispose();
+    state.character = null;
   }
 
-  const gltf = await gltfLoader.loadAsync(info.url);
-  const root = gltf.scene;
-
-  // Give Anny a clean terracotta/warm-clay studio shader while preserving skinning
-  root.traverse((o) => {
-    if (o.isMesh) {
-      o.castShadow = true;
-      o.receiveShadow = true;
-      if (o.material) {
-        o.material.roughness = 0.62;
-        o.material.metalness = 0.05;
-        if (o.material.color) o.material.color.setHex(0xd6b497);
-      }
-    }
+  const ch = await window.AnnyHumanV7.createCharacter({
+    THREE,
+    loader: gltfLoader,
+    archetype: castKey,
+    assetBaseUrl: '../abyssinian-highlands/human-forge/assets',
+    clipsBaseUrl: 'mesh2motion/clips',
+    clothed: state.clothed,
+    groundY: 0.0,
+    lockRootMotion: state.lockRoot,
+    keepVerticalBounce: true,
+    preloadClips: PRELOAD_CLIPS,
+    initialClip: state.clipName,
+    speed: state.speed,
+    wireframe: state.wireframe,
   });
 
-  // Ground bbox to y=0
-  root.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(root);
-  root.position.y -= box.min.y;
-  root.updateMatrixWorld(true);
-  const h = Math.max(0.9, box.max.y - box.min.y);
+  if (state.paused) ch.pause();
+  scene.add(ch.root);
+  state.character = ch;
+
+  const metrics = ch.getMetrics();
+  const h = Math.max(0.95, metrics ? metrics.height : 1.65);
   controls.target.set(0, h * 0.54, 0);
-  camera.position.set(0.35, h * 0.72, h * 1.95);
+  camera.position.set(0.32, h * 0.72, h * 1.98);
   controls.update();
 
-  scene.add(root);
-  state.avatarRoot = root;
-
-  if (window.Mesh2MotionWorldBridge && window.Mesh2MotionWorldBridge.dressAnnyCharacter) {
-    state.wardrobe = window.Mesh2MotionWorldBridge.dressAnnyCharacter(THREE, root, castKey, {
-      clothed: state.clothed,
-    });
-  }
-
-  state.bonesByName.clear();
-  state.restQuats.clear();
-  root.traverse((o) => {
-    if (o.isBone) {
-      state.bonesByName.set(o.name, o);
-      state.restQuats.set(o.name, o.quaternion.clone());
-    }
-  });
-
-  const skel = new THREE.SkeletonHelper(root);
+  const skel = new THREE.SkeletonHelper(ch.root);
   skel.visible = state.showSkeleton;
   scene.add(skel);
   state.skeletonHelper = skel;
-  applyMaterialFlags(root);
 
-  if (!window.Mesh2MotionAnny) {
-    $('hudStatus').textContent = 'Mesh2MotionAnny script missing';
-    return;
-  }
+  setExpression(autoExpressionForClip(state.clipName));
+  propSystem.syncToClip(state.clipName, ch);
 
-  const driver = window.Mesh2MotionAnny.createAnnyDriver(root, {
-    THREE,
-    loader: gltfLoader,
-    baseUrl: 'mesh2motion/clips',
-    lockRootMotion: state.lockRoot,
-    keepVerticalBounce: true,
-    armBindAlign: true,
-    includeFingers: true,
-    defaultFade: 0.25,
-    speed: state.speed,
-  });
-
-  const initialClips = Array.from(new Set([state.clipName, ...PRELOAD_CLIPS]));
-  await driver.loadLibrary(initialClips);
-  state.driver = driver;
-  driver.play(state.clipName, { fadeDuration: 0 });
-  if (state.paused) driver.pause();
-  driver.update(0);
-
-  const cov = driver.getBoneCoverage(state.clipName);
+  const cov = ch.getBoneCoverage(state.clipName);
   const covTxt = cov
-    ? `${cov.mappedBoneCount}/${cov.totalSourceQuatTracks} bones · hipScale ${cov.hipScale}`
+    ? `${cov.mappedBoneCount}/${cov.totalSourceQuatTracks} bones | hipScale ${cov.hipScale}`
     : 'retargeted';
-  $('hudCoverage').textContent = `Anny 104b · ${covTxt}`;
-  $('hudStatus').textContent = `${info.label} · ${state.clipName}`;
+  $('hudCoverage').textContent = `Anny 104b | ${covTxt}`;
+  $('hudStatus').textContent = `${info.label} | ${state.clipName}`;
 }
 
-function sampleE1Angles(tSec) {
-  const tr = state.e1Track;
-  if (!tr || !tr.frames || !tr.frames.length) return null;
-  const frames = tr.frames;
-  const dur = Math.max(0.01, tr.duration_sec || frames[frames.length - 1].time || 10);
+async function selectClip(clipId, fadeDuration = 0.25) {
+  state.clipName = clipId;
+  const clipWrap = $('clipButtons');
+  if (clipWrap) {
+    clipWrap.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.clip === clipId));
+  }
+  if (!state.character) return;
+  if (!state.character.hasClip(clipId)) {
+    $('hudStatus').textContent = `Loading ${clipId}...`;
+    await state.character.loadClip(clipId);
+  }
+  state.character.crossFadeTo(clipId, fadeDuration);
+  if (state.paused) state.character.pause();
+  state.character.update(0);
+  setExpression(autoExpressionForClip(clipId));
+  propSystem.syncToClip(clipId, state.character);
+  $('hudStatus').textContent = `${CAST[state.castKey].label} | ${clipId}`;
+}
+
+function setClothed(flag) {
+  state.clothed = !!flag;
+  if (state.character) state.character.setClothed(state.clothed);
+  const btn = $('btnClothed');
+  if (btn) {
+    btn.classList.toggle('on', state.clothed);
+    btn.textContent = state.clothed ? 'Clothed V7' : 'Base Mesh';
+  }
+  return state.clothed;
+}
+
+function focusFace() {
+  if (!state.character) return;
+  state.character.root.updateMatrixWorld(true);
+  const head = state.character.bonesByNorm.get('head');
+  if (!head) return;
+  const p = new THREE.Vector3();
+  head.getWorldPosition(p);
+  controls.target.set(p.x, p.y + 0.04, p.z);
+  camera.position.set(p.x + 0.08, p.y + 0.07, p.z + 0.56);
+  controls.update();
+}
+
+function focusFullBody() {
+  const m = state.character ? state.character.getMetrics() : null;
+  const h = Math.max(0.95, m ? m.height : 1.65);
+  controls.target.set(0, h * 0.54, 0);
+  camera.position.set(0.32, h * 0.72, h * 1.98);
+  controls.update();
+}
+
+// ---------------------------------------------------------------------------
+// Sapiens Tracked Video Scenes (E1..E4) Side-by-Side Playback
+// ---------------------------------------------------------------------------
+function sampleSceneTrack(track, tSec) {
+  if (!track || !track.frames || !track.frames.length) return null;
+  const frames = track.frames;
+  const dur = Math.max(0.01, track.durationSec || track.duration_sec || frames[frames.length - 1].time || 10);
   const t = ((tSec % dur) + dur) % dur;
   let i = 0;
   while (i < frames.length - 2 && frames[i + 1].time < t) i++;
@@ -321,62 +822,27 @@ function sampleE1Angles(tSec) {
   const span = Math.max(1e-4, b.time - a.time);
   const alpha = Math.max(0, Math.min(1, (t - a.time) / span));
 
-  const out = {};
-  for (const k of Object.keys(a.angles)) {
-    out[k] = a.angles[k] + (b.angles[k] - a.angles[k]) * alpha;
+  const angles = {};
+  for (const k of Object.keys(a.angles || {})) {
+    const va = a.angles[k];
+    const vb = b.angles ? b.angles[k] : va;
+    if (typeof va === 'number' && typeof vb === 'number') {
+      angles[k] = va + (vb - va) * alpha;
+    }
   }
-  const core17 = a.core17.map((p, idx) => {
-    const q = b.core17[idx] || p;
+  const core17 = (a.core17 || []).map((p, idx) => {
+    const q = (b.core17 && b.core17[idx]) || p;
     return [
       p[0] + (q[0] - p[0]) * alpha,
       p[1] + (q[1] - p[1]) * alpha,
       p[2] + (q[2] - p[2]) * alpha,
     ];
   });
-  return { t, dur, angles: out, core17 };
+  return { t, dur, angles, core17 };
 }
 
-const _eul = new THREE.Euler(0, 0, 0, 'YXZ');
-const _qDelta = new THREE.Quaternion();
-
-function applyE1ToAnny(sample) {
-  if (!sample || !state.bonesByName.size) return;
-  const a = sample.angles;
-  const solo = state.e1Mode === 'solo';
-
-  const applyBone = (name, rx, ry, rz) => {
-    const bone = state.bonesByName.get(name) || state.bonesByName.get(name.replace(/\./g, ''));
-    if (!bone) return;
-    _eul.set(rx, ry, rz, 'YXZ');
-    _qDelta.setFromEuler(_eul);
-    if (solo) {
-      const rest = state.restQuats.get(bone.name);
-      if (rest) bone.quaternion.copy(rest).multiply(_qDelta);
-    } else {
-      bone.quaternion.multiply(_qDelta);
-    }
-  };
-
-  if (solo) {
-    // Reset all bones to rest before applying E1 speech-arc pose
-    for (const [name, rest] of state.restQuats.entries()) {
-      const b = state.bonesByName.get(name);
-      if (b) b.quaternion.copy(rest);
-    }
-  }
-
-  applyBone('spine03', a.spinePitch * 0.5, a.spineYaw * 0.45, a.spineRoll * 0.5);
-  applyBone('spine01', a.spinePitch * 0.5, a.spineYaw * 0.55, a.spineRoll * 0.5);
-  applyBone('neck01', a.headPitch * 0.45, a.headYaw * 0.45, a.headRoll * 0.4);
-  applyBone('head', a.headPitch * 0.55, a.headYaw * 0.55, a.headRoll * 0.6);
-  applyBone('upperarm01.L', 0, 0, a.leftArmZ * 0.45);
-  applyBone('upperarm01.R', 0, 0, -a.rightArmZ * 0.45);
-  applyBone('lowerarm01.L', a.leftElbowFlex * 0.35, 0, 0);
-  applyBone('lowerarm01.R', a.rightElbowFlex * 0.35, 0, 0);
-}
-
-function drawE1MiniCanvas(sample) {
-  const cv = $('e1Canvas');
+function drawSceneMiniCanvas(sample) {
+  const cv = $('sceneCanvas');
   if (!cv || !sample) return;
   const ctx = cv.getContext('2d');
   const w = cv.width;
@@ -384,7 +850,6 @@ function drawE1MiniCanvas(sample) {
   ctx.fillStyle = '#12100e';
   ctx.fillRect(0, 0, w, h);
 
-  // Subtle grid
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -392,8 +857,8 @@ function drawE1MiniCanvas(sample) {
   ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
   ctx.stroke();
 
-  const pts = sample.core17;
-  ctx.strokeStyle = '#e5a957';
+  const pts = sample.core17 || [];
+  ctx.strokeStyle = '#28d8f0';
   ctx.lineWidth = 2;
   for (const [i, j] of COCO17_EDGES) {
     const p = pts[i];
@@ -408,16 +873,194 @@ function drawE1MiniCanvas(sample) {
   for (let i = 0; i < pts.length; i++) {
     const p = pts[i];
     if (!p || p[2] <= 0.15) continue;
-    ctx.fillStyle = i <= 4 ? '#7dd3fc' : '#f7d694';
+    ctx.fillStyle = i <= 4 ? '#f7d694' : '#7dd3fc';
     ctx.beginPath();
-    ctx.arc(p[0] * w, p[1] * h, i <= 4 ? 3 : 2.5, 0, Math.PI * 2);
+    ctx.arc(p[0] * w, p[1] * h, i <= 4 ? 3 : 2.4, 0, Math.PI * 2);
     ctx.fill();
   }
 }
 
+async function selectTrackedScene(idx) {
+  if (!state.sceneManifest || !state.sceneManifest.scenes.length) return;
+  const sc = state.sceneManifest.scenes[idx] || state.sceneManifest.scenes[0];
+  state.activeSceneIdx = idx;
+  state.sceneTime = 0;
+
+  let tr = state.sceneTrackCache.get(sc.id);
+  if (!tr) {
+    tr = await (await fetch(sc.track)).json();
+    state.sceneTrackCache.set(sc.id, tr);
+  }
+  state.activeSceneTrack = tr;
+
+  const vid = $('sceneVideo');
+  if (vid && sc.video) {
+    vid.src = sc.video;
+    vid.currentTime = 0;
+    if (state.scenePlaying && state.sceneMode !== 'off') {
+      vid.play().catch(() => {});
+    }
+  }
+
+  $('sceneScrub').max = String(sc.durationSec || 10);
+  $('sceneMeta').textContent = `${sc.id}: ${sc.title} | ${sc.sampleCount} kfs | kp ${sc.stats ? sc.stats.meanValidKeypoints : '--'}`;
+  const s0 = sampleSceneTrack(tr, 0);
+  if (s0) drawSceneMiniCanvas(s0);
+}
+
+// ---------------------------------------------------------------------------
+// Live Webcam -> Anny V7 Driver (MediaPipe Tasks Vision via CDN, zero API key)
+// ---------------------------------------------------------------------------
+const webcamDriver = (() => {
+  let poseLM = null;
+  let faceLM = null;
+  let rafId = 0;
+  let lastVideoT = -1;
+
+  async function start() {
+    const statusEl = $('webcamStatus');
+    const vid = $('webcamVideo');
+    const btn = $('btnWebcam');
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      statusEl.textContent = 'Webcam API unavailable in this browser. Use offline Sapiens MPS via extract_sapiens.py.';
+      return false;
+    }
+
+    statusEl.textContent = 'Requesting camera permission...';
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 640, height: 480, facingMode: 'user' },
+        audio: false,
+      });
+      state.webcamStream = stream;
+      vid.srcObject = stream;
+      vid.classList.remove('hidden');
+      await vid.play();
+
+      statusEl.textContent = 'Loading MediaPipe Pose + Face Landmarker...';
+      const vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
+      const fileset = await vision.FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+      );
+
+      if (!poseLM) {
+        poseLM = await vision.PoseLandmarker.createFromOptions(fileset, {
+          baseOptions: {
+            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+            delegate: 'GPU',
+          },
+          runningMode: 'VIDEO',
+          numPoses: 1,
+        });
+      }
+      if (!faceLM) {
+        faceLM = await vision.FaceLandmarker.createFromOptions(fileset, {
+          baseOptions: {
+            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+            delegate: 'GPU',
+          },
+          runningMode: 'VIDEO',
+          outputFaceBlendshapes: true,
+          numFaces: 1,
+        });
+      }
+
+      state.webcamActive = true;
+      btn.classList.add('live');
+      btn.textContent = 'STOP WEBCAM';
+      statusEl.textContent = 'LIVE: Driving Anny V7 arms, torso, head & mouth openness at 30+ FPS.';
+      loop();
+      return true;
+    } catch (err) {
+      stop();
+      statusEl.textContent = `Webcam unavailable (${err && err.message ? err.message : 'denied'}). Offline Sapiens MPS remains active.`;
+      return false;
+    }
+  }
+
+  function loop() {
+    if (!state.webcamActive) return;
+    rafId = requestAnimationFrame(loop);
+    const vid = $('webcamVideo');
+    if (!vid || vid.readyState < 2 || vid.currentTime === lastVideoT) return;
+    lastVideoT = vid.currentTime;
+    const ts = performance.now();
+
+    const angles = {
+      headYaw: 0, headPitch: 0, headRoll: 0,
+      spineYaw: 0, spinePitch: 0, spineRoll: 0,
+      leftArmZ: 0, rightArmZ: 0, leftElbowFlex: 0, rightElbowFlex: 0,
+      jawOpen: 0,
+    };
+
+    if (poseLM) {
+      const res = poseLM.detectForVideo(vid, ts);
+      if (res && res.landmarks && res.landmarks[0]) {
+        const lm = res.landmarks[0];
+        const lSh = lm[11], rSh = lm[12], lEl = lm[13], rEl = lm[14], lWr = lm[15], rWr = lm[16], nose = lm[0];
+        if (lSh && rSh) {
+          const midX = (lSh.x + rSh.x) * 0.5;
+          const midY = (lSh.y + rSh.y) * 0.5;
+          angles.spineRoll = (lSh.y - rSh.y) * 1.4;
+          if (nose) {
+            angles.headYaw = (midX - nose.x) * 2.4;
+            angles.headPitch = (nose.y - (midY - 0.18)) * 1.8;
+          }
+          if (lEl) angles.leftArmZ = Math.max(-0.2, Math.min(1.5, (lSh.y - lEl.y + 0.18) * 3.0));
+          if (rEl) angles.rightArmZ = Math.max(-0.2, Math.min(1.5, (rSh.y - rEl.y + 0.18) * 3.0));
+          if (lEl && lWr) angles.leftElbowFlex = Math.max(0, Math.min(1.5, (lEl.y - lWr.y + 0.1) * 2.6));
+          if (rEl && rWr) angles.rightElbowFlex = Math.max(0, Math.min(1.5, (rEl.y - rWr.y + 0.1) * 2.6));
+        }
+      }
+    }
+
+    if (faceLM) {
+      const fres = faceLM.detectForVideo(vid, ts);
+      if (fres && fres.faceBlendshapes && fres.faceBlendshapes[0]) {
+        const cats = fres.faceBlendshapes[0].categories;
+        for (let i = 0; i < cats.length; i++) {
+          if (cats[i].categoryName === 'jawOpen') {
+            angles.jawOpen = cats[i].score;
+            break;
+          }
+        }
+      }
+    }
+
+    state.webcamSample = { angles };
+  }
+
+  function stop() {
+    state.webcamActive = false;
+    state.webcamSample = null;
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = 0;
+    if (state.webcamStream) {
+      state.webcamStream.getTracks().forEach((t) => t.stop());
+      state.webcamStream = null;
+    }
+    const vid = $('webcamVideo');
+    if (vid) {
+      vid.srcObject = null;
+      vid.classList.add('hidden');
+    }
+    const btn = $('btnWebcam');
+    if (btn) {
+      btn.classList.remove('live');
+      btn.textContent = 'LIVE WEBCAM';
+    }
+  }
+
+  return { start, stop };
+})();
+
+// ---------------------------------------------------------------------------
+// Sapiens Static Ref Targets Inspector
+// ---------------------------------------------------------------------------
 async function renderRefInspector() {
-  if (!state.manifest || !state.manifest.refs.length) return;
-  const ref = state.manifest.refs[state.refIndex];
+  if (!state.refManifest || !state.refManifest.refs.length) return;
+  const ref = state.refManifest.refs[state.refIndex];
   const cv = $('refCanvas');
   const ctx = cv.getContext('2d');
 
@@ -464,15 +1107,11 @@ async function renderRefInspector() {
 
   if (state.refOverlay && kpData && Array.isArray(kpData.keypoints_308)) {
     const kps = kpData.keypoints_308;
-    // Draw dense 308 face/hand/foot keypoints as fine cyan dots
     ctx.fillStyle = 'rgba(110, 224, 255, 0.72)';
     for (let i = 17; i < kps.length; i++) {
       const p = kps[i];
-      if (p[2] > 0.25) {
-        ctx.fillRect(dx + p[0] * dw - 1, dy + p[1] * dh - 1, 2, 2);
-      }
+      if (p[2] > 0.25) ctx.fillRect(dx + p[0] * dw - 1, dy + p[1] * dh - 1, 2, 2);
     }
-    // Draw COCO-17 body skeleton
     ctx.strokeStyle = 'rgba(245, 190, 96, 0.92)';
     ctx.lineWidth = 2;
     for (const [i, j] of COCO17_EDGES) {
@@ -485,43 +1124,39 @@ async function renderRefInspector() {
         ctx.stroke();
       }
     }
-    for (let i = 0; i < 17; i++) {
-      const p = kps[i];
-      if (p[2] > 0.2) {
-        ctx.fillStyle = '#fff1d0';
-        ctx.beginPath();
-        ctx.arc(dx + p[0] * dw, dy + p[1] * dh, 2.8, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
   }
-
-  $('refMeta').textContent = `${ref.width}×${ref.height} · ${ref.valid_keypoints}/308 kps · ${ref.infer_sec}s`;
+  $('refMeta').textContent = `${ref.width}x${ref.height} | ${ref.valid_keypoints}/308 kps | ${ref.infer_sec}s`;
 }
 
-async function loadSapiensManifest() {
+async function loadSapiensManifests() {
   try {
-    const manifest = await (await fetch('sapiens2/extracted/manifest.json')).json();
-    state.manifest = manifest;
+    const [refRes, scenesRes] = await Promise.all([
+      fetch('sapiens2/extracted/manifest.json').then((r) => (r.ok ? r.json() : null)),
+      fetch('sapiens2/extracted/scenes/manifest.json').then((r) => (r.ok ? r.json() : null)),
+    ]);
 
-    const badge = $('sapiensBadge');
-    const isReal = manifest.backend && !manifest.backend.includes('fallback');
-    badge.textContent = isReal ? `LIVE · ${manifest.backend}` : `FALLBACK · ${manifest.backend}`;
-    badge.className = isReal ? 'badge ok' : 'badge warn';
-    $('sapiensDetail').textContent = `${manifest.license} · ${manifest.device}`;
+    if (refRes) {
+      state.refManifest = refRes;
+      const badge = $('sapiensBadge');
+      const isReal = refRes.backend && !refRes.backend.includes('fallback');
+      badge.textContent = isReal ? `LIVE | ${refRes.backend}` : `FALLBACK | ${refRes.backend}`;
+      badge.className = isReal ? 'badge ok' : 'badge warn';
+      $('sapiensDetail').textContent = `${refRes.license} | ${refRes.device}`;
 
-    const refSel = $('refSelect');
-    refSel.innerHTML = '';
-    manifest.refs.forEach((r, idx) => {
-      refSel.add(new Option(r.id.replace(/^ref_0/, '#'), String(idx)));
-    });
-    await renderRefInspector();
+      const refSel = $('refSelect');
+      refSel.innerHTML = '';
+      refRes.refs.forEach((r, idx) => refSel.add(new Option(r.id.replace(/^ref_0/, '#'), String(idx))));
+      await renderRefInspector();
+    }
 
-    if (manifest.video_track && manifest.video_track.file) {
-      state.e1Track = await (await fetch(manifest.video_track.file)).json();
-      $('e1Scrub').max = String(state.e1Track.duration_sec || 10);
-      const s0 = sampleE1Angles(0);
-      if (s0) drawE1MiniCanvas(s0);
+    if (scenesRes && Array.isArray(scenesRes.scenes) && scenesRes.scenes.length) {
+      state.sceneManifest = scenesRes;
+      const sceneSel = $('sceneSelect');
+      sceneSel.innerHTML = '';
+      scenesRes.scenes.forEach((sc, idx) => {
+        sceneSel.add(new Option(`${sc.id} - ${sc.title}`, String(idx)));
+      });
+      await selectTrackedScene(0);
     }
   } catch (err) {
     $('sapiensBadge').textContent = 'UNAVAILABLE';
@@ -530,72 +1165,21 @@ async function loadSapiensManifest() {
   }
 }
 
-async function selectClip(clipId, fadeDuration = 0.25) {
-  state.clipName = clipId;
-  const clipWrap = $('clipButtons');
-  if (clipWrap) {
-    clipWrap.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.clip === clipId));
-  }
-  if (!state.driver) return;
-  if (!state.driver.hasClip(clipId)) {
-    $('hudStatus').textContent = `Loading ${clipId}…`;
-    await state.driver.loadClip(clipId);
-  }
-  state.driver.crossFadeTo(clipId, fadeDuration);
-  if (state.paused) state.driver.pause();
-  state.driver.update(0);
-  $('hudStatus').textContent = `${CAST[state.castKey].label} · ${clipId}`;
-}
-
-function focusHands(side = 'both') {
-  if (!state.avatarRoot) return;
-  state.avatarRoot.updateMatrixWorld(true);
-  const wL = state.bonesByName.get('wristL') || state.bonesByName.get('wrist.L');
-  const wR = state.bonesByName.get('wristR') || state.bonesByName.get('wrist.R');
-  if (!wL || !wR) return;
-  const pL = new THREE.Vector3();
-  const pR = new THREE.Vector3();
-  wL.getWorldPosition(pL);
-  wR.getWorldPosition(pR);
-  const target = new THREE.Vector3();
-  if (side === 'L') {
-    target.copy(pL);
-    camera.position.set(pL.x + 0.14, pL.y + 0.08, pL.z + 0.34);
-  } else if (side === 'R') {
-    target.copy(pR);
-    camera.position.set(pR.x - 0.14, pR.y + 0.08, pR.z + 0.34);
-  } else {
-    target.addVectors(pL, pR).multiplyScalar(0.5);
-    const span = Math.max(0.32, pL.distanceTo(pR));
-    camera.position.set(target.x, target.y + 0.10, target.z + span * 1.15 + 0.28);
-  }
-  controls.minDistance = 0.18;
-  controls.target.copy(target);
-  controls.update();
-}
-
-function setClothed(flag) {
-  state.clothed = !!flag;
-  if (state.wardrobe) state.wardrobe.setClothed(state.clothed);
-  const btn = $('btnClothed');
-  if (btn) {
-    btn.classList.toggle('on', state.clothed);
-    btn.textContent = state.clothed ? 'Clothed Cast' : 'Base Mesh';
-  }
-  applyMaterialFlags(state.avatarRoot);
-  return state.clothed;
-}
-
+// ---------------------------------------------------------------------------
+// UI Wiring
+// ---------------------------------------------------------------------------
 function wireUI() {
-  // Cast selector
   const castSel = $('castSelect');
-  for (const [k, v] of Object.entries(CAST)) {
-    castSel.add(new Option(v.label, k));
-  }
+  for (const [k, v] of Object.entries(CAST)) castSel.add(new Option(v.label, k));
   castSel.value = state.castKey;
   castSel.addEventListener('change', () => loadCast(castSel.value));
 
-  // Categorized clip buttons (35 CC0 clips, lazy-loaded on demand)
+  const exprSel = $('exprSelect');
+  const exprs = (window.AnnyHumanV7 && window.AnnyHumanV7.EXPRESSIONS) || { neutral: { label: 'Neutral' } };
+  for (const [k, v] of Object.entries(exprs)) exprSel.add(new Option(v.label, k));
+  exprSel.value = state.expression;
+  exprSel.addEventListener('change', () => setExpression(exprSel.value));
+
   const clipWrap = $('clipButtons');
   CLIP_GROUPS.forEach((group) => {
     const hdr = document.createElement('div');
@@ -615,27 +1199,26 @@ function wireUI() {
     clipWrap.appendChild(row);
   });
 
-  // Speed & toggles
   $('speedSlider').addEventListener('input', (e) => {
     state.speed = parseFloat(e.target.value);
-    $('speedVal').textContent = `${state.speed.toFixed(2)}×`;
-    if (state.driver) state.driver.setSpeed(state.speed);
+    $('speedVal').textContent = `${state.speed.toFixed(2)}x`;
+    if (state.character) state.character.setSpeed(state.speed);
   });
 
   $('btnPause').addEventListener('click', (e) => {
     state.paused = !state.paused;
     e.target.classList.toggle('on', state.paused);
     e.target.textContent = state.paused ? 'Resume' : 'Pause';
-    if (state.driver) {
-      if (state.paused) state.driver.pause();
-      else state.driver.resume();
+    if (state.character) {
+      if (state.paused) state.character.pause();
+      else state.character.resume();
     }
   });
 
   $('btnWire').addEventListener('click', (e) => {
     state.wireframe = !state.wireframe;
     e.target.classList.toggle('on', state.wireframe);
-    applyMaterialFlags(state.avatarRoot);
+    if (state.character) state.character.setWireframe(state.wireframe);
   });
 
   $('btnSkel').addEventListener('click', (e) => {
@@ -647,15 +1230,84 @@ function wireUI() {
   $('btnRootLock').addEventListener('click', (e) => {
     state.lockRoot = !state.lockRoot;
     e.target.classList.toggle('on', state.lockRoot);
-    if (state.driver) state.driver.setRootMotionLock(state.lockRoot);
+    if (state.character) state.character.setRootMotionLock(state.lockRoot);
   });
 
-  const btnClothed = $('btnClothed');
-  if (btnClothed) {
-    btnClothed.addEventListener('click', () => setClothed(!state.clothed));
-  }
+  $('btnClothed').addEventListener('click', () => setClothed(!state.clothed));
 
-  // Ref inspector controls
+  $('btnProps').addEventListener('click', (e) => {
+    state.propsOn = !state.propsOn;
+    e.target.classList.toggle('on', state.propsOn);
+    e.target.textContent = state.propsOn ? 'Props: ON' : 'Props: OFF';
+    propSystem.setEnabled(state.propsOn, state.character);
+  });
+
+  $('btnSet').addEventListener('click', () => {
+    applySetMode(state.setMode === 'courtyard' ? 'dark' : 'courtyard');
+  });
+
+  $('btnSound').addEventListener('click', (e) => {
+    const on = soundEngine.setEnabled(!soundEngine.isEnabled());
+    e.target.classList.toggle('on', on);
+    e.target.textContent = on ? 'SOUND: ON' : 'SOUND: MUTE';
+  });
+
+  $('btnFaceCam').addEventListener('click', focusFace);
+  $('btnFullCam').addEventListener('click', focusFullBody);
+
+  // Sapiens Tracked Video Scene controls
+  $('sceneSelect').addEventListener('change', (e) => {
+    selectTrackedScene(parseInt(e.target.value, 10) || 0);
+  });
+
+  document.querySelectorAll('[data-scenemode]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      state.sceneMode = btn.dataset.scenemode;
+      document.querySelectorAll('[data-scenemode]').forEach((b) => b.classList.toggle('on', b === btn));
+      const vid = $('sceneVideo');
+      if (vid) {
+        if (state.sceneMode === 'off') vid.pause();
+        else if (state.scenePlaying) vid.play().catch(() => {});
+      }
+      if (state.sceneMode !== 'off' && state.sceneManifest) {
+        const sc = state.sceneManifest.scenes[state.activeSceneIdx];
+        if (sc && (sc.id === 'E1' || sc.id === 'E4')) setExpression('talking');
+      }
+    });
+  });
+
+  $('btnScenePlay').addEventListener('click', (e) => {
+    state.scenePlaying = !state.scenePlaying;
+    e.target.textContent = state.scenePlaying ? 'Pause' : 'Play';
+    const vid = $('sceneVideo');
+    if (vid && state.sceneMode !== 'off') {
+      if (state.scenePlaying) vid.play().catch(() => {});
+      else vid.pause();
+    }
+  });
+
+  $('sceneScrub').addEventListener('input', (e) => {
+    state.sceneTime = parseFloat(e.target.value) || 0;
+    state.scenePlaying = false;
+    $('btnScenePlay').textContent = 'Play';
+    const vid = $('sceneVideo');
+    if (vid) {
+      vid.pause();
+      if (Number.isFinite(vid.duration) && vid.duration > 0) {
+        vid.currentTime = Math.min(vid.duration - 0.01, state.sceneTime);
+      }
+    }
+    const s = sampleSceneTrack(state.activeSceneTrack, state.sceneTime);
+    if (s) drawSceneMiniCanvas(s);
+  });
+
+  // Live Webcam button
+  $('btnWebcam').addEventListener('click', () => {
+    if (state.webcamActive) webcamDriver.stop();
+    else webcamDriver.start();
+  });
+
+  // Static Ref targets
   $('refSelect').addEventListener('change', (e) => {
     state.refIndex = parseInt(e.target.value, 10) || 0;
     renderRefInspector();
@@ -674,57 +1326,54 @@ function wireUI() {
     e.target.classList.toggle('on', state.refOverlay);
     renderRefInspector();
   });
-
-  // E1 Mocap controls
-  document.querySelectorAll('[data-e1mode]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      state.e1Mode = btn.dataset.e1mode;
-      document.querySelectorAll('[data-e1mode]').forEach((b) => b.classList.toggle('on', b === btn));
-    });
-  });
-
-  $('btnE1Play').addEventListener('click', (e) => {
-    state.e1Playing = !state.e1Playing;
-    e.target.textContent = state.e1Playing ? 'Pause E1' : 'Play E1';
-  });
-
-  $('e1Scrub').addEventListener('input', (e) => {
-    state.e1Time = parseFloat(e.target.value) || 0;
-    state.e1Playing = false;
-    $('btnE1Play').textContent = 'Play E1';
-    const s = sampleE1Angles(state.e1Time);
-    if (s) drawE1MiniCanvas(s);
-  });
 }
 
+// ---------------------------------------------------------------------------
+// Main Animation Loop (Zero-Alloc, 60+ FPS)
+// ---------------------------------------------------------------------------
 let lastNow = performance.now();
 function animate(now) {
   requestAnimationFrame(animate);
   const dt = Math.min(0.05, Math.max(0, (now - lastNow) / 1000));
   lastNow = now;
+  state.simTime += dt;
 
-  if (state.driver && state.e1Mode !== 'solo') {
-    state.driver.update(dt);
-  }
-  if (state.wardrobe) {
-    state.wardrobe.update(dt);
-  }
+  const ch = state.character;
+  const skipDriver = state.sceneMode === 'solo' || state.webcamActive;
 
-  if (state.e1Track) {
-    if (state.e1Playing) {
-      state.e1Time += dt * state.speed;
-    }
-    const sample = sampleE1Angles(state.e1Time);
-    if (sample) {
-      $('e1Time').textContent = `${sample.t.toFixed(1)}s / ${sample.dur.toFixed(1)}s`;
-      if (state.e1Playing) $('e1Scrub').value = String(sample.t);
-      if (state.e1Mode !== 'off') {
-        applyE1ToAnny(sample);
+  if (ch) {
+    if (ch.driver && !skipDriver) ch.driver.update(dt);
+
+    if (state.webcamActive && state.webcamSample) {
+      ch.applySapiensPose(state.webcamSample, 'solo');
+    } else if (state.activeSceneTrack) {
+      if (state.scenePlaying && state.sceneMode !== 'off') {
+        const vid = $('sceneVideo');
+        if (vid && !vid.paused && Number.isFinite(vid.currentTime)) {
+          state.sceneTime = vid.currentTime;
+        } else {
+          state.sceneTime += dt * state.speed;
+        }
       }
-      if (state.frameCount % 2 === 0) drawE1MiniCanvas(sample);
+      const sample = sampleSceneTrack(state.activeSceneTrack, state.sceneTime);
+      if (sample) {
+        if (state.frameCount % 3 === 0) {
+          $('sceneTime').textContent = `${sample.t.toFixed(1)}s / ${sample.dur.toFixed(1)}s`;
+          if (state.scenePlaying) $('sceneScrub').value = String(sample.t);
+          drawSceneMiniCanvas(sample);
+        }
+        if (state.sceneMode !== 'off') {
+          ch.applySapiensPose(sample, state.sceneMode);
+        }
+      }
     }
+
+    ch.update(dt, { skipDriver: true });
+    const metrics = ch.getMetrics();
+    soundEngine.update(dt, state.clipName, state.speed, state.paused, metrics ? metrics.jawOpen : 0);
   }
 
+  propSystem.update(state.simTime);
   controls.update();
   renderer.render(scene, camera);
 
@@ -748,25 +1397,32 @@ window.__STUDIO__ = {
   loadCast,
   selectClip,
   setClothed,
-  focusHands,
+  setExpression,
+  applySetMode,
+  focusFace,
+  focusFullBody,
+  selectTrackedScene,
   getGLContext: () => renderer.getContext(),
   getSummary: () => ({
+    v7: true,
     cast: state.castKey,
     clothed: state.clothed,
+    setMode: state.setMode,
+    propsOn: state.propsOn,
+    expression: state.expression,
     clip: state.clipName,
     fps: state.fps,
-    e1Mode: state.e1Mode,
-    backend: state.manifest ? state.manifest.backend : null,
-    refs: state.manifest ? state.manifest.refs.length : 0,
-    e1Samples: state.e1Track ? state.e1Track.sample_count : 0,
-    bones: state.bonesByName.size,
-    clipsLoaded: state.driver ? state.driver.getClipNames().length : 0,
+    sceneMode: state.sceneMode,
+    trackedScenes: state.sceneManifest ? state.sceneManifest.scenes.length : 0,
+    metrics: state.character ? state.character.getMetrics() : null,
+    bones: state.character ? state.character.bonesByName.size : 0,
+    clipsLoaded: state.character ? state.character.getClipNames().length : 0,
     totalClips: CLIPS.length,
     glError: renderer.getContext().getError(),
   }),
 };
 
 wireUI();
-Promise.all([loadCast(state.castKey), loadSapiensManifest()]).then(() => {
+Promise.all([loadCast(state.castKey), loadSapiensManifests()]).then(() => {
   requestAnimationFrame(animate);
 });

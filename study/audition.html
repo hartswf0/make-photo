@@ -55,14 +55,13 @@
       max-width: min(520px, calc(100vw - 410px));
       padding: 7px 12px 9px;
       border-radius: 11px;
-      background: rgba(242, 238, 228, 0.80);
+      background: rgba(242, 238, 228, 0.94);
       border: 1px solid var(--border-light);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
       pointer-events: auto;
       z-index: 6;
     }
     body.night-mode .plate-head {
-      background: rgba(16, 20, 22, 0.82);
+      background: rgba(16, 20, 22, 0.94);
       border-color: var(--border-dark);
     }
     body.contact-sheet-active .plate-head {
@@ -127,14 +126,13 @@
       padding: 8px 11px;
       border-radius: 11px;
       border: 1px solid var(--border-light);
-      background: rgba(242, 238, 228, 0.84);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      background: rgba(242, 238, 228, 0.94);
       z-index: 6;
       pointer-events: auto;
     }
     body.night-mode #aud-hud {
       border-color: var(--border-dark);
-      background: rgba(16, 20, 22, 0.86);
+      background: rgba(16, 20, 22, 0.94);
     }
     .hud-top {
       display: flex; align-items: center; justify-content: space-between; gap: 6px;
@@ -186,10 +184,9 @@
       width: min(760px, calc(100vw - 32px));
       padding: 8px 15px 9px;
       border-radius: 12px;
-      background: rgba(12, 16, 18, 0.84);
+      background: rgba(12, 16, 18, 0.94);
       border: 1px solid rgba(78, 232, 255, 0.38);
       color: #f6f2e8;
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
       box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
       z-index: 6;
       pointer-events: auto;
@@ -267,15 +264,14 @@
       letter-spacing: 0.06em; text-transform: uppercase;
       padding: 5px 9px; min-height: 25px; border-radius: 999px;
       border: 1px solid var(--border-light);
-      background: rgba(242, 238, 228, 0.86);
+      background: rgba(242, 238, 228, 0.94);
       color: var(--ink);
-      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       cursor: pointer;
       transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
     }
     body.night-mode .pill {
       border-color: var(--border-dark);
-      background: rgba(18, 23, 24, 0.86);
+      background: rgba(18, 23, 24, 0.94);
       color: var(--cream);
     }
     .pill.active, .pill[aria-pressed="true"] {
@@ -315,8 +311,58 @@
       display: none !important;
     }
 
+    /* Sapiens Reference Video Picture-in-Picture Panel */
+    #sapiens-pip {
+      position: fixed;
+      right: max(16px, env(safe-area-inset-right));
+      top: 118px;
+      width: 268px;
+      border-radius: 11px;
+      border: 1px solid rgba(78, 232, 255, 0.45);
+      background: rgba(14, 18, 20, 0.95);
+      color: #f2eee4;
+      padding: 8px;
+      z-index: 7;
+      pointer-events: auto;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.34);
+    }
+    #sapiens-pip[hidden] { display: none !important; }
+    .sapiens-pip-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+      font: 700 9px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: #4ee8ff; margin-bottom: 6px;
+    }
+    .sapiens-pip-close {
+      background: transparent; border: 1px solid rgba(242, 238, 228, 0.35);
+      color: #f2eee4; border-radius: 999px; padding: 2px 7px;
+      font: 700 8.5px/1 Inter, sans-serif; cursor: pointer;
+    }
+    #sapiens-video {
+      width: 100%; border-radius: 7px; background: #0a0c0d;
+      display: block; max-height: 152px; object-fit: cover;
+    }
+    .sapiens-scene-list {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px;
+    }
+    .sapiens-scene-btn {
+      font: 600 8.5px/1 Inter, sans-serif; letter-spacing: 0.05em; text-transform: uppercase;
+      padding: 4px 7px; border-radius: 999px;
+      border: 1px solid rgba(242, 238, 228, 0.28);
+      background: rgba(24, 30, 33, 0.95); color: #e8e4da; cursor: pointer;
+    }
+    .sapiens-scene-btn.active {
+      background: #4ee8ff; color: #05181c; border-color: #4ee8ff;
+    }
+    #sapiens-status {
+      margin-top: 5px;
+      font: 600 8.5px/1.3 ui-monospace, "SF Mono", Menlo, monospace;
+      color: rgba(242, 238, 228, 0.78);
+    }
+
     @media (max-width: 920px) {
       #aud-hud { display: none; }
+      #sapiens-pip { top: 82px; width: 210px; }
       .plate-head { max-width: calc(100vw - 24px); }
       #lyric-strip { bottom: 146px; padding: 6px 11px; }
     }
@@ -337,7 +383,7 @@
     </p>
     <p class="plate-note" id="mv-desc">Cast-iron standpipe gushing parabolic #28d8f0 water into a wheel-thrown terracotta bowl beside Mistletoe.</p>
     <nav class="nav-links" aria-label="Project navigation">
-      <a href="./index.html">← Study Workbench</a>
+      <a href="./index.html">Study Workbench</a>
       <a href="../ethiopia-highlands/">Ethiopia DEM</a>
       <a href="../night-post/">2086 Night Post</a>
       <a href="../zones/">Unified Zones</a>
@@ -350,7 +396,7 @@
       <span class="hud-live-badge"><span class="hud-dot"></span><span id="hud-epoch">I · WELLHEAD AWAKENING</span></span>
       <span id="hud-fps">60 FPS</span>
     </div>
-    <div class="hud-sub" id="hud-phoneme">VISEME: AA · EMOTION: DETERMINED FOCUS · JAW: 48%</div>
+    <div class="hud-sub" id="hud-phoneme">VISEME: SIL · EMOTION: DETERMINED FOCUS · JAW: 0%</div>
     <div class="meters">
       <div class="meter-box">60–160Hz Kebero<div class="meter-bar"><div class="meter-fill" id="m-perc"></div></div></div>
       <div class="meter-box">300–2.8k Vocal<div class="meter-bar"><div class="meter-fill vocal" id="m-vocal"></div></div></div>
@@ -358,22 +404,32 @@
     </div>
   </aside>
 
+  <aside id="sapiens-pip" hidden aria-label="Sapiens Tracked Reference Video">
+    <div class="sapiens-pip-head">
+      <span id="sapiens-title">SAPIENS VIDEO TRACK</span>
+      <button type="button" class="sapiens-pip-close" id="btn-sapiens-close">CLOSE</button>
+    </div>
+    <video id="sapiens-video" muted loop playsinline controls></video>
+    <div class="sapiens-scene-list" id="sapiens-scenes"></div>
+    <div id="sapiens-status">Loading Sapiens scene manifest...</div>
+  </aside>
+
   <section id="lyric-strip" aria-label="Synced Cyan Jerikan lyrics and timeline">
     <div class="lyric-line" id="lyric-text">“<b>Iron</b> lever cracks before the rooster”</div>
     <div class="timeline-row">
-      <button type="button" class="play-btn" id="btn-play">⏸ Pause</button>
+      <button type="button" class="play-btn" id="btn-play">PAUSE</button>
       <span id="time-readout">00:12 / 04:43</span>
       <input type="range" id="song-scrub" min="0" max="283" step="0.2" value="12.2" aria-label="Scrub Cyan Jerikan timeline">
-      <button type="button" class="audio-cta" id="btn-unmute">🔊 Unmute OGG</button>
+      <button type="button" class="audio-cta" id="btn-unmute">UNMUTE OGG</button>
     </div>
   </section>
 
   <div class="stage-bar">
     <div class="pill-row" id="row-looks" aria-label="15 GPU Looks and 9-Look Contact Sheet"></div>
-    <div class="pill-row" id="row-cast" aria-label="Cast Lead Switcher"></div>
+    <div class="pill-row" id="row-cast" aria-label="Cast Lead and Rig Switcher"></div>
     <div class="pill-row" id="row-sets" aria-label="5 In-Context Music Video Sets"></div>
     <div class="pill-row" id="row-cuts" aria-label="Director Camera Cuts and Lenses"></div>
-    <div class="pill-row" id="row-motion" aria-label="Mesh2Motion CC0 Clip Audition"></div>
+    <div class="pill-row" id="row-motion" aria-label="Mesh2Motion CC0 Clip Audition and Sapiens Video Track"></div>
   </div>
 
   <script src="../field-plates/fonts.js"></script>
@@ -390,7 +446,8 @@
   <script src="../zones/world-architecture.js?v=v6sculpt1"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-retarget.js?v=3"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=1"></script>
-  <script src="./look-audition-mv.js?v=v6pass6"></script>
+  <script src="../motion-pipeline/anny-human-v7.js?v=1"></script>
+  <script src="./look-audition-mv.js?v=v7pass1"></script>
   <script>
   (function () {
     "use strict";
@@ -406,8 +463,8 @@
 
     const wrap = $("stage-wrap");
     const canvas = $("view");
-    const renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const renderer = new T.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = T.PCFShadowMap;
     renderer.localClippingEnabled = true;
@@ -431,7 +488,7 @@
 
     const sun = new T.DirectionalLight(0xfffaf0, 2.45);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.mapSize.set(512, 512);
     sun.shadow.bias = -0.00016;
     sun.shadow.normalBias = 0.0055;
     Object.assign(sun.shadow.camera, { left: -4.2, right: 4.2, top: 4.2, bottom: -4.2, near: 0.4, far: 36 });
@@ -481,6 +538,7 @@
     };
 
     let activeCastId = "imani";
+    let activeRigMode = "anny_v7"; // "anny_v7" (default) | "scion_v6"
     let activeSetIdx = 0;
     let activeRefSceneId = null; // null (MV set) | "ensemble" | "pump_closeup" | "clay_bust"
     let activeRefTableau = null;
@@ -614,6 +672,12 @@
     }
 
     function clearStage() {
+      for (let i = 0; i < activeActors.length; i++) {
+        const a = activeActors[i];
+        if (a && a.isAnnyV7 && a.annyInstance && typeof a.annyInstance.dispose === "function") {
+          try { a.annyInstance.dispose(); } catch (_e) { /* ignore */ }
+        }
+      }
       while (stageRoot.children.length) stageRoot.remove(stageRoot.children[0]);
       activeActors = [];
       activeDonkey = null;
@@ -669,7 +733,7 @@
       const isEns = activeCastId === "ensemble";
         let d = isEns ? cachedDonkeyEns : cachedDonkeySolo;
       if (!d) {
-        d = window.makeDonkey({ assetPath: "../donkey/", shells: isEns ? 5 : 8, monochrome: true, contactShadow: true, alwaysHalter: true });
+        d = window.makeDonkey({ assetPath: "../donkey/", shells: isEns ? 3 : 4, monochrome: true, contactShadow: true, alwaysHalter: true });
         d.setCargo([{ kg: 14, slot: "L" }, { kg: 14, slot: "R" }, { kg: 8, slot: "T" }]);
         const frameMat = new T.MeshStandardMaterial({ color: 0x1a1613, roughness: 0.68 });
         const glowMat = new T.MeshStandardMaterial({ color: 0x058ab8, emissive: 0x046a94, emissiveIntensity: 0.72, roughness: 0.18 });
@@ -700,7 +764,175 @@
       return d;
     }
 
+    /* ---------- Ground/Plinth Foot-Pinning & Torso Anti-Clipping Clearance ---------- */
+    const _pinV1 = new T.Vector3();
+    const _pinV2 = new T.Vector3();
+    const _clipTorso = new T.Vector3();
+    const _clipJoint = new T.Vector3();
+    const _clipInvQ = new T.Quaternion();
+
+    function pinActorToGround(entry) {
+      if (!entry || !entry.ch || !entry.ch.group) return;
+      const targetY = entry.groundY || 0;
+      const ch = entry.ch;
+      if (entry.isAnnyV7) {
+        if (typeof ch.setGroundY === "function") ch.setGroundY(targetY);
+        return;
+      }
+      if (!ch.bones) return;
+      ch.group.updateMatrixWorld(true);
+      const V3 = window.HumanSculptV3 && ch.bones.length >= 50 ? window.HumanSculptV3 : null;
+      const B = V3 ? V3.B : null;
+      const bFootL = B ? (ch.bones[B.L_TOE] || ch.bones[B.L_FOOT] || ch.bones[B.L_ANKLE]) : ch.bones[17];
+      const bFootR = B ? (ch.bones[B.R_TOE] || ch.bones[B.R_FOOT] || ch.bones[B.R_ANKLE]) : ch.bones[21];
+      if (!bFootL || !bFootR) return;
+      bFootL.getWorldPosition(_pinV1);
+      bFootR.getWorldPosition(_pinV2);
+      const scale = (ch.state && ch.state.scale) || 1.0;
+      const soleOffset = (B && (bFootL === ch.bones[B.L_TOE])) ? (0.032 * scale) : (0.072 * scale);
+      const minSoleY = Math.min(_pinV1.y, _pinV2.y) - soleOffset;
+      const dy = targetY - minSoleY;
+      if (Math.abs(dy) > 0.002 && Math.abs(dy) < 0.45) {
+        ch.group.position.y += dy;
+        ch.group.updateMatrixWorld(true);
+      }
+    }
+
+    function enforceScionArmClearance(entry) {
+      if (!entry || entry.isAnnyV7 || !entry.ch || !entry.ch.bones) return;
+      if (entry.role === "pump" || entry.role === "handoffA" || entry.role === "handoffB" || entry.role === "clay") return;
+      const ch = entry.ch;
+      const V3 = window.HumanSculptV3 && ch.bones.length >= 50 ? window.HumanSculptV3 : null;
+      if (!V3 || !V3.B) return;
+      const B = V3.B;
+      const bChest = ch.bones[B.CHEST];
+      const bUA_L = ch.bones[B.L_UPPER_ARM];
+      const bUA_R = ch.bones[B.R_UPPER_ARM];
+      const bFA_L = ch.bones[B.L_FOREARM];
+      const bFA_R = ch.bones[B.R_FOREARM];
+      const bW_L = ch.bones[B.L_WRIST];
+      const bW_R = ch.bones[B.R_WRIST];
+      if (!bChest || !bUA_L || !bUA_R) return;
+
+      ch.group.updateMatrixWorld(true);
+      bChest.getWorldPosition(_clipTorso);
+      ch.group.getWorldQuaternion(_clipInvQ).invert();
+      const scale = (ch.state && ch.state.scale) || 1.0;
+      const minTorsoR = 0.165 * scale;
+
+      const sides = [
+        { s: 1, ua: bUA_L, fa: bFA_L, wr: bW_L },
+        { s: -1, ua: bUA_R, fa: bFA_R, wr: bW_R }
+      ];
+      let adjusted = false;
+      for (let i = 0; i < sides.length; i++) {
+        const { s, ua, fa, wr } = sides[i];
+        // Check elbow (forearm root) and wrist distance to torso centerline in character-local space
+        if (fa) {
+          fa.getWorldPosition(_clipJoint);
+          _clipJoint.sub(_clipTorso).applyQuaternion(_clipInvQ);
+          const lat = _clipJoint.x * s;
+          if (lat < minTorsoR && Math.abs(_clipJoint.z) < 0.14 * scale && _clipJoint.y < 0.12 * scale && _clipJoint.y > -0.45 * scale) {
+            const push = clamp((minTorsoR - lat) * 2.1, 0, 0.36);
+            ua.rotation.z += s * push;
+            adjusted = true;
+          }
+        }
+        if (wr) {
+          wr.getWorldPosition(_clipJoint);
+          _clipJoint.sub(_clipTorso).applyQuaternion(_clipInvQ);
+          const latW = _clipJoint.x * s;
+          if (latW < 0.11 * scale && _clipJoint.z < 0.14 * scale && _clipJoint.z > -0.14 * scale && _clipJoint.y < 0.10 * scale && _clipJoint.y > -0.52 * scale) {
+            // Gently abduct upper arm and clear wrist forward out of coat/hip
+            ua.rotation.z += s * 0.18;
+            if (fa) fa.rotation.x -= 0.14;
+            adjusted = true;
+          }
+        }
+      }
+      if (adjusted) ch.group.updateMatrixWorld(true);
+    }
+
+    function mapCastToAnnyArchetype(castId) {
+      const id = String(castId || "imani").toLowerCase();
+      if (id === "june") return "child7";
+      if (id === "elder" || id === "daniel") return "adult_m";
+      if (id === "makeda") return "elder";
+      return "adult_f"; // imani, hanna
+    }
+
+    let _gltfLoaderPromise = null;
+    async function getGltfLoader() {
+      if (_gltfLoaderPromise) return _gltfLoaderPromise;
+      _gltfLoaderPromise = (async () => {
+        const [{ GLTFLoader }, meshoptMod] = await Promise.all([
+          import("three/addons/loaders/GLTFLoader.js"),
+          import("three/addons/libs/meshopt_decoder.module.js").catch(() => null)
+        ]);
+        const loader = new GLTFLoader();
+        if (meshoptMod && meshoptMod.MeshoptDecoder) {
+          loader.setMeshoptDecoder(meshoptMod.MeshoptDecoder);
+        }
+        return loader;
+      })();
+      return _gltfLoaderPromise;
+    }
+
     function spawnPerformer(spec, role = "support") {
+      const wantAnny = activeRigMode === "anny_v7" && window.AnnyHumanV7 && role !== "pump" && role !== "handoffA" && role !== "handoffB" && role !== "clay";
+      if (wantAnny && typeof window.AnnyHumanV7.createCharacter === "function") {
+        const arch = mapCastToAnnyArchetype(spec.castId || spec.id);
+        const annyGroup = new T.Group();
+        annyGroup.position.set(spec.x || 0, 0, spec.z || 0);
+        annyGroup.rotation.y = spec.heading || 0;
+        stageRoot.add(annyGroup);
+        const entry = {
+          ch: { group: annyGroup, state: { id: spec.id, heading: spec.heading || 0, scale: spec.scale || 1.0 } },
+          isAnnyV7: true,
+          annyInstance: null,
+          archetype: arch,
+          role,
+          pose: spec.pose || "idle",
+          baseX: spec.x || 0,
+          baseZ: spec.z || 0,
+          groundY: spec.groundY || 0,
+          baseHeading: spec.heading || 0
+        };
+        getGltfLoader().then(loader => window.AnnyHumanV7.createCharacter({
+          THREE: T,
+          loader,
+          archetype: arch,
+          assetBaseUrl: "../abyssinian-highlands/human-forge/assets",
+          clipsBaseUrl: "../motion-pipeline/mesh2motion/clips",
+          clothed: true,
+          groundY: entry.groundY,
+          preloadClips: ["idle", "idle-talking", "walk", "walk-carry", "dance-arm-pump", "greeting", "victory"],
+          initialClip: role === "lead" ? "idle-talking" : "idle"
+        })).then(inst => {
+          if (!inst || !stageRoot.children.includes(annyGroup)) {
+            if (inst && typeof inst.dispose === "function") inst.dispose();
+            return;
+          }
+          entry.annyInstance = inst;
+          if (inst.root) {
+            annyGroup.add(inst.root);
+            if (clayLookOverride) applyAudClayMode(inst.root, true);
+          }
+          if (inst.bonesByNorm) {
+            entry.headBone = inst.bonesByNorm.get("head") || null;
+          }
+          if (typeof inst.setGroundY === "function") inst.setGroundY(entry.groundY);
+          renderer.shadowMap.needsUpdate = true;
+          if (role === "lead" && !activeRefSceneId) {
+            evaluateCameraTargetForCut(resolveEffectiveCut(lastVox ? lastVox.barIndex : 0), true);
+          }
+        }).catch(err => {
+          console.warn("[Audition] AnnyHumanV7 load error:", err);
+        });
+        activeActors.push(entry);
+        return entry;
+      }
+
       const poolKey = `${spec.id}__phone_${Boolean(spec.enablePhoneLight)}__y_${spec.yOffset || 0}`;
       let ch = performerPool.get(poolKey);
       if (!ch) {
@@ -714,14 +946,16 @@
       }
       ch.state.phase = spec.phase || 0;
       ch.state.pose = spec.pose || "idle";
-      ch.place(spec.x || 0, spec.z || 0, spec.heading || 0, flatGround);
+      ch.place(spec.x || 0, spec.z || 0, spec.heading || 0, () => (spec.groundY || 0));
       stageRoot.add(ch.group);
       const entry = {
         ch,
+        isAnnyV7: false,
         role,
         pose: spec.pose || "idle",
         baseX: spec.x || 0,
         baseZ: spec.z || 0,
+        groundY: spec.groundY || 0,
         baseHeading: spec.heading || 0
       };
       activeActors.push(entry);
@@ -1059,7 +1293,7 @@
       }
       const setDef = LAMV.MV_SETS[activeSetIdx];
       const castDef = LAMV.MV_CAST.find(c => c.id === activeCastId) || LAMV.MV_CAST[0];
-      const capDpr = (castDef.isEnsemble || wrap.clientWidth >= 1400) ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.5);
+      const capDpr = (castDef.isEnsemble || wrap.clientWidth >= 1200) ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.25);
       renderer.setPixelRatio(capDpr);
       renderer.setSize(Math.max(1, wrap.clientWidth), Math.max(1, wrap.clientHeight), false);
       applyLightingForSet(setDef);
@@ -1067,18 +1301,20 @@
       const isNight = Boolean(setDef.night);
       const isFinale = setDef.id === "cosmic_addis_finale";
 
-      // 1. Spawn Lead Star(s) in a natural semicircular music-video depth arc (shorter June forward-left so zero elbow occlusion!)
+      // 1. Spawn Lead Star(s) in a natural semicircular music-video depth arc (clear of wellhead curb & bowl!)
+      const leadZ = setDef.id === "dawn_wellhead" ? 0.56 : 0.34;
       if (castDef.isEnsemble) {
         const lineup = [
-          { ref: LAMV.MV_CAST[0], x: -0.04, z:  0.38, h:  0.05, role: "lead",   handPref: "talking_gesticulate", armAlt: "cupped_water_plea" },
-          { ref: LAMV.MV_CAST[1], x: -0.68, z:  0.22, h:  0.26, role: "chorus", handPref: "cupped_water_plea",   armAlt: "heart_gratitude" },
-          { ref: LAMV.MV_CAST[3], x:  0.66, z:  0.06, h: -0.28, role: "chorus", handPref: "heart_gratitude",     armAlt: "cupped_water_plea" },
-          { ref: LAMV.MV_CAST[4], x: -1.24, z: -0.26, h:  0.42, role: "chorus", handPref: "joyful_wave",         armAlt: "talking_gesticulate" },
-          { ref: LAMV.MV_CAST[2], x:  1.22, z: -0.26, h: -0.42, role: "chorus", handPref: "talking_gesticulate", armAlt: "heart_gratitude" }
+          { ref: LAMV.MV_CAST[0], x: -0.04, z:  0.62, h:  0.05, role: "lead",   handPref: "talking_gesticulate", armAlt: "cupped_water_plea" },
+          { ref: LAMV.MV_CAST[1], x: -0.68, z:  0.46, h:  0.26, role: "chorus", handPref: "cupped_water_plea",   armAlt: "heart_gratitude" },
+          { ref: LAMV.MV_CAST[3], x:  0.66, z:  0.34, h: -0.28, role: "chorus", handPref: "heart_gratitude",     armAlt: "cupped_water_plea" },
+          { ref: LAMV.MV_CAST[4], x: -1.24, z:  0.12, h:  0.42, role: "chorus", handPref: "joyful_wave",         armAlt: "talking_gesticulate" },
+          { ref: LAMV.MV_CAST[2], x:  1.22, z:  0.12, h: -0.42, role: "chorus", handPref: "talking_gesticulate", armAlt: "heart_gratitude" }
         ];
         lineup.forEach((slot, idx) => {
           const ent = spawnPerformer({
             ...slot.ref.spec,
+            castId: slot.ref.id,
             id: `${slot.ref.spec.id}_${idx}`,
             x: slot.x,
             z: slot.z,
@@ -1088,11 +1324,13 @@
             pose: isFinale ? "eskista" : (isNight ? "convoyPhoneWalk" : "idle")
           }, slot.role);
           // Skip sub-mm alpha hair/lash shadow-map draws on wide 5-actor ensemble -> locks >= 60 FPS!
-          ent.ch.group.traverse(o => {
-            if (o.isMesh && o.material && (o.material.transparent || o.material.alphaTest > 0)) {
-              o.castShadow = false;
-            }
-          });
+          if (ent.ch && ent.ch.group) {
+            ent.ch.group.traverse(o => {
+              if (o.isMesh && o.material && (o.material.transparent || o.material.alphaTest > 0)) {
+                o.castShadow = false;
+              }
+            });
+          }
           ent.handPref = slot.handPref;
           ent.armAlt = slot.armAlt;
           ent.timeOffset = idx * 0.94;
@@ -1100,8 +1338,9 @@
       } else {
         const ent = spawnPerformer({
           ...castDef.spec,
+          castId: castDef.id,
           x: 0.0,
-          z: 0.26,
+          z: leadZ,
           heading: 0.05,
           enablePhoneLight: isNight,
           pose: isFinale ? "eskista" : (isNight ? "convoyPhoneWalk" : "idle")
@@ -1135,6 +1374,12 @@
           stageRoot.add(pBowl);
 
           if (!castDef.isEnsemble) {
+            // Stone pumper step (0.24m) so bg_pumper stands solidly planted on stone — ZERO floating boots!
+            const pumperStep = new T.Mesh(new T.BoxGeometry(0.74, 0.24, 0.74), curbMat);
+            pumperStep.position.set(-1.94, 0.12, -0.42);
+            pumperStep.castShadow = true; pumperStep.receiveShadow = true;
+            stageRoot.add(pumperStep);
+
             const pumpCast = activeCastId === "imani" ? LAMV.MV_CAST[4] : LAMV.MV_CAST[0];
             spawnPerformer({
               ...pumpCast.spec,
@@ -1142,6 +1387,7 @@
               x: -1.94,
               z: -0.42,
               yOffset: 0.24,
+              groundY: 0.24,
               heading: Math.PI * 0.5 - 0.14,
               pose: "pump"
             }, "pump");
@@ -1300,9 +1546,55 @@
     function evaluateCameraTargetForCut(cutKey, snap = false) {
       if (cutKey === "orbit") return;
       const leadEntry = activeActors[0];
-      if (!leadEntry || !leadEntry.ch || !leadEntry.ch.bones) return;
+      if (!leadEntry || !leadEntry.ch) return;
 
       const ch = leadEntry.ch;
+      const hdg = (ch.state && ch.state.heading) || leadEntry.baseHeading || 0;
+      const isEnsemble = activeCastId === "ensemble";
+
+      // Anny V7 (104-bone) camera targeting using head bone or calibrated standing heights
+      if (leadEntry.isAnnyV7) {
+        const root = ch.group;
+        root.updateMatrixWorld(true);
+        const headBone = leadEntry.headBone || (leadEntry.annyInstance && leadEntry.annyInstance.bonesByNorm && leadEntry.annyInstance.bonesByNorm.get("head"));
+        if (headBone) {
+          headBone.getWorldPosition(tmpHead);
+          tmpHead.y += 0.04;
+        } else {
+          const hScale = leadEntry.archetype === "child7" ? 1.15 : 1.54;
+          tmpHead.set(root.position.x, root.position.y + hScale, root.position.z);
+        }
+        let dist = 0.42, yaw = hdg + 0.12, pitch = 0.03;
+        if (cutKey === "eyes") {
+          dist = 0.24; yaw = hdg + 0.06; pitch = 0.015;
+          camState.wantTargetX = tmpHead.x; camState.wantTargetY = tmpHead.y + 0.03; camState.wantTargetZ = tmpHead.z;
+        } else if (cutKey === "neck") {
+          dist = 0.92; yaw = hdg + 0.06; pitch = 0.02;
+          camState.wantTargetX = tmpHead.x; camState.wantTargetY = tmpHead.y - 0.12; camState.wantTargetZ = tmpHead.z;
+        } else if (cutKey === "face") {
+          dist = 0.44; yaw = hdg + 0.12; pitch = 0.03;
+          camState.wantTargetX = tmpHead.x; camState.wantTargetY = tmpHead.y; camState.wantTargetZ = tmpHead.z;
+        } else if (cutKey === "profile") {
+          dist = 0.48; yaw = hdg - 1.40; pitch = 0.03;
+          camState.wantTargetX = tmpHead.x; camState.wantTargetY = tmpHead.y; camState.wantTargetZ = tmpHead.z;
+        } else if (cutKey === "hands") {
+          dist = 1.05; yaw = hdg - 0.12; pitch = 0.05;
+          camState.wantTargetX = tmpHead.x; camState.wantTargetY = tmpHead.y - 0.34; camState.wantTargetZ = tmpHead.z;
+        } else {
+          dist = isEnsemble ? 3.85 : 2.65; yaw = isEnsemble ? 0.03 : 0.14; pitch = 0.08;
+          camState.wantTargetX = isEnsemble ? 0.0 : -0.10;
+          camState.wantTargetY = isEnsemble ? 1.00 : 0.98;
+          camState.wantTargetZ = 0.05;
+        }
+        camState.wantDist = dist; camState.wantYaw = yaw; camState.wantPitch = pitch;
+        if (snap) {
+          camState.dist = dist; camState.yaw = yaw; camState.pitch = pitch;
+          camState.targetX = camState.wantTargetX; camState.targetY = camState.wantTargetY; camState.targetZ = camState.wantTargetZ;
+        }
+        return;
+      }
+
+      if (!ch.bones) return;
       ch.group.updateMatrixWorld(true);
       const V3 = window.HumanSculptV3 && ch.bones.length >= 50 ? window.HumanSculptV3 : null;
       const B = V3 ? V3.B : null;
@@ -1311,8 +1603,6 @@
       const bChest = ch.bones[B ? B.CHEST : 3];
       const bHandL = ch.bones[B ? B.L_MID_1 : 9];
       const bHandR = ch.bones[B ? B.R_MID_1 : 13];
-      const hdg = ch.state.heading || 0;
-      const isEnsemble = activeCastId === "ensemble";
 
       let dist = 0.40, yaw = hdg + 0.10, pitch = 0.03;
 
@@ -1438,6 +1728,16 @@
       return activeCastId;
     }
 
+    function setRigMode(mode) {
+      const m = String(mode || "anny_v7").toLowerCase();
+      activeRigMode = (m === "scion" || m === "scion_v6" || m === "v6") ? "scion_v6" : "anny_v7";
+      rebuildStage();
+      if (!activeRefSceneId) evaluateCameraTargetForCut(resolveEffectiveCut(0), true);
+      syncBarUI();
+      syncHeaderAndHud(null);
+      return activeRigMode;
+    }
+
     function resolveAudRefScene(rawId) {
       const low = String(rawId || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
       if (low === "ensemble" || low === "r1" || low === "master_ensemble" || low === "tableau") return "ensemble";
@@ -1503,7 +1803,7 @@
     function buildBarRows() {
       const rLooks = $("row-looks");
       let lHtml = `<span class="row-tag">Look:</span>`;
-      lHtml += `<button type="button" class="pill pill-cs" id="btn-cs-grid" aria-pressed="false">⊞ 9-Look Contact Sheet</button>`;
+      lHtml += `<button type="button" class="pill pill-cs" id="btn-cs-grid" aria-pressed="false">9-LOOK CONTACT SHEET</button>`;
       lHtml += `<span class="pill-sep"></span>`;
       for (const lid of LAMV.UI_LOOK_ORDER) {
         const lObj = LAMV.resolveLook(lid);
@@ -1517,9 +1817,14 @@
       rLooks.querySelectorAll("[data-look]").forEach(b => b.addEventListener("click", () => setLook(b.dataset.look)));
 
       const rCast = $("row-cast");
-      rCast.innerHTML = `<span class="row-tag">Cast Lead:</span>` + LAMV.MV_CAST.map(c =>
-        `<button type="button" class="pill pill-cast" data-cast="${c.id}" title="${c.title}">${c.short}</button>`
-      ).join("");
+      rCast.innerHTML = `<span class="row-tag">Cast Rig:</span>` +
+        `<button type="button" class="pill pill-cs" data-rig="anny_v7" title="Clothed Anny V7 (104-bone + Verlet Cloth + Mesh2Motion)">ANNY V7 (104B)</button>` +
+        `<button type="button" class="pill" data-rig="scion_v6" title="Scion V6 Procedural Human Rig">SCION V6</button>` +
+        `<span class="pill-sep"></span><span class="row-tag">Cast Lead:</span>` +
+        LAMV.MV_CAST.map(c =>
+          `<button type="button" class="pill pill-cast" data-cast="${c.id}" title="${c.title}">${c.short}</button>`
+        ).join("");
+      rCast.querySelectorAll("[data-rig]").forEach(b => b.addEventListener("click", () => setRigMode(b.dataset.rig)));
       rCast.querySelectorAll("[data-cast]").forEach(b => b.addEventListener("click", () => setCast(b.dataset.cast)));
 
       const rSets = $("row-sets");
@@ -1541,10 +1846,127 @@
       if (rMotion && LAMV.MV_MOTIONS) {
         rMotion.innerHTML = `<span class="row-tag">Motion (M2M):</span>` + LAMV.MV_MOTIONS.map(m =>
           `<button type="button" class="pill" data-motion="${m.id}" title="${m.desc}">${m.short}</button>`
-        ).join("");
+        ).join("") +
+        `<span class="pill-sep"></span><button type="button" class="pill pill-cs" id="btn-sapiens-track" aria-pressed="false" title="Play Sapiens-tracked reference video synced with Anny V7">SAPIENS VIDEO TRACK</button>`;
         rMotion.querySelectorAll("[data-motion]").forEach(b => b.addEventListener("click", () => setMotion(b.dataset.motion)));
+        const sapBtn = $("btn-sapiens-track");
+        if (sapBtn) sapBtn.addEventListener("click", () => toggleSapiensVideoTrack());
       }
     }
+
+    /* ---------- Sapiens Tracked Reference Video Player & Pose Sync ---------- */
+    let sapiensActive = false;
+    let sapiensManifest = null;
+    let sapiensScene = null;
+    let sapiensTrackData = null;
+    const sapiensTrackCache = new Map();
+
+    async function loadSapiensManifest() {
+      if (sapiensManifest) return sapiensManifest;
+      const statusEl = $("sapiens-status");
+      try {
+        const res = await fetch("../motion-pipeline/sapiens2/extracted/scenes/manifest.json");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        sapiensManifest = await res.json();
+        const listEl = $("sapiens-scenes");
+        if (listEl && Array.isArray(sapiensManifest.scenes)) {
+          listEl.innerHTML = sapiensManifest.scenes.map(sc =>
+            `<button type="button" class="sapiens-scene-btn" data-sap-id="${sc.id}" title="${sc.title}">${sc.id}: ${sc.category || sc.slug}</button>`
+          ).join("");
+          listEl.querySelectorAll("[data-sap-id]").forEach(btn => {
+            btn.addEventListener("click", () => {
+              const found = sapiensManifest.scenes.find(s => s.id === btn.dataset.sapId);
+              if (found) selectSapiensScene(found);
+            });
+          });
+          if (sapiensManifest.scenes.length > 0 && !sapiensScene) {
+            selectSapiensScene(sapiensManifest.scenes[0]);
+          }
+        }
+        return sapiensManifest;
+      } catch (err) {
+        if (statusEl) statusEl.textContent = "Manifest unavailable: " + err.message;
+        return null;
+      }
+    }
+
+    async function selectSapiensScene(sc) {
+      if (!sc) return;
+      sapiensScene = sc;
+      const titleEl = $("sapiens-title");
+      const statusEl = $("sapiens-status");
+      const vid = $("sapiens-video");
+      if (titleEl) titleEl.textContent = `SAPIENS · ${sc.id} ${sc.title || ""}`.slice(0, 34);
+      document.querySelectorAll(".sapiens-scene-btn").forEach(b => {
+        b.classList.toggle("active", b.dataset.sapId === sc.id);
+      });
+      if (vid && sc.videoFromStudy) {
+        vid.src = sc.videoFromStudy;
+        vid.currentTime = 0;
+        vid.play().catch(() => {});
+      }
+      if (sapiensTrackCache.has(sc.id)) {
+        sapiensTrackData = sapiensTrackCache.get(sc.id);
+        if (statusEl) statusEl.textContent = `Synced ${sc.sampleCount || 18} Sapiens-308 keyframes (${sc.durationSec || 10}s)`;
+        return;
+      }
+      if (statusEl) statusEl.textContent = `Loading ${sc.id} Sapiens-308 track...`;
+      try {
+        const res = await fetch(sc.trackFromStudy || `../motion-pipeline/sapiens2/extracted/scenes/${sc.id}.json`);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        sapiensTrackCache.set(sc.id, data);
+        sapiensTrackData = data;
+        if (statusEl) statusEl.textContent = `Synced ${data.frames ? data.frames.length : 0} Sapiens-308 keyframes (${sc.durationSec || 10}s)`;
+      } catch (err) {
+        if (statusEl) statusEl.textContent = "Track error: " + err.message;
+      }
+    }
+
+    function sampleSapiensAngles(trackData, tSec) {
+      if (!trackData || !Array.isArray(trackData.frames) || trackData.frames.length === 0) return null;
+      const frames = trackData.frames;
+      const dur = (sapiensScene && sapiensScene.durationSec) || frames[frames.length - 1].time || 10.0;
+      const t = ((tSec % dur) + dur) % dur;
+      let a = frames[0], b = frames[frames.length - 1];
+      for (let i = 0; i < frames.length - 1; i++) {
+        if (t >= frames[i].time && t <= frames[i + 1].time) {
+          a = frames[i]; b = frames[i + 1]; break;
+        }
+      }
+      const span = Math.max(0.0001, b.time - a.time);
+      const u = clamp((t - a.time) / span, 0, 1);
+      const out = {};
+      const keys = Object.keys(a.angles || {});
+      for (let k = 0; k < keys.length; k++) {
+        const key = keys[k];
+        const va = a.angles[key], vb = b.angles[key];
+        if (typeof va === "number" && typeof vb === "number") {
+          out[key] = lerp(va, vb, u);
+        } else if (Array.isArray(va) && Array.isArray(vb)) {
+          out[key] = va.map((x, idx) => lerp(x, vb[idx] !== undefined ? vb[idx] : x, u));
+        }
+      }
+      out.mouthOpenRatio = lerp(a.mouthOpenRatio || 0, b.mouthOpenRatio || 0, u);
+      return out;
+    }
+
+    function toggleSapiensVideoTrack(force) {
+      sapiensActive = force !== undefined ? Boolean(force) : !sapiensActive;
+      const pip = $("sapiens-pip");
+      const vid = $("sapiens-video");
+      if (pip) pip.hidden = !sapiensActive;
+      if (sapiensActive) {
+        loadSapiensManifest();
+        if (vid && vid.src) vid.play().catch(() => {});
+      } else if (vid) {
+        vid.pause();
+      }
+      syncBarUI();
+      return sapiensActive;
+    }
+    const sapCloseBtn = $("btn-sapiens-close");
+    if (sapCloseBtn) sapCloseBtn.addEventListener("click", () => toggleSapiensVideoTrack(false));
 
     let activeMotionId = "auto";
     const worldBridge = window.Mesh2MotionWorldBridge
@@ -1565,7 +1987,7 @@
       registeredBridgeIds.clear();
       for (let i = 0; i < activeActors.length; i++) {
         const entry = activeActors[i];
-        if (!entry || !entry.ch || !entry.ch.bones) continue;
+        if (!entry || entry.isAnnyV7 || !entry.ch || !entry.ch.bones) continue;
         if (entry.role === "pump" || entry.role === "handoffA" || entry.role === "handoffB" || entry.role === "clay") continue;
         const aid = `aud_${i}_${(entry.ch.state && entry.ch.state.id) || entry.role || "actor"}`;
         entry._bridgeId = aid;
@@ -1599,6 +2021,11 @@
         b.classList.toggle("active", act);
         b.setAttribute("aria-pressed", String(act));
       });
+      document.querySelectorAll("#row-cast [data-rig]").forEach(b => {
+        const act = b.dataset.rig === activeRigMode;
+        b.classList.toggle("active", act);
+        b.setAttribute("aria-pressed", String(act));
+      });
       document.querySelectorAll("#row-cast [data-cast]").forEach(b => {
         const act = b.dataset.cast === activeCastId;
         b.classList.toggle("active", act);
@@ -1624,6 +2051,11 @@
         b.classList.toggle("active", act);
         b.setAttribute("aria-pressed", String(act));
       });
+      const sapBtn = $("btn-sapiens-track");
+      if (sapBtn) {
+        sapBtn.classList.toggle("active", sapiensActive);
+        sapBtn.setAttribute("aria-pressed", String(sapiensActive));
+      }
     }
 
     function fmtTime(sec) {
@@ -1644,19 +2076,20 @@
       const lookObj = post.getLook();
       const cutDef = LAMV.MV_CUTS.find(c => c.id === activeCutId) || LAMV.MV_CUTS[0];
 
-      const headerSig = `${setDef.id}|${castDef.id}|${lookObj.id}|${clayLookOverride}|${post.isContactSheet()}|${cutDef.id}`;
+      const headerSig = `${setDef.id}|${castDef.id}|${activeRigMode}|${lookObj.id}|${clayLookOverride}|${post.isContactSheet()}|${cutDef.id}`;
       if (headerSig !== lastHeaderSig) {
         lastHeaderSig = headerSig;
         $("mv-title").textContent = setDef.title;
         $("mv-desc").textContent = setDef.desc;
         $("mv-look-badge").textContent = post.isContactSheet()
-          ? "⊞ 9-LOOK CONTACT SHEET"
+          ? "9-LOOK CONTACT SHEET"
           : (clayLookOverride || activeRefSceneId === "clay_bust")
             ? "LOOK: CLAY SCULPT"
             : `LOOK: ${lookObj.name}`;
+        const rigTag = activeRigMode === "anny_v7" ? "ANNY V7" : "SCION V6";
         $("mv-cast-badge").textContent = refDef && refDef.id !== "clay_bust"
           ? "CAST: MASTER TABLEAU"
-          : `STAR: ${castDef.short.replace("★ ", "").toUpperCase()}`;
+          : `STAR: ${castDef.short.toUpperCase()} (${rigTag})`;
         $("mv-cut-badge").textContent = refDef ? "1:1 REFERENCE PLATE FRAMING" : (cutDef.id === "neck" ? "LEANING NECK, V-JAW & CLAVICLE (0.78M)" : cutDef.label);
       }
 
@@ -1689,7 +2122,7 @@
 
     $("btn-play").addEventListener("click", () => {
       const on = song.setPlaying(!song.isPlaying());
-      $("btn-play").textContent = on ? "⏸ Pause" : "▶ Play";
+      $("btn-play").textContent = on ? "PAUSE" : "PLAY";
     });
     $("song-scrub").addEventListener("input", e => {
       song.seek(+e.target.value);
@@ -1698,13 +2131,13 @@
       const live = await song.toggleUnmute();
       const btn = $("btn-unmute");
       btn.classList.toggle("live", live);
-      btn.textContent = live ? "🔊 OGG Live" : "🔊 Unmute OGG";
-      $("btn-play").textContent = song.isPlaying() ? "⏸ Pause" : "▶ Play";
+      btn.textContent = live ? "OGG LIVE" : "UNMUTE OGG";
+      $("btn-play").textContent = song.isPlaying() ? "PAUSE" : "PLAY";
     });
 
     function resize() {
       const w = Math.max(1, wrap.clientWidth), h = Math.max(1, wrap.clientHeight);
-      renderer.setPixelRatio((activeCastId === "ensemble" || w >= 1400) ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.5));
+      renderer.setPixelRatio((activeCastId === "ensemble" || w >= 1200) ? 1.0 : Math.min(window.devicePixelRatio || 1, 1.25));
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
@@ -1787,6 +2220,13 @@
 
     const params = new URLSearchParams(window.location.search);
     if (params.get("cast") || params.get("actor")) activeCastId = (params.get("cast") || params.get("actor")).toLowerCase();
+    if (params.get("rig")) {
+      const r = params.get("rig").toLowerCase();
+      activeRigMode = (r === "scion" || r === "scion_v6" || r === "v6") ? "scion_v6" : "anny_v7";
+    }
+    if (params.get("sapiens") === "1") {
+      setTimeout(() => toggleSapiensVideoTrack(true), 250);
+    }
     const rawSceneParam = params.get("scene") || params.get("study");
     if (rawSceneParam) {
       const mappedRef = resolveAudRefScene(rawSceneParam);
@@ -1834,11 +2274,13 @@
     let lastMs = performance.now();
     let fpsSmoothed = 60;
     let lastVox = null;
+    let frameCounter = 0;
 
     function frame(nowMs) {
       const rawDt = (nowMs - lastMs) * 0.001;
       const dt = clamp(rawDt, 0.001, 0.05);
       lastMs = nowMs;
+      frameCounter++;
       const nowSec = nowMs * 0.001;
       if (rawDt > 0.001 && rawDt < 0.090) {
         fpsSmoothed = lerp(fpsSmoothed, Math.min(60, 1 / rawDt), 0.14);
@@ -1849,6 +2291,14 @@
       const setDef = LAMV.MV_SETS[activeSetIdx];
       const effCut = resolveEffectiveCut(vox.barIndex);
       const steadyMacro = effCut === "eyes";
+
+      // Sample Sapiens reference video pose if active
+      let sapiensAngles = null;
+      if (sapiensActive && sapiensTrackData) {
+        const vid = $("sapiens-video");
+        const sapTime = (vid && Number.isFinite(vid.currentTime) && vid.readyState >= 2) ? vid.currentTime : nowSec;
+        sapiensAngles = sampleSapiensAngles(sapiensTrackData, sapTime);
+      }
 
       // Step Set I standpipe pump & parabolic cyan stream
       if (activePump && !activeRefTableau && typeof window.stepStandpipePump === "function") {
@@ -1954,40 +2404,95 @@
         const runPose = steadyMacro ? "idle" : (hasPhone ? "convoyPhoneWalk" : (danceNow ? "eskista" : "idle"));
 
         const singThisActor = isLead || (isChorus && (vox.isChorusDance || ((vox.barIndex + i) % 2 === 1)));
+
+        // Anny V7 (104-bone + Verlet Cloth + Mesh2Motion + Lyric Lip-Sync + Sapiens Track) update path
+        if (entry.isAnnyV7) {
+          const inst = entry.annyInstance;
+          if (inst) {
+            const useSapiens = Boolean(sapiensAngles && isLead && typeof inst.applySapiensPose === "function");
+            if (!useSapiens && LAMV.resolveMotionClip) {
+              const res = LAMV.resolveMotionClip(activeMotionId, {
+                steadyMacro, danceNow, hasPhone, setId: setDef.id, isLead
+              });
+              const targetClip = res.clip || "idle";
+              if (entry._lastAnnyClip !== targetClip) {
+                entry._lastAnnyClip = targetClip;
+                if (typeof inst.hasClip === "function" && inst.hasClip(targetClip)) {
+                  if (typeof inst.crossFadeTo === "function") inst.crossFadeTo(targetClip, 0.25);
+                  else if (typeof inst.play === "function") inst.play(targetClip);
+                } else if (typeof inst.loadClip === "function") {
+                  inst.loadClip(targetClip).then(ok => {
+                    if (ok && entry._lastAnnyClip === targetClip && typeof inst.crossFadeTo === "function") {
+                      inst.crossFadeTo(targetClip, 0.25);
+                    }
+                  });
+                }
+              }
+            }
+            if (typeof inst.setLyricSpeech === "function") {
+              if (singThisActor && vox.singing && !useSapiens) {
+                inst.setLyricSpeech(vox.lineText, vox.lineProgress || 0, vox.vocalFormantEnv || vox.visemeAmount || 0);
+              } else if (!useSapiens) {
+                inst.setLyricSpeech("", 0, 0);
+              }
+            }
+            if (typeof inst.setExpression === "function") {
+              const e = String(vox.emotion || "neutral");
+              const mappedExp = (e.includes("happy") || e.includes("laugh")) ? "happy"
+                : e.includes("sad") ? "sad"
+                : e.includes("surpris") ? "surprised"
+                : e.includes("angry") ? "angry"
+                : e.includes("concern") ? "strain"
+                : (singThisActor && vox.singing ? "talking" : "neutral");
+              inst.setExpression(mappedExp);
+            }
+            if (useSapiens) {
+              inst.applySapiensPose({ angles: sapiensAngles, mouthOpenRatio: sapiensAngles.mouthOpenRatio }, "solo");
+            }
+            if (typeof inst.update === "function") {
+              inst.update(dt, { skipDriver: useSapiens });
+            }
+          }
+          continue;
+        }
+
         const phraseSwap = ((vox.barIndex + i) % 4) >= 2;
         const actorHand = (phraseSwap && entry.armAlt) ? entry.armAlt : (entry.handPref || vox.handGesture);
-        // Never overwrite phone-cradling arms/hands in Set IV Night Convoy!
+        const motionRes = (worldBridge && entry._bridgeId && LAMV.resolveMotionClip)
+          ? LAMV.resolveMotionClip(activeMotionId, { steadyMacro, danceNow, hasPhone, setId: setDef.id, isLead })
+          : { clip: null, blend: 0 };
+        const m2mDrivingArms = Boolean(motionRes.clip && motionRes.blend > 0.45);
+        // Never overwrite phone-cradling arms/hands in Set IV Night Convoy, and never double-drive arms over Mesh2Motion clips!
         const eskistaArmFlourish = danceNow && (((vox.barIndex + i) % 2 === 0) || isLead);
-        const allowArmAct = (isLead || isChorus) && !steadyMacro && !hasPhone && effCut !== "eyes" && (!danceNow || eskistaArmFlourish);
+        const allowArmAct = !m2mDrivingArms && (isLead || isChorus) && !steadyMacro && !hasPhone && effCut !== "eyes" && (!danceNow || eskistaArmFlourish);
         const neckLean = steadyMacro ? undefined : computeMusicalNeckLean(vox, nowSec, i, isLead, danceNow, effCut);
         if (i === 0 && neckLean) lastLeadNeckLeanDeg = neckLean.rollDeg;
 
         ch.update(dt, actorTime, {
           pose: runPose,
           lodDist: activeCastId === "ensemble" ? 8.5 : 0,
-          surfaceAt: flatGround,
+          surfaceAt: () => (entry.groundY || 0),
           beatPulse: vox.beatPulse,
           lookAt: (steadyMacro || effCut === "neck" || effCut === "profile" || hasPhone) ? undefined : camera.position,
           emotion: vox.emotion,
           emotionIntensity: isLead ? 0.74 : 0.64,
           speaking: false,
-          viseme: singThisActor ? vox.viseme : "SIL",
-          visemeAmount: singThisActor ? (isLead ? vox.visemeAmount : vox.visemeAmount * 0.78) : 0.0,
+          viseme: (sapiensAngles && isLead && sapiensAngles.mouthOpenRatio > 0.08) ? "AA" : (singThisActor ? vox.viseme : "SIL"),
+          visemeAmount: (sapiensAngles && isLead)
+            ? clamp(sapiensAngles.mouthOpenRatio * 0.78, 0, 0.75)
+            : (singThisActor ? (isLead ? vox.visemeAmount : vox.visemeAmount * 0.78) : 0.0),
           neckLean,
           handGestureL: hasPhone ? undefined : actorHand,
           handGestureR: hasPhone ? undefined : (isLead && danceNow ? "joyful_wave" : actorHand),
-          handGestureIntensity: 0.88,
+          handGestureIntensity: 0.78,
           expressiveArmGesture: allowArmAct ? actorHand : null
         });
         if (neckLean) {
           applyAuditionFallbackNeckLean(ch, neckLean);
         }
-        if (worldBridge && entry._bridgeId && LAMV.resolveMotionClip) {
-          const res = LAMV.resolveMotionClip(activeMotionId, {
-            steadyMacro, danceNow, hasPhone, setId: setDef.id, isLead
-          });
-          if (res.clip && res.blend > 0.01) {
-            worldBridge.setClip(entry._bridgeId, res.clip, { blend: res.blend, fade: 0.25 });
+        if (worldBridge && entry._bridgeId) {
+          if (motionRes.clip && motionRes.blend > 0.01) {
+            worldBridge.setClip(entry._bridgeId, motionRes.clip, { blend: motionRes.blend, fade: 0.25 });
           } else {
             worldBridge.setActorLocomotion(entry._bridgeId, { blend: 0 });
           }
@@ -1995,6 +2500,15 @@
       }
       if (worldBridge && registeredBridgeIds.size > 0) {
         worldBridge.update(dt);
+      }
+      // Enforce exact ground/plinth foot-pinning & torso arm-clearance AFTER Mesh2Motion blend!
+      if (!activeRefTableau && activeRefSceneId !== "clay_bust") {
+        for (let i = 0; i < activeActors.length; i++) {
+          const entry = activeActors[i];
+          if (!entry || !entry.ch || !entry.ch.group || !entry.ch.group.visible) continue;
+          enforceScionArmClearance(entry);
+          pinActorToGround(entry);
+        }
       }
 
       if (activeDonkey && !activeRefTableau) {
@@ -2017,8 +2531,11 @@
       camState.targetY = lerp(camState.targetY, camState.wantTargetY, k);
       camState.targetZ = lerp(camState.targetZ, camState.wantTargetZ, k);
 
-      camera.near = clamp(camState.dist * 0.055, 0.014, 0.12);
-      camera.updateProjectionMatrix();
+      const nextNear = clamp(camState.dist * 0.055, 0.014, 0.12);
+      if (Math.abs(nextNear - camera.near) > 0.001) {
+        camera.near = nextNear;
+        camera.updateProjectionMatrix();
+      }
       updateLightsToTarget();
 
       const cp = Math.cos(camState.pitch), sp = Math.sin(camState.pitch);
@@ -2037,7 +2554,7 @@
           camera.position.z - Math.sin(camState.yaw) * 0.68
         );
       }
-      if (!renderer.shadowMap.autoUpdate && (Math.floor(nowSec * 60) % 3 === 0)) {
+      if (!renderer.shadowMap.autoUpdate && (frameCounter % 10 === 0)) {
         renderer.shadowMap.needsUpdate = true;
       }
 
@@ -2055,21 +2572,29 @@
       setLook,
       setContactSheet,
       setCast,
+      setRigMode,
       setSet,
       setScene,
       setCut,
       setMotion,
+      toggleSapiensVideoTrack,
       seek: sec => { song.seek(sec); return song.getTime(); },
       setPlaying: flag => song.setPlaying(flag),
       toggleUnmute: force => song.toggleUnmute(force),
       getState: () => {
-        const leadCh = activeActors[0]?.ch;
+        const leadEntry = activeActors[0];
+        const leadCh = leadEntry && leadEntry.ch;
         const exp = leadCh && typeof leadCh.getExpressionState === "function" ? leadCh.getExpressionState() : null;
         return {
           ready: true,
           fps: Math.round(fpsSmoothed),
           glError: post.checkGlError(),
           ...post.getState(),
+          rigMode: activeRigMode,
+          annyV7Loaded: Boolean(window.AnnyHumanV7),
+          leadIsAnnyV7: Boolean(leadEntry && leadEntry.isAnnyV7 && leadEntry.annyInstance),
+          sapiensActive,
+          sapiensSceneId: sapiensScene ? sapiensScene.id : null,
           castId: activeCastId,
           setIdx: activeSetIdx,
           setId: LAMV.MV_SETS[activeSetIdx].id,
