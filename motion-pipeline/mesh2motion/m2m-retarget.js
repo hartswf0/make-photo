@@ -25,7 +25,7 @@
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
 
-  const VERSION = '1.2.0';
+  const VERSION = '1.3.0';
 
   /** Curated CC0 humanoid clips in `motion-pipeline/mesh2motion/clips/` (36 clips, ~2.2 MB) */
   const CLIPS = Object.freeze({
@@ -398,8 +398,11 @@
     return qFromMat3(m00, m01, m02, m10, m11, m12, m20, m21, m22);
   }
 
-  /** Build right-handed orthonormal basis from forward + approximate across vector */
-  function makeHandBasis(fwdRaw, acrossRaw, sideSign) {
+  /**
+   * Build right-handed orthonormal hand basis from forward + index->pinky across vector,
+   * and geometrically verify inward palm normal via thumb side + +30° flexion test.
+   */
+  function makeHandBasis(fwdRaw, acrossRaw, sideSign, thumbOffsetRaw) {
     // sideSign: +1 for Left (fwd x (pinky - index) = dorsal, so palm = -norm),
     //           -1 for Right (fwd x (pinky - index) = palm, so palm = +norm)
     const fwd = vNormalize(fwdRaw);
@@ -411,8 +414,26 @@
     ]);
     const norm = vNormalize(vCross(fwd, across));
     // palmDir ALWAYS points from back of hand toward palm on BOTH sides
-    const palmDir = sideSign > 0 ? [-norm[0], -norm[1], -norm[2]] : norm.slice();
-    return { fwd, across, norm, palmDir };
+    let palmDir = sideSign > 0 ? [-norm[0], -norm[1], -norm[2]] : norm.slice();
+    // Geometric verification 1: thumb sits on the radial (-across) side; check cross(thumbSide, fwd)
+    if (thumbOffsetRaw) {
+      const thumbSide = vNormalize(thumbOffsetRaw);
+      const refCross = vCross(thumbSide, fwd);
+      const signedCheck = vDot(palmDir, refCross) * sideSign;
+      // On L (+1): thumb is radial (-across), cross(-across, fwd) = +norm = dorsal = -palmDir -> signedCheck < 0
+      // On R (-1): cross(-across, fwd) = +norm = +palmDir -> signedCheck < 0 (since sideSign = -1)
+      if (signedCheck > 0.15) {
+        palmDir = [-palmDir[0], -palmDir[1], -palmDir[2]];
+      }
+    }
+    // Geometric verification 2: +30° test rotation around flexAxis = normalize(fwd x palmDir)
+    // MUST move a fingertip vector `fwd` strictly toward `palmDir` (never backward or sideways)
+    let flexAxis = vNormalize(vCross(fwd, palmDir));
+    const testRot = qRotateVec(qFromAxisAngle(flexAxis, Math.PI / 6), fwd);
+    if (vDot(vSub(testRot, fwd), palmDir) < 0) {
+      flexAxis = [-flexAxis[0], -flexAxis[1], -flexAxis[2]];
+    }
+    return { fwd, across, norm, palmDir, flexAxis };
   }
 
   function qFromUnitVectors(from, to) {
@@ -607,7 +628,7 @@
 
     const THREE = getTHREE(opts);
     const srcNodes = collectNodeIndex(sourceRoot);
-    const tgtNodes = collectNodeIndex(targetRoot);
+    const tgtNodes = opts.targetRestIndex || collectNodeIndex(targetRoot);
 
     // Index source tracks by bone name
     const srcQuatTracks = new Map();
@@ -682,12 +703,15 @@
         }
 
         // Exact 3-axis hand basis match (finger forward, index->pinky across, palm normal)
+        const sThm = srcNodes.get(cfg.side === 'L' ? 'thumb_01_l' : 'thumb_01_r');
         const sIdx = srcNodes.get(cfg.sIdx);
         const sMid = srcNodes.get(cfg.sMid);
         const sPnk = srcNodes.get(cfg.sPnk);
+        const tThmName = resolveTargetNodeName(`finger1-1.${cfg.side}`);
         const tIdxName = resolveTargetNodeName(cfg.tIdx);
         const tMidName = resolveTargetNodeName(cfg.tMid);
         const tPnkName = resolveTargetNodeName(cfg.tPnk);
+        const tThm = tThmName ? tgtNodes.get(tThmName) : null;
         const tIdx = tIdxName ? tgtNodes.get(tIdxName) : null;
         const tMid = tMidName ? tgtNodes.get(tMidName) : null;
         const tPnk = tPnkName ? tgtNodes.get(tPnkName) : null;
@@ -696,46 +720,56 @@
           const srcBasis = makeHandBasis(
             vSub(sMid.worldP, sH.worldP),
             vSub(sPnk.worldP, sIdx.worldP),
-            cfg.sideSign
+            cfg.sideSign,
+            sThm ? vSub(sThm.worldP, sH.worldP) : null
           );
           const tgtBasis = makeHandBasis(
             vSub(tMid.worldP, tH.worldP),
             vSub(tPnk.worldP, tIdx.worldP),
-            cfg.sideSign
+            cfg.sideSign,
+            tThm ? vSub(tThm.worldP, tH.worldP) : null
           );
           const qWrist = qFromBasisMatch(
             tgtBasis.fwd, tgtBasis.across, tgtBasis.norm,
             srcBasis.fwd, srcBasis.across, srcBasis.norm
           );
           armAlignByTarget.set(tHName, qWrist);
-          handBasisBySide[cfg.side] = { srcBasis, tgtBasis, qWrist };
+          // Precompute local wrist anatomical axes for physiological wrist clamping
+          const invWristQ = qConj(tH.worldQ);
+          handBasisBySide[cfg.side] = {
+            side: cfg.side,
+            sideSign: cfg.sideSign,
+            sHand: cfg.sHand,
+            sThm: cfg.side === 'L' ? 'thumb_01_l' : 'thumb_01_r',
+            sIdx: cfg.sIdx,
+            sMid: cfg.sMid,
+            sPnk: cfg.sPnk,
+            tHand: tHName,
+            srcBasis,
+            tgtBasis,
+            qWrist,
+            wristFwdLocal: vNormalize(qRotateVec(invWristQ, tgtBasis.fwd)),
+            wristPalmLocal: vNormalize(qRotateVec(invWristQ, tgtBasis.palmDir)),
+            wristAcrossLocal: vNormalize(qRotateVec(invWristQ, tgtBasis.across)),
+          };
         } else if (tHName) {
           armAlignByTarget.set(tHName, qLower);
         }
       }
     }
 
-    // Build anatomical finger descriptors so fingers curl strictly on their true palmar flexion
-    // plane (zero axial twist, zero scissoring, zero backward hyperextension)
-    const FINGER_CHAIN_NEXT = Object.freeze({
-      // Source next-joint lookup
-      thumb_01_l: 'thumb_02_l', thumb_02_l: 'thumb_03_l',
-      index_01_l: 'index_02_l', index_02_l: 'index_03_l',
-      middle_01_l: 'middle_02_l', middle_02_l: 'middle_03_l',
-      ring_01_l: 'ring_02_l', ring_02_l: 'ring_03_l',
-      pinky_01_l: 'pinky_02_l', pinky_02_l: 'pinky_03_l',
-      thumb_01_r: 'thumb_02_r', thumb_02_r: 'thumb_03_r',
-      index_01_r: 'index_02_r', index_02_r: 'index_03_r',
-      middle_01_r: 'middle_02_r', middle_02_r: 'middle_03_r',
-      ring_01_r: 'ring_02_r', ring_02_r: 'ring_03_r',
-      pinky_01_r: 'pinky_02_r', pinky_02_r: 'pinky_03_r',
-    });
+    // Build bone-roll-invariant anatomical finger & thumb descriptors from Anny's own rest geometry
+    const DIGIT_PREFIX = Object.freeze({ 1: 'thumb', 2: 'index', 3: 'middle', 4: 'ring', 5: 'pinky' });
 
     function parseFingerMeta(rawTgtBone) {
       const m = /^finger([1-5])-([1-3])\.([LR])$/.exec(rawTgtBone || '');
       if (!m) return null;
       return { digit: Number(m[1]), phalanx: Number(m[2]), side: m[3] };
     }
+
+    const wristSideByTarget = new Map();
+    if (handBasisBySide.L && handBasisBySide.L.tHand) wristSideByTarget.set(handBasisBySide.L.tHand, handBasisBySide.L);
+    if (handBasisBySide.R && handBasisBySide.R.tHand) wristSideByTarget.set(handBasisBySide.R.tHand, handBasisBySide.R);
 
     // Determine mapped bones that exist on BOTH source tracks and target skeleton
     const mappedPairs = [];
@@ -758,22 +792,21 @@
       }
       if (mappedByTarget.has(tgtBone)) return;
 
-      // Precompute anatomical finger geometry if this is a finger bone
+      // Precompute exact per-phalanx local flexion axis from Anny's own rest geometry
       let fingerInfo = null;
       const fMeta = parseFingerMeta(rawTgtBone);
       if (fMeta && handBasisBySide[fMeta.side]) {
         const hb = handBasisBySide[fMeta.side];
-        const sEntry = srcNodes.get(srcBone);
-        const tEntry = tgtNodes.get(tgtBone);
-        const sNextName = FINGER_CHAIN_NEXT[srcBone];
-        const sNext = sNextName ? srcNodes.get(sNextName) : null;
-        const sPrev = sEntry && sEntry.parentName ? srcNodes.get(sEntry.parentName) : null;
-        const sDir = sNext && sEntry
-          ? vNormalize(vSub(sNext.worldP, sEntry.worldP))
-          : sPrev && sEntry
-            ? vNormalize(vSub(sEntry.worldP, sPrev.worldP))
-            : hb.srcBasis.fwd;
+        const sideLow = fMeta.side.toLowerCase();
+        const pref = DIGIT_PREFIX[fMeta.digit];
+        const s1Name = `${pref}_01_${sideLow}`;
+        const s2Name = `${pref}_02_${sideLow}`;
+        const s3Name = `${pref}_03_${sideLow}`;
+        const s4Name = `${pref}_04_leaf_${sideLow}`;
+        const s1 = srcNodes.get(s1Name);
+        const s2 = srcNodes.get(s2Name);
 
+        const tEntry = tgtNodes.get(tgtBone);
         const tNextRaw = fMeta.phalanx < 3 ? `finger${fMeta.digit}-${fMeta.phalanx + 1}.${fMeta.side}` : null;
         const tNextName = tNextRaw ? resolveTargetNodeName(tNextRaw) : null;
         const tNext = tNextName ? tgtNodes.get(tNextName) : null;
@@ -784,41 +817,113 @@
             ? vNormalize(vSub(tEntry.worldP, tPrev.worldP))
             : hb.tgtBasis.fwd;
 
-        const sPalm = hb.srcBasis.palmDir;
         const tPalm = hb.tgtBasis.palmDir;
-        const sFlexAxis = vNormalize(vCross(sDir, sPalm));
-        const tFlexAxis = vNormalize(vCross(tDir, tPalm));
+        const tAcross = hb.tgtBasis.across;
+        const tFwd = hb.tgtBasis.fwd;
+        const invTgtQ = qConj(tEntry.worldQ);
+
+        let axisFlexWorld;
+        if (fMeta.digit === 1) {
+          // Thumb: palmar-opposition direction strictly toward index/middle side of palm
+          const tOppDir = vNormalize([
+            tFwd[0] * 0.25 + tPalm[0] * 0.65 + tAcross[0] * 0.72,
+            tFwd[1] * 0.25 + tPalm[1] * 0.65 + tAcross[1] * 0.72,
+            tFwd[2] * 0.25 + tPalm[2] * 0.65 + tAcross[2] * 0.72,
+          ]);
+          axisFlexWorld = vNormalize(vCross(tDir, tOppDir));
+          // Geometric verification: +30° test rotation MUST move thumb toward opposition/palm
+          const testThumb = qRotateVec(qFromAxisAngle(axisFlexWorld, Math.PI / 6), tDir);
+          if (vDot(vSub(testThumb, tDir), tOppDir) < 0) {
+            axisFlexWorld = [-axisFlexWorld[0], -axisFlexWorld[1], -axisFlexWorld[2]];
+          }
+        } else {
+          // Index/Middle/Ring/Pinky: parallel hand-plane flexion axis (zero lateral scissoring!)
+          axisFlexWorld = hb.tgtBasis.flexAxis.slice();
+          // Geometric verification: +30° test rotation MUST move phalanx strictly toward palm
+          const testFinger = qRotateVec(qFromAxisAngle(axisFlexWorld, Math.PI / 6), tDir);
+          if (vDot(vSub(testFinger, tDir), tPalm) < 0) {
+            axisFlexWorld = [-axisFlexWorld[0], -axisFlexWorld[1], -axisFlexWorld[2]];
+          }
+        }
+
+        const axisFlexLocal = vNormalize(qRotateVec(invTgtQ, axisFlexWorld));
+        const axisPalmLocal = vNormalize(qRotateVec(invTgtQ, tPalm));
+        // Verified splay sign: rotating tFwd around tPalm by +splaySign moves toward +tAcross (pinky)
+        const splaySign = vDot(vCross(tPalm, tFwd), tAcross) >= 0 ? 1 : -1;
+
+        // Rest lateral offset / thumb opposition baseline on source skeleton
+        const sRestV0 = s1 && s2 ? vNormalize(vSub(s2.worldP, s1.worldP)) : hb.srcBasis.fwd;
+        const sRestAcr = vDot(sRestV0, hb.srcBasis.across);
+        const sRestOppDir = vNormalize([
+          hb.srcBasis.fwd[0] * 0.25 + hb.srcBasis.palmDir[0] * 0.65 + hb.srcBasis.across[0] * 0.72,
+          hb.srcBasis.fwd[1] * 0.25 + hb.srcBasis.palmDir[1] * 0.65 + hb.srcBasis.across[1] * 0.72,
+          hb.srcBasis.fwd[2] * 0.25 + hb.srcBasis.palmDir[2] * 0.65 + hb.srcBasis.across[2] * 0.72,
+        ]);
+        const sThumbRestOpp = vDot(sRestV0, sRestOppDir);
 
         fingerInfo = {
           digit: fMeta.digit,
           phalanx: fMeta.phalanx,
           side: fMeta.side,
-          sDir,
-          sPalm,
-          sFlexAxis,
-          tDir,
-          tPalm,
-          tFlexAxis,
-          qWrist: hb.qWrist,
+          hb,
+          s1Name,
+          s2Name,
+          s3Name,
+          s4Name: srcNodes.has(s4Name) ? s4Name : null,
+          axisFlexLocal,
+          axisPalmLocal,
+          splaySign,
+          sRestAcr,
+          sThumbRestOpp,
         };
       }
 
-      const pair = { srcBone, tgtBone, track, fingerInfo };
+      const pair = { srcBone, tgtBone, track, fingerInfo, wristInfo: wristSideByTarget.get(tgtBone) || null };
       mappedPairs.push(pair);
       mappedByTarget.set(tgtBone, pair);
     });
 
-    // Helper: compute source bone's animated world quaternion at time `t`
-    function evalSourceWorldQ(boneName, time, cache) {
-      if (cache.has(boneName)) return cache.get(boneName);
+    // Helper: compute source bone's animated world transform { q, p } at time `t`
+    function evalSourceWorldTransform(boneName, time, cache) {
+      const key = 'T:' + boneName;
+      if (cache.has(key)) return cache.get(key);
       const entry = srcNodes.get(boneName);
-      if (!entry) return qIdentity();
-      const parentW = entry.parentName ? evalSourceWorldQ(entry.parentName, time, cache) : qIdentity();
+      if (!entry) return { q: qIdentity(), p: [0, 0, 0] };
+      const parentT = entry.parentName
+        ? evalSourceWorldTransform(entry.parentName, time, cache)
+        : { q: qIdentity(), p: [0, 0, 0] };
       const tr = srcQuatTracks.get(boneName);
       const localQ = tr ? sampleQuaternionTrack(tr, time) : entry.localQ;
-      const worldQ = qNormalize(qMul(parentW, localQ));
-      cache.set(boneName, worldQ);
-      return worldQ;
+      const q = qNormalize(qMul(parentT.q, localQ));
+      const rotP = qRotateVec(parentT.q, entry.localP);
+      const p = [parentT.p[0] + rotP[0], parentT.p[1] + rotP[1], parentT.p[2] + rotP[2]];
+      const res = { q, p };
+      cache.set(key, res);
+      return res;
+    }
+
+    // Helper: compute source bone's animated world quaternion at time `t`
+    function evalSourceWorldQ(boneName, time, cache) {
+      return evalSourceWorldTransform(boneName, time, cache).q;
+    }
+
+    // Helper: compute animated source hand basis at time `t` (cached per side)
+    function evalSourceHandBasis(hb, time, cache) {
+      const key = 'HB:' + hb.side;
+      if (cache.has(key)) return cache.get(key);
+      const pH = evalSourceWorldTransform(hb.sHand, time, cache).p;
+      const pI = evalSourceWorldTransform(hb.sIdx, time, cache).p;
+      const pM = evalSourceWorldTransform(hb.sMid, time, cache).p;
+      const pP = evalSourceWorldTransform(hb.sPnk, time, cache).p;
+      const pT = srcNodes.has(hb.sThm) ? evalSourceWorldTransform(hb.sThm, time, cache).p : null;
+      const basis = makeHandBasis(
+        vSub(pM, pH),
+        vSub(pP, pI),
+        hb.sideSign,
+        pT ? vSub(pT, pH) : null
+      );
+      cache.set(key, basis);
+      return basis;
     }
 
     // Helper: compute target bone's animated world quaternion at time `t`
@@ -854,12 +959,9 @@
 
     // 1. Retarget quaternion tracks
     for (let i = 0; i < mappedPairs.length; i++) {
-      const { srcBone, tgtBone, track, fingerInfo } = mappedPairs[i];
+      const { srcBone, tgtBone, track, fingerInfo, wristInfo } = mappedPairs[i];
       const tgtEntry = tgtNodes.get(tgtBone);
-      const tgtParentEntry = tgtEntry && tgtEntry.parentName ? tgtNodes.get(tgtEntry.parentName) : null;
-      const tgtParentRestW = tgtParentEntry ? tgtParentEntry.worldQ : qIdentity();
       const srcEntry = srcNodes.get(srcBone);
-      const srcParentEntry = srcEntry && srcEntry.parentName ? srcNodes.get(srcEntry.parentName) : null;
 
       const times = new Float32Array(track.times);
       const values = new Float32Array(times.length * 4);
@@ -870,57 +972,77 @@
         let localQ;
 
         if (fingerInfo && srcEntry) {
-          // Exact parent-relative source delta in M2M world rest frame:
-          // D_rel_W = conj(D_parent) * D_bone
-          const srcAnimW = evalSourceWorldQ(srcBone, t, srcCache);
-          const srcParentAnimW = srcParentEntry
-            ? evalSourceWorldQ(srcEntry.parentName, t, srcCache)
-            : qIdentity();
-          const dBone = qNormalize(qMul(srcAnimW, qConj(srcEntry.worldQ)));
-          const dParent = srcParentEntry
-            ? qNormalize(qMul(srcParentAnimW, qConj(srcParentEntry.worldQ)))
-            : qIdentity();
-          const dRelW = qNormalize(qMul(qConj(dParent), dBone));
+          // Bone-roll-invariant geometric palmar-flexion extraction from animated source bone chain
+          const shb = evalSourceHandBasis(fingerInfo.hb, t, srcCache);
+          const p1 = evalSourceWorldTransform(fingerInfo.s1Name, t, srcCache).p;
+          const p2 = evalSourceWorldTransform(fingerInfo.s2Name, t, srcCache).p;
+          const p3 = evalSourceWorldTransform(fingerInfo.s3Name, t, srcCache).p;
+          const p4 = fingerInfo.s4Name ? evalSourceWorldTransform(fingerInfo.s4Name, t, srcCache).p : null;
 
-          let qRotW;
+          const v0 = vNormalize(vSub(p2, p1));
+          const v1 = vNormalize(vSub(p3, p2));
+          const v2 = p4 ? vNormalize(vSub(p4, p3)) : null;
+
           if (fingerInfo.digit === 1) {
-            // Thumb: conjugate source hand-local delta into Anny rest hand frame via qWrist, clamp angle
-            const qMapped = qNormalize(qMul(qConj(fingerInfo.qWrist), qMul(dRelW, fingerInfo.qWrist)));
-            const maxRad = fingerInfo.phalanx === 3 ? 1.05 : 0.88;
-            qRotW = qClampAngle(qMapped, maxRad);
-          } else {
-            // Index/Middle/Ring/Pinky: project strictly onto anatomical palmar flexion plane
-            // (+ optional small MCP splay, zero axial twist, zero backward hyperextension)
-            const vRot = qRotateVec(dRelW, fingerInfo.sDir);
-            const rawFlex = Math.atan2(vDot(vRot, fingerInfo.sPalm), vDot(vRot, fingerInfo.sDir));
-            // Anny's rest fingers have ~12° natural curl; gently scale PIP/DIP so fists stay clean
-            let flex, splay = 0;
+            // Thumb: clean geometric palmar-opposition + IP flexion strictly toward index/middle palm
+            const sOppDir = vNormalize([
+              shb.fwd[0] * 0.25 + shb.palmDir[0] * 0.65 + shb.across[0] * 0.72,
+              shb.fwd[1] * 0.25 + shb.palmDir[1] * 0.65 + shb.across[1] * 0.72,
+              shb.fwd[2] * 0.25 + shb.palmDir[2] * 0.65 + shb.across[2] * 0.72,
+            ]);
+            let angle = 0;
             if (fingerInfo.phalanx === 1) {
-              // MCP knuckle: small extension to deep flexion + gentle splay
-              flex = clamp(rawFlex * 0.90, -0.14, 1.42);
-              const rawSplay = Math.atan2(
-                vDot(vRot, fingerInfo.sFlexAxis),
-                Math.max(1e-4, Math.hypot(vDot(vRot, fingerInfo.sDir), vDot(vRot, fingerInfo.sPalm)))
-              );
-              // Flip splay sign across L/R? sFlexAxis = sDir x sPalm points toward pinky on L and index on R;
-              // tFlexAxis = tDir x tPalm has the EXACT SAME handedness, so rotating around tPalm by -rawSplay
-              // matches the exact anatomical radial/ulnar direction!
-              splay = clamp(-rawSplay * 0.65, -0.18, 0.18);
+              const oppDelta = vDot(v0, sOppDir) - fingerInfo.sThumbRestOpp;
+              const curl = clamp(oppDelta / 0.55, 0, 1);
+              angle = curl * 0.56; // [0°, 32°] CMC opposition
             } else if (fingerInfo.phalanx === 2) {
-              // PIP middle joint: strict 1-DOF hinge (0° to 92° palmar flexion)
-              flex = clamp(rawFlex * 0.85, 0.0, 1.55);
+              const rawAng = Math.acos(clamp(vDot(v0, v1), -1, 1));
+              const towardPalm = vDot(vSub(v1, v0), sOppDir) >= -0.05;
+              const curl = towardPalm ? clamp(rawAng / 0.95, 0, 1) : 0;
+              angle = curl * 0.68; // [0°, 39°] MCP flexion
             } else {
-              // DIP tip joint: strict 1-DOF hinge (0° to 70° palmar flexion)
-              flex = clamp(rawFlex * 0.80, 0.0, 1.20);
+              const rawAng = v2
+                ? Math.acos(clamp(vDot(v1, v2), -1, 1))
+                : Math.acos(clamp(vDot(v0, v1), -1, 1)) * 0.85;
+              const towardPalm = v2 ? vDot(vSub(v2, v1), sOppDir) >= -0.05 : vDot(vSub(v1, v0), sOppDir) >= -0.05;
+              const curl = towardPalm ? clamp(rawAng / 1.05, 0, 1) : 0;
+              angle = curl * 0.96; // [0°, 55°] IP flexion
             }
-            const qFlex = qFromAxisAngle(fingerInfo.tFlexAxis, flex);
-            qRotW = Math.abs(splay) > 1e-4
-              ? qNormalize(qMul(qFromAxisAngle(fingerInfo.tPalm, splay), qFlex))
-              : qFlex;
-          }
+            const qFlexLocal = qFromAxisAngle(fingerInfo.axisFlexLocal, angle);
+            localQ = qNormalize(qMul(tgtEntry.localQ, qFlexLocal));
+          } else {
+            // Index/Middle/Ring/Pinky: 100% bone-roll-invariant scalar curl + parallel palmar hinge
+            const rawMcp = Math.atan2(vDot(vCross(shb.fwd, v0), shb.flexAxis), clamp(vDot(shb.fwd, v0), -1, 1));
+            const rawPip = Math.atan2(vDot(vCross(v0, v1), shb.flexAxis), clamp(vDot(v0, v1), -1, 1));
+            const rawDip = v2
+              ? Math.atan2(vDot(vCross(v1, v2), shb.flexAxis), clamp(vDot(v1, v2), -1, 1))
+              : rawPip * 0.68;
 
-          // Convert Anny rest-world rotation directly to local space relative to rest parent
-          localQ = qNormalize(qMul(qConj(tgtParentRestW), qMul(qRotW, tgtEntry.worldQ)));
+            let flex = 0;
+            let splay = 0;
+            if (fingerInfo.phalanx === 1) {
+              // MCP (-1): pure palmar flexion [0°, 78°] + tiny natural fan splay [-4°, +4°]
+              const curl = clamp(rawMcp / 1.48, 0, 1);
+              flex = curl * 1.361; // 78°
+              const deltaAcr = vDot(v0, shb.across) - fingerInfo.sRestAcr;
+              splay = clamp(deltaAcr * 0.35, -0.07, 0.07) * fingerInfo.splaySign;
+            } else if (fingerInfo.phalanx === 2) {
+              // PIP (-2): pure 1-DOF palmar hinge [0°, 88°] (0° twist, 0° lateral bend)
+              const curl = clamp(rawPip / 1.65, 0, 1);
+              flex = curl * 1.536; // 88°
+            } else {
+              // DIP (-3): coupled natural cascade ~0.68 * PIP [0°, 62°] (0° twist, 0° lateral bend)
+              const coupled = rawPip * 0.68 * 0.65 + Math.max(0, rawDip) * 0.35;
+              const curl = clamp(coupled / 1.18, 0, 1);
+              flex = curl * 1.082; // 62°
+            }
+
+            let qDeltaLocal = qFromAxisAngle(fingerInfo.axisFlexLocal, flex);
+            if (Math.abs(splay) > 1e-4) {
+              qDeltaLocal = qNormalize(qMul(qFromAxisAngle(fingerInfo.axisPalmLocal, splay), qDeltaLocal));
+            }
+            localQ = qNormalize(qMul(tgtEntry.localQ, qDeltaLocal));
+          }
         } else {
           const tgtCache = new Map();
           const targetW = evalTargetWorldQ(tgtBone, t, srcCache, tgtCache);
@@ -930,6 +1052,27 @@
 
           // q_target_local = conj(Q_tgt_parent_W) * Q_tgt_W
           localQ = qNormalize(qMul(qConj(parentW), targetW));
+
+          // Physiological wrist clamp (flex/ext ±58°, radial/ulnar ±28°, twist ±35°)
+          if (wristInfo) {
+            const qDelta = qNormalize(qMul(qConj(tgtEntry.localQ), localQ));
+            let w = qDelta[3], sx = qDelta[0], sy = qDelta[1], sz = qDelta[2];
+            if (w < 0) { w = -w; sx = -sx; sy = -sy; sz = -sz; }
+            const sinH = Math.hypot(sx, sy, sz);
+            if (sinH > 1e-6) {
+              const ang = 2 * Math.atan2(sinH, w);
+              const rotVec = [(sx / sinH) * ang, (sy / sinH) * ang, (sz / sinH) * ang];
+              const flexRad = clamp(vDot(rotVec, wristInfo.wristAcrossLocal), -1.012, 1.012); // ±58°
+              const devRad = clamp(vDot(rotVec, wristInfo.wristPalmLocal), -0.489, 0.489);    // ±28°
+              const twistRad = clamp(vDot(rotVec, wristInfo.wristFwdLocal), -0.611, 0.611);   // ±35°
+              const rx = wristInfo.wristAcrossLocal[0] * flexRad + wristInfo.wristPalmLocal[0] * devRad + wristInfo.wristFwdLocal[0] * twistRad;
+              const ry = wristInfo.wristAcrossLocal[1] * flexRad + wristInfo.wristPalmLocal[1] * devRad + wristInfo.wristFwdLocal[1] * twistRad;
+              const rz = wristInfo.wristAcrossLocal[2] * flexRad + wristInfo.wristPalmLocal[2] * devRad + wristInfo.wristFwdLocal[2] * twistRad;
+              const rLen = Math.hypot(rx, ry, rz);
+              const qClamped = rLen > 1e-6 ? qFromAxisAngle([rx / rLen, ry / rLen, rz / rLen], rLen) : qIdentity();
+              localQ = qNormalize(qMul(tgtEntry.localQ, qClamped));
+            }
+          }
         }
 
         const o = k * 4;
@@ -1138,6 +1281,9 @@
       throw new Error('Mesh2MotionAnny.createAnnyDriver requires THREE.AnimationMixer.');
     }
 
+    // Snapshot pristine rest-pose skeleton once so subsequent lazy clip loads never read an animated pose!
+    const restTargetIndex = collectNodeIndex(targetRoot);
+
     const mixer = new THREE.AnimationMixer(targetRoot);
     const clips = new Map();      // name -> retargeted THREE.AnimationClip
     const rawSources = new Map(); // name -> { clip, sourceRoot }
@@ -1327,6 +1473,7 @@
             keepVerticalBounce: opts.keepVerticalBounce,
             armBindAlign: opts.armBindAlign,
             includeFingers: opts.includeFingers,
+            targetRestIndex: restTargetIndex,
           },
           retargetOpts || {}
         )
@@ -1556,6 +1703,9 @@
     if (!THREE || !THREE.AnimationMixer) {
       throw new Error('Mesh2MotionAnny.createQuadrupedDriver requires THREE.AnimationMixer.');
     }
+
+    // Snapshot pristine rest-pose skeleton once so subsequent lazy clip loads never read an animated pose!
+    const restTargetIndex = collectNodeIndex(targetRoot);
 
     const mixer = new THREE.AnimationMixer(targetRoot);
     const actions = new Map();
