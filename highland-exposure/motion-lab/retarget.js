@@ -13,6 +13,13 @@ const MAP = { pelvis: 'root', spine_01: 'spine05', spine_02: 'spine03', spine_03
   thumb_01_r: 'finger1-1R', thumb_02_r: 'finger1-2R', thumb_03_r: 'finger1-3R', index_01_r: 'finger2-1R', index_02_r: 'finger2-2R', index_03_r: 'finger2-3R',
   middle_01_r: 'finger3-1R', middle_02_r: 'finger3-2R', middle_03_r: 'finger3-3R', ring_01_r: 'finger4-1R', ring_02_r: 'finger4-2R', ring_03_r: 'finger4-3R',
   pinky_01_r: 'finger5-1R', pinky_02_r: 'finger5-2R', pinky_03_r: 'finger5-3R' };
+// Each bone's direction is taken toward this child; the figure's rest pose is turned to match the clip skeleton's rest pose
+// bone by bone, so a T-pose clip on an A-pose figure does not leave the arms 45 degrees off.
+const CHILD = { pelvis: 'spine_01', spine_01: 'spine_02', spine_02: 'spine_03', spine_03: 'neck_01', neck_01: 'head',
+  clavicle_l: 'upperarm_l', upperarm_l: 'lowerarm_l', lowerarm_l: 'hand_l', hand_l: 'middle_01_l',
+  clavicle_r: 'upperarm_r', upperarm_r: 'lowerarm_r', lowerarm_r: 'hand_r', hand_r: 'middle_01_r',
+  thigh_l: 'calf_l', calf_l: 'foot_l', foot_l: 'ball_l', thigh_r: 'calf_r', calf_r: 'foot_r', foot_r: 'ball_r' };
+for (const s of ['l', 'r']) for (const f of ['thumb', 'index', 'middle', 'ring', 'pinky']) { CHILD[`${f}_01_${s}`] = `${f}_02_${s}`; CHILD[`${f}_02_${s}`] = `${f}_03_${s}`; }
 const q1 = new THREE.Quaternion(), q2 = new THREE.Quaternion(), v1 = new THREE.Vector3(), v2 = new THREE.Vector3();
 function bonesByName(root) { const m = {}; root.traverse(o => { if (o.isBone || o.type === 'Bone') m[o.name] = o; }); return m; }
 export function makeRetarget(src, dst) {
@@ -20,8 +27,14 @@ export function makeRetarget(src, dst) {
   const S = bonesByName(src), D = bonesByName(dst);
   src.updateMatrixWorld(true); dst.updateMatrixWorld(true);
   const pairs = [];
+  const wp = b => b.getWorldPosition(new THREE.Vector3());
   for (const [s, d] of Object.entries(MAP)) if (S[s] && D[d]) {
     const sr = S[s].getWorldQuaternion(new THREE.Quaternion()), dr = D[d].getWorldQuaternion(new THREE.Quaternion());
+    const c = CHILD[s];
+    if (c && S[c] && D[MAP[c]]) {
+      const sd = wp(S[c]).sub(wp(S[s])).normalize(), td = wp(D[MAP[c]]).sub(wp(D[d])).normalize();
+      if (sd.lengthSq() > .5 && td.lengthSq() > .5) dr.premultiply(new THREE.Quaternion().setFromUnitVectors(td, sd));   // figure rest, as if posed like the clip rest
+    }
     pairs.push({ s: S[s], d: D[d], srInv: sr.clone().invert(), dr, depth: (() => { let n = 0; for (let p = D[d]; p; p = p.parent) n++; return n; })() });
   }
   pairs.sort((a, b) => a.depth - b.depth);
