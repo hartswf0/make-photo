@@ -3609,7 +3609,7 @@ void main(){
     function jumpPlayer() {
       if (state.drivingCart || state.gliding || state.riding) return false;
       if (!carrierPhys) return false;
-      const ok = carrierPhys.jump(9.8);
+      const ok = carrierPhys.jump(DEMO ? 5.4 : 9.8);                    // the demo is a person with a can: a hop, not a leap
       if (ok && window.HighlandSoundscape && typeof window.HighlandSoundscape.playFootstep === "function") {
         window.HighlandSoundscape.playFootstep("rock", state.waterLiters || 0);
       }
@@ -4016,6 +4016,7 @@ void main(){
         acts.push({ id: "throw", label: "[G] THROW CAN", fn: () => throwObject("jerrycan") });
       }
 
+      state.ctxActs = acts;                                                   // the demo deck shows these too
       const sig = acts.map(a => a.id + ":" + a.label + ":" + (a.urgent ? 1 : 0)).join("|");
       if (sig !== _lastCtxSig) {
         _lastCtxSig = sig;
@@ -8122,21 +8123,58 @@ void main(){
         #demo-sig i:nth-child(1){height:4px}#demo-sig i:nth-child(2){height:7px}#demo-sig i:nth-child(3){height:10px}#demo-sig i:nth-child(4){height:12px}
         #demo-phone h4{cursor:pointer}
         #demo-phone h4{cursor:pointer}
-        #demo-dock{right:max(12px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:min(380px,calc(100vw - 150px))}
-        #demo-verbs,#demo-chips{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px}
-        #demo-dock button{font:15px/1.15 system-ui,sans-serif;text-transform:none;letter-spacing:0;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-        #demo-dock .verb{min-height:50px;padding:9px 18px;border-radius:25px;background:#38e8ff;color:#06222c;border:0;font-weight:650;box-shadow:0 3px 14px rgba(0,0,0,.45);text-align:right}
-        #demo-dock .verb small{display:block;font-size:11.5px;font-weight:450;opacity:.8;margin-top:1px}
-        #demo-dock .verb.off{min-height:40px;padding:6px 14px;font-size:13px;background:rgba(8,20,30,.9);color:#a9c6ce;border:1px solid #2c4c56;font-weight:500;box-shadow:none}
-        #demo-dock .chip{min-height:40px;padding:7px 13px;font-size:14px;border-radius:21px;background:rgba(8,20,30,.9);color:#e9f6fb;border:1px solid #38e8ff}
-        #demo-dock .chip.who{text-transform:uppercase;letter-spacing:.08em;border-color:#8fd0de;color:#8fd0de;background:none;border:0;min-height:0;padding:0 4px;font-size:12px;pointer-events:none}
-        #demo-dock kbd{font:11px ui-monospace,monospace;opacity:.6;margin-right:6px}
-        #demo-dock .verb:active,#demo-dock .chip:active{transform:scale(.96)}
-        body.demo-touch #demo-dock kbd{display:none}
         body.demo-touch #demo-say{display:none}
         body.demo-touch.demo-typing #demo-say{display:flex!important;left:12px;right:12px;width:auto;transform:none;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:80}
-        body.demo-typing #demo-dock{display:none}
+        body.demo-typing #dk-ctx,body.demo-typing #dk-pad{display:none}
+        body.demo-full #dk-pad,body.demo-full #dk-ctx,body.demo-full #dk-status{display:none!important}
         body.demo-mode #dialogue-card,body.demo-mode #immersive-corner,body.demo-mode #ctx-actions{display:none!important}
+        body.demo-mode #demo-phone{display:none!important}
+        body.demo-mode #field-status,body.demo-mode #field-tools,body.demo-mode #field-actions,body.demo-mode #field-intro{display:none!important}
+        .dk{position:fixed;z-index:62;font:14px/1.3 system-ui,sans-serif;color:#e9f6fb}
+        .dk button,.dk select{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;text-transform:none;letter-spacing:0}
+        #dk-status{left:max(10px,env(safe-area-inset-left,0px));top:calc(10px + env(safe-area-inset-top,0px));display:flex;gap:10px;align-items:center;background:rgba(6,14,20,.82);border:1px solid #23414b;border-radius:18px;padding:7px 12px;max-width:calc(100vw - 120px);white-space:nowrap;overflow:hidden}
+        #dk-status b{font-weight:600}#dk-status .can{width:46px;height:7px;background:#12232c;border-radius:4px;overflow:hidden;position:relative;flex:none}#dk-status .can i{position:absolute;inset:0 auto 0 0;background:#38e8ff}
+        #dk-status .can u{position:absolute;top:0;bottom:0;left:20%;width:2px;background:#fff}#dk-status small{color:#8fb3bd;overflow:hidden;text-overflow:ellipsis}
+        #dk-menu-btn{right:max(10px,env(safe-area-inset-right,0px));top:calc(10px + env(safe-area-inset-top,0px));min-width:44px;height:38px;border-radius:19px;background:rgba(6,14,20,.82);border:1px solid #23414b;padding:0 14px;font-weight:600}
+        #dk-pad{right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(2,58px);grid-template-rows:repeat(2,58px);gap:8px;align-items:center;justify-items:center}
+        #dk-pad button{width:56px;height:56px;border-radius:50%;background:rgba(6,14,20,.82);border:1px solid #3b6c78;font-size:11.5px;font-weight:600;line-height:1.1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+        #dk-pad button span{font-size:18px;line-height:1}#dk-pad button kbd{font:10px ui-monospace,monospace;opacity:.55}
+        #dk-pad #dk-expose{width:64px;height:64px;background:rgba(240,236,226,.92);color:#0b1a22;border:3px solid #38e8ff}
+        #dk-pad button.on{background:#38e8ff;color:#06222c;border-color:#38e8ff}
+        #dk-pad button:active,#dk-ctx button:active{transform:scale(.94)}
+        #dk-ctx{right:max(12px,env(safe-area-inset-right,0px));bottom:calc(150px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:flex-end;gap:7px;max-width:min(380px,calc(100vw - 140px))}
+        #dk-ctx .verb{min-height:44px;padding:8px 16px;border-radius:22px;background:#38e8ff;color:#06222c;border:0;font-weight:650;box-shadow:0 3px 14px rgba(0,0,0,.45);text-align:right}
+        #dk-ctx .verb.alt{background:rgba(6,14,20,.88);color:#e9f6fb;border:1px solid #38e8ff;font-weight:550}
+        #dk-ctx .verb.off{background:rgba(6,14,20,.82);color:#9fbcc4;border:1px solid #2c4c56;font-weight:500;min-height:38px;font-size:13px}
+        #dk-ctx .verb small{display:block;font-size:11px;font-weight:450;opacity:.85}
+        #dk-ctx .verb.urgent{background:#ff6b5a;color:#1a0806}
+        #dk-chips{display:flex;gap:6px;overflow-x:auto;max-width:100%;scrollbar-width:none;padding:2px 0}#dk-chips::-webkit-scrollbar{display:none}
+        #dk-chips button{flex:none;min-height:38px;padding:6px 12px;border-radius:19px;background:rgba(6,14,20,.9);border:1px solid #8fd0de}
+        #dk-chips .who{border:0;background:none;color:#8fd0de;font-size:11px;letter-spacing:.08em;text-transform:uppercase;pointer-events:none;padding:6px 2px}
+        #dk-ctx kbd,#dk-chips kbd{font:10px ui-monospace,monospace;opacity:.6;margin-right:5px}
+        body.demo-touch .dk kbd{display:none}
+        #dk-sheet{right:0;top:0;bottom:0;width:min(380px,100vw);background:rgba(5,12,17,.97);border-left:1px solid #23414b;overflow:auto;overscroll-behavior:contain;z-index:78;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(16px + env(safe-area-inset-bottom,0px))}
+        #dk-sheet[hidden]{display:none}
+        #dk-sheet header{display:flex;justify-content:space-between;align-items:center;position:sticky;top:-12px;background:rgba(5,12,17,.98);padding:4px 0 8px;z-index:1}
+        #dk-sheet header b{font:600 16px Georgia,serif}#dk-sheet header button{width:38px;height:38px;border-radius:19px;background:#0b2a38;border:1px solid #38e8ff;font-size:18px}
+        #dk-sheet h6{margin:14px 0 6px;font:600 10.5px system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8fd0de}
+        #dk-sheet .g{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+        #dk-sheet .g button,#dk-sheet .g select{min-height:42px;padding:6px 10px;border-radius:10px;background:#0b2a38;border:1px solid #2a6a7a;text-align:left;font-size:13.5px}
+        #dk-sheet .g button.on{background:#38e8ff;color:#06222c;border-color:#38e8ff}
+        #dk-sheet .g button small{display:block;color:#8fb3bd;font-size:11px}#dk-sheet .g button.on small{color:#0b3a46}
+        #dk-sheet .row{display:grid;grid-template-columns:44px 1fr 44px;gap:6px;align-items:center;margin-bottom:6px}
+        #dk-sheet .row button{height:40px;border-radius:10px;background:#0b2a38;border:1px solid #2a6a7a;font-size:18px}
+        #dk-sheet .row span{text-align:center;font-size:13px}#dk-sheet .row span small{display:block;color:#8fb3bd;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
+        #dk-sheet .plates{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}#dk-sheet .plates img{width:100%;border-radius:4px;display:block}
+        #dk-sheet .thread span{display:block;font-size:12.5px;padding:4px 8px;margin:3px 0;border-radius:8px;background:#12232c}#dk-sheet .thread span.me{background:#38e8ff;color:#06222c;margin-left:30px}
+        #dk-sheet .keys{color:#a9c6ce;font-size:12.5px;line-height:1.6}
+        #dk-flash{left:50%;top:50%;transform:translate(-50%,-50%);width:min(240px,50vw);border:6px solid #f1eee6;box-shadow:0 8px 30px rgba(0,0,0,.6);pointer-events:none;transition:all .6s cubic-bezier(.5,0,.3,1);z-index:79}
+        #dk-flash.fly{left:40px;top:28px;width:40px;opacity:.2;border-width:2px}
+        body.dk-sheet-open #dk-pad,body.dk-sheet-open #dk-ctx{display:none}
+        @media (orientation:portrait) and (max-width:700px){#dk-sheet{left:0;width:auto;top:auto;max-height:78dvh;border-left:0;border-top:1px solid #23414b;border-radius:16px 16px 0 0}
+          #dk-ctx{bottom:calc(146px + env(safe-area-inset-bottom,0px))}}
+        @media (max-height:500px) and (orientation:landscape){#dk-pad{grid-template-columns:repeat(2,50px);grid-template-rows:repeat(2,50px);gap:6px}#dk-pad button{width:48px;height:48px;font-size:10.5px}#dk-pad #dk-expose{width:56px;height:56px}
+          #dk-ctx{bottom:calc(10px + env(safe-area-inset-bottom,0px));right:calc(130px + env(safe-area-inset-right,0px));max-width:calc(100vw - 280px)}}
         @media (max-width:700px) and (orientation:portrait){
           #demo-say{bottom:calc(122px + env(safe-area-inset-bottom,0px));left:auto;right:12px;transform:none;width:calc(100vw - 120px)}
           #demo-you{bottom:calc(170px + env(safe-area-inset-bottom,0px))}
@@ -8153,7 +8191,40 @@ void main(){
           <p class="keys" id="demo-keys"></p>
           <button id="demo-brief-ok">Begin</button></div>
         <div id="demo-bub" class="dm" hidden><b></b><span></span></div>
-        <div id="demo-dock" class="dm"><div id="demo-chips"></div><div id="demo-verbs"></div></div>
+        <div id="dk-status" class="dk" role="status"><span class="can"><i></i><u></u></span><b id="dk-l">0 L</b><small id="dk-place"></small></div>
+        <button id="dk-menu-btn" class="dk" type="button" aria-label="Menu">☰ Menu</button>
+        <div id="dk-ctx" class="dk"><div id="dk-chips"></div><div id="dk-verbs" style="display:flex;flex-direction:column;align-items:flex-end;gap:7px"></div></div>
+        <div id="dk-pad" class="dk" role="group" aria-label="Actions">
+          <button type="button" id="dk-jump" aria-label="Jump"><span>⤒</span>Jump<kbd>Space</kbd></button>
+          <button type="button" id="dk-veh" aria-label="Vehicle"><span>⛟</span><em id="dk-veh-l" style="font-style:normal">Drive</em><kbd>C</kbd></button>
+          <button type="button" id="dk-throw" aria-label="Throw"><span>↗</span>Throw<kbd>G</kbd></button>
+          <button type="button" id="dk-expose" aria-label="Expose an 8 by 10 plate"><span>◉</span>Expose<kbd>⇧Space</kbd></button>
+        </div>
+        <section id="dk-sheet" class="dk" hidden aria-label="Menu"><header><b>Night Post · Ahiya</b><button type="button" id="dk-close" aria-label="Close">×</button></header>
+          <p id="dk-los" style="margin:2px 0 0;color:#b9d7df;font-size:12.5px"></p><div class="thread" id="dk-thread"></div>
+          <h6>Lens</h6>
+          <div class="row"><button data-lens="focus:-">−</button><span id="dk-focus"></span><button data-lens="focus:+">+</button></div>
+          <div class="row"><button data-lens="filter:-">‹</button><span id="dk-filter"></span><button data-lens="filter:+">›</button></div>
+          <div class="row"><button data-lens="stop:-">‹</button><span id="dk-stop"></span><button data-lens="stop:+">›</button></div>
+          <div class="row"><button data-lens="mode:-">‹</button><span id="dk-mode"></span><button data-lens="mode:+">›</button></div>
+          <div class="row"><button data-lens="tilt:-">↓</button><span id="dk-tilt"></span><button data-lens="tilt:+">↑</button></div>
+          <div class="g"><button data-act="guides">Frame guides<small>H</small></button><button data-act="lidar">Lidar<small>L</small></button>
+            <button data-act="cam">Camera<small id="dk-cam">third person · V</small></button><button data-act="plates">Plates<small id="dk-pn">0 exposed</small></button></div>
+          <div class="plates" id="dk-plates" hidden></div>
+          <h6>Move &amp; travel</h6>
+          <div class="g"><button data-act="map">Map<small>M</small></button><button data-act="ride">Ride the donkey<small>Shift V</small></button>
+            <button data-act="glide">Glide / base jump<small>J</small></button><button data-act="run">Run toggle<small>Shift held</small></button>
+            <button data-act="region">Region<small>R</small></button><button data-act="route">Route<small>switch circuit</small></button>
+            <button data-act="dispatch">Dispatch book</button><button data-act="dance">Dance<small>K</small></button></div>
+          <h6>Sound</h6>
+          <div class="g"><button data-act="listen">Listen &amp; mix<small>O</small></button><button data-act="voice">Voices<small id="dk-voice">on</small></button>
+            <button data-act="tape">Tape<small id="dk-tape">playing</small></button><button data-act="radio">Wagon radio<small>N, in the wagon</small></button></div>
+          <h6>World</h6>
+          <div class="g"><button data-act="rig">Deploy rig<small>B</small></button><button data-act="sync">Sync zone<small>T</small></button>
+            <button data-act="video">In-world video<small>Y</small></button><button data-act="trailer">Trailer<small>U</small></button>
+            <select id="dk-playas" aria-label="Play as"></select><button data-act="hud">Full game HUD<small id="dk-hud">off</small></button></div>
+          <h6>How to play</h6><p class="keys" id="dk-keys"></p><div class="g"><button data-act="help">Show the intro card</button></div>
+        </section>
         <div id="demo-you" class="dm" hidden></div>
         <form id="demo-say" class="dm" hidden autocomplete="off"><input id="demo-in" maxlength="140" aria-label="Say something" placeholder=""><button type="button" id="demo-mic" aria-pressed="false">Mic</button><button type="submit">Say</button></form>
         <div id="demo-phone" class="dm shut"><h4><span>PHONE <em>tap</em></span><span id="demo-sig"><i></i><i></i><i></i><i></i></span></h4><div id="demo-can"><i></i><u></u></div>
@@ -8172,21 +8243,71 @@ void main(){
       document.body.classList.add("demo-mode");
       const touch = matchMedia("(pointer:coarse)").matches;
       document.body.classList.toggle("demo-touch", touch);
-      ui.dock = q("demo-dock"); ui.verbs = q("demo-verbs"); ui.chips = q("demo-chips");
-      ui.dock.addEventListener("click", e => {
+      ui.verbs = q("dk-verbs"); ui.chips = q("dk-chips"); ui.sheet = q("dk-sheet"); ui.dk = q("dk-ctx");
+      ui.dk.addEventListener("click", e => {
         const b = e.target.closest("button"); if (!b) return; e.stopPropagation();
         if (b.dataset.verb) demoDo(b.dataset.verb);
+        else if (b.dataset.ctx) { const a = (state.ctxActs || []).find(a => a.id === b.dataset.ctx); if (a) a.fn(); demo.dockSig = ""; }
         else if (b.dataset.type) { document.body.classList.add("demo-typing"); ui.say.hidden = false; setTimeout(() => ui.input.focus(), 30); }
         else if (b.dataset.ask) demoSay(b.dataset.ask);
       });
       ui.input.addEventListener("blur", () => setTimeout(() => document.body.classList.remove("demo-typing"), 150));
-      addEventListener("keydown", e => {                                   // E does the verb here, 1–5 asks the chips; typing is left alone
+      // the pad: the game's own verbs, always in reach
+      q("dk-jump").onclick = () => jumpPlayer();
+      q("dk-throw").onclick = () => throwObject();
+      q("dk-expose").onclick = () => { exposePlate(); demoFlash(); };
+      q("dk-veh").onclick = () => { if (state.riding) toggleRide(); else toggleCart(); demo.dockSig = ""; };
+      const sheet = ui.sheet, openSheet = on => { sheet.hidden = !on; document.body.classList.toggle("dk-sheet-open", on); if (on) demoSheet(true); };
+      ui.openSheet = openSheet;
+      q("dk-menu-btn").onclick = () => openSheet(sheet.hidden); q("dk-close").onclick = () => openSheet(false); q("dk-status").onclick = () => openSheet(true);
+      q("dk-status").style.cursor = "pointer";
+      const pa = q("dk-playas"), src = document.getElementById("sel-play-as");
+      if (src) { pa.innerHTML = src.innerHTML; pa.value = src.value; pa.onchange = () => { setPlayAs(pa.value); src.value = pa.value; }; } else pa.hidden = true;
+      const cyc = (k, n, d) => (k + d + n) % n;
+      sheet.addEventListener("click", e => {
+        const b = e.target.closest("button"); if (!b) return;
+        if (b.dataset.lens) {
+          const [what, dir] = b.dataset.lens.split(":"), d = dir === "+" ? 1 : -1;
+          if (what === "focus") state.focusDist = clamp(state.focusDist * (d > 0 ? 1.25 : .8), 1.2, 900);
+          else if (what === "filter") state.filterIdx = cyc(state.filterIdx, FILTERS.length, d);
+          else if (what === "stop") state.stopIdx = cyc(state.stopIdx, STOPS.length, d);
+          else if (what === "mode") state.modeIdx = cyc(state.modeIdx, MODES.length, d);
+          else if (what === "tilt") state.tilt = clamp(state.tilt + .16 * d, -.35, .35);
+          state.focusPulse = 1; updateHUD(); demoSheet(true); return;
+        }
+        const a = b.dataset.act, click = id => { const el = document.getElementById(id); if (el) el.click(); };
+        const close = () => openSheet(false);
+        if (a === "guides") state.ppcOn = !state.ppcOn, updateHUD();
+        else if (a === "lidar") toggleLidar();
+        else if (a === "cam") toggleCameraMode();
+        else if (a === "plates") { const pl = q("dk-plates"); pl.hidden = !pl.hidden; }
+        else if (a === "map") { close(); toggleBigMap(); }
+        else if (a === "ride") { close(); toggleRide(); }
+        else if (a === "glide") { close(); toggleGlide(); }
+        else if (a === "run") { state.sprintToggle = !state.sprintToggle; }
+        else if (a === "region") { close(); toggleRegion(); }
+        else if (a === "route") { close(); click("field-switch-btn"); }
+        else if (a === "dispatch") { close(); click("field-dispatch-btn"); }
+        else if (a === "dance") { close(); triggerDance(); }
+        else if (a === "listen") { close(); startField(); if (field) field.panel(!field.panelOpen); }
+        else if (a === "voice") ui.voice.click();
+        else if (a === "tape") toggleTape();
+        else if (a === "radio") { if (field && field.radio && state.drivingCart) field.radio.tune(); }
+        else if (a === "rig") { close(); deployRig(); }
+        else if (a === "sync") syncResonantZone();
+        else if (a === "video") { close(); toggleInWorldVideo(); }
+        else if (a === "trailer") { close(); if (machinima) machinima.toggle("trailer"); }
+        else if (a === "hud") { const on = !document.body.classList.contains("demo-clean"); document.body.classList.toggle("demo-clean", !on); document.body.classList.toggle("demo-mode", !on); document.body.classList.toggle("demo-full", on); }
+        else if (a === "help") { close(); ui.brief.hidden = false; }
+        demoSheet(true);
+      });
+      addEventListener("keydown", e => {                                   // E does the stop's verb when there is one; every other key is the game's
         if (document.activeElement === ui.input || e.repeat) return;
-        if (e.code === "KeyE") { const b = ui.verbs.querySelector("button.verb:not(.off)"); if (b) { e.stopImmediatePropagation(); e.preventDefault(); demoDo(b.dataset.verb); } }
-        const d = /^Digit([1-5])$/.exec(e.code); if (d) { const b = ui.chips.querySelectorAll("button[data-ask]")[+d[1] - 1]; if (b) { e.stopImmediatePropagation(); demoSay(b.dataset.ask); } }
+        if (e.code === "KeyE") { const b = ui.verbs.querySelector("button.verb[data-verb]:not(.off)"); if (b) { e.stopImmediatePropagation(); e.preventDefault(); demoDo(b.dataset.verb); } }
+        if (e.code === "Escape" && !sheet.hidden) { e.stopImmediatePropagation(); openSheet(false); }
       }, true);
-      q("demo-keys").textContent = touch ? "Left stick walks; push it to the rim to run. Drag anywhere else to look. The phone (top right) has sound, map, wagon and help."
-        : "W A S D walk · Shift run · drag to look · Z talk · O listen · M map · C wagon · N radio in the wagon.";
+      q("demo-keys").textContent = touch ? "Left stick walks; push it to the rim to run. Drag anywhere else to look. Jump, Expose, Throw and the wagon are bottom right; everything else is in Menu."
+        : "W A S D walk · Shift run · Space jump · Shift+Space expose · drag to look · Z talk · E the stop’s verb · G throw · C wagon · V camera · M map · O listen.";
       q("demo-help").onclick = () => { ui.brief.hidden = false; phone.classList.add("shut"); };
       const via = id => () => { const b = document.getElementById(id); if (b) b.click(); phone.classList.add("shut"); };   // the game's own controls, reached from the phone
       q("demo-map").onclick = via("btn-big-map"); q("demo-wagon").onclick = via("btn-drive-pill");
@@ -8256,21 +8377,57 @@ void main(){
       if (r.action && V.kind !== "talk") demoHandoff(V.kind, ch);
       demo.dockSig = "";
     }
+    function demoFlash() {                                                    // the plate you just made, flying into the status chip
+      const pl = state.plates.at(-1); if (!pl || !pl.dataUrl) return;
+      const im = document.createElement("img"); im.id = "dk-flash"; im.className = "dk"; im.src = pl.dataUrl; document.body.append(im);
+      setTimeout(() => im.classList.add("fly"), 650); setTimeout(() => im.remove(), 1400); demo.dockSig = "";
+    }
+    function demoSheet(force) {
+      const ui = demo.ui; if (!ui || ui.sheet.hidden) return; const q = id => document.getElementById(id);
+      const set = (id, t) => { const el = q(id); if (el && el.innerHTML !== t) el.innerHTML = t; };
+      set("dk-focus", `${state.focusDist.toFixed(1)} m<small>focus</small>`); set("dk-filter", `${FILTERS[state.filterIdx].short}<small>filter · 1–6</small>`);
+      set("dk-stop", `${STOPS[state.stopIdx].name}<small>stop</small>`); set("dk-mode", `${MODES[state.modeIdx].label.toLowerCase()}<small>mode</small>`);
+      set("dk-tilt", `${Math.round(state.tilt * 100)}<small>tilt · Q</small>`);
+      set("dk-cam", (state.cameraMode === "third" ? "third" : "first") + " person · V"); set("dk-pn", `${state.plates.length} exposed`);
+      set("dk-voice", demo.voice ? "on" : "off"); set("dk-tape", audioEl.paused ? "paused" : "playing"); set("dk-hud", document.body.classList.contains("demo-full") ? "on" : "off");
+      set("dk-los", ui.los ? ui.los.textContent : "");
+      const th = q("dk-thread"); if (th && demo.thread) { const h = demo.thread.map(([w, t, m]) => `<span class="${m ? "me" : ""}">${m ? "" : w + ": "}${t}</span>`).join(""); if (th.innerHTML !== h) th.innerHTML = h; }
+      const pl = q("dk-plates"); if (pl && !pl.hidden && pl.childElementCount !== state.plates.length) pl.innerHTML = state.plates.slice(-12).reverse().map(p => `<img alt="Plate ${p.id}, ${p.place}" src="${p.dataUrl}">`).join("");
+      for (const [act, on] of [["guides", state.ppcOn], ["lidar", !!state.lidarOn], ["run", !!state.sprintToggle], ["voice", demo.voice], ["hud", document.body.classList.contains("demo-full")]]) {
+        const b = ui.sheet.querySelector(`[data-act="${act}"]`); if (b) b.classList.toggle("on", !!on);
+      }
+    }
     function demoDock(dt) {
       const ui = demo.ui; if (!ui) return;
       demo.dockT = (demo.dockT || 0) - dt; if (demo.dockT > 0) return; demo.dockT = .25;
-      const c = npCarrier(), busy = !!demo.handoff || state.drivingCart || state.riding;
+      const c = npCarrier(), busy = !!demo.handoff;
+      // status: water, chalk, where you are
+      const q = id => document.getElementById(id);
+      q("dk-status").querySelector(".can i").style.width = Math.min(100, c.liters / 20 * 100) + "%";
+      const lt = `${c.liters} L`; if (q("dk-l").textContent !== lt) q("dk-l").textContent = lt;
+      const pt = (typeof currentPlaceName === "function" ? currentPlaceName() : "") + (ui.los && ui.los.textContent ? " · " + ui.los.textContent : "");
+      if (q("dk-place").textContent !== pt) q("dk-place").textContent = pt;
+      // pad: the vehicle button follows what you are in or near
+      const vl = state.drivingCart ? "Park" : state.riding ? "Dismount" : "Drive", ve = q("dk-veh-l"); if (ve.textContent !== vl) ve.textContent = vl;
+      q("dk-veh").classList.toggle("on", !!(state.drivingCart || state.riding));
+      demoSheet();
+      // context row: the stop's water-law verbs, then the game's own nearby actions, minus what the deck already has
       let verbs = [];
-      if (!busy) { let opts = []; try { opts = npEngine.options(npState) || []; } catch (e) { }
+      if (!busy && !state.drivingCart && !state.riding) { let opts = []; try { opts = npEngine.options(npState) || []; } catch (e) { }
         verbs = opts.filter(o => { const V = DEMO_VERB[o.id], ch = V && cast.byId && cast.byId[V.who];
           return ch && DEMO_STOP_OF[V.who] === c.place && Math.hypot(ch.state.x - state.x, ch.state.z - state.z) < 9; }); }
+      const have = new Set(["talk", "throw", "drive", "park"].concat(verbs.some(o => o.id === "pump") ? ["pump"] : []));
+      const acts = busy ? [] : (state.ctxActs || []).filter(a => !have.has(a.id)).slice(0, 3);
       const ch = !busy && demo.withCh, kb = ch ? DEMO_KB[ch.state.id] || {} : {};
       const qs = ch ? ["who", ...Object.keys(kb).filter(k => k !== "who" && kb[k] && DEMO_Q[k])].slice(0, 4) : [];
-      const sig = verbs.map(o => o.id + o.enabled).join() + "|" + (ch ? ch.state.id : "") + qs.join() + c.liters;
+      const sig = verbs.map(o => o.id + o.enabled).join() + "|" + acts.map(a => a.id + a.label).join() + "|" + (ch ? ch.state.id : "") + qs.join() + c.liters;
       if (sig === demo.dockSig) return; demo.dockSig = sig;
-      ui.verbs.innerHTML = verbs.map((o, i) => `<button class="verb${o.enabled ? "" : " off"}" data-verb="${o.id}">${i === 0 && o.enabled ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${o.enabled ? "" : `<small>${o.reason || "Not yet"}</small>`}</button>`).join("");
-      ui.chips.innerHTML = ch ? `<span class="chip who">${demoName(ch)}</span>` + qs.concat(["where"]).map((k, i) => `<button class="chip" data-ask="${k === "where" ? "Where next?" : DEMO_Q[k]}"><kbd>${i + 1}</kbd>${k === "where" ? "Where next?" : DEMO_Q[k]}</button>`).join("")
-        + `<button class="chip" data-type="1" aria-label="Type or speak">⌨︎</button>` : "";
+      const NICE = { "water-burro": "Water the donkey", ride: state.riding ? "Get down" : "Ride the donkey", squirt: "Squirt water", share: "Share water", pour: "Pour into the cistern", pump: "Pump" };
+      const nice = (l, id) => NICE[id] || l.replace(/^\[[A-Z]\]\s*/, "").toLowerCase().replace(/^./, m => m.toUpperCase()).replace(/\bcyan\b/i, "").replace(/\s+/g, " ");
+      ui.verbs.innerHTML = verbs.map((o, i) => `<button type="button" class="verb${o.enabled ? "" : " off"}" data-verb="${o.id}">${i === 0 && o.enabled ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${o.enabled ? "" : `<small>${o.reason || "Not yet"}</small>`}</button>`).join("")
+        + acts.map(a => { const k = (/^\[([A-Z])\]/.exec(a.label) || [])[1]; return `<button type="button" class="verb alt${a.urgent ? " urgent" : ""}" data-ctx="${a.id}">${k ? `<kbd>${k}</kbd>` : ""}${nice(a.label, a.id)}</button>`; }).join("");
+      ui.chips.innerHTML = ch ? `<span class="who">${demoName(ch)}</span>` + qs.concat(["where"]).map(k => `<button type="button" data-ask="${k === "where" ? "Where next?" : DEMO_Q[k]}">${k === "where" ? "Where next?" : DEMO_Q[k]}</button>`).join("")
+        + `<button type="button" data-type="1" aria-label="Type or speak">⌨︎ Say…</button>` : "";
     }
     /* ---------- A can changing hands, with weight: step in, lift, both hold, the other takes it, sets it down or pours ---------- */
     const hoV = { a: new T.Vector3(), b: new T.Vector3(), c: new T.Vector3(), gL: new T.Vector3(), gR: new T.Vector3(), pL: new T.Vector3(), pR: new T.Vector3() };
@@ -8659,7 +8816,7 @@ void main(){
           if (DEMO) {
             const r = demoResolve(state.x, state.z, .35);
             state.x = r[0]; state.z = r[1];
-            state.y = driveSurfaceAt(state.x, state.z) + 1.68;
+            state.y = Math.max(state.y, driveSurfaceAt(state.x, state.z) + 1.68);   // keep jumps and falls; just never below the ground
           }
         } else {
           let fnx = state.x + moveDirX * baseSpeed * dt, fnz = state.z + moveDirZ * baseSpeed * dt;
