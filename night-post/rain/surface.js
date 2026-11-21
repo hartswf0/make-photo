@@ -111,14 +111,19 @@ function base() {
   if (ui.memory) { buildRecall(); return false; }
   return true;
 }
+const chart = document.createElement('img'); chart.id = 'rw-chart'; chart.alt = ''; chart.hidden = true; world.append(chart);
+const shortName = nm => nm.replace(/^the /, '').replace(/^white wall at the /, '');
+function mixSpec() { const W = world.clientWidth, H = world.clientHeight;
+    if (mix) { const c = mix.c, pct = Math.round(mix.t * 100);
+      info('mix', 'a', `${nameOf(mix.a)} + ${nameOf(mix.b)}`, c.dry ? '' : mix.fired ? 'Done' : pct + '%', c.what + (c.litres && !mix.fired ? ` · ${n(c.litres * mix.t)} of ${n(c.litres)} L` : ''), { critical: true, className: c.dry ? 'amber' : 'action-drop', viscosity: 1, home: [clamp(mix.x / W, .2, .78), clamp(mix.y / H - .11, .14, .8)] }); }
+}
 const BUILD = {
   world() {                                                           // only what this place and this moment are about, each drop on the thing it speaks for
     const W = world.clientWidth, H = world.clientHeight, T = S.things || {}, onScr = t => t && t.front && t.x > 0 && t.x < W && t.y > 0 && t.y < H;
     const at = (t, dy = 0) => [clamp(t.x / W, .16, .8), clamp(t.y / H + dy, .17, .74)];
     if (ui.open && performance.now() - ui.openAt > 11000) ui.open = null;
     const open = ui.open, opener = id => () => { ui.open = ui.open === id ? null : id; ui.openAt = performance.now(); render(); };
-    if (mix) { const c = mix.c, pct = Math.round(mix.t * 100);
-      info('mix', 'a', `${nameOf(mix.a)} + ${nameOf(mix.b)}`, c.dry ? '' : mix.fired ? 'Done' : pct + '%', c.what + (c.litres && !mix.fired ? ` · ${n(c.litres * mix.t)} of ${n(c.litres)} L` : ''), { critical: true, className: c.dry ? 'amber' : 'action-drop', viscosity: 1, home: [clamp(mix.x / W, .2, .78), clamp(mix.y / H - .11, .14, .8)] }); }
+    mixSpec();
     exitDrop();
     if (!open || open === 'primary') liveDrop();
     if (!open || open === 'can') button('can', 'water', null, null, opener('can'), { fill: S.water.liters / 20, kicker: 'Can', value: `${n(S.water.liters)} L`, viscosity: 1.8, opens: true });
@@ -147,13 +152,17 @@ const BUILD = {
   water() { info('reserve', 'a', 'Keep back', `${n(S.water.reserve)} L`, 'for the way home', { viscosity: 2.2 }); info('space', 'b', 'Space in the can', `${n(20 - S.water.liters)} L`, 'Nothing disappears.', { viscosity: 1.9 }); item('squirt', 'c', .6); item('throw', 'd', .7); if (!liveDrop()) info('walk-to', 'primary', 'Water', 'Find the pump', 'Basalt Pump holds the source', { viscosity: 2 }); },
   people() { const v = currentVoice(); if (!ui.say) { if (v) voiceDrop(v, voiceHome()); else info('no-voice', 'speech', 'No one near', '', 'Walk up to someone. Their voice arrives as water.', { viscosity: 4 }); } if (S.live && S.live.kind === 'talk') liveDrop('topic1'); button('say', 'c', ui.say ? 'Cancel' : 'Say', ui.say ? 'keep listening' : 'write into the water', () => { ui.say = !ui.say; render(); if (ui.say) $('say-text').focus(); }, { viscosity: 4 }); item('voice', 'd', 2); },
   rig() { item('rig', 'a', 2.4); item('sync', 'b', 1.8); item('plates', 'c', 2.6); item('cam', 'd', 1.4); if (ui.details) item('playas', 'e', 2); const p = B.act.lastPlate(); if (p) info('plate-view', 'speech', 'Last plate', '', `${n(Math.min(100, S.lens.focus))} m · ${S.lens.stopName}`, { className: 'plate-detail', image: p, viscosity: 3 }); button('primary', 'primary', 'Expose', 'capture one plate', live(() => B.act.expose()), { className: 'action-drop', viscosity: 2.2 }); },
-  map() {                                                             // the chart: tap a stop to read it, then go
+  map() {                                                             // the way, in water: a pool of relief, the stops and you as drops, the route as a current
     const stops = S.map.stops, sel = stops.find(x => x.id === ui.mapSel) || stops.find(x => x.next) || stops[0]; ui.mapSel = sel.id;
-    const WHAT = { basalt: 'The source. Saba keeps the pump; the can fills here.', beacon: 'The white wall. Ask here for the way on.', hill: 'The archive on the hill. Cool the reels and copy them.', compound: 'The compound. Listen, screen, and tap the line.' };
-    const nm = sel.name.replace(/^the /, '').replace(/^white wall at the /, ''), here = sel.dist < 14;
-    info('map-view', 'speech', '', '', `${stops.indexOf(sel) + 1}. ${nm}. ${WHAT[sel.id] || ''} ${here ? 'You are here.' : `${Math.round(sel.dist)} m ${sel.dir}.`} ${sel.seen ? 'Reached.' : sel.next ? 'Next.' : 'Not yet.'}`, { className: 'plate-detail map-drop', image: drawMap(), viscosity: 5, home: [.46, .36], onPoint: (u, v) => { const k = B.chart.hit(u, v); if (k) { ui.mapSel = k; mapAt = 0; render(); } } });
-    if (!here) button('primary', 'primary', `Go to ${nm}`, `${Math.round(sel.dist)} m`, live(() => { B.act.travel(sel.id); cause = `Travelled to ${nm}.`; ui.scene = 'world'; }), { className: 'action-drop', viscosity: 2, home: [.7, .8] });
-    button('map-back', 'recovery', 'Back', '', () => { ui.scene = 'world'; render(); }, { className: 'amber', viscosity: 3, home: [.3, .8] });
+    const W = world.clientWidth, H = world.clientHeight, w = Math.min(W - 60, 420), h = w * 660 / 720, cx = .46, cy = .37, img = drawMap();
+    const at = id => { const uv = B.chart.uv(id); return uv ? [clamp(cx + (uv[0] - .5) * w / W, .14, .82), clamp(cy + (uv[1] - .5) * h / H, .12, .8)] : null; };
+    mixSpec();
+    chart.src !== img && (chart.src = img); Object.assign(chart.style, { left: (cx * W - w / 2) + 'px', top: (cy * H - h / 2) + 'px', width: w + 'px', height: h + 'px' });
+    stops.forEach((st, i) => { const hm = at(st.id); if (!hm) return; button('stop-' + st.id, 'a', null, null, () => { ui.mapSel = st.id; mapAt = 0; glass.burst(hm[0] * W, hm[1] * H, 'water'); render(); }, { kicker: String(i + 1), value: shortName(st.name), className: 'stop-drop' + (st.next ? ' amber' : st.id === sel.id ? ' action-drop' : ''), fill: st.seen ? 1 : .15, viscosity: 2.4 + i * .3, home: hm, flow: false }); });
+    const me = at('me'); if (me) button('me', 'a', null, null, () => { glass.burst(me[0] * W, me[1] * H, 'water'); }, { kicker: '', value: 'You', className: 'stop-drop me-drop', viscosity: .9, home: [me[0], me[1] + .012], carry: true });
+    const dk = at('donkey'); if (dk && Math.hypot((dk[0] - (me ? me[0] : 0)) * W, (dk[1] - (me ? me[1] : 0)) * H) > 46) info('map-donkey', 'a', '', 'Donkey', '', { className: 'stop-drop amber', viscosity: 3, home: dk });
+    if (sel.dist >= 14) button('primary', 'primary', `Go to ${shortName(sel.name)}`, `${Math.round(sel.dist)} m`, live(() => { B.act.travel(sel.id); cause = `Travelled to ${shortName(sel.name)}.`; ui.scene = 'world'; }), { className: 'action-drop', viscosity: 2, home: [.7, .84] });
+    button('map-back', 'recovery', 'Back', '', () => { ui.scene = 'world'; render(); }, { className: 'amber', viscosity: 3, home: [.26, .84] });
   },
   all() {                                                             // every operational control the game has, eight to a page, nothing left out
     const items = menuItems(), per = 8, pages = Math.max(1, Math.ceil(items.length / per)); ui.page = ((ui.page % pages) + pages) % pages;
@@ -188,9 +197,11 @@ function unfold(id) {
 // Collision: carry one drop into another and their functions mix. The share climbs while they stay together; at 100% the
 // mixed function happens. Part them early and nothing moves. A pair with nothing to do together only says why.
 const NAME = { can: 'Can', primary: () => S.live ? (S.live.kind === 'draw' ? 'Source' : S.live.person || 'Donkey') : 'Here', donkey: 'Donkey', next: 'Next stop', 'voice-current': () => S.speech?.name || 'Voice', place: 'Here' };
-const nameOf = id => typeof NAME[id] === 'function' ? NAME[id]() : NAME[id] || id;
+const nameOf = id => id === 'me' ? 'You' : id.startsWith('stop-') ? shortName((S.map.stops.find(x => 'stop-' + x.id === id) || {}).name || '') : typeof NAME[id] === 'function' ? NAME[id]() : NAME[id] || id;
 function combo(a, b) {
   const has = x => a === x || b === x, L = S.live, w = S.water, T = S.things || {};
+  if (has('me')) { const o = a === 'me' ? b : a, st = o.startsWith('stop-') && S.map.stops.find(x => 'stop-' + x.id === o); if (!st) return null;
+    return st.dist < 14 ? { what: 'You are here', dry: true } : { what: `Travel ${Math.round(st.dist)} m ${st.dir}`, run: () => { B.act.travel(st.id); ui.scene = 'world'; } }; }
   if (has('can') && has('primary') && L && L.kind !== 'talk') return { what: L.kind === 'draw' ? 'Fill the can' : L.id === 'share' ? 'Share water' : 'Water the donkey', litres: Math.abs(L.delta) || 0, run: () => B.act.live(true) };
   if (has('can') && has('donkey')) return { what: w.liters < .05 ? 'The can is empty' : 'Carry the can closer', dry: true };
   if (has('can') && has('voice-current')) return L && L.id === 'share' ? { what: 'Share water', litres: 0, run: () => B.act.live(true) } : { what: w.liters < .05 ? 'Nothing to pour' : 'Stand with them to share', dry: true };
@@ -200,8 +211,8 @@ function combo(a, b) {
   return null;
 }
 function mixTick(bodies, dt) {
-  if (!held || ui.past || ui.menu || ui.scene !== 'world') { mix = null; return; }
-  let hit = null; for (const [id, b] of bodies) { if (id === held || /^(time-current|steer|mix|menu-)/.test(id)) continue; if (Math.hypot(ptr.x - b.x, ptr.y - b.y) < Math.max(b.rx || 40, b.ry || 30) + 16) { hit = id; break; } }
+  if (!held || ui.past || ui.menu || (ui.scene !== 'world' && ui.scene !== 'map')) { mix = null; return; }
+  let hit = null; for (const [id, b] of bodies) { if (id === held || /^(time-current|steer|mix|menu-)/.test(id)) continue; if (Math.hypot(ptr.x - b.x, ptr.y - b.y) < Math.max(b.rx || 40, b.ry || 30) + 16 && combo(held, id)) { hit = id; break; } }
   const c = hit && combo(held, hit);
   if (c) { if (!mix || mix.b !== hit) mix = { a: held, b: hit, t: 0, fired: false }; mix.c = c; mix.x = ptr.x; mix.y = ptr.y;
     if (!c.dry && !mix.fired) { mix.t = Math.min(1, mix.t + dt / 1.3); if (mix.t >= 1) { mix.fired = true; c.run(); cause = c.what + '.'; announce(cause); glass.burst(ptr.x, ptr.y, 'water'); S = B.state(); } } }
@@ -216,12 +227,15 @@ function describe(id) {
   if (id === 'next' && T.next) return `${T.next.name[0].toUpperCase() + T.next.name.slice(1)}, ${m(T.next.dist)} m ${way(T.next)}. ${S.place.visited.length} of 4 stops reached. Open it for the way.`;
   if (id === 'place') return `${S.place.name}. ${MODE[S.mode]}. ${T.next ? 'Next is ' + T.next.name + '.' : 'Every stop is reached.'}`;
   if (id === 'primary' && L && ui.scene === 'world') return L.kind === 'draw' ? `The source. Pull to draw ${n(Math.abs(L.delta) || 0)} litres into your can. Nothing is lost.` : L.kind === 'give' ? `Pour from your can here${L.person ? ', for ' + L.person : ''}. ${n(w.liters)} litres in hand.` : `${L.person || 'Someone'} is beside you. Pull to ask.`;
+  if (id.startsWith('stop-')) { const st = S.map.stops.find(x => 'stop-' + x.id === id), WHAT = { basalt: 'The source. Saba keeps the pump; the can fills here.', beacon: 'The white wall. Ask here for the way on.', hill: 'The archive on the hill. Cool the reels and copy them.', compound: 'The compound. Listen, screen, and tap the line.' };
+    return st ? `${shortName(st.name)}. ${WHAT[st.id] || ''} ${st.dist < 14 ? 'You are here.' : `${Math.round(st.dist)} m ${st.dir}.`} ${st.seen ? 'Reached.' : st.next ? 'Next.' : 'Not yet.'}` : ''; }
+  if (id === 'me') return `You, at ${S.place.name}, with ${n(S.water.liters)} litres. Carry yourself into a stop to travel there.`;
   if (id === 'exit' && S.exit) return `${MODE[S.mode]}. ${S.exit.label}.`;
   return '';
 }
 function drawMap() {
   if (performance.now() - mapAt < 700 && mapImage) return mapImage; mapAt = performance.now();
-  const c = drawMap.c || (drawMap.c = document.createElement('canvas')); c.width = 720; c.height = 660; B.chart.draw(c, ui.mapSel);
+  const c = drawMap.c || (drawMap.c = document.createElement('canvas')); c.width = 720; c.height = 660; B.chart.draw(c, ui.mapSel, true);
   return (mapImage = c.toDataURL('image/jpeg', .86));
 }
 
@@ -233,6 +247,7 @@ function render() {
   if (S.ready) { if (ui.past) buildPast(view); else if (base()) BUILD[ui.scene](); timeDrop(); }
   { const now = performance.now(), want = new Set(specs.map(sp => sp.id)); for (const id of admitted) if (!want.has(id)) admitted.delete(id);
     specs = specs.filter(sp => { if (admitted.has(sp.id)) return true; if (sp.critical || now - lastAdmit > 380) { admitted.add(sp.id); if (!sp.critical) lastAdmit = now; return true; } return false; }); }
+  chart.hidden = !(S.ready && ui.scene === 'map' && !ui.menu && !ui.past);
   syncDrops(); renderMenu();
   const canSteer = S.ready && !ui.past && !ui.rest && !ui.memory && !ui.menu && !ui.say && ui.scene !== 'map';
   $('steer').hidden = !canSteer; $('say-form').hidden = !ui.say || ui.scene !== 'people' || ui.past; $('menu-toggle').hidden = !S.ready;
@@ -305,6 +320,12 @@ function paintMenuWater(bodies) {
   for (const g of [...menuInk.children]) if (!liveIds.has(g.dataset.id)) g.remove();
 }
 function edgeCurrent() { const width = world.clientWidth, height = world.clientHeight, t = ui.reduced ? 0 : performance.now() / 1000; return { id: 'menu-edge-current', kind: 'menu', nodes: Array.from({ length: 12 }, (_, i) => ({ x: width - 18 + Math.sin(i * .88 + t * .18) * 3, y: i * height / 11, r: 2.8 + Math.pow(Math.sin(i * 1.73 + t * .12), 8) * 4.5, alpha: .9 })) }; }
+// the route is a current: beads of water run from you to the chosen stop
+function routeCurrent() {
+  if (ui.scene !== 'map' || ui.menu || !field) return []; const bs = field.getBodies(), a = bs.find(b => b.id === 'me'), z = bs.find(b => b.id === 'stop-' + ui.mapSel); if (!a || !z) return [];
+  const t = ui.reduced ? 0 : performance.now() / 1000, len = Math.hypot(z.x - a.x, z.y - a.y), count = Math.max(4, Math.round(len / 22));
+  return [{ id: 'route-current', kind: 'menu', nodes: Array.from({ length: count + 1 }, (_, i) => { const f = i / count, ph = (f * 3 - t * .7) % 1, bead = Math.pow(Math.max(0, Math.sin((ph < 0 ? ph + 1 : ph) * Math.PI)), 6); return { x: a.x + (z.x - a.x) * f + Math.sin(f * 9 + t) * 2.5, y: a.y + (z.y - a.y) * f + Math.cos(f * 7 + t * .8) * 2.5, r: 2.6 + bead * 5.5, alpha: .9 }; }) }];
+}
 function inkLabel(id) {
   const sp = refs.get(id)?._spec; if (sp?.voiceText) return `${sp.kicker}. ${sp.voiceText}`;
   if (id === 'time-current') return ui.past ? `−${n(ui.timeAge)} s` : 'Now';
@@ -316,7 +337,7 @@ function inkLabel(id) {
 function initializeField() {
   const proxy = {
     setBodies: bodies => { if (!S.ready) { glass.setBodies([]); return; } paintMenuWater(bodies); glass.setBodies([...bodies.map(b => { const sp = refs.get(b.id)?._spec, m = b.id.startsWith('menu-'); const warm = /amber|time-current/.test(sp?.className || '') || sp?.critical, k = sp?.kind === 'info' ? .84 : 1; return { ...b, fill: sp?.fill, kind: sp?.fluidKind || (warm ? 'amber' : b.kind),  rx: m ? b.rx * .38 : b.id === 'time-current' ? b.rx * 1.3 : b.id === 'voice-current' ? b.rx * 1.15 : b.rx * k, ry: m ? b.ry * .34 : b.id === 'time-current' ? b.ry * .5 : b.id === 'voice-current' ? b.ry * .62 : b.ry * k }; }), { id: 'menu-spring', x: world.clientWidth - 18, y: world.clientHeight * (ui.menu ? .237 : .222), rx: 15, ry: ui.menu ? 55 : 43, viscosity: 4, kind: 'menu', critical: true, opacity: 1 }]); },
-    setTrails: trails => { if (!S.ready) { glass.setTrails([]); return; } glass.setTrails([edgeCurrent(), ...menuWater, ...(ink.getTrails?.() || []), ...trails]); },
+    setTrails: trails => { if (!S.ready) { glass.setTrails([]); return; } glass.setTrails([edgeCurrent(), ...routeCurrent(), ...menuWater, ...(ink.getTrails?.() || []), ...trails]); },
     setPointer: p => glass.setPointer(p), captureFrame: () => glass.captureFrame()
   };
   field = createRainField({ host: world, glass: proxy, historyLabels: false,
@@ -368,7 +389,7 @@ function syncField() {
     let width = sp.kind === 'range' ? (mobile ? 116 : 145) : sp.value ? clamp(String(sp.value).length * 12 + 36, 78, mobile ? 132 : 175) : clamp(String(sp.label || sp.note || '').length * 7 + 36, 72, mobile ? 132 : 175);
     if (sp.id === 'place' || sp.id === 'time-current') width = mobile ? 145 : 195; if (sp.id === 'voice-current') width = mobile ? 150 : 210; if (sp.className?.includes('trace-drop')) width = mobile ? 185 : 240; if (sp.className?.includes('plate-detail')) width = mobile ? 215 : 300; if (sp.className?.includes('map-drop')) width = Math.min(world.clientWidth - 60, 420); element.style.width = width + 'px';
     if (sp.kind === 'range') { element.setAttribute('role', 'slider'); element.setAttribute('aria-label', sp.kicker); element.setAttribute('aria-valuemin', sp.min); element.setAttribute('aria-valuemax', sp.max); element.setAttribute('aria-valuenow', sp.number); element.setAttribute('aria-valuetext', sp.value); const input = element.querySelector('input'); input.tabIndex = -1; input.setAttribute('aria-hidden', 'true'); if (!sp.note) { const note = element.querySelector('.drop-note'); note.hidden = false; note.textContent = sp.id === 'time-current' ? 'pull sideways through time' : `pull up · ${sp.min} to ${sp.max}`; } }
-    descriptors.push({ id: sp.id, element, anchorX, anchorY, viscosity: sp.viscosity || 1.5, role: sp.kind === 'button' ? 'action' : sp.kind, critical, label: [sp.kicker, sp.value || sp.label || sp.note].filter(Boolean).join(' · '), adjust: sp.kind === 'range' || !!sp.cycle || !!sp.flow });
+    descriptors.push({ id: sp.id, element, anchorX, anchorY, viscosity: sp.viscosity || 1.5, role: sp.kind === 'button' ? 'action' : sp.kind, critical, label: [sp.kicker, sp.value || sp.label || sp.note].filter(Boolean).join(' · '), adjust: sp.kind === 'range' || !!sp.cycle || !!sp.flow || !!sp.carry });
   }
   const fixed = (id, anchorX, anchorY, extra = {}) => { const element = $(id); if (element && !element.hidden && element.getClientRects().length) descriptors.push({ id, element, anchorX, anchorY, role: 'action', viscosity: 1.7, label: [...element.querySelectorAll('.drop-label,.drop-value,.drop-note')].map(el => el.textContent.trim()).filter(Boolean).join(' · '), ...extra }); };
   if (!ui.menu) { fixed('steer', .2, .81, { critical: true, viscosity: .55 }); fixed('say-form', mobile ? .32 : .23, .43, { role: 'info', critical: true, viscosity: 4 }); }
@@ -386,7 +407,7 @@ $('steer').addEventListener('pointermove', e => { if (drag && e.pointerId === dr
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) $('steer').addEventListener(type, () => stopSteer());
 // rubbing: a finger dragged across the world thins the wet words and traces under it (the same drag still turns the view)
 let rub = null;
-window.addEventListener('pointerdown', e => { if (e.target.closest?.('#rw .liquid,input,textarea,button,a,nav') || e.button > 0 || ui.menu || ui.past) return; if (ui.open) { ui.open = null; render(); } rub = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false }; }, true);
+window.addEventListener('pointerdown', e => { if (e.target.closest?.('#rw .liquid,input,textarea,button,a,nav') || e.button > 0 || ui.menu || ui.past) return; if (ui.open) { ui.open = null; render(); } if (ui.scene === 'map') glass.burst(e.clientX, e.clientY, 'water'); rub = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false }; }, true);
 window.addEventListener('pointermove', e => { if (!rub || rub.id !== e.pointerId) return; if (Math.hypot(e.clientX - rub.x, e.clientY - rub.y) > 8) rub.moved = true; if (rub.moved) { ink.rub(e.clientX, e.clientY, 25); field?.erodeAt?.(e.clientX, e.clientY, 25); } }, true);
 for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, e => { if (rub?.id === e.pointerId) rub = null; }, true);
 $('menu-toggle').addEventListener('click', () => { returnNow(false); stopSteer(); ui.menu = !ui.menu; render(); });
@@ -416,7 +437,7 @@ function inkTick(now, dt) {
     el.style.setProperty('--ink', el._ink.toFixed(3)); el.style.setProperty('--ink2', clamp((el._ink - .5) / .5, 0, 1).toFixed(3));
   };
   for (const [id, el] of refs) { const sp = el._spec || {}, cls = sp.className || '';
-    const base = /map-drop/.test(cls) ? 1 : /action-drop/.test(cls) || sp.critical ? .58 : sp.slot === 'title' ? .3 : .14;
+    const base = /map-drop/.test(cls) ? 1 : /stop-drop/.test(cls) ? .8 : /action-drop/.test(cls) || sp.critical ? .58 : sp.slot === 'title' ? .3 : .14;
     one(el, id, base, clamp(1 - (now - (el._fresh || 0) - 2200) / 1200, 0, 1)); }
   const t = $('menu-toggle'); let near = 0; if (alive) { near = clamp(1 - (world.clientWidth - ptr.x - 30) / 110, 0, 1); }
   t._ink = (t._ink ?? .3) + (Math.max(.3, near, ui.menu ? 1 : 0) - (t._ink ?? .3)) * k; t.style.setProperty('--ink', t._ink.toFixed(3));

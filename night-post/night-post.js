@@ -8307,7 +8307,7 @@ void main(){
       const RAIN2 = urlParams.get("rain") !== "1";                         // the vendored rain engine (night-post/rain/) instead of dew-ui
       demo.dew = window.makeDew && !RAIN2 ? window.makeDew(canvas) : null;
       document.body.classList.toggle("rain2", RAIN2);
-      if (RAIN2) { const V = "?v=8", lk = document.createElement("link"); lk.rel = "stylesheet"; lk.href = "./rain/rain.css" + V; document.head.append(lk);
+      if (RAIN2) { const V = "?v=9", lk = document.createElement("link"); lk.rel = "stylesheet"; lk.href = "./rain/rain.css" + V; document.head.append(lk);
         const en = document.createElement("script"); en.src = "./rain/engine.js" + V; en.onload = () => { const su = document.createElement("script"); su.src = "./rain/surface.js" + V; document.head.append(su); }; document.head.append(en); }
       document.body.classList.toggle("dew-skin", !!demo.dew);
       if (demo.dew) {
@@ -8494,7 +8494,7 @@ void main(){
         chart: (() => { let relief = null, view = null; const order = ["basalt", "beacon", "hill", "compound"];
           const short = n => n.replace(/^the /, "").replace(/^white wall at the /, "");
           return {
-            draw(cv, sel) {
+            draw(cv, sel, bare) {
               const g = cv.getContext("2d"), W = cv.width, H = cv.height, c = npCarrier(), nx = order.find(k => !c.visited.includes(k)) || null;
               let x0 = state.x, x1 = state.x, z0 = state.z, z1 = state.z; for (const k of order) { x0 = Math.min(x0, DEMO_SETS[k][0]); x1 = Math.max(x1, DEMO_SETS[k][0]); z0 = Math.min(z0, DEMO_SETS[k][1]); z1 = Math.max(z1, DEMO_SETS[k][1]); }
               let sx = Math.max(160, (x1 - x0) * 1.34), sz = Math.max(160, (z1 - z0) * 1.34); const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2; if (sx / sz < W / H) sx = sz * W / H; else sz = sx * H / W;
@@ -8511,6 +8511,7 @@ void main(){
               const u = W / 360; g.lineCap = "round"; g.lineJoin = "round";
               g.setLineDash([2 * u, 7 * u]); g.lineWidth = 2.2 * u; g.strokeStyle = "rgba(210,245,240,.6)"; g.beginPath(); order.forEach((k, i) => { const [x, y] = P(DEMO_SETS[k][0], DEMO_SETS[k][1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); g.setLineDash([]);
               const [mx, my] = P(state.x, state.z), tgt = sel || nx;
+              if (!bare) {
               if (tgt) { const [tx, ty] = P(DEMO_SETS[tgt][0], DEMO_SETS[tgt][1]); g.strokeStyle = "#f8cd91"; g.lineWidth = 3 * u; g.beginPath(); g.moveTo(mx, my); g.lineTo(tx, ty); g.stroke();
                 const d = Math.hypot(DEMO_SETS[tgt][0] - state.x, DEMO_SETS[tgt][1] - state.z); if (d > 30) { g.font = `600 ${12 * u}px system-ui,sans-serif`; g.textAlign = "center"; g.lineWidth = 3.5 * u; g.strokeStyle = "rgba(3,16,22,.9)"; g.strokeText(Math.round(d) + " m", (mx + tx) / 2, (my + ty) / 2 - 6 * u); g.fillStyle = "#ffe2b0"; g.fillText(Math.round(d) + " m", (mx + tx) / 2, (my + ty) / 2 - 6 * u); } }
               g.font = `italic ${15 * u}px Georgia,serif`; const boxes = [];
@@ -8521,9 +8522,11 @@ void main(){
                 g.lineWidth = 4 * u; g.strokeStyle = "rgba(3,16,22,.92)"; g.strokeText(name, lx, ly); g.fillStyle = isNx ? "#ffe2b0" : "#e9f4f0"; g.fillText(name, lx, ly); });
               const [dx, dy] = P(donkey.state.x, donkey.state.z); g.fillStyle = "#c9a36a"; g.strokeStyle = "rgba(3,16,22,.9)"; g.lineWidth = 2 * u; g.beginPath(); g.ellipse(clamp(dx, 8, W - 8), clamp(dy, 8, H - 8), 7 * u, 5 * u, 0, 0, 7); g.fill(); g.stroke();
               g.save(); g.translate(clamp(mx, 12, W - 12), clamp(my, 12, H - 12)); g.rotate(-state.yaw); g.fillStyle = "#ffffff"; g.strokeStyle = "rgba(3,16,22,.95)"; g.lineWidth = 2.5 * u; g.beginPath(); g.moveTo(0, -15 * u); g.lineTo(10 * u, 11 * u); g.lineTo(0, 5 * u); g.lineTo(-10 * u, 11 * u); g.closePath(); g.fill(); g.stroke(); g.restore();
+              }
               const bar = [20, 50, 100, 200, 500, 1000].find(b => b / sx * W > 54 * u) || 1000, bw = bar / sx * W; g.strokeStyle = "#e9f4f0"; g.lineWidth = 2 * u; g.beginPath(); g.moveTo(12 * u, H - 12 * u); g.lineTo(12 * u + bw, H - 12 * u); g.stroke(); g.font = `600 ${10 * u}px system-ui,sans-serif`; g.textAlign = "left"; g.fillStyle = "#e9f4f0"; g.fillText(bar + " m", 12 * u, H - 18 * u);
               g.textAlign = "center"; g.fillText("N", W - 16 * u, 16 * u); g.beginPath(); g.moveTo(W - 16 * u, 34 * u); g.lineTo(W - 16 * u, 20 * u); g.stroke();
             },
+            uv(id) { if (!view) return null; const p = id === 'me' ? [state.x, state.z] : id === 'donkey' ? [donkey.state.x, donkey.state.z] : DEMO_SETS[id]; return p ? [(p[0] - view.vx) / view.sx, (p[1] - view.vz) / view.sz] : null; },
             hit(u, v) { if (!view) return null; const wx = view.vx + u * view.sx, wz = view.vz + v * view.sz; let best = null, bd = view.sx * .16; for (const k of order) { const d = Math.hypot(DEMO_SETS[k][0] - wx, DEMO_SETS[k][1] - wz); if (d < bd) { bd = d; best = k; } } return best; }
           }; })(),
         menu: () => Object.entries(demo.MENU || {}).flatMap(([g, items]) => items.map(it => ({ id: it.id, group: g, label: it.cap, value: String(it.val()), on: !!(it.on && it.on()), run: () => it.act() })))

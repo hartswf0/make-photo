@@ -470,7 +470,9 @@
 #rw .liquid.amber,#rw .liquid.critical,#rw .liquid.time-current,#rw .liquid.voice-current,#rw #menu-toggle{color:#ffdfa8}
 #rw .liquid .drop-kicker,#rw .liquid .drop-note{color:inherit}
 #rw #next .drop-value,#rw #donkey .drop-value{font-size:19px;line-height:1.1}
-/* the chart is a plate you read and touch, not a blob */
-#rw .map-drop{padding:10px!important;gap:8px}
-#rw .map-drop .plate-preview{height:auto!important;min-height:0!important;width:100%;aspect-ratio:720/660;border-radius:16px!important;mix-blend-mode:normal!important;opacity:1!important;box-shadow:0 0 0 1px rgba(190,240,235,.35),0 10px 30px rgba(0,10,16,.55);pointer-events:none}
-#rw#rw .liquid.map-drop>.drop-note{display:block!important;opacity:1!important;font:italic 16px/1.3 Georgia,serif;color:#eef6f2;text-align:left;padding:0 4px}
+/* the chart is a pool on the glass: relief seen through water, soft at the edge; the stops and you are drops lying in it */
+#rw #rw-chart{position:absolute;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:.92;
+  -webkit-mask-image:radial-gradient(ellipse 64% 62% at 50% 50%,#000 60%,transparent 100%);mask-image:radial-gradient(ellipse 64% 62% at 50% 50%,#000 60%,transparent 100%)}
+#rw .stop-drop .drop-value{font-size:17px!important;line-height:1.05;font-style:italic}
+#rw .stop-drop .drop-kicker{font-size:11px;letter-spacing:.1em}
+#rw .me-drop{color:#ffffff!important}
