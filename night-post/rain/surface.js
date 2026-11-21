@@ -33,6 +33,8 @@ const glass = createFluidGlass($('fluid'), { image: () => B.canvas, reducedMotio
 let field = null, specs = [], refs = new Map(), S = B.state(), frameTime = performance.now(), lastRender = 0, pendingFocus = null, cause = 'The surface was still.', seen = { liters: null, place: null, speech: 0, said: 0 }, mapImage = '', mapAt = 0;
 const pulls = new Map(), caughtVoices = new Map(), undo = [];
 const svgNS = 'http://www.w3.org/2000/svg', menuInk = document.createElementNS(svgNS, 'svg'); menuInk.id = 'menu-ink'; menuInk.setAttribute('aria-hidden', 'true'); world.append(menuInk);
+const held0 = { key: '', map: new Map() };
+const armInk = o => { if (o && o.id === 'voice-current') ink.arm(o); };
 let menuWater = [], lastAdmit = 0, held = null, mix = null; const admitted = new Set();
 
 const add = spec => specs.push(spec);
@@ -155,11 +157,11 @@ const BUILD = {
     mixSpec();
     exitDrop();
     if ((!open || open === 'primary') && !auto && !(S.water.donkeyDown || S.water.donkey < .3)) liveDrop();   // while something needs you, its act is the only act
-    if (!open || open === 'can') button('can', 'water', null, null, opener('can'), { fill: S.water.liters / 20, kicker: 'Can', value: `${n(S.water.liters)} L`, viscosity: 1.8, opens: true });
+    if (!open || open === 'can') button('can', 'water', null, null, opener('can'), { fill: S.water.liters / 20, kicker: '', value: `${Math.round(S.water.liters)} L`, viscosity: 1.8, opens: true });
     const d = T.donkey, thirsty = S.water.donkeyDown || S.water.donkey < .3, al = !open && !auto && !S.busy ? alertNow() : null;
     if (al) { const t = al.t, vis = onScr(t), hm = vis ? at(t, -.06) : [t.front ? clamp(t.x / W, .15, .82) : (t.x > W / 2 ? .15 : .82), .46];
       button('alert', 'need', al.word, '', live(() => doAlert()), { className: 'action-drop alert', critical: true, viscosity: 1, home: hm }); }
-    if (al || auto) { /* the act stands in for the report */ } else if ((!open || open === 'donkey') && S.mode === 'walk' && d && d.dist < 28 && d.dist > 1.2 && onScr(d) && !(S.live && S.live.id === 'water-burro'))
+    if (true) { /* the donkey is reported only as an act: the alert, or by touching it */ } else if ((!open || open === 'donkey') && S.mode === 'walk' && d && d.dist < 28 && d.dist > 1.2 && onScr(d) && !(S.live && S.live.id === 'water-burro'))
       button('donkey', 'need', null, null, opener('donkey'), { kicker: 'Donkey', value: thirsty ? 'Thirsty' : `${Math.round(S.water.donkey * 100)}%`, className: thirsty ? 'amber' : '', viscosity: 3, home: at(d, -.03), opens: true });
     else if (!open && thirsty && S.mode === 'walk') button('donkey', 'need', null, null, opener('donkey'), { kicker: 'Donkey', value: 'Thirsty', className: 'amber', viscosity: 3, opens: true });
     const v = currentVoice(); if (v && (!open || open === 'voice-current')) voiceDrop(v, voiceHome());
@@ -168,7 +170,7 @@ const BUILD = {
       button('next', 'c', null, null, opener('next'), { kicker: 'Next', value: nx.name.split(' at the ').pop().replace(/^the /, ''), viscosity: 1.2, home: [side, nx.front ? clamp(nx.y / H - .05, .17, .5) : .5], opens: true }); }
     if (performance.now() < ui.titleUntil && !open) button('place', 'title', S.place.name, '', opener('place'), { className: 'drop-title', viscosity: 4, kicker: MODE[S.mode], opens: true });
     if (!open && !S.busy && !ui.touch) { const acts = [], it = id => menuItems().find(x => x.id === id), near = d && d.dist < 7;
-      if (S.mode === 'walk') { acts.push(['jump', 'Jump']); acts.push(['run', 'Run']); if (near) acts.push(['ride', 'Ride']); else acts.push(['glide', 'Glide']); }
+      if (S.mode === 'walk') { acts.push(['jump', 'Jump']); acts.push(['run', 'Run']); acts.push(['glide', 'Glide']); }
       else if (S.mode === 'ride' || S.mode === 'drive') acts.push(['run', 'Run']);
       acts.slice(0, 3).forEach(([id, word], i) => { const m = it(id); if (m) button('act-' + id, 'a', word, '', live(() => m.run()), { className: 'acts quick' + (m.on ? ' on' : ''), viscosity: .6 + i * .3, home: [.83, .8 - i * .105] }); }); }
     if (ui.touch && performance.now() - ui.touch.at > 7000) ui.touch = null;
@@ -190,10 +192,10 @@ const BUILD = {
   },
   lens() {
     const L = S.lens, f = Math.min(100, L.focus);
-    range('focus', 'a', 'Focus', L.focus > 100 ? 'Far' : `${n(f)} m`, 1.5, 100, .5, f, v => B.act.focus(v), { viscosity: 2.2 });
+    range('focus', 'a', 'Focus', L.focus > 100 ? 'Far' : `${n(f)} m`, 1.5, 100, .5, f, v => B.act.focus(v), { viscosity: 2.2, tap: () => { const steps = [3, 6, 12, 25, 50, 100], cur = Math.min(100, S.lens.focus), prev = cur; B.act.focus(steps.find(x => x > cur + .4) || steps[0]); pushUndo(`Focus ${n(prev)} m`, () => B.act.focus(prev)); } });
     button('filter', 'b', null, null, live(() => B.act.set('filter', (L.filter + 1) % L.filters.length)), { kicker: 'Filter', value: L.filterName.split(' ')[0], note: 'pull sideways to change', viscosity: 2.5, cycle: ['filter', L.filters.length] });
     button('stop', 'c', null, null, live(() => B.act.set('stop', (L.stop + 1) % L.stops.length)), { kicker: 'Aperture', value: L.stopName, note: 'pull sideways to change', viscosity: 2.8, cycle: ['stop', L.stops.length] });
-    range('tilt', 'd', 'Tilt', `${n(L.tilt * 57.3)}°`, -20, 20, 1, Math.round(L.tilt * 57.3), v => B.act.set('tilt', v / 57.3), { viscosity: 1.6 });
+    range('tilt', 'd', 'Tilt', `${n(L.tilt * 57.3)}°`, -20, 20, 1, Math.round(L.tilt * 57.3), v => B.act.set('tilt', v / 57.3), { viscosity: 1.6, tap: () => { const d = Math.round(S.lens.tilt * 57.3); B.act.set('tilt', (d < -5 ? 0 : d < 5 ? 10 : -10) / 57.3); } });
     if (ui.details) { item('mode', 'e', 1.4); }
     button('primary', 'primary', 'Expose', 'capture one plate', live(() => { B.act.expose(); cause = 'A plate was exposed.'; }), { className: 'action-drop', viscosity: 2.3 });
     if (undo.length) button('undo', 'recovery', 'Undo', undo.at(-1).label, doUndo, { className: 'amber', viscosity: 3 });
@@ -326,6 +328,10 @@ function render() {
   world.className = `scene-${ui.scene} travel-${S.mode}${ui.menu ? ' menu-open' : ''}${ui.reduced ? ' still' : ''}${ui.words ? ' read-water' : ''}${ui.past ? ' reading-past' : ''}${ui.details ? ' details-open' : ''}${S.speed > .4 && !ui.past ? ' moving' : ''}`;
   world.dataset.scene = ui.scene;
   if (S.ready) { if (ui.past) buildPast(view); else if (base()) BUILD[ui.scene](); timeDrop(); }
+  { const now = performance.now(), have = new Set(specs.map(sp => sp.id)), sceneKey = ui.scene + '|' + (ui.menu ? 1 : 0) + '|' + (ui.past ? 1 : 0) + '|' + (ui.open || '');
+    if (held0.key !== sceneKey) { held0.key = sceneKey; held0.map.clear(); }
+    for (const sp of specs) held0.map.set(sp.id, { sp, at: now });
+    for (const [id, h] of held0.map) { if (have.has(id)) continue; if (now - h.at < 700 && !/^(mix|aff-|keep-|k-|it-)/.test(id)) specs.push(h.sp); else held0.map.delete(id); } }
   { const now = performance.now(), want = new Set(specs.map(sp => sp.id)); for (const id of admitted) if (!want.has(id)) admitted.delete(id);
     specs = specs.filter(sp => { if (admitted.has(sp.id)) return true; if (sp.critical || now - lastAdmit > 380) { admitted.add(sp.id); if (!sp.critical) lastAdmit = now; return true; } return false; }); }
   chart.hidden = !(S.ready && ui.scene === 'map' && !ui.menu && !ui.past);
@@ -344,12 +350,13 @@ function syncDrops() {
     if (!el) {
       el = document.createElement(sp.kind === 'button' ? 'button' : sp.kind === 'range' ? 'label' : 'div'); el.id = sp.id;
       el.innerHTML = '<span class="drop-kicker"></span><span class="drop-value"></span><span class="drop-label"></span><span class="drop-note"></span>';
+      if (sp.kind === 'range') el.addEventListener('click', e => { if (field?.suppressClick(e) || ui.past || e.target.tagName === 'INPUT' || performance.now() - (el._tapAt || 0) < 350) return; el._tapAt = performance.now(); const p = el._spec; if (!p.tap) return; const r = el.getBoundingClientRect(); splash(r.x + r.width / 2, r.y + r.height / 2, .8); p.tap(); S = B.state(); render(); });
       if (sp.kind === 'range') { const input = document.createElement('input'); input.type = 'range'; input.className = 'control-range'; input.addEventListener('input', () => el._spec.action(Number(input.value))); el.append(input); }
       else if (sp.kind === 'info') el.addEventListener('click', e => { const p = el._spec, img = el.querySelector('.plate-preview'); if (!p.onPoint || !img || field?.suppressClick(e)) return; const r = img.getBoundingClientRect(); p.onPoint((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); });
       else if (sp.kind === 'button') el.addEventListener('click', e => { if (field?.suppressClick(e)) return; const r = el.getBoundingClientRect(), c = el._spec.className || ''; splash(r.x + r.width / 2, r.y + r.height / 2, /action-drop/.test(c) ? 1.5 : .8, /amber/.test(c) ? '255,223,168' : '178,247,240'); el._spec.action?.(); });
       $('drops').append(el); refs.set(sp.id, el);
     }
-    const sig = [sp.kicker, sp.value, sp.label].join('|'); if (el._sig !== sig) { el._sig = sig; el._fresh = performance.now(); }
+    const sig = [sp.kicker, sp.label].join('|'); if (el._sig !== sig) { el._sig = sig; el._fresh = performance.now(); }
     el._spec = sp; el.dataset.voice = sp.voiceId || ''; el.dataset.traceText = sp.voiceText || '';
     const held = el.classList.contains('pinned'), settling = el.classList.contains('settling'), sheared = el.classList.contains('sheared');
     el.className = `liquid slot-${sp.slot} ${sp.kind === 'info' ? 'info' : ''} ${sp.kind === 'range' ? 'range-drop' : ''} ${sp.className || ''}${held ? ' pinned' : ''}${settling ? ' settling' : ''}${sheared ? ' sheared' : ''}`;
@@ -359,7 +366,7 @@ function syncDrops() {
     if (sp.kind === 'range') { const input = el.querySelector('input'); input.min = sp.min; input.max = sp.max; input.step = sp.step; if (document.activeElement !== input) input.value = sp.number; input.setAttribute('aria-label', sp.kicker); input.setAttribute('aria-valuetext', sp.value); }
     let img = el.querySelector('.plate-preview'); if (sp.image) { if (!img) { img = document.createElement('img'); img.className = 'plate-preview'; img.alt = sp.kicker || ''; el.prepend(img); } if (img.src !== sp.image) img.src = sp.image; } else img?.remove();
   }
-  for (const [id, el] of refs) if (!keep.has(id)) { if (document.activeElement === el || el.contains(document.activeElement)) pendingFocus = specs.some(x => x.id === 'primary') ? 'primary' : 'menu-toggle'; el.remove(); refs.delete(id); }
+  for (const [id, el] of refs) if (!keep.has(id)) { if (document.activeElement === el || el.contains(document.activeElement)) pendingFocus = specs.some(x => x.id === 'primary') ? 'primary' : 'menu-toggle'; refs.delete(id); try { el.remove(); } catch { } }
 }
 const go = scene => () => { returnNow(false); stopSteer(); Object.assign(ui, { scene, menu: false, menuGroup: null, memory: false, say: false, rest: false, details: false }); render(); announce(TITLES[scene] || S.place.name); $('menu-toggle').focus({ preventScroll: true }); };
 // THE MENU. Five words by the thumb, grouped by what you mean to do. A word opens its few acts in the same place;
@@ -372,12 +379,15 @@ const GROUPS = {
   water: () => [['can', 'Can', go('water')], ['donkey', 'Donkey', go('donkey')], ['squirt', 'Squirt', runItem('squirt')], ['throw', 'Throw', runItem('throw')]],
   camera: () => [['expose', 'Expose', () => { if (ui.past) return; B.act.expose(); cause = 'A plate was exposed.'; closeMenu(); render(); }], ['lens', 'Lens', go('lens')], ['rig', 'Rig', go('rig')], ['cam', 'View', runItem('cam')]],
   talk: () => [['say', 'Say', () => { returnNow(false); Object.assign(ui, { scene: 'people', say: true, menu: false, menuGroup: null }); render(); $('say-text').focus(); }], ['memory', 'Voices', () => { stopSteer(); returnNow(false); ui.memory = true; ui.recallIndex = 0; closeMenu(); render(); }], ['people', 'People', go('people')], ['lang', 'Language', () => { mItem('lang')?.run(); render(); announce('Language: ' + (B.state().lang || 'en')); }]],
+  try: () => { const set = (sn, word) => () => { B.act.restore(sn); S = B.state(); seen.liters = S.water.liters; stable = snapNow(); cause = word; closeMenu(); render(); };
+    return [['thirst', 'Thirsty donkey', set({ donkey: .1 }, 'The donkey is thirsty.')], ['empty', 'Empty can', set({ liters: 0 }, 'The can is empty.')], ['full', 'Full can', set({ liters: 20 }, 'The can is full.')],
+      ['pump', 'To the pump', () => { B.act.travel('basalt'); closeMenu(); S = B.state(); stable = snapNow(); render(); }], ['moment', 'Keep moment', () => { closeMenu(); addKeep('moment', world.clientWidth * .5, world.clientHeight * .38); }]]; },
   more: () => [['sound', 'Sound', go('sound')], ['weather', 'Weather', go('weather')], ['words', ui.words ? 'Hide words' : 'Words', () => { ui.words = !ui.words; closeMenu(); render(); }], ['hold', ui.reduced ? 'Let it move' : 'Hold rain', () => { ui.reduced = !ui.reduced; glass.setReducedMotion(ui.reduced); field?.setReducedMotion(ui.reduced); closeMenu(); render(); }], ['rest', 'Rest', () => { returnNow(false); stopSteer(); ui.rest = true; closeMenu(); render(); }], ['all', 'Everything', go('all')]]
 };
 function menuList() {
   if (ui.menuGroup && GROUPS[ui.menuGroup]) return [['back', '‹ Back', () => { ui.menuGroup = null; ui.menuAt = 0; render(); }], ...GROUPS[ui.menuGroup]()].map(([id, label, run]) => ({ id: ui.menuGroup + '-' + id, label, run }));
   const open = g => () => { ui.menuGroup = g; ui.menuAt = 0; ui.menuTouch = performance.now(); render(); };
-  return [['go', 'Go'], ['water', 'Water'], ['camera', 'Camera'], ['talk', 'Talk'], ['more', 'More']].map(([id, label]) => ({ id, label, run: open(id) })).concat(ui.scene !== 'world' ? [{ id: 'here', label: 'Close ' + (TITLES[ui.scene] || '').toLowerCase(), run: go('world') }] : []);
+  return [['go', 'Go'], ['water', 'Water'], ['camera', 'Camera'], ['talk', 'Talk'], ['more', 'More'], ['try', 'Try']].map(([id, label]) => ({ id, label, run: id === 'camera' ? go('lens') : open(id) })).concat(ui.scene !== 'world' ? [{ id: 'here', label: 'Close ' + (TITLES[ui.scene] || '').toLowerCase(), run: go('world') }] : []);
 }
 function renderMenu() {
   const t = $('menu-toggle'), menu = $('menu-stream');
@@ -427,26 +437,26 @@ function initializeField() {
     onCatch: (id, meta) => {
       catchAt = { id, x: ptr.x, y: ptr.y }; { const kk = keeps.find(k => k.id === id); if (kk) kk.born = performance.now(); }
       const body = field?.getBodies().find(b => b.id === id), sp = refs.get(id)?._spec; if (meta.reason !== 'focus' && meta.reason !== 'keyboard' && !/^(time-current|mix)$/.test(id)) held = id;
-      ink.arm({ id, text: inkLabel(id), x: meta.x ?? body?.x ?? 50, y: meta.y ?? body?.y ?? 100, keyboard: id === 'time-current' || meta.reason === 'focus' || meta.reason === 'keyboard', kind: id === 'voice-current' ? 'voice' : 'water' });
+      armInk({ id, text: inkLabel(id), x: meta.x ?? body?.x ?? 50, y: meta.y ?? body?.y ?? 100, keyboard: id === 'time-current' || meta.reason === 'focus' || meta.reason === 'keyboard', kind: id === 'voice-current' ? 'voice' : 'water' });
       if (id === 'voice-current' && sp?.voiceId) { caughtVoices.set(id, sp.voiceId); memory.holdDialogue(sp.voiceId, true); }
       if (sp?.kind === 'range' && id !== 'time-current' && !pulls.has(id)) { pulls.set(id, sp.number); pulls.set(id + ':from', { number: sp.number, label: inkLabel(id), action: sp.action }); }
       else if (sp?.cycle && !pulls.has(id)) pulls.set(id, 0);
     },
     onAdjust: (id, delta, meta) => {
       const sp = refs.get(id)?._spec;
-      if (id === 'time-current') { const target = meta.key === 'Home' ? 0 : meta.key === 'End' ? timeAvailable() : clamp((pulls.get(id) ?? ui.timeAge) + (meta.phase === 'keyboard' ? -delta * 12 : -(meta.dx || 0) / Math.max(150, world.clientWidth * .6) * 12), 0, timeAvailable()); pulls.set(id, target); setTimeAge(target); ink.arm({ id, text: inkLabel(id), x: meta.x ?? 50, y: meta.y ?? 100, keyboard: true }); return; }
+      if (id === 'time-current') { const target = meta.key === 'Home' ? 0 : meta.key === 'End' ? timeAvailable() : clamp((pulls.get(id) ?? ui.timeAge) + (meta.phase === 'keyboard' ? -delta * 12 : -(meta.dx || 0) / Math.max(150, world.clientWidth * .6) * 12), 0, timeAvailable()); pulls.set(id, target); setTimeAge(target); armInk({ id, text: inkLabel(id), x: meta.x ?? 50, y: meta.y ?? 100, keyboard: true }); return; }
       if (id === 'voice-current' || ui.past) return;
       if (/^menu-(camera|camera-lens|camera-expose)$/.test(id)) { ui.menuTouch = performance.now(); const L = S.lens, t = pulls.get(id) || { f: Math.min(100, L.focus), x: 0 };
         t.f = clamp(t.f + delta * 75, 1.5, 100); t.x += meta.dx || 0; if (Math.abs(t.x) >= 38) { const dir = Math.sign(t.x); t.x -= dir * 38; B.act.set('filter', (L.filter + dir + L.filters.length) % L.filters.length); }
-        B.act.focus(Math.round(t.f * 2) / 2); pulls.set(id, t); S = B.state(); ink.arm({ id, text: `Focus ${n(Math.min(100, S.lens.focus))} m · ${S.lens.filterName.split(' ')[0]}`, x: meta.x ?? 50, y: meta.y ?? 100 }); return; }
+        B.act.focus(Math.round(t.f * 2) / 2); pulls.set(id, t); S = B.state(); armInk({ id, text: `Focus ${n(Math.min(100, S.lens.focus))} m · ${S.lens.filterName.split(' ')[0]}`, x: meta.x ?? 50, y: meta.y ?? 100 }); return; }
       if (sp?.cycle) { let travel = (pulls.get(id) || 0) + (meta.phase === 'keyboard' ? (delta > 0 ? 35 : -35) : (meta.dx || 0)); const dir = travel >= 35 ? 1 : travel <= -35 ? -1 : 0;
-        if (dir) { travel -= dir * 35; const [what, len] = sp.cycle; if (what === 'material') { const modes = ['worms', 'pane', 'fall', 'dew', 'breath']; weather.material = modes[(modes.indexOf(weather.material) + dir + len) % len]; } else B.act.set(what, (S.lens[what] + dir + len) % len); render(); ink.arm({ id, text: inkLabel(id), x: meta.x ?? 50, y: meta.y ?? 100 }); }
+        if (dir) { travel -= dir * 35; const [what, len] = sp.cycle; if (what === 'material') { const modes = ['worms', 'pane', 'fall', 'dew', 'breath']; weather.material = modes[(modes.indexOf(weather.material) + dir + len) % len]; } else B.act.set(what, (S.lens[what] + dir + len) % len); render(); armInk({ id, text: inkLabel(id), x: meta.x ?? 50, y: meta.y ?? 100 }); }
         pulls.set(id, travel); return; }
-      if (sp?.kind === 'range') { const raw = meta.key === 'Home' ? sp.min : meta.key === 'End' ? sp.max : clamp((pulls.get(id) ?? sp.number) + delta * (sp.max - sp.min) * .75, sp.min, sp.max); pulls.set(id, raw); const value = clamp(sp.min + Math.round((raw - sp.min) / sp.step) * sp.step, sp.min, sp.max); if (Math.abs(value - sp.number) > sp.step * .25) { sp.action(value); render(); ink.arm({ id, text: inkLabel(id), x: meta.x ?? 50, y: meta.y ?? 100, keyboard: meta.phase === 'keyboard' }); } return; }
+      if (sp?.kind === 'range') { const raw = meta.key === 'Home' ? sp.min : meta.key === 'End' ? sp.max : clamp((pulls.get(id) ?? sp.number) + delta * (sp.max - sp.min) * .75, sp.min, sp.max); pulls.set(id, raw); const value = clamp(sp.min + Math.round((raw - sp.min) / sp.step) * sp.step, sp.min, sp.max); if (Math.abs(value - sp.number) > sp.step * .25) { sp.action(value); render(); armInk({ id, text: inkLabel(id), x: meta.x ?? 50, y: meta.y ?? 100, keyboard: meta.phase === 'keyboard' }); } return; }
       if (id === 'primary' && sp?.flow && !ui.flowHeld && Math.hypot(meta.totalDx || 0, meta.totalDy || 0) > 46) { ui.flowHeld = true; sp.action(); }
     },
     onRelease: (id, meta) => {
-      if (meta.dragged || meta.reason === 'keyboard') { const b = field?.getBodies().find(b => b.id === id); ink.arm({ id, text: inkLabel(id), x: b?.x ?? meta.x ?? 50, y: b?.y ?? meta.y ?? 100 }); }
+      if (meta.dragged || meta.reason === 'keyboard') { const b = field?.getBodies().find(b => b.id === id); armInk({ id, text: inkLabel(id), x: b?.x ?? meta.x ?? 50, y: b?.y ?? meta.y ?? 100 }); }
       if (!(id === 'time-current' && meta.reason === 'keyboard')) ink.hold(id, false);
       if (id === 'voice-current') { const voice = caughtVoices.get(id); if (voice) memory.holdDialogue(voice, false); caughtVoices.delete(id); ink.setTrails(field?.getTrails() || []); }
       const from = pulls.get(id + ':from'), sp = refs.get(id)?._spec;
@@ -454,7 +464,6 @@ function initializeField() {
       const mixed = held === id && mix; if (mixed) endMix(); if (held === id) { held = null; mix = null; }
       const c0 = catchAt && catchAt.id === id ? catchAt : { x: ptr.x, y: ptr.y }, far = Math.max(Math.hypot(ptr.x - c0.x, ptr.y - c0.y), Math.hypot(meta.totalDx || 0, meta.totalDy || 0)), rise = c0.y - ptr.y;
       if (!mixed && id === 'time-current' && rise > 70 && !ui.past) addKeep('moment', ptr.x, ptr.y);
-      else if (!mixed && far > 110 && /^menu-camera|^focus$|^filter$|^stop$|^tilt$/.test(id)) { addKeep('lens', ptr.x, ptr.y); closeMenu(); }
       else if (far > 120 && id.startsWith('keep-')) { splash(ptr.x, ptr.y, 1.1, '255,223,168'); dropKeep(id); }
       else if (id === 'can' && meta.dragged && !mixed && far > 150 && throwWater('can', ptr.x, ptr.y, far)) { /* thrown, not opened */ } else
       if (meta.dragged && !mixed && sp?.opens && ui.open !== id) { ui.open = id; ui.openAt = performance.now(); render(); }
@@ -536,7 +545,8 @@ function touchThing(x, y) {
 // let go, holding that state: where you stood and how the lens was set. Touch the bead to be there again; carry it far to let it go.
 const keeps = []; let keepN = 0, catchAt = null;
 function addKeep(kind, x, y, extra = {}) {
-  if (keeps.length >= 7) { const old = keeps.shift(); PIC.thumbs.delete(old.id); }
+  if (kind === 'act' || kind === 'back') for (const k of keeps.filter(k => k.kind === kind)) dropKeep0(k.id);   // only the latest act, and the latest way back, stay on the glass
+  if (keeps.length >= 5) { const old = keeps.shift(); PIC.thumbs.delete(old.id); }
   const id = 'keep-' + (++keepN), L = S.lens, W = world.clientWidth, H = world.clientHeight, th = document.createElement('canvas'); th.width = th.height = PIC.TH;
   try { const r = Math.min(W, H) * (kind === 'lens' ? .2 : .46), k = B.canvas.width / W; th.getContext('2d').drawImage(B.canvas, (W / 2 - r) * k, (H / 2 - r) * k, r * 2 * k, r * 2 * k, 0, 0, PIC.TH, PIC.TH); th._ok = true; } catch { }
   PIC.thumbs.set(id, th);
@@ -582,7 +592,7 @@ function inkTick(now, dt) {
     el.style.setProperty('--ink', el._ink.toFixed(3)); el.style.setProperty('--ink2', clamp((el._ink - .5) / .5, 0, 1).toFixed(3));
   };
   for (const [id, el] of refs) { const sp = el._spec || {}, cls = sp.className || '';
-    const base = /alert/.test(cls) ? 1 : id === 'time-current' ? .16 : /quick/.test(cls) ? .42 : /stop-drop/.test(cls) ? .3 : /action-drop/.test(cls) || sp.critical ? .58 : sp.slot === 'title' ? .3 : .14;
+    const base = ui.scene !== 'world' && ui.scene !== 'map' ? 1 : /alert/.test(cls) ? 1 : /keep/.test(cls) ? 0 : id === 'time-current' ? .16 : /quick/.test(cls) ? .42 : /stop-drop/.test(cls) ? .3 : /action-drop/.test(cls) || sp.critical ? .58 : sp.slot === 'title' ? .3 : .14;
     one(el, id, base, clamp(1 - (now - (el._fresh || 0) - 2200) / 1200, 0, 1)); }
   const t = $('menu-toggle'); let near = 0; if (alive) { near = clamp(1 - (world.clientWidth - ptr.x - 30) / 110, 0, 1); }
   t._ink = (t._ink ?? .3) + (Math.max(.3, near, ui.menu ? 1 : 0) - (t._ink ?? .3)) * k; t.style.setProperty('--ink', t._ink.toFixed(3));
@@ -609,10 +619,10 @@ function subjectOf(id) {                                              // -> { x,
   }
 }
 const PRE = ['menu-go', 'menu-water', 'menu-camera', 'menu-talk', 'menu-more', 'menu-go-ride', 'menu-go-drive', 'menu-go-jump', 'menu-go-run', 'menu-go-glide', 'menu-water-can', 'menu-water-donkey', 'menu-water-squirt', 'menu-water-throw', 'menu-talk-say', 'menu-talk-memory', 'menu-talk-people', 'menu-talk-lang', 'act-ride', 'act-jump', 'act-run', 'act-glide', 'can', 'next'];
-const HAS_MORE = /^menu-(go|water|camera|talk|more)$|^menu-[a-z]+-(map|can|donkey|lens|rig|people|sound|weather|all)$/;
+const HAS_MORE = /^menu-(go|water|talk|more|try)$|^menu-[a-z]+-(map|can|donkey|lens|rig|people|sound|weather|all)$/;
 function picTick(now) {
   const W = world.clientWidth, H = world.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), cv = PIC.cv; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => /^menu-(?!spring|edge)|^act-|^can$|^next$|^it-|^all-|^keep-|^aff-/.test(b.id));
+  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => /^menu-(?!spring|edge)|^keep-/.test(b.id));
   if (S.ready && !ui.past && now - (PIC.pre || 0) > 900) { PIC.pre = now;      // keep a view of every subject while it is in frame, so its drop can show it later
     const W2 = Math.round(W * .6), H2 = Math.round(H * .6); if (PIC.snap.width !== W2 || PIC.snap.height !== H2) { PIC.snap.width = W2; PIC.snap.height = H2; } let shot = false;
     for (const id of PRE) { if (bodies.some(b => b.id === id)) continue; const src = subjectOf(id); if (!src || src.img) continue; if (!shot) { try { PIC.snap.getContext('2d').drawImage(B.canvas, 0, 0, W2, H2); } catch { } shot = true; }

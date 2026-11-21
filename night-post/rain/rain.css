@@ -490,3 +490,6 @@
 /* the alert is the act: large, warm, unmistakable */
 #rw .liquid.alert{color:#ffe2b0!important}
 #rw .liquid.alert .drop-label{font-size:27px!important;opacity:1!important}
+/* calmer numbers */
+#rw #can .drop-value{font-size:24px!important}
+#rw .keep .drop-value{font-size:14px!important}
