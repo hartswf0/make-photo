@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CARTRIDGES, TIME_PRESETS } from './cartridges.js';
 import { CityAudioEngine } from './audio.js';
+import { CITY_LOOKS, CityShaderPipeline } from './shaders.js';
 
 const STORAGE_KEY = 'make_photo_city_nolli_v1';
 
@@ -157,6 +158,12 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.28;
 wrap.appendChild(renderer.domElement);
+
+const shaderPipeline = new CityShaderPipeline(
+  renderer,
+  Math.floor(window.innerWidth * renderer.getPixelRatio()),
+  Math.floor(window.innerHeight * renderer.getPixelRatio())
+);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#233447');
@@ -777,7 +784,7 @@ const camState = {
   focalMm: 50,
   focusM: 12.0,
   exposureEv: 0.0,
-  stock: 'color',
+  stock: 'natural',
   xray: false,
 };
 
@@ -1014,21 +1021,23 @@ function capturePlate() {
   flash.style.opacity = '0.85';
   setTimeout(() => { flash.style.opacity = '0'; }, 140);
 
-  // Render clean frame right before capture
-  renderer.render(scene, camera);
+  // Render clean GPU-shaded frame right before capture
+  const lookObj = CITY_LOOKS.find((l) => l.id === camState.stock) || CITY_LOOKS[0];
+  shaderPipeline.render(scene, camera, {
+    time: performance.now() * 0.001,
+    focusM: camState.focusM,
+    dofAmount: camState.active ? 0.65 : 0.0,
+    ev: camState.exposureEv,
+    mode: lookObj.mode,
+  });
 
-  // Bake active film stock into a 480x300 JPEG dataUrl so mounted prints match the film stock
+  // Downscale to 480x300 JPEG dataUrl preserving the exact GLSL GPU Zone shader output
   const off = document.createElement('canvas');
   off.width = 480;
   off.height = 300;
   const ctx = off.getContext('2d');
-  const bright = (1 + camState.exposureEv * 0.22).toFixed(2);
-  if (camState.stock === 'silver') ctx.filter = `grayscale(1) contrast(1.18) brightness(${bright})`;
-  else if (camState.stock === 'cyanotype') ctx.filter = `grayscale(1) sepia(1) hue-rotate(168deg) saturate(2.4) contrast(1.16) brightness(${bright})`;
-  else if (camState.stock === 'woodblock') ctx.filter = `grayscale(1) contrast(2.2) brightness(${bright})`;
-  else ctx.filter = `contrast(1.04) saturate(1.06) brightness(${bright})`;
   ctx.drawImage(renderer.domElement, 0, 0, off.width, off.height);
-  const dataUrl = off.toDataURL('image/jpeg', 0.84);
+  const dataUrl = off.toDataURL('image/jpeg', 0.86);
 
   // Detect if any persistent resident is framed in the center of the camera frustum
   let framedResident = null;
@@ -1506,20 +1515,48 @@ function toggleLightTable(force) {
   if (lightTableOpen) renderLightTable();
 }
 
+const shaderSelect = document.getElementById('shader-select');
+CITY_LOOKS.forEach((look) => {
+  const opt = document.createElement('option');
+  opt.value = look.id;
+  opt.textContent = `Shader: ${look.name}`;
+  shaderSelect.appendChild(opt);
+});
+
+function setLook(lookId, announce = false) {
+  const found = CITY_LOOKS.find((l) => l.id === lookId) || CITY_LOOKS[0];
+  camState.stock = found.id;
+  shaderSelect.value = found.id;
+  document.querySelectorAll('#stock-pills .pill').forEach((p) => {
+    p.classList.toggle('active', p.dataset.stock === found.id);
+  });
+  updateCameraLensUI();
+  if (announce) showToast(`GPU Shader: ${found.name} — ${found.desc}`, 2600);
+}
+
+shaderSelect.addEventListener('change', (e) => setLook(e.target.value, true));
+document.getElementById('btn-prev-shader').addEventListener('click', () => {
+  const idx = CITY_LOOKS.findIndex((l) => l.id === camState.stock);
+  setLook(CITY_LOOKS[(idx - 1 + CITY_LOOKS.length) % CITY_LOOKS.length].id, true);
+});
+document.getElementById('btn-next-shader').addEventListener('click', () => {
+  const idx = CITY_LOOKS.findIndex((l) => l.id === camState.stock);
+  setLook(CITY_LOOKS[(idx + 1) % CITY_LOOKS.length].id, true);
+});
+
 function updateCameraLensUI() {
   // Approximate 35mm vertical FOV from focal length
   const fov = THREE.MathUtils.radToDeg(2 * Math.atan(24 / (2 * camState.focalMm)));
   camera.fov = camState.active ? fov : 52;
   camera.updateProjectionMatrix();
 
+  const lookObj = CITY_LOOKS.find((l) => l.id === camState.stock) || CITY_LOOKS[0];
   document.getElementById('lbl-focal').textContent = `${camState.focalMm}mm`;
   document.getElementById('lbl-focus').textContent = `${camState.focusM.toFixed(1)}m`;
   document.getElementById('lbl-ev').textContent = `${camState.exposureEv >= 0 ? '+' : ''}${camState.exposureEv.toFixed(1)} EV`;
   document.getElementById('vf-readout').textContent =
-    `${camState.focalMm}MM · FOCUS ${camState.focusM.toFixed(1)}M · EV ${camState.exposureEv.toFixed(1)} · ${camState.stock.toUpperCase()}`;
+    `${camState.focalMm}MM · FOCUS ${camState.focusM.toFixed(1)}M · EV ${camState.exposureEv.toFixed(1)} · ${lookObj.name.toUpperCase()}`;
 
-  wrap.className = `stock-${camState.stock}`;
-  wrap.style.setProperty('--ev-bright', (1 + camState.exposureEv * 0.22).toFixed(2));
   updateThresholdGate();
 }
 
@@ -1541,9 +1578,7 @@ document.querySelectorAll('#time-pills .pill').forEach((b) => {
 
 document.querySelectorAll('#stock-pills .pill').forEach((b) => {
   b.addEventListener('click', () => {
-    camState.stock = b.dataset.stock;
-    document.querySelectorAll('#stock-pills .pill').forEach((p) => p.classList.toggle('active', p === b));
-    updateCameraLensUI();
+    setLook(b.dataset.stock, true);
   });
 });
 
@@ -1597,6 +1632,8 @@ window.addEventListener('keydown', (e) => {
   if (k === 'x') toggleXray();
   if (k === 'm') toggleNolliMap();
   if (k === 'l') toggleLightTable();
+  if (k === '[') document.getElementById('btn-prev-shader').click();
+  if (k === ']') document.getElementById('btn-next-shader').click();
   if (k === ' ' && camState.active) {
     e.preventDefault();
     capturePlate();
@@ -1654,6 +1691,7 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  shaderPipeline.setSize(window.innerWidth, window.innerHeight);
 });
 
 // ---------------------------------------------------------------------------
@@ -1665,6 +1703,9 @@ if (urlParams.get('cart') && CARTRIDGES[urlParams.get('cart')]) {
 }
 if (urlParams.get('time') && TIME_PRESETS[urlParams.get('time')]) {
   ledger.timeOfDay = urlParams.get('time');
+}
+if (urlParams.get('look')) {
+  setLook(urlParams.get('look'), false);
 }
 
 applyCartridgeAndTime();
@@ -1807,7 +1848,14 @@ function animate() {
     projectorWet: ledger.projectorTankL >= 5.0,
   });
 
-  renderer.render(scene, camera);
+  const lookObj = CITY_LOOKS.find((l) => l.id === camState.stock) || CITY_LOOKS[0];
+  shaderPipeline.render(scene, camera, {
+    time: elapsed,
+    focusM: camState.focusM,
+    dofAmount: camState.active ? 0.65 : 0.0,
+    ev: camState.exposureEv,
+    mode: lookObj.mode,
+  });
 }
 
 animate();

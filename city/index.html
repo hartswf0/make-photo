@@ -30,17 +30,28 @@
     #canvas-wrap {
       position: fixed;
       inset: 0;
-      transition: filter 220ms ease;
     }
     #canvas-wrap canvas {
       display: block;
       width: 100%;
       height: 100%;
     }
-    .stock-silver { filter: grayscale(1) contrast(1.18) brightness(var(--ev-bright, 1)); }
-    .stock-cyanotype { filter: grayscale(1) sepia(1) hue-rotate(168deg) saturate(2.4) contrast(1.16) brightness(var(--ev-bright, 1)); }
-    .stock-woodblock { filter: grayscale(1) contrast(2.2) brightness(var(--ev-bright, 1)); }
-    .stock-color { filter: contrast(1.04) saturate(1.06) brightness(var(--ev-bright, 1)); }
+    .shader-select {
+      appearance: none;
+      background: rgba(24, 180, 255, 0.14);
+      border: 1px solid var(--cyan);
+      color: #e6f8ff;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 10.5px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .shader-select option {
+      background: #131618;
+      color: #f1eee6;
+    }
 
     /* Minimal Top-Left Header */
     #top-bar {
@@ -520,7 +531,7 @@
   </style>
 </head>
 <body>
-  <div id="canvas-wrap" class="stock-color"></div>
+  <div id="canvas-wrap"></div>
   <div id="shutter-flash"></div>
   <div id="toast"></div>
 
@@ -541,6 +552,11 @@
         <button class="pill" data-time="midday">Midday</button>
         <button class="pill active" data-time="bluehour">Blue Hour</button>
         <button class="pill" data-time="night">Night</button>
+      </div>
+      <div class="pill-row" style="align-items:center;">
+        <button class="pill" id="btn-prev-shader" title="Previous GPU Zone Shader ([)">&lt;</button>
+        <select class="shader-select" id="shader-select" aria-label="GPU Zone Shader"></select>
+        <button class="pill" id="btn-next-shader" title="Next GPU Zone Shader (])">&gt;</button>
       </div>
     </div>
   </div>
@@ -597,10 +613,11 @@
         <input id="sl-ev" type="range" min="-2.4" max="1.6" step="0.2" value="0">
       </div>
       <div class="pill-row" style="margin-top:0" id="stock-pills">
-        <button class="pill active" data-stock="color">Color+Cyan</button>
-        <button class="pill" data-stock="silver">Silver</button>
+        <button class="pill active" data-stock="natural">Natural</button>
+        <button class="pill cyan" data-stock="jerikan">Jerikan</button>
         <button class="pill cyan" data-stock="cyanotype">Cyanotype</button>
         <button class="pill" data-stock="woodblock">Woodblock</button>
+        <button class="pill" data-stock="inkwash">Ink Wash</button>
       </div>
       <button class="pill" id="btn-tripod">Tripod: Off</button>
       <button id="shutter-btn">Expose (Space)</button>
