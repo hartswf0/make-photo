@@ -33,6 +33,11 @@
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); snap.width = Math.max(64, Math.round(W / 3)); snap.height = Math.max(64, Math.round(H / 3));
     }
     size(); addEventListener('resize', size);
+    const hist = [], HN = 90; let histT = 0, histI = 0;                  // what the glass has seen, about 40 s of it
+    const WC = 28, WR = 40, wear = new Float32Array(WC * WR); let wearT = 0;
+    try { const w0 = localStorage.getItem('ahiya-wear'); if (w0 && w0.length === WC * WR) for (let i = 0; i < w0.length; i++) wear[i] = (w0.charCodeAt(i) - 48) / 9; } catch (e) { }
+    const wearAt = (x, y) => { const c = Math.floor(x / W * WC), r = Math.floor(y / H * WR); return c < 0 || c >= WC || r < 0 || r >= WR ? 0 : wear[r * WC + c]; };
+    const erode = (x, y, a) => { const c = Math.floor(x / W * WC), r = Math.floor(y / H * WR); if (c >= 0 && c < WC && r >= 0 && r < WR) wear[r * WC + c] = Math.min(1, wear[r * WC + c] + a); };
     const fog = document.createElement('canvas'), glyphs = [], clouds = [];
     const GLYPH = `600 13px "Noto Sans Ethiopic","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif`, gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 1.15;
     const drops = [], beads = [], wisps = [], msgs = [], streaks = [], wetPts = [], skins = new Map(), memory = [];
@@ -59,9 +64,11 @@
     function water(x, y, rx, ry, a, tint, pathFn, opt) {
       const k = snap.width / W, m = 1.9, [lx, ly] = lightDir(x, y), R = Math.max(rx, ry);
       ctx.save(); ctx.globalAlpha = a; pathFn(); ctx.clip();
-      ctx.translate(x, y); ctx.scale(-1, -1);
-      ctx.drawImage(snap, (x - rx * m) * k, (y - ry * m) * k, rx * 2 * m * k, ry * 2 * m * k, -rx * 1.25, -ry * 1.25, rx * 2.5, ry * 2.5);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (opt && opt.tele) { const f = Math.max(rx, ry) / 2.3 * 1.25;                 // it looks at its own thing, upright and near
+        ctx.drawImage(snap, (opt.tele[0] - f) * k, (opt.tele[1] - f) * k, f * 2 * k, f * 2 * k, x - rx * 1.25, y - ry * 1.25, rx * 2.5, ry * 2.5); }
+      else { ctx.translate(x, y); ctx.scale(-1, -1);
+        ctx.drawImage(snap, (x - rx * m) * k, (y - ry * m) * k, rx * 2 * m * k, ry * 2 * m * k, -rx * 1.25, -ry * 1.25, rx * 2.5, ry * 2.5);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
       const bx = x - rx * 1.4, by = y - ry * 1.4, bw = rx * 2.8, bh = ry * 2.8;
       if (tint) { ctx.fillStyle = tint; ctx.fillRect(bx, by, bw, bh); }
       if (opt && opt.fill != null) {                                    // a measure is how full the drop is
@@ -102,13 +109,13 @@
         ctx.moveTo(x + Math.cos(a) * (r + 13), y + Math.sin(a) * (r + 13)); ctx.lineTo(x + Math.cos(a + .5) * (r + 2), y + Math.sin(a + .5) * (r + 2)); ctx.lineTo(x + Math.cos(a - .5) * (r + 2), y + Math.sin(a - .5) * (r + 2)); ctx.closePath(); ctx.fill(); }
       ctx.restore();
     }
-    D.title = t => { D.titleText = t; D.titleT = 4.2; dirty = true; for (let i = 0; i < 14; i++) drop({ x: 20 + Math.random() * (W - 40), y: -10 - Math.random() * 120, r: 3 + Math.random() * 4, state: 'fall', vy: 60 + Math.random() * 120, grow: 1, forced: true }); };   // an area arrives as a shower
+    D.title = t => { D.titleText = t; D.titleT = 4.2; dirty = true; for (let i = 0; i < 4; i++) drop({ x: 20 + Math.random() * (W - 40), y: -10 - Math.random() * 120, r: 3 + Math.random() * 4, state: 'fall', vy: 60 + Math.random() * 120, grow: 1, forced: true }); };   // an area arrives as a shower
     const lens = (x, y, rx, ry, a, tint) => water(x, y, rx, ry, a, tint, () => { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 6.2832); });
     /* ---------- loose drops ---------- */
     function drop(o) {
       const d = Object.assign({ x: W / 2, y: H / 2, r: 14, grow: 0, state: 'hold', vy: 0, vx: 0, life: 1e9, t: 0, a: 1, tint: null, lastPt: -1e9, wob: Math.random() * 6, held: false, trail: null }, o);
       d.m = mOf(d.r); drops.push(d); dirty = true;
-      if (d.word === undefined && !d.held && D.lang.words.length) d.word = D.lang.words[Math.floor(Math.random() * D.lang.words.length)];   // what this water has to say as it goes
+      if (d.word === undefined && !d.held && D.lang.words.length && Math.random() < .3) d.word = D.lang.words[Math.floor(Math.random() * D.lang.words.length)];   // what this water has to say as it goes
       d.chars = d.word ? Array.from(d.word) : null; d.ci = 0;
       d.release = () => { if (d.state === 'hold') { d.state = 'fall'; d.vy = Math.max(d.vy, 20); d.held = false; d.forced = true; } };
       d.smoke = () => { if (d.state !== 'gone') { for (let i = 0; i < 10; i++) wisp(d.x + (Math.random() - .5) * d.r, d.y + (Math.random() - .5) * d.r); d.state = 'gone'; } };
@@ -136,7 +143,7 @@
       const c = o.rgb || colourAt(x, y), mix = v => Math.round(v * .45 + 232 * .55);
       wisps.push(Object.assign({ x, y, vx: (Math.random() - .5) * 14, vy: -18 - Math.random() * 26, r: 5 + Math.random() * 7, t: 0, life: 1.6 + Math.random() * 1.2, rgb: [mix(c[0]), mix(c[1]), mix(c[2])] }, o)); dirty = true;
     }
-    function streakPt(S, x, y) { S.pts.push({ x, y, t: 0 }); if (S.pts.length > 110) S.pts.shift(); wetPts.push(S.pts[S.pts.length - 1]); if (wetPts.length > 260) wetPts.shift(); }
+    function streakPt(S, x, y) { erode(x, y, S.w > 6 ? .03 : .012); S.pts.push({ x, y, t: 0 }); if (S.pts.length > 110) S.pts.shift(); wetPts.push(S.pts[S.pts.length - 1]); if (wetPts.length > 260) wetPts.shift(); }
     function newStreak(w, life, rgb) { const S = { pts: [], w, life, rgb: rgb || '214,238,248' }; streaks.push(S); if (streaks.length > 26) streaks.shift(); return S; }
     /* ---------- messages ---------- */
     function say(o) {
@@ -317,7 +324,7 @@
     function drawSkin(U, dt) {
       U.a = Math.min(1, U.a + dt * 3.2); U.ox *= 1 - Math.min(1, dt * 3); U.oy *= 1 - Math.min(1, dt * 3); U.swell *= 1 - Math.min(1, dt * 1.2);
       const k = Math.min(1, dt * (U.land ? 5 : 7)); U.x += (U.hx + U.ox - U.x) * k; U.y += (U.hy + U.oy - U.y) * k;       // stubborn: it comes back to its place
-      if (U.land && Math.abs(U.y - U.hy) < 4) { U.land = false; U.swell = 1; for (let i = 0; i < 4; i++) drop({ x: U.x + (Math.random() - .5) * U.trx * 1.6, y: U.y + U.try * .6, r: 2 + Math.random() * 2, state: 'fall', vy: 20 + Math.random() * 40, vx: (Math.random() - .5) * 120, grow: 1, forced: true }); }   // it lands, and splashes
+      if (U.land && Math.abs(U.y - U.hy) < 4) { U.land = false; U.swell = 1; for (let i = 0; i < 1; i++) drop({ x: U.x + (Math.random() - .5) * U.trx * 1.6, y: U.y + U.try * .6, r: 2 + Math.random() * 2, state: 'fall', vy: 20 + Math.random() * 40, vx: (Math.random() - .5) * 120, grow: 1, forced: true }); }   // it lands, and splashes
       const g = U.a * (2 - U.a) * (U.press ? .93 : 1) * (1 + U.swell * .1); U.rx += (U.trx * g - U.rx) * k; U.ry += (U.try * g - U.ry) * k;
       const fixed = U.el.id === 'dk-status' || U.el.id === 'dk-menu-btn' || U.el.id === 'dk-expose' || U.el.classList.contains('dk-gauge'), nearF = finger.down && Math.hypot(finger.x - U.x, finger.y - U.y) < U.rx + 90;
       const want = nearF || U.press || U.land ? 1 : U.el.dataset.dewFaint ? .42 : fixed ? (T - D.lastTouch > 5 && !document.body.classList.contains('dk-menu-open') ? .5 : 1) : U.el.dataset.key && U.age > 5 ? .72 : 1;   // water yields: it thins when you are not reaching for it
@@ -328,23 +335,26 @@
       U.age = (U.age || 0) + dt; const sag = U.kind === 'urgent' ? .1 + .05 * Math.sin(T * 9) : U.el.dataset.dewLife ? Math.min(.42, Math.pow(U.age / +U.el.dataset.dewLife, 2) * .42) : U.el.classList.contains('verb') ? Math.min(.18, U.age * .012) : 0;   // what waits, sags; what is about to go, hangs
       const x = U.x + (U.kind === 'urgent' ? Math.sin(T * 23) * 1.2 : 0), y = U.y + Math.sin(T * .8 + U.seed) * 1.2 + U.ry * sag * .5, rx = U.rx * (1 - sag * .25), ry = U.ry * (1 + sag), tear = U.kind === 'tear', amp = U.kind === 'pool' ? .05 : rx > 30 ? .075 : .05;
       const ds = U.el.dataset, stain = STAIN[ds.stain] || TINT[U.kind], fill = ds.fill != null && ds.fill !== '' ? +ds.fill : null;
-      water(x, y, rx, ry, Math.min(1, U.a * 1.2) * U.vis, fill != null ? null : stain, () => blob(x, y, rx, ry, U.seed, amp, tear),
-        fill != null ? { fill, mark: ds.mark ? +ds.mark : null, col: (STAIN[ds.stain] || STAIN.water).replace(/[\d.]+\)$/, '.62)') } : null);
+      const tele = ds.rx ? [+ds.rx, +ds.ry] : null;
+      water(x, y, rx, ry, Math.min(1, U.a * 1.2) * U.vis, fill != null ? null : tele ? (stain || '').replace(/[\d.]+\)$/, '.16)') : stain, () => blob(x, y, rx, ry, U.seed, amp, tear),
+        fill != null ? { fill, mark: ds.mark ? +ds.mark : null, col: (STAIN[ds.stain] || STAIN.water).replace(/[\d.]+\)$/, '.62)') } : tele ? { tele } : null);
+      if (tele) { ctx.save(); blob(x, y, rx + 2.5, ry + 2.5, U.seed, amp, tear); ctx.lineWidth = 3; ctx.strokeStyle = (stain || 'rgba(255,255,255,.3)').replace(/[\d.]+\)$/, '.85)'); ctx.globalAlpha = U.vis * U.a; ctx.stroke(); ctx.restore(); }   // its stain is its rim
+      else if (ds.stain === 'talk' && !ds.icon) { ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1; for (let i = 0; i < 2; i++) { const u = (T * .6 + i * .5 + U.seed) % 1; ctx.globalAlpha = (1 - u) * .7 * U.vis; ctx.beginPath(); ctx.ellipse(x, y, rx * (.25 + u * .7), ry * (.25 + u * .7), 0, 0, 6.2832); ctx.stroke(); } ctx.restore(); }   // speech with no thing to show: it rings
       if (U.kind === 'pool') { ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 1; for (let i = 0; i < 2; i++) { const u = ((T * .35 + i * .5) % 1); ctx.globalAlpha = (1 - u) * .8; ctx.beginPath(); ctx.ellipse(x, y, rx * (.35 + u * .6), ry * (.35 + u * .6), 0, 0, 6.2832); ctx.stroke(); } ctx.restore(); }
       // the rain feeds it; when it holds too much it sheds a drip that runs
-      if (D.rain > .2) { U.wetq += dt * D.rain * (.05 + Math.random() * .1); if (U.wetq > 1 && U.kind !== 'pool') { U.wetq = 0; U.swell = 0; drop({ word: U.label || undefined, x: x + (Math.random() - .5) * rx * .8, y: y + ry * (tear ? 1 : .9), r: 3 + Math.random() * 2.6, state: 'fall', vy: 6, grow: .2, forced: true, tint: U.kind === 'amber' ? 'rgba(230,150,30,.4)' : null }); } }
+      if (D.rain > .2) { U.wetq += dt * D.rain * (.012 + Math.random() * .03); if (U.wetq > 1 && U.kind !== 'pool') { U.wetq = 0; U.swell = 0; drop({ word: U.label || undefined, x: x + (Math.random() - .5) * rx * .8, y: y + ry * (tear ? 1 : .9), r: 3 + Math.random() * 2.6, state: 'fall', vy: 6, grow: .2, forced: true, tint: U.kind === 'amber' ? 'rgba(230,150,30,.4)' : null }); } }
       const hang = U.wetq > .55 && U.kind !== 'pool' ? (U.wetq - .55) / .45 : 0;                            // the drip gathering under it
       if (hang > 0) { const hx = x + Math.sin(U.seed * 3) * rx * .45, hy = y + ry * .96; lens(hx, hy + hang * 5, 2 + hang * 2.2, 2.6 + hang * 5, U.a, TINT[U.kind === 'amber' ? 'amber' : '']); }
       // what it says
       ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = U.a * Math.min(1, U.vis + .25); ctx.shadowColor = 'rgba(0,8,14,.95)'; ctx.shadowBlur = 6; ctx.fillStyle = '#fff';
       if (U.pic) { /* a held picture is drawn by the element itself, under the water */ }
       const fs = U.cap ? 12 : Math.max(12, Math.min(17, rx * .34 + 6)), ly = tear ? y + ry * .22 : y - (U.sub && !U.cap ? 6 : 0);
-      const ic = ICON[ds.icon];
+      const pe = U.el.parentElement, ic = pe && (pe.id === 'dk-rail' || pe.id === 'dk-row') ? ICON[ds.icon] : null;   // marks live only inside the honey menu; on the glass a drop is known by what it shows
       if (ic) {                                                           // a mark, not a word; the word only while your finger rests on it
         const sc = Math.min(rx, ry) * (tear ? .5 : .58) / 11; ctx.save(); ctx.translate(x, tear ? y + ry * .28 : y); ctx.scale(sc, sc); ctx.lineWidth = 2 / Math.max(.8, Math.min(1.3, sc)); ctx.strokeStyle = '#fff'; ctx.lineCap = ctx.lineJoin = 'round'; ic(ctx); ctx.restore();
         if (U.press && U.label && ds.icon !== 'none') { ctx.font = `italic 12px ${SERIF}`; ctx.fillText(U.label, Math.max(50, Math.min(W - 50, x)), y - ry - 12); }
-      } else { ctx.font = `500 ${fs}px ${SERIF}`; ctx.fillText(U.label, x, ly, rx * 1.75); }
-      if (U.sub && !ic) { ctx.font = U.cap ? `italic 10.5px ${SERIF}` : `italic 11.5px ${SERIF}`; ctx.globalAlpha = U.a * .9; ctx.fillText(U.sub, x, U.cap ? y + ry + 9 : ly + 15, U.cap ? 70 : rx * 1.8); }
+      } else if (U.press && U.label) { ctx.font = `italic 12.5px ${SERIF}`; ctx.fillText(U.label, Math.max(60, Math.min(W - 60, x)), y - ry - 12); }   // never a label, only an answer to your touch
+      if (false) { ctx.font = U.cap ? `italic 10.5px ${SERIF}` : `italic 11.5px ${SERIF}`; ctx.globalAlpha = U.a * .9; ctx.fillText(U.sub, x, U.cap ? y + ry + 9 : ly + 15, U.cap ? 70 : rx * 1.8); }
       ctx.restore();
     }
     /* ---------- per frame ---------- */
@@ -362,28 +372,31 @@
         c.d = Math.max(0, Math.min(1, c.d + gauss() * Math.sqrt(dt) * .22 + (.5 - c.d) * dt * .05)); cover += c.d; }
       cover /= clouds.length;
       if (D.rain > .2 && rainT <= 0) {
-        rainT = (.08 + Math.random() * Math.random() * .7) / (D.rain * (.3 + cover * 1.5 + Math.max(0, D.gust) * .9));       // long-tailed gaps: bursts and pauses
+        rainT = (.3 + Math.random() * Math.random() * 2.4) / (D.rain * (.3 + cover * 1.5 + Math.max(0, D.gust) * .9));       // long-tailed gaps: bursts and pauses
         let pick = Math.random() * cover * clouds.length, cl = clouds[0]; for (const c of clouds) { pick -= c.d; if (pick <= 0) { cl = c; break; } }
         const x = Math.max(8, Math.min(W - 8, cl.x + gauss() * cl.w * .45)), y = 30 + Math.random() * (H * .7), r = 1.4 + Math.random() * Math.random() * 4.2;
         let ui = null; for (const U of skins.values()) if (Math.abs(x - U.x) < U.rx && Math.abs(y - U.y) < U.ry) { ui = U; break; }
-        if (ui) { ui.swell = Math.min(1, ui.swell + .5); ui.wetq += .16; }                                 // rain on a control: it takes it in
+        if (ui) { ui.swell = Math.min(1, ui.swell + .5); ui.wetq += .06; }                                 // rain on a control: it takes it in
         else {
           const amb = drops.filter(d => d.amb && d.state === 'hold');
           let hit = amb.find(d => Math.hypot(d.x - x, d.y - y) < d.r + r + 3);
-          if (!hit && amb.length >= 24) { let bd = 1e9; for (const d of amb) { const q = Math.hypot(d.x - x, d.y - y); if (q < bd) { bd = q; hit = d; } } }
+          if (!hit && amb.length >= 11) { let bd = 1e9; for (const d of amb) { const q = Math.hypot(d.x - x, d.y - y); if (q < bd) { bd = q; hit = d; } } }
           if (hit) { hit.m += mOf(r) * 1.6; hit.r = rOf(hit.m); } else drop({ amb: true, x, y, r, grow: .4, a: .9 });
           for (const d of amb) for (const o of amb) if (o !== d && o.state === 'hold' && d.state === 'hold' && d.m >= o.m && Math.hypot(o.x - d.x, o.y - d.y) < (o.r + d.r) * .92) {
             d.x = (d.x * d.m + o.x * o.m) / (d.m + o.m); d.y = (d.y * d.m + o.y * o.m) / (d.m + o.m); d.m += o.m; d.r = rOf(d.m); o.state = 'gone'; }
         }
       }
-      if (finger.down && !finger.onUi && !finger.breathed && !D.pool && finger.len < 12 && T - finger.t0 > .55) {   // held still on empty glass: your breath brings the drops back
+      if (finger.down && !finger.onUi && !finger.breathed && !D.pool && finger.len < 12 && T - finger.t0 > .55) { finger.yb = finger.y;   // held still on empty glass: your breath brings the drops back
         finger.breathed = true; for (let i = 0; i < 12; i++) wisp(finger.x + (Math.random() - .5) * 70, finger.y + (Math.random() - .5) * 50, { vy: -6 - Math.random() * 10, r: 14 + Math.random() * 14, rgb: [232, 240, 244] }); if (D.onBreathe) D.onBreathe(); }
       for (const M of msgs) M.place();
       for (let i = msgs.length - 1; i >= 0; i--) { const M = msgs[i]; if (M.done) { M.fade -= dt * 1.1; if (M.fade <= 0) msgs.splice(i, 1); } }
       D.wet += ((D.rain > .2 ? 1 : 0) - D.wet) * Math.min(1, dt * .6);
-      const busy = glyphs.length || D.map || D.mapA > .02 || D.ways.length || D.titleT > 0 || D.mist > .02 || D.smoke > .02 || drops.length || beads.length || wisps.length || msgs.length || streaks.length || skins.size || D.flare > .02 || D.breath > .02 || D.bloomT > 0 || D.wet > .02 || D.mark;
+      const busy = D.scrub > .03 || glyphs.length || D.map || D.mapA > .02 || D.ways.length || D.titleT > 0 || D.mist > .02 || D.smoke > .02 || drops.length || beads.length || wisps.length || msgs.length || streaks.length || skins.size || D.flare > .02 || D.breath > .02 || D.bloomT > 0 || D.wet > .02 || D.mark;
       if (!busy) { if (dirty) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); dirty = false; } return; }
       dirty = true; snapAge += dt; if (snapAge > .033) snapshot();
+      histT += dt; if (histT > .45 && !(D.scrub > .03)) { histT = 0; let h = hist[histI]; if (!h) { h = hist[histI] = document.createElement('canvas'); h.width = snap.width; h.height = snap.height; } h.getContext('2d').drawImage(snap, 0, 0); h.at = T; histI = (histI + 1) % HN; }
+      // TIME: breathe on the glass, then draw your finger up against the rain; the fog shows what was
+      D.scrub = finger.down && finger.breathed ? Math.max(0, Math.min(1, (finger.yb - finger.y) / (H * .42))) : Math.max(0, (D.scrub || 0) - dt * 2.5);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
       // BREATH
       if (D.breath > .02) {
@@ -412,7 +425,7 @@
       if (D.smoke > .02 && Math.random() < dt * 5 * D.smoke) wisp(Math.random() * W, H + 10, { vx: (Math.random() - .5) * 16 + D.wind * .2, vy: -34 - Math.random() * 30, r: 9 + Math.random() * 10, life: 3 + Math.random() * 2, rgb: [236, 206, 170] });
       // the name of where you have come to, written by the shower that brought it
       if (D.titleT > 0) { D.titleT -= dt; const a = Math.min(1, D.titleT / .8) * Math.min(1, (4.2 - D.titleT) / .5); ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; beaded(D.titleText, W / 2, H * .27, Math.min(40, W / (D.titleText.length * .52)), a); ctx.restore();
-        if (D.titleT <= 0) for (let i = 0; i < 6; i++) drop({ x: W * .2 + Math.random() * W * .6, y: H * .27 + (Math.random() - .5) * 20, r: 2.6 + Math.random() * 3, state: 'fall', vy: 10 + Math.random() * 30, grow: 1, forced: true }); }
+        if (D.titleT <= 0) for (let i = 0; i < 0; i++) drop({ x: W * .2 + Math.random() * W * .6, y: H * .27 + (Math.random() - .5) * 20, r: 2.6 + Math.random() * 3, state: 'fall', vy: 10 + Math.random() * 30, grow: 1, forced: true }); }
       // THE MAP: breath on the glass, and the route wiped clear through it; you see the world through the lines
       D.mapA += ((D.map ? 1 : 0) - D.mapA) * Math.min(1, dt * 3); if (D.map) D.lastMap = D.map;
       if (D.mapA > .02 && D.lastMap) { const M = D.lastMap, a = D.mapA; fog.width = Math.round(W / 2); fog.height = Math.round(H / 2); const f = fog.getContext('2d'); f.setTransform(.5, 0, 0, .5, 0, 0);
@@ -429,6 +442,12 @@
         ctx.restore(); lens(M.me[0], M.me[1], 9, 10, a, 'rgba(56,222,255,.3)');
         ctx.save(); ctx.globalAlpha = a; ctx.translate(M.me[0], M.me[1]); ctx.rotate(M.me[2]); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(0, -17); ctx.lineTo(4.5, -10); ctx.lineTo(-4.5, -10); ctx.closePath(); ctx.fill(); ctx.restore();
         ctx.save(); ctx.globalAlpha = a; ctx.translate(M.donkey[0], M.donkey[1]); ctx.scale(.55, .55); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ICON.donkey(ctx); ctx.restore(); }
+      if (D.scrub > .03) { const back = D.scrub * 40; let best = null, bd = 1e9; for (const h of hist) if (h) { const q = Math.abs((T - h.at) - back); if (q < bd) { bd = q; best = h; } }
+        if (best) { const cx = W / 2, cy = H * .42, rx = W * .44 * (.5 + .5 * Math.min(1, D.scrub * 3)), ry = H * .34 * (.5 + .5 * Math.min(1, D.scrub * 3));
+          ctx.save(); blob(cx, cy, rx, ry, 4.2, .05); ctx.clip(); ctx.globalAlpha = Math.min(1, D.scrub * 5); ctx.drawImage(best, 0, 0, W, H); ctx.fillStyle = 'rgba(214,226,232,.16)'; ctx.fillRect(0, 0, W, H);
+          const g = ctx.createRadialGradient(cx, cy, Math.min(rx, ry) * .6, cx, cy, Math.max(rx, ry)); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,8,14,.6)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
+          ctx.save(); blob(cx, cy, rx, ry, 4.2, .05); ctx.lineWidth = 1.6; ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.stroke();
+          ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(190,240,255,.9)'; ctx.beginPath(); ctx.arc(finger.x, finger.y, 26, -1.5708, -1.5708 - D.scrub * 6.2832, true); ctx.stroke(); ctx.restore(); } }   // how far back, as an arc round your finger
       // PLACES: each a drop over where it is, looking at it
       for (const Wy of D.ways) tele(Wy, dt);
       // WATER DOWN THE FRAME
@@ -439,6 +458,12 @@
           for (let y = -10; y <= H + 10; y += 14) { const x = bx + sg * (off + 3.6 * Math.sin(y * .021 + T * .5 + side * 2) + 2 * Math.sin(y * .067 - T * .9) + 2.6 * Math.sin(y * .009 + side)); if (y < 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
           ctx.stroke(); }
       }
+      // EROSION: where water has run again and again the glass is worn, and it shows
+      wearT += dt; if (wearT > 15) { wearT = 0; try { let o = ''; for (let i = 0; i < wear.length; i++) o += String.fromCharCode(48 + Math.round(wear[i] * 9)); localStorage.setItem('ahiya-wear', o); } catch (e) { } }
+      { const cw = W / WC, chh = H / WR; ctx.lineCap = 'round';
+        for (let r = 0; r < WR; r++) for (let c = 0; c < WC; c++) { const w = wear[r * WC + c]; if (w < .22) continue; const a = (w - .22) * .5, x0 = (c + .5) * cw + Math.sin(r * 1.7 + c * 3.1) * cw * .3, x1 = (c + .5) * cw + Math.sin((r + 1) * 1.7 + c * 3.1) * cw * .3;
+          ctx.strokeStyle = `rgba(0,8,14,${a * .6})`; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(x0 + 1, r * chh); ctx.lineTo(x1 + 1, (r + 1) * chh); ctx.stroke();
+          ctx.strokeStyle = `rgba(226,240,246,${a * .55})`; ctx.lineWidth = .8; ctx.beginPath(); ctx.moveTo(x0, r * chh); ctx.lineTo(x1, (r + 1) * chh); ctx.stroke(); } }
       // STREAKS: ribbons of water, thinning from the tail; the easy way down for whatever comes next
       ctx.lineCap = ctx.lineJoin = 'round';
       for (let i = streaks.length - 1; i >= 0; i--) {
@@ -498,7 +523,8 @@
           let pull = 0, wet = 0;
           for (let k = wetPts.length - 1, n = 0; k >= 0 && n < 90; k--, n++) { const b = wetPts[k], dy = b.y - d.y; if (b.t < 6 && dy > 0 && dy < 30 && Math.abs(b.x - d.x) < 20) { pull += (b.x - d.x); wet++; } }
           d.vx += ((wet ? pull / wet * 7 : Math.sin(d.t * 5 / (d.visc || 1) + d.wob) * (d.slow ? 34 : 24 / (d.visc || 1))) - d.vx) * dt * 4; if (wet) d.vy += 120 * dt;
-          d.x += (d.vx + (D.windNow ?? D.wind) * (d.visc ? .1 : .6)) * dt; d.y += d.vy * dt;                 // the wind leans the rain
+          d.vx += (wearAt(d.x + W / WC, d.y + 20) - wearAt(d.x - W / WC, d.y + 20)) * 220 * dt;     // worn glass draws the water
+          d.x += (d.vx + (D.windNow ?? D.wind) * (d.visc ? .1 : .6)) * dt; d.y += d.vy * dt * (1 - 2.2 * (D.scrub || 0));     // while you reach back, the rain climbs                 // the wind leans the rain
           for (const o of drops) if (o !== d && o.state === 'hold' && !o.held && Math.hypot(o.x - d.x, o.y - d.y) < o.r + d.r) { d.m += o.m; d.r = rOf(d.m); d.x += (o.x - d.x) * .25; o.state = 'gone'; }
           for (const U of skins.values()) if (!d.forced && Math.abs(d.x - U.x) < U.rx * .9 && Math.abs(d.y - U.y) < U.ry * .9) { U.swell = Math.min(1, U.swell + .7); U.wetq += .3; d.state = 'gone'; }   // a stubborn drop swallows it
           if (!d.trail) d.trail = newStreak(Math.max(2.2, d.r * (d.cells ? 1.5 : d.visc ? 1.25 : .9)), d.cells ? 16 : d.visc ? 14 : 6 + Math.random() * 4, d.visc ? '240,180,70' : null);
