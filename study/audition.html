@@ -429,6 +429,7 @@
       <span id="time-readout">00:12 / 04:43</span>
       <input type="range" id="song-scrub" min="0" max="283" step="0.2" value="12.2" aria-label="Scrub Cyan Jerikan timeline">
       <button type="button" class="play-btn" id="btn-speak-lyric" title="Speak active lyric aloud with synced visemes">SPEAK PHRASE</button>
+      <button type="button" class="play-btn" id="btn-mic-lipsync" title="Drive live facial lip-sync from your microphone">MIC LIP-SYNC</button>
       <button type="button" class="audio-cta" id="btn-unmute">UNMUTE OGG</button>
     </div>
   </section>
@@ -464,7 +465,7 @@
   <script src="../zones/world-architecture.js?v=v6sculpt1"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-retarget.js?v=3"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=1"></script>
-  <script src="../motion-pipeline/anny-human-v7.js?v=3"></script>
+  <script src="../motion-pipeline/anny-human-v7.js?v=4"></script>
   <script src="./look-audition-mv.js?v=v7pass1"></script>
   <script>
   (function () {
@@ -1141,6 +1142,7 @@
         $("lyric-strip").hidden = true;
 
         if (isClay) {
+          $("lyric-strip").hidden = false;
           camera.fov = 18;
           camera.updateProjectionMatrix();
           const cId = (activeCastId === "ensemble" || activeCastId === "daniel") ? "imani" : activeCastId;
@@ -1149,36 +1151,129 @@
           const yLift = (1.0 - charScale) * 1.52;
           const clipPlane = new T.Plane(new T.Vector3(0, 1, 0), -1.318);
           const slots = [
-            { k: "front", x: -0.315, yaw: 0.0 },
-            { k: "threeQ", x: 0.015, yaw: 36 * (Math.PI / 180) },
-            { k: "profile", x: 0.335, yaw: 90 * (Math.PI / 180) }
+            { k: "front", x: -0.295, yaw: 0.0 },
+            { k: "threeQ", x: 0.005, yaw: 35 * (Math.PI / 180) },
+            { k: "profile", x: 0.295, yaw: 90 * (Math.PI / 180) }
           ];
-          slots.forEach(sl => {
-            const rayAng = Math.atan2(-sl.x, 1.92);
-            const ch = window.makeExpeditionCharacter(T, {
-              ...castObj.spec,
-              id: `aud_clay_${castObj.id}_${sl.k}`,
-              x: sl.x, z: 0, yOffset: yLift, heading: sl.yaw + rayAng, pose: "idle"
+          const wantAnnyClay = activeRigMode === "anny_v7" && window.AnnyHumanV7 && typeof window.AnnyHumanV7.createCharacter === "function";
+
+          if (wantAnnyClay) {
+            const arch = mapCastToAnnyArchetype(cId);
+            const applyAnnyClayMat = (rootObj) => {
+              const skinClay = new T.MeshStandardMaterial({ color: 0x7d7770, roughness: 0.78, metalness: 0.0, clippingPlanes: [clipPlane], clipShadows: true });
+              const hairClay = new T.MeshStandardMaterial({ color: 0x4b4744, roughness: 0.88, metalness: 0.0, clippingPlanes: [clipPlane], clipShadows: true });
+              const clothClay = new T.MeshStandardMaterial({ color: 0x948e88, roughness: 0.82, metalness: 0.0, side: T.DoubleSide, clippingPlanes: [clipPlane], clipShadows: true });
+              const mouthClay = new T.MeshStandardMaterial({ color: 0x2d2825, roughness: 0.94, metalness: 0.0, side: T.DoubleSide, clippingPlanes: [clipPlane], clipShadows: true });
+              const teethClay = new T.MeshStandardMaterial({ color: 0x8e8881, roughness: 0.62, metalness: 0.0, side: T.DoubleSide, clippingPlanes: [clipPlane], clipShadows: true });
+              const eyeClay = new T.MeshStandardMaterial({ color: 0x726c66, roughness: 0.70, metalness: 0.0, clippingPlanes: [clipPlane], clipShadows: true });
+              rootObj.traverse(o => {
+                if (!o.isMesh || !o.material) return;
+                const nm = String(o.name || "").toLowerCase();
+                const pnm = String((o.parent && o.parent.name) || "").toLowerCase();
+                if (pnm.includes("mouth_interior")) {
+                  const orig = Array.isArray(o.material) ? o.material[0] : o.material;
+                  const isDark = orig && orig.color && (orig.color.r + orig.color.g + orig.color.b) < 0.6;
+                  o.material = isDark ? mouthClay : teethClay;
+                } else if (pnm.includes("eye_") || nm.includes("eye")) {
+                  o.material = eyeClay;
+                } else if (nm.includes("loc") || nm.includes("hair") || nm.includes("groom") || pnm.includes("groom") || pnm.includes("loc")) {
+                  o.material = hairClay;
+                } else if (nm.includes("tunic") || nm.includes("duster") || nm.includes("trouser") || nm.includes("shamma") || nm.includes("belt") || nm.includes("sandal")) {
+                  o.material = clothClay;
+                } else {
+                  o.material = skinClay;
+                }
+                o.castShadow = true;
+                o.receiveShadow = true;
+              });
+            };
+            slots.forEach(sl => {
+              const rayAng = Math.atan2(-sl.x, 1.92);
+              const annyGroup = new T.Group();
+              annyGroup.position.set(sl.x, 0, 0);
+              annyGroup.rotation.y = sl.yaw + rayAng;
+              stageRoot.add(annyGroup);
+              const entry = {
+                ch: { group: annyGroup, state: { id: `aud_clay_anny_${cId}_${sl.k}`, heading: sl.yaw + rayAng, scale: 1.0 } },
+                isAnnyV7: true,
+                annyInstance: null,
+                archetype: arch,
+                role: "clay",
+                pose: "idle",
+                baseX: sl.x,
+                baseZ: 0,
+                groundY: 0,
+                baseHeading: sl.yaw + rayAng,
+                claySlot: sl.k
+              };
+              getGltfLoader().then(loader => window.AnnyHumanV7.createCharacter({
+                THREE: T,
+                loader,
+                archetype: arch,
+                assetBaseUrl: "../abyssinian-highlands/human-forge/assets",
+                clipsBaseUrl: "../motion-pipeline/mesh2motion/clips",
+                clothed: true,
+                groundY: 0,
+                preloadClips: ["idle"],
+                initialClip: "idle"
+              })).then(inst => {
+                if (!inst || !stageRoot.children.includes(annyGroup)) {
+                  if (inst && typeof inst.dispose === "function") inst.dispose();
+                  return;
+                }
+                entry.annyInstance = inst;
+                if (inst.root) {
+                  annyGroup.add(inst.root);
+                  inst.update(0.016, { skipGroundPin: false });
+                  annyGroup.updateMatrixWorld(true);
+                  const hb = inst.bonesByNorm && inst.bonesByNorm.get("head");
+                  if (hb) {
+                    const wp = new T.Vector3();
+                    hb.getWorldPosition(wp);
+                    // Align head bone cleanly to bust studio centerline (y ~ 1.495m) for all archetypes including June (child7)
+                    annyGroup.position.y += (1.495 - wp.y);
+                    entry.headBone = hb;
+                  }
+                  entry.neckBone = inst.bonesByNorm && inst.bonesByNorm.get("neck01");
+                  applyAnnyClayMat(inst.root);
+                }
+                renderer.shadowMap.needsUpdate = true;
+              }).catch(err => {
+                console.warn("[Audition] Anny V7 clay bust load error:", err);
+              });
+              activeActors.push(entry);
             });
-            if (ch.label && ch.label.sprite) ch.label.sprite.visible = false;
-            ch.place(sl.x, 0, sl.yaw + rayAng, flatGround);
-            ch.update(0.016, 0, { pose: "idle", surfaceAt: flatGround, emotion: "neutral", emotionIntensity: 0.25, viseme: "SIL", visemeAmount: 1 });
-            applyAudClayMode(ch, true);
-            ch.group.traverse(o => {
-              if (!o.isMesh || !o.material) return;
-              const mats = Array.isArray(o.material) ? o.material : [o.material];
-              for (let mi = 0; mi < mats.length; mi++) {
-                const m = mats[mi];
-                if (!m) continue;
-                m.clippingPlanes = [clipPlane];
-                m.clipShadows = true;
-                m.needsUpdate = true;
+          } else {
+            slots.forEach(sl => {
+              const rayAng = Math.atan2(-sl.x, 1.92);
+              const ch = window.makeExpeditionCharacter(T, {
+                ...castObj.spec,
+                id: `aud_clay_${castObj.id}_${sl.k}`,
+                x: sl.x, z: 0, yOffset: yLift, heading: sl.yaw + rayAng, pose: "idle"
+              });
+              if (window.HumanExpressionsV4 && typeof window.HumanExpressionsV4.ensureController === "function") {
+                window.HumanExpressionsV4.ensureController(ch);
               }
+              if (ch.label && ch.label.sprite) ch.label.sprite.visible = false;
+              ch.place(sl.x, 0, sl.yaw + rayAng, flatGround);
+              ch.update(0.016, 0, { pose: "idle", surfaceAt: flatGround, emotion: "neutral", emotionIntensity: 0.25, viseme: "SIL", visemeAmount: 1 });
+              applyAudClayMode(ch, true);
+              ch.group.traverse(o => {
+                if (!o.isMesh || !o.material) return;
+                const mats = Array.isArray(o.material) ? o.material : [o.material];
+                for (let mi = 0; mi < mats.length; mi++) {
+                  const m = mats[mi];
+                  if (!m) continue;
+                  m.clippingPlanes = [clipPlane];
+                  m.clipShadows = true;
+                  m.needsUpdate = true;
+                }
+              });
+              stageRoot.add(ch.group);
+              activeActors.push({ ch, isAnnyV7: false, role: "clay", pose: "idle", baseX: sl.x, baseZ: 0, baseHeading: sl.yaw + rayAng, claySlot: sl.k });
             });
-            stageRoot.add(ch.group);
-            activeActors.push({ ch, role: "clay", pose: "idle", baseX: sl.x, baseZ: 0, baseHeading: sl.yaw + rayAng });
-          });
-          camState.dist = camState.wantDist = 1.92;
+          }
+          camState.dist = camState.wantDist = 2.04;
           camState.yaw = camState.wantYaw = 0.0;
           camState.pitch = camState.wantPitch = 0.005;
           camState.targetX = camState.wantTargetX = 0.0;
@@ -2188,29 +2283,43 @@
       });
     }
 
-    /* ---------- Speak Phrase (Web speechSynthesis + Synced Viseme Override) ---------- */
+    /* ---------- Speak Phrase (Web speechSynthesis + Synced Viseme Override) & Live Mic Lip-Sync ---------- */
     let phraseSpeech = { active: false, text: "", startMs: 0, durMs: 2600 };
+    let activeAudUtterance = null;
     function speakAuditionPhrase(customText) {
-      const text = String(customText || (lastVox && lastVox.lineText) || "Iron lever cracks before the rooster.").trim();
+      const text = String(customText || (lastVox && lastVox.lineText) || "Iron lever cracks before the rooster.").replace(/[“”"]/g, "").trim();
       if (!text) return false;
       phraseSpeech = {
         active: true,
         text,
         startMs: performance.now(),
-        durMs: Math.max(1700, Math.min(5000, text.length * 70 + 450))
+        durMs: Math.max(1700, Math.min(5400, text.length * 72 + 450))
       };
       const btn = $("btn-speak-lyric");
       if (btn) btn.textContent = "SPEAKING...";
       if (typeof window !== "undefined" && "speechSynthesis" in window && typeof window.SpeechSynthesisUtterance === "function") {
         try {
           const utt = new window.SpeechSynthesisUtterance(text);
+          utt.lang = "en-US";
           utt.rate = 0.94;
           utt.pitch = 1.02;
+          utt.volume = 1.0;
+          const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+          const pref = voices.find(v => /en/i.test(v.lang) && /(samantha|victoria|karen|zira|google us english|natural)/i.test(v.name))
+            || voices.find(v => /en/i.test(v.lang));
+          if (pref) utt.voice = pref;
+          utt.onstart = () => { phraseSpeech.startMs = performance.now(); };
           utt.onend = () => {
             phraseSpeech.active = false;
+            activeAudUtterance = null;
             if (btn) btn.textContent = "SPEAK PHRASE";
           };
-          window.speechSynthesis.cancel();
+          utt.onerror = () => { activeAudUtterance = null; };
+          activeAudUtterance = utt;
+          if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+            window.speechSynthesis.cancel();
+          }
+          try { window.speechSynthesis.resume(); } catch (_e) {}
           window.speechSynthesis.speak(utt);
         } catch (_e) { /* silent fallback */ }
       }
@@ -2218,6 +2327,80 @@
     }
     const speakLyricBtn = $("btn-speak-lyric");
     if (speakLyricBtn) speakLyricBtn.addEventListener("click", () => speakAuditionPhrase());
+
+    const audMic = {
+      active: false, stream: null, ctx: null, analyser: null, freqData: null,
+      jaw: 0, wide: 0, round: 0, press: 0.05, viseme: "SIL", level: 0
+    };
+    async function toggleAudMicLipSync() {
+      const btn = $("btn-mic-lipsync");
+      if (audMic.active) {
+        audMic.active = false;
+        if (audMic.stream) { audMic.stream.getTracks().forEach(t => t.stop()); audMic.stream = null; }
+        if (audMic.ctx) { try { audMic.ctx.close(); } catch (_e) {} audMic.ctx = null; }
+        audMic.analyser = null; audMic.freqData = null;
+        audMic.jaw = 0; audMic.wide = 0; audMic.round = 0; audMic.press = 0.05; audMic.viseme = "SIL"; audMic.level = 0;
+        if (btn) { btn.classList.remove("live"); btn.textContent = "MIC LIP-SYNC"; }
+        return false;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+      if (btn) btn.textContent = "MIC...";
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        const AC = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AC();
+        if (ctx.state === "suspended") await ctx.resume();
+        const src = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.42;
+        src.connect(analyser);
+        audMic.stream = stream; audMic.ctx = ctx; audMic.analyser = analyser;
+        audMic.freqData = new Uint8Array(analyser.frequencyBinCount);
+        audMic.active = true;
+        if (btn) { btn.classList.add("live"); btn.textContent = "STOP MIC"; }
+        return true;
+      } catch (_e) {
+        if (btn) { btn.classList.remove("live"); btn.textContent = "MIC LIP-SYNC"; }
+        return false;
+      }
+    }
+    function sampleAudMicFormants() {
+      if (!audMic.active || !audMic.analyser || !audMic.freqData || !audMic.ctx) return null;
+      audMic.analyser.getByteFrequencyData(audMic.freqData);
+      const binHz = (audMic.ctx.sampleRate * 0.5) / audMic.freqData.length;
+      const bandAvg = (lo, hi) => {
+        const i0 = Math.max(1, Math.floor(lo / binHz));
+        const i1 = Math.min(audMic.freqData.length - 1, Math.ceil(hi / binHz));
+        let sum = 0, cnt = 0;
+        for (let i = i0; i <= i1; i++) { sum += audMic.freqData[i]; cnt++; }
+        return cnt > 0 ? sum / (cnt * 255) : 0;
+      };
+      const lowE = bandAvg(120, 550);
+      const midE = bandAvg(550, 1800);
+      const highE = bandAvg(1800, 4800);
+      const totalE = lowE * 0.35 + midE * 0.45 + highE * 0.20;
+      audMic.level = totalE;
+      if (totalE < 0.04) {
+        audMic.viseme = "SIL"; audMic.jaw = 0; audMic.wide = 0; audMic.round = 0; audMic.press = 0.06;
+      } else {
+        const gain = clamp((totalE - 0.03) * 3.5, 0, 1);
+        if (midE >= lowE * 0.92 && midE >= highE * 1.05) {
+          audMic.viseme = "AA"; audMic.jaw = clamp(0.86 * gain, 0, 1); audMic.wide = 0.42 * gain; audMic.round = 0.10 * gain; audMic.press = 0;
+        } else if (lowE > midE && lowE >= highE) {
+          audMic.viseme = lowE > midE * 1.35 ? "OO" : "OH";
+          audMic.jaw = clamp((audMic.viseme === "OO" ? 0.42 : 0.72) * gain, 0, 0.88);
+          audMic.wide = 0.04 * gain; audMic.round = clamp(0.92 * gain, 0, 1); audMic.press = 0;
+        } else {
+          audMic.viseme = highE > midE * 1.4 ? "FF" : "EE";
+          audMic.jaw = clamp((audMic.viseme === "FF" ? 0.20 : 0.38) * gain, 0, 0.60);
+          audMic.wide = clamp(0.88 * gain, 0, 1); audMic.round = 0; audMic.press = audMic.viseme === "FF" ? 0.45 * gain : 0;
+        }
+      }
+      return audMic;
+    }
+    const micLipBtn = $("btn-mic-lipsync");
+    if (micLipBtn) micLipBtn.addEventListener("click", () => toggleAudMicLipSync());
 
     function resize() {
       const w = Math.max(1, wrap.clientWidth), h = Math.max(1, wrap.clientHeight);
@@ -2418,12 +2601,92 @@
         activeOxbowScreen.update(nowSec);
       }
 
-      // Update Lead & Ensemble Performers (or Reference Tableau / Clay Turnaround)
+      // Update Lead & Ensemble Performers (or Reference Tableau / Live Animated Clay Turnaround)
+      const liveMic = sampleAudMicFormants();
       if (activeRefTableau && typeof activeRefTableau.update === "function") {
         activeRefTableau.update(dt, nowSec, { surfaceAt: flatGround, beatPulse: vox.beatPulse });
         syncAudPumpCloseup(activeRefTableau, dt, nowSec);
       } else if (activeRefSceneId === "clay_bust") {
-        // Keep 3 sculptor's busts steady at 0°, 35°, 90°
+        // Live animated sculptor's clay busts performing in sync at 0°, 35°, 90°!
+        const CLAY_FACS_CYCLE = ["talking", "happy", "sad", "surprised", "strain"];
+        const clayCycleIdx = Math.floor(nowSec / 4.2) % CLAY_FACS_CYCLE.length;
+        const clayAnnyExpr = (phraseSpeech.active || liveMic) ? "talking" : CLAY_FACS_CYCLE[clayCycleIdx];
+        const clayScionExpr = clayAnnyExpr === "happy" ? "happy_joy"
+          : clayAnnyExpr === "sad" ? "sad_grief"
+          : clayAnnyExpr === "surprised" ? "surprised_awe"
+          : clayAnnyExpr === "strain" ? "concerned_pleading"
+          : "speaking_animated";
+        const phraseActiveNow = phraseSpeech.active;
+        const phraseP01 = phraseActiveNow ? clamp((nowMs - phraseSpeech.startMs) / phraseSpeech.durMs, 0, 1) : 0;
+        if (phraseActiveNow && phraseP01 >= 1) {
+          phraseSpeech.active = false;
+          const sb = $("btn-speak-lyric");
+          if (sb) sb.textContent = "SPEAK PHRASE";
+        }
+        const subtleYaw = Math.sin(nowSec * 0.85) * 0.085;
+        const subtlePitch = Math.sin(nowSec * 1.45) * 0.045 - (liveMic ? liveMic.jaw * 0.05 : (vox.visemeAmount || 0) * 0.04);
+        const subtleRoll = Math.sin(nowSec * 0.62) * 0.04;
+
+        for (let i = 0; i < activeActors.length; i++) {
+          const entry = activeActors[i];
+          if (entry.isAnnyV7) {
+            const inst = entry.annyInstance;
+            if (!inst) continue;
+            if (typeof inst.setExpression === "function") inst.setExpression(clayAnnyExpr);
+            if (liveMic && typeof inst.setVisemeShape === "function") {
+              inst.setVisemeShape(liveMic.jaw, liveMic.wide, liveMic.round, liveMic.press, liveMic.viseme);
+            } else if (phraseActiveNow && typeof inst.setLyricSpeech === "function") {
+              inst.setLyricSpeech(phraseSpeech.text, phraseP01, 0.94);
+            } else if (sapiensAngles && typeof inst.applySapiensPose === "function") {
+              inst.applySapiensPose({ angles: sapiensAngles, mouthOpenRatio: sapiensAngles.mouthOpenRatio }, "additive");
+            } else if (vox.singing && typeof inst.setLyricSpeech === "function") {
+              inst.setLyricSpeech(vox.lineText, vox.lineProgress || 0, Math.max(0.65, vox.vocalFormantEnv || vox.visemeAmount || 0.72));
+            } else if (typeof inst.setLyricSpeech === "function") {
+              inst.setLyricSpeech("", 0, 0);
+            }
+            if (typeof inst.update === "function") {
+              inst.update(dt, { skipGroundPin: true, skipDriver: true });
+            }
+            // Subtle synchronized neck/head turn & nod while preserving 0° / 35° / 90° turnaround
+            if (entry.neckBone && inst.restQuats) {
+              const rqN = inst.restQuats.get(entry.neckBone.name);
+              if (rqN) {
+                const qN = new T.Quaternion().setFromEuler(new T.Euler(subtlePitch * 0.45, subtleYaw * 0.45, subtleRoll * 0.45, "YXZ"));
+                entry.neckBone.quaternion.copy(rqN).multiply(qN);
+              }
+            }
+            if (entry.headBone && inst.restQuats) {
+              const rqH = inst.restQuats.get(entry.headBone.name);
+              if (rqH) {
+                const qH = new T.Quaternion().setFromEuler(new T.Euler(subtlePitch * 0.55, subtleYaw * 0.55, subtleRoll * 0.55, "YXZ"));
+                entry.headBone.quaternion.copy(rqH).multiply(qH);
+              }
+            }
+          } else if (entry.ch && typeof entry.ch.update === "function") {
+            let sVis = vox.singing ? vox.viseme : "SIL";
+            let sAmt = vox.singing ? Math.max(0.42, vox.visemeAmount) : 0.0;
+            if (liveMic) {
+              sVis = liveMic.viseme;
+              sAmt = clamp(liveMic.jaw * 0.95 + liveMic.wide * 0.25, 0, 0.95);
+            } else if (phraseActiveNow && window.AnnyHumanV7 && typeof window.AnnyHumanV7.sampleLyricViseme === "function") {
+              const sv = window.AnnyHumanV7.sampleLyricViseme(phraseSpeech.text, phraseP01, 0.95);
+              sVis = sv.viseme;
+              sAmt = clamp(sv.jawOpen * 0.95 + sv.mouthWide * 0.25, 0, 0.95);
+            } else if (sapiensAngles && sapiensAngles.mouthOpenRatio > 0.08) {
+              sVis = "AA";
+              sAmt = clamp(sapiensAngles.mouthOpenRatio * 0.82, 0, 0.85);
+            }
+            entry.ch.update(dt, nowSec, {
+              pose: "idle",
+              surfaceAt: flatGround,
+              emotion: clayScionExpr,
+              emotionIntensity: 0.78,
+              viseme: sVis,
+              visemeAmount: sAmt,
+              neckLean: { roll: subtleRoll, pitch: subtlePitch, yaw: subtleYaw, glideX: 0 }
+            });
+          }
+        }
       } else for (let i = 0; i < activeActors.length; i++) {
         const entry = activeActors[i];
         const ch = entry.ch;
@@ -2513,7 +2776,9 @@
                 }
               }
             }
-            if (typeof inst.setLyricSpeech === "function") {
+            if (liveMic && isLead && typeof inst.setVisemeShape === "function") {
+              inst.setVisemeShape(liveMic.jaw, liveMic.wide, liveMic.round, liveMic.press, liveMic.viseme);
+            } else if (typeof inst.setLyricSpeech === "function") {
               if (phraseSpeech.active && isLead && !useSapiens) {
                 const p01 = clamp((nowMs - phraseSpeech.startMs) / phraseSpeech.durMs, 0, 1);
                 inst.setLyricSpeech(phraseSpeech.text, p01, 0.92);
@@ -2560,10 +2825,13 @@
         const neckLean = steadyMacro ? undefined : computeMusicalNeckLean(vox, nowSec, i, isLead, danceNow, effCut);
         if (i === 0 && neckLean) lastLeadNeckLeanDeg = neckLean.rollDeg;
 
-        // Phrase speech viseme override for Scion V6
+        // Live Mic / Phrase speech viseme override for Scion V6
         let scionVis = singThisActor ? vox.viseme : "SIL";
         let scionVisAmt = singThisActor ? (isLead ? vox.visemeAmount : vox.visemeAmount * 0.78) : 0.0;
-        if (phraseSpeech.active && isLead && window.AnnyHumanV7 && typeof window.AnnyHumanV7.sampleLyricViseme === "function") {
+        if (liveMic && isLead) {
+          scionVis = liveMic.viseme;
+          scionVisAmt = clamp(liveMic.jaw * 0.95 + liveMic.wide * 0.25, 0, 0.95);
+        } else if (phraseSpeech.active && isLead && window.AnnyHumanV7 && typeof window.AnnyHumanV7.sampleLyricViseme === "function") {
           const p01 = clamp((nowMs - phraseSpeech.startMs) / phraseSpeech.durMs, 0, 1);
           const sv = window.AnnyHumanV7.sampleLyricViseme(phraseSpeech.text, p01, 0.95);
           scionVis = sv.viseme;
@@ -2685,6 +2953,8 @@
       setCut,
       setMotion,
       toggleSapiensVideoTrack,
+      speakPhrase: speakAuditionPhrase,
+      toggleMicLipSync: toggleAudMicLipSync,
       seek: sec => { song.seek(sec); return song.getTime(); },
       setPlaying: flag => song.setPlaying(flag),
       toggleUnmute: force => song.toggleUnmute(force),

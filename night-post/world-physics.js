@@ -1133,6 +1133,63 @@
     };
   }
 
+  function triggerNpcKnockdown(npc, dirX, dirZ, force = 5.5) {
+    if (!npc || !npc.group) return false;
+    const ud = npc.group.userData || (npc.group.userData = {});
+    if (ud.knockTimer && ud.knockTimer > 0.35) return false;
+    const len = Math.hypot(dirX || 0, dirZ || 0) || 1;
+    const nx = (dirX || 0) / len;
+    const nz = (dirZ || 1) / len;
+    const f = clamp(force, 2.5, 11.0);
+    ud.knockTimer = 1.45;
+    ud.knockDur = 1.45;
+    ud.knockVx = nx * f;
+    ud.knockVz = nz * f;
+    ud.knockRollSign = (Math.random() < 0.5 ? -1 : 1);
+    ud.knockPitchPeak = clamp(0.75 + f * 0.06, 0.75, 1.28);
+    ud.knockCount = (ud.knockCount || 0) + 1;
+    return true;
+  }
+
+  function stepNpcKnockdown(npc, dt, surfaceAt, boundsClamp) {
+    if (!npc || !npc.group || !npc.group.userData) return false;
+    const ud = npc.group.userData;
+    if (!ud.knockTimer || ud.knockTimer <= 0) return false;
+    const stepDt = Math.min(dt || 0.016, 0.05);
+    ud.knockTimer = Math.max(0, ud.knockTimer - stepDt);
+    const dur = ud.knockDur || 1.45;
+    const p = 1 - (ud.knockTimer / dur); // 0 -> 1
+    const damp = Math.exp(-stepDt * 4.4);
+    ud.knockVx *= damp;
+    ud.knockVz *= damp;
+    let nx = npc.group.position.x + ud.knockVx * stepDt;
+    let nz = npc.group.position.z + ud.knockVz * stepDt;
+    if (boundsClamp) {
+      const clamped = boundsClamp(nx, nz);
+      nx = clamped[0]; nz = clamped[1];
+    }
+    const gy = surfaceAt ? surfaceAt(nx, nz) : npc.group.position.y;
+    // Stumble arc: quick knockback pitch/roll peak at p=0.28, then smooth recovery to upright
+    const env = p < 0.28
+      ? Math.sin((p / 0.28) * Math.PI * 0.5)
+      : Math.pow(Math.max(0, 1 - (p - 0.28) / 0.72), 1.45);
+    const hop = Math.sin(Math.min(1, p * 2.4) * Math.PI) * 0.22 * env;
+    npc.group.position.set(nx, gy + hop, nz);
+    npc.group.rotation.x = -(ud.knockPitchPeak || 0.95) * env;
+    npc.group.rotation.z = (ud.knockRollSign || 1) * 0.42 * env;
+    if (npc.state) {
+      npc.state.x = nx;
+      npc.state.y = gy;
+      npc.state.z = nz;
+    }
+    if (ud.knockTimer <= 0) {
+      npc.group.rotation.x = 0;
+      npc.group.rotation.z = 0;
+      npc.group.position.y = gy;
+    }
+    return true;
+  }
+
   window.NightPostPhysics = {
     GRAVITY,
     FIXED_DT,
@@ -1143,6 +1200,8 @@
     createPhysicsParticles,
     createProjectilePool,
     groundCastList,
-    keepCompanionGrounded
+    keepCompanionGrounded,
+    triggerNpcKnockdown,
+    stepNpcKnockdown
   };
 })();

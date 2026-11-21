@@ -2630,6 +2630,22 @@ void main(){
       bigMapOpen: false,
       throwCount: 0,
       worldWaterDeliveredL: 0,
+      sprintToggle: false,
+      squirtHeld: false,
+      squirtBurstTimer: 0,
+      squirtActive: false,
+      rainInFrustum01: 0,
+      wind01: 0.22,
+      wellFocus01: 0,
+      riverFocus01: 0,
+      npcBumpCount: 0,
+      carryCanLocalZ: 0.16,
+      lastDialogue: null,
+      quests: {
+        q1_mistletoe: { done: false, drinkSec: 0 },
+        q2_elder_relay: { done: false, liters: 0, targetL: 5.0 },
+        q3_june_moraine: { done: false, juneDone: false, moraineDone: false }
+      },
       donkeyCollapsed: false,
       pourAnim: null,
       danceTimer: 0,
@@ -3863,6 +3879,15 @@ void main(){
     if ($("btn-jump-foot")) $("btn-jump-foot").addEventListener("click", () => jumpPlayer());
     if ($("btn-big-map")) $("btn-big-map").addEventListener("click", toggleBigMap);
     if ($("btn-drive-pill")) $("btn-drive-pill").addEventListener("click", () => toggleCart());
+    if ($("btn-pump-pill")) $("btn-pump-pill").addEventListener("click", () => pumpWell());
+    if ($("btn-run-toggle")) {
+      $("btn-run-toggle").addEventListener("click", () => {
+        state.sprintToggle = !state.sprintToggle;
+        $("btn-run-toggle").setAttribute("aria-pressed", String(state.sprintToggle));
+        $("btn-run-toggle").classList.toggle("active", state.sprintToggle);
+        toast(state.sprintToggle ? "Sprint RUN: ON" : "Sprint RUN: OFF");
+      });
+    }
     if ($("btn-hud-drawer")) {
       $("btn-hud-drawer").addEventListener("click", () => {
         const clean = document.body.classList.toggle("hud-clean");
@@ -3870,6 +3895,552 @@ void main(){
         $("btn-hud-drawer").classList.toggle("active", !clean);
       });
     }
+
+    /* ---------- Living World: Front/Hip Carry Fix, WiFi Water Squirt Gun, Quests, Speech & NPC Phones ---------- */
+    donkey.drinkTimer = 0;
+    donkey.playDrink = function (dur = 2.4) {
+      const wasDrinking = donkey.drinkTimer > 0.1;
+      donkey.drinkTimer = Math.max(donkey.drinkTimer || 0, dur);
+      if (typeof donkey.feed === "function") donkey.feed();
+      if (typeof donkey.soothe === "function") donkey.soothe();
+      if (!wasDrinking && window.HighlandSoundscape && typeof window.HighlandSoundscape.playDrink === "function") {
+        window.HighlandSoundscape.playDrink();
+      }
+    };
+
+    const _speechState = { lastAt: 0, hideTimer: 0 };
+    function speakLine(speaker, text, sub = "", pitch = 1.0, rate = 1.02) {
+      state.lastDialogue = { speaker, text, sub, at: Date.now() };
+      const card = $("dialogue-card");
+      if (card) {
+        card.hidden = false;
+        if ($("dialogue-speaker")) $("dialogue-speaker").textContent = speaker;
+        if ($("dialogue-text")) $("dialogue-text").textContent = text;
+        if ($("dialogue-sub")) $("dialogue-sub").textContent = sub;
+      }
+      _speechState.hideTimer = 5.2;
+      if (typeof window !== "undefined" && window.speechSynthesis && typeof SpeechSynthesisUtterance !== "undefined") {
+        try {
+          const nowMs = Date.now();
+          if (nowMs - _speechState.lastAt > 250) {
+            _speechState.lastAt = nowMs;
+            window.speechSynthesis.cancel();
+            const utt = new SpeechSynthesisUtterance(text);
+            utt.pitch = clamp(pitch, 0.7, 1.45);
+            utt.rate = clamp(rate, 0.85, 1.2);
+            utt.volume = 0.85;
+            window.speechSynthesis.speak(utt);
+          }
+        } catch (e) {}
+      }
+    }
+
+    function updateQuestUI(celebrate = false) {
+      const q = state.quests;
+      const doneCount = (q.q1_mistletoe.done ? 1 : 0) + (q.q2_elder_relay.done ? 1 : 0) + (q.q3_june_moraine.done ? 1 : 0);
+      if ($("quest-count")) $("quest-count").textContent = `${doneCount}/3`;
+      const list = $("quest-list");
+      if (list) {
+        const items = list.querySelectorAll(".quest-item");
+        items.forEach(li => {
+          const id = li.getAttribute("data-qid");
+          const prog = li.querySelector(".quest-prog");
+          if (id === "q1_mistletoe") {
+            li.classList.toggle("done", q.q1_mistletoe.done);
+            if (prog) prog.textContent = q.q1_mistletoe.done ? "DONE" : `${Math.min(99, Math.round(q.q1_mistletoe.drinkSec * 100))}%`;
+          } else if (id === "q2_elder_relay") {
+            li.classList.toggle("done", q.q2_elder_relay.done);
+            if (prog) prog.textContent = q.q2_elder_relay.done ? "SENT" : `${q.q2_elder_relay.liters.toFixed(1)}/${q.q2_elder_relay.targetL.toFixed(0)}L`;
+          } else if (id === "q3_june_moraine") {
+            li.classList.toggle("done", q.q3_june_moraine.done);
+            const parts = (q.q3_june_moraine.juneDone ? 1 : 0) + (q.q3_june_moraine.moraineDone ? 1 : 0);
+            if (prog) prog.textContent = q.q3_june_moraine.done ? "DONE" : `${parts}/2`;
+          }
+        });
+      }
+      if (celebrate) {
+        const tr = $("quest-tracker");
+        if (tr) {
+          tr.classList.add("reward-glow");
+          setTimeout(() => tr.classList.remove("reward-glow"), 2800);
+        }
+        if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playQuestComplete === "function") {
+          window.HighlandSoundscape.playQuestComplete();
+        } else if (audio && typeof audio.relayChime === "function") {
+          audio.relayChime(true);
+        }
+        state.wifiCharge = 1.0;
+        state.focusPulse = 1.0;
+      }
+    }
+    updateQuestUI(false);
+
+    // Attach sleek glowing cyan smartphone props to villagers so they visibly watch videos & share ideas
+    const npcPhoneGeo = new T.BoxGeometry(0.072, 0.135, 0.012);
+    const npcPhoneBodyMat = new T.MeshStandardMaterial({ color: 0x121922, roughness: 0.45, metalness: 0.4 });
+    const npcPhoneScreenGeo = new T.PlaneGeometry(0.062, 0.118);
+    const npcPhoneScreenMat = new T.MeshBasicMaterial({ color: 0x28d8f0 });
+    function ensureNpcSmartphone(ch) {
+      if (!ch || !ch.group || !ch.state) return;
+      if (ch.group.userData.livingPhoneAttached) return;
+      const cid = String(ch.state.id || "").toLowerCase();
+      if (cid === "imani") return;
+      const phoneGrp = new T.Group();
+      phoneGrp.name = "living_cyan_phone";
+      const body = new T.Mesh(npcPhoneGeo, npcPhoneBodyMat);
+      const scr = new T.Mesh(npcPhoneScreenGeo, npcPhoneScreenMat);
+      scr.position.z = 0.007;
+      phoneGrp.add(body, scr);
+      phoneGrp.position.set(0.14, 1.12, 0.28);
+      phoneGrp.rotation.set(-0.52, -0.22, 0.08);
+      ch.group.add(phoneGrp);
+      ch.group.userData.livingPhoneAttached = true;
+      ch.group.userData.livingPhoneGrp = phoneGrp;
+    }
+    if (cast && Array.isArray(cast.list)) {
+      cast.list.forEach(ensureNpcSmartphone);
+    }
+
+    // Fix behind-the-back jerrycan carry (2341f7bd.jpg): detach carryCanProp from twisted B_HAND_R and seat cleanly at right-side hip / forward of thigh!
+    const _hipCanQuat = new T.Quaternion();
+    const _hipCanEuler = new T.Euler(0, 0, 0, "YXZ");
+    function findCarryCanProp(ch) {
+      if (!ch || !ch.group) return null;
+      if (ch.group.userData.frontHipCan) return ch.group.userData.frontHipCan;
+      const handR = ch.bones && ch.bones[20];
+      if (handR && Array.isArray(handR.children)) {
+        for (let i = 0; i < handR.children.length; i++) {
+          const c = handR.children[i];
+          if (c && c.isGroup && c.children && c.children.length >= 4) {
+            // Confirm it's the jerrycan group (has cyan body mesh)
+            const hasCyan = c.children.some(m => m.material && m.material.color && m.material.color.b > 0.7 && m.material.transparent);
+            if (hasCyan) {
+              handR.remove(c);
+              ch.group.add(c);
+              ch.group.userData.frontHipCan = c;
+              return c;
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    function enforceFrontHipJerrycanCarry(ch, nowSec, speed, squirtActive) {
+      if (!ch || !ch.group) return;
+      const can = findCarryCanProp(ch);
+      if (!can) return;
+      const isPlayer = (ch === activeAvatar);
+      const shouldShow = isPlayer
+        ? (state.waterLiters > 0.1 || squirtActive || Boolean(npCarrier && npCarrier().liters > 0))
+        : Boolean(ch.state && ch.state.carryCan);
+      can.visible = shouldShow;
+      if (!shouldShow) return;
+      const stride = Math.sin(nowSec * (speed > 2.2 ? 9.5 : 5.4)) * Math.min(1, speed / 2.6);
+      if (squirtActive && isPlayer) {
+        // Cradled forward in front of torso aiming cyan nozzle straight ahead (+Z forward, -X anatomical right)
+        can.position.set(-0.18, 1.06 + Math.sin(nowSec * 14) * 0.008, 0.36);
+        can.rotation.set(0.38, 0.06, 0.08);
+        if (isPlayer) state.carryCanLocalZ = can.position.z;
+      } else {
+        // Right side hip, strictly forward of thigh (+Z > 0, never behind back/spine!)
+        can.position.set(-0.255, 0.80 + Math.abs(stride) * 0.018, 0.16 + stride * 0.045);
+        can.rotation.set(0.06 + stride * 0.09, 0.04, 0.08);
+        if (isPlayer) state.carryCanLocalZ = can.position.z;
+      }
+      // Keep right arm hanging naturally forward toward the side-hip handle (never twisted behind spine)
+      if (ch.bones && ch.bones[16] && ch.bones[18]) {
+        const uArmR = ch.bones[16], fArmR = ch.bones[18];
+        if (squirtActive && isPlayer) {
+          _hipCanEuler.set(-0.72, 0.12, -0.14);
+          _hipCanQuat.setFromEuler(_hipCanEuler);
+          uArmR.quaternion.slerp(_hipCanQuat, 0.82);
+          _hipCanEuler.set(-0.55, 0.0, 0.0);
+          _hipCanQuat.setFromEuler(_hipCanEuler);
+          fArmR.quaternion.slerp(_hipCanQuat, 0.82);
+        } else {
+          _hipCanEuler.set(-0.14 - stride * 0.12, 0.04, -0.10);
+          _hipCanQuat.setFromEuler(_hipCanEuler);
+          uArmR.quaternion.slerp(_hipCanQuat, 0.78);
+          _hipCanEuler.set(-0.16, 0.0, 0.0);
+          _hipCanQuat.setFromEuler(_hipCanEuler);
+          fArmR.quaternion.slerp(_hipCanQuat, 0.72);
+        }
+      }
+    }
+
+    // 3D Pressurized Cyan WiFi Water Squirt Stream Mesh
+    const SQUIRT_SEGS = 22;
+    const squirtGroup = new T.Group();
+    squirtGroup.visible = false;
+    const squirtPts = [];
+    for (let i = 0; i <= SQUIRT_SEGS; i++) squirtPts.push(new T.Vector3(0, 0, i * 0.4));
+    const squirtGeo = new T.BufferGeometry().setFromPoints(squirtPts);
+    const squirtMat = new T.LineBasicMaterial({ color: 0x28d8f0, transparent: true, opacity: 0.94 });
+    const squirtLine = new T.Line(squirtGeo, squirtMat);
+    squirtLine.frustumCulled = false;
+    squirtGroup.add(squirtLine);
+    // Volumetric cyan water jet beads along parabolic arc for crisp WebGL visibility
+    const squirtBeadGeo = new T.SphereGeometry(0.068, 8, 6);
+    const squirtBeadMat = new T.MeshBasicMaterial({ color: 0x28d8f0, transparent: true, opacity: 0.88 });
+    const squirtCoreMat = new T.MeshBasicMaterial({ color: 0xc8faff, transparent: true, opacity: 0.95 });
+    const squirtBeads = [];
+    for (let i = 0; i < 16; i++) {
+      const m = new T.Mesh(squirtBeadGeo, i % 3 === 0 ? squirtCoreMat : squirtBeadMat);
+      m.frustumCulled = false;
+      squirtGroup.add(m);
+      squirtBeads.push(m);
+    }
+    actorRoot.add(squirtGroup);
+
+    const _squirtOrigin = new T.Vector3();
+    const _squirtDir = new T.Vector3();
+    const _squirtPt = new T.Vector3();
+    let _squirtAudioOn = false;
+    let _squirtHitCooldown = 0;
+
+    function setSquirtAudio(active) {
+      if (active === _squirtAudioOn) return;
+      _squirtAudioOn = active;
+      if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playWaterSquirt === "function") {
+        window.HighlandSoundscape.playWaterSquirt(active);
+      } else if (active && window.HighlandSoundscape && typeof window.HighlandSoundscape.playWaterSpill === "function") {
+        window.HighlandSoundscape.playWaterSpill(0.45);
+      }
+    }
+
+    function triggerSquirtBurst(dur = 1.8) {
+      state.squirtBurstTimer = Math.max(state.squirtBurstTimer, dur);
+      if (state.waterLiters < 0.25) {
+        state.waterLiters = 8.0; // auto-prime nozzle reserve from pump/pack
+      }
+    }
+
+    function stepWaterSquirt(dt, nowSec) {
+      if (state.squirtBurstTimer > 0) state.squirtBurstTimer = Math.max(0, state.squirtBurstTimer - dt);
+      const wantSquirt = (state.squirtHeld || keys.KeyF || state.squirtBurstTimer > 0) && !state.introActive && !state.bigMapOpen;
+      state.squirtActive = wantSquirt;
+      const sqBtn = $("btn-squirt-pill");
+      if (sqBtn) {
+        sqBtn.classList.toggle("squirt-live", wantSquirt);
+        sqBtn.setAttribute("aria-pressed", String(wantSquirt));
+      }
+      squirtGroup.visible = wantSquirt;
+      setSquirtAudio(wantSquirt);
+      if (_squirtHitCooldown > 0) _squirtHitCooldown = Math.max(0, _squirtHitCooldown - dt);
+      if (!wantSquirt) return;
+
+      // Origin at front-right nozzle of player/avatar
+      const yaw = (activeAvatar && activeAvatar.group && state.cameraMode === "third" && !state.drivingCart)
+        ? (activeAvatar.group.rotation.y)
+        : (state.yaw + Math.PI);
+      const fwdX = Math.sin(yaw), fwdZ = Math.cos(yaw);
+      const rightX = -Math.cos(yaw), rightZ = Math.sin(yaw);
+      const baseY = state.drivingCart ? (wagon.y + 1.45) : (state.y - 0.56);
+      const baseX = state.drivingCart ? wagon.x : state.x;
+      const baseZ = state.drivingCart ? wagon.z : state.z;
+      _squirtOrigin.set(baseX + fwdX * 0.48 + rightX * 0.22, baseY, baseZ + fwdZ * 0.48 + rightZ * 0.22);
+      _squirtDir.set(fwdX, clamp(0.18 + state.pitch * 0.65, -0.3, 0.58), fwdZ).normalize();
+
+      const speed0 = 11.4;
+      const grav = 9.2;
+      const posArr = squirtGeo.attributes.position.array;
+      let hitEndT = 1.05;
+      let impactPt = null;
+      let hitTarget = null;
+
+      for (let i = 0; i <= SQUIRT_SEGS; i++) {
+        const frac = i / SQUIRT_SEGS;
+        const t = frac * hitEndT;
+        const px = _squirtOrigin.x + _squirtDir.x * speed0 * t;
+        const py = _squirtOrigin.y + _squirtDir.y * speed0 * t - 0.5 * grav * t * t;
+        const pz = _squirtOrigin.z + _squirtDir.z * speed0 * t;
+        const gy = driveSurfaceAt(px, pz);
+        const clampedY = Math.max(gy + 0.06, py);
+        posArr[i * 3] = px;
+        posArr[i * 3 + 1] = clampedY;
+        posArr[i * 3 + 2] = pz;
+
+        if (!hitTarget && i >= 2) {
+          // 1) Check Mistletoe hit
+          if (Math.hypot(px - donkey.state.x, pz - donkey.state.z) < 1.85 && Math.abs(clampedY - (donkey.group.position.y + 0.9)) < 1.4) {
+            hitTarget = { kind: "donkey" };
+            impactPt = _squirtPt.set(px, clampedY, pz).clone();
+            hitEndT = t;
+          }
+          // 2) Check Villager NPC hit
+          if (!hitTarget && cast && Array.isArray(cast.list)) {
+            for (let ci = 0; ci < cast.list.length; ci++) {
+              const npc = cast.list[ci];
+              if (!npc || !npc.group || !npc.group.visible || npc === activeAvatar) continue;
+              const distXZ = Math.hypot(px - npc.group.position.x, pz - npc.group.position.z);
+              if (distXZ < 1.45 && Math.abs(clampedY - (npc.group.position.y + 1.0)) < 1.35) {
+                hitTarget = { kind: "npc", npc };
+                impactPt = _squirtPt.set(px, clampedY, pz).clone();
+                hitEndT = t;
+                break;
+              }
+            }
+          }
+          // 3) Check Cistern / Relay Dish hit
+          if (!hitTarget && Array.isArray(relays)) {
+            for (let ri = 0; ri < relays.length; ri++) {
+              const r = relays[ri];
+              if (Math.hypot(px - r.x, pz - r.z) < 4.2) {
+                hitTarget = { kind: "relay", relay: r };
+                impactPt = _squirtPt.set(px, clampedY, pz).clone();
+                hitEndT = t;
+                break;
+              }
+            }
+          }
+        }
+        if (!impactPt && py <= gy + 0.06) {
+          impactPt = _squirtPt.set(px, gy + 0.06, pz).clone();
+        }
+      }
+      squirtGeo.attributes.position.needsUpdate = true;
+
+      // Animate streaming cyan beads along parabola
+      for (let b = 0; b < squirtBeads.length; b++) {
+        const u = ((b / squirtBeads.length) + nowSec * 2.8) % 1.0;
+        const t = u * hitEndT;
+        const bx = _squirtOrigin.x + _squirtDir.x * speed0 * t + Math.sin(nowSec * 19 + b) * 0.025;
+        const by = Math.max(driveSurfaceAt(bx, _squirtOrigin.z + _squirtDir.z * speed0 * t) + 0.06,
+          _squirtOrigin.y + _squirtDir.y * speed0 * t - 0.5 * grav * t * t);
+        const bz = _squirtOrigin.z + _squirtDir.z * speed0 * t + Math.cos(nowSec * 17 + b) * 0.025;
+        squirtBeads[b].position.set(bx, by, bz);
+        const sc = 0.65 + u * 0.9;
+        squirtBeads[b].scale.setScalar(sc);
+      }
+
+      if (impactPt && physParticles && typeof physParticles.spawnSpill === "function" && Math.random() < 0.65) {
+        physParticles.spawnSpill(impactPt.x, impactPt.y, impactPt.z, 0, 0, 3);
+      }
+
+      // Apply live effects of hitting Mistletoe, Villagers, or Cisterns/Relays!
+      if (hitTarget) {
+        if (hitTarget.kind === "donkey") {
+          donkey.playDrink(2.6);
+          state.donkeyWater = clamp(state.donkeyWater + dt * 0.45, 0, 1);
+          state.donkeyCollapsed = false;
+          donkey.state.collapsed = false;
+          donkey.state.downWant = false;
+          state.quests.q1_mistletoe.drinkSec += dt;
+          if (!state.quests.q1_mistletoe.done && state.quests.q1_mistletoe.drinkSec >= 0.85) {
+            state.quests.q1_mistletoe.done = true;
+            updateQuestUI(true);
+            speakLine("MISTLETOE", "Mistletoe drinks deeply from the cool cyan stream and shakes her ears warmly.", "Quest 1 Complete: Hydrate Mistletoe at the overlook!", 0.92, 1.0);
+          } else {
+            updateQuestUI(false);
+            if (_squirtHitCooldown <= 0) {
+              _squirtHitCooldown = 2.4;
+              toast("Mistletoe lowers her head to drink the cyan WiFi water! Hydration restored.");
+            }
+          }
+        } else if (hitTarget.kind === "npc") {
+          const npc = hitTarget.npc;
+          const ud = npc.group.userData || (npc.group.userData = {});
+          const name = (npc.state && npc.state.name) || "Villager";
+          const cid = String((npc.state && npc.state.id) || "").toLowerCase();
+          ud.cheerTimer = 3.2;
+          ud.talkTimer = 3.6;
+          if (npc.state) npc.state.speaking = true;
+          state.wifiCharge = clamp(state.wifiCharge + dt * 0.35, 0, 1);
+          state.coveragePct = Math.min(100, (state.coveragePct || 34) + Math.round(dt * 12));
+          if (cid === "june" && !state.quests.q3_june_moraine.juneDone) {
+            state.quests.q3_june_moraine.juneDone = true;
+            if (state.quests.q3_june_moraine.moraineDone) state.quests.q3_june_moraine.done = true;
+            updateQuestUI(state.quests.q3_june_moraine.done);
+          }
+          if (_squirtHitCooldown <= 0) {
+            _squirtHitCooldown = 2.8;
+            const lines = [
+              `Thank you! My phone just jumped to full cyan bars — uploading the Addis video now!`,
+              `Cool water and live signal! Sharing our night dispatch to the ridge right now!`,
+              `Refreshing! The Ahiya Area Network just lit up on my screen!`
+            ];
+            const line = lines[Math.floor(Math.random() * lines.length)];
+            speakLine(name.toUpperCase(), line, `WiFi Boosted + Upload Active (${Math.round(state.wifiCharge * 100)}%)`, 1.08, 1.04);
+            if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playWaterDeliver === "function") {
+              window.HighlandSoundscape.playWaterDeliver();
+            }
+          }
+        } else if (hitTarget.kind === "relay") {
+          const r = hitTarget.relay;
+          const addL = dt * 3.8;
+          state.worldWaterDeliveredL += addL;
+          state.wifiCharge = clamp(state.wifiCharge + dt * 0.4, 0, 1);
+          if (!r.lit) {
+            r.lit = true;
+            state.litRelays = relays.filter(x => x.lit).length;
+            if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playWaterDeliver === "function") {
+              window.HighlandSoundscape.playWaterDeliver();
+            }
+          }
+          if (Array.isArray(r.cans)) {
+            for (const c of r.cans) {
+              if (c && c.userData && typeof c.userData.setFill === "function") {
+                c.userData.fill = clamp((c.userData.fill || 0) + dt * 0.85, 0, 1);
+                c.userData.setFill(c.userData.fill);
+              }
+            }
+          }
+          // Quest 2: Boost Elder's relay dish with 5L cyan water
+          if (!state.quests.q2_elder_relay.done) {
+            state.quests.q2_elder_relay.liters = Math.min(state.quests.q2_elder_relay.targetL, state.quests.q2_elder_relay.liters + addL);
+            if (state.quests.q2_elder_relay.liters >= state.quests.q2_elder_relay.targetL) {
+              state.quests.q2_elder_relay.done = true;
+              updateQuestUI(true);
+              speakLine("ELDER BEKELE", "Five liters of living cyan water! The relay dish is locked — Addis video transmission sent!", "Quest 2 Complete: Relay Dish Boosted (5.0 L)!", 0.86, 0.98);
+            } else {
+              updateQuestUI(false);
+            }
+          }
+          // Quest 3: Moraine Switchback Cistern
+          if (r.id === "switchback" && !state.quests.q3_june_moraine.moraineDone) {
+            state.quests.q3_june_moraine.moraineDone = true;
+            if (state.quests.q3_june_moraine.juneDone) state.quests.q3_june_moraine.done = true;
+            updateQuestUI(state.quests.q3_june_moraine.done);
+            toast("Moraine Switchback Cistern filled with cyan WiFi water!");
+          }
+          if (_squirtHitCooldown <= 0) {
+            _squirtHitCooldown = 2.6;
+            toast(`Pressurized cyan water filling ${r.name} — WiFi broadcast boosted!`);
+          }
+        }
+      }
+    }
+
+    // Wire SQUIRT (F) button for hold OR quick click burst
+    if ($("btn-squirt-pill")) {
+      const sqBtn = $("btn-squirt-pill");
+      sqBtn.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        state.squirtHeld = true;
+        triggerSquirtBurst(1.6);
+      });
+      const releaseSquirt = () => { state.squirtHeld = false; };
+      sqBtn.addEventListener("pointerup", releaseSquirt);
+      sqBtn.addEventListener("pointerleave", releaseSquirt);
+      sqBtn.addEventListener("pointercancel", releaseSquirt);
+    }
+
+    // Talk & Quests (E / TALK button)
+    const NPC_DIALOGUES = {
+      june: {
+        line: "Imani! My phone signal is flickering. Splash a little cyan water on my screen and help fill Moraine Cistern!",
+        quest: "Quest 3: Bring water to June's phone & Moraine Cistern",
+        pitch: 1.24
+      },
+      makeda: {
+        line: "We are watching the Addis highland reels on our phones. Aim your cyan nozzle our way to boost the broadcast!",
+        quest: "Tip: Hold SQUIRT (F) near villagers to boost WiFi & upload video",
+        pitch: 1.12
+      },
+      ferry_bekele: {
+        line: "The overlook relay dish needs five liters of fresh cyan water before the Addis video can upload cleanly.",
+        quest: "Quest 2: Boost Elder's relay dish with 5L cyan water",
+        pitch: 0.84
+      },
+      ppc_op_female: {
+        line: "Telemetry shows strong cyan rain inside the ridge dome. Keep Mistletoe hydrated and the relay links alive!",
+        quest: "Quest 1: Hydrate Mistletoe at the overlook",
+        pitch: 1.06
+      },
+      imani: {
+        line: "Mistletoe is ready by the pump. Let us carry cyan water up to the cisterns and share the signal.",
+        quest: "Active Expedition: Western Basin & Ahiya Highlands",
+        pitch: 1.08
+      }
+    };
+
+    function interactTalk() {
+      let bestNpc = null, bestDist = 14.0;
+      if (cast && Array.isArray(cast.list)) {
+        for (let i = 0; i < cast.list.length; i++) {
+          const ch = cast.list[i];
+          if (!ch || !ch.group || !ch.group.visible || ch === activeAvatar) continue;
+          const d = Math.hypot(ch.group.position.x - state.x, ch.group.position.z - state.z);
+          if (d < bestDist) { bestDist = d; bestNpc = ch; }
+        }
+      }
+      const dDonkey = Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z);
+      if (dDonkey < bestDist && dDonkey < 9.0) {
+        // Turn Mistletoe toward player & drink if hydrated
+        const aim = Math.atan2(state.x - donkey.state.x, state.z - donkey.state.z);
+        donkey.state.heading = aim;
+        donkey.group.rotation.y = aim;
+        donkey.playDrink(2.4);
+        state.donkeyWater = clamp(state.donkeyWater + 0.35, 0, 1);
+        state.quests.q1_mistletoe.drinkSec += 1.0;
+        if (!state.quests.q1_mistletoe.done) {
+          state.quests.q1_mistletoe.done = true;
+          updateQuestUI(true);
+        }
+        speakLine("MISTLETOE", "Mistletoe nudges your shoulder gently and drinks fresh cyan water at the overlook.", "Quest 1 Complete: Mistletoe hydrated (100%)", 0.90, 1.0);
+        if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playDonkeyCall === "function") {
+          window.HighlandSoundscape.playDonkeyCall({ x: donkey.state.x, y: donkey.group.position.y + 1.1, z: donkey.state.z });
+        }
+        return { speaker: "MISTLETOE", kind: "donkey" };
+      }
+      if (bestNpc) {
+        const cid = String((bestNpc.state && bestNpc.state.id) || "").toLowerCase();
+        const name = (bestNpc.state && bestNpc.state.name) || "Villager";
+        const aim = Math.atan2(state.x - bestNpc.group.position.x, state.z - bestNpc.group.position.z);
+        bestNpc.group.rotation.y = aim;
+        if (bestNpc.state) {
+          bestNpc.state.heading = aim;
+          bestNpc.state.speaking = true;
+        }
+        const ud = bestNpc.group.userData || (bestNpc.group.userData = {});
+        ud.talkTimer = 4.6;
+        const entry = NPC_DIALOGUES[cid] || {
+          line: `${name} holds up a glowing cyan phone: "Bring us cyan water and help boost the relay dish to Addis!"`,
+          quest: "World Quests: Hydrate Mistletoe · Boost Relay (5L) · June & Moraine",
+          pitch: 1.02
+        };
+        if (cid === "june" && state.waterLiters > 1.0 && !state.quests.q3_june_moraine.juneDone) {
+          state.quests.q3_june_moraine.juneDone = true;
+          if (state.quests.q3_june_moraine.moraineDone) state.quests.q3_june_moraine.done = true;
+          updateQuestUI(state.quests.q3_june_moraine.done);
+        }
+        speakLine(name.toUpperCase(), entry.line, entry.quest, entry.pitch, 1.02);
+        return { speaker: name, id: cid, kind: "npc" };
+      }
+      // Fallback: prompt nearest quest target
+      speakLine("NIGHT POST DISPATCH", "Walk near Mistletoe, June, Makeda, or Elder Bekele and press TALK (E), or hold SQUIRT (F) to spray cyan WiFi water!", "3 Active World Quests in tracker", 1.0, 1.02);
+      return { speaker: "DISPATCH", kind: "hint" };
+    }
+    if ($("btn-talk-pill")) $("btn-talk-pill").addEventListener("click", () => interactTalk());
+
+    // NPC Bump / Knockdown Reaction (sprinting player, wagon, or thrown jerrycan)
+    const BUMP_LINES = [
+      "Watch it!",
+      "Careful with the water!",
+      "Whoa, steady that jerrycan!",
+      "Hey, watch the ridge footing!"
+    ];
+    function bumpNpc(npc, dirX, dirZ, force) {
+      if (!NP_PHYS || typeof NP_PHYS.triggerNpcKnockdown !== "function") return false;
+      const ok = NP_PHYS.triggerNpcKnockdown(npc, dirX, dirZ, force);
+      if (!ok) return false;
+      state.npcBumpCount++;
+      const name = (npc.state && npc.state.name) || "Villager";
+      const line = BUMP_LINES[state.npcBumpCount % BUMP_LINES.length];
+      if (npc.state) npc.state.speaking = true;
+      if (npc.group.userData) npc.group.userData.talkTimer = 2.6;
+      if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playRagdollThud === "function") {
+        window.HighlandSoundscape.playRagdollThud(clamp(force / 9, 0.35, 1.0));
+      }
+      speakLine(name.toUpperCase(), line, "Stumbled! Recovering balance...", 1.15, 1.12);
+      return true;
+    }
+
+    // Frustum helpers for Frustum-Aware Rain & Spatial Audio Focus
+    const camFrustum = new T.Frustum();
+    const camProjScreen = new T.Matrix4();
+    const _frustPt = new T.Vector3();
     if ($("big-map-close")) $("big-map-close").addEventListener("click", () => setBigMapOpen(false));
     if ($("big-map-canvas")) {
       const mapEl = $("big-map-canvas");
@@ -6339,7 +6910,16 @@ void main(){
       else if (e.code === "KeyR") toggleRegion();
       else if (e.code === "KeyV" && !e.repeat) { if (e.shiftKey) toggleRide(); else toggleCameraMode(); }
       else if (e.code === "KeyP") pumpWell();
-      else if (e.code === "KeyF") pourWifi();
+      else if (e.code === "KeyF") {
+        if (!e.repeat) {
+          const pourTgt = findPourTarget();
+          if (pourTgt && state.waterLiters > 0.5 && Math.hypot(pourTgt.x - state.x, pourTgt.z - state.z) < 6.0) {
+            pourWifi();
+          } else {
+            triggerSquirtBurst(1.6);
+          }
+        }
+      }
       else if (e.code === "KeyK") triggerDance();
       else if (e.code === "KeyL") toggleLidar();
       else if (e.code === "KeyU" && !e.repeat) { if (machinima) machinima.toggle("trailer"); }
@@ -6359,7 +6939,7 @@ void main(){
         else jumpPlayer();
       }
       else if (e.code === "KeyQ") { state.tilt = clamp(state.tilt - .16, -.35, .35); updateHUD(); }
-      else if (e.code === "KeyE") { state.tilt = clamp(state.tilt + .16, -.35, .35); updateHUD(); }
+      else if (e.code === "KeyE" && !e.repeat) { interactTalk(); }
       else if (e.code >= "Digit1" && e.code <= "Digit6") { state.filterIdx = +e.code.slice(5) - 1; updateHUD(); }
     });
     addEventListener("keyup", e => { keys[e.code] = false; });
@@ -7004,7 +7584,7 @@ void main(){
       const cruiseFwd = (state.drivingCart && !brakeInput && Math.abs(manualFwd) <= .08) ? state.wagonCruise : 0;
       const fwdInput = clamp(Math.abs(manualFwd) > .08 ? manualFwd : cruiseFwd, -1, 1);
       const sideInput = clamp((keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + stickX, -1, 1);
-      const turbo = keys.ShiftLeft || keys.ShiftRight || fieldHeld("ShiftLeft");
+      const turbo = keys.ShiftLeft || keys.ShiftRight || fieldHeld("ShiftLeft") || state.sprintToggle;
       const nowSec = performance.now() * .001;
       const portPull = camera.aspect < .85 ? 1.38 : 1;
       const portLift = camera.aspect < .85 ? .85 : 0;
@@ -7552,10 +8132,14 @@ void main(){
       well.stream.scale.set(state.pumpFlow, 1, state.pumpFlow);
       well.pool.position.y = .21 + Math.sin(nowSec * 4.0) * .012;
 
-      /* --- WIFI WATER RAIN FALLS STRICTLY INSIDE ACTIVE WIFI DONKEY REACH --- */
+      /* --- WIFI WATER RAIN FALLS STRICTLY INSIDE ACTIVE WIFI DONKEY REACH + FRUSTUM AUDIO --- */
       const emitters = sampleWifiEmitters();
       const rainBeatSpd = 1.0 + state.beatPulse * .10;
       const rainLen = .92;
+      camera.updateMatrixWorld();
+      camProjScreen.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+      camFrustum.setFromProjectionMatrix(camProjScreen);
+      let frustumRainHits = 0;
       for (let i = 0; i < RAIN_N; i++) {
         rainY[i] -= rainSpd[i] * rainBeatSpd * dt;
         const surf = driveSurfaceAt(rainX[i], rainZ[i]);
@@ -7563,8 +8147,57 @@ void main(){
         const rx = rainX[i], ry = rainY[i], rz = rainZ[i], base = i * 6;
         rainPos[base] = rx; rainPos[base + 1] = ry; rainPos[base + 2] = rz;
         rainPos[base + 3] = rx; rainPos[base + 4] = ry + rainLen; rainPos[base + 5] = rz;
+        if ((i & 3) === 0) {
+          _frustPt.set(rx, ry, rz);
+          if (camFrustum.containsPoint(_frustPt)) {
+            const dCam = _frustPt.distanceTo(camera.position);
+            if (dCam < 55) frustumRainHits += (1 - dCam / 55);
+          }
+        }
       }
       rainGeo.attributes.position.needsUpdate = true;
+      const targetRain01 = clamp(frustumRainHits / 14, 0, 1);
+      state.rainInFrustum01 = lerp(state.rainInFrustum01, targetRain01, clamp(dt * 4.5, 0, 1));
+      const playerSpdNow = Math.hypot(state.vx || 0, state.vz || 0);
+      state.wind01 = clamp(0.18 + Math.max(0, state.y - 12) / 140 + playerSpdNow / 24, 0.15, 1.0);
+      _frustPt.set(well.x, driveSurfaceAt(well.x, well.z) + 1.1, well.z);
+      const wellDist = _frustPt.distanceTo(camera.position);
+      const wellInView = camFrustum.containsPoint(_frustPt) ? clamp(1 - wellDist / 48, 0, 1) : clamp(0.25 * (1 - wellDist / 26), 0, 0.25);
+      state.wellFocus01 = lerp(state.wellFocus01, wellInView, clamp(dt * 4, 0, 1));
+      const riverPtY = Math.min(state.y, 3.0);
+      _frustPt.set(state.x * 0.4, riverPtY, state.z * 0.4);
+      const riverInView = (state.y < 24 && camFrustum.containsPoint(_frustPt)) ? clamp(1 - state.y / 24, 0.1, 0.9) : 0.08;
+      state.riverFocus01 = lerp(state.riverFocus01, riverInView, clamp(dt * 3, 0, 1));
+      let crowdInView = 0;
+      if (cast && Array.isArray(cast.list)) {
+        for (let ci = 0; ci < cast.list.length; ci++) {
+          const ch = cast.list[ci];
+          if (!ch || !ch.group || !ch.group.visible || ch === activeAvatar) continue;
+          _frustPt.set(ch.group.position.x, ch.group.position.y + 1.2, ch.group.position.z);
+          if (camFrustum.containsPoint(_frustPt)) {
+            const dc = _frustPt.distanceTo(camera.position);
+            if (dc < 30) crowdInView += (1 - dc / 30) * 0.35;
+          }
+        }
+      }
+      if (window.HighlandSoundscape) {
+        const HS = window.HighlandSoundscape;
+        if (typeof HS.updateWeatherAudio === "function") HS.updateWeatherAudio(state.rainInFrustum01, state.wind01);
+        if (typeof HS.updateFrustumFocus === "function") HS.updateFrustumFocus(state.wellFocus01, state.riverFocus01, clamp(crowdInView, 0, 1));
+      }
+
+      /* --- Living World: WiFi Water Squirt Gun, Donkey Drink & Dialogue Auto-Hide --- */
+      stepWaterSquirt(dt, nowSec);
+      if (donkey.drinkTimer > 0) {
+        donkey.drinkTimer = Math.max(0, donkey.drinkTimer - dt);
+        const drinkEnv = Math.sin(clamp(donkey.drinkTimer / 2.4, 0, 1) * Math.PI);
+        if (donkey.group) donkey.group.rotation.x = lerp(donkey.group.rotation.x, 0.14 * drinkEnv, clamp(dt * 8, 0, 1));
+        if (donkeyRig) donkeyRig.rotation.x = lerp(donkeyRig.rotation.x, 0.18 * drinkEnv, clamp(dt * 8, 0, 1));
+      }
+      if (_speechState.hideTimer > 0) {
+        _speechState.hideTimer = Math.max(0, _speechState.hideTimer - dt);
+        if (_speechState.hideTimer <= 0 && $("dialogue-card")) $("dialogue-card").hidden = true;
+      }
 
       leadRope.visible = !state.riding && !state.drivingCart && !state.gliding && !state.donkeyCollapsed && !(machinima && machinima.isActive());
       if (leadRope.visible) {
@@ -7626,6 +8259,63 @@ void main(){
         }
         if (NP_PHYS && Array.isArray(cast.list)) {
           NP_PHYS.groundCastList(cast.list, driveSurfaceAt, carrierPhys ? carrierPhys.carryLeanRad : 0);
+        }
+        // Living NPC talk/cheer/phone animation, Front/Side-Hip Jerrycan Carry Fix & Bump/Knockdown Collisions
+        if (Array.isArray(cast.list)) {
+          const pSpeed = Math.hypot(state.vx || 0, state.vz || 0);
+          const wSpeed = Math.abs(wagon.speed || 0);
+          for (let ci = 0; ci < cast.list.length; ci++) {
+            const ch = cast.list[ci];
+            if (!ch || !ch.group || !ch.group.visible) continue;
+            const ud = ch.group.userData || (ch.group.userData = {});
+            const isPlayer = (ch === activeAvatar);
+            if (!isPlayer) {
+              ensureNpcSmartphone(ch);
+              if (ud.talkTimer > 0) {
+                ud.talkTimer = Math.max(0, ud.talkTimer - dt);
+                if (ch.state) ch.state.speaking = ud.talkTimer > 0;
+                // Visible jaw talking motion
+                if (ch.bones && ch.bones[9]) {
+                  ch.bones[9].rotation.x = Math.max(ch.bones[9].rotation.x, 0.14 + 0.16 * Math.abs(Math.sin(nowSec * 9.5 + ci)));
+                }
+              }
+              if (ud.cheerTimer > 0) {
+                ud.cheerTimer = Math.max(0, ud.cheerTimer - dt);
+                if (ud.livingPhoneGrp) {
+                  ud.livingPhoneGrp.position.y = 1.16 + Math.sin(nowSec * 12 + ci) * 0.05;
+                }
+              } else if (ud.livingPhoneGrp) {
+                ud.livingPhoneGrp.position.y = 1.12 + Math.sin(nowSec * 2.2 + ci) * 0.012;
+              }
+              // Bump / Knockdown checks: sprinting player, driving wagon, or thrown jerrycan
+              const dxP = ch.group.position.x - state.x, dzP = ch.group.position.z - state.z;
+              const distP = Math.hypot(dxP, dzP);
+              if (!state.drivingCart && pSpeed > 3.8 && distP < 1.15) {
+                bumpNpc(ch, dxP, dzP, clamp(pSpeed * 1.15, 4.5, 9.0));
+              } else if (state.drivingCart && wSpeed > 2.0) {
+                const dxW = ch.group.position.x - wagon.x, dzW = ch.group.position.z - wagon.z;
+                if (Math.hypot(dxW, dzW) < 2.2) {
+                  bumpNpc(ch, dxW, dzW, clamp(wSpeed * 1.4, 5.5, 10.5));
+                }
+              }
+              if (projPool && Array.isArray(projPool.items)) {
+                for (let pi = 0; pi < projPool.items.length; pi++) {
+                  const pr = projPool.items[pi];
+                  if (!pr || !pr.alive) continue;
+                  const dxPr = ch.group.position.x - pr.x, dzPr = ch.group.position.z - pr.z;
+                  if (Math.hypot(dxPr, dzPr) < 1.05 && Math.abs(pr.y - (ch.group.position.y + 0.95)) < 1.25) {
+                    bumpNpc(ch, pr.vx || dxPr, pr.vz || dzPr, 6.2);
+                    pr.vx *= -0.35; pr.vz *= -0.35;
+                    break;
+                  }
+                }
+              }
+              if (NP_PHYS && typeof NP_PHYS.stepNpcKnockdown === "function") {
+                NP_PHYS.stepNpcKnockdown(ch, dt, driveSurfaceAt, worldBoundsClamp);
+              }
+            }
+            enforceFrontHipJerrycanCarry(ch, nowSec, isPlayer ? pSpeed : (ch.state ? (ch.state.speed || 0) : 0), isPlayer && state.squirtActive);
+          }
         }
         // Position & pose active playable character for 3rd-person view (with ragdoll tumble!)
         if (activeAvatar && activeAvatar.group && !state.drivingCart && !state.gliding && !state.riding) {
@@ -7884,6 +8574,16 @@ void main(){
           bigMapOpen: state.bigMapOpen,
           throwCount: state.throwCount,
           worldWaterDeliveredL: state.worldWaterDeliveredL,
+          sprintToggle: state.sprintToggle,
+          squirtActive: state.squirtActive,
+          carryCanLocalZ: +state.carryCanLocalZ.toFixed(3),
+          rainInFrustum01: +state.rainInFrustum01.toFixed(3),
+          wind01: +state.wind01.toFixed(3),
+          wellFocus01: +state.wellFocus01.toFixed(3),
+          riverFocus01: +state.riverFocus01.toFixed(3),
+          npcBumpCount: state.npcBumpCount,
+          lastDialogue: state.lastDialogue,
+          quests: state.quests,
           physics: {
             gravity: NP_PHYS ? NP_PHYS.GRAVITY : 22.0,
             wagonUnderbodySamples: vehPhys ? vehPhys.underbodySamples : 0,
@@ -7914,6 +8614,13 @@ void main(){
             particleCount: physParticles ? physParticles.activeCount : 0
           }
         };
+      },
+      triggerSquirt: (dur = 2.0) => { triggerSquirtBurst(dur); return state.squirtBurstTimer; },
+      triggerTalk: () => interactTalk(),
+      triggerNpcBump: () => {
+        if (!cast || !Array.isArray(cast.list)) return false;
+        const target = cast.list.find(c => c && c.group && c.group.visible && c !== activeAvatar);
+        return target ? bumpNpc(target, 1, 0.4, 6.8) : false;
       },
       getCast: () => cast ? cast.list.map(c => ({
         id: c.state.id, name: c.state.name, role: c.state.role,

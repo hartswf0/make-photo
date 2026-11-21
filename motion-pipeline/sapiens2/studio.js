@@ -660,6 +660,9 @@ const voiceEngine = (() => {
   let phraseDurMs = 2800;
   let usingSynthFallback = false;
   let fallbackPulseAccum = 0;
+  let activeUtterance = null;
+  let synthStarted = false;
+  let synthWatchdog = null;
 
   let micActive = false;
   let micStream = null;
@@ -676,6 +679,9 @@ const voiceEngine = (() => {
   function stopSpeaking() {
     speaking = false;
     phraseText = '';
+    synthStarted = false;
+    activeUtterance = null;
+    if (synthWatchdog) { clearTimeout(synthWatchdog); synthWatchdog = null; }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       try { window.speechSynthesis.cancel(); } catch (_) {}
     }
@@ -698,6 +704,7 @@ const voiceEngine = (() => {
     phraseDurMs = Math.max(1700, Math.min(5500, text.length * 72 + 450));
     speaking = true;
     usingSynthFallback = false;
+    synthStarted = false;
     fallbackPulseAccum = 0;
 
     const btn = $('btnSpeakPhrase');
@@ -708,6 +715,7 @@ const voiceEngine = (() => {
     if (hasSynth) {
       try {
         const utt = new window.SpeechSynthesisUtterance(text);
+        utt.lang = 'en-US';
         utt.rate = 0.94;
         utt.pitch = 1.04;
         utt.volume = 1.0;
@@ -716,19 +724,35 @@ const voiceEngine = (() => {
           || voices.find((v) => /en/i.test(v.lang));
         if (pref) utt.voice = pref;
         utt.onstart = () => {
+          synthStarted = true;
+          usingSynthFallback = false;
           phraseStartMs = performance.now();
         };
         utt.onend = () => {
           speaking = false;
+          activeUtterance = null;
+          if (synthWatchdog) { clearTimeout(synthWatchdog); synthWatchdog = null; }
           if (btn) btn.classList.remove('live');
           setStatus('Voice ready. Click SPEAK PHRASE or MIC LIP-SYNC.');
           if (state.character) state.character.setLyricSpeech('', 0, 0);
         };
         utt.onerror = () => {
           usingSynthFallback = true;
+          soundEngine.ensureAudio();
         };
-        window.speechSynthesis.cancel();
+        activeUtterance = utt;
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+          window.speechSynthesis.cancel();
+        }
+        try { window.speechSynthesis.resume(); } catch (_) {}
         window.speechSynthesis.speak(utt);
+        // Watchdog: if browser blocks speechSynthesis or drops it silently, activate audible formant fallback
+        synthWatchdog = setTimeout(() => {
+          if (speaking && !synthStarted) {
+            usingSynthFallback = true;
+            soundEngine.ensureAudio();
+          }
+        }, 450);
       } catch (_) {
         usingSynthFallback = true;
       }

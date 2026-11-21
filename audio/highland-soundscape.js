@@ -1,6 +1,6 @@
-/* HighlandSoundscape - Warm Cinema-Grade Highland Soundscape, Tactile Foley & Collapsible 1-Pill Radio HUD
+/* HighlandSoundscape - Warm Cinema-Grade Highland Soundscape, Frustum Weather, Tactile Foley & Collapsible 1-Pill Radio HUD
  * Exposes window.HighlandSoundscape
- * Zero external dependencies; pairs smooth pink-noise DSP & harmonic tezeta pad with soft WebAudio foley.
+ * Zero external dependencies; pairs organic pink-noise nature & frustum rain with soft WebAudio foley and clean music ducking.
  */
 (function (global) {
   "use strict";
@@ -36,14 +36,13 @@
     }
   ];
 
-  // Linear gain helpers (dB reference: -20dB=0.10, -22dB=0.079, -24dB=0.063, -16dB=0.158)
+  // Linear gain helpers (dB reference: -18dB=0.126, -20dB=0.10, -22dB=0.079, -24dB=0.063, -4dB=0.631)
   const BIOME_CONFIG = {
     courtyard: {
       reverbWet: 0.28,
       reverbDry: 0.94,
-      windGain: 0.085,
+      windGain: 0.065,
       windFreq: 310,
-      padGain: 0.075,
       cricketsGain: 0.045,
       riverGain: 0.015,
       fieldGain: 0.04
@@ -51,9 +50,8 @@
     highland_cliff: {
       reverbWet: 0.42,
       reverbDry: 0.88,
-      windGain: 0.105,
+      windGain: 0.085,
       windFreq: 520,
-      padGain: 0.082,
       cricketsGain: 0.02,
       riverGain: 0.01,
       fieldGain: 0.03
@@ -61,9 +59,8 @@
     valley_village: {
       reverbWet: 0.24,
       reverbDry: 0.95,
-      windGain: 0.09,
+      windGain: 0.072,
       windFreq: 360,
-      padGain: 0.078,
       cricketsGain: 0.055,
       riverGain: 0.02,
       fieldGain: 0.045
@@ -71,9 +68,8 @@
     gorge_water: {
       reverbWet: 0.38,
       reverbDry: 0.90,
-      windGain: 0.085,
+      windGain: 0.068,
       windFreq: 400,
-      padGain: 0.072,
       cricketsGain: 0.03,
       riverGain: 0.085,
       fieldGain: 0.03
@@ -136,19 +132,33 @@
     biomeIRs: {},
     pinkNoiseBuffer: null,
 
-    // Ambient bed nodes (pink-noise breeze + tezeta harmonic pad + soft beds)
+    // Ambient bed nodes (non-tonal organic nature: soft wind + frustum rain + soft beds, ducked during music)
+    ambientDuckGain: null,
     windGain: null,
     windFilter: null,
     windLfo: null,
-    padGain: null,
-    padFilter: null,
-    padLfo: null,
+    rainGain: null,
+    rainBodyFilter: null,
+    rainPatterFilter: null,
+    rainVis: 0,
+    weatherWind: 0.25,
+    rainDropTimer: null,
+    frustumPump: 0,
+    frustumRiver: 0,
+    frustumCrowd: 0,
     cricketsGain: null,
     riverGain: null,
     fieldGain: null,
     ambientStarted: false,
     birdTimer: null,
     lastDonkeyAt: -999,
+
+    // Water squirt gun / pressurized stream rig
+    squirtGain: null,
+    squirtFilter: null,
+    squirtActive: false,
+    squirtIntensity: 0,
+    lastSquirtSplashAt: 0,
 
     // Spatial pump rig
     pumpPanner: null,
@@ -319,81 +329,83 @@
 
     state.pinkNoiseBuffer = makePinkNoiseBuffer(ctx, 4.0);
 
-    // 1. Smooth Pink-Noise Low-Passed Highland Breeze (280-650 Hz, ~ -20 dB)
+    // Ambient Duck Bus (smoothly ducks -4 dB when music stations play)
+    state.ambientDuckGain = ctx.createGain();
+    state.ambientDuckGain.gain.value = 1.0;
+    state.ambientDuckGain.connect(state.sfxBus);
+
+    // 1. Smooth Pink-Noise Low-Passed Highland Breeze (non-tonal organic air, ~ -22 dB)
     const windSrc = ctx.createBufferSource();
     windSrc.buffer = state.pinkNoiseBuffer;
     windSrc.loop = true;
     state.windFilter = ctx.createBiquadFilter();
     state.windFilter.type = "lowpass";
     state.windFilter.frequency.value = 360;
-    state.windFilter.Q.value = 0.65;
+    state.windFilter.Q.value = 0.6;
     state.windGain = ctx.createGain();
-    state.windGain.gain.value = 0.09;
+    state.windGain.gain.value = 0.072;
 
     // Slow breeze swell LFO
     state.windLfo = ctx.createOscillator();
     state.windLfo.type = "sine";
     state.windLfo.frequency.value = 0.085;
     const windLfoDepth = ctx.createGain();
-    windLfoDepth.gain.value = 75;
+    windLfoDepth.gain.value = 65;
     state.windLfo.connect(windLfoDepth);
     windLfoDepth.connect(state.windFilter.frequency);
     state.windLfo.start();
 
     windSrc.connect(state.windFilter);
     state.windFilter.connect(state.windGain);
-    state.windGain.connect(state.sfxBus);
+    state.windGain.connect(state.ambientDuckGain);
     windSrc.start();
 
-    // 2. Gentle Distant Harmonic Tezeta Pentatonic Acoustic Pad (~ -22 dB)
-    // Soft warm sine + triangle open fifths (D3 146.83 Hz, A3 220 Hz, D4 293.66 Hz) with slow LFO breathing
-    state.padFilter = ctx.createBiquadFilter();
-    state.padFilter.type = "lowpass";
-    state.padFilter.frequency.value = 540;
-    state.padFilter.Q.value = 0.5;
+    // 2. Frustum-Aware Multi-Band Rain Patter Bed (filtered pink noise, max -18 dB, zero harshness)
+    state.rainGain = ctx.createGain();
+    state.rainGain.gain.value = 0.0001;
+    state.rainGain.connect(state.ambientDuckGain);
 
-    state.padGain = ctx.createGain();
-    state.padGain.gain.value = 0.075;
+    // Rain body wash (warm mid-band)
+    const rainBodySrc = ctx.createBufferSource();
+    rainBodySrc.buffer = state.pinkNoiseBuffer;
+    rainBodySrc.loop = true;
+    state.rainBodyFilter = ctx.createBiquadFilter();
+    state.rainBodyFilter.type = "bandpass";
+    state.rainBodyFilter.frequency.value = 920;
+    state.rainBodyFilter.Q.value = 0.65;
+    const rainBodyGain = ctx.createGain();
+    rainBodyGain.gain.value = 0.68;
+    rainBodySrc.connect(state.rainBodyFilter);
+    state.rainBodyFilter.connect(rainBodyGain);
+    rainBodyGain.connect(state.rainGain);
+    rainBodySrc.start(0, 0.7);
 
-    const padBreathGain = ctx.createGain();
-    padBreathGain.gain.value = 0.78;
-    state.padLfo = ctx.createOscillator();
-    state.padLfo.type = "sine";
-    state.padLfo.frequency.value = 0.065;
-    const padLfoDepth = ctx.createGain();
-    padLfoDepth.gain.value = 0.22;
-    state.padLfo.connect(padLfoDepth);
-    padLfoDepth.connect(padBreathGain.gain);
-    state.padLfo.start();
-
-    const padVoices = [
-      { type: "sine", freq: 146.83, gain: 0.42 },     // D3 root
-      { type: "triangle", freq: 220.0, gain: 0.24 },  // A3 fifth
-      { type: "sine", freq: 293.66, gain: 0.16 },     // D4 octave
-      { type: "sine", freq: 349.23, gain: 0.08 }      // F4 gentle tezeta color
-    ];
-    padVoices.forEach(function (v) {
-      const osc = ctx.createOscillator();
-      const vg = ctx.createGain();
-      osc.type = v.type;
-      osc.frequency.value = v.freq;
-      vg.gain.value = v.gain;
-      osc.connect(vg);
-      vg.connect(state.padFilter);
-      osc.start();
-    });
-
-    state.padFilter.connect(padBreathGain);
-    padBreathGain.connect(state.padGain);
-    state.padGain.connect(state.reverbSend);
-    state.padGain.connect(state.dryBus);
+    // Rain gentle patter sheen (soft upper-mid band, low-passed below 4.8 kHz)
+    const rainPatterSrc = ctx.createBufferSource();
+    rainPatterSrc.buffer = state.pinkNoiseBuffer;
+    rainPatterSrc.loop = true;
+    state.rainPatterFilter = ctx.createBiquadFilter();
+    state.rainPatterFilter.type = "bandpass";
+    state.rainPatterFilter.frequency.value = 2450;
+    state.rainPatterFilter.Q.value = 0.85;
+    const rainSoftLP = ctx.createBiquadFilter();
+    rainSoftLP.type = "lowpass";
+    rainSoftLP.frequency.value = 4600;
+    rainSoftLP.Q.value = 0.5;
+    const rainPatterGain = ctx.createGain();
+    rainPatterGain.gain.value = 0.42;
+    rainPatterSrc.connect(state.rainPatterFilter);
+    state.rainPatterFilter.connect(rainSoftLP);
+    rainSoftLP.connect(rainPatterGain);
+    rainPatterGain.connect(state.rainGain);
+    rainPatterSrc.start(0, 2.1);
 
     // 3. Soft Low-Passed Sample Ambient Beds (~ -24 dB)
     const bedLP = ctx.createBiquadFilter();
     bedLP.type = "lowpass";
     bedLP.frequency.value = 3400;
     bedLP.Q.value = 0.6;
-    bedLP.connect(state.sfxBus);
+    bedLP.connect(state.ambientDuckGain);
 
     state.cricketsGain = ctx.createGain();
     state.cricketsGain.gain.value = 0.0001;
@@ -406,6 +418,26 @@
     state.fieldGain = ctx.createGain();
     state.fieldGain.gain.value = 0.0001;
     state.fieldGain.connect(bedLP);
+
+    // Pressurized Water Squirt Stream Rig (WiFi Water Squirt Gun / pouring)
+    const squirtSrc = ctx.createBufferSource();
+    squirtSrc.buffer = state.pinkNoiseBuffer;
+    squirtSrc.loop = true;
+    const squirtHP = ctx.createBiquadFilter();
+    squirtHP.type = "highpass";
+    squirtHP.frequency.value = 680;
+    squirtHP.Q.value = 0.7;
+    state.squirtFilter = ctx.createBiquadFilter();
+    state.squirtFilter.type = "bandpass";
+    state.squirtFilter.frequency.value = 2100;
+    state.squirtFilter.Q.value = 1.15;
+    state.squirtGain = ctx.createGain();
+    state.squirtGain.gain.value = 0.0001;
+    squirtSrc.connect(squirtHP);
+    squirtHP.connect(state.squirtFilter);
+    state.squirtFilter.connect(state.squirtGain);
+    state.squirtGain.connect(state.sfxBus);
+    squirtSrc.start(0, 1.3);
 
     // Spatial Pump Rig (warm damped mechanical creak, no harsh sawtooth screech)
     state.pumpPanner = createPanner(ctx, { x: 0, y: 0, z: 0 });
@@ -507,7 +539,9 @@
 
     setupCosmicAudioElement();
     applyBiomeMix(state.biome, state.elevationM);
+    updateMusicDucking();
     startBirdScheduler();
+    startRainDropScheduler();
     loadAllSamples();
 
     state.initialized = true;
@@ -617,6 +651,63 @@
     osc.stop(now + 0.27);
   }
 
+  function startRainDropScheduler() {
+    if (state.rainDropTimer) return;
+    state.rainDropTimer = setInterval(function () {
+      if (!state.ctx || state.ctx.state !== "running" || state.muted) return;
+      const rv = state.rainVis;
+      if (rv <= 0.04) return;
+      // 1-2 soft, gentle high-frequency raindrop ticks proportional to rain visibility
+      if (Math.random() < 0.35 + rv * 0.55) {
+        triggerSoftRaindropTick(rv);
+      }
+      if (rv > 0.5 && Math.random() < rv * 0.45) {
+        setTimeout(function () {
+          if (state.ctx && state.ctx.state === "running" && !state.muted && state.rainVis > 0.04) {
+            triggerSoftRaindropTick(state.rainVis * 0.8);
+          }
+        }, 45 + Math.floor(Math.random() * 65));
+      }
+    }, 150);
+  }
+
+  function triggerSoftRaindropTick(rainVis01) {
+    const ctx = state.ctx;
+    if (!ctx || !state.ambientDuckGain) return;
+    const now = ctx.currentTime;
+    const rv = clamp(Number(rainVis01) || 0, 0, 1);
+    const osc = ctx.createOscillator();
+    const bp = ctx.createBiquadFilter();
+    const g = ctx.createGain();
+    const f = 1900 + Math.random() * 2100;
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(f, now);
+    osc.frequency.exponentialRampToValueAtTime(f * 0.72, now + 0.024);
+    bp.type = "bandpass";
+    bp.frequency.value = f;
+    bp.Q.value = 1.4;
+    const peak = clamp(0.006 + rv * 0.022, 0.004, 0.028);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(peak, now + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.026 + Math.random() * 0.014);
+    osc.connect(bp);
+    bp.connect(g);
+    g.connect(state.ambientDuckGain);
+    osc.start(now);
+    osc.stop(now + 0.045);
+  }
+
+  // Smoothly duck ambient rain/wind -4 dB (0.631) when music stations play
+  function updateMusicDucking() {
+    if (!state.ctx || !state.ambientDuckGain) return;
+    const st = STATIONS[state.radioStationIdx] || STATIONS[0];
+    const isMusicPlaying = Boolean(
+      state.radioOn && (st.id === "cosmic_addis" || st.id === "lalibela_krar")
+    );
+    const target = isMusicPlaying ? 0.631 : 1.0; // -4 dB duck when song plays
+    state.ambientDuckGain.gain.setTargetAtTime(target, state.ctx.currentTime, 0.35);
+  }
+
   function applyBiomeMix(biome, elevationM) {
     if (!state.ctx) return;
     const cfg = BIOME_CONFIG[biome] || BIOME_CONFIG.valley_village;
@@ -630,18 +721,22 @@
     state.reverbReturn.gain.setTargetAtTime(cfg.reverbWet, t, 0.55);
     state.dryBus.gain.setTargetAtTime(cfg.reverbDry, t, 0.55);
 
-    // Keep highland breeze strictly within 280-650 Hz and around -20 dB (0.08 - 0.115)
-    const targetWindFreq = clamp(cfg.windFreq + elevFactor * 120, 280, 650);
-    const targetWindGain = clamp(cfg.windGain + elevFactor * 0.018, 0.07, 0.115);
-    state.windGain.gain.setTargetAtTime(targetWindGain, t, 0.65);
-    state.windFilter.frequency.setTargetAtTime(targetWindFreq, t, 0.65);
+    // Keep highland breeze organic and non-tonal (260-680 Hz), modulated by elevation & weatherWind
+    const windMod = clamp(state.weatherWind, 0, 1);
+    const targetWindFreq = clamp(cfg.windFreq + elevFactor * 100 + windMod * 140, 260, 680);
+    const targetWindGain = clamp(cfg.windGain * (0.72 + windMod * 0.62) + elevFactor * 0.014, 0.045, 0.12);
+    state.windGain.gain.setTargetAtTime(targetWindGain, t, 0.55);
+    state.windFilter.frequency.setTargetAtTime(targetWindFreq, t, 0.55);
 
-    if (state.padGain) {
-      state.padGain.gain.setTargetAtTime(cfg.padGain, t, 0.9);
-    }
     state.cricketsGain.gain.setTargetAtTime(cfg.cricketsGain, t, 0.7);
-    state.riverGain.gain.setTargetAtTime(cfg.riverGain, t, 0.7);
-    state.fieldGain.gain.setTargetAtTime(cfg.fieldGain, t, 0.9);
+    const targetRiver = clamp(cfg.riverGain + state.frustumRiver * 0.085, 0.005, 0.17);
+    const targetField = clamp(cfg.fieldGain + state.frustumCrowd * 0.065, 0.01, 0.13);
+    state.riverGain.gain.setTargetAtTime(targetRiver, t, 0.45);
+    state.fieldGain.gain.setTargetAtTime(targetField, t, 0.45);
+
+    if (state.pumpGain) {
+      state.pumpGain.gain.setTargetAtTime(0.42 + state.frustumPump * 0.30, t, 0.3);
+    }
   }
 
   // Soft warm dial click/whoosh instead of harsh radio static burst
@@ -683,6 +778,7 @@
     if (state.ctx && state.radioBedGain) {
       state.radioBedGain.gain.setTargetAtTime(0.0001, state.ctx.currentTime, 0.08);
     }
+    updateMusicDucking();
   }
 
   // Warm plucked krar (triangle + sine, smooth lowpass, no harsh sawtooth)
@@ -761,6 +857,7 @@
     const now = ctx.currentTime;
     const st = STATIONS[state.radioStationIdx] || STATIONS[0];
     state.radioBus.gain.setTargetAtTime(state.radioVol, now, 0.08);
+    updateMusicDucking();
 
     if (st.id === "cosmic_addis") {
       state.radioCosmicGain.gain.setTargetAtTime(0.75, now, 0.16);
@@ -920,7 +1017,10 @@
         state.ctx.resume().then(function () {
           state.ready = state.ctx.state === "running";
           startAmbientLoopsIfReady();
+          API.updateWeatherAudio(state.rainVis, state.weatherWind);
+          API.updateFrustumFocus(state.frustumPump, state.frustumRiver, state.frustumCrowd);
           if (state.radioOn) startActiveStation();
+          updateMusicDucking();
         }).catch(function () {});
       } else {
         state.ready = state.ctx.state === "running";
@@ -976,6 +1076,237 @@
         applyBiomeMix(state.biome, state.elevationM);
         syncRadioHUDs();
       }
+    },
+
+    // Frustum-aware rain patter bed (-18 dB max = 0.126 linear) + organic wind modulation
+    updateWeatherAudio: function (rainVisibility01, wind01) {
+      const rv = clamp(Number(rainVisibility01) || 0, 0, 1);
+      const wv = Number.isFinite(Number(wind01)) ? clamp(Number(wind01), 0, 1) : state.weatherWind;
+      state.rainVis = rv;
+      state.weatherWind = wv;
+
+      if (!state.ctx || state.ctx.state !== "running") return;
+      const now = state.ctx.currentTime;
+
+      if (state.rainGain) {
+        // Gentle non-linear curve, strictly capped at -18 dB (0.126)
+        const targetRainGain = rv > 0.005 ? clamp(Math.pow(rv, 0.85) * 0.126, 0.0001, 0.126) : 0.0001;
+        state.rainGain.gain.setTargetAtTime(targetRainGain, now, 0.35);
+      }
+      if (state.rainBodyFilter) {
+        state.rainBodyFilter.frequency.setTargetAtTime(820 + rv * 360 + wv * 140, now, 0.4);
+      }
+      if (state.rainPatterFilter) {
+        state.rainPatterFilter.frequency.setTargetAtTime(2100 + rv * 950, now, 0.4);
+      }
+
+      const cfg = BIOME_CONFIG[state.biome] || BIOME_CONFIG.valley_village;
+      const elevFactor = clamp(((Number(state.elevationM) || 2200) - 1800) / 1600, 0, 1);
+      if (state.windGain && state.windFilter) {
+        const targetWindFreq = clamp(cfg.windFreq + elevFactor * 100 + wv * 140, 260, 680);
+        const targetWindGain = clamp(cfg.windGain * (0.72 + wv * 0.62) + elevFactor * 0.014, 0.045, 0.12);
+        state.windGain.gain.setTargetAtTime(targetWindGain, now, 0.4);
+        state.windFilter.frequency.setTargetAtTime(targetWindFreq, now, 0.4);
+      }
+    },
+
+    // Gently boost spatialized water/courtyard ambiance when sound sources are inside camera frustum
+    updateFrustumFocus: function (pumpInView01, riverInView01, crowdInView01) {
+      const p = clamp(Number(pumpInView01) || 0, 0, 1);
+      const r = clamp(Number(riverInView01) || 0, 0, 1);
+      const c = clamp(Number(crowdInView01) || 0, 0, 1);
+      state.frustumPump = p;
+      state.frustumRiver = r;
+      state.frustumCrowd = c;
+
+      if (!state.ctx || state.ctx.state !== "running") return;
+      const now = state.ctx.currentTime;
+      const cfg = BIOME_CONFIG[state.biome] || BIOME_CONFIG.valley_village;
+
+      if (state.pumpGain) {
+        state.pumpGain.gain.setTargetAtTime(0.42 + p * 0.30, now, 0.28);
+      }
+      if (state.riverGain) {
+        state.riverGain.gain.setTargetAtTime(clamp(cfg.riverGain + r * 0.085, 0.005, 0.17), now, 0.35);
+      }
+      if (state.fieldGain) {
+        state.fieldGain.gain.setTargetAtTime(clamp(cfg.fieldGain + c * 0.065, 0.01, 0.13), now, 0.35);
+      }
+    },
+
+    // Crisp pressurized water-stream hiss & splash for WiFi Water Squirt Gun / pouring
+    playWaterSquirt: function (active, intensity01) {
+      const isOn = Boolean(active);
+      const amt = clamp(Number.isFinite(Number(intensity01)) ? Number(intensity01) : 0.75, 0.05, 1);
+      state.squirtActive = isOn;
+      state.squirtIntensity = isOn ? amt : 0;
+
+      if (!state.ctx || state.ctx.state !== "running" || state.muted) {
+        if (state.ctx && state.squirtGain) {
+          state.squirtGain.gain.setTargetAtTime(0.0001, state.ctx.currentTime, 0.05);
+        }
+        return;
+      }
+
+      const ctx = state.ctx;
+      const now = ctx.currentTime;
+
+      if (!isOn) {
+        if (state.squirtGain) {
+          state.squirtGain.gain.setTargetAtTime(0.0001, now, 0.06);
+        }
+        return;
+      }
+
+      if (state.squirtFilter) {
+        state.squirtFilter.frequency.setTargetAtTime(1550 + amt * 1350, now, 0.05);
+      }
+      if (state.squirtGain) {
+        state.squirtGain.gain.setTargetAtTime(clamp(0.045 + amt * 0.105, 0.04, 0.15), now, 0.045);
+      }
+
+      // Periodic crisp splash micro-bursts while spraying
+      if (now - state.lastSquirtSplashAt >= 0.15) {
+        state.lastSquirtSplashAt = now;
+        if (state.buffers.water_pour) {
+          const s = ctx.createBufferSource();
+          s.buffer = state.buffers.water_pour;
+          s.playbackRate.value = 1.25 + Math.random() * 0.35;
+          const hp = ctx.createBiquadFilter();
+          hp.type = "highpass";
+          hp.frequency.value = 950;
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, now);
+          g.gain.linearRampToValueAtTime(0.065 * amt, now + 0.015);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + 0.13);
+          s.connect(hp);
+          hp.connect(g);
+          g.connect(state.sfxBus);
+          const maxOff = Math.max(0, state.buffers.water_pour.duration - 0.2);
+          s.start(now, Math.random() * maxOff, 0.15);
+        } else if (state.pinkNoiseBuffer) {
+          const n = ctx.createBufferSource();
+          n.buffer = state.pinkNoiseBuffer;
+          const bp = ctx.createBiquadFilter();
+          bp.type = "bandpass";
+          bp.frequency.setValueAtTime(1800 + Math.random() * 900, now);
+          bp.Q.value = 1.5;
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, now);
+          g.gain.linearRampToValueAtTime(0.055 * amt, now + 0.012);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+          n.connect(bp);
+          bp.connect(g);
+          g.connect(state.sfxBus);
+          n.start(now, Math.random() * 2.0, 0.12);
+        }
+      }
+    },
+
+    // Subtle refreshing gulp/pour feedback when Mistletoe or a villager drinks
+    playDrink: function () {
+      if (!state.ctx || state.ctx.state !== "running" || state.muted) return;
+      const ctx = state.ctx;
+      const now = ctx.currentTime;
+
+      // Soft liquid pour shimmer
+      if (state.buffers.water_pour) {
+        const s = ctx.createBufferSource();
+        s.buffer = state.buffers.water_pour;
+        s.playbackRate.value = 1.08 + Math.random() * 0.12;
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = 2100;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.linearRampToValueAtTime(0.085, now + 0.025);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+        s.connect(lp);
+        lp.connect(g);
+        g.connect(state.sfxBus);
+        s.start(now, Math.random() * 0.3, 0.26);
+      } else if (state.pinkNoiseBuffer) {
+        const n = ctx.createBufferSource();
+        n.buffer = state.pinkNoiseBuffer;
+        const bp = ctx.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.setValueAtTime(980, now);
+        bp.Q.value = 1.4;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.linearRampToValueAtTime(0.06, now + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+        n.connect(bp);
+        bp.connect(g);
+        g.connect(state.sfxBus);
+        n.start(now, Math.random() * 1.5, 0.2);
+      }
+
+      // Two gentle resonant liquid gulp/glug bubbles
+      [
+        { offset: 0.03, f0: 240, f1: 410, peak: 0.075 },
+        { offset: 0.15, f0: 290, f1: 485, peak: 0.065 }
+      ].forEach(function (b) {
+        const t0 = now + b.offset;
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(b.f0, t0);
+        osc.frequency.exponentialRampToValueAtTime(b.f1, t0 + 0.085);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.linearRampToValueAtTime(b.peak, t0 + 0.016);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.105);
+        osc.connect(g);
+        g.connect(state.sfxBus);
+        osc.start(t0);
+        osc.stop(t0 + 0.12);
+      });
+    },
+
+    // Brief, warm 2-note wooden marimba/krar pluck (zero sustained drone)
+    playQuestComplete: function () {
+      if (!state.ctx || state.ctx.state !== "running" || state.muted) return;
+      const ctx = state.ctx;
+      const now = ctx.currentTime;
+
+      const notes = [
+        { freq: 293.66, offset: 0.0, peak: 0.13, decay: 0.34 }, // D4
+        { freq: 440.0, offset: 0.11, peak: 0.14, decay: 0.44 }  // A4
+      ];
+      notes.forEach(function (n) {
+        const t0 = now + n.offset;
+        const body = ctx.createOscillator();
+        const overtone = ctx.createOscillator();
+        body.type = "triangle";
+        overtone.type = "sine";
+        body.frequency.setValueAtTime(n.freq, t0);
+        overtone.frequency.setValueAtTime(n.freq * 3.0, t0);
+
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.setValueAtTime(n.freq * 4.2, t0);
+        lp.frequency.exponentialRampToValueAtTime(n.freq * 1.4, t0 + n.decay * 0.75);
+
+        const ovG = ctx.createGain();
+        ovG.gain.setValueAtTime(0.18, t0);
+        ovG.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.075);
+
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.linearRampToValueAtTime(n.peak, t0 + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + n.decay);
+
+        body.connect(lp);
+        overtone.connect(ovG);
+        ovG.connect(lp);
+        lp.connect(g);
+        g.connect(state.sfxBus);
+
+        body.start(t0);
+        overtone.start(t0);
+        body.stop(t0 + n.decay + 0.03);
+        overtone.stop(t0 + 0.09);
+      });
     },
 
     // Disabled loud donkey braying: now a very soft, rare low-passed gentle hoof-tap / exhale at -24 dB
@@ -1565,6 +1896,13 @@
         muted: state.muted,
         biome: state.biome,
         elevationM: state.elevationM,
+        rainVisibility: state.rainVis,
+        weatherWind: state.weatherWind,
+        frustumFocus: {
+          pump: state.frustumPump,
+          river: state.frustumRiver,
+          crowd: state.frustumCrowd
+        },
         radioOn: state.radioOn,
         radioVolume: state.radioVol,
         station: STATIONS[state.radioStationIdx],
