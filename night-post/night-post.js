@@ -8344,7 +8344,9 @@ void main(){
         else if (b.dataset.ctx) { const a = (state.ctxActs || []).find(a => a.id === b.dataset.ctx); if (a) a.fn(); demo.dockSig = ""; }
         else if (b.dataset.do) { ({ land: () => toggleGlide(), down: () => toggleRide(), park: () => toggleCart(), fly: () => toggleGlide() })[b.dataset.do](); demo.dockSig = ""; }
         else if (b.dataset.offer) demoOfferTake(b);
-        else if (b.dataset.talk) { demo.talking = true; demo.dockSig = ""; demoDock(1); }
+        else if (b.dataset.talk) { const who = demo.withCh; if (who) { const kb = DEMO_KB[who.state.id] || {}, list = ["who", ...Object.keys(kb).filter(k => k !== "who" && kb[k] && DEMO_Q[k]), "where"];
+            const ix = demo.askIx || (demo.askIx = {}), k = list[(ix[who.state.id] || 0) % list.length]; ix[who.state.id] = (ix[who.state.id] || 0) + 1; demoSay(k === "where" ? "Where next?" : DEMO_Q[k]); }
+          if (demo.curKey) { (demo.shownAt || {})[demo.curKey] = demo.clock || 0; } demo.dockSig = ""; }
         else if (b.dataset.untalk) { demo.talking = false; demo.dockSig = ""; demoDock(1); }
         else if (b.dataset.type) { document.body.classList.add("demo-typing"); ui.say.hidden = false; setTimeout(() => ui.input.focus(), 30); }
         else if (b.dataset.ask) demoSay(b.dataset.ask);
@@ -8587,13 +8589,23 @@ void main(){
       // still true. Swatted, it stays away longer. What your state needs never leaves, but it goes faint.
       const now = demo.clock || 0, snz = demo.snooze || (demo.snooze = {}), born = demo.shownAt || (demo.shownAt = {}), keys = new Set();
       if (demo.snoozeSig !== c.place + "|" + c.liters) { demo.snoozeSig = c.place + "|" + c.liters; for (const k in snz) if (k[0] !== "m") delete snz[k]; }   // something changed: a fresh shower
-      const tick = (key, life) => { keys.add(key); if (snz[key] > now) return false; const t0 = born[key] || (born[key] = now);
-        if (life && now - t0 > life) { snz[key] = now + 15000 + Math.random() * 9000; delete born[key]; return false; } return true; };
-      verbs = verbs.filter(o => tick("v:" + o.id, 12000));
-      for (let i = extra.length - 1; i >= 0; i--) if (!tick("x:" + extra[i].id, extra[i].urgent ? 0 : 9000)) extra.splice(i, 1);
-      for (let i = must.length - 1; i >= 0; i--) { const k = "m:" + must[i].k; if (!tick(k, 0)) must.splice(i, 1); else must[i].faint = now - born[k] > 5000; }
-      const askLive = ch && !demo.talking && tick("t:" + ch.state.id, 10000);
-      for (const k in born) if (!keys.has(k)) delete born[k];
+      // One at a time. Of everything that is true, only the most pressing is on the glass; when it thins and lets go, or is
+      // used, there is a pause, and then the next falls. While someone is speaking nothing else is there at all.
+      const cand = [];
+      for (const m of must) cand.push(["m:" + m.k, 0]);
+      for (const a of extra) if (a.urgent) cand.push(["x:" + a.id, 0]);
+      for (const o of verbs) cand.push(["v:" + o.id, 13000]);
+      for (const a of extra) if (!a.urgent) cand.push(["x:" + a.id, 9000]);
+      if (ch && !demo.talking) cand.push(["t:" + ch.state.id, 11000]);
+      const speaking = !!demo.line;
+      let cur = cand.find(c => c[0] === demo.curKey && !(snz[c[0]] > now));
+      if (cur && cur[1] && now - (born[cur[0]] || now) > cur[1]) { snz[cur[0]] = now + 16000 + Math.random() * 8000; delete born[cur[0]]; cur = null; demo.gapUntil = now + 2200; }
+      if (!cur) { demo.curKey = null; if (now > (demo.gapUntil || 0) && !speaking) { cur = cand.find(c => !(snz[c[0]] > now)) || null; if (cur) { demo.curKey = cur[0]; born[cur[0]] = now; } } }
+      const keep = k => !speaking && cur && cur[0] === k || (k[0] === "m" && cur && cur[0] === k);
+      verbs = verbs.filter(o => keep("v:" + o.id));
+      for (let i = extra.length - 1; i >= 0; i--) if (!keep("x:" + extra[i].id)) extra.splice(i, 1);
+      for (let i = must.length - 1; i >= 0; i--) { const k = "m:" + must[i].k; if (!(cur && cur[0] === k)) must.splice(i, 1); else must[i].faint = speaking || now - (born[k] || now) > 5000; }
+      const askLive = !!(ch && !demo.talking && keep("t:" + ch.state.id));
       const kb = ch ? DEMO_KB[ch.state.id] || {} : {};
       const qs = ch && demo.talking ? ["who", ...Object.keys(kb).filter(k => k !== "who" && kb[k] && DEMO_Q[k])].slice(0, 4) : [];
       const sig = (askLive ? "A" : "") + must.map(m => m.k + m.label + (m.faint ? "f" : "")).join() + verbs.map(o => o.id).join() + "|" + extra.map(a => a.id + a.label).join() + "|" + (ch ? ch.state.id : "") + (demo.talking ? "T" : "") + qs.join() + c.liters;
@@ -8868,6 +8880,7 @@ void main(){
       if (demo.youUntil && now > demo.youUntil) { ui.you.hidden = true; demo.youUntil = 0; }
       fieldTick(dt);
       demoHandoffTick(dt); demoDock(dt); demoAnchors(); demoOffers(dt);
+      if (demo.dew) { const b = demo.ui.verbs.firstElementChild; demo.dew.lure = b && b.dataset.ax && !demo.line ? [+b.dataset.ax, +b.dataset.ay] : null; }   // the weather leans toward what can be done
       if (demo.menuOpen && (demo.clock || 0) - (demo.menuTouch || 0) > 14000) demo.ui.openSheet(false);       // honey left alone drains away
       if (demo.dew) {
         const dw = demo.dew; let rIn = 0; for (const em of sampleWifiEmitters()) { const R = em.r * .9, d = Math.hypot(camera.position.x - em.x, camera.position.z - em.z); rIn = Math.max(rIn, clamp(1 - (d - R * .8) / (R * .2 + 4), 0, 1)); }

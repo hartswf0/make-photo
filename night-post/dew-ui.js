@@ -115,7 +115,7 @@
     function drop(o) {
       const d = Object.assign({ x: W / 2, y: H / 2, r: 14, grow: 0, state: 'hold', vy: 0, vx: 0, life: 1e9, t: 0, a: 1, tint: null, lastPt: -1e9, wob: Math.random() * 6, held: false, trail: null }, o);
       d.m = mOf(d.r); drops.push(d); dirty = true;
-      if (d.word === undefined && !d.held && D.lang.words.length && Math.random() < .3) d.word = D.lang.words[Math.floor(Math.random() * D.lang.words.length)];   // what this water has to say as it goes
+      if (d.word === undefined && !d.held && D.lang.words.length && Math.random() < .1) d.word = D.lang.words[Math.floor(Math.random() * D.lang.words.length)];   // what this water has to say as it goes
       d.chars = d.word ? Array.from(d.word) : null; d.ci = 0;
       d.release = () => { if (d.state === 'hold') { d.state = 'fall'; d.vy = Math.max(d.vy, 20); d.held = false; d.forced = true; } };
       d.smoke = () => { if (d.state !== 'gone') { for (let i = 0; i < 10; i++) wisp(d.x + (Math.random() - .5) * d.r, d.y + (Math.random() - .5) * d.r); d.state = 'gone'; } };
@@ -327,7 +327,8 @@
       if (U.land && Math.abs(U.y - U.hy) < 4) { U.land = false; U.swell = 1; for (let i = 0; i < 1; i++) drop({ x: U.x + (Math.random() - .5) * U.trx * 1.6, y: U.y + U.try * .6, r: 2 + Math.random() * 2, state: 'fall', vy: 20 + Math.random() * 40, vx: (Math.random() - .5) * 120, grow: 1, forced: true }); }   // it lands, and splashes
       const g = U.a * (2 - U.a) * (U.press ? .93 : 1) * (1 + U.swell * .1); U.rx += (U.trx * g - U.rx) * k; U.ry += (U.try * g - U.ry) * k;
       const fixed = U.el.id === 'dk-status' || U.el.id === 'dk-menu-btn' || U.el.id === 'dk-expose' || U.el.classList.contains('dk-gauge'), nearF = finger.down && Math.hypot(finger.x - U.x, finger.y - U.y) < U.rx + 90;
-      const want = nearF || U.press || U.land ? 1 : U.el.dataset.dewFaint ? .42 : fixed ? (T - D.lastTouch > 5 && !document.body.classList.contains('dk-menu-open') ? .5 : 1) : U.el.dataset.key && U.age > 5 ? .72 : 1;   // water yields: it thins when you are not reaching for it
+      const wordsUp = msgs.some(M => !M.done && !M.me) && !fixed;
+      const want = wordsUp ? .12 : nearF || U.press || U.land ? 1 : U.el.dataset.dewFaint ? .42 : fixed ? (T - D.lastTouch > 5 && !document.body.classList.contains('dk-menu-open') ? .5 : 1) : U.el.dataset.key && U.age > 5 ? .72 : 1;   // water yields: it thins when you are not reaching for it
       U.vis = (U.vis ?? 1) + (want - (U.vis ?? 1)) * Math.min(1, dt * 2.2);
       if (U.el.dataset.ax && !U.land) { const ax = +U.el.dataset.ax, ay = +U.el.dataset.ay, dx = ax - U.x, dy = ay - U.y, n = Math.hypot(dx, dy) || 1;   // a hair of water to the thing it is about
         if (n > U.rx + 8) { ctx.save(); ctx.globalAlpha = .55 * U.vis; ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(U.x + dx / n * U.rx * .95, U.y + dy / n * U.ry * .95);
@@ -374,7 +375,8 @@
       if (D.rain > .2 && rainT <= 0) {
         rainT = (.3 + Math.random() * Math.random() * 2.4) / (D.rain * (.3 + cover * 1.5 + Math.max(0, D.gust) * .9));       // long-tailed gaps: bursts and pauses
         let pick = Math.random() * cover * clouds.length, cl = clouds[0]; for (const c of clouds) { pick -= c.d; if (pick <= 0) { cl = c; break; } }
-        const x = Math.max(8, Math.min(W - 8, cl.x + gauss() * cl.w * .45)), y = 30 + Math.random() * (H * .7), r = 1.4 + Math.random() * Math.random() * 4.2;
+        const lure = D.lure && Math.random() < .6;                         // more of the rain falls above the thing you can act on
+        const x = Math.max(8, Math.min(W - 8, lure ? D.lure[0] + gauss() * 46 : cl.x + gauss() * cl.w * .45)), y = lure ? Math.max(30, D.lure[1] - 40 - Math.random() * 200) : 30 + Math.random() * (H * .7), r = 1.4 + Math.random() * Math.random() * 4.2;
         let ui = null; for (const U of skins.values()) if (Math.abs(x - U.x) < U.rx && Math.abs(y - U.y) < U.ry) { ui = U; break; }
         if (ui) { ui.swell = Math.min(1, ui.swell + .5); ui.wetq += .06; }                                 // rain on a control: it takes it in
         else {
@@ -481,7 +483,7 @@
       // THE WRITTEN RAIN: each stream is a word of the place, sign under sign, brightest where the water just was
       if (glyphs.length) { ctx.save(); ctx.font = GLYPH; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.shadowColor = 'rgba(0,8,14,.9)'; ctx.shadowBlur = 4;
         for (let i = glyphs.length - 1; i >= 0; i--) { const g = glyphs[i]; g.t += dt; const a = 1 - g.t / g.life; if (a <= 0) { glyphs.splice(i, 1); continue; }
-          ctx.globalAlpha = Math.min(1, a * 1.3) * .92; ctx.fillStyle = g.t < .22 ? '#ffffff' : 'rgba(176,234,250,1)'; ctx.setTransform(dpr, 0, 0, dpr, g.x * dpr, g.y * dpr); ctx.rotate(g.rot); ctx.fillText(g.ch, 0, 0); }
+          ctx.globalAlpha = Math.min(1, a * 1.3) * .6; ctx.fillStyle = g.t < .22 ? '#ffffff' : 'rgba(176,234,250,1)'; ctx.setTransform(dpr, 0, 0, dpr, g.x * dpr, g.y * dpr); ctx.rotate(g.rot); ctx.fillText(g.ch, 0, 0); }
         ctx.restore(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
       // WORMS: the moments kept along the way
       for (let i = beads.length - 1; i >= 0; i--) {
@@ -523,7 +525,8 @@
           let pull = 0, wet = 0;
           for (let k = wetPts.length - 1, n = 0; k >= 0 && n < 90; k--, n++) { const b = wetPts[k], dy = b.y - d.y; if (b.t < 6 && dy > 0 && dy < 30 && Math.abs(b.x - d.x) < 20) { pull += (b.x - d.x); wet++; } }
           d.vx += ((wet ? pull / wet * 7 : Math.sin(d.t * 5 / (d.visc || 1) + d.wob) * (d.slow ? 34 : 24 / (d.visc || 1))) - d.vx) * dt * 4; if (wet) d.vy += 120 * dt;
-          d.vx += (wearAt(d.x + W / WC, d.y + 20) - wearAt(d.x - W / WC, d.y + 20)) * 220 * dt;     // worn glass draws the water
+          d.vx += (wearAt(d.x + W / WC, d.y + 20) - wearAt(d.x - W / WC, d.y + 20)) * 220 * dt;
+          if (D.lure && d.y < D.lure[1] && Math.abs(d.x - D.lure[0]) < 150) d.vx += (D.lure[0] - d.x) * 2.6 * dt;     // and what is falling nearby bends toward it     // worn glass draws the water
           d.x += (d.vx + (D.windNow ?? D.wind) * (d.visc ? .1 : .6)) * dt; d.y += d.vy * dt * (1 - 2.2 * (D.scrub || 0));     // while you reach back, the rain climbs                 // the wind leans the rain
           for (const o of drops) if (o !== d && o.state === 'hold' && !o.held && Math.hypot(o.x - d.x, o.y - d.y) < o.r + d.r) { d.m += o.m; d.r = rOf(d.m); d.x += (o.x - d.x) * .25; o.state = 'gone'; }
           for (const U of skins.values()) if (!d.forced && Math.abs(d.x - U.x) < U.rx * .9 && Math.abs(d.y - U.y) < U.ry * .9) { U.swell = Math.min(1, U.swell + .7); U.wetq += .3; d.state = 'gone'; }   // a stubborn drop swallows it
