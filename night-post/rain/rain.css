@@ -476,3 +476,9 @@
 #rw .stop-drop .drop-value{font-size:17px!important;line-height:1.05;font-style:italic}
 #rw .stop-drop .drop-kicker{font-size:11px;letter-spacing:.1em}
 #rw .me-drop{color:#ffffff!important}
+/* minimal: a stop is its number; a quick act is one small word; finer print never shows unless the drop is held */
+#rw .stop-drop .drop-kicker{opacity:1!important;font-size:17px!important;font-weight:600;letter-spacing:0}
+#rw .quick .drop-label{font-size:17px!important}
+#rw .quick.on{color:#ffdfa8}
+#rw .liquid:not([data-rain-caught=true]):not(.map-drop)>.drop-note{display:none!important}
+#rw .liquid.time-current>.drop-kicker{display:none!important}
