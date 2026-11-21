@@ -1,0 +1,1998 @@
+{
+  "albumDuration": 1440.1,
+  "thesis": "Not one city but three films that share a map. Baltimere is the city he leaves: intimate, sodium-orange, seen through glass, a city of exits. Atlantis is the city he is let into: a night that is a stage, warm below and cold above, built in layers so that every move is up or down. The Shore is the city he rebuilds: weather, ruin and morning, where time-lapse is the native tense. Each district inside them has one mood, one hour it is seen at, one light technology and one way of moving the camera. The poems happen in particular rooms, stairs and curbs of particular districts, and the cuts between poems are physical places too: an elevator shaft, a perimeter fence, a rail viaduct, a haze on the water.",
+  "districts": [
+    {
+      "id": "haze",
+      "name": "The Orange Haze",
+      "realm": "B",
+      "hour": "dusk into night (01), and the haze that rises off the harbour (13 → 14)",
+      "color": "#fa8d15",
+      "body": [
+        "#5c1c07",
+        "#351106",
+        "#832907",
+        "#aa410d",
+        "#946840"
+      ],
+      "glow": [
+        "#b03f09",
+        "#fa8d15",
+        "#ce6927",
+        "#e85803"
+      ],
+      "mood": "suffocating, solitary, sublime: air that burns orange, scale that dwarfs a body",
+      "camera": "a lone silhouette small in frame on a catwalk or stair; deep perspective down undercrofts; never a close-up outside"
+    },
+    {
+      "id": "hive",
+      "name": "The Hive",
+      "realm": "B",
+      "hour": "night only, mist, red beacons pulsing on the tide",
+      "color": "#b5342d",
+      "body": [
+        "#1e1d2c",
+        "#333f54",
+        "#29567d",
+        "#638b9b",
+        "#6e1d29"
+      ],
+      "glow": [
+        "#407fab",
+        "#b5342d",
+        "#5cb9e2",
+        "#f27d3f"
+      ],
+      "mood": "cold grandeur; a city that breeds upward",
+      "camera": "from below (worm's-eye into converging spires) or from far away (the skyline as a field of needles); never at street level"
+    },
+    {
+      "id": "overseer",
+      "name": "The Overseer",
+      "realm": "B",
+      "hour": "after midnight in winter (02)",
+      "color": "#1078da",
+      "body": [
+        "#091a38",
+        "#05316a",
+        "#08509f",
+        "#2f3f5b",
+        "#3d6a9a"
+      ],
+      "glow": [
+        "#0e58ae",
+        "#1078da",
+        "#4886c3",
+        "#c3395f"
+      ],
+      "mood": "watched; cold; symmetrical; a moon that is a lamp",
+      "camera": "symmetry and one-point perspective; the moon on the axis; from inside the child's window looking down at the curb"
+    },
+    {
+      "id": "bay",
+      "name": "Mirror Thread Bay",
+      "realm": "B",
+      "hour": "daytime (13), then the haze; at night the bioluminescence",
+      "color": "#465fb1",
+      "body": [
+        "#242824",
+        "#27424f",
+        "#675437",
+        "#416780",
+        "#809186"
+      ],
+      "glow": [
+        "#465fb1",
+        "#b46a35",
+        "#399bb0",
+        "#62afdd"
+      ],
+      "mood": "water first: reflection, drowning, tenderness",
+      "camera": "low over water; reflections first, subject second; through glass from the harbour side"
+    },
+    {
+      "id": "ascent",
+      "name": "The Night Field & the Ascent",
+      "realm": "A",
+      "hour": "still night, 21:00 to midnight (04 end, 05); the soul's view at 02:30 (08)",
+      "color": "#2560e1",
+      "body": [
+        "#332123",
+        "#6f4e48",
+        "#194c97",
+        "#5f85a8",
+        "#072353"
+      ],
+      "glow": [
+        "#5088b7",
+        "#1b50ad",
+        "#2560e1",
+        "#bb674e"
+      ],
+      "mood": "awe, inheritance; stillness",
+      "camera": "static wides with him small; inserts of hands and lights; top-down from the soul; the credits' rise"
+    },
+    {
+      "id": "plaza",
+      "name": "The Light Gate & Central Plaza",
+      "realm": "A",
+      "hour": "midnight (06 opens at 00:24)",
+      "color": "#bb7362",
+      "body": [
+        "#1e292c",
+        "#514142",
+        "#355b68",
+        "#866f6a",
+        "#658d9d"
+      ],
+      "glow": [
+        "#498ba2",
+        "#55a5b7",
+        "#bb7362",
+        "#68ccd9"
+      ],
+      "mood": "admission; arrival; collective joy",
+      "camera": "low wide on the gate with him entering from behind camera; the reverse into the glow; the aerial over the round plaza; a 360 orbit"
+    },
+    {
+      "id": "naraka",
+      "name": "Naraka Market",
+      "realm": "A",
+      "hour": "kept at twilight by its own light even at 1 a.m. (06 streets, 07 house)",
+      "color": "#01acd4",
+      "body": [
+        "#262423",
+        "#2d4651",
+        "#5f463b",
+        "#8b8178",
+        "#337993"
+      ],
+      "glow": [
+        "#64b4ce",
+        "#bf7a57",
+        "#177fa9",
+        "#01acd4"
+      ],
+      "mood": "humid, crowded, devotional, improvised",
+      "camera": "Steadicam behind him down alleys two people wide; candle and window close-ups; the crowd at chest height"
+    },
+    {
+      "id": "ankhu",
+      "name": "Ankhu Spires",
+      "realm": "A",
+      "hour": "blue-hour mist; violet underlights at night (08 at 02:30)",
+      "color": "#d36f46",
+      "body": [
+        "#3f5375",
+        "#1c3148",
+        "#64809d",
+        "#311919",
+        "#754338"
+      ],
+      "glow": [
+        "#486bab",
+        "#5e8fc6",
+        "#d36f46",
+        "#b91b1f"
+      ],
+      "mood": "aspiration, height, gardens in the air",
+      "camera": "cranes up; over the parapet; the long lens compressing the ridge; inside the shaft looking straight up"
+    },
+    {
+      "id": "commons",
+      "name": "Cortex Commons",
+      "realm": "A",
+      "hour": "dusk and blue hour; empty at 5 a.m. (10)",
+      "color": "#29b6ed",
+      "body": [
+        "#172231",
+        "#3e3c3e",
+        "#2a4a6a",
+        "#5a6363",
+        "#668094"
+      ],
+      "glow": [
+        "#4579a8",
+        "#619bc7",
+        "#29b6ed",
+        "#bb7963"
+      ],
+      "mood": "listening; safety; the city as one ear",
+      "camera": "the slow 360 orbit (06 'all safe'); the empty square from a high corner at dawn"
+    },
+    {
+      "id": "arcade",
+      "name": "The Shrouded Arcade",
+      "realm": "A",
+      "hour": "late night to the last of the night (09 at 03:30, 10 leaving at 04:30)",
+      "color": "#be5791",
+      "body": [
+        "#272225",
+        "#394b5a",
+        "#533026",
+        "#597793",
+        "#916159"
+      ],
+      "glow": [
+        "#4283b8",
+        "#b34a3d",
+        "#db8b52",
+        "#be5791"
+      ],
+      "mood": "nostalgia, exposure, someone else's rain",
+      "camera": "handheld through the crowd; the long two-shot from behind with the moon at the vanishing point; through the booth glass"
+    },
+    {
+      "id": "cenotaph",
+      "name": "Cenotaph Rail",
+      "realm": "C",
+      "hour": "dawn and dusk only (10 → 11 at first light; 04 at twilight)",
+      "color": "#a94022",
+      "body": [
+        "#2a2222",
+        "#4d606b",
+        "#38434c",
+        "#818e92",
+        "#86351f"
+      ],
+      "glow": [
+        "#f06629",
+        "#a94022",
+        "#cf5124",
+        "#f98335"
+      ],
+      "mood": "memorial, endurance, passage",
+      "camera": "the drone chase along the viaduct; the wide from the water as he arrives; the platform from behind a figure"
+    },
+    {
+      "id": "temple",
+      "name": "The White Temple & its Pools",
+      "realm": "C",
+      "hour": "storm daylight (03), chilly dawn (11), warm hall into a dusk porch (12)",
+      "color": "#c99765",
+      "body": [
+        "#36414e",
+        "#1c262d",
+        "#44617a",
+        "#7486a0",
+        "#706449"
+      ],
+      "glow": [
+        "#6197c8",
+        "#5185b7",
+        "#ac8357",
+        "#c99765"
+      ],
+      "mood": "sacred, washed, communal",
+      "camera": "locked-off time-lapse plates; macro on debris; symmetrical wides down the nave; the reverse from inside the doors to the sea"
+    },
+    {
+      "id": "black",
+      "name": "The Black",
+      "realm": "X",
+      "hour": "timeless",
+      "color": "#888",
+      "body": [],
+      "glow": [],
+      "mood": "suspension",
+      "camera": "a black stage, the figure lit alone; the door is the only architecture"
+    }
+  ],
+  "script": [
+    {
+      "num": "01",
+      "title": "Out of Life",
+      "t0": 0,
+      "t1": 122.99,
+      "hour": [
+        19.2,
+        20.4
+      ],
+      "weather": [
+        "clear"
+      ],
+      "why": "evening into night; the fire escape at dusk",
+      "seq": [
+        "haze",
+        "haze",
+        "haze",
+        "black",
+        "black",
+        "black"
+      ]
+    },
+    {
+      "num": "02",
+      "title": "Flashing Lights",
+      "t0": 122.987,
+      "t1": 214.107,
+      "hour": [
+        1,
+        1.2
+      ],
+      "weather": [
+        "clear"
+      ],
+      "why": "after midnight",
+      "seq": [
+        "black",
+        "black",
+        "overseer",
+        "overseer",
+        "overseer",
+        "overseer"
+      ]
+    },
+    {
+      "num": "03",
+      "title": "How to Break off an Engagement",
+      "t0": 214.108,
+      "t1": 286.508,
+      "hour": [
+        10,
+        18.5
+      ],
+      "weather": [
+        "cloudy",
+        "storm"
+      ],
+      "why": "a time-lapse across a day, ending in storm",
+      "seq": [
+        "temple",
+        "temple",
+        "temple",
+        "temple",
+        "temple",
+        "temple"
+      ]
+    },
+    {
+      "num": "04",
+      "title": "Nevermore",
+      "t0": 286.513,
+      "t1": 421.782,
+      "hour": [
+        19.4,
+        21.6
+      ],
+      "weather": [
+        "clear"
+      ],
+      "why": "twilight deepening to full dark; moonlight",
+      "seq": [
+        "cenotaph",
+        "cenotaph",
+        "cenotaph",
+        "cenotaph",
+        "ascent",
+        "ascent",
+        "ascent"
+      ]
+    },
+    {
+      "num": "05",
+      "title": "Bloodline",
+      "t0": 422.184,
+      "t1": 513.214,
+      "hour": [
+        23.2,
+        23.4
+      ],
+      "weather": [
+        "clear"
+      ],
+      "why": "still night, deep starlight",
+      "seq": [
+        "ascent",
+        "ascent",
+        "black",
+        "ascent",
+        "ascent",
+        "plaza"
+      ]
+    },
+    {
+      "num": "06",
+      "title": "Resurrecting Atlantis",
+      "t0": 513.212,
+      "t1": 623.452,
+      "hour": [
+        0.4,
+        0.6
+      ],
+      "weather": [
+        "clear"
+      ],
+      "why": "still night; warm-lit windows",
+      "seq": [
+        "plaza",
+        "plaza",
+        "plaza",
+        "plaza",
+        "commons",
+        "naraka",
+        "naraka"
+      ]
+    },
+    {
+      "num": "07",
+      "title": "DJ Turn Me Up",
+      "t0": 623.454,
+      "t1": 732.134,
+      "hour": [
+        1.5,
+        1.7
+      ],
+      "weather": [
+        "clear"
+      ],
+      "why": "late night, the midnight booth",
+      "seq": [
+        "naraka",
+        "naraka",
+        "naraka",
+        "naraka",
+        "naraka",
+        "naraka",
+        "naraka"
+      ]
+    },
+    {
+      "num": "08",
+      "title": "Newly Single",
+      "t0": 732.137,
+      "t1": 833.387,
+      "hour": [
+        2.4,
+        2.8
+      ],
+      "weather": [
+        "clear"
+      ],
+      "why": "deep night, city glow below",
+      "seq": [
+        "ankhu",
+        "ankhu",
+        "ascent",
+        "ankhu",
+        "ankhu",
+        "ankhu"
+      ]
+    },
+    {
+      "num": "09",
+      "title": "Yet Heard",
+      "t0": 833.385,
+      "t1": 950.935,
+      "hour": [
+        3.5,
+        4.1
+      ],
+      "weather": [
+        "cloudy"
+      ],
+      "why": "late night, moon up, wet pavement",
+      "seq": [
+        "arcade",
+        "arcade",
+        "arcade",
+        "arcade",
+        "bay",
+        "arcade"
+      ]
+    },
+    {
+      "num": "10",
+      "title": "Magic Ride",
+      "t0": 950.937,
+      "t1": 1056.657,
+      "hour": [
+        4.6,
+        7.4
+      ],
+      "weather": [
+        "clear"
+      ],
+      "why": "midnight through the last of the night to first light; tire spray on wet asphalt",
+      "seq": [
+        "arcade",
+        "arcade",
+        "commons",
+        "arcade",
+        "cenotaph",
+        "cenotaph"
+      ]
+    },
+    {
+      "num": "11",
+      "title": "New Day",
+      "t0": 1056.659,
+      "t1": 1168.019,
+      "hour": [
+        7.5,
+        8.3
+      ],
+      "weather": [
+        "fog"
+      ],
+      "why": "early morning just after dawn; mist on the distant sea",
+      "seq": [
+        "cenotaph",
+        "temple",
+        "temple",
+        "temple",
+        "temple",
+        "temple"
+      ]
+    },
+    {
+      "num": "12",
+      "title": "Reunion",
+      "t0": 1168.019,
+      "t1": 1242.999,
+      "hour": [
+        17.6,
+        19.8
+      ],
+      "weather": [
+        "clear"
+      ],
+      "why": "twilight and dusk, ending at a lit porch",
+      "seq": [
+        "temple",
+        "temple",
+        "temple",
+        "temple",
+        "temple",
+        "temple",
+        "temple"
+      ]
+    },
+    {
+      "num": "13",
+      "title": "How to Win My Heart",
+      "t0": 1243.003,
+      "t1": 1352.983,
+      "hour": [
+        12.6,
+        14.2
+      ],
+      "weather": [
+        "clear",
+        "fog"
+      ],
+      "why": "daytime; haze gathering over the harbor at the end",
+      "seq": [
+        "bay",
+        "bay",
+        "bay",
+        "bay",
+        "ascent",
+        "bay",
+        "bay"
+      ]
+    },
+    {
+      "num": "14",
+      "title": "Hot Minute",
+      "t0": 1352.982,
+      "t1": 1440.072,
+      "hour": [
+        22.5,
+        22.7
+      ],
+      "weather": [
+        "clear"
+      ],
+      "why": "timeless; the party reads as night",
+      "seq": [
+        "haze",
+        "black",
+        "black",
+        "black",
+        "black",
+        "black",
+        "black"
+      ]
+    }
+  ],
+  "poems": [
+    {
+      "num": "01",
+      "title": "Out of Life",
+      "lines": [
+        {
+          "text": "What we've made we don't want, what we've sold to the world, to ourselves, doesn",
+          "read": [
+            0.05,
+            6.78
+          ],
+          "f0": 134.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "I look for a way out through the hallways, within the drawers and fire escapes,",
+          "read": [
+            7.83,
+            13.47
+          ],
+          "f0": 134.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "on my own words, falling out of life, and find where you go when you leave.",
+          "read": [
+            13.47,
+            18.49
+          ],
+          "f0": 180.4,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "It was the maze constructed by a tainted love, a known yet unknown pit beneath t",
+          "read": [
+            20.22,
+            26.34
+          ],
+          "f0": 180.4,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "of the make-believe haven, and hidden in the overnourished forest of escapism th",
+          "read": [
+            26.34,
+            31.97
+          ],
+          "f0": 180.4,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "At this age, I'll follow, following the full distance between us almost having i",
+          "read": [
+            33.18,
+            39.5
+          ],
+          "f0": 180.4,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "starting anew, to rediscover when love was real.",
+          "read": [
+            39.5,
+            42.56
+          ],
+          "f0": 180.4,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "I failed at protecting you from your own vices, crashing the party of your evile",
+          "read": [
+            43.96,
+            49.78
+          ],
+          "f0": 92.1,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "to find vibrations that echo in silence, love and hate languages that translate",
+          "read": [
+            49.78,
+            57.14
+          ],
+          "f0": 92.1,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "dripping blood salivating on imminent doubts, fully awakening to our darkest nig",
+          "read": [
+            57.14,
+            62.58
+          ],
+          "f0": 134.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "Pause for a second, a spectrum of fields will thread needles of garments made of",
+          "read": [
+            64.03,
+            69.63
+          ],
+          "f0": 180.4,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "and photographs, film and fiction that leave me empty.",
+          "read": [
+            70.25,
+            74.57
+          ],
+          "f0": 92.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "With your back faced against me, you offer me a new pursuit of happiness as I st",
+          "read": [
+            75.44,
+            80.92
+          ],
+          "f0": 92.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "on my own words, landing into the secret of where you go when you leave, and I f",
+          "read": [
+            80.92,
+            86.34
+          ],
+          "f0": 180.4,
+          "mouth": "another mouth"
+        }
+      ]
+    },
+    {
+      "num": "02",
+      "title": "Flashing Lights",
+      "lines": [
+        {
+          "text": "I heard a scream for help while falling with my headlights off.",
+          "read": [
+            0,
+            3.98
+          ],
+          "f0": 188,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "It was a type of silent scream a trap lover makes to escape a pending marriage,",
+          "read": [
+            4.56,
+            9.36
+          ],
+          "f0": 188,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "a concussion, a set of walls caving inward, seething and simmering,",
+          "read": [
+            10.04,
+            16.22
+          ],
+          "f0": 188,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "and a solitude of crowds and smiles.",
+          "read": [
+            16.64,
+            18.76
+          ],
+          "f0": 188,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "I received an emergency call while tossing and turning.",
+          "read": [
+            20.16,
+            23.22
+          ],
+          "f0": 188,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "It was a type of silent call a man makes to the mirror after midnight.",
+          "read": [
+            23.48,
+            27.92
+          ],
+          "f0": 188,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "To digest the truth, a windless insomnia and epiphany of a road winding down.",
+          "read": [
+            28.75,
+            35.66
+          ],
+          "f0": 188,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "After a day of life dilated at the sun as long and as wise as possible, we won't",
+          "read": [
+            36.84,
+            44.41
+          ],
+          "f0": 188,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "I was six I recall when the ghost of a dead and loveless seven-year-old child ap",
+          "read": [
+            45.8,
+            51.42
+          ],
+          "f0": 188,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "and shared that my parents marriage wouldn't last.",
+          "read": [
+            52.2,
+            55.16
+          ],
+          "f0": 188,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "It was a type of warm and heavy breeze in winter",
+          "read": [
+            56.35,
+            59.23
+          ],
+          "f0": 188,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "where a child is left home alone.",
+          "read": [
+            59.76,
+            62.09
+          ],
+          "f0": 188.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "With curtains pulled and blinds up as far and as wise as possible to see flashin",
+          "read": [
+            62.65,
+            69.03
+          ],
+          "f0": 188,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "and the whispering screams of two souls on a road winding down.",
+          "read": [
+            69.58,
+            73.95
+          ],
+          "f0": 188,
+          "mouth": "another mouth"
+        }
+      ]
+    },
+    {
+      "num": "03",
+      "title": "How to Break off an Engagement",
+      "lines": [
+        {
+          "text": "Old to forever, a tambourine sounds off an empty temple, empty choir stands, emp",
+          "read": [
+            0.46,
+            13.74
+          ],
+          "f0": 89,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "pews taken by cobwebs, and doused in disintegration.",
+          "read": [
+            14.94,
+            19.7
+          ],
+          "f0": 89,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "Spirits have left salvations and opened gift boxes placed outside the side doors",
+          "read": [
+            21.53,
+            28.47
+          ],
+          "f0": 89,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "It thunders, then it rains until nothing remains.",
+          "read": [
+            28.47,
+            34.31
+          ],
+          "f0": 86.1,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "broken and sealed apart by lightning,",
+          "read": [
+            40.68,
+            43.66
+          ],
+          "f0": 89,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "daily breads soaked and delivered rotted by rain,",
+          "read": [
+            44.52,
+            48.24
+          ],
+          "f0": 89,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "and a tambourine shattered into pieces.",
+          "read": [
+            56.44,
+            61.18
+          ],
+          "f0": 146.4,
+          "mouth": "another mouth"
+        }
+      ]
+    },
+    {
+      "num": "04",
+      "title": "Nevermore",
+      "lines": [
+        {
+          "text": "What if I follow this trail to where the broken pieces have washed ashore and th",
+          "read": [
+            0.11,
+            8.09
+          ],
+          "f0": 138.3,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "cover sands and debris",
+          "read": [
+            8.61,
+            10.25
+          ],
+          "f0": 138.3,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "The waves will calm to fold it whispers and the winds will mute the trees for th",
+          "read": [
+            14.63,
+            21.15
+          ],
+          "f0": 132.8,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "to find a throbbing heart left at the midlife corner returned toward the incline",
+          "read": [
+            21.15,
+            26.95
+          ],
+          "f0": 132.8,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "which has shaken off every sad blue note life can perform",
+          "read": [
+            29.51,
+            33.53
+          ],
+          "f0": 138.3,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "and it used to be mine. I'll lift it with care putting it back in place and tell",
+          "read": [
+            36.94,
+            43.14
+          ],
+          "f0": 138.3,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "What if I follow this reclaimed heart to where the puzzle pieces of faith are ha",
+          "read": [
+            46.16,
+            50.86
+          ],
+          "f0": 138.3,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "scrambled and scattered as mustard seas into the vast moonlight night's field.",
+          "read": [
+            51.58,
+            56.46
+          ],
+          "f0": 132.8,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "The plants in a golden hue bloom and face toward me in anticipation.",
+          "read": [
+            56.46,
+            62.06
+          ],
+          "f0": 138.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "The weeds repel falling into the shadows where our memories hide and mean so lit",
+          "read": [
+            63.43,
+            69.61
+          ],
+          "f0": 138.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "as I'm called forward.",
+          "read": [
+            69.61,
+            71.47
+          ],
+          "f0": 132.8,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "The clouds meet the stars for the deepest level of darkness welcoming extra hard",
+          "read": [
+            73.08,
+            78.36
+          ],
+          "f0": 138.3,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "to search for the bare ground for two hands. Hands that once could tusk dusk aft",
+          "read": [
+            78.36,
+            85.32
+          ],
+          "f0": 132.8,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "find and celebrate a new life and feel good",
+          "read": [
+            85.32,
+            89.58
+          ],
+          "f0": 132.8,
+          "mouth": "another mouth"
+        }
+      ]
+    },
+    {
+      "num": "05",
+      "title": "Bloodline",
+      "lines": [
+        {
+          "text": "They tell me to ask if I can inherit the earth,",
+          "read": [
+            0,
+            2.54
+          ],
+          "f0": 69.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "to ask if I can name my own stars, even galaxies if I may.",
+          "read": [
+            3.6,
+            7.7
+          ],
+          "f0": 69.8,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "The past too was waiting for me.",
+          "read": [
+            8.96,
+            10.94
+          ],
+          "f0": 69.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "Coming of age in the shared rooms of human basements",
+          "read": [
+            11.57,
+            14.99
+          ],
+          "f0": 69.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "as bedrooms, mattress pads where the wood beams",
+          "read": [
+            14.99,
+            18.94
+          ],
+          "f0": 69.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "To dream was to prevail.",
+          "read": [
+            24.23,
+            26.19
+          ],
+          "f0": 69.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "They tell me to ask if I can invent a new universe,",
+          "read": [
+            28.24,
+            31.16
+          ],
+          "f0": 69.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "to ask if God would let me, little old me,",
+          "read": [
+            31.5,
+            34.38
+          ],
+          "f0": 69.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "award a blessing here or there.",
+          "read": [
+            34.4,
+            36.12
+          ],
+          "f0": 70.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "In uncertain times, in forsaken times,",
+          "read": [
+            41.75,
+            45.31
+          ],
+          "f0": 69.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "in tears that spoke in lieu of forbidden lines,",
+          "read": [
+            46.18,
+            49.44
+          ],
+          "f0": 69.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "or a history too battered and bruised to travel.",
+          "read": [
+            50.23,
+            53.91
+          ],
+          "f0": 69.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "To dream was to prevail.",
+          "read": [
+            55.13,
+            56.39
+          ],
+          "f0": 69.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "Their blood flows through my hands.",
+          "read": [
+            57.43,
+            59.51
+          ],
+          "f0": 69.9,
+          "mouth": "another mouth"
+        }
+      ]
+    },
+    {
+      "num": "06",
+      "title": "Resurrecting Atlantis",
+      "lines": [
+        {
+          "text": "The gates open with wings gifted from evolution, and made of marble stones",
+          "read": [
+            0,
+            5.86
+          ],
+          "f0": 74.3,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "at night where shadows cast from narrow streets beaming with love, and the joyfu",
+          "read": [
+            68.6,
+            75.67
+          ],
+          "f0": 74.3,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "color rainbows, and give us infinite time to heal and set clouds free. I know my",
+          "read": [
+            75.67,
+            84.37
+          ],
+          "f0": 75.4,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "it could stay here forever, leaving behind crosshairs for continuums and strains",
+          "read": [
+            84.37,
+            91.55
+          ],
+          "f0": 75.4,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "serendipity. A city born in unison out of the purest of fictions welcoming me an",
+          "read": [
+            91.55,
+            99.59
+          ],
+          "f0": 75.4,
+          "mouth": "another mouth"
+        }
+      ]
+    },
+    {
+      "num": "07",
+      "title": "DJ Turn Me Up",
+      "lines": [
+        {
+          "text": "DJ turn me up please. With eyes wide shut and my chin nested at the arc of the w",
+          "read": [
+            0,
+            6.96
+          ],
+          "f0": 91.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "spoken words, I have a story to tell. Of ghosts whispering unfolded delusions, b",
+          "read": [
+            6.96,
+            15.77
+          ],
+          "f0": 91.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "And I've walked a thousand light years across the greatest divide to be heard. S",
+          "read": [
+            32.53,
+            40.27
+          ],
+          "f0": 101.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "shared home boxed in truck on separate one-way streets not built with u-turns or",
+          "read": [
+            48.05,
+            55.67
+          ],
+          "f0": 84.6,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "we love we not. Of a future gone swiftly and a past left empty handed to pick a",
+          "read": [
+            63.3,
+            71.29
+          ],
+          "f0": 101.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "or a frontal fog or of dim night lights under a cloud with the silver lining. Of",
+          "read": [
+            71.87,
+            79.92
+          ],
+          "f0": 101.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "forth to face the lights and shadows one night at a time, one tear at a time. Wh",
+          "read": [
+            79.92,
+            88.53
+          ],
+          "f0": 101.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "at a time. One open mic at a time. Chin now nested high and volume turned up in",
+          "read": [
+            88.53,
+            98.04
+          ],
+          "f0": 91.2,
+          "mouth": "another mouth"
+        }
+      ]
+    },
+    {
+      "num": "08",
+      "title": "Newly Single",
+      "lines": [
+        {
+          "text": "The soul has escaped my body for the moment and left him on the dance floor. He",
+          "read": [
+            0,
+            6.12
+          ],
+          "f0": 62.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "I want my soul now to imagine my body pulsing and head throbbing from the music",
+          "read": [
+            12.94,
+            20.32
+          ],
+          "f0": 62.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "a crowded floor of sweated perfumes and temptations. Let's watch strangers colli",
+          "read": [
+            20.32,
+            27.29
+          ],
+          "f0": 66.1,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "bitter refraction inside the walls of an escape that few pleasures offer us. Now",
+          "read": [
+            34.53,
+            42.18
+          ],
+          "f0": 66.1,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "soul in the middle of an open field at the equator of a planet much larger than",
+          "read": [
+            42.18,
+            46.86
+          ],
+          "f0": 66.1,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "and much hotter. Cool me down by pouring unfiltered water out of the ice bath sa",
+          "read": [
+            46.86,
+            54.66
+          ],
+          "f0": 62,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "in the distance and wandering eyes and wandering thoughts within reach.",
+          "read": [
+            84.37,
+            89.81
+          ],
+          "f0": 62.2,
+          "mouth": "another mouth"
+        }
+      ]
+    },
+    {
+      "num": "09",
+      "title": "Yet Heard",
+      "lines": [
+        {
+          "text": "Accepting you'll never say nor ever feel, my love was real.",
+          "read": [
+            0,
+            4.28
+          ],
+          "f0": 121.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "What isn't mine I still cannot give.",
+          "read": [
+            5.59,
+            7.51
+          ],
+          "f0": 71.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "I gather my things to go.",
+          "read": [
+            9.03,
+            10.53
+          ],
+          "f0": 121.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "Before I go, we look at the moon the way we used to see it",
+          "read": [
+            11.35,
+            15.25
+          ],
+          "f0": 121.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "I believe maybe we could have it all,",
+          "read": [
+            24.91,
+            27.63
+          ],
+          "f0": 121.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "or swing in my humbled late nights and heartbreaks",
+          "read": [
+            27.83,
+            31.11
+          ],
+          "f0": 121.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "In tears, speaking of an abyss, she's never known.",
+          "read": [
+            40.3,
+            43.4
+          ],
+          "f0": 120.6,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "and we explain my way of birth then and even after prayer.",
+          "read": [
+            48.34,
+            52.64
+          ],
+          "f0": 121.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "What isn't mine I still cannot give.",
+          "read": [
+            53.55,
+            55.99
+          ],
+          "f0": 71.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "We grow old together with the moon looking at us",
+          "read": [
+            56.73,
+            59.73
+          ],
+          "f0": 71.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "the way we used to be.",
+          "read": [
+            59.73,
+            60.99
+          ],
+          "f0": 120.6,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "As my tears fall between the creases and faith,",
+          "read": [
+            61.72,
+            64.72
+          ],
+          "f0": 121.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "dancing on my own, maternal ears in tune.",
+          "read": [
+            65.38,
+            68.72
+          ],
+          "f0": 120.6,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "Guiding a settling down moon the way it used to leave",
+          "read": [
+            88.56,
+            91.86
+          ],
+          "f0": 71.7,
+          "mouth": "another mouth"
+        }
+      ]
+    },
+    {
+      "num": "10",
+      "title": "Magic Ride",
+      "lines": [
+        {
+          "text": "I wasn't looking for a ride, but here you are, blissful and oddly sensitive,",
+          "read": [
+            0.14,
+            6.93
+          ],
+          "f0": 79.1,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "withering a soul purveying both the dark and the light worlds I've known.",
+          "read": [
+            8.04,
+            12.16
+          ],
+          "f0": 78.5,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "So I rub my aggressions into your steel coverings and hop on to amuse myself.",
+          "read": [
+            12.99,
+            18.83
+          ],
+          "f0": 78.5,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "Loneliness is having everything with no one to tell,",
+          "read": [
+            20.86,
+            23.92
+          ],
+          "f0": 78.5,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "being everywhere with no one to love and escape,",
+          "read": [
+            24.65,
+            27.79
+          ],
+          "f0": 78.5,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "wide-eyed and stone but alive and well, wandering with no clear end.",
+          "read": [
+            27.79,
+            34.05
+          ],
+          "f0": 78.5,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "I let the noise block the noise so the way I ride through the streets with the s",
+          "read": [
+            36.1,
+            41.58
+          ],
+          "f0": 78.5,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "has twists, improve, yeah, the magic still exists.",
+          "read": [
+            42.12,
+            46.16
+          ],
+          "f0": 78.5,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "All preparations to live and dream in darkness I no longer desire.",
+          "read": [
+            47.76,
+            52
+          ],
+          "f0": 79.1,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "The moon settles and the tease of distant stars subsides",
+          "read": [
+            53.34,
+            57.18
+          ],
+          "f0": 78.5,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "and I can see a morning ahead for me.",
+          "read": [
+            57.18,
+            60.43
+          ],
+          "f0": 78.5,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "It looks like a morning I could believe in,",
+          "read": [
+            61.43,
+            63.45
+          ],
+          "f0": 78.5,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "a morning where loss and life aren't so well, ripe with sunlight that's deceptiv",
+          "read": [
+            63.51,
+            69.95
+          ],
+          "f0": 78.5,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "The tripping of birds, feeling of nests, spring out of the night that has covere",
+          "read": [
+            70.71,
+            76.15
+          ],
+          "f0": 78.5,
+          "mouth": "another mouth"
+        }
+      ]
+    },
+    {
+      "num": "11",
+      "title": "New Day",
+      "lines": []
+    },
+    {
+      "num": "12",
+      "title": "Reunion",
+      "lines": [
+        {
+          "text": "Decades later, there was less time for words and more space for laughter, hugs w",
+          "read": [
+            0,
+            7.34
+          ],
+          "f0": 88.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "loud voices so our hearts can be overheard. My mind drifts into the darkness of",
+          "read": [
+            8.56,
+            16.04
+          ],
+          "f0": 88.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "and known journeys, and grateful to every living tree in the forest for the shar",
+          "read": [
+            24.51,
+            29.89
+          ],
+          "f0": 88.2,
+          "mouth": "another mouth"
+        }
+      ]
+    },
+    {
+      "num": "13",
+      "title": "How to Win My Heart",
+      "lines": [
+        {
+          "text": "I want you to notice me in a corner cafe",
+          "read": [
+            0,
+            3
+          ],
+          "f0": 59.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "with every pulsing beat after walking alone.",
+          "read": [
+            14.64,
+            17.96
+          ],
+          "f0": 59.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "I want you to really notice me",
+          "read": [
+            19.34,
+            21.38
+          ],
+          "f0": 59.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "with the distances we couldn't avoid",
+          "read": [
+            21.38,
+            23.6
+          ],
+          "f0": 59.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "while our elders clutch their pearls,",
+          "read": [
+            27.26,
+            29.5
+          ],
+          "f0": 62.2,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "So I thought, life has burned all of my love stories.",
+          "read": [
+            39.31,
+            44.03
+          ],
+          "f0": 84,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "victory-less seasons for a man that wanted just one win.",
+          "read": [
+            47.07,
+            50.37
+          ],
+          "f0": 84,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "I've learned to love myself more,",
+          "read": [
+            59.66,
+            61.52
+          ],
+          "f0": 59.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "manage loss and harvest a wizardry more brilliant",
+          "read": [
+            62.06,
+            66.06
+          ],
+          "f0": 59.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "than the scarlet poppies and purple blossoms",
+          "read": [
+            66.06,
+            69.12
+          ],
+          "f0": 59.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "Yet from a distant window, beautiful and calm,",
+          "read": [
+            72.84,
+            76.06
+          ],
+          "f0": 59.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "And if you notice me and capture my eyes",
+          "read": [
+            79.2,
+            82.46
+          ],
+          "f0": 59.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "stepping back and letting them say hello,",
+          "read": [
+            84.64,
+            86.94
+          ],
+          "f0": 59.9,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "in windless seasons and scarlet poppies",
+          "read": [
+            91.68,
+            94.92
+          ],
+          "f0": 59.9,
+          "mouth": "another mouth"
+        }
+      ]
+    },
+    {
+      "num": "14",
+      "title": "Hot Minute",
+      "lines": [
+        {
+          "text": "Don't make me leave and go where promises, hearts,",
+          "read": [
+            0.02,
+            3.46
+          ],
+          "f0": 93.8,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "spectrums of light-filled constellations are broken.",
+          "read": [
+            4.26,
+            7
+          ],
+          "f0": 93.8,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "The way you see things felt safe and timeless.",
+          "read": [
+            19.04,
+            22.1
+          ],
+          "f0": 93.8,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "Whatever has terminated this moment, damn you,",
+          "read": [
+            23.26,
+            26.22
+          ],
+          "f0": 93.8,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "but let it feel love and lost as we must endure,",
+          "read": [
+            27.33,
+            31.09
+          ],
+          "f0": 93.8,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "absent artificial escapes and machine learning strengths",
+          "read": [
+            31.89,
+            35.35
+          ],
+          "f0": 93.8,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "for my highs and lows as resource materials.",
+          "read": [
+            35.35,
+            38.15
+          ],
+          "f0": 93.7,
+          "mouth": "another mouth"
+        },
+        {
+          "text": "and can't leave behind the wisdom that brushes gray tones",
+          "read": [
+            44.14,
+            47.48
+          ],
+          "f0": 93.8,
+          "mouth": "another mouth"
+        }
+      ]
+    }
+  ],
+  "foleyCells": [
+    {
+      "code": "Dr-OUT",
+      "family": "Dr · Sub-Horizon Tone",
+      "territory": "OUT (Acousmatic)",
+      "law": "Never mask spoken reading; pulse only in rest windows (kill <= 0.20).",
+      "sample": "../../audio/samples/river_gorge.mp3",
+      "rate": 0.62,
+      "dur": 1.4,
+      "gain": 0.22
+    },
+    {
+      "code": "Wa-IN",
+      "family": "Wa · Standpipe & Puddle",
+      "territory": "IN (On-Stage)",
+      "law": "Registered to cyan puddle & conduit reflections in P2 slot.",
+      "sample": "../../audio/samples/water_pour.mp3",
+      "rate": 0.96,
+      "dur": 0.95,
+      "gain": 0.34
+    },
+    {
+      "code": "St-IN",
+      "family": "St · Wet Stone Stride",
+      "territory": "IN (On-Stage)",
+      "law": "Synced to Anny V8 foot-plant contacts on stage floor.",
+      "sample": "../../audio/samples/gravel_footsteps.mp3",
+      "rate": 0.94,
+      "dur": 0.28,
+      "gain": 0.26
+    },
+    {
+      "code": "Pu-OFF",
+      "family": "Pu · Cooling Valve",
+      "territory": "OFF (Off-Frame)",
+      "law": "Dry vs cooled mechanical relay pulse outside frame.",
+      "sample": "../../audio/samples/metal_pump.mp3",
+      "rate": 1.15,
+      "dur": 0.22,
+      "gain": 0.24
+    },
+    {
+      "code": "Fi-OUT",
+      "family": "Fi · Highland Air",
+      "territory": "OUT (Perimeter)",
+      "law": "Open air bed ducked -9dB under poet reading.",
+      "sample": "../../audio/samples/ethiopia_field.mp3",
+      "rate": 0.98,
+      "dur": 1.8,
+      "gain": 0.25
+    },
+    {
+      "code": "Cr-OUT",
+      "family": "Cr · Nocturnal Courtyard",
+      "territory": "OUT (Night Stage)",
+      "law": "Enters on Blue Hour and Night transitions.",
+      "sample": "../../audio/samples/crickets_night.mp3",
+      "rate": 1,
+      "dur": 1.6,
+      "gain": 0.2
+    },
+    {
+      "code": "sh-IN",
+      "family": "Sh · Leaf Shutter",
+      "territory": "IN (Camera)",
+      "law": "Mechanical plate exposure lock.",
+      "sample": "../../audio/samples/metal_pump.mp3",
+      "rate": 1.75,
+      "dur": 0.09,
+      "gain": 0.22
+    },
+    {
+      "code": "Vo-OFF",
+      "family": "Vo · Gorge Resonance",
+      "territory": "OFF (Threshold)",
+      "law": "Submerged stone reflection across canal rings.",
+      "sample": "../../audio/samples/river_gorge.mp3",
+      "rate": 1.18,
+      "dur": 1.1,
+      "gain": 0.24
+    }
+  ],
+  "soundTableSummary": {
+    "familiesCount": 17,
+    "territories": [
+      "IN · Visible Source on Multiplane Stage",
+      "OFF · Just Outside Frame / Behind Ledge",
+      "OUT · World Envelope & Acousmatic Memory (#Dr-OUT)"
+    ]
+  }
+}

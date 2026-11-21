@@ -1,0 +1,1712 @@
+{
+  "version": "atlantis-hdl-v1",
+  "units": "metres · x along the street front, y back from the street (the street is y < 0), z up",
+  "hero": {
+    "id": "severn",
+    "name": "The Severn",
+    "poem": "01",
+    "landmark": "tower block",
+    "note": "the tenement the poet looks for a way out of: hallways, drawers, fire escapes",
+    "footprint": [
+      20,
+      12
+    ],
+    "party": [],
+    "skin": {
+      "wall": "red brick#1",
+      "trim": "cantera",
+      "base": "granite",
+      "roof": "concrete",
+      "surround": true
+    },
+    "levels": [
+      {
+        "name": "street",
+        "z": 0,
+        "h": 3.6,
+        "rooms": [
+          {
+            "id": "shopL",
+            "name": "corner shop",
+            "x": 0,
+            "y": 0,
+            "w": 8,
+            "d": 5,
+            "use": "shop",
+            "floor": "checker floor",
+            "wall": "plaster",
+            "ceiling": "tin ceiling",
+            "light": "warm",
+            "props": [
+              [
+                "counter",
+                4,
+                3.2,
+                0
+              ],
+              [
+                "shelves",
+                0.4,
+                2.5,
+                90
+              ]
+            ]
+          },
+          {
+            "id": "lobby",
+            "name": "lobby",
+            "x": 8,
+            "y": 0,
+            "w": 4,
+            "d": 5,
+            "use": "hall",
+            "floor": "terrazzo floor",
+            "wall": "panelling",
+            "light": "warm",
+            "props": [
+              [
+                "mailboxes",
+                11.6,
+                2.5,
+                270
+              ]
+            ]
+          },
+          {
+            "id": "shopR",
+            "name": "laundry",
+            "x": 12,
+            "y": 0,
+            "w": 8,
+            "d": 5,
+            "use": "shop",
+            "floor": "concrete floor",
+            "wall": "tile",
+            "light": "cool",
+            "props": [
+              [
+                "machines",
+                18.5,
+                2.5,
+                270
+              ],
+              [
+                "table",
+                15,
+                3,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "c0",
+            "name": "ground hallway",
+            "x": 0,
+            "y": 5,
+            "w": 16,
+            "d": 2,
+            "use": "hall",
+            "floor": "terrazzo floor",
+            "wall": "panelling",
+            "light": "warm"
+          },
+          {
+            "id": "store0",
+            "name": "boiler room",
+            "x": 0,
+            "y": 7,
+            "w": 8,
+            "d": 5,
+            "use": "service",
+            "floor": "concrete floor",
+            "wall": "interior brick",
+            "light": "cool",
+            "props": [
+              [
+                "boiler",
+                3,
+                9.5,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "super",
+            "name": "the super's flat",
+            "x": 8,
+            "y": 7,
+            "w": 8,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "bed",
+                13,
+                10,
+                0
+              ],
+              [
+                "table",
+                10,
+                9,
+                0
+              ],
+              [
+                "chair",
+                10,
+                8.2,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "st0",
+            "name": "stair",
+            "x": 16,
+            "y": 5,
+            "w": 4,
+            "d": 7,
+            "use": "stair",
+            "floor": "concrete floor",
+            "wall": "plaster",
+            "light": "cool"
+          }
+        ]
+      },
+      {
+        "name": "first",
+        "z": 3.6,
+        "h": 3.2,
+        "rooms": [
+          {
+            "id": "f1a",
+            "name": "flat 1A",
+            "x": 0,
+            "y": 0,
+            "w": 6.5,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "bed",
+                3.25,
+                1.4,
+                0
+              ],
+              [
+                "drawers",
+                0.4,
+                3.6,
+                90
+              ],
+              [
+                "chair",
+                5.3,
+                3.8,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "f1b",
+            "name": "flat 1B",
+            "x": 6.5,
+            "y": 0,
+            "w": 7,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "plaster",
+            "light": "warm",
+            "props": [
+              [
+                "bed",
+                10,
+                1.4,
+                0
+              ],
+              [
+                "drawers",
+                6.9,
+                3.6,
+                90
+              ],
+              [
+                "chair",
+                12.3,
+                3.8,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "f1c",
+            "name": "flat 1C",
+            "x": 13.5,
+            "y": 0,
+            "w": 6.5,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "bed",
+                16.75,
+                1.4,
+                0
+              ],
+              [
+                "drawers",
+                13.9,
+                3.6,
+                90
+              ],
+              [
+                "chair",
+                18.8,
+                3.8,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "c1",
+            "name": "hallway",
+            "x": 0,
+            "y": 5,
+            "w": 16,
+            "d": 2,
+            "use": "hall",
+            "floor": "carpet",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "radiator",
+                4,
+                6.85,
+                180
+              ],
+              [
+                "radiator",
+                12,
+                6.85,
+                180
+              ]
+            ]
+          },
+          {
+            "id": "f1d",
+            "name": "flat 1D",
+            "x": 0,
+            "y": 7,
+            "w": 8,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "sofa",
+                4,
+                9.5,
+                0
+              ],
+              [
+                "drawers",
+                0.4,
+                10.5,
+                90
+              ],
+              [
+                "table",
+                4,
+                8.4,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "f1e",
+            "name": "flat 1E",
+            "x": 8,
+            "y": 7,
+            "w": 8,
+            "d": 5,
+            "use": "home",
+            "floor": "parquet",
+            "wall": "panelling",
+            "light": "warm",
+            "props": [
+              [
+                "sofa",
+                12,
+                9.5,
+                0
+              ],
+              [
+                "drawers",
+                8.4,
+                10.5,
+                90
+              ],
+              [
+                "table",
+                12,
+                8.4,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "st1",
+            "name": "stair",
+            "x": 16,
+            "y": 5,
+            "w": 4,
+            "d": 7,
+            "use": "stair",
+            "floor": "floorboards",
+            "wall": "plaster",
+            "light": "cool"
+          }
+        ]
+      },
+      {
+        "name": "second",
+        "z": 6.8,
+        "h": 3.2,
+        "rooms": [
+          {
+            "id": "f2a",
+            "name": "flat 2A",
+            "x": 0,
+            "y": 0,
+            "w": 6.5,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "bed",
+                3.25,
+                1.4,
+                0
+              ],
+              [
+                "drawers",
+                0.4,
+                3.6,
+                90
+              ],
+              [
+                "chair",
+                5.3,
+                3.8,
+                0
+              ],
+              [
+                "typewriter",
+                4.9,
+                2.2,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "f2b",
+            "name": "flat 2B",
+            "x": 6.5,
+            "y": 0,
+            "w": 7,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "plaster",
+            "light": "warm",
+            "props": [
+              [
+                "bed",
+                10,
+                1.4,
+                0
+              ],
+              [
+                "drawers",
+                6.9,
+                3.6,
+                90
+              ],
+              [
+                "chair",
+                12.3,
+                3.8,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "f2c",
+            "name": "flat 2C",
+            "x": 13.5,
+            "y": 0,
+            "w": 6.5,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "bed",
+                16.75,
+                1.4,
+                0
+              ],
+              [
+                "drawers",
+                13.9,
+                3.6,
+                90
+              ],
+              [
+                "chair",
+                18.8,
+                3.8,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "c2",
+            "name": "hallway",
+            "x": 0,
+            "y": 5,
+            "w": 16,
+            "d": 2,
+            "use": "hall",
+            "floor": "carpet",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "radiator",
+                4,
+                6.85,
+                180
+              ],
+              [
+                "radiator",
+                12,
+                6.85,
+                180
+              ]
+            ]
+          },
+          {
+            "id": "f2d",
+            "name": "flat 2D",
+            "x": 0,
+            "y": 7,
+            "w": 8,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "sofa",
+                4,
+                9.5,
+                0
+              ],
+              [
+                "drawers",
+                0.4,
+                10.5,
+                90
+              ],
+              [
+                "table",
+                4,
+                8.4,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "f2e",
+            "name": "flat 2E",
+            "x": 8,
+            "y": 7,
+            "w": 8,
+            "d": 5,
+            "use": "home",
+            "floor": "parquet",
+            "wall": "panelling",
+            "light": "warm",
+            "props": [
+              [
+                "sofa",
+                12,
+                9.5,
+                0
+              ],
+              [
+                "drawers",
+                8.4,
+                10.5,
+                90
+              ],
+              [
+                "table",
+                12,
+                8.4,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "st2",
+            "name": "stair",
+            "x": 16,
+            "y": 5,
+            "w": 4,
+            "d": 7,
+            "use": "stair",
+            "floor": "floorboards",
+            "wall": "plaster",
+            "light": "cool"
+          }
+        ]
+      },
+      {
+        "name": "third",
+        "z": 10,
+        "h": 3.2,
+        "rooms": [
+          {
+            "id": "f3a",
+            "name": "flat 3A",
+            "x": 0,
+            "y": 0,
+            "w": 6.5,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "bed",
+                3.25,
+                1.4,
+                0
+              ],
+              [
+                "drawers",
+                0.4,
+                3.6,
+                90
+              ],
+              [
+                "chair",
+                5.3,
+                3.8,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "f3b",
+            "name": "flat 3B",
+            "x": 6.5,
+            "y": 0,
+            "w": 7,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "plaster",
+            "light": "warm",
+            "props": [
+              [
+                "bed",
+                10,
+                1.4,
+                0
+              ],
+              [
+                "drawers",
+                6.9,
+                3.6,
+                90
+              ],
+              [
+                "chair",
+                12.3,
+                3.8,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "f3c",
+            "name": "flat 3C",
+            "x": 13.5,
+            "y": 0,
+            "w": 6.5,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "bed",
+                16.75,
+                1.4,
+                0
+              ],
+              [
+                "drawers",
+                13.9,
+                3.6,
+                90
+              ],
+              [
+                "chair",
+                18.8,
+                3.8,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "c3",
+            "name": "hallway",
+            "x": 0,
+            "y": 5,
+            "w": 16,
+            "d": 2,
+            "use": "hall",
+            "floor": "carpet",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "radiator",
+                4,
+                6.85,
+                180
+              ],
+              [
+                "radiator",
+                12,
+                6.85,
+                180
+              ]
+            ]
+          },
+          {
+            "id": "f3d",
+            "name": "flat 3D",
+            "x": 0,
+            "y": 7,
+            "w": 8,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "sofa",
+                4,
+                9.5,
+                0
+              ],
+              [
+                "drawers",
+                0.4,
+                10.5,
+                90
+              ],
+              [
+                "table",
+                4,
+                8.4,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "f3e",
+            "name": "flat 3E",
+            "x": 8,
+            "y": 7,
+            "w": 8,
+            "d": 5,
+            "use": "home",
+            "floor": "parquet",
+            "wall": "panelling",
+            "light": "warm",
+            "props": [
+              [
+                "sofa",
+                12,
+                9.5,
+                0
+              ],
+              [
+                "drawers",
+                8.4,
+                10.5,
+                90
+              ],
+              [
+                "table",
+                12,
+                8.4,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "st3",
+            "name": "stair",
+            "x": 16,
+            "y": 5,
+            "w": 4,
+            "d": 7,
+            "use": "stair",
+            "floor": "floorboards",
+            "wall": "plaster",
+            "light": "cool"
+          }
+        ]
+      },
+      {
+        "name": "fourth",
+        "z": 13.2,
+        "h": 3.2,
+        "rooms": [
+          {
+            "id": "f4a",
+            "name": "flat 4A",
+            "x": 0,
+            "y": 0,
+            "w": 6.5,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "bed",
+                3.25,
+                1.4,
+                0
+              ],
+              [
+                "drawers",
+                0.4,
+                3.6,
+                90
+              ],
+              [
+                "chair",
+                5.3,
+                3.8,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "f4b",
+            "name": "flat 4B",
+            "x": 6.5,
+            "y": 0,
+            "w": 7,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "plaster",
+            "light": "warm",
+            "props": [
+              [
+                "bed",
+                10,
+                1.4,
+                0
+              ],
+              [
+                "drawers",
+                6.9,
+                3.6,
+                90
+              ],
+              [
+                "chair",
+                12.3,
+                3.8,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "f4c",
+            "name": "flat 4C",
+            "x": 13.5,
+            "y": 0,
+            "w": 6.5,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "bed",
+                16.75,
+                1.4,
+                0
+              ],
+              [
+                "drawers",
+                13.9,
+                3.6,
+                90
+              ],
+              [
+                "chair",
+                18.8,
+                3.8,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "c4",
+            "name": "hallway",
+            "x": 0,
+            "y": 5,
+            "w": 16,
+            "d": 2,
+            "use": "hall",
+            "floor": "carpet",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "radiator",
+                4,
+                6.85,
+                180
+              ],
+              [
+                "radiator",
+                12,
+                6.85,
+                180
+              ]
+            ]
+          },
+          {
+            "id": "f4d",
+            "name": "flat 4D",
+            "x": 0,
+            "y": 7,
+            "w": 8,
+            "d": 5,
+            "use": "home",
+            "floor": "floorboards",
+            "wall": "wallpaper",
+            "light": "warm",
+            "props": [
+              [
+                "sofa",
+                4,
+                9.5,
+                0
+              ],
+              [
+                "drawers",
+                0.4,
+                10.5,
+                90
+              ],
+              [
+                "table",
+                4,
+                8.4,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "f4e",
+            "name": "flat 4E",
+            "x": 8,
+            "y": 7,
+            "w": 8,
+            "d": 5,
+            "use": "home",
+            "floor": "parquet",
+            "wall": "panelling",
+            "light": "warm",
+            "props": [
+              [
+                "sofa",
+                12,
+                9.5,
+                0
+              ],
+              [
+                "drawers",
+                8.4,
+                10.5,
+                90
+              ],
+              [
+                "table",
+                12,
+                8.4,
+                0
+              ]
+            ]
+          },
+          {
+            "id": "st4",
+            "name": "stair",
+            "x": 16,
+            "y": 5,
+            "w": 4,
+            "d": 7,
+            "use": "stair",
+            "floor": "floorboards",
+            "wall": "plaster",
+            "light": "cool"
+          }
+        ]
+      }
+    ],
+    "doors": [
+      {
+        "level": 0,
+        "a": "street",
+        "b": "lobby",
+        "w": 1.4
+      },
+      {
+        "level": 0,
+        "a": "street",
+        "b": "shopL",
+        "w": 1.2,
+        "at": 1.5
+      },
+      {
+        "level": 0,
+        "a": "street",
+        "b": "shopR",
+        "w": 1.2,
+        "at": 18.5
+      },
+      {
+        "level": 0,
+        "a": "lobby",
+        "b": "c0",
+        "w": 1.4
+      },
+      {
+        "level": 0,
+        "a": "c0",
+        "b": "st0",
+        "w": 1.2
+      },
+      {
+        "level": 0,
+        "a": "c0",
+        "b": "store0",
+        "w": 0.9
+      },
+      {
+        "level": 0,
+        "a": "c0",
+        "b": "super",
+        "w": 0.9
+      },
+      {
+        "level": 0,
+        "a": "c0",
+        "b": "shopL",
+        "w": 0.9
+      },
+      {
+        "level": 1,
+        "a": "st1",
+        "b": "c1",
+        "w": 1.2
+      },
+      {
+        "level": 1,
+        "a": "c1",
+        "b": "f1a",
+        "w": 0.9
+      },
+      {
+        "level": 1,
+        "a": "c1",
+        "b": "f1b",
+        "w": 0.9
+      },
+      {
+        "level": 1,
+        "a": "c1",
+        "b": "f1c",
+        "w": 0.9
+      },
+      {
+        "level": 1,
+        "a": "c1",
+        "b": "f1d",
+        "w": 0.9
+      },
+      {
+        "level": 1,
+        "a": "c1",
+        "b": "f1e",
+        "w": 0.9
+      },
+      {
+        "level": 2,
+        "a": "st2",
+        "b": "c2",
+        "w": 1.2
+      },
+      {
+        "level": 2,
+        "a": "c2",
+        "b": "f2a",
+        "w": 0.9
+      },
+      {
+        "level": 2,
+        "a": "c2",
+        "b": "f2b",
+        "w": 0.9
+      },
+      {
+        "level": 2,
+        "a": "c2",
+        "b": "f2c",
+        "w": 0.9
+      },
+      {
+        "level": 2,
+        "a": "c2",
+        "b": "f2d",
+        "w": 0.9
+      },
+      {
+        "level": 2,
+        "a": "c2",
+        "b": "f2e",
+        "w": 0.9
+      },
+      {
+        "level": 3,
+        "a": "st3",
+        "b": "c3",
+        "w": 1.2
+      },
+      {
+        "level": 3,
+        "a": "c3",
+        "b": "f3a",
+        "w": 0.9
+      },
+      {
+        "level": 3,
+        "a": "c3",
+        "b": "f3b",
+        "w": 0.9
+      },
+      {
+        "level": 3,
+        "a": "c3",
+        "b": "f3c",
+        "w": 0.9
+      },
+      {
+        "level": 3,
+        "a": "c3",
+        "b": "f3d",
+        "w": 0.9
+      },
+      {
+        "level": 3,
+        "a": "c3",
+        "b": "f3e",
+        "w": 0.9
+      },
+      {
+        "level": 4,
+        "a": "st4",
+        "b": "c4",
+        "w": 1.2
+      },
+      {
+        "level": 4,
+        "a": "c4",
+        "b": "f4a",
+        "w": 0.9
+      },
+      {
+        "level": 4,
+        "a": "c4",
+        "b": "f4b",
+        "w": 0.9
+      },
+      {
+        "level": 4,
+        "a": "c4",
+        "b": "f4c",
+        "w": 0.9
+      },
+      {
+        "level": 4,
+        "a": "c4",
+        "b": "f4d",
+        "w": 0.9
+      },
+      {
+        "level": 4,
+        "a": "c4",
+        "b": "f4e",
+        "w": 0.9
+      }
+    ],
+    "windows": [
+      {
+        "level": 0,
+        "room": "shopL",
+        "side": "front",
+        "n": 2,
+        "w": 1.9,
+        "h": 2.4,
+        "sill": 0.5
+      },
+      {
+        "level": 0,
+        "room": "shopR",
+        "side": "front",
+        "n": 2,
+        "w": 1.9,
+        "h": 2.4,
+        "sill": 0.5
+      },
+      {
+        "level": 0,
+        "room": "super",
+        "side": "back",
+        "n": 2,
+        "w": 1,
+        "h": 1.4,
+        "sill": 1
+      },
+      {
+        "level": 0,
+        "room": "store0",
+        "side": "back",
+        "n": 1,
+        "w": 0.8,
+        "h": 0.8,
+        "sill": 2
+      },
+      {
+        "level": 0,
+        "room": "st0",
+        "side": "right",
+        "n": 1,
+        "w": 0.9,
+        "h": 1.6,
+        "sill": 1.4
+      },
+      {
+        "level": 1,
+        "room": "f1a",
+        "side": "front",
+        "n": 2,
+        "w": 1.1,
+        "h": 1.7,
+        "sill": 0.8
+      },
+      {
+        "level": 1,
+        "room": "f1b",
+        "side": "front",
+        "n": 2,
+        "w": 1.1,
+        "h": 1.7,
+        "sill": 0.8
+      },
+      {
+        "level": 1,
+        "room": "f1c",
+        "side": "front",
+        "n": 2,
+        "w": 1.1,
+        "h": 1.7,
+        "sill": 0.8
+      },
+      {
+        "level": 1,
+        "room": "f1d",
+        "side": "back",
+        "n": 2,
+        "w": 1,
+        "h": 1.5,
+        "sill": 0.9
+      },
+      {
+        "level": 1,
+        "room": "f1e",
+        "side": "back",
+        "n": 2,
+        "w": 1,
+        "h": 1.5,
+        "sill": 0.9
+      },
+      {
+        "level": 1,
+        "room": "c1",
+        "side": "left",
+        "n": 1,
+        "w": 0.9,
+        "h": 1.6,
+        "sill": 0.9
+      },
+      {
+        "level": 1,
+        "room": "st1",
+        "side": "right",
+        "n": 1,
+        "w": 0.9,
+        "h": 1.6,
+        "sill": 1.4
+      },
+      {
+        "level": 2,
+        "room": "f2a",
+        "side": "front",
+        "n": 2,
+        "w": 1.1,
+        "h": 1.7,
+        "sill": 0.8
+      },
+      {
+        "level": 2,
+        "room": "f2b",
+        "side": "front",
+        "n": 2,
+        "w": 1.1,
+        "h": 1.7,
+        "sill": 0.8
+      },
+      {
+        "level": 2,
+        "room": "f2c",
+        "side": "front",
+        "n": 2,
+        "w": 1.1,
+        "h": 1.7,
+        "sill": 0.8
+      },
+      {
+        "level": 2,
+        "room": "f2d",
+        "side": "back",
+        "n": 2,
+        "w": 1,
+        "h": 1.5,
+        "sill": 0.9
+      },
+      {
+        "level": 2,
+        "room": "f2e",
+        "side": "back",
+        "n": 2,
+        "w": 1,
+        "h": 1.5,
+        "sill": 0.9
+      },
+      {
+        "level": 2,
+        "room": "c2",
+        "side": "left",
+        "n": 1,
+        "w": 0.9,
+        "h": 1.6,
+        "sill": 0.9
+      },
+      {
+        "level": 2,
+        "room": "st2",
+        "side": "right",
+        "n": 1,
+        "w": 0.9,
+        "h": 1.6,
+        "sill": 1.4
+      },
+      {
+        "level": 3,
+        "room": "f3a",
+        "side": "front",
+        "n": 2,
+        "w": 1.1,
+        "h": 1.7,
+        "sill": 0.8
+      },
+      {
+        "level": 3,
+        "room": "f3b",
+        "side": "front",
+        "n": 2,
+        "w": 1.1,
+        "h": 1.7,
+        "sill": 0.8
+      },
+      {
+        "level": 3,
+        "room": "f3c",
+        "side": "front",
+        "n": 2,
+        "w": 1.1,
+        "h": 1.7,
+        "sill": 0.8
+      },
+      {
+        "level": 3,
+        "room": "f3d",
+        "side": "back",
+        "n": 2,
+        "w": 1,
+        "h": 1.5,
+        "sill": 0.9
+      },
+      {
+        "level": 3,
+        "room": "f3e",
+        "side": "back",
+        "n": 2,
+        "w": 1,
+        "h": 1.5,
+        "sill": 0.9
+      },
+      {
+        "level": 3,
+        "room": "c3",
+        "side": "left",
+        "n": 1,
+        "w": 0.9,
+        "h": 1.6,
+        "sill": 0.9
+      },
+      {
+        "level": 3,
+        "room": "st3",
+        "side": "right",
+        "n": 1,
+        "w": 0.9,
+        "h": 1.6,
+        "sill": 1.4
+      },
+      {
+        "level": 4,
+        "room": "f4a",
+        "side": "front",
+        "n": 2,
+        "w": 1.1,
+        "h": 1.7,
+        "sill": 0.8
+      },
+      {
+        "level": 4,
+        "room": "f4b",
+        "side": "front",
+        "n": 2,
+        "w": 1.1,
+        "h": 1.7,
+        "sill": 0.8
+      },
+      {
+        "level": 4,
+        "room": "f4c",
+        "side": "front",
+        "n": 2,
+        "w": 1.1,
+        "h": 1.7,
+        "sill": 0.8
+      },
+      {
+        "level": 4,
+        "room": "f4d",
+        "side": "back",
+        "n": 2,
+        "w": 1,
+        "h": 1.5,
+        "sill": 0.9
+      },
+      {
+        "level": 4,
+        "room": "f4e",
+        "side": "back",
+        "n": 2,
+        "w": 1,
+        "h": 1.5,
+        "sill": 0.9
+      },
+      {
+        "level": 4,
+        "room": "c4",
+        "side": "left",
+        "n": 1,
+        "w": 0.9,
+        "h": 1.6,
+        "sill": 0.9
+      },
+      {
+        "level": 4,
+        "room": "st4",
+        "side": "right",
+        "n": 1,
+        "w": 0.9,
+        "h": 1.6,
+        "sill": 1.4
+      }
+    ],
+    "stairs": [
+      {
+        "from": 0,
+        "to": 1,
+        "x": 16.3,
+        "y": 5.2,
+        "w": 1.6,
+        "d": 6.6,
+        "dir": "+y"
+      },
+      {
+        "from": 1,
+        "to": 2,
+        "x": 16.3,
+        "y": 5.2,
+        "w": 1.6,
+        "d": 6.6,
+        "dir": "+y"
+      },
+      {
+        "from": 2,
+        "to": 3,
+        "x": 16.3,
+        "y": 5.2,
+        "w": 1.6,
+        "d": 6.6,
+        "dir": "+y"
+      },
+      {
+        "from": 3,
+        "to": 4,
+        "x": 16.3,
+        "y": 5.2,
+        "w": 1.6,
+        "d": 6.6,
+        "dir": "+y"
+      }
+    ],
+    "exterior": [
+      {
+        "kind": "fireescape",
+        "side": "front",
+        "x": 1.5,
+        "w": 5,
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "fireescape",
+        "side": "front",
+        "x": 13.5,
+        "w": 5,
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "watertank",
+        "x": 4,
+        "y": 8
+      },
+      {
+        "kind": "awning",
+        "side": "front",
+        "x": 0.5,
+        "w": 7,
+        "z": 3
+      },
+      {
+        "kind": "cornice"
+      }
+    ],
+    "roof": {
+      "type": "flat",
+      "parapet": 1.1
+    },
+    "eras": {
+      "born": 3,
+      "ruined": null,
+      "reuse": null
+    },
+    "beats": [
+      "c3",
+      "f2a",
+      "fireescape",
+      "roof"
+    ],
+    "facts": [
+      {
+        "claim": "a 2 m hallway runs the width of every floor: three flats in front, two behind, the stair at the back",
+        "status": "reference"
+      },
+      {
+        "claim": "fire escapes on the front, the way the shots show them",
+        "status": "reference"
+      },
+      {
+        "claim": "riser and tread meet a residential stair (≤ 0.2 m, ≥ 0.25 m)",
+        "status": "checked"
+      },
+      {
+        "claim": "two ways down from every flat: the stair and the fire escape",
+        "status": "checked"
+      },
+      {
+        "claim": "brick bearing walls carry 8 m floor spans",
+        "status": "inferred"
+      },
+      {
+        "claim": "cast-iron columns carry the shopfront floors",
+        "status": "inferred"
+      },
+      {
+        "claim": "every flat is ≤ 8 m deep between the hallway wall and the facade",
+        "status": "checked"
+      }
+    ],
+    "setting": "redteal",
+    "shot": {
+      "pos": [
+        24,
+        -14,
+        4
+      ],
+      "target": [
+        8,
+        0,
+        9
+      ],
+      "ref": 0
+    },
+    "fit": [
+      {
+        "saw": "the fire escape is one long diagonal flight across the brick between landings",
+        "did": "flights now run the width of the landing, stringers and rails, alternating left and right"
+      },
+      {
+        "saw": "windows sit in carved stone surrounds",
+        "did": "stone surrounds with a keystone on every outside window"
+      },
+      {
+        "saw": "the brick is lit red and teal at night, wet",
+        "did": "a red-and-teal night setting with coloured light raking the facade"
+      },
+      {
+        "saw": "a long hallway of doors (interior reference)",
+        "did": "the plan now turns on a long hallway of numbered doors, lamps every three metres, a runner, radiators"
+      }
+    ]
+  },
+  "peers": [
+    {
+      "id": "severn",
+      "name": "The Severn",
+      "poem": "01",
+      "footprint": [
+        20,
+        12
+      ],
+      "levels": 5
+    },
+    {
+      "id": "chapel",
+      "name": "The chapel on the flat",
+      "poem": "03",
+      "footprint": [
+        9,
+        27
+      ],
+      "levels": 1
+    },
+    {
+      "id": "marquee",
+      "name": "The NEW SINGLE",
+      "poem": "08",
+      "footprint": [
+        16,
+        30
+      ],
+      "levels": 2
+    },
+    {
+      "id": "cafe",
+      "name": "The pier café",
+      "poem": "13",
+      "footprint": [
+        14,
+        9
+      ],
+      "levels": 1
+    },
+    {
+      "id": "clocktower",
+      "name": "The clock tower",
+      "poem": "11",
+      "footprint": [
+        7,
+        7
+      ],
+      "levels": 5
+    },
+    {
+      "id": "rowhouse",
+      "name": "The Atlantis rowhouse",
+      "poem": "02",
+      "footprint": [
+        5,
+        15.5
+      ],
+      "levels": 2
+    }
+  ]
+}

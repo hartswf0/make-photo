@@ -1,0 +1,1480 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090d16">
+  <title>WYGWYL · The Design Room &amp; Cinematic Entrance</title>
+  <meta name="description" content="Enter an inhabited Atlantis: registered multiplane WEAVE street stage, 23 GPU shaders, verb-grouped tool directory, five-bus Freesound acoustics, and nine interactive design briefs synced via SevernPilotState.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23090d16'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23f2a541' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%2318b4ff'/%3E%3C/svg%3E">
+  <script type="importmap">{"imports":{"three":"../../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090d16;
+      --bg-elev: #0f1624;
+      --bg-card: #121b2c;
+      --ink: #f4eedd;
+      --muted: #b4bed3;
+      --line: rgba(244, 238, 221, 0.18);
+      --line-strong: rgba(244, 238, 221, 0.36);
+      --amber: #f2a541;
+      --cyan: #18b4ff;
+      --rec: #5fd3bc;
+      --chk: #7ab8ff;
+      --inf: #e5b567;
+      --inv: #df85a6;
+      --sans: "Outfit", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+      --mono: "IBM Plex Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--bg);
+      scroll-behavior: smooth;
+      scroll-padding-top: 1.5rem;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 400 16px/1.6 var(--sans);
+      overflow-x: clip;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a {
+      color: inherit;
+      text-underline-offset: 4px;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+      color: inherit;
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--amber);
+      outline-offset: 3px;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 1rem;
+      top: -6rem;
+      z-index: 100;
+      padding: 0.7rem 1.1rem;
+      background: var(--amber);
+      color: #121316;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+
+    .skip-link:focus {
+      top: 1rem;
+    }
+
+    .wrap {
+      width: min(1280px, calc(100% - 48px));
+      margin: 0 auto;
+    }
+
+    /* Masthead — quiet, inline, zero permanent floating dock */
+    .masthead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.9rem 0;
+      border-bottom: 1px solid var(--line);
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-decoration: none;
+      font: 600 13px/1.2 var(--mono);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .brand-mark {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 0 3px rgba(242, 165, 65, 0.22);
+    }
+
+    .mast-nav {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.35rem 1.1rem;
+      font: 500 13px/1.3 var(--mono);
+    }
+
+    .mast-nav a {
+      text-decoration: none;
+      padding: 0.35rem 0.2rem;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+    }
+
+    .mast-nav a:hover {
+      color: var(--ink);
+      border-bottom-color: var(--amber);
+    }
+
+    /* Hero Multiplane Viewport (Brief 1) */
+    .hero-section {
+      padding: 1rem 0 1.75rem;
+    }
+
+    .hero-stage-wrap {
+      margin: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #070b14;
+      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.48);
+    }
+
+    .hero-viewport {
+      position: relative;
+      width: 100%;
+      height: min(610px, calc(100svh - 148px));
+      min-height: 460px;
+      overflow: hidden;
+      background: #08111f;
+    }
+
+    .hero-fallback-poster {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 58%;
+      display: block;
+    }
+
+    #hero-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      opacity: 0;
+      transition: opacity 280ms ease;
+    }
+
+    #hero-canvas.is-ready {
+      opacity: 1;
+    }
+
+    /* Title & short invitation placed strictly in the quiet upper-left sky region */
+    .hero-sky-invitation {
+      position: relative;
+      z-index: 4;
+      max-width: 560px;
+      padding: clamp(1.1rem, 2.5vw, 2rem) clamp(1.1rem, 2.8vw, 2.25rem);
+      background: radial-gradient(
+        120% 120% at 0% 0%,
+        rgba(7, 12, 24, 0.86) 0%,
+        rgba(7, 12, 24, 0.64) 62%,
+        rgba(7, 12, 24, 0.0) 100%
+      );
+      pointer-events: none;
+    }
+
+    .hero-kicker {
+      margin: 0 0 0.45rem;
+      font: 500 11.5px/1.4 var(--mono);
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      color: var(--amber);
+    }
+
+    .hero-sky-invitation h1 {
+      margin: 0;
+      font: 400 clamp(2.35rem, 4.7vw, 4.1rem)/1.03 var(--serif);
+      letter-spacing: -0.035em;
+      color: #fff8ea;
+      text-shadow: 0 2px 24px rgba(0, 0, 0, 0.65);
+    }
+
+    .hero-invite {
+      margin: 0.65rem 0 1.15rem;
+      max-width: 44ch;
+      font-size: clamp(0.96rem, 1.25vw, 1.08rem);
+      line-height: 1.48;
+      color: #e4e8f2;
+      text-shadow: 0 1px 14px rgba(0, 0, 0, 0.72);
+    }
+
+    /* Three clear primary routes — distinct by shape/border/underline without relying on color alone */
+    .hero-routes {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.6rem;
+      pointer-events: auto;
+    }
+
+    .route-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0.55rem 1.05rem;
+      border-radius: 6px;
+      font: 600 14px/1.2 var(--sans);
+      letter-spacing: 0.01em;
+      text-decoration: none;
+      transition: transform 120ms ease, background 140ms ease, border-color 140ms ease;
+    }
+
+    .route-primary {
+      background: var(--amber);
+      color: #121316;
+      border: 2px solid var(--amber);
+    }
+
+    .route-primary:hover {
+      background: #ffc069;
+      border-color: #ffc069;
+    }
+
+    .route-secondary {
+      background: rgba(9, 14, 26, 0.82);
+      color: var(--ink);
+      border: 2px solid var(--ink);
+    }
+
+    .route-secondary:hover {
+      background: var(--ink);
+      color: #090d16;
+    }
+
+    .route-quiet {
+      background: rgba(9, 14, 26, 0.68);
+      color: var(--ink);
+      border: 1px dashed var(--line-strong);
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+
+    .route-quiet:hover {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+
+    /* Caption & Reachable Stage Controls BELOW the image (zero permanent dock covering scene) */
+    .hero-caption-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-elev);
+      border-top: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .caption-text strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .stage-controls {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .ctrl-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      min-height: 40px;
+      padding: 0.3rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.03);
+      font: 500 12px/1.2 var(--mono);
+      color: var(--ink);
+    }
+
+    .ctrl-chip select {
+      background: #0b101c;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 0.25rem 0.45rem;
+      font: 500 12px/1.2 var(--mono);
+      max-width: 205px;
+    }
+
+    .ctrl-chip input[type="range"] {
+      width: 92px;
+      accent-color: var(--amber);
+    }
+
+    .ctrl-btn {
+      min-height: 40px;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--ink);
+      font: 500 12px/1.2 var(--mono);
+      cursor: pointer;
+    }
+
+    .ctrl-btn:hover {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+
+    .ctrl-btn[aria-pressed="true"] {
+      background: rgba(242, 165, 65, 0.2);
+      border-color: var(--amber);
+      color: #fff6df;
+    }
+
+    /* Section Headings */
+    .section-block {
+      padding: 2.75rem 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 2rem;
+      align-items: end;
+      margin-bottom: 1.6rem;
+    }
+
+    .eyebrow {
+      margin: 0 0 0.35rem;
+      font: 500 12px/1.4 var(--mono);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--amber);
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font: 400 clamp(1.85rem, 3.2vw, 2.75rem)/1.12 var(--serif);
+      letter-spacing: -0.025em;
+    }
+
+    .section-head p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 58ch;
+    }
+
+    /* Severn Pilot Master Console (Brief 9) */
+    .pilot-console {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 1.25rem;
+      padding: 1.15rem;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      background: var(--bg-elev);
+    }
+
+    .pilot-actions-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .pilot-jump-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .jump-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 38px;
+      padding: 0.3rem 0.7rem;
+      border-radius: 5px;
+      border: 1px solid var(--line-strong);
+      background: rgba(24, 180, 255, 0.08);
+      font: 500 12px/1.2 var(--mono);
+      text-decoration: none;
+    }
+
+    .jump-pill:hover {
+      border-color: var(--cyan);
+      background: rgba(24, 180, 255, 0.2);
+    }
+
+    .pilot-json-box {
+      margin: 0;
+      padding: 0.8rem 0.95rem;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #070b13;
+      font: 400 11.5px/1.45 var(--mono);
+      color: #d7e3f8;
+      overflow-x: auto;
+      max-height: 250px;
+    }
+
+    /* Searchable Verb-Grouped Tool Directory (Brief 1) */
+    .directory-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .search-field {
+      flex: 1 1 280px;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--bg-elev);
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      padding: 0.35rem 0.85rem;
+      min-height: 46px;
+    }
+
+    .search-field input {
+      flex: 1;
+      background: transparent;
+      border: 0;
+      color: var(--ink);
+      font: 400 15px/1.3 var(--sans);
+      min-width: 0;
+    }
+
+    .search-field input:focus {
+      outline: none;
+    }
+
+    .search-field:focus-within {
+      outline: 3px solid var(--amber);
+      outline-offset: 2px;
+    }
+
+    .tool-count {
+      font: 500 12px/1.2 var(--mono);
+      color: var(--amber);
+      white-space: nowrap;
+    }
+
+    .verb-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    .filter-pill {
+      min-height: 42px;
+      padding: 0.4rem 0.85rem;
+      border-radius: 6px;
+      border: 1px solid var(--line-strong);
+      background: var(--bg-elev);
+      font: 500 12.5px/1.2 var(--mono);
+      cursor: pointer;
+    }
+
+    .filter-pill[aria-pressed="true"] {
+      background: var(--amber);
+      color: #121316;
+      border-color: var(--amber);
+      font-weight: 600;
+    }
+
+    /* 14-Poem Context Selector */
+    .poem-bar {
+      margin: 0 0 1.6rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg-elev);
+    }
+
+    .poem-bar-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
+      font: 500 12px/1.4 var(--mono);
+      color: var(--muted);
+    }
+
+    .poem-bar-top strong {
+      color: var(--amber);
+    }
+
+    .poem-strip {
+      display: grid;
+      grid-template-columns: repeat(14, minmax(0, 1fr));
+      gap: 0.35rem;
+    }
+
+    .poem-pill {
+      min-height: 38px;
+      padding: 0.25rem;
+      border-radius: 5px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.04);
+      font: 600 11.5px/1 var(--mono);
+      cursor: pointer;
+    }
+
+    .poem-pill[aria-pressed="true"] {
+      background: var(--amber);
+      color: #121316;
+      border-color: var(--amber);
+    }
+
+    .verb-group {
+      margin-top: 1.8rem;
+    }
+
+    .verb-group-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      padding-bottom: 0.55rem;
+      margin-bottom: 0.95rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .verb-group-head h3 {
+      margin: 0;
+      font: 400 1.45rem/1.2 var(--serif);
+      color: #fff6e2;
+    }
+
+    .verb-group-head span {
+      font: 500 12px/1.2 var(--mono);
+      color: var(--muted);
+    }
+
+    .dir-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 350px), 1fr));
+      gap: 1rem;
+    }
+
+    .dir-card {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      overflow: hidden;
+      background: var(--bg-card);
+      transition: border-color 140ms ease, transform 140ms ease;
+    }
+
+    .dir-card:hover {
+      border-color: var(--amber);
+      transform: translateY(-2px);
+    }
+
+    .dir-card-link {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      text-decoration: none;
+    }
+
+    .dir-thumb {
+      position: relative;
+      margin: 0;
+      aspect-ratio: 16 / 9;
+      background: #070a12;
+      border-bottom: 1px solid var(--line);
+      overflow: hidden;
+    }
+
+    .dir-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .dir-tool-tag {
+      position: absolute;
+      left: 0.65rem;
+      bottom: 0.65rem;
+      padding: 0.22rem 0.55rem;
+      border-radius: 4px;
+      background: rgba(9, 13, 22, 0.9);
+      border: 1px solid var(--line-strong);
+      font: 500 11px/1.2 var(--mono);
+      color: var(--amber);
+    }
+
+    .dir-body {
+      padding: 0.95rem 1.05rem 1.05rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      flex: 1;
+    }
+
+    .dir-verb {
+      margin: 0;
+      font: 600 1.12rem/1.28 var(--sans);
+      color: #fff7e6;
+    }
+
+    .dir-desc {
+      margin: 0;
+      font-size: 0.93rem;
+      line-height: 1.5;
+      color: var(--muted);
+      flex: 1;
+    }
+
+    .dir-state-carry {
+      margin-top: 0.4rem;
+      padding-top: 0.55rem;
+      border-top: 1px dashed var(--line);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .dir-state-carry code {
+      display: block;
+      margin-top: 0.2rem;
+      font-family: var(--mono);
+      color: #cfe4ff;
+      word-break: break-word;
+    }
+
+    /* Sound & Shared Clock Workbench (Brief 8) */
+    .sound-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 1.25rem;
+      padding: 1.15rem;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      background: var(--bg-elev);
+    }
+
+    .clock-row,
+    .bus-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 64px;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.35rem 0;
+      font: 500 12.5px/1.3 var(--mono);
+    }
+
+    .clock-row input[type="range"],
+    .bus-row input[type="range"] {
+      width: 100%;
+      accent-color: var(--amber);
+    }
+
+    .acoustic-status-box {
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.8rem;
+      border-left: 3px solid var(--cyan);
+      background: rgba(24, 180, 255, 0.08);
+      font: 500 12px/1.45 var(--mono);
+      color: #dff2ff;
+    }
+
+    .ledger-details {
+      margin-top: 1rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg-card);
+      padding: 0.75rem 1rem;
+    }
+
+    .ledger-details summary {
+      cursor: pointer;
+      font: 600 13px/1.4 var(--mono);
+      color: var(--amber);
+      padding: 0.25rem 0;
+    }
+
+    .ledger-table-wrap {
+      overflow-x: auto;
+      margin-top: 0.75rem;
+    }
+
+    .ledger-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+
+    .ledger-table th,
+    .ledger-table td {
+      text-align: left;
+      padding: 0.55rem 0.6rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    .ledger-table th {
+      font: 600 11px/1.2 var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    /* Nine Interactive Design Briefs (Briefs 1-9) */
+    .prov-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1.4rem;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--bg-elev);
+    }
+
+    .prov-filter-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    .brief-card {
+      display: grid;
+      grid-template-columns: 295px minmax(0, 1fr);
+      gap: 2.25rem;
+      padding: 2.1rem 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .brief-num {
+      font: 500 12px/1.4 var(--mono);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--amber);
+    }
+
+    .brief-side h3 {
+      margin: 0.25rem 0 0.65rem;
+      font: 400 1.85rem/1.14 var(--serif);
+      letter-spacing: -0.02em;
+    }
+
+    .brief-lead {
+      margin: 0 0 1rem;
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .brief-side-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .brief-open-btn,
+    .copy-brief-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      font: 500 12.5px/1.2 var(--mono);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .brief-open-btn {
+      background: rgba(242, 165, 65, 0.15);
+      border: 1px solid var(--amber);
+      color: #fff6df;
+    }
+
+    .brief-open-btn:hover {
+      background: var(--amber);
+      color: #121316;
+    }
+
+    .copy-brief-btn {
+      background: transparent;
+      border: 1px solid var(--line-strong);
+      color: var(--ink);
+    }
+
+    .copy-brief-btn:hover {
+      background: var(--ink);
+      color: #090d16;
+    }
+
+    .copy-feedback {
+      margin: 0.45rem 0 0;
+      font: 500 12px/1.3 var(--mono);
+      color: var(--amber);
+    }
+
+    .copy-feedback:empty {
+      display: none;
+    }
+
+    .brief-summary {
+      margin: 0 0 0.85rem;
+      max-width: 72ch;
+    }
+
+    .brief-acceptance {
+      padding: 0.75rem 0.95rem;
+      margin-bottom: 0.95rem;
+      border-left: 3px solid var(--amber);
+      background: rgba(242, 165, 65, 0.07);
+      font-size: 0.94rem;
+      color: #e9e4d8;
+    }
+
+    .brief-live-box {
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.95rem;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--bg-card);
+    }
+
+    .brief-live-title {
+      font: 600 11.5px/1.3 var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 0.55rem;
+    }
+
+    .brief-live-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .inline-field {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      min-height: 40px;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #0a101d;
+      font: 500 12px/1.2 var(--mono);
+    }
+
+    .inline-field select {
+      background: transparent;
+      border: 0;
+      font: 500 12px/1.2 var(--mono);
+      color: var(--amber);
+    }
+
+    .act-btn {
+      min-height: 40px;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255, 255, 255, 0.04);
+      font: 500 12px/1.2 var(--mono);
+      cursor: pointer;
+    }
+
+    .act-btn:hover {
+      border-color: var(--amber);
+    }
+
+    .act-btn.is-on {
+      background: rgba(242, 165, 65, 0.22);
+      border-color: var(--amber);
+      color: #fff8e6;
+    }
+
+    .act-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 40px;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--cyan);
+      background: rgba(24, 180, 255, 0.12);
+      font: 600 12px/1.2 var(--mono);
+      text-decoration: none;
+      color: #e6f7ff;
+    }
+
+    .act-link:hover {
+      background: var(--cyan);
+      color: #071019;
+    }
+
+    .brief-rule-readout {
+      margin: 0.6rem 0 0;
+      font: 400 12.5px/1.45 var(--mono);
+      color: #d6e2f5;
+    }
+
+    .brief-prov-hdr {
+      font: 600 11px/1.3 var(--mono);
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.45rem;
+    }
+
+    .prov-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.4rem;
+    }
+
+    .prov-item {
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 0.65rem;
+      align-items: baseline;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .prov-badge {
+      display: inline-block;
+      text-align: center;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font: 600 10.5px/1.2 var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #0b0f17;
+    }
+
+    .prov-recorded .prov-badge { background: var(--rec); }
+    .prov-checked .prov-badge { background: var(--chk); }
+    .prov-inferred .prov-badge { background: var(--inf); }
+    .prov-invented .prov-badge { background: var(--inv); }
+
+    .brief-sources {
+      margin-top: 0.9rem;
+      padding-top: 0.7rem;
+      border-top: 1px dashed var(--line);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem 1rem;
+      font: 500 12.5px/1.4 var(--mono);
+      color: var(--muted);
+    }
+
+    .brief-sources a {
+      color: var(--ink);
+    }
+
+    .footer {
+      padding: 1.75rem 0 2.5rem;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font: 400 13px/1.4 var(--mono);
+      color: var(--muted);
+    }
+
+    .pilot-console > *,
+    .sound-grid > *,
+    .brief-card > *,
+    .dir-card {
+      min-width: 0;
+    }
+
+    /* Responsive Tablet & Mobile (390x844 verified) */
+    @media (max-width: 960px) {
+      .section-head,
+      .pilot-console,
+      .sound-grid,
+      .brief-card {
+        grid-template-columns: 1fr;
+      }
+
+      .poem-strip {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .wrap {
+        width: calc(100% - 24px);
+      }
+
+      .masthead {
+        padding: 0.65rem 0;
+      }
+
+      .mast-nav {
+        gap: 0.25rem 0.65rem;
+        font-size: 11.5px;
+      }
+
+      .hero-viewport {
+        height: auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .hero-fallback-poster,
+      #hero-canvas {
+        position: relative;
+        inset: auto;
+        width: 100%;
+        height: 245px;
+      }
+
+      .hero-viewport .hero-fallback-poster {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 245px;
+      }
+
+      .hero-sky-invitation {
+        max-width: none;
+        padding: 0.95rem 1rem 1.05rem;
+        background: #0b111e;
+        border-top: 1px solid var(--line);
+      }
+
+      .hero-sky-invitation h1 {
+        font-size: 2.05rem;
+      }
+
+      .hero-invite {
+        margin: 0.45rem 0 0.85rem;
+        font-size: 0.93rem;
+      }
+
+      .hero-routes {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.42rem;
+      }
+
+      .route-btn {
+        width: 100%;
+        min-height: 42px;
+      }
+
+      .stage-controls {
+        width: 100%;
+      }
+
+      .ctrl-chip {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .ctrl-chip select {
+        max-width: 185px;
+      }
+
+      .clock-row,
+      .bus-row {
+        grid-template-columns: 96px minmax(0, 1fr) 46px;
+        gap: 0.45rem;
+        font-size: 11px;
+      }
+
+      .search-field {
+        flex: 1 1 100%;
+        max-width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
+      }
+
+      .search-field input {
+        flex: 1 1 140px;
+        width: 100%;
+        min-width: 0;
+      }
+
+      .ledger-table,
+      .ledger-table tbody,
+      .ledger-table tr,
+      .ledger-table td {
+        display: block;
+        width: 100%;
+      }
+
+      .ledger-table thead {
+        display: none;
+      }
+
+      .ledger-table tr {
+        padding: 0.55rem 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .ledger-table td {
+        padding: 0.15rem 0;
+        border-bottom: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .prov-item {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+      }
+
+      .prov-badge {
+        justify-self: start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#briefs">Skip to the nine design briefs</a>
+
+  <div class="wrap">
+    <header class="masthead" id="top">
+      <a class="brand" href="./">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>WYGWYL · Design Room</span>
+      </a>
+      <nav class="mast-nav" aria-label="Page sections and core world routes">
+        <a href="../weave/">Watch the work</a>
+        <a href="../">Enter the world</a>
+        <a href="#directory">Tool directory</a>
+        <a href="#sound-stage">Sound &amp; clock</a>
+        <a href="#briefs">Nine briefs</a>
+      </nav>
+    </header>
+
+    <main>
+      <!-- 1. Hero Multiplane WEAVE Street Viewport (Zero Permanent Dock Covering Scene) -->
+      <section class="hero-section" aria-labelledby="hero-title">
+        <figure class="hero-stage-wrap">
+          <div class="hero-viewport" id="hero-viewport">
+            <img
+              class="hero-fallback-poster"
+              src="./cortex/poster.webp"
+              alt="Registered Cortex Commons multiplane WEAVE street scene: residents share wet stone pavement beneath a suspended relay dish and open sky."
+              width="1456"
+              height="816"
+            >
+            <canvas
+              id="hero-canvas"
+              aria-label="Interactive multiplane WEAVE street scene with 23 GPU shaders, suspended relay dish silhouette, operable Severn doorway, and wet street reflection"
+            ></canvas>
+
+            <div class="hero-sky-invitation">
+              <p class="hero-kicker" id="hero-kicker">WYGWYL · THE DESIGN ROOM · POEM 01 · 18:30</p>
+              <h1 id="hero-title">A city you<br>can enter.</h1>
+              <p class="hero-invite">
+                Give every room a way in, every light a source, every person something to do, and every return a trace of what happened.
+              </p>
+              <nav class="hero-routes" aria-label="Three primary routes">
+                <a class="route-btn route-primary" id="route-watch" href="../weave/">Watch the work</a>
+                <a class="route-btn route-secondary" id="route-enter" href="../">Enter the world</a>
+                <a class="route-btn route-quiet" id="route-briefs" href="#briefs">Inspect the nine briefs</a>
+              </nav>
+            </div>
+          </div>
+
+          <figcaption class="hero-caption-bar">
+            <div class="caption-text">
+              <strong>Cortex Commons &amp; Severn Pilot</strong> — Six registered WEAVE depth planes, relay dish silhouette, and wet stone ground contact.
+            </div>
+            <div class="stage-controls" role="group" aria-label="Scene look, depth layer reveal, camera recovery, and sound">
+              <label class="ctrl-chip">
+                <span>GPU Look</span>
+                <select id="hero-shader-select" aria-label="Select GPU shader look (23 shaders)"></select>
+              </label>
+              <label class="ctrl-chip">
+                <span>Layers</span>
+                <input id="hero-explode-range" type="range" min="0" max="100" value="0" aria-label="Reveal six depth layers">
+              </label>
+              <button type="button" class="ctrl-btn" id="hero-recover-cam">Recover Camera</button>
+              <button type="button" class="ctrl-btn" id="audio-start-btn" aria-pressed="false">Start Soundscape</button>
+              <button type="button" class="ctrl-btn" id="audio-mute-btn" aria-pressed="false">Mute</button>
+            </div>
+          </figcaption>
+        </figure>
+      </section>
+
+      <!-- 2. Shared World Principle & Live SevernPilotState Console (Brief 9) -->
+      <section class="section-block" id="pilot-console" aria-labelledby="principle-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">One shared pilot across ten workbenches</p>
+            <h2 id="principle-title">A city is a set of relationships that survives the next cut.</h2>
+          </div>
+          <p>
+            The street and the room agree through <code>make_photo_pilot_v1</code>. Close the Severn threshold door or hand the parcel to Bekele here, then step into Heroes, Foundry, WEAVE, Island, or Maps: ownership, acoustics, hour, tide phase, poem, and GPU look persist.
+          </p>
+        </div>
+
+        <div class="pilot-console">
+          <div>
+            <div class="pilot-actions-grid" role="group" aria-label="Severn Pilot live controls">
+              <button type="button" class="ctrl-btn" id="master-door-btn" aria-pressed="true">Severn Door: Open</button>
+              <button type="button" class="ctrl-btn" id="master-parcel-btn">Parcel Holder: player</button>
+              <label class="ctrl-chip">
+                <span>Tide</span>
+                <select id="master-tide-select" aria-label="Select harbor tide phase">
+                  <option value="low-sill">Low Sill (+0.8m)</option>
+                  <option value="first-gate">First Gate (+2.1m)</option>
+                  <option value="second-gate" selected>Second Gate (+3.4m)</option>
+                  <option value="datum-crest">Flood Datum (+4.0m)</option>
+                </select>
+              </label>
+              <label class="ctrl-chip">
+                <span>Shader</span>
+                <select id="master-shader-select" aria-label="Master GPU shader look"></select>
+              </label>
+            </div>
+
+            <div class="pilot-jump-row" aria-label="Jump to connected tools with shared pilot state">
+              <a class="jump-pill" data-jump-base="../" href="../">Nolli Block (../)</a>
+              <a class="jump-pill" data-jump-base="../weave/" href="../weave/">WEAVE (../weave/)</a>
+              <a class="jump-pill" data-jump-base="../foundry/" href="../foundry/">Foundry (../foundry/)</a>
+              <a class="jump-pill" data-jump-base="../heroes/" href="../heroes/">Heroes (../heroes/)</a>
+              <a class="jump-pill" data-jump-base="../island/" href="../island/">Island (../island/)</a>
+              <a class="jump-pill" data-jump-base="../maps/" href="../maps/">Maps (../maps/)</a>
+              <a class="jump-pill" data-jump-base="../pointcloud/" href="../pointcloud/">Pointcloud (../pointcloud/)</a>
+              <a class="jump-pill" data-jump-base="../worldtext/" href="../worldtext/">Worldtext (../worldtext/)</a>
+              <a class="jump-pill" data-jump-base="../atlantis/" href="../atlantis/">Atlantis (../atlantis/)</a>
+            </div>
+          </div>
+
+          <div>
+            <div class="brief-prov-hdr">Live localStorage + URL Hash Record (make_photo_pilot_v1)</div>
+            <pre class="pilot-json-box" id="pilot-json-preview" aria-live="polite"></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Searchable Verb-Grouped Tool Directory (Brief 1) -->
+      <section class="section-block" id="directory" aria-labelledby="directory-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Complete route inventory</p>
+            <h2 id="directory-title">Choose what to do in the city.</h2>
+          </div>
+          <p>
+            Every workbench is grouped by concrete action rather than internal jargon. Select any of the fourteen poems below to carry its hour and stanza context directly into the destination.
+          </p>
+        </div>
+
+        <div class="poem-bar">
+          <div class="poem-bar-top">
+            <span>Selected poem carried into destinations: <strong id="active-poem-label">Poem 01 · Out of Life</strong></span>
+            <span>Synced to <code>pilot.poem</code> &amp; <code>pilot.worldTime</code></span>
+          </div>
+          <div class="poem-strip" id="poem-strip" role="group" aria-label="Select Poem 01 through Poem 14"></div>
+        </div>
+
+        <div class="directory-toolbar">
+          <div class="search-field">
+            <label for="tool-search" class="eyebrow" style="margin:0">Search</label>
+            <input
+              id="tool-search"
+              type="search"
+              placeholder="Filter by verb, Severn, interior, depth, map, sound, ruin..."
+              aria-label="Search working tools by verb, place, or material"
+            >
+            <output id="tool-count" class="tool-count" for="tool-search" aria-live="polite">10 of 10 destinations</output>
+          </div>
+
+          <div class="verb-filters" role="group" aria-label="Filter directory by visitor verb">
+            <button type="button" class="filter-pill" data-verb-filter="all" aria-pressed="true">All actions</button>
+            <button type="button" class="filter-pill" data-verb-filter="Walk & inhabit" aria-pressed="false">Walk &amp; inhabit</button>
+            <button type="button" class="filter-pill" data-verb-filter="Evolve & inspect buildings" aria-pressed="false">Evolve &amp; inspect buildings</button>
+            <button type="button" class="filter-pill" data-verb-filter="Compose & reconstruct depth" aria-pressed="false">Compose &amp; reconstruct depth</button>
+            <button type="button" class="filter-pill" data-verb-filter="Read & score through time" aria-pressed="false">Read &amp; score through time</button>
+          </div>
+        </div>
+
+        <div id="directory-groups"></div>
+      </section>
+
+      <!-- 4. Five-Bus Door-Coupled Sound & Clock Workbench (Brief 8) -->
+      <section class="section-block" id="sound-stage" aria-labelledby="sound-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Brief 08 · Freesound ledger &amp; acoustic clock</p>
+            <h2 id="sound-title">Hear a place changing across a threshold.</h2>
+          </div>
+          <p>
+            Audio begins only from an explicit user action. Voice delay sends default strictly to zero, speech ducks the distant city bed by -8.5 dB, and closing the Severn door couples navigation blockage with a 640 Hz stone low-pass and 1.55s vestibule reverb.
+          </p>
+        </div>
+
+        <div class="sound-grid">
+          <div>
+            <div class="brief-prov-hdr">Shared Clock, Timeline Scrub &amp; Listening Mode</div>
+            <div class="pilot-actions-grid">
+              <button type="button" class="ctrl-btn" data-pilot-act="audio-door-test">Start &amp; Toggle Severn Door</button>
+              <button type="button" class="ctrl-btn" data-pilot-act="speak-line">Speak Poem Line (Ducking)</button>
+              <button type="button" class="ctrl-btn" data-pilot-act="pour-water">Pour 1L Water</button>
+              <button type="button" class="ctrl-btn" id="audio-quiet-btn" aria-pressed="false">Quiet Mode</button>
+            </div>
+
+            <div class="clock-row">
+              <label for="world-time-slider">Local Hour</label>
+              <input id="world-time-slider" type="range" min="0" max="23.75" step="0.25" value="18.5">
+              <span id="world-time-readout">18:30</span>
+            </div>
+
+            <div class="clock-row">
+              <label for="perf-scrub-slider">Beat Scrub</label>
+              <input id="perf-scrub-slider" type="range" min="0" max="16" step="0.5" value="0">
+              <span id="perf-scrub-readout">0.0s</span>
+            </div>
+
+            <div class="acoustic-status-box">
+              <div id="door-acoustic-readout">Severn Door OPEN · Street LPF 13,500 Hz · Stone Reverb Send 0.06</div>
+              <div id="ducking-status" style="margin-top:0.25rem;color:var(--muted)">Voice idle · Distant bed at nominal gain · Delay send 0.00</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="brief-prov-hdr">Five Controllable Buses (Voice Delay Send = 0.00 Default)</div>
+            <div class="bus-row">
+              <label for="bus-voice">Voice (Dry)</label>
+              <input id="bus-voice" data-bus-slider="voice" type="range" min="0" max="1" step="0.02" value="0.90">
+              <span id="bus-val-voice">90%</span>
+            </div>
+            <div class="bus-row">
+              <label for="bus-close">Close Action</label>
+              <input id="bus-close" data-bus-slider="closeAction" type="range" min="0" max="1" step="0.02" value="0.72">
+              <span id="bus-val-closeAction">72%</span>
+            </div>
+            <div class="bus-row">
+              <label for="bus-local">Local Ambience</label>
+              <input id="bus-local" data-bus-slider="localAmbience" type="range" min="0" max="1" step="0.02" value="0.58">
+              <span id="bus-val-localAmbience">58%</span>
+            </div>
+            <div class="bus-row">
+              <label for="bus-distant">Distant City</label>
+              <input id="bus-distant" data-bus-slider="distantCity" type="range" min="0" max="0.75" step="0.02" value="0.36">
+              <span id="bus-val-distantCity">36%</span>
+            </div>
+            <div class="bus-row">
+              <label for="bus-music">Music &amp; Replies</label>
+              <input id="bus-music" data-bus-slider="music" type="range" min="0" max="0.85" step="0.02" value="0.42">
+              <span id="bus-val-music">42%</span>
+            </div>
+          </div>
+        </div>
+
+        <details class="ledger-details" open>
+          <summary>Six Replaceable Freesound CC0 / CC BY 4.0 Source Slots (./freesound-ledger.json)</summary>
+          <div class="ledger-table-wrap">
+            <table class="ledger-table">
+              <thead>
+                <tr>
+                  <th>Slot ID</th>
+                  <th>Asset &amp; Creator</th>
+                  <th>Bus</th>
+                  <th>License</th>
+                  <th>Trim / Loop</th>
+                  <th>Spatial &amp; Clock Rule</th>
+                </tr>
+              </thead>
+              <tbody id="freesound-ledger-tbody"></tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+
+      <!-- 5. All Nine Interactive Design Briefs with Provenance Ledger -->
+      <section class="section-block" id="briefs" aria-labelledby="briefs-title">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Nine buildable constraints</p>
+            <h2 id="briefs-title">The nine design briefs &amp; live state cards.</h2>
+          </div>
+          <p>
+            Each brief keeps recorded evidence, measured checks, inferred structure, and invented additions explicitly separated, while wiring its acceptance controls directly into the shared Severn pilot state.
+          </p>
+        </div>
+
+        <div class="prov-filter-bar" role="group" aria-label="Filter evidence across all nine briefs by provenance class">
+          <span class="brief-prov-hdr" style="margin:0">Filter Provenance Ledger (pilot.provenanceFilter):</span>
+          <div class="prov-filter-btns">
+            <button type="button" class="filter-pill" data-prov-filter="all" aria-pressed="true">All classes (36)</button>
+            <button type="button" class="filter-pill" data-prov-filter="recorded" aria-pressed="false">Recorded</button>
+            <button type="button" class="filter-pill" data-prov-filter="checked" aria-pressed="false">Checked</button>
+            <button type="button" class="filter-pill" data-prov-filter="inferred" aria-pressed="false">Inferred</button>
+            <button type="button" class="filter-pill" data-prov-filter="invented" aria-pressed="false">Invented</button>
+          </div>
+        </div>
+
+        <div id="briefs-list"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>WYGWYL · The Design Room · Severn Pilot v1</span>
+      <div>
+        <a href="#top">Back to entrance</a> ·
+        <a href="./pilot-state.js">pilot-state.js</a> ·
+        <a href="./freesound-ledger.json">freesound-ledger.json</a> ·
+        <a href="../">Enter 3D City</a>
+      </div>
+    </footer>
+  </div>
+
+  <noscript>
+    <p style="padding:1rem 1.5rem;color:#f4eedd;background:#121b2c">
+      The multiplane poster image, primary routes to WEAVE (../weave/) and City (../), and source ledgers remain accessible without JavaScript.
+    </p>
+  </noscript>
+
+  <script type="module" src="./entrance.js"></script>
+</body>
+</html>
