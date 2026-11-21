@@ -2,9 +2,15 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CARTRIDGES, TIME_PRESETS, MOVIE_SHOTS } from './cartridges.js';
 import { CityAudioEngine } from './audio.js';
-import { CITY_LOOKS, CityShaderPipeline } from './shaders.js';
+import { CITY_LOOKS, ALL_CITY_LOOKS, CityShaderPipeline } from './shaders.js';
 
 const gltfLoader = new GLTFLoader();
+const wygwylAssets = {
+  island: null,
+  world: null,
+  scenes: null,
+  palettes: null,
+};
 
 const STORAGE_KEY = 'make_photo_city_nolli_v1';
 
@@ -610,7 +616,64 @@ neighborSpecs.forEach(([x, y, z, w, h, d], bIdx) => {
   }
 });
 
-// 2D Theatrical Silhouette Cutout Flats on the far perimeter (depth framing)
+// --- REAL WYGWYL ISLAND EXTRUDED BUILDINGS & SURVEYED ROADS (wygwyl-data/island_slice.json) ---
+const wygwylCityGroup = new THREE.Group();
+scene.add(wygwylCityGroup);
+
+async function loadWygwylAssets() {
+  try {
+    const [islandRes, worldRes, scenesRes, palRes] = await Promise.all([
+      fetch('./wygwyl-data/island_slice.json'),
+      fetch('./wygwyl-data/world.json'),
+      fetch('./wygwyl-data/scenes.json'),
+      fetch('./wygwyl-data/palettes.json'),
+    ]);
+    if (islandRes.ok) wygwylAssets.island = await islandRes.json();
+    if (worldRes.ok) wygwylAssets.world = await worldRes.json();
+    if (scenesRes.ok) wygwylAssets.scenes = await scenesRes.json();
+    if (palRes.ok) wygwylAssets.palettes = await palRes.json();
+  } catch (err) {
+    console.warn('wygwyl-data load warning:', err);
+  }
+
+  // Build real extruded polygon buildings from island/buildings.json
+  if (wygwylAssets.island && wygwylAssets.island.buildings) {
+    const bMat = neighborMat;
+    const roofMat = mats.trim;
+    wygwylAssets.island.buildings.forEach((b) => {
+      if (!b.pts || b.pts.length < 3) return;
+      // Keep the Hero Nolli Building & front doorway/plaza 100% clear of overlapping footprint corners
+      if (b.pts.some(([px, pz]) => px > -20 && px < 16 && pz > -18 && pz < 22)) return;
+      const shape = new THREE.Shape();
+      shape.moveTo(b.pts[0][0], -b.pts[0][1]);
+      for (let i = 1; i < b.pts.length; i++) {
+        shape.lineTo(b.pts[i][0], -b.pts[i][1]);
+      }
+      shape.closePath();
+      const geo = new THREE.ExtrudeGeometry(shape, { depth: b.h, bevelEnabled: false });
+      geo.rotateX(-Math.PI / 2);
+      const mesh = new THREE.Mesh(geo, [roofMat, bMat]);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      wygwylCityGroup.add(mesh);
+    });
+  }
+
+  // Render real surveyed road polylines from island/roads.json as subtle wet street curb lines
+  if (wygwylAssets.island && wygwylAssets.island.roads) {
+    const roadLineMat = new THREE.LineBasicMaterial({ color: '#586875', transparent: true, opacity: 0.45 });
+    wygwylAssets.island.roads.forEach((pts) => {
+      if (pts.length < 2) return;
+      const vecs = pts.map(([rx, rz]) => new THREE.Vector3(rx, 0.05, rz));
+      const geo = new THREE.BufferGeometry().setFromPoints(vecs);
+      wygwylCityGroup.add(new THREE.Line(geo, roadLineMat));
+    });
+  }
+
+  if (nolliOpen) drawNolliMap();
+  if (worldtextOpen) renderWorldtext();
+}
+loadWygwylAssets();
 const cutoutMat = new THREE.MeshBasicMaterial({ color: '#1b2228', side: THREE.DoubleSide, transparent: true, opacity: 0.82 });
 for (let i = 0; i < 8; i++) {
   const ang = (i / 8) * Math.PI * 2;
@@ -1110,13 +1173,14 @@ function capturePlate() {
   setTimeout(() => { flash.style.opacity = '0'; }, 140);
 
   // Render clean GPU-shaded frame right before capture
-  const lookObj = CITY_LOOKS.find((l) => l.id === camState.stock) || CITY_LOOKS[0];
+  const lookObj = ALL_CITY_LOOKS.find((l) => l.id === camState.stock) || ALL_CITY_LOOKS[0];
   shaderPipeline.render(scene, camera, {
     time: performance.now() * 0.001,
     focusM: camState.focusM,
     dofAmount: camState.active ? 0.65 : 0.0,
     ev: camState.exposureEv,
     mode: lookObj.mode,
+    paletteColors: lookObj.colors,
   });
 
   // Downscale to 480x300 JPEG dataUrl preserving the exact GLSL GPU Zone shader output
@@ -1466,8 +1530,27 @@ function drawNolliMap() {
     }
   }
 
-  // Solid Poche (dark charcoal) for surrounding private building footprints
+  // Solid Poche (dark charcoal) for REAL wygwyl island/buildings.json footprints + local blocks
   ctx.fillStyle = mapMode === 'mood' ? '#1f262e' : '#1b1d20';
+  if (wygwylAssets.island && wygwylAssets.island.buildings) {
+    wygwylAssets.island.buildings.forEach((b) => {
+      if (!b.pts || b.pts.length < 3) return;
+      ctx.beginPath();
+      ctx.moveTo(toX(b.pts[0][0]), toY(b.pts[0][1]));
+      for (let i = 1; i < b.pts.length; i++) ctx.lineTo(toX(b.pts[i][0]), toY(b.pts[i][1]));
+      ctx.closePath();
+      ctx.fill();
+    });
+  }
+  if (wygwylAssets.island && wygwylAssets.island.roads) {
+    ctx.strokeStyle = mapMode === 'mood' ? 'rgba(130, 170, 200, 0.25)' : 'rgba(60, 58, 52, 0.22)';
+    ctx.lineWidth = 1;
+    wygwylAssets.island.roads.forEach((pts) => {
+      ctx.beginPath();
+      pts.forEach(([rx, rz], idx) => (idx === 0 ? ctx.moveTo(toX(rx), toY(rz)) : ctx.lineTo(toX(rx), toY(rz))));
+      ctx.stroke();
+    });
+  }
   neighborSpecs.forEach(([x, , z, w, , d]) => {
     ctx.fillRect(toX(x - w / 2), toY(z - d / 2), w * scale, d * scale);
   });
@@ -1581,13 +1664,21 @@ document.querySelectorAll('#map-mode-pills .pill').forEach((b) => {
 function renderWorldtext() {
   const cart = CARTRIDGES[ledger.cartridge];
   const wt = cart.worldtext;
-  document.getElementById('wt-title').textContent = `Worldtext Bible · ${cart.name}`;
+  document.getElementById('wt-title').textContent = `Worldtext Bible · ${cart.name} + wygwyl Archive`;
   const body = document.getElementById('wt-body');
 
   if (wtTab === 'gazetteer') {
+    const gw = wygwylAssets.world;
+    const cal = gw && gw.calendar && gw.calendar[0] ? gw.calendar[0] : null;
     body.innerHTML = `
+      ${gw ? `
+      <div style="margin-bottom:14px;padding:10px 12px;background:rgba(24,180,255,0.08);border:1px solid rgba(24,180,255,0.28);border-radius:6px;">
+        <div style="color:var(--cyan);font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;">wygwyl / gazetteer / world.json</div>
+        <div style="margin-top:4px;">${gw.overview}</div>
+        ${cal ? `<div style="margin-top:8px;color:var(--brass);font-size:11.5px;"><strong>${cal.name}:</strong> ${cal.text}</div>` : ''}
+      </div>` : ''}
       <div style="margin-bottom:12px;">
-        <div style="color:var(--brass);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;">Founding &amp; Elevation</div>
+        <div style="color:var(--brass);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;">Active Block · Founding &amp; Elevation</div>
         <div style="margin-top:3px;">${wt.gazetteer.founded}</div>
       </div>
       <div style="margin-bottom:12px;">
@@ -1600,15 +1691,45 @@ function renderWorldtext() {
       </div>
     `;
   } else if (wtTab === 'language') {
-    body.innerHTML = wt.lexicon.map((entry) => `
+    body.innerHTML = '';
+    // District-Tone Shader Swatches from wygwyl/world/language/palettes.json
+    const palWrap = document.createElement('div');
+    palWrap.style.cssText = 'margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--rule);';
+    palWrap.innerHTML = `<div style="color:var(--cyan);font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">wygwyl / language / palettes.json — Click Any District Tone to Apply Live GPU Shader</div>`;
+    const swatchGrid = document.createElement('div');
+    swatchGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;';
+    ALL_CITY_LOOKS.filter((l) => l.mode === 14).forEach((dl) => {
+      const btn = document.createElement('button');
+      btn.style.cssText = 'text-align:left;background:#1a1e22;border:1px solid var(--rule);border-radius:5px;padding:7px 8px;color:var(--paper);cursor:pointer;';
+      const bars = dl.colors.map((c) => `<span style="flex:1;height:10px;background:${c};display:inline-block;"></span>`).join('');
+      btn.innerHTML = `<div style="font-size:11px;font-weight:600;margin-bottom:5px;">${dl.name}</div><div style="display:flex;border-radius:2px;overflow:hidden;">${bars}</div>`;
+      btn.addEventListener('click', () => {
+        setLook(dl.id, true);
+        toggleWorldtext(false);
+      });
+      swatchGrid.appendChild(btn);
+    });
+    palWrap.appendChild(swatchGrid);
+    body.appendChild(palWrap);
+
+    const lexDiv = document.createElement('div');
+    lexDiv.innerHTML = wt.lexicon.map((entry) => `
       <div style="padding:8px 0;border-bottom:1px solid var(--rule);">
         <strong style="color:var(--cyan);">${entry.term}</strong>
         <span style="color:var(--brass);font-size:11px;margin-left:8px;">/${entry.pron}/</span>
         <div style="color:var(--muted);margin-top:2px;">${entry.meaning}</div>
       </div>
     `).join('');
+    body.appendChild(lexDiv);
   } else {
     body.innerHTML = '';
+    const sc = wygwylAssets.scenes;
+    if (sc && sc.thesis) {
+      const th = document.createElement('div');
+      th.style.cssText = 'margin-bottom:12px;padding:10px 12px;background:rgba(203,177,130,0.08);border:1px solid rgba(203,177,130,0.26);border-radius:6px;font-size:12px;';
+      th.innerHTML = `<div style="color:var(--brass);font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">wygwyl / districts / scenes.json</div>${sc.thesis}`;
+      body.appendChild(th);
+    }
     wt.districts.forEach((dist) => {
       const row = document.createElement('div');
       row.style.cssText = 'padding:10px 0;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:12px;';
@@ -1779,7 +1900,7 @@ function toggleLightTable(force) {
 }
 
 const shaderSelect = document.getElementById('shader-select');
-CITY_LOOKS.forEach((look) => {
+ALL_CITY_LOOKS.forEach((look) => {
   const opt = document.createElement('option');
   opt.value = look.id;
   opt.textContent = `Shader: ${look.name}`;
@@ -1787,7 +1908,7 @@ CITY_LOOKS.forEach((look) => {
 });
 
 function setLook(lookId, announce = false) {
-  const found = CITY_LOOKS.find((l) => l.id === lookId) || CITY_LOOKS[0];
+  const found = ALL_CITY_LOOKS.find((l) => l.id === lookId) || ALL_CITY_LOOKS[0];
   camState.stock = found.id;
   shaderSelect.value = found.id;
   document.querySelectorAll('#stock-pills .pill').forEach((p) => {
@@ -1799,12 +1920,12 @@ function setLook(lookId, announce = false) {
 
 shaderSelect.addEventListener('change', (e) => setLook(e.target.value, true));
 document.getElementById('btn-prev-shader').addEventListener('click', () => {
-  const idx = CITY_LOOKS.findIndex((l) => l.id === camState.stock);
-  setLook(CITY_LOOKS[(idx - 1 + CITY_LOOKS.length) % CITY_LOOKS.length].id, true);
+  const idx = ALL_CITY_LOOKS.findIndex((l) => l.id === camState.stock);
+  setLook(ALL_CITY_LOOKS[(idx - 1 + ALL_CITY_LOOKS.length) % ALL_CITY_LOOKS.length].id, true);
 });
 document.getElementById('btn-next-shader').addEventListener('click', () => {
-  const idx = CITY_LOOKS.findIndex((l) => l.id === camState.stock);
-  setLook(CITY_LOOKS[(idx + 1) % CITY_LOOKS.length].id, true);
+  const idx = ALL_CITY_LOOKS.findIndex((l) => l.id === camState.stock);
+  setLook(ALL_CITY_LOOKS[(idx + 1) % ALL_CITY_LOOKS.length].id, true);
 });
 
 function updateCameraLensUI() {
@@ -1813,7 +1934,7 @@ function updateCameraLensUI() {
   camera.fov = camState.active ? fov : 52;
   camera.updateProjectionMatrix();
 
-  const lookObj = CITY_LOOKS.find((l) => l.id === camState.stock) || CITY_LOOKS[0];
+  const lookObj = ALL_CITY_LOOKS.find((l) => l.id === camState.stock) || ALL_CITY_LOOKS[0];
   document.getElementById('lbl-focal').textContent = `${camState.focalMm}mm`;
   document.getElementById('lbl-focus').textContent = `${camState.focusM.toFixed(1)}m`;
   document.getElementById('lbl-ev').textContent = `${camState.exposureEv >= 0 ? '+' : ''}${camState.exposureEv.toFixed(1)} EV`;
@@ -2148,13 +2269,14 @@ function animate() {
     projectorWet: ledger.projectorTankL >= 5.0,
   });
 
-  const lookObj = CITY_LOOKS.find((l) => l.id === camState.stock) || CITY_LOOKS[0];
+  const lookObj = ALL_CITY_LOOKS.find((l) => l.id === camState.stock) || ALL_CITY_LOOKS[0];
   shaderPipeline.render(scene, camera, {
     time: elapsed,
     focusM: camState.focusM,
     dofAmount: camState.active ? 0.65 : 0.0,
     ev: camState.exposureEv,
     mode: lookObj.mode,
+    paletteColors: lookObj.colors,
   });
 }
 

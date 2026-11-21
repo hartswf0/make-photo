@@ -18,6 +18,18 @@ export const CITY_LOOKS = [
   { id: 'spray', mode: 7, name: 'Spray Wall', desc: 'Z-VII celluloid mural wall with white edge halo and drips.' },
 ];
 
+export const DISTRICT_PALETTE_LOOKS = [
+  { id: 'dist_nightlife', mode: 14, name: 'District: Nightlife', colors: ['#1f1f25', '#75333e', '#29566e', '#6184ab', '#cf6a83', '#b1cbd8'], desc: 'wygwyl language/palettes.json — Nightlife rose-cobalt nocturnal tone.' },
+  { id: 'dist_industrial', mode: 14, name: 'District: Industrial', colors: ['#231d1b', '#43403c', '#696765', '#ac8e82', '#a7b5b6', '#dbe1dc'], desc: 'wygwyl language/palettes.json — Industrial iron, rust, and limestone haze.' },
+  { id: 'dist_waterfront', mode: 14, name: 'District: Waterfront', colors: ['#221f1f', '#474344', '#6c6a6b', '#959495', '#bcbfbe', '#dbdbdd'], desc: 'wygwyl language/palettes.json — Waterfront silver-fog harbor tones.' },
+  { id: 'dist_downtown', mode: 14, name: 'District: Downtown', colors: ['#1c1d21', '#3b3f4a', '#636c7a', '#8f98a6', '#c2b9a7', '#e6dfd3'], desc: 'wygwyl language/palettes.json — Downtown slate canyon and warm stone.' },
+  { id: 'dist_ruin', mode: 14, name: 'District: Ruin Field', colors: ['#211e1a', '#4a4136', '#756856', '#a3967f', '#c7bea9', '#e8e2d5'], desc: 'wygwyl language/palettes.json — Ruin Field weathered ceramic and salt ochre.' },
+  { id: 'dist_oldtown', mode: 14, name: 'District: Old Town', colors: ['#241b17', '#543b2e', '#82614b', '#b08b6d', '#d1b79b', '#ede1cf'], desc: 'wygwyl language/palettes.json — Old Town warm brick and sodium timber.' },
+  { id: 'dist_rowhouses', mode: 14, name: 'District: Rowhouses', colors: ['#211c1c', '#573634', '#855851', '#ad8378', '#cfb3a7', '#ece0d8'], desc: 'wygwyl language/palettes.json — Rowhouses Baltimere terracotta and stoop brick.' },
+];
+
+export const ALL_CITY_LOOKS = [...CITY_LOOKS, ...DISTRICT_PALETTE_LOOKS];
+
 const VS = `
   varying vec2 vUv;
   void main() {
@@ -37,6 +49,7 @@ const FS = `
   uniform float uDofAmount;
   uniform float uEv;
   uniform int uMode;
+  uniform vec3 uPal[6];
   varying vec2 vUv;
 
   float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -169,6 +182,21 @@ const FS = `
       vec2 sq = (uv - vec2(0.90, 0.14)) * vec2(uRes.x / uRes.y, 1.0);
       float seal = step(max(abs(sq.x), abs(sq.y)), 0.032) * step(0.28, n2(px / 3.0));
       col = mix(mix(iw, vec3(0.72, 0.10, 0.08), seal), silverBase, 0.30);
+    } else if (mode == 14) {
+      // Mode 14: wygwyl language/palettes.json 6-color District Tone LUT + selective cyan
+      float t = clamp(l, 0.0, 1.0) * 5.0;
+      vec3 palCol = t < 1.0 ? mix(uPal[0], uPal[1], t)
+                  : t < 2.0 ? mix(uPal[1], uPal[2], t - 1.0)
+                  : t < 3.0 ? mix(uPal[2], uPal[3], t - 2.0)
+                  : t < 4.0 ? mix(uPal[3], uPal[4], t - 3.0)
+                  : mix(uPal[4], uPal[5], t - 4.0);
+      // Architectural edge definition & subtle paper grain
+      float grain = (h(floor(px) + fract(uT) * 50.0) - 0.5) * 0.04;
+      palCol = mix(palCol + grain, uPal[0] * 0.72, smoothstep(0.05, 0.16, ed) * 0.45);
+      // Preserve live semantic cyan water/signal network
+      float cyanMask = smoothstep(0.09, 0.28, (raw.b + raw.g * 0.55) * 0.65 - raw.r) * smoothstep(0.15, 0.55, raw.b);
+      vec3 electricCyan = mix(raw, vec3(0.14, 0.80, 1.0) * (0.78 + 0.45 * l), 0.50);
+      col = mix(palCol * (0.92 + 0.08 * vg), electricCyan, clamp(cyanMask * 1.15, 0.0, 1.0));
     } else {
       // Mode 13: CYAN JERIKAN (Silver-gelatin stone + selective electric-cyan water/signal preservation)
       float cyanMask = smoothstep(0.09, 0.28, (raw.b + raw.g * 0.55) * 0.65 - raw.r) * smoothstep(0.15, 0.55, raw.b);
@@ -239,6 +267,16 @@ export class CityShaderPipeline {
         uDofAmount: { value: 0.0 },
         uEv: { value: 0.0 },
         uMode: { value: -1 },
+        uPal: {
+          value: [
+            new THREE.Color('#1f1f25'),
+            new THREE.Color('#75333e'),
+            new THREE.Color('#29566e'),
+            new THREE.Color('#6184ab'),
+            new THREE.Color('#cf6a83'),
+            new THREE.Color('#b1cbd8'),
+          ],
+        },
       },
       vertexShader: VS,
       fragmentShader: FS,
@@ -266,6 +304,11 @@ export class CityShaderPipeline {
     u.uDofAmount.value = opts.dofAmount;
     u.uEv.value = opts.ev;
     u.uMode.value = opts.mode;
+    if (opts.paletteColors && opts.paletteColors.length >= 6) {
+      for (let i = 0; i < 6; i++) {
+        u.uPal.value[i].set(opts.paletteColors[i]);
+      }
+    }
 
     this.renderer.setRenderTarget(this.rt);
     this.renderer.render(scene, camera);
