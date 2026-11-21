@@ -67,3 +67,4 @@ Kokoro has no Amharic or Tigrinya voice yet; the lines are in English.
 
 The writing on the glass is set in Dancing Script (The Dancing Script Project Authors), SIL Open Font License 1.1;
 the font and its licence are in `fonts/`.
+The Ge'ez signs in the rain are set in Noto Sans Ethiopic (The Noto Project Authors), SIL Open Font License 1.1 (`fonts/`).

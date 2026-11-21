@@ -8306,6 +8306,10 @@ void main(){
       document.body.classList.toggle("dew-skin", !!demo.dew);
       if (demo.dew) {
         // carrying water from one drop into another is the act: litres onto a person, the tap or the donkey; the pump's drop into your litres
+        // the language of the rain: ?lang=am|zh|es|pt|fr|de|ru|en, or Menu > World; remembered on this device
+        const RL = window.RAIN_LANG; let lc = urlParams.get("lang") || ""; try { lc = lc || localStorage.getItem("ahiya-lang") || ""; } catch (e) { }
+        demo.setLang = code => { if (!RL) return; demo.lang = RL.get(code).code; demo.dew.setLang(RL.get(code)); document.documentElement.lang = demo.lang; try { localStorage.setItem("ahiya-lang", demo.lang); } catch (e) { } };
+        demo.setLang(lc || "en");
         const keyOf = el => el && el.dataset ? el.dataset.key || (el.dataset.offer ? "o:" + el.dataset.offer : "") : "";
         demo.dew.onSwat = el => { const k = keyOf(el); if (!k) return; if (k[0] === "o") { el.remove(); return; } (demo.snooze || (demo.snooze = {}))[k] = (demo.clock || 0) + (k[0] === "m" ? 9000 : 26000); demo.dockSig = ""; demo.dockT = 0; };
         demo.dew.onWipe = () => { demo.mapOn = false; demo.mapUntil = 0; const t = (demo.clock || 0) + 12000, z = demo.snooze || (demo.snooze = {}); for (const b of document.querySelectorAll("#dk-verbs [data-key]")) z[b.dataset.key] = b.dataset.key[0] === "m" ? t - 5000 : t;
@@ -8390,6 +8394,8 @@ void main(){
           { id: "playas", cap: "play as", val: () => (names().find(n => n[0] === state.playAs) || ["", "you"])[1].slice(0, 6).toLowerCase(), act: () => { const N = names(); if (N.length) setPlayAs(N[cyc(N.findIndex(n => n[0] === state.playAs), N.length)][0]); } },
           { id: "hud", cap: "old hud", val: () => document.body.classList.contains("demo-full") ? "on" : "off", on: () => document.body.classList.contains("demo-full"),
             act: () => { const on = !document.body.classList.contains("demo-full"); document.body.classList.toggle("demo-clean", !on); document.body.classList.toggle("demo-mode", !on); document.body.classList.toggle("demo-full", on); } },
+          { id: "lang", cap: "language", val: () => demo.lang || "en", act: () => { const o = window.RAIN_LANG.order; demo.setLang(o[(o.indexOf(demo.lang || "en") + 1) % o.length]);
+              if (demo.dew) for (let i = 0; i < 9; i++) demo.dew.drop({ x: 30 + Math.random() * (innerWidth - 60), y: -10 - Math.random() * 60, r: 4 + Math.random() * 3, state: "fall", vy: 40 + Math.random() * 60, grow: 1, forced: true }); } },   // a shower in the new tongue
           { id: "help", cap: "how to", val: () => "?", act: () => { ui.brief.hidden = false; }, closes: true }]
       };
       const rail = q("dk-rail"), row = q("dk-row"), mbtn = q("dk-menu-btn");
@@ -8508,7 +8514,7 @@ void main(){
       for (const b of rail.children) b.classList.toggle("on", b.dataset.group === demo.menuGroup);
       if (row.dataset.group !== demo.menuGroup) {
         row.dataset.group = demo.menuGroup;
-        row.innerHTML = items.map(it => `<button type="button" class="bead" data-item="${it.id}" data-icon="${{ cam: "eye", glide: "wing", jump: "jump", drive: "drive" }[it.id] || it.id}" aria-label="${it.cap}"><i></i><em>${it.cap}</em></button>`).join(""); row.scrollLeft = 0;
+        row.innerHTML = items.map(it => `<button type="button" class="bead" data-item="${it.id}" data-icon="${{ cam: "eye", glide: "wing", jump: "jump", drive: "drive", lang: "ask" }[it.id] || it.id}" aria-label="${it.cap}"><i></i><em>${it.cap}</em></button>`).join(""); row.scrollLeft = 0;
       }
       items.forEach((it, k) => { const b = row.children[k]; if (!b) return; const v = it.val(), i = b.firstElementChild;
         if (i.textContent !== v) i.textContent = v; b.classList.toggle("on", !!(it.on && it.on()));
@@ -8840,7 +8846,8 @@ void main(){
       demoHandoffTick(dt); demoDock(dt); demoAnchors(); demoOffers(dt);
       if (demo.menuOpen && (demo.clock || 0) - (demo.menuTouch || 0) > 14000) demo.ui.openSheet(false);       // honey left alone drains away
       if (demo.dew) {
-        const dw = demo.dew; dw.rain = demo.rainIn || 0;
+        const dw = demo.dew; let rIn = 0; for (const em of sampleWifiEmitters()) { const R = em.r * .9, d = Math.hypot(camera.position.x - em.x, camera.position.z - em.z); rIn = Math.max(rIn, clamp(1 - (d - R * .8) / (R * .2 + 4), 0, 1)); }
+        dw.rain = rIn;                                                    // it rains on the glass exactly where it rains on you
         // the beacon is the pane's one light; with line of sight and water aboard it flares, which is your signal, seen
         demoV.set(-1617, driveSurfaceAt(-1617, 590) + 36, 590).project(camera);
         const seen = demoV.z < 1 && Math.abs(demoV.x) < 1.05 && Math.abs(demoV.y) < 1.05;
@@ -10046,7 +10053,7 @@ void main(){
       groundAt: (x, z) => driveSurfaceAt(x, z), ahiyaGround: () => AHIYA_GROUND_MODE,
       npOptions: () => { try { return npEngine.options(npState).map(o => ({ id: o.id, label: o.label, enabled: o.enabled, reason: o.reason })); } catch (e) { return String(e); } },
       handoffDbg: () => demo.handoff ? { u: +(demo.handoff.t / demo.handoff.dur).toFixed(2), can: demo.can.canRoot.position.clone(), gL: hoV.gL.clone(), gR: hoV.gR.clone() } : null,
-      dewDbg: () => demo.dew ? { drops: demo.dew.drops.length, beads: demo.dew.beads.length, wisps: demo.dew.wisps.length, rain: +(demo.dew.rain || 0).toFixed(2), flare: +demo.dew.flare.toFixed(2), breath: +demo.dew.breath.toFixed(2), running: demo.dew.drops.filter(d => d.state === 'fall').length, big: +Math.max(0, ...demo.dew.drops.map(d => d.r)).toFixed(1) } : null,
+      dewDbg: () => demo.dew ? { drops: demo.dew.drops.length, beads: demo.dew.beads.length, wisps: demo.dew.wisps.length, rain: +(demo.dew.rain || 0).toFixed(2), glyphs: demo.dew.glyphs.length, gust: +demo.dew.gust.toFixed(2), cloud: demo.dew.clouds.map(c => +c.d.toFixed(1)).join(' '), flare: +demo.dew.flare.toFixed(2), breath: +demo.dew.breath.toFixed(2), running: demo.dew.drops.filter(d => d.state === 'fall').length, big: +Math.max(0, ...demo.dew.drops.map(d => d.r)).toFixed(1) } : null,
       voiceDbg: () => ({ last: demo.lastVoice, man: !!demo.voiceMan, voices: field ? field.voices.length : -1, env: field ? field.voiceEnv : 0, hits: field ? field.hits.filter(h => h.bus === 'voice').length : 0 }),
       demo: () => ({ on: DEMO, solids: demo.solids ? demo.solids.length : (DEMO ? (demoBuildSolids(), demo.solids.length) : 0), withCh: demo.withCh ? demo.withCh.state.id : null, line: demo.line ? demo.line.text : "", pose: demo.withCh ? demo.withCh.state.pose : "",
         speaking: demo.withCh ? Boolean(demo.withCh.state.poseOpts && demo.withCh.state.poseOpts.speaking) : false, signal: demo.signal, thread: demo.thread || [] }),
