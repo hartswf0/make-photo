@@ -53,3 +53,12 @@ Used by `night-post/ahiya-sound.js` in the Ahiya demo (`night-post/ahiya-demo.ht
 | wind_antenna (62-102 s, looped) | [Wind blowing in an antenna on the High Atlas mountain (Morocco).](https://freesound.org/people/felix.blume/sounds/160469) | felix.blume | CC0 1.0 |
 | wind_gusts (76-136 s, looped) | [mountain wind heavy strong gusts Swiss Alps.flac](https://freesound.org/people/kyles/sounds/454092) | kyles | CC0 1.0 |
 | wind_plain (78-128 s, looped) | [Strong wind blowing in the plain in Anatolia (Turkey)](https://freesound.org/people/felix.blume/sounds/167684) | felix.blume | CC0 1.0 |
+
+## Voices
+
+Every spoken demo line is pre-rendered with [Kokoro-82M](https://github.com/hexgrad/kokoro) (Apache 2.0), via
+[kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx), into `voice/` (one mp3 per line; `voice/manifest.json`
+maps `person|spoken text` to a file and lists each person's voice). Casting: Saba af_heart, Rahel af_bella,
+Aunt Lemlem bf_emma, Yared am_puck, Abba Gebre bm_george, Memhir Solomon bm_fable, Daniel am_michael,
+Hanna af_nicole, Tesfaye am_fenrir, Abba Desta bm_lewis, Biruk am_echo (raised in playback).
+Kokoro has no Amharic or Tigrinya voice yet; the lines are in English.
