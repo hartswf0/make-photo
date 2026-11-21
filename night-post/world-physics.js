@@ -656,7 +656,7 @@
       }
       // Subtle forward carry lean on carrier when carrying heavy water
       const isCarrier = st.id === "imani" || st.role === "carrier";
-      if (isCarrier && Number.isFinite(carryLeanRad) && ch.rig && ch.rig.spine) {
+      if (isCarrier && !st.scripted && Number.isFinite(carryLeanRad) && ch.rig && ch.rig.spine) {   // not while the game stages hands onto a can
         ch.rig.spine.rotation.x = clamp((ch.rig.spine.rotation.x || 0) + carryLeanRad * 0.55, -0.4, 0.55);
       }
     }

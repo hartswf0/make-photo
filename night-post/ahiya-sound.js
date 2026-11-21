@@ -8,7 +8,8 @@
     { id: 'radio', label: 'Radio', db: -3, note: 'the wagon radio' },
     { id: 'ambience', label: 'Ambience', db: -2, note: 'night beds, wind, distant life' },
     { id: 'foley', label: 'Foley', db: 0, note: 'steps, hooves, pump, wagon' },
-    { id: 'life', label: 'Voices & animals', db: -1, note: 'people, chant, dogs, brays' },
+    { id: 'voice', label: 'Dialogue', db: 0, note: 'the people you talk to (Kokoro voices)' },
+    { id: 'life', label: 'Voices & animals', db: -1, note: 'chant, the yard, dogs, brays' },
     { id: 'synth', label: 'Game tones', db: -14, note: 'the older synthesized cues' }
   ];
   const dbToGain = d => Math.pow(10, d / 20), gainToDb = g => 20 * Math.log10(Math.max(1e-5, g));
@@ -25,8 +26,13 @@
     const verb = ctx.createConvolver(); verb.buffer = impulse(2.2, 2.6); const verbOut = ctx.createGain(); verbOut.gain.value = .6; verb.connect(verbOut).connect(master);
     for (const b of BUSES) {
       const input = ctx.createGain(), fader = ctx.createGain(), duck = ctx.createGain(), meter = ctx.createAnalyser(), send = ctx.createGain();
-      meter.fftSize = 512; input.connect(duck).connect(fader).connect(meter).connect(master); fader.connect(send).connect(verb);
-      send.gain.value = b.id === 'life' ? .35 : b.id === 'foley' ? .16 : b.id === 'ambience' ? .05 : 0;
+      meter.fftSize = 512;
+      if (b.id === 'music') {                                    // the score: filtered and levelled by what is happening (see score below)
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1600; lp.Q.value = .4; const lvl = ctx.createGain(); lvl.gain.value = .5;
+        input.connect(lp).connect(lvl).connect(duck); S.score = { lp, lvl, swell: 0, still: 0 };
+      } else input.connect(duck);
+      duck.connect(fader).connect(meter).connect(master); fader.connect(send).connect(verb);
+      send.gain.value = b.id === 'life' ? .35 : b.id === 'voice' ? .14 : b.id === 'foley' ? .16 : b.id === 'ambience' ? .05 : b.id === 'music' ? .08 : 0;
       S.buses[b.id] = { ...b, input, fader, duck, meter, send, data: new Float32Array(512), level: -90 };
       S.duck[b.id] = 0;
     }
@@ -91,6 +97,40 @@
       if (pos) { S.hits.push({ pos: pos.clone(), bus, label, t: ctx.currentTime, gain }); if (S.hits.length > 80) S.hits.shift(); }
       return src;
     }
+    /* ---------- dialogue: a recorded line from the speaker's head, with an envelope for the jaw and the ducking ---------- */
+    const voiceBufs = {}; S.voices = [];
+    S.prefetch = async url => { if (voiceBufs[url]) return; try { voiceBufs[url] = await ctx.decodeAudioData(await (await fetch(url)).arrayBuffer()); } catch (e) { } };
+    let saySeq = 0;
+    async function say(url, pos, { rate = 1, label = 'voice' } = {}) {
+      const my = ++saySeq;                                       // only the latest line asked for may start: no late decode cuts in
+      let b = voiceBufs[url];
+      if (!b) { try { b = voiceBufs[url] = await ctx.decodeAudioData(await (await fetch(url)).arrayBuffer()); } catch (e) { return null; } }
+      if (my !== saySeq) return null;
+      for (const V of S.voices) try { V.src.stop(); } catch (e) { }
+      const src = ctx.createBufferSource(); src.buffer = b; src.playbackRate.value = rate;
+      const g = ctx.createGain(); g.gain.value = 1; const pn = panner(pos, 2.2, 1.1, 120); const an = ctx.createAnalyser(); an.fftSize = 512;
+      src.connect(g).connect(pn); pn.connect(an); pn.connect(S.buses.voice.input); src.start();
+      const V = { src, pn, an, data: new Float32Array(512), pos: pos.clone(), env: 0, end: ctx.currentTime + b.duration / rate, label };
+      V.at = p => { pn.positionX.value = p.x; pn.positionY.value = p.y; pn.positionZ.value = p.z; V.pos.copy(p); };
+      V.level = () => { an.getFloatTimeDomainData(V.data); let m = 0; for (let i = 0; i < 512; i++) m = Math.max(m, Math.abs(V.data[i])); V.env += (m - V.env) * (m > V.env ? .6 : .25); return V.env; };
+      src.onended = () => { S.voices = S.voices.filter(x => x !== V); };
+      S.voices = [V]; S.hits.push({ pos: pos.clone(), bus: 'voice', label, t: ctx.currentTime, gain: 1 }); if (S.hits.length > 80) S.hits.shift();
+      return { duration: b.duration / rate, voice: V };
+    }
+    /* ---------- the score: the Cyan Jerikan tape under the walk, never on top of a voice or of music in the world ---------- */
+    function score(dt, g) {
+      const C = S.score; if (!C) return;
+      C.still = g.speed > .3 ? 0 : C.still + dt; C.swell = Math.max(0, C.swell - dt);
+      let diegetic = -90; for (const E of S.emitters) if ((E.id === 'chant' || E.id === 'azmari' || E.id === 'yard') && E.target > .01) diegetic = Math.max(diegetic, E.level);
+      const sw = Math.min(1, C.swell / 2.5);                       // an arrival or a delivery opens the tape up for a few seconds
+      let lvl = (.46 + .24 * Math.min(1, g.speed / 1.3)) * (C.still > 10 ? .55 : 1);
+      lvl = lvl * (1 - sw) + 1.0 * sw;
+      lvl *= 1 - .8 * Math.max(0, Math.min(1, (diegetic + 46) / 14));   // the chant, the azmari or the yard lead; the tape steps back
+      if (g.driving) lvl *= .5;
+      C.lvl.gain.setTargetAtTime(lvl, ctx.currentTime, .6);
+      C.lp.frequency.setTargetAtTime(1400 + 9000 * sw + 1200 * Math.min(1, g.speed / 3), ctx.currentTime, .5);
+    }
+    S.swell = (sec = 6) => { if (S.score) S.score.swell = Math.max(S.score.swell, sec); };
     /* ---------- the circuit ---------- */
     let W = {};
     function build() {
@@ -182,8 +222,11 @@
       // radio rides in the wagon and plays only while its engine runs
       const R = S.radio; if (R) { R.pn.positionX.value = g.wagon.pos.x; R.pn.positionY.value = g.wagon.pos.y + 1.1; R.pn.positionZ.value = g.wagon.pos.z; R.g.gain.setTargetAtTime(run && R.on ? .6 : 0, ctx.currentTime, .15); }
       // ducking: a conversation pulls everything else back; driving pulls the night back
-      const talk = g.talking ? 1 : 0, drive = run ? 1 : 0;
-      const want = { music: -11 * talk - 4 * drive * (R && R.on ? 1 : 0), radio: -9 * talk, ambience: -5 * talk - 3 * drive, foley: -2 * talk, life: -4 * talk, synth: -6 * talk };
+      let venv = 0; for (const V of S.voices) venv = Math.max(venv, V.level());
+      S.voiceEnv = venv;
+      const talk = Math.max(g.talking ? .45 : 0, Math.min(1, venv * 4)), drive = run ? 1 : 0;   // a voice, as it sounds, pulls the rest back
+      score(dt, { speed: g.speed, driving: run });
+      const want = { music: -12 * talk - 4 * drive * (R && R.on ? 1 : 0), radio: -10 * talk, ambience: -6 * talk - 3 * drive, foley: -2 * talk, voice: 0, life: -6 * talk, synth: -6 * talk };
       for (const id in want) { S.duck[id] += (want[id] - S.duck[id]) * Math.min(1, dt * (want[id] < S.duck[id] ? 6 : 1.5)); S.buses[id].duck.gain.value = dbToGain(S.duck[id]); }
       // emitter gains, with solo
       for (const E of S.emitters) {
@@ -275,6 +318,6 @@
         r.onclick = () => { S.soloEmitter = S.soloEmitter === E ? null : E; }; ui.srcs.append(r);
       }
     }
-    return Object.assign(S, { load, update, footstep, hoof, pumpStrokes, shot, hit, panel, drawPanel, STATIONS, BUSES, busInput: id => S.buses[id].input, dbToGain, gainToDb });
+    return Object.assign(S, { load, update, footstep, hoof, pumpStrokes, shot, hit, say, panel, drawPanel, STATIONS, BUSES, busInput: id => S.buses[id].input, dbToGain, gainToDb });
   };
 })();

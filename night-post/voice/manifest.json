@@ -1,0 +1,1450 @@
+{
+"cast": {
+"saba": {
+"voice": "af_heart",
+"rate": 1
+},
+"rahel": {
+"voice": "af_bella",
+"rate": 1
+},
+"aunt_lemlem": {
+"voice": "bf_emma",
+"rate": 1
+},
+"escort_yared": {
+"voice": "am_puck",
+"rate": 1.04
+},
+"convoy_elder_1": {
+"voice": "bm_george",
+"rate": 1
+},
+"convoy_elder_2": {
+"voice": "bm_fable",
+"rate": 1
+},
+"ppc_op_male": {
+"voice": "am_michael",
+"rate": 1
+},
+"ppc_op_female": {
+"voice": "af_nicole",
+"rate": 1
+},
+"compound_lead": {
+"voice": "am_fenrir",
+"rate": 1
+},
+"compound_partner": {
+"voice": "bm_lewis",
+"rate": 1
+},
+"compound_child": {
+"voice": "am_echo",
+"rate": 1.14
+}
+},
+"lines": {
+"saba|Saba. I keep this pump. I can close the intake even when the map up the hill says the tank is full.": [
+"b694baed.mp3",
+5.89
+],
+"saba|Your can is dry. Ask me to draw and I will work the lever, to the chalk and no lower.": [
+"f732dd28.mp3",
+5.15
+],
+"saba|1 liter aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"7ee0f835.mp3",
+5.87
+],
+"saba|2 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"02cae925.mp3",
+5.93
+],
+"saba|3 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"094844de.mp3",
+5.92
+],
+"saba|4 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"64885b73.mp3",
+5.93
+],
+"saba|5 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"aff620ec.mp3",
+5.99
+],
+"saba|6 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"ded9d941.mp3",
+5.99
+],
+"saba|7 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"b008134a.mp3",
+6.04
+],
+"saba|8 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"88a5144f.mp3",
+5.76
+],
+"saba|9 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"09a695c8.mp3",
+6.04
+],
+"saba|10 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"6d9d4a76.mp3",
+5.78
+],
+"saba|11 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"784a113d.mp3",
+6.14
+],
+"saba|12 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"7b4198e8.mp3",
+5.93
+],
+"saba|13 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"c7248d6f.mp3",
+6.07
+],
+"saba|14 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"bdc984a2.mp3",
+6.21
+],
+"saba|15 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"1eda1359.mp3",
+6.18
+],
+"saba|16 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"50000344.mp3",
+6.2
+],
+"saba|17 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"e31740eb.mp3",
+6.22
+],
+"saba|18 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"f62d277e.mp3",
+6.18
+],
+"saba|19 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"20bbba45.mp3",
+6.17
+],
+"saba|20 liters aboard. The first four are for you and the donkey. The rest is yours to spend.": [
+"0774b301.mp3",
+6.02
+],
+"saba|The chalk line is the well’s reserve. Draw below it and I close this pump for two shift changes.": [
+"4d54304d.mp3",
+6.14
+],
+"saba|She is mine, the gray one. A wet saddle keeps a recording in order while it moves. Keep her watered.": [
+"bd539d64.mp3",
+6.02
+],
+"saba|Rahel wants the rehearsal from over the ridge. Songs are her business. Water is mine.": [
+"2848b6ca.mp3",
+5.35
+],
+"saba|Selam.": [
+"87a1e228.mp3",
+0.69
+],
+"saba|Good.": [
+"b41ccd15.mp3",
+0.64
+],
+"saba|Dry, I see.": [
+"5db333c7.mp3",
+1.03
+],
+"saba|Selam. Good.": [
+"d01da8e9.mp3",
+1.27
+],
+"saba|Selam. Dry, I see.": [
+"4a41148b.mp3",
+1.58
+],
+"saba|Go well.": [
+"6ba0a694.mp3",
+0.76
+],
+"saba|Mind the grade in the dark.": [
+"71a97396.mp3",
+1.55
+],
+"saba|There.": [
+"8bb51b70.mp3",
+0.59
+],
+"saba|Not yet.": [
+"104296c7.mp3",
+0.88
+],
+"saba|Not here.": [
+"fb425275.mp3",
+0.81
+],
+"saba|That way, down to the pump.": [
+"827fd90c.mp3",
+1.46
+],
+"saba|Up there, to the white wall.": [
+"ecd74c9e.mp3",
+1.53
+],
+"saba|That way, up the hill to the archive.": [
+"212d1601.mp3",
+2.06
+],
+"saba|Down that way, to the yard.": [
+"57fd4552.mp3",
+1.53
+],
+"saba|That is for Rahel.": [
+"6cf415b4.mp3",
+1.12
+],
+"saba|That is for Aunt Lemlem.": [
+"a3a56f4e.mp3",
+1.33
+],
+"saba|That is for Yared.": [
+"48f68705.mp3",
+1.09
+],
+"saba|That is for Abba Gebre.": [
+"b90bff85.mp3",
+1.43
+],
+"saba|That is for Memhir Solomon.": [
+"b86d36e3.mp3",
+1.69
+],
+"saba|That is for Daniel.": [
+"5120522f.mp3",
+1.16
+],
+"saba|That is for Hanna.": [
+"32fd16ac.mp3",
+1.08
+],
+"saba|That is for Tesfaye.": [
+"a765012f.mp3",
+1.25
+],
+"saba|That is for Abba Desta.": [
+"1a236e39.mp3",
+1.43
+],
+"saba|That is for Biruk.": [
+"e6e2ef71.mp3",
+1.21
+],
+"saba|Ask me about my work, the water, the chalk mark.": [
+"236bd4c6.mp3",
+2.86
+],
+"rahel|Rahel. I run sound on the night route. I know the singers by the chairs they move before a take.": [
+"dd814cc9.mp3",
+5.91
+],
+"rahel|Three rehearsal takes. In the third a chair scrapes stone just before the first note. That is the one.": [
+"4dae40f1.mp3",
+6.44
+],
+"rahel|My aunt keeps the takes. She is at the white wall. Ask her leave yourself, she likes to be asked.": [
+"04b17cbd.mp3",
+5.67
+],
+"rahel|There. The chair.": [
+"0e726455.mp3",
+1.11
+],
+"rahel|A dry can loses its traveling copies. Keep it wet until the hill has written the label.": [
+"9818e5b4.mp3",
+5.44
+],
+"rahel|Selam.": [
+"b9ac7b9b.mp3",
+0.65
+],
+"rahel|Good.": [
+"8bb3bdfc.mp3",
+0.53
+],
+"rahel|Dry, I see.": [
+"7244c44e.mp3",
+0.87
+],
+"rahel|Selam. Good.": [
+"a4d1718e.mp3",
+1.23
+],
+"rahel|Selam. Dry, I see.": [
+"e7999d0c.mp3",
+1.62
+],
+"rahel|Go well.": [
+"f139612f.mp3",
+0.67
+],
+"rahel|Mind the grade in the dark.": [
+"ddd91bef.mp3",
+1.42
+],
+"rahel|There.": [
+"4efd5157.mp3",
+0.5
+],
+"rahel|Not yet.": [
+"6513c988.mp3",
+0.7
+],
+"rahel|Not here.": [
+"e2cf6ac4.mp3",
+0.66
+],
+"rahel|That way, down to the pump.": [
+"c8e5e2f5.mp3",
+1.51
+],
+"rahel|Up there, to the white wall.": [
+"7eb26291.mp3",
+1.56
+],
+"rahel|That way, up the hill to the archive.": [
+"b9a8b680.mp3",
+2.11
+],
+"rahel|Down that way, to the yard.": [
+"6cf43e0b.mp3",
+1.51
+],
+"rahel|That is for Saba.": [
+"844ffe6c.mp3",
+1.0
+],
+"rahel|That is for Aunt Lemlem.": [
+"729e9969.mp3",
+1.31
+],
+"rahel|That is for Yared.": [
+"f367985a.mp3",
+0.97
+],
+"rahel|That is for Abba Gebre.": [
+"2f42db18.mp3",
+1.3
+],
+"rahel|That is for Memhir Solomon.": [
+"cbd9efe2.mp3",
+1.6
+],
+"rahel|That is for Daniel.": [
+"ec9a97ba.mp3",
+1.1
+],
+"rahel|That is for Hanna.": [
+"d05df737.mp3",
+0.97
+],
+"rahel|That is for Tesfaye.": [
+"0ca1ed94.mp3",
+1.09
+],
+"rahel|That is for Abba Desta.": [
+"8fccf6c0.mp3",
+1.32
+],
+"rahel|That is for Biruk.": [
+"d59e89e6.mp3",
+1.09
+],
+"rahel|Ask me about my work, the song, the aunt’s leave.": [
+"2d50bbe2.mp3",
+3.05
+],
+"aunt_lemlem|Lemlem. Those three takes are in my keeping.": [
+"53d6d7af.mp3",
+2.54
+],
+"aunt_lemlem|He came in early on the held note and we all followed him. Keep the wrong one too. It is the only one where we came in together.": [
+"641e3cb5.mp3",
+7.48
+],
+"aunt_lemlem|Listening at home, yes. In public once, and only if I am standing there to sing the answer myself.": [
+"beac20f5.mp3",
+6.24
+],
+"aunt_lemlem|A song does not travel in an empty can. Come back wet.": [
+"d6489b0a.mp3",
+3.72
+],
+"aunt_lemlem|Good. Then it can travel. Ask me for leave and I will give it.": [
+"afdb7e66.mp3",
+3.56
+],
+"aunt_lemlem|Selam.": [
+"227d5f66.mp3",
+0.86
+],
+"aunt_lemlem|Good.": [
+"e08ac777.mp3",
+0.68
+],
+"aunt_lemlem|Dry, I see.": [
+"3eb8e8f5.mp3",
+1.32
+],
+"aunt_lemlem|Selam. Good.": [
+"f18a9d2f.mp3",
+1.36
+],
+"aunt_lemlem|Selam. Dry, I see.": [
+"1ff1dc9d.mp3",
+1.71
+],
+"aunt_lemlem|Go well.": [
+"084e077a.mp3",
+0.95
+],
+"aunt_lemlem|Mind the grade in the dark.": [
+"c385accc.mp3",
+1.85
+],
+"aunt_lemlem|There.": [
+"8d9063d6.mp3",
+0.66
+],
+"aunt_lemlem|Not yet.": [
+"850dfd61.mp3",
+1.06
+],
+"aunt_lemlem|Not here.": [
+"c4e69c7f.mp3",
+1.06
+],
+"aunt_lemlem|That way, down to the pump.": [
+"3fb118d6.mp3",
+1.8
+],
+"aunt_lemlem|Up there, to the white wall.": [
+"1f0287e0.mp3",
+1.92
+],
+"aunt_lemlem|That way, up the hill to the archive.": [
+"dfb8d6bb.mp3",
+2.26
+],
+"aunt_lemlem|Down that way, to the yard.": [
+"61a66b60.mp3",
+1.77
+],
+"aunt_lemlem|That is for Saba.": [
+"e1a24713.mp3",
+1.51
+],
+"aunt_lemlem|That is for Rahel.": [
+"398c0f82.mp3",
+1.49
+],
+"aunt_lemlem|That is for Yared.": [
+"02099d73.mp3",
+1.51
+],
+"aunt_lemlem|That is for Abba Gebre.": [
+"9d79db0f.mp3",
+1.74
+],
+"aunt_lemlem|That is for Memhir Solomon.": [
+"08befc91.mp3",
+1.98
+],
+"aunt_lemlem|That is for Daniel.": [
+"1e815561.mp3",
+1.51
+],
+"aunt_lemlem|That is for Hanna.": [
+"f6b3d52e.mp3",
+1.47
+],
+"aunt_lemlem|That is for Tesfaye.": [
+"46715041.mp3",
+1.66
+],
+"aunt_lemlem|That is for Abba Desta.": [
+"a2f5a873.mp3",
+1.85
+],
+"aunt_lemlem|That is for Biruk.": [
+"42d10f4f.mp3",
+1.55
+],
+"aunt_lemlem|Ask me about my work, the song, the aunt’s leave.": [
+"24e2827d.mp3",
+2.88
+],
+"escort_yared|Yared. I film the convoy so the hill has a record of who walked.": [
+"70ac7259.mp3",
+3.42
+],
+"escort_yared|Selam.": [
+"06e981b5.mp3",
+0.68
+],
+"escort_yared|Good.": [
+"189b5e32.mp3",
+0.53
+],
+"escort_yared|Dry, I see.": [
+"9c7f74c0.mp3",
+0.95
+],
+"escort_yared|Selam. Good.": [
+"a9127cd0.mp3",
+0.94
+],
+"escort_yared|Selam. Dry, I see.": [
+"e8fb9922.mp3",
+1.24
+],
+"escort_yared|Go well.": [
+"38f73e51.mp3",
+0.71
+],
+"escort_yared|Mind the grade in the dark.": [
+"5adbe541.mp3",
+1.33
+],
+"escort_yared|There.": [
+"37b7d319.mp3",
+0.53
+],
+"escort_yared|Not yet.": [
+"8bbb9d66.mp3",
+0.76
+],
+"escort_yared|Not here.": [
+"5f5e08ea.mp3",
+0.69
+],
+"escort_yared|That way, down to the pump.": [
+"1a32f343.mp3",
+1.21
+],
+"escort_yared|Up there, to the white wall.": [
+"414acf67.mp3",
+1.35
+],
+"escort_yared|That way, up the hill to the archive.": [
+"d476bfb6.mp3",
+1.69
+],
+"escort_yared|Down that way, to the yard.": [
+"0483846d.mp3",
+1.26
+],
+"escort_yared|That is for Saba.": [
+"1f2d6e46.mp3",
+1.0
+],
+"escort_yared|That is for Rahel.": [
+"fd4cc065.mp3",
+0.98
+],
+"escort_yared|That is for Aunt Lemlem.": [
+"f5f7b8ab.mp3",
+1.18
+],
+"escort_yared|That is for Abba Gebre.": [
+"1c58f3be.mp3",
+1.21
+],
+"escort_yared|That is for Memhir Solomon.": [
+"c07fc024.mp3",
+1.42
+],
+"escort_yared|That is for Daniel.": [
+"04bd1818.mp3",
+1.04
+],
+"escort_yared|That is for Hanna.": [
+"8c97b00d.mp3",
+0.96
+],
+"escort_yared|That is for Tesfaye.": [
+"f2af9952.mp3",
+1.09
+],
+"escort_yared|That is for Abba Desta.": [
+"3f861236.mp3",
+1.24
+],
+"escort_yared|That is for Biruk.": [
+"46bfe3a8.mp3",
+1.07
+],
+"escort_yared|Ask me about my work or my phone.": [
+"7ceb3ef7.mp3",
+1.77
+],
+"convoy_elder_1|Gebre. I walk with the lamps.": [
+"e3c206e3.mp3",
+2.43
+],
+"convoy_elder_1|The beacon is for finding the road. The singing is for the people already on it.": [
+"43a4c9c5.mp3",
+5.89
+],
+"convoy_elder_1|Selam.": [
+"4f6e85f4.mp3",
+1.01
+],
+"convoy_elder_1|Good.": [
+"c65d0b81.mp3",
+0.81
+],
+"convoy_elder_1|Dry, I see.": [
+"43f47ff3.mp3",
+1.6
+],
+"convoy_elder_1|Selam. Good.": [
+"bee3383d.mp3",
+1.47
+],
+"convoy_elder_1|Selam. Dry, I see.": [
+"b9967d3f.mp3",
+2.17
+],
+"convoy_elder_1|Go well.": [
+"91ef8b68.mp3",
+1.13
+],
+"convoy_elder_1|Mind the grade in the dark.": [
+"51e23b82.mp3",
+2.43
+],
+"convoy_elder_1|There.": [
+"75e4c97c.mp3",
+0.89
+],
+"convoy_elder_1|Not yet.": [
+"76d25953.mp3",
+1.15
+],
+"convoy_elder_1|Not here.": [
+"2eab3999.mp3",
+1.15
+],
+"convoy_elder_1|That way, down to the pump.": [
+"2d874dd8.mp3",
+2.22
+],
+"convoy_elder_1|Up there, to the white wall.": [
+"3414b7ca.mp3",
+2.13
+],
+"convoy_elder_1|That way, up the hill to the archive.": [
+"acd0e4d5.mp3",
+3.07
+],
+"convoy_elder_1|Down that way, to the yard.": [
+"4981d8b6.mp3",
+2.28
+],
+"convoy_elder_1|That is for Saba.": [
+"cac4be91.mp3",
+1.9
+],
+"convoy_elder_1|That is for Rahel.": [
+"ec5d6a48.mp3",
+1.88
+],
+"convoy_elder_1|That is for Aunt Lemlem.": [
+"ba6464ea.mp3",
+2.26
+],
+"convoy_elder_1|That is for Yared.": [
+"b2970139.mp3",
+1.86
+],
+"convoy_elder_1|That is for Memhir Solomon.": [
+"e9206d77.mp3",
+2.52
+],
+"convoy_elder_1|That is for Daniel.": [
+"03c4ad9b.mp3",
+1.77
+],
+"convoy_elder_1|That is for Hanna.": [
+"7e6a0a50.mp3",
+1.71
+],
+"convoy_elder_1|That is for Tesfaye.": [
+"14f81c23.mp3",
+2.09
+],
+"convoy_elder_1|That is for Abba Desta.": [
+"44f3f3ed.mp3",
+2.49
+],
+"convoy_elder_1|That is for Biruk.": [
+"67aaa5bd.mp3",
+1.83
+],
+"convoy_elder_1|Ask me about my work or the beacon.": [
+"d65d7cd5.mp3",
+3.05
+],
+"convoy_elder_2|Solomon. I carry and I witness the signal.": [
+"bf62b890.mp3",
+3.57
+],
+"convoy_elder_2|Carry it level. Spilled water forgets.": [
+"85e7f4af.mp3",
+3.17
+],
+"convoy_elder_2|Selam.": [
+"4824536b.mp3",
+1.03
+],
+"convoy_elder_2|Good.": [
+"6bc28ccc.mp3",
+0.92
+],
+"convoy_elder_2|Dry, I see.": [
+"e325d5fe.mp3",
+1.92
+],
+"convoy_elder_2|Selam. Good.": [
+"c61d175e.mp3",
+1.72
+],
+"convoy_elder_2|Selam. Dry, I see.": [
+"ff313f7c.mp3",
+2.5
+],
+"convoy_elder_2|Go well.": [
+"913a877f.mp3",
+1.2
+],
+"convoy_elder_2|Mind the grade in the dark.": [
+"43b7b57f.mp3",
+2.49
+],
+"convoy_elder_2|There.": [
+"d3227a47.mp3",
+0.92
+],
+"convoy_elder_2|Not yet.": [
+"2f6c7858.mp3",
+1.19
+],
+"convoy_elder_2|Not here.": [
+"ea6f5014.mp3",
+1.27
+],
+"convoy_elder_2|That way, down to the pump.": [
+"052bd505.mp3",
+2.53
+],
+"convoy_elder_2|Up there, to the white wall.": [
+"58a14361.mp3",
+2.6
+],
+"convoy_elder_2|That way, up the hill to the archive.": [
+"be10e1f0.mp3",
+3.0
+],
+"convoy_elder_2|Down that way, to the yard.": [
+"d4de607b.mp3",
+2.43
+],
+"convoy_elder_2|That is for Saba.": [
+"b67e359c.mp3",
+1.98
+],
+"convoy_elder_2|That is for Rahel.": [
+"23535733.mp3",
+2.02
+],
+"convoy_elder_2|That is for Aunt Lemlem.": [
+"e2ce3a99.mp3",
+2.44
+],
+"convoy_elder_2|That is for Yared.": [
+"8dba84ca.mp3",
+1.81
+],
+"convoy_elder_2|That is for Abba Gebre.": [
+"44dfb1c8.mp3",
+2.24
+],
+"convoy_elder_2|That is for Daniel.": [
+"b3a5f80a.mp3",
+1.9
+],
+"convoy_elder_2|That is for Hanna.": [
+"70987667.mp3",
+1.74
+],
+"convoy_elder_2|That is for Tesfaye.": [
+"73e56164.mp3",
+2.17
+],
+"convoy_elder_2|That is for Abba Desta.": [
+"a49ee710.mp3",
+2.17
+],
+"convoy_elder_2|That is for Biruk.": [
+"405868d6.mp3",
+1.96
+],
+"convoy_elder_2|Ask me about my work or the water.": [
+"3d3abfb1.mp3",
+3.26
+],
+"ppc_op_male|Daniel. I keep the log for the rack.": [
+"ceac18b7.mp3",
+2.32
+],
+"ppc_op_male|The rack takes nine liters above your chalk mark and you are short. The pump is downhill.": [
+"1082be65.mp3",
+5.48
+],
+"ppc_op_male|Nine for cooling and I can open the inner rack. Ask me to cool it.": [
+"3edeb44e.mp3",
+4.17
+],
+"ppc_op_male|You have 0 liters above the mark. The rack wants nine.": [
+"c36b5f10.mp3",
+3.79
+],
+"ppc_op_male|You have 1 liter above the mark. The rack wants nine.": [
+"054910a0.mp3",
+3.54
+],
+"ppc_op_male|You have 2 liters above the mark. The rack wants nine.": [
+"8013edd2.mp3",
+3.55
+],
+"ppc_op_male|You have 3 liters above the mark. The rack wants nine.": [
+"4406cb79.mp3",
+3.67
+],
+"ppc_op_male|You have 4 liters above the mark. The rack wants nine.": [
+"56894564.mp3",
+3.67
+],
+"ppc_op_male|You have 5 liters above the mark. The rack wants nine.": [
+"8caa3883.mp3",
+3.75
+],
+"ppc_op_male|You have 6 liters above the mark. The rack wants nine.": [
+"af3ec796.mp3",
+3.65
+],
+"ppc_op_male|You have 7 liters above the mark. The rack wants nine.": [
+"cfc332dd.mp3",
+3.74
+],
+"ppc_op_male|You have 8 liters above the mark. The rack wants nine.": [
+"71ec4998.mp3",
+3.62
+],
+"ppc_op_male|You have 9 liters above the mark. The rack wants nine.": [
+"6c8e82d7.mp3",
+3.67
+],
+"ppc_op_male|You have 10 liters above the mark. The rack wants nine.": [
+"e954812f.mp3",
+3.62
+],
+"ppc_op_male|You have 11 liters above the mark. The rack wants nine.": [
+"ecd96270.mp3",
+3.75
+],
+"ppc_op_male|You have 12 liters above the mark. The rack wants nine.": [
+"b0ddf959.mp3",
+3.72
+],
+"ppc_op_male|You have 13 liters above the mark. The rack wants nine.": [
+"50a84fb2.mp3",
+3.97
+],
+"ppc_op_male|You have 14 liters above the mark. The rack wants nine.": [
+"93f702e3.mp3",
+3.92
+],
+"ppc_op_male|You have 15 liters above the mark. The rack wants nine.": [
+"e6b316c4.mp3",
+3.87
+],
+"ppc_op_male|You have 16 liters above the mark. The rack wants nine.": [
+"7697443d.mp3",
+3.92
+],
+"ppc_op_male|Three versions of that verse turn up in the catalog once the rack is cool.": [
+"88335575.mp3",
+4.55
+],
+"ppc_op_male|Selam.": [
+"6dc22ec0.mp3",
+0.76
+],
+"ppc_op_male|Good.": [
+"54e26d3d.mp3",
+0.66
+],
+"ppc_op_male|Dry, I see.": [
+"73f40a3f.mp3",
+1.06
+],
+"ppc_op_male|Selam. Good.": [
+"51c3d911.mp3",
+1.11
+],
+"ppc_op_male|Selam. Dry, I see.": [
+"f04211a3.mp3",
+1.41
+],
+"ppc_op_male|Go well.": [
+"a095423c.mp3",
+0.79
+],
+"ppc_op_male|Mind the grade in the dark.": [
+"bf9221fe.mp3",
+1.71
+],
+"ppc_op_male|There.": [
+"631a5278.mp3",
+0.64
+],
+"ppc_op_male|Not yet.": [
+"dd58984f.mp3",
+0.92
+],
+"ppc_op_male|Not here.": [
+"f2cab66d.mp3",
+0.9
+],
+"ppc_op_male|That way, down to the pump.": [
+"2ca6d334.mp3",
+1.61
+],
+"ppc_op_male|Up there, to the white wall.": [
+"f707ddf6.mp3",
+1.54
+],
+"ppc_op_male|That way, up the hill to the archive.": [
+"1fbc9429.mp3",
+2.23
+],
+"ppc_op_male|Down that way, to the yard.": [
+"2009363a.mp3",
+1.66
+],
+"ppc_op_male|That is for Saba.": [
+"c3f93f5d.mp3",
+1.27
+],
+"ppc_op_male|That is for Rahel.": [
+"7d90fabc.mp3",
+1.25
+],
+"ppc_op_male|That is for Aunt Lemlem.": [
+"5f99ae46.mp3",
+1.44
+],
+"ppc_op_male|That is for Yared.": [
+"7d45be9d.mp3",
+1.19
+],
+"ppc_op_male|That is for Abba Gebre.": [
+"73b963bd.mp3",
+1.54
+],
+"ppc_op_male|That is for Memhir Solomon.": [
+"162ef43b.mp3",
+1.76
+],
+"ppc_op_male|That is for Hanna.": [
+"cd124e04.mp3",
+1.16
+],
+"ppc_op_male|That is for Tesfaye.": [
+"62b1ef87.mp3",
+1.41
+],
+"ppc_op_male|That is for Abba Desta.": [
+"442a75b1.mp3",
+1.52
+],
+"ppc_op_male|That is for Biruk.": [
+"84e423f9.mp3",
+1.25
+],
+"ppc_op_male|Ask me about my work, the rack, the water.": [
+"b03613ab.mp3",
+2.5
+],
+"ppc_op_female|Hanna. Radio and the monitor.": [
+"839a9b02.mp3",
+2.41
+],
+"ppc_op_female|No leave from the white wall, no copy from this window.": [
+"6dcebd69.mp3",
+4.8
+],
+"ppc_op_female|I will label the lacquer with the aunt as custodian. Both singers stay on the take. Ask me to write it.": [
+"9d6053af.mp3",
+9.93
+],
+"ppc_op_female|Her name goes on the seal. That is the rule here.": [
+"4f54ca12.mp3",
+4.54
+],
+"ppc_op_female|Selam.": [
+"e388b907.mp3",
+0.85
+],
+"ppc_op_female|Good.": [
+"e840fc58.mp3",
+0.7
+],
+"ppc_op_female|Dry, I see.": [
+"28c6029a.mp3",
+1.16
+],
+"ppc_op_female|Selam. Good.": [
+"4d0895c2.mp3",
+1.21
+],
+"ppc_op_female|Selam. Dry, I see.": [
+"c85447f0.mp3",
+1.7
+],
+"ppc_op_female|Go well.": [
+"46210723.mp3",
+0.89
+],
+"ppc_op_female|Mind the grade in the dark.": [
+"e79bc55b.mp3",
+2.08
+],
+"ppc_op_female|There.": [
+"90a08f03.mp3",
+0.69
+],
+"ppc_op_female|Not yet.": [
+"4474d334.mp3",
+1.03
+],
+"ppc_op_female|Not here.": [
+"b0cd8be8.mp3",
+1.0
+],
+"ppc_op_female|That way, down to the pump.": [
+"3447ab31.mp3",
+1.84
+],
+"ppc_op_female|Up there, to the white wall.": [
+"5a334aed.mp3",
+1.83
+],
+"ppc_op_female|That way, up the hill to the archive.": [
+"95254c74.mp3",
+2.74
+],
+"ppc_op_female|Down that way, to the yard.": [
+"7217295f.mp3",
+2.02
+],
+"ppc_op_female|That is for Saba.": [
+"d87b8618.mp3",
+1.48
+],
+"ppc_op_female|That is for Rahel.": [
+"98c41087.mp3",
+1.48
+],
+"ppc_op_female|That is for Aunt Lemlem.": [
+"f29d3a05.mp3",
+1.78
+],
+"ppc_op_female|That is for Yared.": [
+"8d03d64e.mp3",
+1.42
+],
+"ppc_op_female|That is for Abba Gebre.": [
+"4ac4bb8c.mp3",
+1.76
+],
+"ppc_op_female|That is for Memhir Solomon.": [
+"44e86c06.mp3",
+2.16
+],
+"ppc_op_female|That is for Daniel.": [
+"71741396.mp3",
+1.48
+],
+"ppc_op_female|That is for Tesfaye.": [
+"f04c7348.mp3",
+1.59
+],
+"ppc_op_female|That is for Abba Desta.": [
+"bbc17804.mp3",
+1.8
+],
+"ppc_op_female|That is for Biruk.": [
+"3c6ae962.mp3",
+1.44
+],
+"ppc_op_female|Ask me about my work, the rack, the aunt’s leave.": [
+"7bd31594.mp3",
+4.14
+],
+"compound_lead|Tesfaye. I unload and I pour.": [
+"c32d9aa2.mp3",
+1.79
+],
+"compound_lead|Not from your reserve. We wait.": [
+"10d875ce.mp3",
+1.71
+],
+"compound_lead|Set it by the root bowl. Three liters wakes the sheet. Ask me to screen it when the aunt has given leave.": [
+"63e4c57a.mp3",
+6.42
+],
+"compound_lead|That is travel water. I will not take it.": [
+"b29f843d.mp3",
+2.39
+],
+"compound_lead|Three liters for the sheet. The rest goes on with you.": [
+"ea8c0f4c.mp3",
+2.97
+],
+"compound_lead|Selam.": [
+"74362db5.mp3",
+0.7
+],
+"compound_lead|Good.": [
+"73b78232.mp3",
+0.59
+],
+"compound_lead|Dry, I see.": [
+"559a78c0.mp3",
+1.0
+],
+"compound_lead|Selam. Good.": [
+"0e99c8d0.mp3",
+1.07
+],
+"compound_lead|Selam. Dry, I see.": [
+"6fe88522.mp3",
+1.39
+],
+"compound_lead|Go well.": [
+"ef61ca51.mp3",
+0.76
+],
+"compound_lead|Mind the grade in the dark.": [
+"7ebfe941.mp3",
+1.43
+],
+"compound_lead|There.": [
+"a5047f19.mp3",
+0.58
+],
+"compound_lead|Not yet.": [
+"42262966.mp3",
+0.79
+],
+"compound_lead|Not here.": [
+"89186cea.mp3",
+0.78
+],
+"compound_lead|That way, down to the pump.": [
+"3e16f743.mp3",
+1.26
+],
+"compound_lead|Up there, to the white wall.": [
+"c13d1b67.mp3",
+1.45
+],
+"compound_lead|That way, up the hill to the archive.": [
+"6074e3b6.mp3",
+1.88
+],
+"compound_lead|Down that way, to the yard.": [
+"2867886d.mp3",
+1.37
+],
+"compound_lead|That is for Saba.": [
+"8f505246.mp3",
+1.13
+],
+"compound_lead|That is for Rahel.": [
+"8439ac65.mp3",
+1.1
+],
+"compound_lead|That is for Aunt Lemlem.": [
+"261d44ab.mp3",
+1.3
+],
+"compound_lead|That is for Yared.": [
+"033ae18c.mp3",
+1.06
+],
+"compound_lead|That is for Abba Gebre.": [
+"8c44b7be.mp3",
+1.32
+],
+"compound_lead|That is for Memhir Solomon.": [
+"e463c424.mp3",
+1.64
+],
+"compound_lead|That is for Daniel.": [
+"6bb49c18.mp3",
+1.15
+],
+"compound_lead|That is for Hanna.": [
+"13849c0d.mp3",
+1.08
+],
+"compound_lead|That is for Abba Desta.": [
+"af71d636.mp3",
+1.39
+],
+"compound_lead|That is for Biruk.": [
+"cdaccfa8.mp3",
+1.13
+],
+"compound_lead|Ask me about my work, the yard, the water.": [
+"c554f235.mp3",
+2.33
+],
+"compound_partner|Desta. I see to the hitch.": [
+"5ff3a862.mp3",
+2.18
+],
+"compound_partner|She sang it wrong the first time and we all came in together. Keep that one.": [
+"81dd470f.mp3",
+5.23
+],
+"compound_partner|Bring her in the shade. The hitch post is by the wall.": [
+"3416c69c.mp3",
+3.81
+],
+"compound_partner|Selam.": [
+"4e7059e3.mp3",
+0.81
+],
+"compound_partner|Good.": [
+"512e24b4.mp3",
+0.73
+],
+"compound_partner|Dry, I see.": [
+"8a2df0d6.mp3",
+1.18
+],
+"compound_partner|Selam. Good.": [
+"85da9726.mp3",
+1.38
+],
+"compound_partner|Selam. Dry, I see.": [
+"939952f4.mp3",
+1.83
+],
+"compound_partner|Go well.": [
+"0ebec047.mp3",
+0.91
+],
+"compound_partner|Mind the grade in the dark.": [
+"1269cc87.mp3",
+2.12
+],
+"compound_partner|There.": [
+"2dfaddef.mp3",
+0.7
+],
+"compound_partner|Not yet.": [
+"63cadee0.mp3",
+1.03
+],
+"compound_partner|Not here.": [
+"31f5110c.mp3",
+0.93
+],
+"compound_partner|That way, down to the pump.": [
+"52cfdcad.mp3",
+1.89
+],
+"compound_partner|Up there, to the white wall.": [
+"2693b4f9.mp3",
+2.0
+],
+"compound_partner|That way, up the hill to the archive.": [
+"51fb94b8.mp3",
+2.62
+],
+"compound_partner|Down that way, to the yard.": [
+"13baabc3.mp3",
+2.08
+],
+"compound_partner|That is for Saba.": [
+"cb48b7b4.mp3",
+1.61
+],
+"compound_partner|That is for Rahel.": [
+"5051befb.mp3",
+1.59
+],
+"compound_partner|That is for Aunt Lemlem.": [
+"4fed3cb1.mp3",
+1.84
+],
+"compound_partner|That is for Yared.": [
+"0b52d442.mp3",
+1.53
+],
+"compound_partner|That is for Abba Gebre.": [
+"c3b7e4a0.mp3",
+1.89
+],
+"compound_partner|That is for Memhir Solomon.": [
+"25c798aa.mp3",
+2.26
+],
+"compound_partner|That is for Daniel.": [
+"d7d2d512.mp3",
+1.59
+],
+"compound_partner|That is for Hanna.": [
+"4c44b21f.mp3",
+1.53
+],
+"compound_partner|That is for Tesfaye.": [
+"93585fdc.mp3",
+1.76
+],
+"compound_partner|That is for Biruk.": [
+"a6546ebe.mp3",
+1.72
+],
+"compound_partner|Ask me about my work, the song, the donkey.": [
+"11054929.mp3",
+3.41
+],
+"compound_child|Biruk.": [
+"abfd2c0e.mp3",
+0.81
+],
+"compound_child|When you can see the mast, the tablet works. Behind the ridge it does not.": [
+"02dbf185.mp3",
+4.18
+],
+"compound_child|Selam.": [
+"8e034ecf.mp3",
+0.84
+],
+"compound_child|Good.": [
+"d6ed5ff0.mp3",
+0.75
+],
+"compound_child|Dry, I see.": [
+"5213ad82.mp3",
+1.34
+],
+"compound_child|Selam. Good.": [
+"8889b41a.mp3",
+1.3
+],
+"compound_child|Selam. Dry, I see.": [
+"a12cf6f8.mp3",
+1.68
+],
+"compound_child|Go well.": [
+"f8c0ffbb.mp3",
+0.96
+],
+"compound_child|Mind the grade in the dark.": [
+"fedbdcb3.mp3",
+1.88
+],
+"compound_child|There.": [
+"c4f1bf5b.mp3",
+0.72
+],
+"compound_child|Not yet.": [
+"280fa36c.mp3",
+1.0
+],
+"compound_child|Not here.": [
+"2ab046d0.mp3",
+0.97
+],
+"compound_child|That way, down to the pump.": [
+"779b86e9.mp3",
+1.67
+],
+"compound_child|Up there, to the white wall.": [
+"b60f6d35.mp3",
+1.82
+],
+"compound_child|That way, up the hill to the archive.": [
+"6902a3cc.mp3",
+2.27
+],
+"compound_child|Down that way, to the yard.": [
+"ae6736f7.mp3",
+1.84
+],
+"compound_child|That is for Saba.": [
+"c694a620.mp3",
+1.52
+],
+"compound_child|That is for Rahel.": [
+"18d0b23f.mp3",
+1.43
+],
+"compound_child|That is for Aunt Lemlem.": [
+"d87f830d.mp3",
+1.62
+],
+"compound_child|That is for Yared.": [
+"2ffd7176.mp3",
+1.42
+],
+"compound_child|That is for Abba Gebre.": [
+"f0922594.mp3",
+1.77
+],
+"compound_child|That is for Memhir Solomon.": [
+"26d0910e.mp3",
+1.98
+],
+"compound_child|That is for Daniel.": [
+"6604046e.mp3",
+1.47
+],
+"compound_child|That is for Hanna.": [
+"698e14c3.mp3",
+1.35
+],
+"compound_child|That is for Tesfaye.": [
+"1a8404f0.mp3",
+1.59
+],
+"compound_child|That is for Abba Desta.": [
+"e574764c.mp3",
+1.87
+],
+"compound_child|Ask me about my work, my phone, the beacon.": [
+"4d8f2987.mp3",
+2.67
+]
+}
+}

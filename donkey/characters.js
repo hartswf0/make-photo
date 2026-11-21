@@ -5422,6 +5422,7 @@
       applyCervicalLeanArc(bones, B_CERVICAL_MAP, totalCervPitch, totalCervYaw, totalCervRoll, cervChestAssist, totalGlideX, neckLeanUniform);
       opts._cervicalSolvedInUpdate = true;
 
+      if (state.voiceJaw != null) jawOpen = state.voiceJaw;            // a recorded voice drives the jaw by its loudness
       bones[B_JAW].rotation.set(Math.max(jawOpen, F.jaw) * 0.38, 0, 0);
       if (isYouth) {
         bones[B_HEAD].scale.setScalar(1.13);
@@ -6527,7 +6528,9 @@
             const dImaniCam = camera ? Math.hypot(camera.position.x - imani.state.x, camera.position.z - imani.state.z) : 6;
             const dx = donkey.state.x, dz = donkey.state.z;
             const dNearOverlook = Math.hypot(dx - (-24), dz - (-3)) < 26;
-            if (dancing) {
+            if (imani.state.scripted) {                                     // the game is staging this body (a can changing hands)
+              imani.update(dt, nowSec, { ...imani.state.poseOpts, pose: imani.state.pose, surfaceAt, beatPulse, lodDist: dImaniCam });
+            } else if (dancing) {
               imani.update(dt, nowSec, { pose: "eskista", surfaceAt, beatPulse, lookAt: camera?.position, lodDist: dImaniCam });
             } else if (ws.pumpFlow > 0.38 && Math.hypot(imani.state.x - (-22.2), imani.state.z - (-6.2)) < 8) {
               imani.place(-23.16, -6.20, Math.PI * 0.5, surfaceAt);

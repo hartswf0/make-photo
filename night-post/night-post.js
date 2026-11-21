@@ -4662,6 +4662,8 @@ void main(){
         const ch = cast.list[i];
         if (!ch || !ch.group || !ch.state) continue;
         const cid = String(ch.state.id || `cast_${i}`).toLowerCase();
+        // the Ahiya demo's people keep their sets (pump, white wall, archive, yard); job routes are for the open game
+        if (urlParams.get("demo") === "ahiya" && ch.state.circuit === "ahiya") continue;
         const ud = ch.group.userData || (ch.group.userData = {});
         const spec = NPC_JOB_SPECS[cid];
         if (spec) {
@@ -4847,6 +4849,10 @@ void main(){
     };
 
     function openDialogue(target) {
+      if (DEMO) {                                                          // the demo has its own conversation: tap a person to talk to them
+        if (target && target.kind === "npc" && target.npc && typeof demoFocus === "function") demoFocus(target.npc);
+        return { speaker: target ? target.name : "", kind: "demo" };
+      }
       if (!target) {
         speakLine("NIGHT POST DISPATCH", "Walk near Makeda, June, Elder Bekele, Hanna, Rahel, or Mistletoe and press TALK (E), or click them directly in 3D!", "3 Active World Quests in tracker", 1.0, 1.02, "", false);
         return { speaker: "DISPATCH", kind: "hint" };
@@ -7830,6 +7836,9 @@ void main(){
         archive: at(-1765, 540, 1.4), dog: at(-1700, 800, .5) } });
       audio.route(field.busInput("music"), field.busInput("synth"));
       field.load().then(() => { fieldReadyAt = performance.now(); }).catch(e => console.warn("field sound", e));
+      fetch("./voice/manifest.json").then(r => r.json()).then(m => { demo.voiceMan = m; }).catch(() => { demo.voiceMan = null; });
+      audio.connectTape(audioEl); if (audio.setSpatialMode) audio.setSpatialMode(false);   // the tape is the score: through the field mix, not from the donkey
+      if (audioEl.paused) { audioEl.volume = 1; audioEl.play().catch(() => { }); }
       // the height range of the real Ahiya ground, for the wind
       let lo = Infinity, hi = -Infinity; for (let x = -1940; x <= -1320; x += 20) for (let z = 380; z <= 950; z += 20) { const y = driveSurfaceAt(x, z); lo = Math.min(lo, y); hi = Math.max(hi, y); } field.lo = lo; field.hi = hi;
     }
@@ -7842,8 +7851,8 @@ void main(){
       const post = new T.Mesh(new T.CylinderGeometry(.012, .012, 1, 4), mat); post.position.y = .5; m.add(post); m.post = post;
       m.material = mat; m.renderOrder = 20; m.visible = false; mw.world.add(m); return m;
     }
-    const BUS_COLOR = { music: 0xffd27a, radio: 0xff9fd0, ambience: 0x6fb8ff, foley: 0x38e8ff, life: 0x9dff9a, synth: 0xbbbbbb };
-    let fieldEdge = null, feetOf = null, feetList = null;
+    const BUS_COLOR = { voice: 0xffffff, music: 0xffd27a, radio: 0xff9fd0, ambience: 0x6fb8ff, foley: 0x38e8ff, life: 0x9dff9a, synth: 0xbbbbbb };
+    let fieldEdge = null, feetOf = null, feetList = null, fieldPlace = null;
     const fieldV = new T.Vector3();
     function avatarFeet() {
       if (feetOf === activeAvatar) return feetList;
@@ -7876,6 +7885,7 @@ void main(){
       } else stepAcc = 0;
       const gy = driveSurfaceAt(state.x, state.z), dHead = donkey.group.position.clone(); dHead.y += 1.35;
       const thr = (keys.KeyW || keys.ArrowUp) ? 1 : 0;
+      const placeNow = npCarrier().place; if (fieldPlace && placeNow !== fieldPlace && field.swell) field.swell(6); fieldPlace = placeNow;   // arriving opens the score up
       // rain is heard by the same rule it is drawn by: it falls only inside the signal discs (sampleWifiEmitters)
       const cp = camera.position; let rainIn = 0, edge = null, edgeD = 1e9;
       for (const em of sampleWifiEmitters()) {
@@ -8000,7 +8010,7 @@ void main(){
     const DEMO_SETS = { basalt: [-1460, 760, "the Basalt Pump"], beacon: [-1610, 590, "the white wall at the Cross-Beacon"], hill: [-1765, 540, "the Hill Archive"], compound: [-1680, 775, "the Daylight Compound"] };
     const DEMO_KB = {
       saba: { who: "“Saba. I keep this pump. I can close the intake even when the map up the hill says the tank is full.”",
-        water: c => c.liters <= 0 ? "“Your can is dry. Ask me to draw and I will work the lever, to the chalk and no lower.”" : `“${c.liters} liters aboard. The first four are for you and the donkey. The rest is yours to spend.”`,
+        water: c => c.liters <= 0 ? "“Your can is dry. Ask me to draw and I will work the lever, to the chalk and no lower.”" : `“${c.liters} ${c.liters === 1 ? "liter" : "liters"} aboard. The first four are for you and the donkey. The rest is yours to spend.”`,
         chalk: "“The chalk line is the well’s reserve. Draw below it and I close this pump for two shift changes.”",
         donkey: "“She is mine, the gray one. A wet saddle keeps a recording in order while it moves. Keep her watered.”",
         song: "“Rahel wants the rehearsal from over the ridge. Songs are her business. Water is mine.”" },
@@ -8019,7 +8029,7 @@ void main(){
       convoy_elder_2: { who: "“Solomon. I carry and I witness the signal.”", water: "“Carry it level. Spilled water forgets.”" },
       ppc_op_male: { who: "“Daniel. I keep the log for the rack.”",
         archive: c => c.liters - c.reserve < 9 ? "“The rack takes nine liters above your chalk mark and you are short. The pump is downhill.”" : "“Nine for cooling and I can open the inner rack. Ask me to cool it.”",
-        water: c => `“You have ${Math.max(0, c.liters - c.reserve)} liters above the mark. The rack wants nine.”`,
+        water: c => { const n = Math.max(0, c.liters - c.reserve); return `“You have ${n} ${n === 1 ? "liter" : "liters"} above the mark. The rack wants nine.”`; },
         song: "“Three versions of that verse turn up in the catalog once the rack is cool.”" },
       ppc_op_female: { who: "“Hanna. Radio and the monitor.”",
         archive: c => !c.visited.includes("beacon") ? "“No leave from the white wall, no copy from this window.”" : "“I will label the lacquer with the aunt as custodian. Both singers stay on the take. Ask me to write it.”",
@@ -8037,7 +8047,12 @@ void main(){
       const brg = (Math.atan2(dx, -dz) * 180 / Math.PI + 360) % 360, comp = ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"][Math.round(brg / 45) % 8];
       return `${s[2][0].toUpperCase() + s[2].slice(1)} is ${Math.round(d / 5) * 5} meters ${comp}, ${Math.abs(rise) < 3 ? "nearly level" : rise > 0 ? `${Math.round(rise)} meters up` : `${Math.round(-rise)} meters down`}.`;
     }
-    const demoName = ch => String(ch.state.name).replace(/\s*\(.*\)\s*/, "");
+    const DEMO_NAMES = { saba: "Saba", rahel: "Rahel", aunt_lemlem: "Aunt Lemlem", escort_yared: "Yared", convoy_elder_1: "Abba Gebre", convoy_elder_2: "Memhir Solomon",
+      ppc_op_male: "Daniel", ppc_op_female: "Hanna", compound_lead: "Tesfaye", compound_partner: "Abba Desta", compound_child: "Biruk" };
+    const demoName = ch => DEMO_NAMES[ch.state.id] || String(ch.state.name).replace(/\s*\(.*\)\s*/, "");
+    // What a person says aloud is only what sits inside “…”; the rest is subtitle (numbers, meters, what the water law logged).
+    // Every spoken line comes from a finite set, so each one has a recorded Kokoro voice (night-post/voice/).
+    const DEMO_POINT = { basalt: "That way, down to the pump.", beacon: "Up there, to the white wall.", hill: "That way, up the hill to the archive.", compound: "Down that way, to the yard." };
     const DEMO_ABOUT = { who: "my work", water: "the water", chalk: "the chalk mark", song: "the song", aunt: "the aunt’s leave", beacon: "the beacon", archive: "the rack", compound: "the yard", donkey: "the donkey", phone: "my phone" };
     function demoAnswer(ch, text) {
       const NAME = demoName(ch), id = ch.state.id, c = npCarrier(), kb = DEMO_KB[id] || {}, t = " " + text.toLowerCase().replace(/[^a-z0-9' ]+/g, " ") + " ";
@@ -8046,28 +8061,28 @@ void main(){
         let opts = []; try { opts = npEngine.options(npState) || []; } catch (e) { opts = []; }
         const o = opts.find(pick);
         if (o && DEMO_STOP_OF[id] === c.place) {
-          if (!o.enabled) return { say: `“${o.reason || "Not now."}”`, emotion: "determined_focus" };
+          if (!o.enabled) return { say: `“Not yet.” ${o.reason || ""}`, emotion: "determined_focus" };
           const before = c.liters, r = runNpAction(o.id, true), after = npCarrier(), log = after.log && after.log.at(-1) ? after.log.at(-1).text : "";
-          if (r && r.ok === false) return { say: `“${r.reason || "That cannot be done here."}”`, emotion: "determined_focus" };
+          if (r && r.ok === false) return { say: `“Not here.” ${r.reason || ""}`, emotion: "determined_focus" };
           const delta = after.liters - before;
-          return { say: (log ? log.slice(0, 230) : "It is done.") + (delta ? ` (${delta > 0 ? "+" : ""}${delta} L)` : ""), pose, emotion: "happy_joy", hold: 3.2 };
+          return { say: "“There.” " + (log ? log.slice(0, 230).replace(/[“”]/g, "") : "") + (delta ? ` (${delta > 0 ? "+" : ""}${delta} L)` : ""), pose, emotion: "happy_joy", hold: 3.2, action: o.id };
         }
         if (o) break;
       }
       // 2. a topic this person knows, else point to who does
       for (const [topic, re] of DEMO_TOPICS) if (re.test(t)) {
-        if (topic === "hello") return { say: `“Selam.” ${NAME} looks at your can. ` + (c.liters > 0 ? `“${c.liters} liters. Good.”` : "“Dry.”"), pose: "wave", hold: 1.6 };
+        if (topic === "hello") return { say: `“Selam.” ${NAME} looks at your can: ${c.liters} L. ` + (c.liters > 0 ? "“Good.”" : "“Dry, I see.”"), pose: "wave", hold: 1.6 };
         if (topic === "thanks") return { say: "“Go well.”", emotion: "happy_joy" };
         if (topic === "bye") return { say: "“Mind the grade in the dark.”", pose: "wave", hold: 1.6, end: true };
         if (topic === "where") {
           const named = Object.keys(DEMO_SETS).find(k => new RegExp(k === "basalt" ? "pump|basalt|water" : k === "beacon" ? "beacon|wall|aunt|mast" : k === "hill" ? "hill|archive|rack" : "compound|yard|sheet").test(t));
           const next = named || ["basalt", "beacon", "hill", "compound"].find(k => !c.visited.includes(k)) || "compound";
-          return { say: `${NAME} points. “${demoDirections(next)}”`, gesture: "pointing_call" };
+          return { say: `${NAME} points. “${DEMO_POINT[next]}” ${demoDirections(next)}`, gesture: "pointing_call", pointTo: next };
         }
         let line = kb[topic]; if (typeof line === "function") line = line(c);
         if (line) return { say: line, pose: topic === "phone" ? "holdPhone" : (topic === "song" && id === "aunt_lemlem" ? "sing" : null), phone: topic === "phone", hold: topic === "phone" ? 4 : 0 };
         const to = DEMO_SEND[topic], who = to && cast.byId && cast.byId[to] ? demoName(cast.byId[to]) : null;
-        if (who && to !== id) return { say: `“That is for ${who}. ${demoDirections(DEMO_STOP_OF[to])}”`, gesture: "pointing_call" };
+        if (who && to !== id) return { say: `“That is for ${who}.” ${demoDirections(DEMO_STOP_OF[to])}`, gesture: "pointing_call", pointTo: DEMO_STOP_OF[to] };
       }
       const know = Object.keys(kb).filter(k => kb[k] && DEMO_ABOUT[k]).slice(0, 3).map(k => DEMO_ABOUT[k]);
       return { say: `${NAME} waits. “Ask me about ${know.length ? know.join(know.length > 2 ? ", " : " or ") : "the road"}.”`, emotion: "determined_focus" };
@@ -8107,6 +8122,21 @@ void main(){
         #demo-sig i:nth-child(1){height:4px}#demo-sig i:nth-child(2){height:7px}#demo-sig i:nth-child(3){height:10px}#demo-sig i:nth-child(4){height:12px}
         #demo-phone h4{cursor:pointer}
         #demo-phone h4{cursor:pointer}
+        #demo-dock{right:max(12px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:min(380px,calc(100vw - 150px))}
+        #demo-verbs,#demo-chips{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px}
+        #demo-dock button{font:15px/1.15 system-ui,sans-serif;text-transform:none;letter-spacing:0;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+        #demo-dock .verb{min-height:50px;padding:9px 18px;border-radius:25px;background:#38e8ff;color:#06222c;border:0;font-weight:650;box-shadow:0 3px 14px rgba(0,0,0,.45);text-align:right}
+        #demo-dock .verb small{display:block;font-size:11.5px;font-weight:450;opacity:.8;margin-top:1px}
+        #demo-dock .verb.off{min-height:40px;padding:6px 14px;font-size:13px;background:rgba(8,20,30,.9);color:#a9c6ce;border:1px solid #2c4c56;font-weight:500;box-shadow:none}
+        #demo-dock .chip{min-height:40px;padding:7px 13px;font-size:14px;border-radius:21px;background:rgba(8,20,30,.9);color:#e9f6fb;border:1px solid #38e8ff}
+        #demo-dock .chip.who{text-transform:uppercase;letter-spacing:.08em;border-color:#8fd0de;color:#8fd0de;background:none;border:0;min-height:0;padding:0 4px;font-size:12px;pointer-events:none}
+        #demo-dock kbd{font:11px ui-monospace,monospace;opacity:.6;margin-right:6px}
+        #demo-dock .verb:active,#demo-dock .chip:active{transform:scale(.96)}
+        body.demo-touch #demo-dock kbd{display:none}
+        body.demo-touch #demo-say{display:none}
+        body.demo-touch.demo-typing #demo-say{display:flex!important;left:12px;right:12px;width:auto;transform:none;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:80}
+        body.demo-typing #demo-dock{display:none}
+        body.demo-mode #dialogue-card,body.demo-mode #immersive-corner,body.demo-mode #ctx-actions{display:none!important}
         @media (max-width:700px) and (orientation:portrait){
           #demo-say{bottom:calc(122px + env(safe-area-inset-bottom,0px));left:auto;right:12px;transform:none;width:calc(100vw - 120px)}
           #demo-you{bottom:calc(170px + env(safe-area-inset-bottom,0px))}
@@ -8123,6 +8153,7 @@ void main(){
           <p class="keys" id="demo-keys"></p>
           <button id="demo-brief-ok">Begin</button></div>
         <div id="demo-bub" class="dm" hidden><b></b><span></span></div>
+        <div id="demo-dock" class="dm"><div id="demo-chips"></div><div id="demo-verbs"></div></div>
         <div id="demo-you" class="dm" hidden></div>
         <form id="demo-say" class="dm" hidden autocomplete="off"><input id="demo-in" maxlength="140" aria-label="Say something" placeholder=""><button type="button" id="demo-mic" aria-pressed="false">Mic</button><button type="submit">Say</button></form>
         <div id="demo-phone" class="dm shut"><h4><span>PHONE <em>tap</em></span><span id="demo-sig"><i></i><i></i><i></i><i></i></span></h4><div id="demo-can"><i></i><u></u></div>
@@ -8140,13 +8171,27 @@ void main(){
       const phone = q("demo-phone"); phone.firstElementChild.onclick = () => phone.classList.toggle("shut");
       document.body.classList.add("demo-mode");
       const touch = matchMedia("(pointer:coarse)").matches;
+      document.body.classList.toggle("demo-touch", touch);
+      ui.dock = q("demo-dock"); ui.verbs = q("demo-verbs"); ui.chips = q("demo-chips");
+      ui.dock.addEventListener("click", e => {
+        const b = e.target.closest("button"); if (!b) return; e.stopPropagation();
+        if (b.dataset.verb) demoDo(b.dataset.verb);
+        else if (b.dataset.type) { document.body.classList.add("demo-typing"); ui.say.hidden = false; setTimeout(() => ui.input.focus(), 30); }
+        else if (b.dataset.ask) demoSay(b.dataset.ask);
+      });
+      ui.input.addEventListener("blur", () => setTimeout(() => document.body.classList.remove("demo-typing"), 150));
+      addEventListener("keydown", e => {                                   // E does the verb here, 1–5 asks the chips; typing is left alone
+        if (document.activeElement === ui.input || e.repeat) return;
+        if (e.code === "KeyE") { const b = ui.verbs.querySelector("button.verb:not(.off)"); if (b) { e.stopImmediatePropagation(); e.preventDefault(); demoDo(b.dataset.verb); } }
+        const d = /^Digit([1-5])$/.exec(e.code); if (d) { const b = ui.chips.querySelectorAll("button[data-ask]")[+d[1] - 1]; if (b) { e.stopImmediatePropagation(); demoSay(b.dataset.ask); } }
+      }, true);
       q("demo-keys").textContent = touch ? "Left stick walks; push it to the rim to run. Drag anywhere else to look. The phone (top right) has sound, map, wagon and help."
         : "W A S D walk · Shift run · drag to look · Z talk · O listen · M map · C wagon · N radio in the wagon.";
       q("demo-help").onclick = () => { ui.brief.hidden = false; phone.classList.add("shut"); };
       const via = id => () => { const b = document.getElementById(id); if (b) b.click(); phone.classList.add("shut"); };   // the game's own controls, reached from the phone
       q("demo-map").onclick = via("btn-big-map"); q("demo-wagon").onclick = via("btn-drive-pill");
       q("demo-cam").onclick = e => { via("btn-cam-mode")(); e.currentTarget.textContent = state.cameraMode === "third" ? "First person" : "Third person"; };
-      ui.say.addEventListener("submit", e => { e.preventDefault(); const v = ui.input.value.trim(); if (v) demoSay(v); ui.input.value = ""; ui.input.blur(); });
+      ui.say.addEventListener("submit", e => { e.preventDefault(); const v = ui.input.value.trim(); if (v) demoSay(v); ui.input.value = ""; ui.input.blur(); document.body.classList.remove("demo-typing"); });
       ui.input.addEventListener("keydown", e => { if (e.code === "Escape") ui.input.blur(); });
       ui.voice.onclick = () => { demo.voice = !demo.voice; ui.voice.setAttribute("aria-pressed", demo.voice); ui.voice.textContent = demo.voice ? "Voice on" : "Voice off"; if (!demo.voice && window.speechSynthesis) speechSynthesis.cancel(); };
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -8175,13 +8220,157 @@ void main(){
       demo.line = { ch, text, t: 0, dur, end: r.end };
       ui.bub.firstElementChild.textContent = demoName(ch); ui.bub.hidden = false;
       demoThread(demoName(ch), text, false);
-      if (demo.voice && window.speechSynthesis) try {
-        speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text.replace(/[“”]/g, ""));
+      // the voice: the recorded Kokoro line for exactly what is said aloud, from the speaker's head; the system voice only if none
+      const spoken = (text.match(/“[^”]+”/g) || []).map(q => q.slice(1, -1).trim()).join(" ").trim();
+      if (window.speechSynthesis) try { speechSynthesis.cancel(); } catch (e) { }
+      if (!demo.voice || !spoken) return;
+      const vm = demo.voiceMan, rec = vm && vm.lines[ch.state.id + "|" + spoken], L = demo.line;
+      demo.lastVoice = { key: ch.state.id + "|" + spoken, found: !!rec, man: !!vm, field: !!(field && field.ready) };
+      if (rec && field && field.ready) {
+        const head = new T.Vector3(ch.state.x, (ch.state.y || driveSurfaceAt(ch.state.x, ch.state.z)) + 1.62 * (ch.state.scale || 1), ch.state.z);
+        field.say("./voice/" + rec[0], head, { rate: (vm.cast[ch.state.id] || {}).rate || 1, label: demoName(ch) }).then(v => {
+          if (!v || demo.line !== L) return; L.voice = v.voice; L.dur = Math.max(L.dur * .6, v.duration + .7);
+        });
+      } else if (window.speechSynthesis) try {
+        const u = new SpeechSynthesisUtterance(spoken);
         let h = 0; for (const k of ch.state.id) h = (h * 31 + k.charCodeAt(0)) % 97; u.pitch = .75 + (h % 50) / 100; u.rate = .95; speechSynthesis.speak(u);
       } catch (e) { /* no voice available */ }
     }
+    /* ---------- One tap on a phone: the verbs this stop allows, and the questions this person can answer ---------- */
+    const DEMO_VERB = {
+      pump: { label: "Draw water", who: "saba", ask: "draw", kind: "draw" },
+      cool: { label: "Give 9 L to the cooler", who: "ppc_op_male", ask: "cool the rack", kind: "pour" },
+      tap: { label: "Pour 4 L at the tap", who: "compound_lead", ask: "pour at the public tap", kind: "pour" },
+      ask: { label: "Ask the aunt’s leave", who: "aunt_lemlem", ask: "may i have your permission", kind: "talk" },
+      copy: { label: "Load the licensed cuts", who: "ppc_op_female", ask: "write and load it", kind: "talk" },
+      listen: { label: "Pass the earphone", who: "compound_lead", ask: "let them listen", kind: "talk" },
+      screen: { label: "Play it for the aunt", who: "compound_lead", ask: "screen it", kind: "talk" }
+    };
+    const DEMO_Q = { who: "Who are you?", water: "About my water?", chalk: "The chalk mark?", donkey: "The donkey?", song: "The song?", aunt: "The aunt?",
+      beacon: "The beacon?", archive: "The archive?", compound: "The yard?", phone: "Show me your phone" };
+    function demoFocus(ch) { if (!ch || ch === activeAvatar) return; if (demo.line && demo.line.ch !== ch) demoRestore(); demo.withCh = ch; demo.metAt = demo.clock; demo.pinned = ch; }
+    function demoDo(id) {
+      const V = DEMO_VERB[id], ch = V && cast.byId && cast.byId[V.who]; if (!ch || demo.handoff) return;
+      demoFocus(ch); demo.greeted = true; demoThread("You", V.label, true);
+      const r = demoAnswer(ch, V.ask); demoSpeakAs(ch, r);
+      if (r.action && V.kind !== "talk") demoHandoff(V.kind, ch);
+      demo.dockSig = "";
+    }
+    function demoDock(dt) {
+      const ui = demo.ui; if (!ui) return;
+      demo.dockT = (demo.dockT || 0) - dt; if (demo.dockT > 0) return; demo.dockT = .25;
+      const c = npCarrier(), busy = !!demo.handoff || state.drivingCart || state.riding;
+      let verbs = [];
+      if (!busy) { let opts = []; try { opts = npEngine.options(npState) || []; } catch (e) { }
+        verbs = opts.filter(o => { const V = DEMO_VERB[o.id], ch = V && cast.byId && cast.byId[V.who];
+          return ch && DEMO_STOP_OF[V.who] === c.place && Math.hypot(ch.state.x - state.x, ch.state.z - state.z) < 9; }); }
+      const ch = !busy && demo.withCh, kb = ch ? DEMO_KB[ch.state.id] || {} : {};
+      const qs = ch ? ["who", ...Object.keys(kb).filter(k => k !== "who" && kb[k] && DEMO_Q[k])].slice(0, 4) : [];
+      const sig = verbs.map(o => o.id + o.enabled).join() + "|" + (ch ? ch.state.id : "") + qs.join() + c.liters;
+      if (sig === demo.dockSig) return; demo.dockSig = sig;
+      ui.verbs.innerHTML = verbs.map((o, i) => `<button class="verb${o.enabled ? "" : " off"}" data-verb="${o.id}">${i === 0 && o.enabled ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${o.enabled ? "" : `<small>${o.reason || "Not yet"}</small>`}</button>`).join("");
+      ui.chips.innerHTML = ch ? `<span class="chip who">${demoName(ch)}</span>` + qs.concat(["where"]).map((k, i) => `<button class="chip" data-ask="${k === "where" ? "Where next?" : DEMO_Q[k]}"><kbd>${i + 1}</kbd>${k === "where" ? "Where next?" : DEMO_Q[k]}</button>`).join("")
+        + `<button class="chip" data-type="1" aria-label="Type or speak">⌨︎</button>` : "";
+    }
+    /* ---------- A can changing hands, with weight: step in, lift, both hold, the other takes it, sets it down or pours ---------- */
+    const hoV = { a: new T.Vector3(), b: new T.Vector3(), c: new T.Vector3(), gL: new T.Vector3(), gR: new T.Vector3(), pL: new T.Vector3(), pR: new T.Vector3() };
+    function demoHandoff(kind, ch) {
+      if (!activeAvatar || state.cameraMode !== "third" || !window.makeWaterWifiCan) return;
+      if (!demo.can) {
+        demo.can = window.makeWaterWifiCan(T); demo.can.canRoot.visible = false; actorRoot.add(demo.can.canRoot);
+        // two hands on the top handle, for when the can is low (the heave grip under the base is out of reach near the ground)
+        for (const [k, x] of [["handleL", -.045], ["handleR", .045]]) { const o = new T.Object3D(); o.position.set(x, .208, -.022); demo.can.canRoot.add(o); demo.can[k] = o; }
+      }
+      const w = kind === "draw" ? { x: DEMO_SETS.basalt[0], z: DEMO_SETS.basalt[1] } : ch.group.getWorldPosition(new T.Vector3());   // world, not a set's local frame
+      const dx = w.x - state.x, dz = w.z - state.z, d = Math.hypot(dx, dz) || 1;
+      demo.handoff = { kind, ch, N: { x: w.x, z: w.z }, t: 0, dur: kind === "draw" ? 5.2 : 4.8, dir: [dx / d, dz / d], from: [state.x, state.z], fired: {},
+        keep: demo.keep && demo.line && demo.line.ch === ch ? demo.keep : { pose: ch.state.pose, opts: ch.state.poseOpts }, liters: npCarrier().liters };
+    }
+    function demoHandoffTick(dt) {
+      const H = demo.handoff; if (!H) return;
+      H.t += dt; const u = Math.min(1, H.t / H.dur), ch = H.ch, can = demo.can, A = activeAvatar, sm = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+      const [dx, dz] = H.dir, rx = -dz, rz = dx, hdg = Math.atan2(dx, dz);
+      const N = H.N, gy = (x, z) => driveSurfaceAt(x, z);
+      // step to a working distance, facing the pump, the person or the rack; a free-standing receiver turns to you
+      const stand = H.kind === "give" ? .95 : H.kind === "draw" ? 1.1 : 1.05, curD = Math.hypot(N.x - H.from[0], N.z - H.from[1]);
+      const sxp = N.x - dx * Math.min(stand, curD), szp = N.z - dz * Math.min(stand, curD), k = sm(0, .12, u);
+      state.x = H.from[0] + (sxp - H.from[0]) * k; state.z = H.from[1] + (szp - H.from[1]) * k;
+      state.y = gy(state.x, state.z) + 1.68; state.avatarHeading = hdg; if (carrierPhys) { carrierPhys.vx = carrierPhys.vz = 0; }
+      if (H.kind === "give") { ch.state.heading = hdg + Math.PI; ch.group.rotation.y = hdg + Math.PI; }
+      const P = { x: state.x, z: state.z }, y0 = gy(P.x, P.z), yN = gy(N.x, N.z);
+      const side = hoV.a.set(P.x + dx * .34, y0 + .62, P.z + dz * .34);            // carried two-handed in front, handle at the hips (inside the arms' reach)
+      const mid = hoV.b.set(P.x + dx * .5, (y0 + yN) / 2 + 1.0, P.z + dz * .5);
+      const pos = hoV.c; let tilt = 0;
+      if (H.kind === "draw") {                                                    // set the can under the spout, let it fill, lift it back
+        const ground = new T.Vector3(P.x + dx * .5, y0 + .26, P.z + dz * .5);
+        if (u < .25) pos.lerpVectors(side, ground, sm(.05, .25, u)); else if (u < .72) pos.copy(ground); else pos.lerpVectors(ground, side, sm(.72, .95, u));
+        can.innerLiq.scale.y = lerp(.2, 1, sm(.3, .7, u));
+      } else if (H.kind === "pour") {                                            // carry it in front, lower it, tip it, bring it back empty-ish
+        const front = new T.Vector3(P.x + dx * .45, y0 + .82, P.z + dz * .45), low = new T.Vector3(P.x + dx * .55, y0 + .55, P.z + dz * .55);
+        if (u < .12) pos.copy(side); else if (u < .32) pos.lerpVectors(side, front, sm(.12, .32, u)); else if (u < .42) pos.lerpVectors(front, low, sm(.32, .42, u));
+        else if (u < .8) { pos.copy(low); tilt = 1.3 * sm(.42, .52, u) * (1 - sm(.74, .8, u)); can.innerLiq.scale.y = lerp(Math.max(.25, H.liters / 20), .45, sm(.48, .76, u)); }
+        else pos.lerpVectors(low, side, sm(.8, .97, u));
+        if (u < .4) can.innerLiq.scale.y = Math.max(.25, Math.min(1, H.liters / 20));
+      } else {
+        const recv = new T.Vector3(N.x - dx * .3, yN + .96, N.z - dz * .3);
+        const down = new T.Vector3(N.x - rx * .36, yN + .19, N.z - rz * .36);
+        if (u < .14) pos.copy(side); else if (u < .34) pos.lerpVectors(side, mid, sm(.14, .34, u)); else if (u < .55) pos.copy(mid).y += .02 * Math.sin(H.t * 9);
+        else if (u < .75) pos.lerpVectors(mid, recv, sm(.55, .75, u));
+        else if (H.kind === "pour") { pos.copy(recv).y -= .25 * sm(.75, .85, u); tilt = 1.25 * sm(.78, .86, u) * (1 - sm(.95, 1, u)); can.innerLiq.scale.y = lerp(1, .4, sm(.8, .97, u)); }
+        else pos.lerpVectors(recv, down, sm(.75, .95, u));
+        if (u < .5) can.innerLiq.scale.y = Math.max(.25, Math.min(1, H.liters / 20));
+      }
+      can.canRoot.visible = u < .99 || H.kind === "give"; can.canRoot.position.copy(pos);
+      can.canRoot.rotation.set(tilt, H.kind === "draw" ? hdg : hdg + (u > .62 ? Math.PI : 0), 0);
+      can.canRoot.updateMatrixWorld(true);
+      const low = pos.y - y0 < .55 || tilt > .1;                                  // low or tipping: both hands on the handle; carried: handle and base
+      (low ? can.handleL : can.gripLeadL).getWorldPosition(hoV.gL); (low ? can.handleR : can.gripLeadR).getWorldPosition(hoV.gR); can.gripPartnerL.getWorldPosition(hoV.pL); can.gripPartnerR.getWorldPosition(hoV.pR);
+      // the hands: yours on the handle while you hold it; theirs under it once they take the weight
+      const youHold = H.kind === "draw" ? (u < .27 || u > .71) : H.kind === "pour" ? u < .98 : u < .64;
+      if (youHold) { A.setPose(H.kind === "pour" && tilt > .15 ? "pourBowl" : "unloadHandoff"); A.state.poseOpts = { worldGripL: hoV.gL.clone(), worldGripR: hoV.gR.clone(), unloadRole: "lead", unloadPhase: .3 }; A.state.scripted = true; }
+      else if (A.state.scripted) { A.setPose("idle"); A.state.scripted = false; }
+      if (H.kind === "give" && u > .36) {
+        const pour = H.kind === "pour" && u > .76;
+        ch.setPose(pour ? "pourBowl" : "childReceive20kg");
+        ch.state.poseOpts = { ...(ch.state.poseOpts || {}), speaking: !!demo.line, worldGripL: (pour ? hoV.gL : hoV.pR).clone(), worldGripR: (pour ? hoV.gR : hoV.pL).clone(), unloadRole: "child", unloadPhase: .5 };
+      }
+      // the camera steps to the side for a two-shot, then gives you back the road
+      const M = new T.Vector3((P.x + N.x) / 2, (y0 + yN) / 2, (P.z + N.z) / 2);
+      H.camT = (H.camT || 0) - dt;
+      if (H.cam === undefined || H.camT <= 0) {                                   // a high three-quarter view onto the hands, with a clear line of sight
+        H.camT = .5;
+        const ray = demo.ray || (demo.ray = new T.Raycaster()), from = pos.clone();
+        if (!H.blockers) {
+          const people = new Set(cast.list.map(c => c.group)); if (demo.can) people.add(demo.can.canRoot);
+          const inPerson = o => { for (let q = o, n = 0; q && n < 9; q = q.parent, n++) if (people.has(q)) return true; return false; };
+          H.blockers = []; mw.world.traverse(o => { if (o.isMesh && !o.isInstancedMesh && o.visible && o.geometry && !inPerson(o)) { const wp = o.getWorldPosition(hoV.pL); if (Math.hypot(wp.x - M.x, wp.z - M.z) < 14) H.blockers.push(o); } });
+        }
+        const dkx = donkey.state.x - M.x, dkz = donkey.state.z - M.z, away = (dkx * rx + dkz * rz) > 0 ? -1 : 1;   // the side the donkey is not on
+        let best = null;
+        for (const [a, b, back, up] of [[away, 2.0, -.6, 1.9], [-away, 2.0, -.6, 1.9], [away, 1.9, 1.2, 2.3], [-away, 1.9, 1.2, 2.3], [away, 1.2, 2.2, 2.6], [-away, 1.2, 2.2, 2.6], [0, 0, 2.6, 2.8]]) {
+          const cx = P.x + rx * b * a - dx * back, cz = P.z + rz * b * a - dz * back, cy = Math.max(gy(cx, cz) + .9, y0 + up);
+          const to = new T.Vector3(cx, cy, cz), dir = to.clone().sub(from), len = dir.length(); ray.set(from, dir.normalize()); ray.far = len;
+          if (!ray.intersectObjects(H.blockers, false).length) { best = [cx, cz, cy]; break; }
+        }
+        if (best || H.cam === undefined) H.cam = best || false;
+      }
+      demo.shot = u < .97 && H.cam ? { pos: new T.Vector3(H.cam[0], H.cam[2], H.cam[1]), look: new T.Vector3((pos.x + M.x) / 2, pos.y * .6 + (M.y + 1.1) * .4, (pos.z + M.z) / 2) } : null;   // no clear side: stay on the follow camera
+      // sound on the beats: cloth as you lift, water shifting as it changes hands, the can on stone, or the pour
+      const beat = (name, at, fn) => { if (!H.fired[name] && u >= at) { H.fired[name] = 1; if (field && field.ready) fn(); } };
+      beat("lift", .15, () => field.hit("cloth", pos, { gain: .5, label: "cloth" }));
+      if (H.kind !== "pour") beat("slosh", H.kind === "draw" ? .3 : .52, () => field.shot("fill_plastic", pos, { gain: .45, dur: H.kind === "draw" ? 2.6 : .9, bus: "foley", label: "water in the can", ref: 2.5 }));
+      if (H.kind === "give") beat("set", .93, () => field.hit("stone", pos, { gain: .95, label: "can set down" }));
+      if (H.kind === "pour") beat("pour", .47, () => field.shot("fill_plastic", pos, { gain: .65, from: 1, dur: 1.7, bus: "foley", label: "pour", ref: 3 }));
+      if (u >= 1) {
+        if (H.kind !== "give") can.canRoot.visible = false;
+        ch.setPose(H.keep.pose || "idle"); ch.state.poseOpts = H.keep.opts || {};
+        if (A.state.scripted) { A.setPose("idle"); A.state.scripted = false; }
+        demo.handoff = null; demo.shot = null; demo.dockSig = ""; if (field && field.swell) field.swell(7);
+        if (H.kind === "give") setTimeout(() => { if (!demo.handoff && demo.can) demo.can.canRoot.visible = false; }, 9000);
+      }
+    }
     function demoRestore() {
-      if (demo.line && demo.keep) { const ch = demo.line.ch; ch.setPose(demo.keep.pose); ch.state.poseOpts = demo.keep.opts || {}; }
+      if (demo.line && demo.keep) { const ch = demo.line.ch; ch.setPose(demo.keep.pose); ch.state.poseOpts = demo.keep.opts || {}; ch.state.voiceJaw = null; }
       demo.line = null; if (demo.ui) demo.ui.bub.hidden = true;
     }
     function demoSay(text) {
@@ -8192,6 +8381,7 @@ void main(){
         if (first.length > 2 && low.includes(first)) { if (demo.line) demoRestore(); demo.withCh = o; demo.greeted = true; break; }
       }
       const ch = demo.withCh; if (!ch) return null;
+      demo.greeted = true; (demo.greetedAt = demo.greetedAt || {})[ch.state.id] = demo.clock || 0;   // you spoke first: no greeting over your answer
       const ui = demoUi(); ui.you.textContent = text; ui.you.hidden = false; demo.youUntil = (demo.clock || 0) + 2600;
       demoThread("You", text, true);
       const r = demoAnswer(ch, text); demoSpeakAs(ch, r); return r.say;
@@ -8215,6 +8405,10 @@ void main(){
       }
       const cur = demo.withCh, curD = cur ? Math.hypot(cur.state.x - state.x, cur.state.z - state.z) : 99;
       if (cur && (curD > 4.4 || (best && best !== cur && bd < curD - .6))) { if (demo.line && demo.line.ch === cur) demoRestore(); demo.withCh = null; }
+      if (demo.withCh && demo.withCh !== demo.prefetched && demo.voiceMan && field && field.prefetch) {   // their voice is ready before they speak
+        demo.prefetched = demo.withCh; const pre = demo.withCh.state.id + "|";
+        Object.keys(demo.voiceMan.lines).filter(k => k.startsWith(pre) && !/\d/.test(k)).slice(0, 30).forEach(k => field.prefetch("./voice/" + demo.voiceMan.lines[k][0]));
+      }
       if (!demo.withCh && best) { demo.withCh = best; demo.metAt = now; demo.greeted = demo.greetedAt && demo.greetedAt[best.state.id] > now - 45000; }
       const ch = demo.withCh;
       if (ch) {
@@ -8229,6 +8423,10 @@ void main(){
       }
       if (demo.line) {
         const L = demo.line; L.t += dt;
+        if (L.voice) {                                                   // the jaw follows the recorded voice; the source follows the head
+          L.ch.state.voiceJaw = clamp((L.voice.env || 0) * 2.4, 0, .5);
+          L.voice.at(demoV.set(L.ch.state.x, (L.ch.state.y || 0) + 1.62, L.ch.state.z));
+        }
         ui.bub.lastElementChild.textContent = L.text.slice(0, Math.ceil(L.text.length * Math.min(1, L.t / (L.dur * .62))));
         demoV.set(L.ch.state.x, L.ch.state.y + 1.98, L.ch.state.z).project(camera);
         const on = demoV.z < 1 && Math.abs(demoV.x) < 1.1;
@@ -8238,6 +8436,7 @@ void main(){
       }
       if (demo.youUntil && now > demo.youUntil) { ui.you.hidden = true; demo.youUntil = 0; }
       fieldTick(dt);
+      demoHandoffTick(dt); demoDock(dt);
       if (!ui.brief.hidden && demo.startXZ && Math.hypot(state.x - demo.startXZ[0], state.z - demo.startXZ[1]) > 1.5) ui.brief.hidden = true;
       if (!demo.startXZ && demo.started) demo.startXZ = [state.x, state.z];
       ui.say.hidden = !ch; if (ch && document.activeElement !== ui.input) ui.input.placeholder = `Z · say something to ${demoName(ch)}`;
@@ -8442,8 +8641,9 @@ void main(){
         const backing = false;
         const stickRun = stickPointer !== null && Math.hypot(stickX, stickY) > .93;
         const sx = Math.sin(state.yaw), cz = Math.cos(state.yaw);
-        const moveDirX = -sx * fwdInput + cz * sideInput;
-        const moveDirZ = -cz * fwdInput - sx * sideInput;
+        const lockMove = DEMO && demo.handoff ? 0 : 1;                       // a handoff holds you in place until the can has changed hands
+        const moveDirX = (-sx * fwdInput + cz * sideInput) * lockMove;
+        const moveDirZ = (-cz * fwdInput - sx * sideInput) * lockMove;
         // A body has to come round before it can go: while it faces away from where you push, it slows into a pivot.
         const faceErr = third && state.avatarHeading != null && Math.hypot(moveDirX, moveDirZ) > .1
           ? Math.abs(Math.atan2(Math.sin(Math.atan2(moveDirX, moveDirZ) - state.avatarHeading), Math.cos(Math.atan2(moveDirX, moveDirZ) - state.avatarHeading))) : 0;
@@ -8498,7 +8698,8 @@ void main(){
           const safeCamY = Math.max(driveSurfaceAt(camX, camZ) + 0.65, desiredCamY);
           tmpCamPos.set(camX, safeCamY, camZ);
           tmpCamLook.set(state.x - Math.sin(state.yaw) * 1.8, footY + 1.38 + Math.sin(camPitch) * 0.9, state.z - Math.cos(state.yaw) * 1.8);
-          state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * 14));
+          if (DEMO && demo.shot) { tmpCamPos.copy(demo.shot.pos); tmpCamLook.copy(demo.shot.look); }   // the handoff two-shot
+          state.chaseCamPos.lerp(tmpCamPos, 1 - Math.exp(-dt * (DEMO && demo.shot ? 4 : 14)));
           state.chaseLookAt.lerp(tmpCamLook, 1 - Math.exp(-dt * 16));
           applyLevelChaseCamera(state.chaseCamPos, state.chaseLookAt);
         } else {
@@ -8931,7 +9132,7 @@ void main(){
             const cid = st.id || `cast_${ci}`;
             const pose = String(st.pose || "idle");
             // Preserve exact prop/pump/saddle IK poses untouched
-            if (pose === "pump" || pose === "heaveSaddle20kg" || pose === "childReceive20kg" || pose === "convoyPhoneWalk" || pose === "ride" || pose === "driving") {
+            if (pose === "pump" || pose === "heaveSaddle20kg" || pose === "childReceive20kg" || pose === "unloadHandoff" || pose === "pourBowl" || pose === "kneelPour" || pose === "convoyPhoneWalk" || pose === "ride" || pose === "driving") {
               worldBridge.setActorLocomotion(cid, { blend: 0 });
               continue;
             }
@@ -9046,10 +9247,12 @@ void main(){
         // Foot-plant grounding. A clip's hips decide how high its feet are (the jog runs 30 cm in the air on these
         // bodies), so for each clip-driven person near the camera we track the lowest foot over the last gait cycle and
         // move the body so that foot meets the ground. Bob and the run's flight phase stay; hovering and sinking go.
+        if (activeAvatar && activeAvatar.label && activeAvatar.label.sprite) activeAvatar.label.sprite.visible = false;   // no nameplate over yourself
+        if (DEMO && (demo.line || demo.handoff)) for (const c of cast.list) if (c.label && c.label.sprite) c.label.sprite.visible = false;   // the bubble names who speaks
         if (worldBridge) for (const ch of cast.list) {
           if (!ch || !ch.group || !ch.group.visible) continue;
           const pose = String((ch.state && ch.state.pose) || "");
-          if (pose === "ride" || pose === "driving" || pose === "glide" || pose === "sit" || pose === "seated") continue;
+          if (pose === "ride" || pose === "driving" || pose === "glide" || pose === "sit" || pose === "seated" || ch.state.scripted || /Handoff|Receive|pour|Pour|pump/.test(pose)) { if (ch.__feet) ch.__feet.corr = 0; continue; }   // posed by IK to a can or lever: leave it where the IK put it
           if (Math.hypot(ch.group.position.x - camera.position.x, ch.group.position.z - camera.position.z) > 60) continue;
           const fp = ch.__feet || (ch.__feet = (() => { const f = []; ch.group.traverse(o => { if (o.isBone && /^foot_[LR]$/i.test(o.name)) f.push(o); }); return { b: f.length === 2 ? f : null, win: [], corr: 0 }; })());
           if (!fp.b) continue;
@@ -9333,6 +9536,7 @@ void main(){
         const target = cast.list.find(c => c && c.group && c.group.visible && c !== activeAvatar);
         return target ? bumpNpc(target, 1, 0.4, 6.8) : false;
       },
+      castWorld: () => cast.list.filter(c => /ahiya/.test(c.state.circuit || '') || DEMO_STOP_OF[c.state.id]).map(c => { const w = c.group.getWorldPosition(new T.Vector3()); return { id: c.state.id, pose: c.state.pose, sx: +c.state.x.toFixed(2), sz: +c.state.z.toFixed(2), wx: +w.x.toFixed(2), wz: +w.z.toFixed(2), parent: c.group.parent && c.group.parent.name || c.group.parent && c.group.parent.type }; }),
       getCast: () => cast ? cast.list.map(c => ({
         id: c.state.id, name: c.state.name, role: c.state.role,
         x: +c.state.x.toFixed(1), z: +c.state.z.toFixed(1), pose: c.state.pose, visible: c.group.visible
@@ -9398,6 +9602,9 @@ void main(){
       setTouchStick: (fx, fy) => setStick(clamp(fx, -1, 1), -clamp(fy, -1, 1)),
       playIntro: startPrologue, skipIntro: () => finishIntro(false),
       groundAt: (x, z) => driveSurfaceAt(x, z), ahiyaGround: () => AHIYA_GROUND_MODE,
+      npOptions: () => { try { return npEngine.options(npState).map(o => ({ id: o.id, label: o.label, enabled: o.enabled, reason: o.reason })); } catch (e) { return String(e); } },
+      handoffDbg: () => demo.handoff ? { u: +(demo.handoff.t / demo.handoff.dur).toFixed(2), can: demo.can.canRoot.position.clone(), gL: hoV.gL.clone(), gR: hoV.gR.clone() } : null,
+      voiceDbg: () => ({ last: demo.lastVoice, man: !!demo.voiceMan, voices: field ? field.voices.length : -1, env: field ? field.voiceEnv : 0, hits: field ? field.hits.filter(h => h.bus === 'voice').length : 0 }),
       demo: () => ({ on: DEMO, solids: demo.solids ? demo.solids.length : (DEMO ? (demoBuildSolids(), demo.solids.length) : 0), withCh: demo.withCh ? demo.withCh.state.id : null, line: demo.line ? demo.line.text : "", pose: demo.withCh ? demo.withCh.state.pose : "",
         speaking: demo.withCh ? Boolean(demo.withCh.state.poseOpts && demo.withCh.state.poseOpts.speaking) : false, signal: demo.signal, thread: demo.thread || [] }),
       demoSay: t => demoSay(t), demoResolve: (x, z, r) => demoResolve(x, z, r || .35), wagonState: () => ({ x: wagon.x, z: wagon.z, speed: wagon.speed, heading: wagon.heading }),
