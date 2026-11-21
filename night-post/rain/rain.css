@@ -469,3 +469,4 @@
 #rw .liquid.action-drop,#rw .liquid.acts{color:#a9f7ee}
 #rw .liquid.amber,#rw .liquid.critical,#rw .liquid.time-current,#rw .liquid.voice-current,#rw #menu-toggle{color:#ffdfa8}
 #rw .liquid .drop-kicker,#rw .liquid .drop-note{color:inherit}
+#rw #next .drop-value,#rw #donkey .drop-value{font-size:19px;line-height:1.1}

@@ -24,7 +24,7 @@ document.body.append(world);
 const $ = id => world.querySelector('#' + id);
 const n = v => String(Number((+v || 0).toFixed(2))), clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const announce = text => { $('announcement').textContent = text; };
-const ui = { menu: false, scene: 'world', past: false, timeAge: 0, words: false, page: 0, details: false, reduced: matchMedia('(prefers-reduced-motion: reduce)').matches, memory: false, rest: false, say: false, recallIndex: 0, recordClock: 0, voiceId: null, voiceUntil: 0, flowHeld: false };
+const ui = { menu: false, scene: 'world', past: false, timeAge: 0, words: false, page: 0, details: false, reduced: matchMedia('(prefers-reduced-motion: reduce)').matches, memory: false, rest: false, say: false, recallIndex: 0, recordClock: 0, open: null, openAt: 0, titleUntil: 0, voiceId: null, voiceUntil: 0, flowHeld: false };
 const weather = { material: 'worms', erosion: .32, rain: .55 };
 const memory = createWeatherMemory({ windowSeconds: 12, maxEvents: 160, maxUtterances: 20, erosion: weather.erosion });
 const ink = createTraceInk({ host: world });
@@ -32,7 +32,7 @@ const glass = createFluidGlass($('fluid'), { image: () => B.canvas, reducedMotio
 let field = null, specs = [], refs = new Map(), S = B.state(), frameTime = performance.now(), lastRender = 0, pendingFocus = null, cause = 'The surface was still.', seen = { liters: null, place: null, speech: 0, said: 0 }, mapImage = '', mapAt = 0;
 const pulls = new Map(), caughtVoices = new Map(), undo = [];
 const svgNS = 'http://www.w3.org/2000/svg', menuInk = document.createElementNS(svgNS, 'svg'); menuInk.id = 'menu-ink'; menuInk.setAttribute('aria-hidden', 'true'); world.append(menuInk);
-let menuWater = [];
+let menuWater = [], lastAdmit = 0, held = null, mix = null; const admitted = new Set();
 
 const add = spec => specs.push(spec);
 const info = (id, slot, kicker, value, note = '', extra = {}) => add({ id, slot, kicker, value, note, kind: 'info', ...extra });
@@ -81,6 +81,7 @@ function watchGame() {
   if (seen.liters !== null && Math.abs(w.liters - seen.liters) > .05) { cause = w.liters > seen.liters ? `Water arrived. ${n(w.liters)} L in the can.` : `Water given. ${n(w.liters)} L left.`; glass.burst(world.clientWidth * .5, world.clientHeight * .62, 'water'); announce(cause); }
   seen.liters = w.liters;
   if (seen.place !== null && S.place.name !== seen.place) cause = `Reached ${S.place.name}.`;
+  if (seen.place !== S.place.name) ui.titleUntil = performance.now() + 7000;
   seen.place = S.place.name;
   if (S.said && S.said.seq !== seen.said) { seen.said = S.said.seq; memory.recordDialogue({ key: 'you-' + S.said.seq, speaker: 'You', text: S.said.text }); }
   if (sp && sp.seq !== seen.speech) { seen.speech = sp.seq; const line = memory.recordDialogue({ key: 'v-' + sp.seq, speaker: sp.name, text: sp.spoken || sp.text }); ui.voiceId = line?.id; ui.voiceUntil = performance.now() + (sp.dur || 4) * 1000 + 9000; cause = `${sp.name} spoke.`; }
@@ -102,16 +103,36 @@ function liveDrop(slot = 'primary') {
 }
 function exitDrop() { if (S.exit) button('exit', 'recovery', S.exit.label, 'back to your feet', live(() => B.act.exit()), { critical: true, className: 'amber', viscosity: 3, home: ui.scene === 'world' ? [.5, .86] : null }); }
 function base() {
-  if (!ui.menu) button('place', 'title', TITLES[ui.scene] || S.place.name, 'tap for more', () => { ui.details = !ui.details; render(); }, { className: 'drop-title', viscosity: 4, kicker: ui.scene === 'world' ? MODE[S.mode] : S.place.name });
+  if (!ui.menu && ui.scene !== 'world') button('place', 'title', TITLES[ui.scene] || S.place.name, 'tap for more', () => { ui.details = !ui.details; render(); }, { className: 'drop-title', viscosity: 4, kicker: ui.scene === 'world' ? MODE[S.mode] : S.place.name });
   if (ui.menu) { exitDrop(); if (undo.length) button('undo', 'recovery', 'Undo', undo.at(-1).label, doUndo, { critical: true, viscosity: 4, home: S.exit ? [.47, .68] : null }); return false; }
-  button('can', 'water', null, null, () => { ui.details = !ui.details; render(); }, { fill: S.water.liters / 20, kicker: 'Can', value: `${n(S.water.liters)} L`, note: ui.details ? 'of 20 L' : '', viscosity: 1.8 });
-  if (S.water.donkeyDown || S.water.donkey < .3) button('need', 'need', null, null, () => { ui.scene = 'donkey'; render(); }, { kicker: 'Donkey', value: S.water.donkeyDown ? 'Down' : 'Thirsty', note: 'water before the climb', className: 'amber', viscosity: 3 });
+  if (ui.scene !== 'world') button('can', 'water', null, null, () => { ui.details = !ui.details; render(); }, { fill: S.water.liters / 20, kicker: 'Can', value: `${n(S.water.liters)} L`, note: ui.details ? 'of 20 L' : '', viscosity: 1.8 });
+  if (ui.scene !== 'world' && (S.water.donkeyDown || S.water.donkey < .3)) button('need', 'need', null, null, () => { ui.scene = 'donkey'; render(); }, { kicker: 'Donkey', value: S.water.donkeyDown ? 'Down' : 'Thirsty', note: 'water before the climb', className: 'amber', viscosity: 3 });
   if (ui.rest) { info('rest', 'speech', 'Rest', 'The world waits.', 'Your water, plates and place are kept.', { className: 'speech-drop', viscosity: 3 }); button('resume', 'primary', 'Return', 'to this moment', () => { ui.rest = false; render(); }, { className: 'action-drop' }); return false; }
   if (ui.memory) { buildRecall(); return false; }
   return true;
 }
 const BUILD = {
-  world() { liveDrop(); exitDrop(); const v = currentVoice(); if (v) voiceDrop(v, voiceHome()); if (ui.details && S.place.next) info('next', 'c', 'Next', (S.map.stops.find(x => x.next) || {}).name || '', 'open Map in the edge current', { viscosity: 1.4 }); },
+  world() {                                                           // only what this place and this moment are about, each drop on the thing it speaks for
+    const W = world.clientWidth, H = world.clientHeight, T = S.things || {}, onScr = t => t && t.front && t.x > 0 && t.x < W && t.y > 0 && t.y < H;
+    const at = (t, dy = 0) => [clamp(t.x / W, .16, .8), clamp(t.y / H + dy, .17, .74)];
+    if (ui.open && performance.now() - ui.openAt > 11000) ui.open = null;
+    const open = ui.open, opener = id => () => { ui.open = ui.open === id ? null : id; ui.openAt = performance.now(); render(); };
+    if (mix) { const c = mix.c, pct = Math.round(mix.t * 100);
+      info('mix', 'a', `${nameOf(mix.a)} + ${nameOf(mix.b)}`, c.dry ? '' : mix.fired ? 'Done' : pct + '%', c.what + (c.litres && !mix.fired ? ` · ${n(c.litres * mix.t)} of ${n(c.litres)} L` : ''), { critical: true, className: c.dry ? 'amber' : 'action-drop', viscosity: 1, home: [clamp(mix.x / W, .2, .78), clamp(mix.y / H - .11, .14, .8)] }); }
+    exitDrop();
+    if (!open || open === 'primary') liveDrop();
+    if (!open || open === 'can') button('can', 'water', null, null, opener('can'), { fill: S.water.liters / 20, kicker: 'Can', value: `${n(S.water.liters)} L`, viscosity: 1.8, opens: true });
+    const d = T.donkey, thirsty = S.water.donkeyDown || S.water.donkey < .3;
+    if ((!open || open === 'donkey') && S.mode === 'walk' && d && d.dist < 28 && d.dist > 1.2 && onScr(d) && !(S.live && S.live.id === 'water-burro'))
+      button('donkey', 'need', null, null, opener('donkey'), { kicker: 'Donkey', value: thirsty ? 'Thirsty' : `${Math.round(S.water.donkey * 100)}%`, className: thirsty ? 'amber' : '', viscosity: 3, home: at(d, -.03), opens: true });
+    else if (!open && thirsty && S.mode === 'walk') button('donkey', 'need', null, null, opener('donkey'), { kicker: 'Donkey', value: 'Thirsty', className: 'amber', viscosity: 3, opens: true });
+    const v = currentVoice(); if (v && (!open || open === 'voice-current')) voiceDrop(v, voiceHome());
+    const nx = T.next;
+    if ((!open || open === 'next') && nx && nx.dist > 14) { const side = !nx.front ? (nx.x < W / 2 ? .8 : .16) : clamp(nx.x / W, .16, .8);
+      button('next', 'c', null, null, opener('next'), { kicker: 'Next', value: nx.name.split(' at the ').pop().replace(/^the /, ''), viscosity: 1.2, home: [side, nx.front ? clamp(nx.y / H - .05, .17, .5) : .5], opens: true }); }
+    if (performance.now() < ui.titleUntil && !open) button('place', 'title', S.place.name, '', opener('place'), { className: 'drop-title', viscosity: 4, kicker: MODE[S.mode], opens: true });
+    if (open) unfold(open);
+  },
   lens() {
     const L = S.lens, f = Math.min(100, L.focus);
     range('focus', 'a', 'Focus', L.focus > 100 ? 'Far' : `${n(f)} m`, 1.5, 100, .5, f, v => B.act.focus(v), { viscosity: 2.2 });
@@ -143,6 +164,54 @@ const BUILD = {
     item('glide', 'c', .5); item('run', 'd', .7); exitDrop();
   }
 };
+// Moving a drop opens it: what belongs to it comes out beside it, one at a time, and everything unrelated steps back.
+function unfold(id) {
+  const parent = specs.find(sp => sp.id === id); if (!parent) { ui.open = null; return; }
+  const [px, py] = homeFor(parent), W = world.clientWidth, H = world.clientHeight, kids = [];
+  const kInfo = (kid, kicker, value) => kids.push(h => info(kid, 'a', kicker, value, '', { viscosity: 2, home: h }));
+  const kItem = (mid, visc) => { const it = menuItems().find(x => x.id === mid); if (it) kids.push(h => button('it-' + mid, 'a', null, null, live(() => { it.run(); ui.openAt = performance.now(); }), { kicker: it.label, value: it.value || (it.on ? 'on' : 'off'), viscosity: visc, className: 'acts', home: h })); };
+  if (id === 'can') { kInfo('k-space', 'Room', `${n(20 - S.water.liters)} L`); kInfo('k-reserve', 'Keep back', `${n(S.water.reserve)} L`); if (S.water.liters > 0) { kItem('squirt', .6); kItem('throw', .7); } }
+  else if (id === 'donkey') { kInfo('k-dwater', 'Water', `${Math.round(S.water.donkey * 100)}%`); kItem('ride', 1.1); kItem('drive', 1.4); }
+  else if (id === 'next') { kids.push(h => info('map-view', 'speech', 'The way', '', '', { className: 'plate-detail map-drop', image: drawMap(), viscosity: 3, home: [W < 701 ? .4 : .3, .52] })); kItem('route', 1.4); }
+  else if (id === 'place') { kInfo('k-stops', 'Reached', `${S.place.visited.length} of 4`); kItem('region', 2); kItem('run', .7); }
+  else if (id === 'voice-current') { kids.push(h => button('say', 'a', 'Say', '', () => { ui.scene = 'people'; ui.say = true; ui.open = null; render(); $('say-text').focus(); }, { viscosity: 4, className: 'acts', home: h })); kids.push(h => button('k-voices', 'a', 'Voices', '', () => { ui.memory = true; ui.open = null; render(); }, { viscosity: 4, className: 'amber', home: h })); }
+  const toward = Math.atan2((.5 - py) * H, (.5 - px) * W), R = Math.min(150, W * .34), list = kids.filter(k => k.length);
+  let slot = 0; for (const k of kids) { const a = toward + (slot - (kids.length - 1) / 2) * .78; slot++; k([clamp(px + Math.cos(a) * R / W, .16, .8), clamp(py + Math.sin(a) * R / H, .16, .78)]); }
+}
+// Collision: carry one drop into another and their functions mix. The share climbs while they stay together; at 100% the
+// mixed function happens. Part them early and nothing moves. A pair with nothing to do together only says why.
+const NAME = { can: 'Can', primary: () => S.live ? (S.live.kind === 'draw' ? 'Source' : S.live.person || 'Donkey') : 'Here', donkey: 'Donkey', next: 'Next stop', 'voice-current': () => S.speech?.name || 'Voice', place: 'Here' };
+const nameOf = id => typeof NAME[id] === 'function' ? NAME[id]() : NAME[id] || id;
+function combo(a, b) {
+  const has = x => a === x || b === x, L = S.live, w = S.water, T = S.things || {};
+  if (has('can') && has('primary') && L && L.kind !== 'talk') return { what: L.kind === 'draw' ? 'Fill the can' : L.id === 'share' ? 'Share water' : 'Water the donkey', litres: Math.abs(L.delta) || 0, run: () => B.act.live(true) };
+  if (has('can') && has('donkey')) return { what: w.liters < .05 ? 'The can is empty' : 'Carry the can closer', dry: true };
+  if (has('can') && has('voice-current')) return L && L.id === 'share' ? { what: 'Share water', litres: 0, run: () => B.act.live(true) } : { what: w.liters < .05 ? 'Nothing to pour' : 'Stand with them to share', dry: true };
+  if (has('donkey') && has('next') && T.next) { const it = menuItems().find(x => x.id === 'ride'); if (it) return { what: 'Ride on', run: () => it.run() }; }
+  if (has('can') && has('next') && T.next) return { what: `${n(w.liters)} L for ${Math.round(T.next.dist)} m`, dry: true };
+  if (has('primary') && has('voice-current') && L && L.kind === 'talk') return { what: 'Ask', run: () => B.act.live(false) };
+  return null;
+}
+function mixTick(bodies, dt) {
+  if (!held || ui.past || ui.menu || ui.scene !== 'world') { mix = null; return; }
+  let hit = null; for (const [id, b] of bodies) { if (id === held || /^(time-current|steer|mix|menu-)/.test(id)) continue; if (Math.hypot(ptr.x - b.x, ptr.y - b.y) < Math.max(b.rx || 40, b.ry || 30) + 16) { hit = id; break; } }
+  const c = hit && combo(held, hit);
+  if (c) { if (!mix || mix.b !== hit) mix = { a: held, b: hit, t: 0, fired: false }; mix.c = c; mix.x = ptr.x; mix.y = ptr.y;
+    if (!c.dry && !mix.fired) { mix.t = Math.min(1, mix.t + dt / 1.3); if (mix.t >= 1) { mix.fired = true; c.run(); cause = c.what + '.'; announce(cause); glass.burst(ptr.x, ptr.y, 'water'); S = B.state(); } } }
+  else if (mix && !mix.fired) { mix.t -= dt * 2.2; if (mix.t <= 0) mix = null; }
+}
+// Thick description: drawn out of a drop along the finger's path, it says what the thing is, where it stands and what it is for, now.
+function describe(id) {
+  const T = S.things || {}, w = S.water, L = S.live, W = world.clientWidth, m = v => Math.round(v);
+  const way = t => !t.front ? 'behind you' : t.x < W * .33 ? 'to your left' : t.x > W * .67 ? 'to your right' : 'ahead';
+  if (id === 'can') return w.liters < .05 ? 'The can is empty. Twenty litres fit. The donkey drinks before the climb.' : `${n(w.liters)} litres in the can, room for ${n(20 - w.liters)}. Keep ${n(w.reserve)} back for the way home.`;
+  if (id === 'donkey' && T.donkey) return `The donkey stands ${m(T.donkey.dist)} m ${way(T.donkey)}, ${w.donkeyDown ? 'down and needing water now' : w.donkey < .3 ? 'thirsty and waiting' : 'watered and ready'}. Open it to ride or hitch the wagon.`;
+  if (id === 'next' && T.next) return `${T.next.name}, ${m(T.next.dist)} m ${way(T.next)}. ${S.place.visited.length} of 4 stops reached. Open it for the way.`;
+  if (id === 'place') return `${S.place.name}. ${MODE[S.mode]}. ${T.next ? 'Next is ' + T.next.name + '.' : 'Every stop is reached.'}`;
+  if (id === 'primary' && L && ui.scene === 'world') return L.kind === 'draw' ? `The source. Pull to draw ${n(Math.abs(L.delta) || 0)} litres into your can. Nothing is lost.` : L.kind === 'give' ? `Pour from your can here${L.person ? ', for ' + L.person : ''}. ${n(w.liters)} litres in hand.` : `${L.person || 'Someone'} is beside you. Pull to ask.`;
+  if (id === 'exit' && S.exit) return `${MODE[S.mode]}. ${S.exit.label}.`;
+  return '';
+}
 function drawMap() {
   if (performance.now() - mapAt < 900 && mapImage) return mapImage; mapAt = performance.now();
   const c = drawMap.c || (drawMap.c = document.createElement('canvas')); c.width = 360; c.height = 250; const g = c.getContext('2d'), P = (u, v) => [36 + u * 288, 34 + v * 176];
@@ -161,6 +230,8 @@ function render() {
   world.className = `scene-${ui.scene} travel-${S.mode}${ui.menu ? ' menu-open' : ''}${ui.reduced ? ' still' : ''}${ui.words ? ' read-water' : ''}${ui.past ? ' reading-past' : ''}${ui.details ? ' details-open' : ''}${S.speed > .4 && !ui.past ? ' moving' : ''}`;
   world.dataset.scene = ui.scene;
   if (S.ready) { if (ui.past) buildPast(view); else if (base()) BUILD[ui.scene](); timeDrop(); }
+  { const now = performance.now(), want = new Set(specs.map(sp => sp.id)); for (const id of admitted) if (!want.has(id)) admitted.delete(id);
+    specs = specs.filter(sp => { if (admitted.has(sp.id)) return true; if (sp.critical || now - lastAdmit > 380) { admitted.add(sp.id); if (!sp.critical) lastAdmit = now; return true; } return false; }); }
   syncDrops(); renderMenu();
   const canSteer = S.ready && !ui.past && !ui.rest && !ui.memory && !ui.menu && !ui.say;
   $('steer').hidden = !canSteer; $('say-form').hidden = !ui.say || ui.scene !== 'people' || ui.past; $('menu-toggle').hidden = !S.ready;
@@ -210,8 +281,10 @@ const ENTRIES = [
 function renderMenu() {
   const t = $('menu-toggle'), menu = $('menu-stream');
   t.setAttribute('aria-expanded', String(ui.menu)); t.setAttribute('aria-label', ui.menu ? 'Close menu' : 'Open menu'); t.querySelector('.drop-label').textContent = ui.menu ? 'Return' : 'Menu'; menu.hidden = !ui.menu;
-  if (!ui.menu) return;
+  if (!ui.menu) { ui.menuAt = 0; return; }
+  if (!ui.menuAt) ui.menuAt = performance.now();
   if (!menu.children.length) for (const it of ENTRIES) { const b = document.createElement('button'); b.id = 'menu-' + it.id; b.className = 'liquid'; b.dataset.viscosity = '1.8'; b.innerHTML = '<span class="drop-label"></span>'; b.firstElementChild.textContent = it.label; b.addEventListener('click', e => { if (field?.suppressClick(e)) return; it.run(); }); menu.append(b); }
+  [...menu.children].forEach((b, i) => { b.hidden = performance.now() - ui.menuAt < Math.floor(i / 2) * 110; });
   for (const b of menu.children) { if (b.id === 'menu-' + (ui.scene === 'world' ? 'here' : ui.scene)) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }
   $('menu-hold-rain').querySelector('.drop-label').textContent = ui.reduced ? 'Let it move' : 'Hold rain'; $('menu-read-water').querySelector('.drop-label').textContent = ui.words ? 'Hide words' : 'Read water';
 }
@@ -233,6 +306,7 @@ function edgeCurrent() { const width = world.clientWidth, height = world.clientH
 function inkLabel(id) {
   const sp = refs.get(id)?._spec; if (sp?.voiceText) return `${sp.kicker}. ${sp.voiceText}`;
   if (id === 'time-current') return ui.past ? `−${n(ui.timeAge)} s` : 'Now';
+  const thick = sp?.kind !== 'range' && !sp?.cycle ? describe(id) : ''; if (thick) return thick;
   if (sp) { const words = [sp.kicker, sp.value || sp.label].filter(Boolean).join(' '); return words || sp.note || ''; }
   if (id === 'steer') return 'Move';
   return $(id)?.getAttribute('aria-label') || $(id)?.textContent.trim() || '';
@@ -245,7 +319,7 @@ function initializeField() {
   };
   field = createRainField({ host: world, glass: proxy, historyLabels: false,
     onCatch: (id, meta) => {
-      const body = field?.getBodies().find(b => b.id === id), sp = refs.get(id)?._spec;
+      const body = field?.getBodies().find(b => b.id === id), sp = refs.get(id)?._spec; if (meta.reason !== 'focus' && meta.reason !== 'keyboard' && !/^(time-current|mix)$/.test(id)) held = id;
       ink.arm({ id, text: inkLabel(id), x: meta.x ?? body?.x ?? 50, y: meta.y ?? body?.y ?? 100, keyboard: id === 'time-current' || meta.reason === 'focus' || meta.reason === 'keyboard', kind: id === 'voice-current' ? 'voice' : 'water' });
       if (id === 'voice-current' && sp?.voiceId) { caughtVoices.set(id, sp.voiceId); memory.holdDialogue(sp.voiceId, true); }
       if (sp?.kind === 'range' && id !== 'time-current' && !pulls.has(id)) { pulls.set(id, sp.number); pulls.set(id + ':from', { number: sp.number, label: inkLabel(id), action: sp.action }); }
@@ -267,6 +341,8 @@ function initializeField() {
       if (id === 'voice-current') { const voice = caughtVoices.get(id); if (voice) memory.holdDialogue(voice, false); caughtVoices.delete(id); ink.setTrails(field?.getTrails() || []); }
       const from = pulls.get(id + ':from'), sp = refs.get(id)?._spec;
       if (from && sp && Math.abs(sp.number - from.number) > 1e-6) { pushUndo(from.label, () => from.action(from.number)); cause = `${from.label} became ${inkLabel(id)}.`; render(); }
+      const mixed = held === id && mix; if (mixed && !mix.fired && !mix.c.dry && mix.t > .12) announce('Parted. Nothing moved.'); if (held === id) { held = null; mix = null; }
+      if (meta.dragged && !mixed && sp?.opens && ui.open !== id) { ui.open = id; ui.openAt = performance.now(); render(); }
       pulls.delete(id); pulls.delete(id + ':from'); if (id === 'primary') ui.flowHeld = false;
     }
   });
@@ -294,7 +370,7 @@ function syncField() {
   }
   const fixed = (id, anchorX, anchorY, extra = {}) => { const element = $(id); if (element && !element.hidden && element.getClientRects().length) descriptors.push({ id, element, anchorX, anchorY, role: 'action', viscosity: 1.7, label: [...element.querySelectorAll('.drop-label,.drop-value,.drop-note')].map(el => el.textContent.trim()).filter(Boolean).join(' · '), ...extra }); };
   if (!ui.menu) { fixed('steer', .2, .81, { critical: true, viscosity: .55 }); fixed('say-form', mobile ? .32 : .23, .43, { role: 'info', critical: true, viscosity: 4 }); }
-  else { const entries = [...$('menu-stream').children], gap = .735 / Math.max(1, Math.ceil(entries.length / 2) - 1); entries.forEach((element, i) => { const col = i % 2, row = Math.floor(i / 2); descriptors.push({ id: element.id, element, role: 'action', viscosity: 2.3 + (i % 3) * .4, anchorX: col ? .77 : .18, anchorY: .155 + row * gap + (col ? .013 : 0), label: element.textContent.trim() }); }); }
+  else { const all = [...$('menu-stream').children], gap0 = 0, entries = all, gap = .735 / Math.max(1, Math.ceil(entries.length / 2) - 1); entries.forEach((element, i) => { if (element.hidden) return; const col = i % 2, row = Math.floor(i / 2); descriptors.push({ id: element.id, element, role: 'action', viscosity: 2.3 + (i % 3) * .4, anchorX: col ? .77 : .18, anchorY: .155 + row * gap + (col ? .013 : 0), label: element.textContent.trim() }); }); }
   field.setMenuOpen(ui.menu); field.sync(descriptors);
   const stats = glass.getStats(); world.dataset.fluidRenderer = stats.renderer; world.dataset.fluidFrameMs = stats.cpuFrameMs; world.dataset.fluidTexture = stats.sourceReady ? 'ready' : stats.textureError || 'loading';
 }
@@ -308,7 +384,7 @@ $('steer').addEventListener('pointermove', e => { if (drag && e.pointerId === dr
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) $('steer').addEventListener(type, () => stopSteer());
 // rubbing: a finger dragged across the world thins the wet words and traces under it (the same drag still turns the view)
 let rub = null;
-window.addEventListener('pointerdown', e => { if (e.target.closest?.('#rw .liquid,input,textarea,button,a,nav') || e.button > 0 || ui.menu || ui.past) return; rub = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false }; }, true);
+window.addEventListener('pointerdown', e => { if (e.target.closest?.('#rw .liquid,input,textarea,button,a,nav') || e.button > 0 || ui.menu || ui.past) return; if (ui.open) { ui.open = null; render(); } rub = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false }; }, true);
 window.addEventListener('pointermove', e => { if (!rub || rub.id !== e.pointerId) return; if (Math.hypot(e.clientX - rub.x, e.clientY - rub.y) > 8) rub.moved = true; if (rub.moved) { ink.rub(e.clientX, e.clientY, 25); field?.erodeAt?.(e.clientX, e.clientY, 25); } }, true);
 for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, e => { if (rub?.id === e.pointerId) rub = null; }, true);
 $('menu-toggle').addEventListener('click', () => { returnNow(false); stopSteer(); ui.menu = !ui.menu; render(); });
@@ -329,6 +405,7 @@ window.addEventListener('pointermove', seePtr, true); window.addEventListener('p
 document.addEventListener('mouseleave', () => { ptr.at = -1e9; });
 function inkTick(now, dt) {
   const bodies = new Map((field?.getBodies() || []).map(b => [b.id, b])), alive = ptr.mouse ? now - ptr.at < 60000 : now - ptr.at < 1400, k = Math.min(1, dt * 7);
+  mixTick(bodies, dt);
   const one = (el, id, base, fresh) => {
     const b = bodies.get(id); let near = 0;
     if (b && alive) { const d = Math.hypot(ptr.x - b.x, ptr.y - b.y) - Math.max(b.rx || 40, b.ry || 30); near = clamp(1 - d / 120, 0, 1); near *= near; }

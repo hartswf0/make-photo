@@ -8307,7 +8307,7 @@ void main(){
       const RAIN2 = urlParams.get("rain") !== "1";                         // the vendored rain engine (night-post/rain/) instead of dew-ui
       demo.dew = window.makeDew && !RAIN2 ? window.makeDew(canvas) : null;
       document.body.classList.toggle("rain2", RAIN2);
-      if (RAIN2) { const V = "?v=4", lk = document.createElement("link"); lk.rel = "stylesheet"; lk.href = "./rain/rain.css" + V; document.head.append(lk);
+      if (RAIN2) { const V = "?v=6", lk = document.createElement("link"); lk.rel = "stylesheet"; lk.href = "./rain/rain.css" + V; document.head.append(lk);
         const en = document.createElement("script"); en.src = "./rain/engine.js" + V; en.onload = () => { const su = document.createElement("script"); su.src = "./rain/surface.js" + V; document.head.append(su); }; document.head.append(en); }
       document.body.classList.toggle("dew-skin", !!demo.dew);
       if (demo.dew) {
@@ -8469,6 +8469,11 @@ void main(){
             said: demo.youLine || null,
             lens: { focus: state.focusDist, filter: state.filterIdx, filterName: FILTERS[state.filterIdx].short, filters: FILTERS.map(f => f.short), stop: state.stopIdx, stopName: STOPS[state.stopIdx].name, stops: STOPS.map(s => s.name),
               mode: state.modeIdx, modeName: MODES[state.modeIdx].label, modes: MODES.map(m => m.label), tilt: state.tilt, guides: !!state.ppcOn, lidar: !!state.lidarOn, camera: state.cameraMode, plates: state.plates.length },
+            things: (() => { const pj = (x, y, z) => { demoV.set(x, y, z).project(camera); return { x: (demoV.x * .5 + .5) * innerWidth, y: (-demoV.y * .5 + .5) * innerHeight, front: demoV.z < 1 }; }, D = (x, z) => Math.hypot(x - state.x, z - state.z);
+              const ppl = !cast ? [] : cast.list.filter(ch => ch.group.visible && ch !== activeAvatar && D(ch.state.x, ch.state.z) < 16).sort((a, b) => D(a.state.x, a.state.z) - D(b.state.x, b.state.z)).slice(0, 2);
+              return { donkey: { ...pj(donkey.state.x, (donkey.state.y || state.y || 0) + 1.5, donkey.state.z), dist: D(donkey.state.x, donkey.state.z) },
+                next: nx ? { ...pj(DEMO_SETS[nx][0], (state.y || 0) + 2.2, DEMO_SETS[nx][1]), name: DEMO_SETS[nx][2], dist: D(DEMO_SETS[nx][0], DEMO_SETS[nx][1]) } : null,
+                people: ppl.map(ch => ({ id: ch.state.id, name: demoName(ch), ...pj(ch.state.x, (ch.state.y || 0) + 1.9, ch.state.z), dist: D(ch.state.x, ch.state.z) })) }; })(),
             map: { stops: order.map(k => ({ id: k, name: DEMO_SETS[k][2], u: U(DEMO_SETS[k][0], DEMO_SETS[k][1])[0], v: U(DEMO_SETS[k][0], DEMO_SETS[k][1])[1], next: k === nx, seen: c.visited.includes(k) })), me: U(state.x, state.z), donkey: U(donkey.state.x, donkey.state.z), heading: -state.yaw },
             sound: { voices: !!demo.voice, tape: !audioEl.paused, radio: !!(field && field.radio && field.radio.on) }
           };
