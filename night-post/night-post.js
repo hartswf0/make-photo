@@ -7896,6 +7896,7 @@ void main(){
         if (d - R < edgeD) { edgeD = d - R; const k = d > 1e-3 ? R / d : 0; edge = (fieldEdge || (fieldEdge = new T.Vector3())).set(em.x + (cp.x - em.x) * k, 0, em.z + (cp.z - em.z) * k); }
       }
       if (edge) edge.y = driveSurfaceAt(edge.x, edge.z) + 2;
+      demo.rainIn = rainIn;
       field.update(dt, { rain: rainIn, rainEdge: edgeD > 0 && edgeD < 260 ? edge : null, heightRel: Math.max(0, Math.min(1, (gy - field.lo) / Math.max(1, field.hi - field.lo))), shelter: Math.max(0, 1 - nearSet(state.x, state.z) / 14), speed,
         wagon: { on: state.drivingCart, speed: wagon.speed || 0, throttle: state.drivingCart ? thr : 0, pos: wagon.group.position },
         talking: !!demo.line, watch: npCarrier().watch || 0, compoundOpen: npCarrier().visited.includes("beacon"), donkeyHead: dHead });
@@ -8126,6 +8127,34 @@ void main(){
         body.demo-touch #demo-say{display:none}
         body.demo-touch.demo-typing #demo-say{display:flex!important;left:12px;right:12px;width:auto;transform:none;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:80}
         body.demo-typing #dk-ctx,body.demo-typing #dk-pad{display:none}
+        /* ---- dew: every control is water on the lens; you see the world through it ---- */
+        #demo-bub,#demo-you{display:none!important}
+        #dk-status,#dk-menu-btn,#dk-pad button,#dk-jump,#dk-ctx .verb,#dk-chips button,.dk .bead{
+          background:radial-gradient(130% 140% at 28% 18%,rgba(255,255,255,.30) 0,rgba(255,255,255,.07) 34%,rgba(6,22,30,.20) 68%,rgba(0,8,12,.44) 100%)!important;
+          -webkit-backdrop-filter:blur(2.5px) saturate(1.6) brightness(1.18);backdrop-filter:blur(2.5px) saturate(1.6) brightness(1.18);
+          border:1px solid rgba(255,255,255,.34)!important;color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.95),0 0 8px rgba(0,10,16,.85);
+          box-shadow:inset 0 -7px 12px rgba(255,255,255,.13),inset 0 6px 9px rgba(0,8,12,.30),0 5px 14px rgba(0,0,0,.38)!important}
+        #dk-ctx .verb:not(.alt),#dk-menu-btn.on,.dk .bead.on,#dk-pad button.on{background:radial-gradient(130% 140% at 28% 18%,rgba(255,255,255,.42) 0,rgba(56,232,255,.34) 36%,rgba(20,150,180,.36) 70%,rgba(0,40,56,.6) 100%)!important;border-color:rgba(160,245,255,.75)!important}
+        #dk-ctx .verb.urgent{background:radial-gradient(130% 140% at 28% 18%,rgba(255,255,255,.4) 0,rgba(255,110,90,.5) 40%,rgba(120,20,10,.6) 100%)!important}
+        #dk-pad #dk-expose{background:radial-gradient(120% 120% at 30% 22%,rgba(255,255,255,.62) 0,rgba(255,255,255,.16) 36%,rgba(10,30,40,.2) 70%,rgba(0,8,12,.5) 100%)!important;border:2px solid rgba(255,255,255,.7)!important}
+        #dk-ctx .verb,#dk-chips button{animation:dew-in .45s cubic-bezier(.2,.9,.3,1.2) both}
+        @keyframes dew-in{from{transform:scale(.3);opacity:0;filter:blur(5px)}to{transform:none;opacity:1;filter:none}}
+        #dk-menu-btn{width:52px;min-width:52px;height:44px;padding:0;border-radius:50% 50% 50% 50%/42% 42% 58% 58%;font-size:12px;font-weight:600}
+        #dk-rail{right:max(10px,env(safe-area-inset-right,0px));top:calc(62px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:8px;align-items:center;width:52px}
+        #dk-rail[hidden],#dk-row[hidden]{display:none}
+        #dk-rail .bead{width:46px;height:46px;border-radius:50%;font-size:10.5px;font-weight:600;padding:0;animation:dew-in .4s cubic-bezier(.2,.9,.3,1.2) both}
+        #dk-rail .bead:nth-child(2){animation-delay:.05s}#dk-rail .bead:nth-child(3){animation-delay:.1s}#dk-rail .bead:nth-child(4){animation-delay:.15s}
+        #dk-row{left:max(10px,env(safe-area-inset-left,0px));right:calc(70px + env(safe-area-inset-right,0px));top:calc(60px + env(safe-area-inset-top,0px));display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 20px;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+        #dk-row::-webkit-scrollbar{display:none}
+        #dk-row .bead{flex:none;position:relative;width:52px;height:52px;border-radius:50%;padding:0;animation:dew-in .4s cubic-bezier(.2,.9,.3,1.2) both;background-size:cover!important;background-position:center!important}
+        #dk-row .bead:nth-child(n+2){animation-delay:.04s}#dk-row .bead:nth-child(n+4){animation-delay:.09s}#dk-row .bead:nth-child(n+6){animation-delay:.14s}
+        #dk-row .bead i{font:600 11.5px system-ui,sans-serif;font-style:normal;display:block;max-width:46px;margin:0 auto;overflow:hidden;white-space:nowrap}
+        #dk-row .bead em{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:3px;font:500 10px system-ui,sans-serif;font-style:normal;letter-spacing:.06em;color:#dff4fa;white-space:nowrap;text-shadow:0 1px 2px #000,0 0 6px rgba(0,10,16,.9)}
+        #dk-row .bead.pic i{font-size:13px}
+        .dk-plate{left:50%;top:36%;width:min(46vw,230px);aspect-ratio:1;object-fit:cover;border-radius:50%;transform:translate(-50%,-50%) scale(.1);opacity:0;pointer-events:none;z-index:79;border:2px solid rgba(255,255,255,.6);box-shadow:inset 0 0 30px rgba(0,0,0,.5),0 10px 30px rgba(0,0,0,.5);transition:transform .5s cubic-bezier(.2,.9,.3,1.15),opacity .4s}
+        .dk-plate.on{transform:translate(-50%,-50%) scale(1);opacity:1}.dk-plate.fall{transform:translate(-50%,130vh) scale(.8,1.3);opacity:.6;transition:transform 1s cubic-bezier(.6,0,.9,.4),opacity 1s}
+        #dk-flash{border-radius:50%;aspect-ratio:1;object-fit:cover;border:2px solid rgba(255,255,255,.7)}
+        @media (prefers-reduced-motion:reduce){#dk-ctx .verb,#dk-chips button,.dk .bead{animation:none}}
         body.demo-full #dk-pad,body.demo-full #dk-ctx,body.demo-full #dk-status{display:none!important}
         body.demo-mode #dialogue-card,body.demo-mode #immersive-corner,body.demo-mode #ctx-actions{display:none!important}
         body.demo-mode #demo-phone{display:none!important}
@@ -8164,25 +8193,9 @@ void main(){
         #dk-chips .who{border:0;background:none;color:#8fd0de;font-size:11px;letter-spacing:.08em;text-transform:uppercase;pointer-events:none;padding:6px 2px}
         #dk-ctx kbd,#dk-chips kbd{font:10px ui-monospace,monospace;opacity:.6;margin-right:5px}
         body.demo-touch .dk kbd{display:none}
-        #dk-sheet{right:0;top:0;bottom:0;width:min(380px,100vw);background:rgba(5,12,17,.97);border-left:1px solid #23414b;overflow:auto;overscroll-behavior:contain;z-index:78;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(16px + env(safe-area-inset-bottom,0px))}
-        #dk-sheet[hidden]{display:none}
-        #dk-sheet header{display:flex;justify-content:space-between;align-items:center;position:sticky;top:-12px;background:rgba(5,12,17,.98);padding:4px 0 8px;z-index:1}
-        #dk-sheet header b{font:600 16px Georgia,serif}#dk-sheet header button{width:38px;height:38px;border-radius:19px;background:#0b2a38;border:1px solid #38e8ff;font-size:18px}
-        #dk-sheet h6{margin:14px 0 6px;font:600 10.5px system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8fd0de}
-        #dk-sheet .g{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-        #dk-sheet .g button,#dk-sheet .g select{min-height:42px;padding:6px 10px;border-radius:10px;background:#0b2a38;border:1px solid #2a6a7a;text-align:left;font-size:13.5px}
-        #dk-sheet .g button.on{background:#38e8ff;color:#06222c;border-color:#38e8ff}
-        #dk-sheet .g button small{display:block;color:#8fb3bd;font-size:11px}#dk-sheet .g button.on small{color:#0b3a46}
-        #dk-sheet .row{display:grid;grid-template-columns:44px 1fr 44px;gap:6px;align-items:center;margin-bottom:6px}
-        #dk-sheet .row button{height:40px;border-radius:10px;background:#0b2a38;border:1px solid #2a6a7a;font-size:18px}
-        #dk-sheet .row span{text-align:center;font-size:13px}#dk-sheet .row span small{display:block;color:#8fb3bd;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
-        #dk-sheet .plates{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}#dk-sheet .plates img{width:100%;border-radius:4px;display:block}
-        #dk-sheet .thread span{display:block;font-size:12.5px;padding:4px 8px;margin:3px 0;border-radius:8px;background:#12232c}#dk-sheet .thread span.me{background:#38e8ff;color:#06222c;margin-left:30px}
-        #dk-sheet .keys{color:#a9c6ce;font-size:12.5px;line-height:1.6}
         #dk-flash{left:50%;top:50%;transform:translate(-50%,-50%);width:min(240px,50vw);border:6px solid #f1eee6;box-shadow:0 8px 30px rgba(0,0,0,.6);pointer-events:none;transition:all .6s cubic-bezier(.5,0,.3,1);z-index:79}
         #dk-flash.fly{left:40px;top:28px;width:40px;opacity:.2;border-width:2px}
-        body.dk-sheet-open #dk-pad,body.dk-sheet-open #dk-ctx{display:none}
-        @media (orientation:portrait) and (max-width:700px){#dk-sheet{left:0;width:auto;top:auto;max-height:78dvh;border-left:0;border-top:1px solid #23414b;border-radius:16px 16px 0 0}
+        @media (orientation:portrait) and (max-width:700px){
           #dk-ctx{left:calc(150px + env(safe-area-inset-left,0px))}}
         @media (max-height:500px) and (orientation:landscape){#dk-pad button{width:48px;height:48px;font-size:10.5px}#dk-pad #dk-expose{width:56px;height:56px}
           #dk-ctx{right:calc(84px + env(safe-area-inset-right,0px))}#dk-chips{bottom:calc(70px + env(safe-area-inset-bottom,0px));left:calc(150px + env(safe-area-inset-left,0px))}}
@@ -8203,39 +8216,15 @@ void main(){
           <button id="demo-brief-ok">Begin</button></div>
         <div id="demo-bub" class="dm" hidden><b></b><span></span></div>
         <div id="dk-status" class="dk" role="status"><span class="can"><i></i><u></u></span><b id="dk-l">0 L</b><span id="dk-sig" aria-label="Beacon signal"><i></i><i></i><i></i><i></i></span><small id="dk-place"></small></div>
-        <button id="dk-menu-btn" class="dk" type="button" aria-label="Menu">☰ Menu</button>
+        <button id="dk-menu-btn" class="dk" type="button" aria-label="Menu" aria-expanded="false">Menu</button>
         <div id="dk-ctx" class="dk"><div id="dk-chips" hidden></div><div id="dk-verbs"></div></div>
         <button type="button" id="dk-jump" class="dk" aria-label="Jump">Jump</button>
         <div id="dk-pad" class="dk" role="group" aria-label="Actions">
           <button type="button" id="dk-veh" aria-label="Vehicle" hidden><span>⛟</span><em id="dk-veh-l" style="font-style:normal">Drive</em><kbd>C</kbd></button>
           <button type="button" id="dk-expose" aria-label="Expose an 8 by 10 plate"><span>◉</span>Expose<kbd>⇧Space</kbd></button>
         </div>
-        <section id="dk-sheet" class="dk" hidden aria-label="Menu"><header><b>Night Post · Ahiya</b><button type="button" id="dk-close" aria-label="Close">×</button></header>
-          <p id="dk-los" style="margin:2px 0 0;color:#b9d7df;font-size:12.5px"></p><div class="thread" id="dk-thread"></div>
-          <h6>Lens</h6>
-          <div class="row"><button data-lens="focus:-">−</button><span id="dk-focus"></span><button data-lens="focus:+">+</button></div>
-          <div class="row"><button data-lens="filter:-">‹</button><span id="dk-filter"></span><button data-lens="filter:+">›</button></div>
-          <div class="row"><button data-lens="stop:-">‹</button><span id="dk-stop"></span><button data-lens="stop:+">›</button></div>
-          <div class="row"><button data-lens="mode:-">‹</button><span id="dk-mode"></span><button data-lens="mode:+">›</button></div>
-          <div class="row"><button data-lens="tilt:-">↓</button><span id="dk-tilt"></span><button data-lens="tilt:+">↑</button></div>
-          <div class="g"><button data-act="guides">Frame guides<small>H</small></button><button data-act="lidar">Lidar<small>L</small></button>
-            <button data-act="cam">Camera<small id="dk-cam">third person · V</small></button><button data-act="plates">Plates<small id="dk-pn">0 exposed</small></button></div>
-          <div class="plates" id="dk-plates" hidden></div>
-          <h6>Move &amp; travel</h6>
-          <div class="g"><button data-act="map">Map<small>M</small></button><button data-act="ride">Ride the donkey<small>Shift V</small></button>
-            <button data-act="glide">Glide / base jump<small>J</small></button><button data-act="run">Run toggle<small>Shift held</small></button>
-            <button data-act="region">Region<small>R</small></button><button data-act="route">Route<small>switch circuit</small></button>
-            <button data-act="dispatch">Dispatch book</button><button data-act="dance">Dance<small>K</small></button></div>
-          <h6>Sound</h6>
-          <div class="g"><button data-act="listen">Listen &amp; mix<small>O</small></button><button data-act="voice">Voices<small id="dk-voice">on</small></button>
-            <button data-act="tape">Tape<small id="dk-tape">playing</small></button><button data-act="radio">Wagon radio<small>N, in the wagon</small></button></div>
-          <h6>World</h6>
-          <div class="g"><button data-act="throw">Throw the can<small>G</small></button><button data-act="squirt">Squirt water<small>F</small></button>
-            <button data-act="rig">Deploy rig<small>B</small></button><button data-act="sync">Sync zone<small>T</small></button>
-            <button data-act="video">In-world video<small>Y</small></button><button data-act="trailer">Trailer<small>U</small></button>
-            <select id="dk-playas" aria-label="Play as"></select><button data-act="hud">Full game HUD<small id="dk-hud">off</small></button></div>
-          <h6>How to play</h6><p class="keys" id="dk-keys"></p><div class="g"><button data-act="help">Show the intro card</button></div>
-        </section>
+        <nav id="dk-rail" class="dk" hidden aria-label="Menu groups"></nav>
+        <div id="dk-row" class="dk" hidden role="toolbar" aria-label="Menu items"></div>
         <div id="demo-you" class="dm" hidden></div>
         <form id="demo-say" class="dm" hidden autocomplete="off"><input id="demo-in" maxlength="140" aria-label="Say something" placeholder=""><button type="button" id="demo-mic" aria-pressed="false">Mic</button><button type="submit">Say</button></form>
         <div id="demo-phone" class="dm shut"><h4><span>PHONE <em>tap</em></span><span id="demo-sig"><i></i><i></i><i></i><i></i></span></h4><div id="demo-can"><i></i><u></u></div>
@@ -8252,9 +8241,10 @@ void main(){
       document.body.classList.add("demo-clean");
       const phone = q("demo-phone"); phone.firstElementChild.onclick = () => phone.classList.toggle("shut");
       document.body.classList.add("demo-mode");
+      demo.dew = window.makeDew ? window.makeDew(canvas) : null;
       const touch = matchMedia("(pointer:coarse)").matches;
       document.body.classList.toggle("demo-touch", touch);
-      ui.verbs = q("dk-verbs"); ui.chips = q("dk-chips"); ui.sheet = q("dk-sheet"); ui.dk = q("dk-ctx");
+      ui.verbs = q("dk-verbs"); ui.chips = q("dk-chips"); ui.dk = q("dk-ctx");
       ui.dk.addEventListener("click", e => {
         const b = e.target.closest("button"); if (!b) return; e.stopPropagation();
         if (b.dataset.verb) demoDo(b.dataset.verb);
@@ -8269,56 +8259,69 @@ void main(){
       q("dk-jump").onclick = () => jumpPlayer();
       q("dk-expose").onclick = () => { exposePlate(); demoFlash(); };
       q("dk-veh").onclick = () => { if (state.riding) toggleRide(); else toggleCart(); demo.dockSig = ""; };
-      const sheet = ui.sheet, openSheet = on => { sheet.hidden = !on; document.body.classList.toggle("dk-sheet-open", on); if (on) demoSheet(true); };
-      ui.openSheet = openSheet;
-      q("dk-menu-btn").onclick = () => openSheet(sheet.hidden); q("dk-close").onclick = () => openSheet(false); q("dk-status").onclick = () => openSheet(true);
-      q("dk-status").style.cursor = "pointer";
-      const pa = q("dk-playas"), src = document.getElementById("sel-play-as");
-      if (src) { pa.innerHTML = src.innerHTML; pa.value = src.value; pa.onchange = () => { setPlayAs(pa.value); src.value = pa.value; }; } else pa.hidden = true;
-      const cyc = (k, n, d) => (k + d + n) % n;
-      sheet.addEventListener("click", e => {
-        const b = e.target.closest("button"); if (!b) return;
-        if (b.dataset.lens) {
-          const [what, dir] = b.dataset.lens.split(":"), d = dir === "+" ? 1 : -1;
-          if (what === "focus") state.focusDist = clamp(state.focusDist * (d > 0 ? 1.25 : .8), 1.2, 900);
-          else if (what === "filter") state.filterIdx = cyc(state.filterIdx, FILTERS.length, d);
-          else if (what === "stop") state.stopIdx = cyc(state.stopIdx, STOPS.length, d);
-          else if (what === "mode") state.modeIdx = cyc(state.modeIdx, MODES.length, d);
-          else if (what === "tilt") state.tilt = clamp(state.tilt + .16 * d, -.35, .35);
-          state.focusPulse = 1; updateHUD(); demoSheet(true); return;
-        }
-        const a = b.dataset.act, click = id => { const el = document.getElementById(id); if (el) el.click(); };
-        const close = () => openSheet(false);
-        if (a === "guides") state.ppcOn = !state.ppcOn, updateHUD();
-        else if (a === "lidar") toggleLidar();
-        else if (a === "cam") toggleCameraMode();
-        else if (a === "plates") { const pl = q("dk-plates"); pl.hidden = !pl.hidden; }
-        else if (a === "map") { close(); toggleBigMap(); }
-        else if (a === "ride") { close(); toggleRide(); }
-        else if (a === "glide") { close(); toggleGlide(); }
-        else if (a === "run") { state.sprintToggle = !state.sprintToggle; }
-        else if (a === "region") { close(); toggleRegion(); }
-        else if (a === "route") { close(); click("field-switch-btn"); }
-        else if (a === "dispatch") { close(); click("field-dispatch-btn"); }
-        else if (a === "dance") { close(); triggerDance(); }
-        else if (a === "listen") { close(); startField(); if (field) field.panel(!field.panelOpen); }
-        else if (a === "voice") ui.voice.click();
-        else if (a === "tape") toggleTape();
-        else if (a === "radio") { if (field && field.radio && state.drivingCart) field.radio.tune(); }
-        else if (a === "rig") { close(); deployRig(); }
-        else if (a === "throw") { close(); throwObject(); }
-        else if (a === "squirt") { close(); triggerSquirtBurst(1.4); }
-        else if (a === "sync") syncResonantZone();
-        else if (a === "video") { close(); toggleInWorldVideo(); }
-        else if (a === "trailer") { close(); if (machinima) machinima.toggle("trailer"); }
-        else if (a === "hud") { const on = !document.body.classList.contains("demo-clean"); document.body.classList.toggle("demo-clean", !on); document.body.classList.toggle("demo-mode", !on); document.body.classList.toggle("demo-full", on); }
-        else if (a === "help") { close(); ui.brief.hidden = false; }
-        demoSheet(true);
+      // The menu is beads on the edges of the glass: groups run down the right edge, a group's items along the top.
+      // It is always one tap away and it never sits on the world; the middle of the glass stays clear.
+      const cyc = (k, n, d = 1) => (k + d + n) % n, click = id => { const el = document.getElementById(id); if (el) el.click(); };
+      const FOCI = [2.5, 6, 18, 45, 120, 400];
+      const names = () => { const o = document.getElementById("sel-play-as"); return o ? [...o.options].map(x => [x.value, x.textContent.replace(/^PLAY AS:\s*/i, "")]) : []; };
+      const MENU = demo.MENU = {
+        Lens: [
+          { id: "focus", cap: "focus", val: () => state.focusDist < 100 ? state.focusDist.toFixed(0) + " m" : "far", act: () => { const k = FOCI.findIndex(f => f > state.focusDist * 1.05); state.focusDist = FOCI[k < 0 ? 0 : k]; state.focusPulse = 1; updateHUD(); } },
+          { id: "filter", cap: "filter", val: () => FILTERS[state.filterIdx].short.split(" ")[0], act: () => { state.filterIdx = cyc(state.filterIdx, FILTERS.length); updateHUD(); } },
+          { id: "stop", cap: "stop", val: () => STOPS[state.stopIdx].name, act: () => { state.stopIdx = cyc(state.stopIdx, STOPS.length); updateHUD(); } },
+          { id: "mode", cap: "mode", val: () => MODES[state.modeIdx].label.toLowerCase().split(" ")[0], act: () => { state.modeIdx = cyc(state.modeIdx, MODES.length); updateHUD(); } },
+          { id: "tilt", cap: "tilt", val: () => state.tilt > .05 ? "up" : state.tilt < -.05 ? "down" : "level", act: () => { state.tilt = state.tilt > .05 ? -.32 : state.tilt < -.05 ? 0 : .32; updateHUD(); } },
+          { id: "guides", cap: "guides", val: () => state.ppcOn ? "on" : "off", on: () => state.ppcOn, act: () => { state.ppcOn = !state.ppcOn; updateHUD(); } },
+          { id: "lidar", cap: "lidar", val: () => state.lidarOn ? "on" : "off", on: () => state.lidarOn, act: () => toggleLidar() },
+          { id: "cam", cap: "view", val: () => state.cameraMode === "third" ? "3rd" : "1st", act: () => toggleCameraMode() },
+          { id: "plates", cap: "plates", val: () => String(state.plates.length), img: () => state.plates.length ? state.plates.at(-1).dataUrl : "", act: () => demoShowPlate() }],
+        Go: [
+          { id: "map", cap: "map", val: () => "M", act: () => toggleBigMap(), closes: true },
+          { id: "ride", cap: "donkey", val: () => state.riding ? "down" : "ride", on: () => state.riding, act: () => toggleRide() },
+          { id: "drive", cap: "wagon", val: () => state.drivingCart ? "park" : "drive", on: () => state.drivingCart, act: () => toggleCart() },
+          { id: "glide", cap: "glide", val: () => state.gliding ? "land" : "jump", on: () => state.gliding, act: () => toggleGlide(), closes: true },
+          { id: "run", cap: "run", val: () => state.sprintToggle ? "on" : "off", on: () => state.sprintToggle, act: () => { state.sprintToggle = !state.sprintToggle; } },
+          { id: "region", cap: "region", val: () => String(state.region || "").slice(0, 5), act: () => toggleRegion(), closes: true },
+          { id: "route", cap: "route", val: () => "swap", act: () => click("field-switch-btn"), closes: true },
+          { id: "dispatch", cap: "dispatch", val: () => "book", act: () => click("field-dispatch-btn"), closes: true },
+          { id: "dance", cap: "dance", val: () => "K", act: () => triggerDance() }],
+        Sound: [
+          { id: "listen", cap: "listen", val: () => field && field.panelOpen ? "open" : "mix", on: () => field && field.panelOpen, act: () => { startField(); if (field) field.panel(!field.panelOpen); } },
+          { id: "voice", cap: "voices", val: () => demo.voice ? "on" : "off", on: () => demo.voice, act: () => ui.voice.click() },
+          { id: "tape", cap: "tape", val: () => audioEl.paused ? "off" : "on", on: () => !audioEl.paused, act: () => toggleTape() },
+          { id: "radio", cap: "radio", val: () => field && field.radio && field.radio.on ? field.radio.name.split(" ")[0] : "tune", act: () => { if (field && field.radio) field.radio.tune(); } }],
+        World: [
+          { id: "throw", cap: "throw", val: () => "G", act: () => throwObject() },
+          { id: "squirt", cap: "squirt", val: () => "F", act: () => triggerSquirtBurst(1.4) },
+          { id: "rig", cap: "rig", val: () => "B", act: () => deployRig() },
+          { id: "sync", cap: "sync", val: () => "T", act: () => syncResonantZone() },
+          { id: "video", cap: "video", val: () => "Y", act: () => toggleInWorldVideo(), closes: true },
+          { id: "trailer", cap: "trailer", val: () => "U", act: () => { if (machinima) machinima.toggle("trailer"); }, closes: true },
+          { id: "playas", cap: "play as", val: () => (names().find(n => n[0] === state.playAs) || ["", "you"])[1].slice(0, 6).toLowerCase(), act: () => { const N = names(); if (N.length) setPlayAs(N[cyc(N.findIndex(n => n[0] === state.playAs), N.length)][0]); } },
+          { id: "hud", cap: "old hud", val: () => document.body.classList.contains("demo-full") ? "on" : "off", on: () => document.body.classList.contains("demo-full"),
+            act: () => { const on = !document.body.classList.contains("demo-full"); document.body.classList.toggle("demo-clean", !on); document.body.classList.toggle("demo-mode", !on); document.body.classList.toggle("demo-full", on); } },
+          { id: "help", cap: "how to", val: () => "?", act: () => { ui.brief.hidden = false; }, closes: true }]
+      };
+      const rail = q("dk-rail"), row = q("dk-row"), mbtn = q("dk-menu-btn");
+      rail.innerHTML = Object.keys(MENU).map(k => `<button type="button" class="bead" data-group="${k}">${k}</button>`).join("");
+      const openMenu = (on, group) => {
+        demo.menuOpen = on; demo.menuGroup = on ? (group || demo.menuGroup || "Lens") : demo.menuGroup;
+        rail.hidden = row.hidden = !on; mbtn.setAttribute("aria-expanded", on); mbtn.classList.toggle("on", on); document.body.classList.toggle("dk-menu-open", on);
+        if (on) { row.dataset.group = ""; demoBeads(true); if (demo.dew) for (let i = 0; i < 3; i++) demo.dew.drop({ x: innerWidth - 30 + (Math.random() - .5) * 20, y: 70 + i * 30, r: 2.5 + Math.random() * 3, grow: 0, life: .3 + i * .25, amb: true }); }
+        else if (demo.dew) { const r = mbtn.getBoundingClientRect(); for (let i = 0; i < 5; i++) demo.dew.wisp(r.left + r.width / 2 + (Math.random() - .5) * 30, r.bottom + 10 + Math.random() * 60); }   // the beads leave as vapour
+      };
+      ui.openSheet = openMenu;
+      mbtn.onclick = () => openMenu(!demo.menuOpen);
+      rail.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; demo.menuGroup = b.dataset.group; row.dataset.group = ""; demoBeads(true); });
+      row.addEventListener("click", e => {
+        const b = e.target.closest("button"); if (!b) return; const it = (MENU[demo.menuGroup] || []).find(x => x.id === b.dataset.item); if (!it) return;
+        it.act(); if (demo.dew) { const r = b.getBoundingClientRect(); demo.dew.drop({ x: r.left + r.width / 2, y: r.bottom - 6, r: 4 + Math.random() * 2, state: "fall", vy: 30, grow: 1 }); }   // a touch shakes a drop loose
+        if (it.closes) openMenu(false); else demoBeads(true);
       });
       addEventListener("keydown", e => {                                   // E does the stop's verb when there is one; every other key is the game's
         if (document.activeElement === ui.input || e.repeat) return;
         if (e.code === "KeyE") { const b = ui.verbs.querySelector("button.verb[data-verb]:not(.off)"); if (b) { e.stopImmediatePropagation(); e.preventDefault(); demoDo(b.dataset.verb); } }
-        if (e.code === "Escape" && !sheet.hidden) { e.stopImmediatePropagation(); openSheet(false); }
+        if (e.code === "Escape" && demo.menuOpen) { e.stopImmediatePropagation(); openMenu(false); }
       }, true);
       q("demo-keys").textContent = touch ? "Left stick walks; push it to the rim to run. Drag anywhere else to look. Jump, Expose, Throw and the wagon are bottom right; everything else is in Menu."
         : "W A S D walk · Shift run · Space jump · Shift+Space expose · drag to look · Z talk · E the stop’s verb · G throw · C wagon · V camera · M map · O listen.";
@@ -8354,6 +8357,13 @@ void main(){
         handGestureL: r.gesture || "talking_gesticulate", handGestureR: r.pose ? undefined : "talking_gesticulate", expressiveArmGesture: true, phoneOut: r.phone ? true : undefined });
       demo.line = { ch, text, t: 0, dur, end: r.end };
       ui.bub.firstElementChild.textContent = demoName(ch); ui.bub.hidden = false;
+      if (demo.dew) {                                                       // the line condenses beside the speaker; said aloud it will fall, refused or narrated it will smoke
+        if (demo.msg) demo.msg.end(demo.msg.kind);
+        demo.msg = demo.dew.say({ name: demoName(ch), text: "", anchor: () => {
+          demoV.set(ch.state.x, (ch.state.y || 0) + 1.98, ch.state.z).project(camera); if (demoV.z >= 1 || Math.abs(demoV.x) > 1.15) return null;
+          return [clamp((demoV.x * .5 + .5) * innerWidth, 24, innerWidth - 24), clamp((-demoV.y * .5 + .5) * innerHeight, 74, innerHeight - 200)]; } });
+        demo.msg.kind = /“/.test(text) && !/^“Not (yet|here)\.”/.test(text) ? "fall" : "smoke";
+      }
       demoThread(demoName(ch), text, false);
       // the voice: the recorded Kokoro line for exactly what is said aloud, from the speaker's head; the system voice only if none
       const spoken = (text.match(/“[^”]+”/g) || []).map(q => q.slice(1, -1).trim()).join(" ").trim();
@@ -8396,20 +8406,22 @@ void main(){
       const im = document.createElement("img"); im.id = "dk-flash"; im.className = "dk"; im.src = pl.dataUrl; document.body.append(im);
       setTimeout(() => im.classList.add("fly"), 650); setTimeout(() => im.remove(), 1400); demo.dockSig = "";
     }
-    function demoSheet(force) {
-      const ui = demo.ui; if (!ui || ui.sheet.hidden) return; const q = id => document.getElementById(id);
-      const set = (id, t) => { const el = q(id); if (el && el.innerHTML !== t) el.innerHTML = t; };
-      set("dk-focus", `${state.focusDist.toFixed(1)} m<small>focus</small>`); set("dk-filter", `${FILTERS[state.filterIdx].short}<small>filter · 1–6</small>`);
-      set("dk-stop", `${STOPS[state.stopIdx].name}<small>stop</small>`); set("dk-mode", `${MODES[state.modeIdx].label.toLowerCase()}<small>mode</small>`);
-      set("dk-tilt", `${Math.round(state.tilt * 100)}<small>tilt · Q</small>`);
-      set("dk-cam", (state.cameraMode === "third" ? "third" : "first") + " person · V"); set("dk-pn", `${state.plates.length} exposed`);
-      set("dk-voice", demo.voice ? "on" : "off"); set("dk-tape", audioEl.paused ? "paused" : "playing"); set("dk-hud", document.body.classList.contains("demo-full") ? "on" : "off");
-      set("dk-los", ui.los ? ui.los.textContent : "");
-      const th = q("dk-thread"); if (th && demo.thread) { const h = demo.thread.map(([w, t, m]) => `<span class="${m ? "me" : ""}">${m ? "" : w + ": "}${t}</span>`).join(""); if (th.innerHTML !== h) th.innerHTML = h; }
-      const pl = q("dk-plates"); if (pl && !pl.hidden && pl.childElementCount !== state.plates.length) pl.innerHTML = state.plates.slice(-12).reverse().map(p => `<img alt="Plate ${p.id}, ${p.place}" src="${p.dataUrl}">`).join("");
-      for (const [act, on] of [["guides", state.ppcOn], ["lidar", !!state.lidarOn], ["run", !!state.sprintToggle], ["voice", demo.voice], ["hud", document.body.classList.contains("demo-full")]]) {
-        const b = ui.sheet.querySelector(`[data-act="${act}"]`); if (b) b.classList.toggle("on", !!on);
+    function demoShowPlate() {                                                // the last plate, held in a large drop for a moment, then it falls
+      const pl = state.plates.at(-1); if (!pl || !pl.dataUrl) return;
+      const im = document.createElement("img"); im.className = "dk dk-plate"; im.alt = `Plate ${pl.id}, ${pl.place}`; im.src = pl.dataUrl; document.body.append(im);
+      requestAnimationFrame(() => im.classList.add("on")); setTimeout(() => im.classList.add("fall"), 2600); setTimeout(() => im.remove(), 3600);
+    }
+    function demoBeads(force) {
+      const ui = demo.ui; if (!ui || !demo.menuOpen || !demo.MENU) return;
+      const rail = document.getElementById("dk-rail"), row = document.getElementById("dk-row"), items = demo.MENU[demo.menuGroup] || [];
+      for (const b of rail.children) b.classList.toggle("on", b.dataset.group === demo.menuGroup);
+      if (row.dataset.group !== demo.menuGroup) {
+        row.dataset.group = demo.menuGroup;
+        row.innerHTML = items.map(it => `<button type="button" class="bead" data-item="${it.id}"><i></i><em>${it.cap}</em></button>`).join(""); row.scrollLeft = 0;
       }
+      items.forEach((it, k) => { const b = row.children[k]; if (!b) return; const v = it.val(), i = b.firstElementChild;
+        if (i.textContent !== v) i.textContent = v; b.classList.toggle("on", !!(it.on && it.on()));
+        const img = it.img ? it.img() : ""; if ((b.dataset.img || "") !== (img ? "1" + img.length : "")) { b.dataset.img = img ? "1" + img.length : ""; b.style.backgroundImage = img ? `radial-gradient(circle at 32% 26%,rgba(255,255,255,.5),rgba(255,255,255,0) 30%),url(${img})` : ""; b.classList.toggle("pic", !!img); } });
     }
     // The deck shows only what is true now. Each element is bound to the state that makes it so:
     //   gauge + signal  always (they change every choice); place name  for 4 s after you arrive
@@ -8425,11 +8437,16 @@ void main(){
       // SENSE
       q("dk-status").querySelector(".can i").style.width = Math.min(100, c.liters / 20 * 100) + "%";
       const lt = `${c.liters} L`; if (q("dk-l").textContent !== lt) q("dk-l").textContent = lt;
+      if (demo.lastL != null && demo.lastL !== c.liters && demo.dew) {            // the change itself, beside the gauge, then it falls
+        const dl = c.liters - demo.lastL, r = q("dk-status").getBoundingClientRect(), m = demo.dew.say({ text: (dl > 0 ? "+" : "−") + Math.abs(dl) + " L", anchor: () => [r.left + 26, r.bottom + 22] });
+        m.set(m.full || ((dl > 0 ? "+" : "−") + Math.abs(dl) + " L"), 1); setTimeout(() => m.end("fall"), 1800);
+      }
+      demo.lastL = c.liters;
       [...q("dk-sig").children].forEach((b, i) => b.classList.toggle("on", i < (demo.signal || 0)));
       const place = typeof currentPlaceName === "function" ? currentPlaceName() : "";
       if (place !== demo.shownPlace) { demo.shownPlace = place; demo.placeUntil = (demo.clock || 0) + 4000; q("dk-place").textContent = place; }
       q("dk-place").classList.toggle("gone", (demo.clock || 0) > (demo.placeUntil || 0));
-      demoSheet();
+      demoBeads();
       // vehicle: only where it is real
       const dWagon = Math.hypot(wagon.x - state.x, wagon.z - state.z), dDonkey = Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z);
       const veh = state.drivingCart ? "Park" : state.riding ? "Get down" : onFoot && dWagon < 7.5 ? "Drive" : "";
@@ -8563,6 +8580,7 @@ void main(){
     function demoRestore() {
       if (demo.line && demo.keep) { const ch = demo.line.ch; ch.setPose(demo.keep.pose); ch.state.poseOpts = demo.keep.opts || {}; ch.state.voiceJaw = null; }
       demo.line = null; if (demo.ui) demo.ui.bub.hidden = true;
+      if (demo.msg) { demo.msg.end(demo.msg.kind); demo.msg = null; }
     }
     function demoSay(text) {
       const low = text.toLowerCase();
@@ -8574,6 +8592,7 @@ void main(){
       const ch = demo.withCh; if (!ch) return null;
       demo.greeted = true; (demo.greetedAt = demo.greetedAt || {})[ch.state.id] = demo.clock || 0;   // you spoke first: no greeting over your answer
       const ui = demoUi(); ui.you.textContent = text; ui.you.hidden = false; demo.youUntil = (demo.clock || 0) + 2600;
+      if (demo.dew) { const m = demo.dew.say({ me: true, text, anchor: () => [innerWidth - 34, innerHeight - 222] }); m.set(text, 1); setTimeout(() => m.end("fall"), 1700); }   // your words: a small drop that falls
       demoThread("You", text, true);
       const r = demoAnswer(ch, text); demoSpeakAs(ch, r); return r.say;
     }
@@ -8619,6 +8638,7 @@ void main(){
           L.voice.at(demoV.set(L.ch.state.x, (L.ch.state.y || 0) + 1.62, L.ch.state.z));
         }
         ui.bub.lastElementChild.textContent = L.text.slice(0, Math.ceil(L.text.length * Math.min(1, L.t / (L.dur * .62))));
+        if (demo.msg) demo.msg.set(L.text, L.t / (L.dur * .62));
         demoV.set(L.ch.state.x, L.ch.state.y + 1.98, L.ch.state.z).project(camera);
         const on = demoV.z < 1 && Math.abs(demoV.x) < 1.1;
         ui.bub.style.left = clamp((demoV.x * .5 + .5) * innerWidth, 150, innerWidth - 150) + "px"; ui.bub.style.top = clamp((-demoV.y * .5 + .5) * innerHeight, 70, innerHeight - (demo.talking ? 250 : 170)) + "px";   // never into the controls band
@@ -8628,6 +8648,7 @@ void main(){
       if (demo.youUntil && now > demo.youUntil) { ui.you.hidden = true; demo.youUntil = 0; }
       fieldTick(dt);
       demoHandoffTick(dt); demoDock(dt);
+      if (demo.dew) { demo.dew.rain = demo.rainIn || 0; demo.dew.frame(dt); }
       if (!ui.brief.hidden && demo.startXZ && Math.hypot(state.x - demo.startXZ[0], state.z - demo.startXZ[1]) > 1.5) ui.brief.hidden = true;
       if (!demo.startXZ && demo.started) demo.startXZ = [state.x, state.z];
       ui.say.hidden = !ch; if (ch && document.activeElement !== ui.input) ui.input.placeholder = `Z · say something to ${demoName(ch)}`;
@@ -9795,6 +9816,7 @@ void main(){
       groundAt: (x, z) => driveSurfaceAt(x, z), ahiyaGround: () => AHIYA_GROUND_MODE,
       npOptions: () => { try { return npEngine.options(npState).map(o => ({ id: o.id, label: o.label, enabled: o.enabled, reason: o.reason })); } catch (e) { return String(e); } },
       handoffDbg: () => demo.handoff ? { u: +(demo.handoff.t / demo.handoff.dur).toFixed(2), can: demo.can.canRoot.position.clone(), gL: hoV.gL.clone(), gR: hoV.gR.clone() } : null,
+      dewDbg: () => demo.dew ? { drops: demo.dew.drops.length, beads: demo.dew.beads.length, wisps: demo.dew.wisps.length, rain: +(demo.dew.rain || 0).toFixed(2) } : null,
       voiceDbg: () => ({ last: demo.lastVoice, man: !!demo.voiceMan, voices: field ? field.voices.length : -1, env: field ? field.voiceEnv : 0, hits: field ? field.hits.filter(h => h.bus === 'voice').length : 0 }),
       demo: () => ({ on: DEMO, solids: demo.solids ? demo.solids.length : (DEMO ? (demoBuildSolids(), demo.solids.length) : 0), withCh: demo.withCh ? demo.withCh.state.id : null, line: demo.line ? demo.line.text : "", pose: demo.withCh ? demo.withCh.state.pose : "",
         speaking: demo.withCh ? Boolean(demo.withCh.state.poseOpts && demo.withCh.state.poseOpts.speaking) : false, signal: demo.signal, thread: demo.thread || [] }),
