@@ -482,3 +482,6 @@
 #rw .quick.on{color:#ffdfa8}
 #rw .liquid:not([data-rain-caught=true]):not(.map-drop)>.drop-note{display:none!important}
 #rw .liquid.time-current>.drop-kicker{display:none!important}
+/* the menu is five small words by the thumb, never a wall */
+#rw #menu-ink text{font:italic 16px Georgia,serif}
+#rw #menu-stream .liquid{width:96px!important;min-height:44px!important;height:44px!important;padding:6px!important}

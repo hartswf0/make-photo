@@ -25,6 +25,7 @@ const $ = id => world.querySelector('#' + id);
 const n = v => String(Number((+v || 0).toFixed(2))), clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const announce = text => { $('announcement').textContent = text; };
 const ui = { menu: false, scene: 'world', past: false, timeAge: 0, words: false, page: 0, details: false, reduced: matchMedia('(prefers-reduced-motion: reduce)').matches, memory: false, rest: false, say: false, recallIndex: 0, recordClock: 0, open: null, openAt: 0, titleUntil: 0, voiceId: null, voiceUntil: 0, flowHeld: false };
+if (/rainDebug/.test(location.search)) { let m = ui.menu; Object.defineProperty(ui, 'menu', { get: () => m, set: v => { if (v !== m) (window.__rainDbg = window.__rainDbg || []).push(v + ' @' + Math.round(performance.now()) + ' touch=' + Math.round(ui.menuTouch || 0) + ' ' + (new Error().stack || '').split('\n').slice(2, 5).map(l => l.trim().slice(0, 70)).join(' < ')); m = v; } }); }
 const weather = { material: 'worms', erosion: .32, rain: .55 };
 const memory = createWeatherMemory({ windowSeconds: 12, maxEvents: 160, maxUtterances: 20, erosion: weather.erosion });
 const ink = createTraceInk({ host: world });
@@ -305,36 +306,39 @@ function syncDrops() {
   }
   for (const [id, el] of refs) if (!keep.has(id)) { if (document.activeElement === el || el.contains(document.activeElement)) pendingFocus = specs.some(x => x.id === 'primary') ? 'primary' : 'menu-toggle'; el.remove(); refs.delete(id); }
 }
-const go = scene => () => { returnNow(false); stopSteer(); Object.assign(ui, { scene, menu: false, memory: false, say: false, rest: false, details: false }); render(); announce(TITLES[scene] || S.place.name); $('menu-toggle').focus({ preventScroll: true }); };
-const ENTRIES = [
-  { id: 'donkey', label: 'Donkey', run: go('donkey') }, { id: 'lens', label: 'Lens', run: go('lens') },
-  { id: 'people', label: 'People', run: go('people') }, { id: 'water', label: 'Water', run: go('water') },
-  { id: 'rig', label: 'Rig', run: go('rig') }, { id: 'map', label: 'Map', run: go('map') },
-  { id: 'sound', label: 'Sound', run: go('sound') }, { id: 'weather', label: 'World', run: go('weather') },
-  { id: 'read-water', label: 'Read water', run: () => { ui.words = !ui.words; render(); announce(ui.words ? 'Words shown.' : 'Words stay in the trace.'); } },
-  { id: 'hold-rain', label: 'Hold rain', run: () => { ui.reduced = !ui.reduced; glass.setReducedMotion(ui.reduced); field?.setReducedMotion(ui.reduced); render(); announce(ui.reduced ? 'Rain held. Every drop stays reachable.' : 'The water can move again.'); } },
-  { id: 'lang', label: 'Language', run: () => { const it = menuItems().find(x => x.id === 'lang'); it?.run(); render(); announce('Language: ' + (B.state().lang || 'en')); } },
-  { id: 'memory', label: 'Voices', run: () => { stopSteer(); returnNow(false); ui.memory = !ui.memory; ui.recallIndex = 0; ui.menu = false; render(); } },
-  { id: 'rest', label: 'Rest here', run: () => { returnNow(false); stopSteer(); ui.rest = true; ui.menu = false; render(); } },
-  { id: 'jump', label: 'Jump', run: () => { ui.menu = false; menuItems().find(x => x.id === 'jump')?.run(); render(); } },
-  { id: 'all', label: 'All controls', run: go('all') },
-  { id: 'here', label: 'Here', run: go('world') }
-];
+const go = scene => () => { returnNow(false); stopSteer(); Object.assign(ui, { scene, menu: false, menuGroup: null, memory: false, say: false, rest: false, details: false }); render(); announce(TITLES[scene] || S.place.name); $('menu-toggle').focus({ preventScroll: true }); };
+// THE MENU. Five words by the thumb, grouped by what you mean to do. A word opens its few acts in the same place;
+// the acts run at once. Swipe toward the edge, or touch the world, to step back out.
+const mItem = id => menuItems().find(x => x.id === id);
+const runItem = id => () => { const it = mItem(id); if (!it || ui.past) return; it.run(); closeMenu(); S = B.state(); render(); };
+const closeMenu = () => { ui.menu = false; ui.menuGroup = null; };
+const GROUPS = {
+  go: () => [['map', 'Map', go('map')], ['jump', 'Jump', runItem('jump')], ['run', mItem('run')?.on ? 'Walk' : 'Run', runItem('run')], ['ride', S.mode === 'ride' ? 'Get down' : 'Ride', runItem('ride')], ['glide', S.mode === 'glide' ? 'Land' : 'Glide', runItem('glide')], ['drive', S.mode === 'drive' ? 'Park' : 'Wagon', runItem('drive')]],
+  water: () => [['can', 'Can', go('water')], ['donkey', 'Donkey', go('donkey')], ['squirt', 'Squirt', runItem('squirt')], ['throw', 'Throw', runItem('throw')]],
+  camera: () => [['expose', 'Expose', () => { if (ui.past) return; B.act.expose(); cause = 'A plate was exposed.'; closeMenu(); render(); }], ['lens', 'Lens', go('lens')], ['rig', 'Rig', go('rig')], ['cam', 'View', runItem('cam')]],
+  talk: () => [['say', 'Say', () => { returnNow(false); Object.assign(ui, { scene: 'people', say: true, menu: false, menuGroup: null }); render(); $('say-text').focus(); }], ['memory', 'Voices', () => { stopSteer(); returnNow(false); ui.memory = true; ui.recallIndex = 0; closeMenu(); render(); }], ['people', 'People', go('people')], ['lang', 'Language', () => { mItem('lang')?.run(); render(); announce('Language: ' + (B.state().lang || 'en')); }]],
+  more: () => [['sound', 'Sound', go('sound')], ['weather', 'Weather', go('weather')], ['words', ui.words ? 'Hide words' : 'Words', () => { ui.words = !ui.words; closeMenu(); render(); }], ['hold', ui.reduced ? 'Let it move' : 'Hold rain', () => { ui.reduced = !ui.reduced; glass.setReducedMotion(ui.reduced); field?.setReducedMotion(ui.reduced); closeMenu(); render(); }], ['rest', 'Rest', () => { returnNow(false); stopSteer(); ui.rest = true; closeMenu(); render(); }], ['all', 'Everything', go('all')]]
+};
+function menuList() {
+  if (ui.menuGroup && GROUPS[ui.menuGroup]) return [['back', '‹ Back', () => { ui.menuGroup = null; ui.menuAt = 0; render(); }], ...GROUPS[ui.menuGroup]()].map(([id, label, run]) => ({ id: ui.menuGroup + '-' + id, label, run }));
+  const open = g => () => { ui.menuGroup = g; ui.menuAt = 0; ui.menuTouch = performance.now(); render(); };
+  return [['go', 'Go'], ['water', 'Water'], ['camera', 'Camera'], ['talk', 'Talk'], ['more', 'More']].map(([id, label]) => ({ id, label, run: open(id) })).concat(ui.scene !== 'world' ? [{ id: 'here', label: 'Close ' + (TITLES[ui.scene] || '').toLowerCase(), run: go('world') }] : []);
+}
 function renderMenu() {
   const t = $('menu-toggle'), menu = $('menu-stream');
-  t.setAttribute('aria-expanded', String(ui.menu)); t.setAttribute('aria-label', ui.menu ? 'Close menu' : 'Open menu'); t.querySelector('.drop-label').textContent = ui.menu ? 'Return' : 'Menu'; menu.hidden = !ui.menu;
-  if (!ui.menu) { ui.menuAt = 0; return; }
-  if (!ui.menuAt) ui.menuAt = performance.now();
-  if (!menu.children.length) for (const it of ENTRIES) { const b = document.createElement('button'); b.id = 'menu-' + it.id; b.className = 'liquid'; b.dataset.viscosity = '1.8'; b.innerHTML = '<span class="drop-label"></span>'; b.firstElementChild.textContent = it.label; b.addEventListener('click', e => { if (field?.suppressClick(e)) return; it.run(); }); menu.append(b); }
-  [...menu.children].forEach((b, i) => { b.hidden = performance.now() - ui.menuAt < Math.floor(i / 2) * 110; });
-  for (const b of menu.children) { if (b.id === 'menu-' + (ui.scene === 'world' ? 'here' : ui.scene)) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }
-  $('menu-hold-rain').querySelector('.drop-label').textContent = ui.reduced ? 'Let it move' : 'Hold rain'; $('menu-read-water').querySelector('.drop-label').textContent = ui.words ? 'Hide words' : 'Read water';
+  t.setAttribute('aria-expanded', String(ui.menu)); t.setAttribute('aria-label', ui.menu ? 'Close menu' : 'Open menu'); t.querySelector('.drop-label').textContent = ui.menu ? '' : 'Menu'; menu.hidden = !ui.menu;
+  if (!ui.menu) { ui.menuAt = 0; ui.menuGroup = null; menu._sig = ''; if (menu.children.length) menu.replaceChildren(); return; }
+  if (!ui.menuAt) ui.menuAt = performance.now(); if (!ui.menuTouch) ui.menuTouch = performance.now();
+  if (performance.now() - ui.menuTouch > 20000) { closeMenu(); ui.menuTouch = 0; menu.hidden = true; return; }
+  const list = menuList(), sig = (ui.menuGroup || 'top') + '|' + list.map(x => x.id + ':' + x.label).join(',');
+  if (menu._sig !== sig) { menu._sig = sig; menu.replaceChildren(); for (const it of list) { const b = document.createElement('button'); b.id = 'menu-' + it.id; b.className = 'liquid'; b.dataset.viscosity = '1.8'; b.innerHTML = '<span class="drop-label"></span>'; b.firstElementChild.textContent = it.label; b.addEventListener('click', e => { if (field?.suppressClick(e)) return; ui.menuTouch = performance.now(); const r = b.getBoundingClientRect(); splash(r.x + r.width / 2, r.y + r.height / 2, .7, '255,223,168'); it.run(); }); menu.append(b); } }
+  [...menu.children].forEach((b, i) => { b.hidden = performance.now() - ui.menuAt < i * 70; });
 }
 function paintMenuWater(bodies) {
   if (!ui.menu) { menuInk.replaceChildren(); menuWater = []; return; }
   const liveIds = new Set(); menuWater = [];
   for (const b of bodies.filter(b => b.id.startsWith('menu-'))) {
-    const key = 'wet-' + b.id, half = world.clientWidth < 701 ? 54 : 68;
+    const key = 'wet-' + b.id, half = world.clientWidth < 701 ? 46 : 60;
     const nodes = [{ x: b.x - half, y: b.y + 5, r: 5.5, alpha: .75 }, { x: b.x, y: b.y - 1, r: 7.5, alpha: .8 }, { x: b.x + half, y: b.y + 3, r: 4, alpha: .6 }];
     menuWater.push({ id: key, kind: 'menu', nodes }); liveIds.add(key);
     let group = menuInk.querySelector(`[data-id="${key}"]`);
@@ -419,7 +423,8 @@ function syncField() {
   }
   const fixed = (id, anchorX, anchorY, extra = {}) => { const element = $(id); if (element && !element.hidden && element.getClientRects().length) descriptors.push({ id, element, anchorX, anchorY, role: 'action', viscosity: 1.7, label: [...element.querySelectorAll('.drop-label,.drop-value,.drop-note')].map(el => el.textContent.trim()).filter(Boolean).join(' · '), ...extra }); };
   if (!ui.menu) { fixed('steer', .2, .81, { critical: true, viscosity: .55 }); fixed('say-form', mobile ? .32 : .23, .43, { role: 'info', critical: true, viscosity: 4 }); }
-  else { const all = [...$('menu-stream').children], gap0 = 0, entries = all, gap = .735 / Math.max(1, Math.ceil(entries.length / 2) - 1); entries.forEach((element, i) => { if (element.hidden) return; const col = i % 2, row = Math.floor(i / 2); descriptors.push({ id: element.id, element, role: 'action', viscosity: 2.3 + (i % 3) * .4, anchorX: col ? .77 : .18, anchorY: .155 + row * gap + (col ? .013 : 0), label: element.textContent.trim() }); }); }
+  else { const entries = [...$('menu-stream').children], mob = world.clientWidth < 701, step = Math.min(.082, 58 / world.clientHeight + .012), y0 = .56 - (entries.length - 1) * step / 2;   // one short column by the right thumb
+    entries.forEach((element, i) => { if (element.hidden) return; descriptors.push({ id: element.id, element, role: 'action', viscosity: 2.3 + (i % 3) * .4, anchorX: mob ? .76 : .88, anchorY: y0 + i * step, label: element.textContent.trim() }); }); }
   field.setMenuOpen(ui.menu); field.sync(descriptors);
   const stats = glass.getStats(); world.dataset.fluidRenderer = stats.renderer; world.dataset.fluidFrameMs = stats.cpuFrameMs; world.dataset.fluidTexture = stats.sourceReady ? 'ready' : stats.textureError || 'loading';
 }
@@ -447,7 +452,16 @@ let rub = null;
 window.addEventListener('pointerdown', e => { if (e.target.closest?.('#rw .liquid,input,textarea,button,a,nav') || e.button > 0 || ui.menu || ui.past) return; if (ui.open) { ui.open = null; render(); } if (ui.scene === 'map') splash(e.clientX, e.clientY, .55); rub = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false }; }, true);
 window.addEventListener('pointermove', e => { if (!rub || rub.id !== e.pointerId) return; if (Math.hypot(e.clientX - rub.x, e.clientY - rub.y) > 8) rub.moved = true; if (rub.moved) { ink.rub(e.clientX, e.clientY, 25); field?.erodeAt?.(e.clientX, e.clientY, 25); } }, true);
 for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, e => { if (rub?.id === e.pointerId) rub = null; }, true);
-$('menu-toggle').addEventListener('click', () => { returnNow(false); stopSteer(); ui.menu = !ui.menu; render(); });
+let swAt = 0;
+$('menu-toggle').addEventListener('click', () => { if (performance.now() - swAt < 600) return; returnNow(false); stopSteer(); ui.menu = !ui.menu; ui.menuGroup = null; ui.menuTouch = performance.now(); render(); });
+// the menu is left the way it was entered: touch the world to close it, swipe toward the edge to step back, swipe in from the edge to open
+let sw = null;
+window.addEventListener('pointerdown', e => { if (e.button > 0 || !S.ready) return; const onDrop = !!e.target.closest?.('#rw .liquid:not(#menu-toggle),input,textarea'); sw = { id: e.pointerId, x: e.clientX, y: e.clientY, edge: e.clientX > world.clientWidth - 30, onDrop, done: false };
+  if (ui.menu && !onDrop && !sw.edge) { sw.tapClose = true; } }, true);
+window.addEventListener('pointermove', e => { if (!sw || sw.id !== e.pointerId || sw.done) return; const dx = e.clientX - sw.x, dy = e.clientY - sw.y; if (Math.abs(dx) < 46 || Math.abs(dy) > Math.abs(dx)) return;
+  if (ui.menu && dx > 0) { sw.done = true; swAt = performance.now(); sw.tapClose = false; if (ui.menuGroup) { ui.menuGroup = null; ui.menuAt = 0; ui.menuTouch = performance.now(); } else closeMenu(); render(); }
+  else if (!ui.menu && sw.edge && dx < 0 && !ui.past) { sw.done = true; swAt = performance.now(); ui.menu = true; ui.menuGroup = null; ui.menuTouch = performance.now(); stopSteer(); render(); } }, true);
+for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, e => { if (!sw || sw.id !== e.pointerId) return; if (sw.done) swAt = performance.now(); if (sw.tapClose && ui.menu && Math.hypot(e.clientX - sw.x, e.clientY - sw.y) < 14) { closeMenu(); swAt = performance.now(); render(); } sw = null; }, true);
 $('say-form').addEventListener('submit', e => { e.preventDefault(); const text = $('say-text').value.trim(); if (!text || ui.past) return; B.act.say(text); ui.say = false; $('say-text').value = ''; render(); });
 for (const type of ['keydown', 'keyup', 'keypress']) $('say-text').addEventListener(type, e => e.stopPropagation());
 document.addEventListener('keydown', e => {
