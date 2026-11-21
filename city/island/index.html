@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <script type="importmap">{"imports":{"three":"../../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
+  <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+  <link rel="stylesheet" href="../suite-nav.css">
+  <title>MAKE-PHOTO ISLAND · Multi-Region City &amp; Severn Pilot</title>
+  <style>
+    :root {
+      --bg: #0c1f38;
+      --panel: rgba(11, 16, 24, 0.88);
+      --panel-strong: rgba(8, 12, 19, 0.95);
+      --paper: #f1eee6;
+      --muted: rgba(241, 238, 230, 0.72);
+      --brass: #cbb182;
+      --cyan: #18b4ff;
+      --amber: #f2a541;
+      --rule: rgba(241, 238, 230, 0.18);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--paper);
+      font: 400 12.5px/1.38 Inter, system-ui, -apple-system, sans-serif;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 2px;
+    }
+    #canvas-wrap {
+      position: fixed;
+      inset: 0;
+    }
+    #canvas-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Top-Left Region & Teleport HUD */
+    #left-hud {
+      position: fixed;
+      top: 62px;
+      left: 12px;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: min(378px, calc(100vw - 24px));
+      pointer-events: auto;
+    }
+    .hud-card {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 7px;
+      padding: 9px 11px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .hud-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .hud-kicker {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brass);
+    }
+    .hud-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--paper);
+      margin-top: 1px;
+    }
+    .hud-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 7px;
+    }
+    .pill {
+      appearance: none;
+      border: 1px solid var(--rule);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      border-radius: 4px;
+      padding: 4px 7px;
+      font: 600 10px/1.2 Inter, system-ui, sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+    }
+    .pill:hover {
+      border-color: var(--brass);
+      color: var(--paper);
+    }
+    .pill.active {
+      border-color: var(--brass);
+      background: rgba(203, 177, 130, 0.20);
+      color: var(--paper);
+    }
+    .pill.cyan.active {
+      border-color: var(--cyan);
+      background: rgba(24, 180, 255, 0.22);
+      color: #e6f8ff;
+    }
+    .pill.dashed {
+      border-style: dashed;
+      color: #d8c2ff;
+    }
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 7px;
+      flex-wrap: wrap;
+    }
+    .ui-select {
+      appearance: none;
+      background: rgba(15, 22, 34, 0.92);
+      border: 1px solid var(--rule);
+      color: var(--paper);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font: 500 10.5px/1.2 Inter, system-ui, sans-serif;
+      cursor: pointer;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    /* Top-Right Radar & Severn Pilot State */
+    #right-hud {
+      position: fixed;
+      top: 62px;
+      right: 12px;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 270px;
+      pointer-events: auto;
+    }
+    .radar-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    #radar-canvas {
+      display: block;
+      width: 100%;
+      height: 132px;
+      border-radius: 5px;
+      border: 1px solid var(--rule);
+      background: #081526;
+      cursor: pointer;
+    }
+    .ledger-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 2px 0;
+      font-size: 11px;
+    }
+    .ledger-label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 9.5px;
+    }
+    .ledger-val {
+      font-weight: 600;
+      color: var(--paper);
+    }
+    .ledger-val.cyan { color: var(--cyan); }
+    .ledger-val.brass { color: var(--brass); }
+    .prov-badge {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid var(--rule);
+    }
+    .prov-recorded { border-color: #6ad49a; color: #9df0c0; }
+    .prov-checked { border-color: var(--cyan); color: #a8e6ff; }
+    .prov-inferred { border-color: var(--amber); color: #ffd599; }
+    .prov-invented { border-color: #c98cff; color: #e5c6ff; }
+
+    /* Tree & Street Brush Drawer */
+    #brush-drawer {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+    #brush-drawer.open {
+      display: flex;
+    }
+    .slider-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+    .slider-line input[type="range"] {
+      flex: 1;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+    .rule-note {
+      font-size: 10px;
+      color: var(--muted);
+      border-left: 2px solid var(--cyan);
+      padding-left: 7px;
+      line-height: 1.35;
+    }
+
+    /* Contextual Threshold / Curb / Resident Prompt */
+    #context-prompt {
+      position: fixed;
+      bottom: 68px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 35;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: var(--panel-strong);
+      border: 1px solid var(--cyan);
+      border-radius: 6px;
+      padding: 7px 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      font-size: 11.5px;
+      pointer-events: auto;
+      max-width: calc(100vw - 24px);
+    }
+    #context-prompt.visible {
+      display: flex;
+    }
+    #speech-toast {
+      position: fixed;
+      bottom: 112px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 35;
+      display: none;
+      background: var(--panel-strong);
+      border: 1px solid var(--brass);
+      border-radius: 6px;
+      padding: 8px 14px;
+      max-width: min(520px, calc(100vw - 24px));
+      text-align: center;
+      font-size: 12px;
+      pointer-events: none;
+    }
+    #speech-toast.visible { display: block; }
+    #speech-toast b { color: var(--brass); text-transform: uppercase; letter-spacing: 0.06em; font-size: 10.5px; display: block; margin-bottom: 2px; }
+
+    /* Key Hint Strip */
+    #key-strip {
+      position: fixed;
+      left: 12px;
+      bottom: 66px;
+      z-index: 25;
+      background: rgba(8, 12, 19, 0.78);
+      border: 1px solid var(--rule);
+      border-radius: 5px;
+      padding: 4px 8px;
+      font-size: 10px;
+      color: var(--muted);
+      pointer-events: none;
+    }
+    #key-strip b {
+      color: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      padding: 0 4px;
+      font-weight: 600;
+    }
+
+    /* Fullscreen Click-to-Travel Island Atlas Modal */
+    #map-modal {
+      position: fixed;
+      inset: 34px 0 58px 0;
+      z-index: 60;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(6, 11, 18, 0.94);
+      padding: 14px;
+    }
+    #map-modal.open { display: flex; }
+    #big-map-canvas {
+      max-width: min(960px, 94vw);
+      max-height: calc(100vh - 190px);
+      border: 1px solid var(--brass);
+      border-radius: 8px;
+      background: #071426;
+      cursor: crosshair;
+    }
+
+    @media (max-width: 820px) {
+      #right-hud {
+        top: auto;
+        bottom: 66px;
+        right: 8px;
+        width: 220px;
+      }
+      #key-strip { display: none; }
+      #left-hud { width: calc(100vw - 16px); left: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-wrap"><canvas id="gl"></canvas></div>
+
+  <section id="left-hud" aria-label="Island regions and controls">
+    <div class="hud-card">
+      <div class="hud-head">
+        <span class="hud-kicker" id="hud-region">BALTIMERE · MOUNT VERNON</span>
+        <button class="pill" id="btn-collapse-left" type="button" title="Collapse or expand region controls">Compact</button>
+      </div>
+      <div class="hud-title" id="hud-place">The Severn · 701 Cathedral St</div>
+      <div class="hud-sub" id="hud-telemetry">Walk Mode · Curb Bay Ready · +18.4m Elev</div>
+
+      <div id="left-body">
+        <div class="pill-row" id="region-pills">
+          <button class="pill cyan active" type="button" data-jump="severn">Severn Pilot</button>
+          <button class="pill" type="button" data-jump="inner-harbor">Inner Harbor</button>
+          <button class="pill" type="button" data-jump="fells-point">Fells Point</button>
+          <button class="pill" type="button" data-jump="centro">Atlantis Centro</button>
+          <button class="pill" type="button" data-jump="condesa">Condesa</button>
+          <button class="pill" type="button" data-jump="chapel">Chapel Shore</button>
+          <button class="pill dashed" type="button" data-jump="black" title="Nongeographic threshold kept outside street network">The Black (Non-Road)</button>
+        </div>
+
+        <div class="ctrl-row">
+          <select id="set-select" class="ui-select" aria-label="Jump to any of the 14 Poem Sets"></select>
+          <select id="prov-select" class="ui-select" style="max-width:128px" aria-label="Filter provenance overlay">
+            <option value="all">Provenance: All</option>
+            <option value="recorded">Recorded</option>
+            <option value="checked">Checked</option>
+            <option value="inferred">Inferred</option>
+            <option value="invented">Invented</option>
+          </select>
+        </div>
+
+        <div class="pill-row">
+          <button class="pill active" type="button" id="btn-mode-walk">Walk (Anny V8)</button>
+          <button class="pill" type="button" id="btn-mode-drive">Drive Cruiser [F]</button>
+          <button class="pill cyan" type="button" id="btn-mode-brush">Tree &amp; Street Brush [B]</button>
+          <button class="pill" type="button" id="btn-open-map">Full Map [M]</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hud-card" id="brush-drawer">
+      <div class="hud-head">
+        <span class="hud-kicker" style="color:var(--cyan)">TREE &amp; STREET BRUSH</span>
+        <span style="font-size:10px;color:var(--muted)" id="brush-count-label">0 custom planted</span>
+      </div>
+      <div class="pill-row" id="brush-kind-pills">
+        <button class="pill cyan active" type="button" data-bkind="grove">3D Tree Grove</button>
+        <button class="pill" type="button" data-bkind="planter">Curb Planter</button>
+        <button class="pill" type="button" data-bkind="lamp">Sodium Streetlamp</button>
+        <button class="pill" type="button" data-bkind="relay">Cyan Relay</button>
+        <button class="pill" type="button" data-bkind="erase">Erase</button>
+      </div>
+      <div class="ctrl-row">
+        <select id="brush-species" class="ui-select" aria-label="Tree species">
+          <option value="mixed">Species: Mixed Regional Grove</option>
+          <option value="0">Chesapeake Broadleaf Oak (4-Cluster)</option>
+          <option value="1">Condesa Jacaranda (Violet Canopy)</option>
+          <option value="2">Harbor Tiered Pine (3-Bough)</option>
+          <option value="3">Atlantis Columnar Cypress</option>
+          <option value="4">Coastal Wind-Curved Palm</option>
+        </select>
+      </div>
+      <label class="slider-line">
+        <span>Radius <b id="val-bradius">22m</b></span>
+        <input type="range" id="sl-bradius" min="6" max="60" step="2" value="22">
+      </label>
+      <label class="slider-line">
+        <span>Stamps <b id="val-bdensity">4</b></span>
+        <input type="range" id="sl-bdensity" min="1" max="10" step="1" value="4">
+      </label>
+      <label class="slider-line">
+        <span>Scale <b id="val-bscale">1.05x</b></span>
+        <input type="range" id="sl-bscale" min="0.65" max="1.6" step="0.05" value="1.05">
+      </label>
+      <div class="rule-note">
+        Click terrain to plant. Soil &amp; curb check enforced: sidewalks receive stone tree-pits; building footprints, road lanes, and harbor water are protected.
+      </div>
+      <div class="pill-row">
+        <button class="pill" type="button" id="btn-brush-clear">Clear Custom</button>
+        <button class="pill" type="button" id="btn-brush-export">Export Grove JSON</button>
+      </div>
+    </div>
+  </section>
+
+  <aside id="right-hud" aria-label="Island radar and Severn pilot state">
+    <div class="hud-card">
+      <div class="radar-head">
+        <span class="hud-kicker">ISLAND RADAR (9.6 x 6.4 KM)</span>
+        <span class="prov-badge prov-checked" id="active-prov-badge">CHECKED</span>
+      </div>
+      <canvas id="radar-canvas" width="248" height="132" title="Click to open full click-to-teleport Island Map (M)"></canvas>
+
+      <div style="margin-top:7px;border-top:1px solid var(--rule);padding-top:6px">
+        <div class="ledger-row">
+          <span class="ledger-label">Severn Threshold</span>
+          <span class="ledger-val cyan" id="val-door-state">OPEN (Street + Lobby)</span>
+        </div>
+        <div class="ledger-row">
+          <span class="ledger-label">Parcel + 5L Cyan</span>
+          <span class="ledger-val brass" id="val-parcel-holder">PLAYER</span>
+        </div>
+        <div class="ledger-row">
+          <span class="ledger-label">Cruiser Curb Dest</span>
+          <span class="ledger-val" id="val-cruiser-dest">Mount Vernon Bay</span>
+        </div>
+        <div class="pill-row" style="margin-top:6px">
+          <button class="pill cyan" type="button" id="btn-toggle-door" title="Open or close Severn threshold door (changes walkability and interior acoustic muffling)">Door [O]</button>
+          <button class="pill" type="button" id="btn-handoff" title="Hand off or retrieve the Severn parcel and 5L cyan canister">Parcel [E]</button>
+          <button class="pill" type="button" id="btn-reverse-angle" title="Toggle Forward Street vs Reverse Interior Threshold Shot">Rev Cut [R]</button>
+          <a class="pill" href="../maps/#severn" id="link-to-maps">Open in Maps</a>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div id="context-prompt" role="status">
+    <span id="context-text">Severn Threshold</span>
+    <button class="pill cyan active" type="button" id="btn-context-act">Act [E]</button>
+  </div>
+
+  <div id="speech-toast" role="status" aria-live="polite">
+    <b id="speech-speaker">BEKELE · SEVERN VESTIBULE</b>
+    <span id="speech-line"></span>
+  </div>
+
+  <div id="key-strip">
+    <b>WASD</b> Move / Drive &nbsp; <b>Shift</b> Sprint / Boost &nbsp; <b>Drag</b> Orbit Look &nbsp; <b>F</b> Cruiser In/Out &nbsp; <b>O</b> Severn Door &nbsp; <b>E</b> Parcel / Relay / Talk &nbsp; <b>R</b> Reverse Angle &nbsp; <b>B</b> Tree Brush &nbsp; <b>M</b> Map
+  </div>
+
+  <div id="map-modal" role="dialog" aria-label="Island Full Cartography Map">
+    <div style="display:flex;justify-content:space-between;align-items:center;width:min(960px,94vw)">
+      <div>
+        <span class="hud-kicker">CLICK ANYWHERE ON LAND OR ROAD TO TELEPORT</span>
+        <span style="margin-left:10px;font-size:11px;color:var(--muted)">Solid lines: Highways &amp; Bridges · Cyan dots: Nolli Water Relays · Dashed violet: The Black (Outside Street Network)</span>
+      </div>
+      <button class="pill active" type="button" id="btn-close-map">Close Map [Esc]</button>
+    </div>
+    <canvas id="big-map-canvas" width="960" height="640"></canvas>
+  </div>
+
+  <script src="../../motion-pipeline/mesh2motion/m2m-retarget.js?v=3"></script>
+  <script src="../../motion-pipeline/anny-human-v7.js?v=5"></script>
+  <script type="module" src="./island.js"></script>
+</body>
+</html>

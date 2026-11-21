@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <script type="importmap">{"imports":{"three":"../../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
+  <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+  <link rel="stylesheet" href="../suite-nav.css">
+  <title>MAKE-PHOTO MAPS · Unified City3D, MovieMap, Mood &amp; Elsewhere Atlas</title>
+  <style>
+    :root {
+      --bg: #0c1f38;
+      --panel: rgba(10, 15, 23, 0.90);
+      --panel-strong: rgba(7, 11, 18, 0.96);
+      --paper: #f1eee6;
+      --muted: rgba(241, 238, 230, 0.72);
+      --brass: #cbb182;
+      --cyan: #18b4ff;
+      --amber: #f2a541;
+      --sodium: #fa8d15;
+      --rule: rgba(241, 238, 230, 0.18);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--paper);
+      font: 400 12.5px/1.38 Inter, system-ui, -apple-system, sans-serif;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible {
+      outline: 2px solid var(--amber);
+      outline-offset: 2px;
+    }
+    #canvas-wrap {
+      position: fixed;
+      inset: 0;
+    }
+    #canvas-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Left Atlas Mode & Inspector Column */
+    #left-col {
+      position: fixed;
+      top: 62px;
+      left: 12px;
+      z-index: 30;
+      width: min(392px, calc(100vw - 24px));
+      max-height: calc(100vh - 128px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: auto;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 7px;
+      padding: 9px 11px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .kicker {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brass);
+    }
+    .head-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .title-lg {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--paper);
+      margin-top: 2px;
+    }
+    .sub-txt {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin-top: 7px;
+    }
+    .pill {
+      appearance: none;
+      border: 1px solid var(--rule);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      border-radius: 4px;
+      padding: 5px 8px;
+      font: 600 10px/1.2 Inter, system-ui, sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+    }
+    .pill:hover {
+      border-color: var(--brass);
+      color: var(--paper);
+    }
+    .pill.active {
+      border-color: var(--brass);
+      background: rgba(203, 177, 130, 0.22);
+      color: var(--paper);
+    }
+    .pill.cyan.active {
+      border-color: var(--cyan);
+      background: rgba(24, 180, 255, 0.24);
+      color: #e6f8ff;
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+    .ui-select, .ui-input {
+      appearance: none;
+      background: rgba(14, 21, 33, 0.94);
+      border: 1px solid var(--rule);
+      color: var(--paper);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font: 500 10.5px/1.2 Inter, system-ui, sans-serif;
+      flex: 1;
+      min-width: 90px;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 6px;
+      font-size: 10.5px;
+      color: var(--muted);
+    }
+    .slider-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+    .mode-pane { display: none; }
+    .mode-pane.active { display: block; }
+
+    /* Palette Swatches for Mood Topography */
+    .swatch-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 5px;
+    }
+    .swatch-lbl {
+      width: 66px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .swatches {
+      display: flex;
+      gap: 4px;
+      flex: 1;
+    }
+    .sw {
+      height: 15px;
+      flex: 1;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+    }
+    .sw.glow {
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    /* Elsewhere Phenotype Horizon Graph */
+    #phenotype-canvas {
+      display: block;
+      width: 100%;
+      height: 68px;
+      margin-top: 6px;
+      border-radius: 4px;
+      border: 1px solid var(--rule);
+      background: #081322;
+    }
+
+    /* Right 2D Cartographic Map & Severn Pilot Ledger */
+    #right-col {
+      position: fixed;
+      top: 62px;
+      right: 12px;
+      z-index: 30;
+      width: 316px;
+      max-height: calc(100vh - 128px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: auto;
+    }
+    #atlas-2d-canvas {
+      display: block;
+      width: 100%;
+      height: 214px;
+      border-radius: 5px;
+      border: 1px solid var(--rule);
+      background: #071324;
+      cursor: crosshair;
+      margin-top: 5px;
+    }
+    .ledger-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 2px 0;
+      font-size: 11px;
+    }
+    .ledger-label {
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .ledger-val { font-weight: 600; color: var(--paper); }
+    .ledger-val.cyan { color: var(--cyan); }
+    .ledger-val.brass { color: var(--brass); }
+
+    .prov-badge {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid var(--rule);
+    }
+    .prov-recorded { border-color: #6ad49a; color: #9df0c0; }
+    .prov-checked { border-color: var(--cyan); color: #a8e6ff; }
+    .prov-inferred { border-color: var(--amber); color: #ffd599; }
+    .prov-invented { border-color: #c98cff; color: #e5c6ff; }
+
+    /* MovieMap Intersection Turn Chooser Overlay */
+    #turn-overlay {
+      position: fixed;
+      bottom: 68px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 35;
+      display: none;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      background: var(--panel-strong);
+      border: 1px solid var(--cyan);
+      border-radius: 7px;
+      padding: 8px 12px;
+      max-width: min(680px, calc(100vw - 24px));
+    }
+    #turn-overlay.visible { display: flex; }
+
+    #inspector-toast {
+      position: fixed;
+      bottom: 114px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 35;
+      display: none;
+      background: var(--panel-strong);
+      border: 1px solid var(--brass);
+      border-radius: 6px;
+      padding: 7px 13px;
+      max-width: min(540px, calc(100vw - 24px));
+      font-size: 11.5px;
+      text-align: center;
+      pointer-events: none;
+    }
+    #inspector-toast.visible { display: block; }
+    #inspector-toast b { color: var(--brass); display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+    @media (max-width: 860px) {
+      #right-col {
+        top: auto;
+        bottom: 64px;
+        right: 8px;
+        width: 240px;
+      }
+      #atlas-2d-canvas { height: 130px; }
+      #left-col { width: calc(100vw - 16px); left: 8px; max-height: 46vh; }
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-wrap"><canvas id="gl"></canvas></div>
+
+  <section id="left-col" aria-label="Unified City3D, MovieMap, Mood, and Elsewhere modes">
+    <div class="card">
+      <div class="head-row">
+        <span class="kicker">UNIFIED URBAN &amp; CAMERA ATLAS</span>
+        <button class="pill" type="button" id="btn-compact-left">Compact</button>
+      </div>
+      <div class="title-lg" id="mode-headline">City3D Remastered · Terraced Masonry</div>
+      <div class="sub-txt" id="mode-subtitle">4,800 buildings · 33 landmarks · +4m salt datum · zero grain</div>
+
+      <div class="mode-tabs" id="mode-tabs">
+        <button class="pill cyan active" type="button" data-mode="city3d">1 · City3D Remastered</button>
+        <button class="pill" type="button" data-mode="moviemap">2 · MovieMap Director</button>
+        <button class="pill" type="button" data-mode="mood">3 · Mood Topography</button>
+        <button class="pill" type="button" data-mode="elsewhere">4 · Elsewhere Jump</button>
+      </div>
+    </div>
+
+    <div id="left-details">
+      <!-- MODE 1: CITY3D REMASTERED -->
+      <div class="card mode-pane active" id="pane-city3d">
+        <div class="head-row">
+          <span class="kicker">HISTORICAL ERA &amp; TERRACED STRUCTURES</span>
+          <span class="prov-badge prov-checked" id="c3d-prov">CHECKED</span>
+        </div>
+        <label class="slider-row">
+          <span>Era <b id="val-era">5 · Resurrection</b></span>
+          <input type="range" id="sl-era" min="0" max="5" step="1" value="5">
+        </label>
+        <div class="sub-txt" id="era-lore" style="margin-top:4px;font-style:italic"></div>
+        <div class="ctrl-row">
+          <select id="sel-variant" class="ui-select" aria-label="Terraced structure variant"></select>
+          <select id="sel-landmark" class="ui-select" aria-label="Jump to landmark"></select>
+        </div>
+        <div class="pill-row">
+          <button class="pill cyan active" type="button" id="btn-fly-severn">Focus Severn Pilot</button>
+          <button class="pill active" type="button" id="btn-salt-datum">+4m Salt Datum</button>
+          <button class="pill" type="button" id="btn-play-eras">Play Eras</button>
+          <button class="pill" type="button" id="btn-Aerial-Overview">Aerial Overview</button>
+        </div>
+      </div>
+
+      <!-- MODE 2: MOVIEMAP DIRECTOR -->
+      <div class="card mode-pane" id="pane-moviemap">
+        <div class="head-row">
+          <span class="kicker">STREET-EDGE SCRUB &amp; REGISTERED SHOTS</span>
+          <span style="font-size:10px;color:var(--cyan)" id="mm-frame-readout">Frame 1 / 24</span>
+        </div>
+        <div class="title-lg" id="mm-street-name" style="font-size:12.5px">Cathedral St · Severn Block</div>
+        <div class="sub-txt" id="mm-cross-info">Heading N · Crisp 3D Live Street Render</div>
+        <label class="slider-row">
+          <span>Scrub Street</span>
+          <input type="range" id="sl-mm-scrub" min="0" max="100" step="1" value="25">
+        </label>
+        <div class="pill-row" id="mm-views">
+          <button class="pill cyan active" type="button" data-v="0">Front</button>
+          <button class="pill" type="button" data-v="1">Right</button>
+          <button class="pill" type="button" data-v="2">Back</button>
+          <button class="pill" type="button" data-v="3">Left</button>
+          <button class="pill" type="button" id="btn-mm-play">Drive Street</button>
+        </div>
+        <div class="ctrl-row">
+          <select id="sel-mm-shot" class="ui-select" aria-label="Jump to registered shot pin"></select>
+          <button class="pill" type="button" id="btn-mm-frame-card">Shot Card: On</button>
+        </div>
+      </div>
+
+      <!-- MODE 3: MOOD TOPOGRAPHY -->
+      <div class="card mode-pane" id="pane-mood">
+        <div class="head-row">
+          <span class="kicker">DISTRICT AURA · SODIUM VS CYAN &amp; ACOUSTICS</span>
+          <span style="font-size:10px;color:var(--amber)" id="mood-realm-tag">Realm B</span>
+        </div>
+        <div class="ctrl-row">
+          <select id="sel-mood-dist" class="ui-select" aria-label="Select measured mood district"></select>
+        </div>
+        <div class="sub-txt" id="mood-quote" style="margin-top:5px;border-left:2px solid var(--amber);padding-left:7px"></div>
+        <div class="swatch-row">
+          <span class="swatch-lbl">Made of</span>
+          <div class="swatches" id="mood-body-sw"></div>
+        </div>
+        <div class="swatch-row">
+          <span class="swatch-lbl">Glows with</span>
+          <div class="swatches" id="mood-glow-sw"></div>
+        </div>
+        <label class="slider-row">
+          <span>Sodium vs Cyan Aura</span>
+          <input type="range" id="sl-aura-balance" min="0" max="100" step="1" value="52">
+        </label>
+        <div class="pill-row">
+          <button class="pill cyan active" type="button" id="btn-acoustic-rings">Acoustic Field: On</button>
+          <button class="pill" type="button" id="btn-mood-archipelago">High Archipelago View</button>
+        </div>
+      </div>
+
+      <!-- MODE 4: ELSEWHERE JUMP -->
+      <div class="card mode-pane" id="pane-elsewhere">
+        <div class="head-row">
+          <span class="kicker">SEED, COORDINATE &amp; SPATIAL RHYME JUMPER</span>
+          <span style="font-size:10px;color:var(--cyan)" id="ew-station-id">Station C0001</span>
+        </div>
+        <div class="ctrl-row">
+          <input type="number" id="inp-ew-seed" class="ui-input" value="2086" min="1" max="99999" title="Deterministic station seed">
+          <button class="pill cyan active" type="button" id="btn-ew-seed-go">Jump Seed</button>
+          <select id="sel-ew-poem" class="ui-select" aria-label="Jump by Poem"></select>
+        </div>
+        <canvas id="phenotype-canvas" width="356" height="68"></canvas>
+        <div class="pill-row">
+          <button class="pill" type="button" id="btn-ew-left">Left</button>
+          <button class="pill" type="button" id="btn-ew-back">Back</button>
+          <button class="pill cyan active" type="button" id="btn-ew-fwd">Forward</button>
+          <button class="pill" type="button" id="btn-ew-right">Right</button>
+          <button class="pill" type="button" id="btn-ew-rhyme" style="border-color:#c98cff;color:#ebd2ff">Spatial Rhyme</button>
+        </div>
+        <div class="pill-row">
+          <button class="pill active" type="button" id="btn-ew-hybrid">Hybrid 3D + Fold</button>
+          <button class="pill" type="button" id="btn-ew-black" style="border-style:dashed;color:#d8c2ff">The Black (Non-Road)</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside id="right-col" aria-label="2D Cartographic Map and Severn Pilot Sync">
+    <div class="card">
+      <div class="head-row">
+        <span class="kicker">2D CARTOGRAPHY &amp; FRUSTUM MAP</span>
+        <span style="font-size:10px;color:var(--muted)" id="cursor-coords">X 2090 · Y 2319</span>
+      </div>
+      <canvas id="atlas-2d-canvas" width="292" height="214" title="Click any district, street, shot pin, or Severn Pilot to jump immediately"></canvas>
+
+      <div style="margin-top:7px;border-top:1px solid var(--rule);padding-top:6px">
+        <div class="head-row" style="margin-bottom:3px">
+          <span class="kicker">THE SEVERN PILOT (SHARED STATE)</span>
+          <span class="prov-badge prov-checked" id="pilot-prov-badge">CHECKED</span>
+        </div>
+        <div class="ledger-row">
+          <span class="ledger-label">Building / Poem</span>
+          <span class="ledger-val" id="val-pilot-place">Severn · Poem 01</span>
+        </div>
+        <div class="ledger-row">
+          <span class="ledger-label">Threshold Door</span>
+          <span class="ledger-val cyan" id="val-pilot-door">OPEN</span>
+        </div>
+        <div class="ledger-row">
+          <span class="ledger-label">Parcel Ownership</span>
+          <span class="ledger-val brass" id="val-pilot-parcel">PLAYER</span>
+        </div>
+        <div class="pill-row">
+          <button class="pill cyan" type="button" id="btn-pilot-door">Toggle Door [O]</button>
+          <button class="pill" type="button" id="btn-pilot-parcel">Hand Parcel [E]</button>
+          <button class="pill" type="button" id="btn-pilot-rev">Rev Angle [R]</button>
+          <a class="pill" href="../island/#severn" id="link-to-island">Enter Island</a>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div id="turn-overlay" role="region" aria-label="Street corner turn choices"></div>
+  <div id="inspector-toast" role="status" aria-live="polite">
+    <b id="toast-kicker">INSPECTOR</b>
+    <span id="toast-body"></span>
+  </div>
+
+  <script src="../../motion-pipeline/mesh2motion/m2m-retarget.js?v=3"></script>
+  <script src="../../motion-pipeline/anny-human-v7.js?v=5"></script>
+  <script type="module" src="./maps.js"></script>
+</body>
+</html>

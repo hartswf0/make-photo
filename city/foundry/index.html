@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <script type="importmap">{"imports":{"three":"../../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
+  <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+  <link rel="stylesheet" href="../suite-nav.css">
+  <title>MAKE-PHOTO CITY · Foundry, Calvino Evolution &amp; Inverse Tomology</title>
+  <style>
+    :root {
+      --bg: #0c1f38;
+      --panel: rgba(11, 20, 34, 0.88);
+      --panel-strong: rgba(9, 16, 28, 0.95);
+      --paper: #f2ede2;
+      --muted: rgba(242, 237, 226, 0.72);
+      --brass: #d4b276;
+      --ochre: #c87448;
+      --cyan: #18b4ff;
+      --ok: #7fe0a0;
+      --warn: #f0c060;
+      --bad: #ff6a5a;
+      --rule: rgba(242, 237, 226, 0.16);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--paper);
+      font: 400 12.5px/1.42 Inter, system-ui, -apple-system, sans-serif;
+    }
+    button, input, select { font: inherit; }
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+    #canvas-wrap {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
+    #canvas-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Top Mode & Action Header (leaves center sky & street clean) */
+    #foundry-top {
+      position: fixed;
+      top: 74px;
+      left: 12px;
+      right: 12px;
+      z-index: 18;
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .hud-card {
+      pointer-events: auto;
+      background: var(--panel);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      padding: 8px 11px;
+      backdrop-filter: blur(10px);
+    }
+    .kicker {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--brass);
+      font-weight: 600;
+    }
+    .headline {
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--paper);
+      margin-top: 1px;
+    }
+    .subline {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .mode-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 7px;
+    }
+    .pill {
+      appearance: none;
+      border: 1px solid var(--rule);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .pill:hover {
+      border-color: var(--brass);
+      color: var(--paper);
+    }
+    .pill.active {
+      background: rgba(212, 178, 118, 0.2);
+      border-color: var(--brass);
+      color: var(--paper);
+    }
+    .pill.cyan.active, .pill.cyan-act {
+      background: rgba(24, 180, 255, 0.2);
+      border-color: var(--cyan);
+      color: #dff6ff;
+    }
+
+    /* Left Collapsible Calvino & Tomology Drawer */
+    #left-drawer {
+      position: fixed;
+      top: 172px;
+      left: 12px;
+      z-index: 17;
+      width: 274px;
+      max-height: calc(100vh - 298px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #left-drawer.collapsed .drawer-body {
+      display: none;
+    }
+    .sec-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brass);
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 5px;
+      margin-bottom: 6px;
+    }
+    .axis-row {
+      display: grid;
+      grid-template-columns: 78px 1fr 34px;
+      align-items: center;
+      gap: 6px;
+      margin: 3px 0;
+      font-size: 11px;
+    }
+    .axis-row label {
+      color: var(--paper);
+      font-weight: 500;
+    }
+    .axis-row input[type="range"] {
+      width: 100%;
+      accent-color: var(--cyan);
+      cursor: pointer;
+    }
+    .axis-val {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--cyan);
+      font-size: 10.5px;
+    }
+    .lineage-box {
+      background: rgba(6, 12, 22, 0.68);
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-size: 11px;
+      margin-top: 6px;
+    }
+    .lineage-box b { color: var(--cyan); }
+
+    /* Right Collapsible Tomology Plan, Pilot State & Stage Inspector */
+    #right-drawer {
+      position: fixed;
+      top: 172px;
+      right: 12px;
+      z-index: 17;
+      width: 292px;
+      max-height: calc(100vh - 298px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #right-drawer.collapsed .drawer-body {
+      display: none;
+    }
+    #plan-canvas {
+      width: 100%;
+      height: 152px;
+      display: block;
+      background: #081322;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+    }
+    .kv-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2px 0;
+      font-size: 11px;
+    }
+    .kv-row span:first-child {
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.05em;
+    }
+    .prov-badge {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-right: 4px;
+    }
+    .prov-recorded { background: rgba(24, 180, 255, 0.2); color: #8fe0ff; border: 1px solid rgba(24, 180, 255, 0.45); }
+    .prov-checked { background: rgba(127, 224, 160, 0.18); color: #8ff0b0; border: 1px solid rgba(127, 224, 160, 0.4); }
+    .prov-inferred { background: rgba(240, 192, 96, 0.18); color: #ffd984; border: 1px solid rgba(240, 192, 96, 0.4); }
+    .prov-invented { background: rgba(208, 132, 255, 0.18); color: #e2b8ff; border: 1px solid rgba(208, 132, 255, 0.4); }
+
+    /* Stage Set Triple Strip (visible in LIVE STAGE SET mode) */
+    #stage-triple {
+      display: none;
+      margin-top: 6px;
+      border-top: 1px solid var(--rule);
+      padding-top: 6px;
+      gap: 5px;
+      flex-direction: column;
+    }
+    #stage-triple.visible { display: flex; }
+    .triple-card {
+      background: rgba(6, 12, 22, 0.72);
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      padding: 5px 7px;
+      font-size: 10.5px;
+    }
+    .triple-card b { color: var(--brass); display: block; }
+
+    /* Context Prompt at Bottom Center (above Shader Suite dock) */
+    #threshold-banner {
+      position: fixed;
+      bottom: 118px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 19;
+      background: var(--panel-strong);
+      border: 1px solid var(--cyan);
+      border-radius: 6px;
+      padding: 6px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      pointer-events: auto;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    /* Full Archive, Niche Matrix & Reference Classifier Modal */
+    #archive-modal {
+      position: fixed;
+      inset: 48px 16px 56px 16px;
+      z-index: 30;
+      background: var(--panel-strong);
+      border: 1px solid var(--brass);
+      border-radius: 8px;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.65);
+    }
+    #archive-modal.open { display: flex; }
+    .modal-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 16px;
+    }
+    #niche-grid {
+      display: grid;
+      gap: 3px;
+      margin-top: 6px;
+    }
+    .niche-cell {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      padding: 4px;
+      min-height: 36px;
+      font-size: 9.5px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .niche-cell.filled {
+      background: rgba(24, 180, 255, 0.12);
+      border-color: rgba(24, 180, 255, 0.45);
+    }
+    .niche-cell.empty { opacity: 0.35; cursor: default; }
+    #scatter-canvas {
+      width: 100%;
+      height: 180px;
+      background: #07111e;
+      border: 1px solid var(--rule);
+      border-radius: 4px;
+      display: block;
+      margin-top: 8px;
+      cursor: pointer;
+    }
+    .ref-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .ref-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--rule);
+      border-radius: 5px;
+      padding: 8px;
+      font-size: 11px;
+    }
+
+    @media (max-width: 960px) {
+      #left-drawer, #right-drawer {
+        width: calc(50vw - 16px);
+        max-height: 36vh;
+        top: auto;
+        bottom: 96px;
+      }
+      .modal-body { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      #left-drawer { left: 8px; width: calc(100vw - 16px); bottom: 96px; max-height: 28vh; }
+      #right-drawer { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-wrap" aria-label="Foundry 3D Inverse Tomology Viewport"></div>
+
+  <header id="foundry-top">
+    <div class="hud-card">
+      <div class="kicker">Make-Photo City · Briefs 2 &amp; 3 · The Severn Pilot (20 x 12 m)</div>
+      <div class="headline">Foundry, Calvino Evolution &amp; Inverse Tomology</div>
+      <div class="subline" id="mode-subtitle">Walk exterior street &amp; co-evolved Severn rooms; toggle door for route &amp; sound transmission.</div>
+      <div class="mode-bar" id="view-modes" role="tablist" aria-label="Foundry View Modes">
+        <button class="pill active" data-mode="walk" type="button">1. Street &amp; Interior Walk (WASD)</button>
+        <button class="pill cyan" data-mode="xray" type="button">2. Inverse Tomology X-Ray</button>
+        <button class="pill" data-mode="grid" type="button">3. Foundry Evolution Grid (6 Gen)</button>
+        <button class="pill cyan" data-mode="stage" type="button">4. Live Stage Set (Anny V8)</button>
+      </div>
+    </div>
+
+    <div class="hud-card" style="display:flex;flex-direction:column;gap:5px;min-width:255px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <span class="kicker">Room &amp; Pilot Sync</span>
+        <button class="pill cyan-act" id="btn-open-archive" type="button">72 Worlds &amp; Classified Refs (B)</button>
+      </div>
+      <div class="mode-bar" id="room-jumps" style="margin-top:2px;">
+        <button class="pill active" data-jump="street" type="button">Street</button>
+        <button class="pill" data-jump="vestibule" type="button">Vestibule</button>
+        <button class="pill" data-jump="flat-2a" type="button">Flat 2A Win</button>
+        <button class="pill" data-jump="darkroom" type="button">Darkroom</button>
+        <button class="pill" data-jump="screening" type="button">Screening</button>
+        <button class="pill" data-jump="roof" type="button">Roof</button>
+      </div>
+    </div>
+  </header>
+
+  <aside id="left-drawer" class="hud-card" aria-label="Calvino Combinatorial Evolution Controls">
+    <div class="sec-head">
+      <span>Calvino Co-Evolution Axes</span>
+      <button class="pill" id="toggle-left" type="button" style="padding:1px 6px;">Fold</button>
+    </div>
+    <div class="drawer-body">
+      <div id="calvino-sliders"></div>
+      <div class="mode-bar" style="margin-top:8px;">
+        <button class="pill cyan-act" id="btn-mutate" type="button">Mutate Candidate (M)</button>
+        <button class="pill" id="btn-revert" type="button">Revert Parent</button>
+      </div>
+      <div class="lineage-box" id="lineage-readout"></div>
+      <div id="proof-summary" style="margin-top:6px;font-size:10.5px;color:var(--muted);"></div>
+    </div>
+  </aside>
+
+  <aside id="right-drawer" class="hud-card" aria-label="Inverse Tomology Plan, Section &amp; Stage Inspector">
+    <div class="sec-head">
+      <span id="right-title">Inverse Tomology Plan &amp; Section</span>
+      <button class="pill" id="toggle-right" type="button" style="padding:1px 6px;">Fold</button>
+    </div>
+    <div class="drawer-body">
+      <canvas id="plan-canvas" width="320" height="168"></canvas>
+      <div class="mode-bar" id="level-pills" style="margin:6px 0;">
+        <button class="pill active" data-lv="0" type="button">L0 Street</button>
+        <button class="pill" data-lv="1" type="button">L1 Darkroom</button>
+        <button class="pill" data-lv="2" type="button">L2 Flat 2A</button>
+        <button class="pill" data-lv="3" type="button">L3 Screen</button>
+        <button class="pill" data-lv="4" type="button">L4 Top</button>
+      </div>
+      <div id="pilot-kv"></div>
+      <div style="margin-top:6px;">
+        <span class="prov-badge prov-recorded">recorded</span>
+        <span class="prov-badge prov-checked">checked</span>
+        <span class="prov-badge prov-inferred">inferred</span>
+        <span class="prov-badge prov-invented">invented</span>
+      </div>
+      <div id="uncertainty-note" style="margin-top:5px;font-size:10.5px;color:var(--muted);">
+        Envelope 20x12 m &amp; facade openings: recorded. Concealed interior partitions: reversible candidate hypothesis.
+      </div>
+      <div id="stage-triple">
+        <div class="triple-card">
+          <b>1. Found Reference (Shot w1623-01-00 · 29mm)</b>
+          Poem 01 "Out of Life" · Dusk-to-night street front; tower at x=0.41, horizon 0.36.
+        </div>
+        <div class="triple-card">
+          <b>2. Multiplane Layer &amp; Cutout Manifest</b>
+          FG curb cruiser (tire contact y=0) + Anny V8 courier &amp; keeper + mid-ground Severn brick + sky dish cutout (cone +/-38 deg).
+        </div>
+        <div class="triple-card">
+          <b>3. Traversable Consequence &amp; Reverse Cut</b>
+          Parcel handoff persists in make_photo_pilot_v1; closing door blocks passage &amp; drops room filter to 580 Hz.
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div id="threshold-banner" role="region" aria-label="Threshold Door and Resident Encounter Controls">
+    <span id="space-status" style="font-weight:600;color:var(--cyan);">EXTERIOR STREET · 13.5 kHz</span>
+    <button class="pill cyan-act" id="btn-door" type="button">Door: Open (E)</button>
+    <button class="pill" id="btn-parcel" type="button">Hand Parcel to Bekele (H)</button>
+    <button class="pill" id="btn-reverse-cam" type="button">Angle: Forward (R)</button>
+  </div>
+
+  <section id="archive-modal" aria-label="Foundry 72 Worlds Archive and Reference Classification">
+    <div class="modal-bar">
+      <div>
+        <span class="kicker">Upstream Archive · archive.json + inverse.json + sets.json + shots.json</span>
+        <div class="headline" id="archive-stats-line">72 Evolved Worlds · Classified Spatial Evidence</div>
+      </div>
+      <div class="mode-bar" style="margin-top:0;">
+        <button class="pill active" data-rclass="all" type="button">All Refs</button>
+        <button class="pill" data-rclass="exterior" type="button">Exterior</button>
+        <button class="pill" data-rclass="threshold" type="button">Threshold</button>
+        <button class="pill" data-rclass="interior" type="button">Interior</button>
+        <button class="pill" data-rclass="object" type="button">Object</button>
+        <button class="pill" data-rclass="body" type="button">Body</button>
+        <button class="pill cyan-act" id="btn-close-archive" type="button">Close (Esc)</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div>
+        <div class="sec-head"><span>Foundry Niche Matrix (Lattice -> Maze / Dry -> Drowned)</span></div>
+        <div id="niche-grid"></div>
+        <div class="sec-head" style="margin-top:12px;"><span>All Worlds Scatter (Gold Ring = Kept Elite)</span></div>
+        <canvas id="scatter-canvas" width="520" height="180"></canvas>
+        <div id="world-inspector" class="lineage-box" style="margin-top:8px;"></div>
+      </div>
+      <div>
+        <div class="sec-head"><span>Poem-Linked Spatial Evidence (Brief 2 Classification)</span></div>
+        <div class="mode-bar" id="poem-filter-pills" style="margin-bottom:6px;"></div>
+        <div class="ref-list" id="classified-refs"></div>
+      </div>
+    </div>
+  </section>
+
+  <script src="../../motion-pipeline/mesh2motion/m2m-retarget.js"></script>
+  <script src="../../motion-pipeline/anny-human-v7.js?v=5"></script>
+  <script type="module" src="./foundry.js"></script>
+</body>
+</html>

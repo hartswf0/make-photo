@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <script type="importmap">{"imports":{"three":"../../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
+  <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+  <link rel="stylesheet" href="../suite-nav.css">
+  <title>MAKE-PHOTO CITY | Worldtext Compiler, Poem Dossiers, Archive &amp; Darkroom Studio</title>
+  <style>
+    :root {
+      --bg: #081320;
+      --bg-deep: #050c15;
+      --surface: #0d1d30;
+      --card: rgba(12, 26, 44, 0.88);
+      --paper: #f4eedd;
+      --muted: rgba(244, 238, 221, 0.74);
+      --dim: rgba(244, 238, 221, 0.50);
+      --brass: #e0b46a;
+      --amber: #f2a541;
+      --cyan: #18b4ff;
+      --aqua: #5fe8ff;
+      --crimson: #d96552;
+      --rule: rgba(244, 238, 221, 0.16);
+      --serif: "Iowan Old Style", Palatino, Georgia, serif;
+      --sans: Inter, system-ui, -apple-system, sans-serif;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(24, 180, 255, 0.10) 0%, transparent 55%),
+        linear-gradient(180deg, #0a192c 0%, var(--bg) 45%, var(--bg-deep) 100%);
+      color: var(--paper);
+      font: 400 13.5px/1.52 var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
+    button, select, input, textarea, a { font: inherit; color: inherit; }
+    button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible {
+      outline: 2.5px solid var(--amber);
+      outline-offset: 2px;
+    }
+    [hidden] { display: none !important; }
+
+    .workbench-wrap {
+      max-width: 1460px;
+      margin: 0 auto;
+      padding: 44px clamp(12px, 2.4vw, 26px) 84px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Top Darkroom Studio Shell (modeled on study/studio.html) */
+    .studio-shell {
+      background: linear-gradient(180deg, rgba(12, 31, 56, 0.92) 0%, rgba(7, 17, 30, 0.96) 100%);
+      border: 1px solid rgba(224, 180, 106, 0.34);
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.52);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .studio-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--rule);
+    }
+    .eyebrow {
+      font: 700 10px/1.2 var(--mono);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+    .hero-title {
+      margin: 3px 0 0;
+      font: 600 clamp(22px, 2.8vw, 31px)/1.1 var(--serif);
+      color: var(--paper);
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+    .pill {
+      appearance: none;
+      border: 1px solid var(--rule);
+      background: rgba(8, 20, 36, 0.85);
+      color: var(--muted);
+      border-radius: 5px;
+      padding: 6px 10px;
+      font: 600 10.5px/1.1 var(--mono);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 140ms ease;
+    }
+    .pill:hover {
+      border-color: var(--cyan);
+      color: var(--paper);
+    }
+    .pill.active {
+      background: rgba(24, 180, 255, 0.24);
+      border-color: var(--cyan);
+      color: #ffffff;
+      box-shadow: inset 0 0 0 1px rgba(24, 180, 255, 0.32);
+    }
+    .pill.amber {
+      border-color: var(--amber);
+      color: var(--amber);
+      background: rgba(242, 165, 65, 0.12);
+    }
+    .pill.amber.active, .pill.amber:hover {
+      background: var(--amber);
+      color: #07121e;
+    }
+
+    .studio-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.38fr) minmax(320px, 0.82fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+    @media (max-width: 1020px) {
+      .studio-grid { grid-template-columns: 1fr; }
+    }
+
+    .viewport-card {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-deep);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      overflow: hidden;
+      min-height: 365px;
+    }
+    .vp-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 11px;
+      background: rgba(7, 16, 28, 0.96);
+      border-bottom: 1px solid var(--rule);
+      font: 600 10px/1.2 var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      flex-wrap: wrap;
+    }
+    #turntable-wrap {
+      position: relative;
+      flex: 1;
+      min-height: 325px;
+      max-height: 355px;
+      background: #0c1f38;
+      cursor: grab;
+    }
+    #turntable-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Situated Account & Gate Outcome Inspector Card */
+    .account-inspector {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: var(--card);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .calvino-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
+    }
+    .passage-box {
+      background: rgba(5, 12, 22, 0.78);
+      border-left: 3px solid var(--amber);
+      border-radius: 4px;
+      padding: 9px 11px;
+    }
+    .passage-quote {
+      font: italic 14.5px/1.42 var(--serif);
+      color: var(--paper);
+    }
+    .passage-cite {
+      font: 500 10px/1.35 var(--mono);
+      color: var(--brass);
+      margin-top: 4px;
+    }
+    .visitor-compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .visitor-card {
+      background: rgba(6, 15, 27, 0.85);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+    .visitor-card b {
+      display: block;
+      font: 600 10px/1.2 var(--mono);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font: 600 9.5px/1.3 var(--mono);
+      text-transform: uppercase;
+      border: 1px solid currentColor;
+    }
+    .badge.recorded { color: #7ce8ff; }
+    .badge.checked { color: #6be8dc; }
+    .badge.inferred { color: #d8b4fe; }
+    .badge.invented { color: #fca5a5; }
+    .badge.unresolved { color: var(--amber); }
+
+    /* Main 6-Tab Workbench Navigation */
+    .wb-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 10px;
+    }
+    .wb-panel {
+      background: var(--card);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .sec-h2 {
+      margin: 0;
+      font: 600 20px/1.2 var(--serif);
+      color: var(--paper);
+    }
+    .sec-kicker {
+      font: 600 10px/1.2 var(--mono);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--brass);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    .data-table th, .data-table td {
+      border-bottom: 1px solid var(--rule);
+      padding: 8px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .data-table th {
+      font: 600 10px/1.2 var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brass);
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
+      gap: 12px;
+    }
+    .item-card {
+      background: rgba(6, 15, 28, 0.82);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      padding: 11px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .item-card.clickable { cursor: pointer; }
+    .item-card.clickable:hover, .item-card.selected {
+      border-color: var(--cyan);
+      box-shadow: inset 0 0 0 1px rgba(24, 180, 255, 0.28);
+    }
+    .swatch-bar {
+      display: flex;
+      height: 22px;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .swatch-bar i { display: block; height: 100%; }
+
+    /* Authoring Form */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .field label {
+      font: 600 10px/1.2 var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brass);
+    }
+    .field input, .field textarea, .field select {
+      background: rgba(5, 12, 22, 0.9);
+      border: 1px solid var(--rule);
+      border-radius: 5px;
+      padding: 7px 9px;
+      color: var(--paper);
+    }
+    .field textarea { min-height: 68px; resize: vertical; }
+
+    /* Poem Dossier Layout */
+    .poem-layout {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .poem-layout { grid-template-columns: 1fr; }
+    }
+    .poem-nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .poem-lines-cols {
+      columns: 2 280px;
+      column-gap: 24px;
+      background: rgba(5, 12, 22, 0.72);
+      border: 1px solid var(--rule);
+      border-radius: 7px;
+      padding: 12px 14px;
+    }
+    .poem-lines-cols div {
+      break-inside: avoid;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .poem-lines-cols code {
+      font: 600 10.5px var(--mono);
+      color: var(--amber);
+      margin-right: 7px;
+    }
+
+    /* Colour Script Bar */
+    .script-strip {
+      display: flex;
+      height: 36px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--rule);
+    }
+    .script-seg {
+      display: flex;
+      border-right: 1px solid #050c15;
+    }
+    .script-seg i { flex: 1; }
+  </style>
+</head>
+<body>
+  <main class="workbench-wrap">
+    <!-- SECTION 1: LIVE 3D STUDIO TURNTABLE & BRIEF 5 EXECUTABLE GATE STAGE -->
+    <section class="studio-shell" aria-label="Live 3D Worldtext Studio and Executable Gate Stage">
+      <div class="studio-head">
+        <div>
+          <div class="eyebrow">WORLDTEXT COMPILER &amp; DARKROOM TURNTABLE | ALL 23 GPU SHADERS</div>
+          <h1 class="hero-title">Situated Accounts, Calvino Readings &amp; 3D Material Studio</h1>
+        </div>
+        <div class="pill-row" id="stage-mode-strip" role="group" aria-label="3D Studio Subject">
+          <button type="button" class="pill active" data-subject="gate">01 Severn Threshold Gate</button>
+          <button type="button" class="pill" data-subject="vignette">02 Poem Vignette Set</button>
+          <button type="button" class="pill" data-subject="kit">03 Atlantis Object Kit (11)</button>
+          <button type="button" class="pill" data-subject="cartridge">04 Authored Cartridge Block</button>
+        </div>
+      </div>
+
+      <div class="studio-grid">
+        <!-- Left: Live WebGL 3D Viewport -->
+        <div class="viewport-card">
+          <div class="vp-bar">
+            <span id="vp-subject-title">STAGE: THE SEVERN THRESHOLD (+4.00 M PHYSICAL FLOOD DATUM VS 0.40 M BOLLARD STRIPE)</span>
+            <div class="pill-row">
+              <button type="button" class="pill" id="btn-raw-daylight" style="padding:3px 7px;">Light: Authored Hour</button>
+              <button type="button" class="pill" id="btn-spin-toggle" style="padding:3px 7px;">Spin: Off</button>
+              <button type="button" class="pill amber" id="btn-replay-gate" style="padding:3px 8px;">Replay Encounter</button>
+              <button type="button" class="pill" id="btn-studio-plate" style="padding:3px 8px;">Expose Plate</button>
+            </div>
+          </div>
+          <div id="turntable-wrap"></div>
+          <div class="vp-bar" style="border-top:1px solid var(--rule);border-bottom:none;">
+            <span id="vp-pilot-status">PILOT SYNC: building=severn | door=open | parcel=player</span>
+            <div class="pill-row" id="sub-selector-bar"></div>
+          </div>
+        </div>
+
+        <!-- Right: Brief 5 Calvino Interlacing Readings & Situated Passage -->
+        <aside class="account-inspector" aria-label="Calvino reading compiler and visitor comparison">
+          <div>
+            <div class="sec-kicker">CALVINO INTERLACING SERIES (CHANGES SPATIAL GATE RULE LIVE)</div>
+            <div class="calvino-strip" style="margin-top:5px;" id="calvino-reading-strip">
+              <button type="button" class="pill active" data-reading="memory" style="padding:5px 4px;">Memory</button>
+              <button type="button" class="pill" data-reading="exchange" style="padding:5px 4px;">Exchange</button>
+              <button type="button" class="pill" data-reading="desire" style="padding:5px 4px;">Desire</button>
+              <button type="button" class="pill" data-reading="signs" style="padding:5px 4px;">Signs</button>
+              <button type="button" class="pill" data-reading="loss" style="padding:5px 4px;">Loss</button>
+            </div>
+          </div>
+
+          <div class="passage-box">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;">
+              <span class="sec-kicker" id="situated-speaker">SPEAKER: THE POET | POEM 01 (00:07.8)</span>
+              <span class="badge recorded" id="situated-prov">recorded</span>
+            </div>
+            <div class="passage-quote" id="situated-quote"></div>
+            <div class="passage-cite" id="situated-cite"></div>
+          </div>
+
+          <div>
+            <div class="sec-kicker" style="margin-bottom:5px;">ACCEPTANCE SCENE: TWO VISITORS AT THE SAME GATE</div>
+            <div class="visitor-compare">
+              <div class="visitor-card">
+                <b style="color:var(--aqua);">Visitor A: Makeda (Salt Guild)</b>
+                <div id="vis-a-history" style="color:var(--dim);font-size:11px;margin-bottom:4px;"></div>
+                <div id="vis-a-outcome" style="color:var(--paper);"></div>
+              </div>
+              <div class="visitor-card">
+                <b style="color:var(--amber);">Visitor B: Unregistered Stranger</b>
+                <div id="vis-b-history" style="color:var(--dim);font-size:11px;margin-bottom:4px;"></div>
+                <div id="vis-b-outcome" style="color:var(--paper);"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:6px;border-top:1px solid var(--rule);">
+            <button type="button" class="pill" id="btn-wt-door">Toggle Severn Door</button>
+            <button type="button" class="pill" id="btn-wt-parcel">Hand Parcel: Player -&gt; Bekele</button>
+            <span style="font:500 10px/2.2 var(--mono);color:var(--dim);margin-left:auto;" id="datum-note">Physical +4.00m != 0.40m stripe</span>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- SECTION 2: 6-TAB WORLDTEXT, DOSSIERS, LANGUAGE, GAZETTEER & ARCHIVE WORKBENCH -->
+    <nav class="wb-tabs" role="tablist" aria-label="Worldtext workbench sections">
+      <button type="button" class="pill active" data-wbtab="compiler" role="tab">01 Rule Compiler &amp; Accounts</button>
+      <button type="button" class="pill" data-wbtab="cartridges" role="tab">02 Cartridge Author</button>
+      <button type="button" class="pill" data-wbtab="poems" role="tab">03 Fourteen Poem Dossiers</button>
+      <button type="button" class="pill" data-wbtab="palettes" role="tab">04 21 Palettes &amp; Language</button>
+      <button type="button" class="pill" data-wbtab="gazetteer" role="tab">05 Gazetteer &amp; 13 Districts</button>
+      <button type="button" class="pill" data-wbtab="archive" role="tab">06 Archive &amp; Light Table</button>
+    </nav>
+
+    <!-- PANEL 1: RULE COMPILER & SITUATED ACCOUNTS -->
+    <section class="wb-panel" id="wb-compiler">
+      <div>
+        <div class="sec-kicker">BRIEF 5 DELIVERABLE | SITUATED SOURCE LEDGER (DISAGREEMENTS PRESERVED)</div>
+        <h2 class="sec-h2">Three Canonical Places Across Competing Accounts</h2>
+      </div>
+      <div class="cards-grid" id="situated-places-grid"></div>
+
+      <div>
+        <div class="sec-kicker">EXECUTABLE WORLDTEXT RULE COMPILER &amp; UNRESOLVED REQUIREMENTS</div>
+        <h2 class="sec-h2">Spatial Operations Compiled from Gazetteer, Language &amp; Poems</h2>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="rules-compiler-table">
+          <thead>
+            <tr>
+              <th>Rule ID</th>
+              <th>Series</th>
+              <th>Rule &amp; Motivating Evidence</th>
+              <th>Target Object &amp; Spatial Operation</th>
+              <th>Status &amp; Source</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PANEL 2: CARTRIDGE AUTHOR (BLANK-SLATE + ATLANTIS / BALTIMERE / AHIYA) -->
+    <section class="wb-panel" id="wb-cartridges" hidden>
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">
+        <div>
+          <div class="sec-kicker">SWAPPABLE WORLDTEXT CARTRIDGES</div>
+          <h2 class="sec-h2">Browse or Author Atlantis, Baltimere, Ahiya or Blank-Slate Worlds</h2>
+        </div>
+        <div class="pill-row" id="cartridge-preset-btns">
+          <button type="button" class="pill active" data-cart="atlantis">Atlantis Ring</button>
+          <button type="button" class="pill" data-cart="baltimere">Baltimere Stoops</button>
+          <button type="button" class="pill" data-cart="ahiya">Ahiya Overlook</button>
+          <button type="button" class="pill amber" data-cart="blank">New Blank Slate</button>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="field"><label for="cf-name">World / Cartridge Name</label><input id="cf-name" type="text"></div>
+        <div class="field"><label for="cf-district">Primary District &amp; Ward</label><input id="cf-district" type="text"></div>
+        <div class="field"><label for="cf-building">Hero Building Name</label><input id="cf-building" type="text"></div>
+        <div class="field">
+          <label>Masonry / Cyan Seam / Lamp Hex</label>
+          <div style="display:flex;gap:6px;">
+            <input id="cf-col-masonry" type="color" value="#475c63" style="height:36px;flex:1;padding:2px;">
+            <input id="cf-col-cyan" type="color" value="#18b4ff" style="height:36px;flex:1;padding:2px;">
+            <input id="cf-col-sodium" type="color" value="#ffb35c" style="height:36px;flex:1;padding:2px;">
+          </div>
+        </div>
+        <div class="field"><label for="cf-law">Civic Law &amp; Flood / Reserve Datum</label><textarea id="cf-law"></textarea></div>
+        <div class="field"><label for="cf-arch">Architectural Signature</label><textarea id="cf-arch"></textarea></div>
+        <div class="field"><label for="cf-lexicon">Lexicon Terms (Term : Meaning per line)</label><textarea id="cf-lexicon"></textarea></div>
+        <div class="field"><label for="cf-duet">Threshold Resident Greeting &amp; Reply</label><textarea id="cf-duet"></textarea></div>
+      </div>
+
+      <div class="pill-row">
+        <button type="button" class="pill active" id="btn-apply-cartridge">Preview on 3D Studio &amp; Sync Pilot</button>
+        <button type="button" class="pill" id="btn-export-cartridge">Export Cartridge JSON</button>
+        <span id="cartridge-save-msg" style="font:500 11px var(--mono);color:var(--aqua);"></span>
+      </div>
+    </section>
+
+    <!-- PANEL 3: 14 POEM DOSSIERS -->
+    <section class="wb-panel" id="wb-poems" hidden>
+      <div class="poem-layout">
+        <div>
+          <div class="sec-kicker" style="margin-bottom:6px;">SELECT POEM DOSSIER (01-14)</div>
+          <div class="poem-nav-list" id="dossier-nav"></div>
+        </div>
+        <div id="dossier-detail" style="display:flex;flex-direction:column;gap:14px;"></div>
+      </div>
+    </section>
+
+    <!-- PANEL 4: 21 PALETTES & ARCHITECTURAL LANGUAGE -->
+    <section class="wb-panel" id="wb-palettes" hidden>
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;">
+        <div>
+          <div class="sec-kicker">WYGWYL LANGUAGE/PALETTES.JSON | CLICK ANY CARD TO GRADE THE 3D STUDIO</div>
+          <h2 class="sec-h2">All 21 Measured 6-Color District &amp; Landscape Grammars</h2>
+        </div>
+        <div id="emblem-box" style="width:54px;height:54px;background:#14303e;border-radius:8px;padding:5px;border:1px solid var(--rule);" title="Atlantis Emblem: Ring + 4/10 Line + Cyan Seam"></div>
+      </div>
+      <div class="cards-grid" id="palettes-grid"></div>
+
+      <div>
+        <div class="sec-kicker">FOUND ARCHITECTURE (14 EYE-REVIEWED SPECIES) &amp; ARCHIVE GRIT GAPS</div>
+        <h2 class="sec-h2">Unique Footage Extrusions &amp; Unresolved Collection Prompts</h2>
+      </div>
+      <div class="cards-grid" id="found-and-gaps-grid"></div>
+    </section>
+
+    <!-- PANEL 5: GAZETTEER & 13 DISTRICTS -->
+    <section class="wb-panel" id="wb-gazetteer" hidden>
+      <div>
+        <div class="sec-kicker">ALBUM COLOUR SCRIPT (24 MINUTES, DRONE RECORD CLOCK)</div>
+        <h2 class="sec-h2">Where Every Poem Happens Across Three Realms &amp; The Nongeographic Black</h2>
+        <div class="script-strip" id="album-colour-script" style="margin-top:8px;"></div>
+      </div>
+
+      <div>
+        <div class="sec-kicker">GAZETTEER OF ATLANTIS (W00P) | TIDE CALENDAR, INSTITUTIONS &amp; CUSTOMS</div>
+        <div id="gazetteer-overview" style="font:italic 16px/1.5 var(--serif);color:var(--paper);margin:6px 0 10px;"></div>
+        <div class="cards-grid" id="gazetteer-cards"></div>
+      </div>
+
+      <div>
+        <div class="sec-kicker">THIRTEEN DISTRICTS &amp; SIXTEEN HERO BRIEFS (SCENES.JSON)</div>
+        <div class="cards-grid" id="districts-cards"></div>
+      </div>
+    </section>
+
+    <!-- PANEL 6: ARCHIVE & SHARED LIGHT TABLE -->
+    <section class="wb-panel" id="wb-archive" hidden>
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;">
+        <div>
+          <div class="sec-kicker">SHARED MAKE-PHOTO LIGHT TABLE (`MAKE_PHOTO_CITY_NOLLI_V1`)</div>
+          <h2 class="sec-h2">Exposed Field Plates, Storefront Window Mounts &amp; Margin-Credit</h2>
+        </div>
+        <div class="pill-row">
+          <button type="button" class="pill active" id="btn-expose-from-archive">Expose Current 3D Studio Plate</button>
+          <button type="button" class="pill" id="btn-refresh-plates">Refresh Ledger</button>
+        </div>
+      </div>
+      <div class="cards-grid" id="lighttable-grid"></div>
+
+      <div style="border-top:1px solid var(--rule);padding-top:14px;">
+        <div class="sec-kicker">CANON ARCHIVE SEARCH (2,707 SHOTS / 45,000 STORE)</div>
+        <h2 class="sec-h2">Search 240 Curated Poem-Attributed Frames by Meaning, Source or Poem</h2>
+        <div class="pill-row" style="margin:8px 0;">
+          <input id="arch-search" type="search" placeholder="Search meaning: flood, stairwell, neon, harbor, temple, bridge..." style="flex:1;min-width:220px;background:#050c15;border:1px solid var(--rule);border-radius:5px;padding:7px 10px;color:var(--paper);">
+          <select id="arch-poem-filter" style="background:#050c15;border:1px solid var(--rule);border-radius:5px;padding:7px 9px;">
+            <option value="">All 14 Poems</option>
+          </select>
+          <select id="arch-src-filter" style="background:#050c15;border:1px solid var(--rule);border-radius:5px;padding:7px 9px;">
+            <option value="">All Sources</option>
+            <option value="archive">Archive Footage</option>
+            <option value="generated">Generated Stills</option>
+            <option value="markov">Markov Clips</option>
+            <option value="halfworld">Halfworld</option>
+            <option value="film">The Film</option>
+          </select>
+        </div>
+        <div id="arch-count" style="font:500 11px var(--mono);color:var(--dim);margin-bottom:8px;"></div>
+        <div class="cards-grid" id="archive-results-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="../../motion-pipeline/mesh2motion/m2m-retarget.js"></script>
+  <script src="../../motion-pipeline/anny-human-v7.js?v=5"></script>
+  <script type="module" src="./worldtext.js"></script>
+</body>
+</html>

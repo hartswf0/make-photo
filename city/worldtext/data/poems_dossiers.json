@@ -1,0 +1,2753 @@
+[
+  {
+    "num": "01",
+    "title": "Out of Life",
+    "district": "Naraka Market",
+    "essence": "A dim high-rise bedroom where a man reads a poem to a back that will not turn around: the EX on the fire escape, vaping, while the haze eats the room left to right and the window slides away from every step toward it. Then two bodies fall past streaking towers with a gap between them that breathes and never closes, through a slow-motion vintage party and a hole in its floor, until the only light left in the film is the vape ember, a blue speck on black.",
+    "swatches": [
+      "#07090d",
+      "#0f1c24",
+      "#1f4f5c",
+      "#5aa7ff",
+      "#8fd3e8",
+      "#c9873a",
+      "#e9b46a",
+      "#2a1a2e"
+    ],
+    "lines": [
+      {
+        "time": "00:00.1",
+        "text": "What we've made we don't want, what we've sold to the world, to ourselves, doesn't exist."
+      },
+      {
+        "time": "00:07.8",
+        "text": "I look for a way out through the hallways, within the drawers and fire escapes, trip"
+      },
+      {
+        "time": "00:13.5",
+        "text": "on my own words, falling out of life, and find where you go when you leave."
+      },
+      {
+        "time": "00:20.2",
+        "text": "It was the maze constructed by a tainted love, a known yet unknown pit beneath the quicksands"
+      },
+      {
+        "time": "00:26.3",
+        "text": "of the make-believe haven, and hidden in the overnourished forest of escapism that calls"
+      },
+      {
+        "time": "00:32.0",
+        "text": "for you."
+      },
+      {
+        "time": "00:33.2",
+        "text": "At this age, I'll follow, following the full distance between us almost having it all and"
+      },
+      {
+        "time": "00:39.5",
+        "text": "starting anew, to rediscover when love was real."
+      },
+      {
+        "time": "00:44.0",
+        "text": "I failed at protecting you from your own vices, crashing the party of your evilest instincts"
+      },
+      {
+        "time": "00:49.8",
+        "text": "to find vibrations that echo in silence, love and hate languages that translate and slow"
+      },
+      {
+        "time": "00:57.1",
+        "text": "dripping blood salivating on imminent doubts, fully awakening to our darkest nights."
+      },
+      {
+        "time": "01:04.0",
+        "text": "Pause for a second, a spectrum of fields will thread needles of garments made of sweet memories"
+      },
+      {
+        "time": "01:10.2",
+        "text": "and photographs, film and fiction that leave me empty."
+      },
+      {
+        "time": "01:15.4",
+        "text": "With your back faced against me, you offer me a new pursuit of happiness as I stumble"
+      },
+      {
+        "time": "01:20.9",
+        "text": "on my own words, landing into the secret of where you go when you leave, and I fall"
+      },
+      {
+        "time": "01:26.3",
+        "text": "out of life."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "THE SEARCH",
+        "beat": "he reads the poem aloud to the EX's back, then searches the room for a way out: drawers, hallway, window",
+        "feeling": "restless, pleading",
+        "image": "POET mid-room with the creased page, EX's olive back framed in the window on the fire escape, a vape cloud rolling off his shoulder"
+      },
+      {
+        "movement": "MORE HAZE",
+        "beat": "the haze claims the room left to right; he walks toward the window and it slides away",
+        "feeling": "blurred, reaching",
+        "image": "the window receding on its slider while POET reaches, the ember the only sharp thing in the haze"
+      },
+      {
+        "movement": "THE FALL",
+        "beat": "EX tips over the rail; POET falls after him past towers streaking upward, his words tumbling beside him",
+        "feeling": "vertigo, devotion",
+        "image": "two braced bodies head-down between lit towers, a 24-cell gap between them that breathes and never closes"
+      },
+      {
+        "movement": "AS DARK AS BLACK",
+        "beat": "he crashes a slow-motion vintage party, chases EX's back through the dancers, trips through a hole in the parquet into black",
+        "feeling": "euphoria curdling to emptiness",
+        "image": "the ink flooding in from the edges until one blue ember is left on black"
+      }
+    ],
+    "stages": [
+      {
+        "set": "01.0 \u00b7 set bedroom_highrise",
+        "title": "The reading",
+        "lyric": "What we've made we don't want\u2014 What we've sold / to the world / doesn't exist.",
+        "blocking": "35 mm equivalent locked off from the bedroom door at sitting height. POET card in the left foreground third, three-quarter back, page in hand; dresser with drawers mid-left; TV low on the right throwing blue onto the floor card; the window is a lit orange rectangle in the back third with the EX's back framed in it on the escape. Only the drawers, the TV image and the haze move. Insert: TV screen card swapping chaos images whose reds match the beacons outside.",
+        "scenebook": "Scene book: static wide of the bare room, POET in the foreground, window and EX's back deep in frame; insert on the TV. the Severn, a high bedroom; the Hive's needles fill the window"
+      },
+      {
+        "set": "01.1 \u00b7 set fire_escape_night",
+        "title": "Haze at the window",
+        "lyric": "i look for a way out through the hallways, within the tunnels, & fire escapes\u2014",
+        "blocking": "Slow push from the bed toward the sill that never arrives: the camera trucks in while the window card slides back on its rail at the same speed, so it holds size. Behind the window, the escape (front), the spiral stair with planters in the light well (mid) and the orange haze (back) as three planes; the haze card wipes left to right across the room. EX at the rail, back only, vape cloud card pinned to his head.",
+        "scenebook": "Scene book: slow push toward the window that never closes the distance (dolly-zoom feel), haze softening focus. the window and the iron escape; the Orange Catwalk runs 30 m below"
+      },
+      {
+        "set": "01.2 \u00b7 set fire_escape_night",
+        "title": "Off the fire escape",
+        "lyric": "trip on my own words\u2014 falling out of life where you go when you / leave.",
+        "blocking": "High angle over the rail straight down the facade (forced-perspective brick card converging to an orange gradient). The EX card tips backward over the rail top of frame and shrinks down the shaft on a vertical rig; then POV: haze cards stacked on glass pass upward faster and faster until the last one is black. Hold black for the title card.",
+        "scenebook": "Scene book: over-the-railing high angle as the EX drops, then POV fall through cloud to black; hold black for title. the escape's top landing over the light well"
+      },
+      {
+        "set": "01.3 \u00b7 set city_fall_void",
+        "title": "The fall montage",
+        "lyric": "It was the maze beneath the quicksands of the make-believe / haven\u2014 overnourished forests / of escapism that calls for you\u2014",
+        "blocking": "Top-down on a black ground: POET and EX falling cards face-down, EX always lower and turned away, the gap between them breathing on a slider. Tower slabs with red beacon holes and the escape-screen cards scroll upward past them on two belts at different speeds; screens show drugs, party, TV, phones.",
+        "scenebook": "Scene book: top-down falling bodies with projected/composited imagery streaming past; EX always seen from behind. below the tower, into the black"
+      },
+      {
+        "set": "01.4 \u00b7 set vintage_party",
+        "title": "Crashing the vintage party",
+        "lyric": "crashing the party of your evilest instincts to find vibrations sweet memories\u2014 / in photographs, / film & fiction",
+        "blocking": "Handheld feel: the whole crowd stack jitters on a soft rig at overcranked (half) speed. Three crowd layers of 1930s couples in grey-gold, a lantern line above, a gel of round leak discs in front. POET pushes through the mid layer; the EX's back appears between two dancer cards and is gone on the next swap.",
+        "scenebook": "Scene book: handheld through the crowd at overcranked speed, light leaks, EX glimpsed back-to-camera then gone. the vintage party met mid-fall"
+      },
+      {
+        "set": "01.5 \u00b7 set vintage_party",
+        "title": "Hole in the floor",
+        "lyric": "as I stumble / on my own words, landing into / the secret of\u2014 & I fall out of life.",
+        "blocking": "Floor level: POET's foot card at the edge of the parquet, the hole a black cut-out in a warm spot pool. Cut to overhead: the parquet card with its trapdoor open, POET drops through and shrinks into black; the party crowd stays at the rim, unaware.",
+        "scenebook": "Scene book: low floor-level angle on his feet catching the edge, then overhead as he drops away into black. the hole in the party floor"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  black_tshirt",
+        "role": "the speaker, reading his poem to the EX and then following him out of life"
+      },
+      {
+        "id": "c-ex",
+        "name": "EX  ex_jacket",
+        "role": "the one who leaves: on the fire escape, vaping, then over the rail"
+      },
+      {
+        "id": "c-party",
+        "name": "PARTY, CLUB AND DJ  vintage_party",
+        "role": "the slow-motion guests of the vintage party"
+      }
+    ]
+  },
+  {
+    "num": "02",
+    "title": "Flashing Lights",
+    "district": "The Overseer",
+    "essence": "A silent scream: a scream whose rings travel inward. The man floats in black while walls cave on him, wakes after midnight to a phone that rings twice and a mirror that answers his hand exactly, then his pupil opens and we go through it into a winter living room where he is six, a dead seven-year-old stands one pencil notch taller, his parents argue in a car with its hazards flashing, and he throws the tambourine she gave him through the glass.",
+    "swatches": [
+      "#04070f",
+      "#0b1f4a",
+      "#1078da",
+      "#5aa7ff",
+      "#e8edf5",
+      "#d8322e",
+      "#f0a830",
+      "#7f97b8"
+    ],
+    "lines": [
+      {
+        "time": "00:00.0",
+        "text": "I heard a scream for help while falling with my headlights off."
+      },
+      {
+        "time": "00:04.6",
+        "text": "It was a type of silent scream a trap lover makes to escape a pending marriage,"
+      },
+      {
+        "time": "00:10.0",
+        "text": "a concussion, a set of walls caving inward, seething and simmering,"
+      },
+      {
+        "time": "00:16.6",
+        "text": "and a solitude of crowds and smiles."
+      },
+      {
+        "time": "00:20.2",
+        "text": "I received an emergency call while tossing and turning."
+      },
+      {
+        "time": "00:23.5",
+        "text": "It was a type of silent call a man makes to the mirror after midnight."
+      },
+      {
+        "time": "00:28.8",
+        "text": "To digest the truth, a windless insomnia and epiphany of a road winding down."
+      },
+      {
+        "time": "00:36.8",
+        "text": "After a day of life dilated at the sun as long and as wise as possible, we won't make it."
+      },
+      {
+        "time": "00:45.8",
+        "text": "I was six I recall when the ghost of a dead and loveless seven-year-old child appeared"
+      },
+      {
+        "time": "00:52.2",
+        "text": "and shared that my parents marriage wouldn't last."
+      },
+      {
+        "time": "00:56.4",
+        "text": "It was a type of warm and heavy breeze in winter"
+      },
+      {
+        "time": "00:59.8",
+        "text": "where a child is left home alone."
+      },
+      {
+        "time": "01:02.6",
+        "text": "With curtains pulled and blinds up as far and as wise as possible to see flashing lights"
+      },
+      {
+        "time": "01:09.6",
+        "text": "and the whispering screams of two souls on a road winding down."
+      },
+      {
+        "time": "01:14.9",
+        "text": "And no tears and no fucks, no love to give, old to teach."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "SILENT SCREAM",
+        "beat": "he floats in black, head thrown back, mouth open with no sound; walls cave inward; EX floats out of reach",
+        "feeling": "trapped, soundless panic",
+        "image": "five rings closing in on an open mouth, two engagement rings drifting toward each other and never touching"
+      },
+      {
+        "movement": "THE MIRROR",
+        "beat": "phone rings twice; he sits up, crosses the dark floor and puts his hand flat on the mirror",
+        "feeling": "insomnia, reckoning",
+        "image": "his palm and his reflection's palm meeting exactly while the clock behind him opens like a V"
+      },
+      {
+        "movement": "WE GO THROUGH",
+        "beat": "his eyes dilate in the dark; the pupil opens on a road winding down",
+        "feeling": "falling into memory",
+        "image": "an iris card opening like an aperture on a far light and a bending road"
+      },
+      {
+        "movement": "THE GHOST WAS SEVEN",
+        "beat": "YOUNG_POET at the window; the ghost child assembles beside him and tells him the marriage won't last",
+        "feeling": "hushed, uncanny",
+        "image": "seven pencil notches on a door post, his crown at the sixth, hers at the seventh"
+      },
+      {
+        "movement": "BLINDS UP",
+        "beat": "he hauls the blind cord; through the slats the car flashes, his parents argue in it, then it rolls down the road",
+        "feeling": "watching, helpless",
+        "image": "slat shadows striping a small face in white and amber light"
+      },
+      {
+        "movement": "THROUGH THE WINDOW",
+        "beat": "the ghost hands him a tambourine; he throws it through the glass; the room peels away into black",
+        "feeling": "cold release: no tears, no love to give",
+        "image": "the tambourine leaving through forking cracks, the pane falling in pieces"
+      }
+    ],
+    "stages": [
+      {
+        "set": "02.0 \u00b7 set black_void",
+        "title": "Falling with headlights off",
+        "lyric": "I heard a / scream for help while falling / with my / headlights / off\u2014 a pending marriage, a set of walls caving inward",
+        "blocking": "Floating wide on a black stage. POET card mid-frame on a slow drift rig, EX card back-to-camera lower right at a fixed distance on the same rig so the gap never changes. Strobe gels (white, then amber hazard) flash across both; a ring of small warm floor-lights below them like the drowned cathedral's lamps. Wall cards slide in from the edges and cave inward.",
+        "scenebook": "Scene book: floating wide in a black stage, strobing practicals; EX kept back-to-camera at a fixed unreachable distance. the black below the floor"
+      },
+      {
+        "set": "02.1 \u00b7 set eye_macro",
+        "title": "Eyes dilate",
+        "lyric": "an emergency call / while tossing & turning\u2014 the mirror after midnight after a day of life / dilated at the sun I've accepted that we won't / make it.",
+        "blocking": "Extreme close-up: the eye card fills frame; the iris is 3 concentric ring cards that iris open (pupil hole widens). Push straight through the pupil; behind it the night road winding down with two headlight beams fanning, which becomes the street of the next scene.",
+        "scenebook": "Scene book: extreme close-up on the POET's eye, pupil opening, macro push-through into the next scene. his eye"
+      },
+      {
+        "set": "02.2 \u00b7 set living_room_1990s",
+        "title": "Car pulls up",
+        "lyric": "Heart break revisits / an old scene. I was six\u2014 I recall, when",
+        "blocking": "From behind YOUNG_POET at child height: his black silhouette card centre-low, the window a big backlit blue screen with cross mullions; outside, the rowhouse street, palace and towers under the moon. The car silhouette slides in along the curb; two headlight beam cards (soft-edged yellow acetate) sweep across ceiling and wall twice as it takes the bumps.",
+        "scenebook": "Scene book: from behind the child at the window, headlight beams sweeping across walls and ceiling. the child's living-room window over the curb, the road winding down past the towers"
+      },
+      {
+        "set": "02.3 \u00b7 set living_room_1990s",
+        "title": "The ghost child",
+        "lyric": "the ghost of a dead / & a love-less / seven-year old child appeared & shared that my parents' / marriage wouldn't / last\u2014",
+        "blocking": "Two-shot at child height beside the window: GHOST_CHILD a pale outline card lit from behind, one notch taller than YOUNG_POET, hugs him (arm card overlaps). Insert: frost-breath card fogging on the pane, his breath not the boy's. The ghost fades by swapping to thinner outline cards.",
+        "scenebook": "Scene book: soft two-shot at child height, ghost slightly diffused; frost breath on the windowpane insert. beside the window"
+      },
+      {
+        "set": "02.4 \u00b7 set driveway_road_night",
+        "title": "Parents arguing in the car",
+        "lyric": "a child is left / home alone with curtains / pulled & blinds up to see / flashing lights of two souls on / a road winding down",
+        "blocking": "Over the child's shoulder through the glass to the lit car: interior a warm cut-out window in the car silhouette with two small parent profiles (MOTHER passenger, father driver), amber hazards blinking. Behind the car, the moon exactly on the axis between two slab towers. Reverse: the child's face card in headlight wash, blinds up, curtain pulled aside.",
+        "scenebook": "Scene book: over-the-shoulder through the glass to the lit car interior; reverse close-up on the child's face in headlight wash. the window looking down to the curb"
+      },
+      {
+        "set": "02.5 \u00b7 set living_room_1990s",
+        "title": "Tambourine through the window",
+        "lyric": "and no tears and no fucks and no love / to give. ode to teach.",
+        "blocking": "From outside looking in: the window card face-on, the room a warm box behind it, the child small inside. The pane is a pre-scored sheet that swaps to a shards card; the tambourine card flies toward the lens on a rod, jingles flicking, and keeps going into black (the flight that lands in 03).",
+        "scenebook": "Scene book: high-speed glass shatter from outside looking in, tambourine exiting toward camera. the window itself"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  black_tshirt",
+        "role": "the man who screams without sound and calls the mirror after midnight"
+      },
+      {
+        "id": "c-ex",
+        "name": "EX  ex_jacket",
+        "role": "the trapped lover, floating in distress, out of reach"
+      },
+      {
+        "id": "c-young_poet",
+        "name": "YOUNG POET  pajamas_winter",
+        "role": "the poet at six, left home alone at the window"
+      },
+      {
+        "id": "c-ghost_child",
+        "name": "GHOST CHILD  ghost_nightclothes",
+        "role": "the dead, loveless seven-year-old who tells him the marriage won't last"
+      },
+      {
+        "id": "c-parents",
+        "name": "PARENTS  parent_coat",
+        "role": "the father in the car"
+      },
+      {
+        "id": "c-woman",
+        "name": "THE WOMAN (was \"the poet\" puppet)  mother_cardigan",
+        "role": "the MOTHER in the passenger seat"
+      }
+    ]
+  },
+  {
+    "num": "03",
+    "title": "How to break off an engagement",
+    "district": "Mirror Thread Bay",
+    "essence": "The tambourine thrown through the window in 02 tumbles through black and sails in through a chapel's rose window, still whole, into an empty temple: empty choir stands, empty prayer lines, a dry baptism pool. In time-lapse the cobwebs are built, the pews go, the wedding gifts left at the side doors are split by lightning, bread rots in the rain and blankets hang from puppet strings with nobody on them; then the storm lifts, two sets of mud footprints walk away out of step, and the tambourine finally lands on the shore and shatters.",
+    "swatches": [
+      "#0a0f14",
+      "#26323a",
+      "#5d6b70",
+      "#9a8f7a",
+      "#5b4632",
+      "#2e5f66",
+      "#8fd0d4",
+      "#f2f4ee"
+    ],
+    "lines": [
+      {
+        "time": "00:00.5",
+        "text": "Old to forever, a tambourine sounds off an empty temple, empty choir stands, empty prayer lines, and abandoned Baptist pools,"
+      },
+      {
+        "time": "00:14.9",
+        "text": "pews taken by cobwebs, and doused in disintegration."
+      },
+      {
+        "time": "00:21.5",
+        "text": "Spirits have left salvations and opened gift boxes placed outside the side doors."
+      },
+      {
+        "time": "00:28.5",
+        "text": "It thunders, then it rains until nothing remains."
+      },
+      {
+        "time": "00:35.7",
+        "text": "Old to the storm ending, what was once love now goods,"
+      },
+      {
+        "time": "00:40.7",
+        "text": "broken and sealed apart by lightning,"
+      },
+      {
+        "time": "00:44.5",
+        "text": "daily breads soaked and delivered rotted by rain,"
+      },
+      {
+        "time": "00:49.3",
+        "text": "and blankets soiled by venomous puppeteers,"
+      },
+      {
+        "time": "00:53.5",
+        "text": "old to two sets of button-printed footsteps,"
+      },
+      {
+        "time": "00:56.4",
+        "text": "and a tambourine shattered into pieces."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "ODE TO FOREVER",
+        "beat": "the tambourine tumbles through black; its jingle sounds off the empty chapel",
+        "feeling": "hollow reverence",
+        "image": "the struck tambourine at the centre of the nave, rings leaving it and finding nothing"
+      },
+      {
+        "movement": "STILL WHOLE",
+        "beat": "it flies in through the rose window and hangs over a dry baptism pool",
+        "feeling": "suspended hope",
+        "image": "the tambourine crossing the rose window, quartered by the leading, still whole"
+      },
+      {
+        "movement": "COBWEBS",
+        "beat": "time-lapse: webs are built, the pews go one by one, dust takes the air; opened gift boxes glow outside the side doors",
+        "feeling": "slow abandonment",
+        "image": "three webs at three ages of the same decay, spun bridge-first, spiral last"
+      },
+      {
+        "movement": "UNTIL NOTHING REMAINS",
+        "beat": "thunder, rain, lightning splits the wedding gifts; bread rots; blankets hang from strings with nobody on them",
+        "feeling": "violence, then exhaustion",
+        "image": "empty marionette strings working soiled blankets in driving rain"
+      },
+      {
+        "movement": "TWO SETS OF FOOTSTEPS",
+        "beat": "the storm lifts to the north-east; two trails of mud prints arrive one at a time, out of step, leading away from a pool that did not drain",
+        "feeling": "quiet separation",
+        "image": "two backs walking away at the heads of their own trails"
+      },
+      {
+        "movement": "SHATTERED",
+        "beat": "the tambourine lands on the remnants and shatters; the pieces wash ashore as the tide comes in",
+        "feeling": "finality, and a trail to follow",
+        "image": "thirteen rim pieces flying out along their own radii and stopping in the wash"
+      }
+    ],
+    "stages": [
+      {
+        "set": "03.0 \u00b7 set chapel_interior",
+        "title": "Tambourine through the chapel window",
+        "lyric": "Ode to forever\u2014 a tambourine sounds off an / empty temple,",
+        "blocking": "Black belt: the tambourine card on a long rod tumbles toward camera, jingles flicking (the same card that left 02). The rose window card rises into frame from below, glowing; the tambourine passes through its centre cleanly and we are inside the nave: lancets of coloured gel either side, dust motes card, the tambourine hangs a beat in mid-air then drops out of frame.",
+        "scenebook": "Scene book: tracking with the tumbling tambourine in black, then a clean pass through the window into the nave. the chapel's seaward lancet"
+      },
+      {
+        "set": "03.1 \u00b7 set chapel_interior",
+        "title": "The empty temple",
+        "lyric": "empty choir stands, empty prayer lines & abandoned baptism / pools. pews taken / by cobwebs\u2014",
+        "blocking": "Locked-off plates, no camera move. Symmetrical wide down the nave: pews (3 row cards), choir stands, the dry tiled pool front centre. Time-lapse by card swaps: light slab moves across the floor, cobweb state 1-2-3, pews lose rows, ash dots drift. Macro inserts on a pew end, a kneeler and a web as separate big-scale cards.",
+        "scenebook": "Scene book: locked-off time-lapse plates and macro close-ups on wood, stone and web. the nave, choir loft and baptistery as built"
+      },
+      {
+        "set": "03.2 \u00b7 set chapel_side_doors",
+        "title": "Gifts at the side doors",
+        "lyric": "spirits have / left salvations in opened gift / boxes placed / outside the side doors\u2014",
+        "blocking": "Low exterior angle at threshold height: the stone step, dark side doors, three white gift boxes with lids off. Time-lapse swaps: the faint light leaving the boxes as small pale wisps rising (the spirits), the boxes sag and stain, ivy cards creep in over the cracked threshold from the left.",
+        "scenebook": "Scene book: low exterior angle on the threshold, time-lapse of boxes weathering. the side doors and stone threshold"
+      },
+      {
+        "set": "03.3 \u00b7 set chapel_storm",
+        "title": "The storm",
+        "lyric": "it thunders. then rains until / nothing remains.",
+        "blocking": "Wide exterior from the beach: the chapel silhouette small on the flat, horizon low. Sky card swaps to blue-black; lightning fork cards flash behind, full-white flash frame on the thunder; rain dash cards on two belts at different angles. The camera pulls back (scale the plate down) as roof, tower and walls come off in pieces; the blankets on strings swing across the nave cut-away.",
+        "scenebook": "Scene book: wide exterior time-lapse of the chapel silhouette in lightning, pulling back as it is washed away. the flat, from the beach"
+      },
+      {
+        "set": "03.4 \u00b7 set remnants_shore",
+        "title": "Remnants on the shore",
+        "lyric": "Ode to the storm ending. what was once love / now goods\u2014 broken & sealed apart / by lightning. daily breads, / soaked & delivered rotted",
+        "blocking": "Still wides on the same horizon: stumps of the walls, a pool that did not drain, the tide line strip. Inserts: soaked bread loaves, a soiled blanket in the mud, two sets of footprints walking away out of step toward the water, converging with distance.",
+        "scenebook": "Scene book: still wides of wreckage at the tide line, inserts on bread, blanket and mud prints. the tide line where the chapel stood"
+      },
+      {
+        "set": "03.5 \u00b7 set remnants_shore",
+        "title": "Tambourine shatters",
+        "lyric": "& a tambourine / shattered into pieces.",
+        "blocking": "Ground-level, slow motion: the remnant floor strip across frame with one shaft of light on it. The tambourine card drops in from top, hits, and is replaced by the 13-piece breakaway: rim arcs, torn skin, jingles scattering toward the lens on short rods.",
+        "scenebook": "Scene book: slow-motion ground-level impact, fragments scattering toward lens. the chapel's remnant floor"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  black_tshirt",
+        "role": "one of the two who leave the footprints; then the one who follows the trail of pieces"
+      },
+      {
+        "id": "c-ex",
+        "name": "EX  ex_jacket",
+        "role": "the other set of footprints"
+      }
+    ]
+  },
+  {
+    "num": "04",
+    "title": "Nevermore",
+    "district": "Mirror Thread Bay",
+    "essence": "One trail followed twice, each time ending in a body part taken back and sworn over. On a night shore of ash and tambourine pieces, a man in red and black with his hands in his pockets and a hollow chest finds his own heart throbbing in the sand; it floats up and re-enters him, and he says nevermore. He follows it up an incline into a moonlit garden where faith scatters as mustard seeds and golden blooms turn to face him, and in the deepest dark he finds his two hands palm-down on bare ground, puts them back on, stands, and says it again.",
+    "swatches": [
+      "#050810",
+      "#0b1a2a",
+      "#24364a",
+      "#8c9aa6",
+      "#c23a2c",
+      "#d9a640",
+      "#5aa7ff",
+      "#e8e4d8"
+    ],
+    "lines": [
+      {
+        "time": "00:00.1",
+        "text": "What if I follow this trail to where the broken pieces have washed ashore and the ashes of expired wildfires"
+      },
+      {
+        "time": "00:08.6",
+        "text": "cover sands and debris"
+      },
+      {
+        "time": "00:10.8",
+        "text": "lift it from the night seawater's floor."
+      },
+      {
+        "time": "00:14.6",
+        "text": "The waves will calm to fold it whispers and the winds will mute the trees for the right level of silence"
+      },
+      {
+        "time": "00:21.1",
+        "text": "to find a throbbing heart left at the midlife corner returned toward the incline."
+      },
+      {
+        "time": "00:28.4",
+        "text": "A familiar heart"
+      },
+      {
+        "time": "00:29.5",
+        "text": "which has shaken off every sad blue note life can perform"
+      },
+      {
+        "time": "00:33.5",
+        "text": "to overcome and spread inspiration"
+      },
+      {
+        "time": "00:36.9",
+        "text": "and it used to be mine. I'll lift it with care putting it back in place and tell myself"
+      },
+      {
+        "time": "00:44.1",
+        "text": "nevermore."
+      },
+      {
+        "time": "00:46.2",
+        "text": "What if I follow this reclaimed heart to where the puzzle pieces of faith are handcrafted"
+      },
+      {
+        "time": "00:51.6",
+        "text": "scrambled and scattered as mustard seas into the vast moonlight night's field."
+      },
+      {
+        "time": "00:56.5",
+        "text": "The plants in a golden hue bloom and face toward me in anticipation."
+      },
+      {
+        "time": "01:03.4",
+        "text": "The weeds repel falling into the shadows where our memories hide and mean so little in moments of defeat"
+      },
+      {
+        "time": "01:09.6",
+        "text": "as I'm called forward."
+      },
+      {
+        "time": "01:13.1",
+        "text": "The clouds meet the stars for the deepest level of darkness welcoming extra hard work"
+      },
+      {
+        "time": "01:18.4",
+        "text": "to search for the bare ground for two hands. Hands that once could tusk dusk after dusk"
+      },
+      {
+        "time": "01:25.3",
+        "text": "find and celebrate a new life and feel good"
+      },
+      {
+        "time": "01:30.5",
+        "text": "and they too used to be mine."
+      },
+      {
+        "time": "01:34.6",
+        "text": "I put them back on with the care of my future at stake and say to myself"
+      },
+      {
+        "time": "01:39.0",
+        "text": "nevermore. I've wanted the world and lost my soul."
+      },
+      {
+        "time": "01:45.3",
+        "text": "I want nothing more than to just be myself and nothing more"
+      },
+      {
+        "time": "01:49.8",
+        "text": "and be alright. I do believe I'll be alright."
+      },
+      {
+        "time": "01:55.2",
+        "text": "This reclaimed and dust settled heart rediscovered but dusted hands remind me"
+      },
+      {
+        "time": "02:01.8",
+        "text": "but say to me in this still muted tree in night garden feels silence"
+      },
+      {
+        "time": "02:07.7",
+        "text": "nevermore."
+      },
+      {
+        "time": "02:09.3",
+        "text": "Now go."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "WASHED ASHORE",
+        "beat": "he walks the shore at twilight, hands in pockets, reading a trail of tambourine pieces; ravens overhead; his chest is hollow",
+        "feeling": "numb",
+        "image": "a small figure, head down, following prints past charred stumps toward the broken ring"
+      },
+      {
+        "movement": "FOLDED WHISPERS",
+        "beat": "the sea folds to whispers, the trees go still; he kneels at the half-buried rim; the heart lifts by itself and re-enters his chest; NEVERMORE",
+        "feeling": "recognition, care",
+        "image": "the heart floating slowly across to a kneeling man whose hands never leave his pockets"
+      },
+      {
+        "movement": "MUSTARD SEEDS",
+        "beat": "he follows the reclaimed heart up the incline; puzzle pieces of faith are made, scrambled and scattered as seeds over the field",
+        "feeling": "cautious faith",
+        "image": "a glowing heart leading a second trail up from the shore"
+      },
+      {
+        "movement": "THEY TURN TO FACE ME",
+        "beat": "the blooms open golden and turn to face him; the weeds let go and fall into the shadows where memories hide; he is called forward",
+        "feeling": "anticipation",
+        "image": "a field of golden heads all turned toward one man"
+      },
+      {
+        "movement": "DEEPEST DARKNESS",
+        "beat": "clouds mute the stars; bent low he searches the bare ground; his sleeves come out of his pockets empty",
+        "feeling": "dread, labour",
+        "image": "empty wrists in a small pool of ground he can see"
+      },
+      {
+        "movement": "I PUT THEM BACK ON",
+        "beat": "he finds two hands palm-down in the grit, seats them, flexes, rises, stands reflecting; NEVERMORE; now go",
+        "feeling": "resolve, quiet",
+        "image": "a man getting up off the bare ground with his hands back on, the word cut out of the dark above him"
+      }
+    ],
+    "stages": [
+      {
+        "set": "04.0 \u00b7 set shore_night",
+        "title": "Shore of broken pieces",
+        "lyric": "What if i followed this / trail broken pieces have / washed ashore\u2014 the ashes of / expired wildfires lifted from the night sea / water's floor.",
+        "blocking": "Lateral track along the tide line: the shore strip slides right-to-left under a fixed camera. POET in red/black and sunglasses as a near-silhouette, hands in pockets, chest hollow. Front layer: ash patches, tambourine rim arcs, charred stumps. Back: the sea as a flat slate band, the viaduct's broken arches across the top of frame with gaps open. Raven flap cards cross on rods.",
+        "scenebook": "Scene book: lateral tracking along the tide line, POET in silhouette, ravens crossing; hands never shown. the shore below the rail, where the chapel's pieces washed east"
+      },
+      {
+        "set": "04.1 \u00b7 set shore_night",
+        "title": "The silence",
+        "lyric": "the waves will / calm to folded whispers & the winds / will mute the trees level of silence",
+        "blocking": "Two locked-off wides, nothing animates: first out to sea (sky, sea band, debris line, all still; the wave card stops mid-fold), then back toward the trees (still tree silhouettes). Hold long.",
+        "scenebook": "Scene book: locked-off wides of sea and tree line, minimal motion. the shore looking out, then back to the trees"
+      },
+      {
+        "set": "04.2 \u00b7 set shore_night",
+        "title": "The heart on the sand",
+        "lyric": "to find a throbbing heart a familiar heart & it used to be mine. I'll lift it with care, / putting it back in place.",
+        "blocking": "Low angle from sand level: the heart card in the foreground glowing (red with its blue point), the shore steps with their lanterns behind, POET standing above, hands in pockets. The heart lifts on a rod, rises up the frame past his torso and seats into the chest hollow (torso card swap).",
+        "scenebook": "Scene book: low angle from the sand up past the glowing heart to the POET's chest; it rises into frame and in. on the sand at the foot of the shore steps"
+      },
+      {
+        "set": "04.3 \u00b7 set incline_trail",
+        "title": "Trail up the incline",
+        "lyric": "the midlife / corner we turn toward / the incline\u2014 What if i followed this / reclaimed heart",
+        "blocking": "Crane up with him: the dune card with its glowing trail slit diagonal across frame, POET small climbing; the sea and shore strip drop away down the frame as the camera rises (slide the lower layers down). Ravens above.",
+        "scenebook": "Scene book: crane or drone rising with him up the dune path, sea dropping behind. the trail up the steps and the incline to the field"
+      },
+      {
+        "set": "04.4 \u00b7 set night_garden_field",
+        "title": "Night garden field",
+        "lyric": "into the vast moonlit / night's / garden fields. the plants in a golden / hue bloom & faced toward / me the weeds repel, as I'm called forward.",
+        "blocking": "Wide: red-soil field in deep row perspective under one moon, POET small in the rows. Golden bloom cards on hinges turn toward him as he passes; weed cards fold down into shadow. Gilded puzzle pieces lock above, scramble and scatter as seed dots. Reverse: blossom cards in the foreground turning to lens.",
+        "scenebook": "Scene book: wide moonlit field with the POET small in rows; reverse on blooms turning toward lens. the Night Garden Field"
+      },
+      {
+        "set": "04.5 \u00b7 set field_dark",
+        "title": "Searching for hands",
+        "lyric": "The clouds mute the stars to search the bare ground / for two hands\u2014 & they too / used to be mine. I put them / back on",
+        "blocking": "Near-black: a cloud card covers the moon; only a small pool of red soil around him is lit. Low skimming shots across the soil. Payoff close-up: two hand cards palm-down on the soil, the moon re-emerging between them, the hands lifting and snapping onto the wrist sockets.",
+        "scenebook": "Scene book: near-black low-key shots skimming bare soil; payoff close-up as the hands return (first time hands are seen). a bare patch in the field"
+      },
+      {
+        "set": "04.6 \u00b7 set night_garden_field",
+        "title": "Standing in the field",
+        "lyric": "nevermore. I have won at the world / & lost my soul\u2014 I want nothing more / that to just be / myself\u2014 Now go.",
+        "blocking": "Static frontal medium-wide: POET centred, heart seated, hands at his sides for the first time; the lone still tree behind; clouds slide off a star field card. Slow push in (scale the stack). He is told to go.",
+        "scenebook": "Scene book: static frontal medium-wide, still tree and field behind; slow push in. the centre of the field by the lone tree"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  red_black_sunglasses",
+        "role": "the man without a heart and without hands who takes both back"
+      }
+    ]
+  },
+  {
+    "num": "05",
+    "title": "Bloodlines",
+    "district": "The Ascent",
+    "essence": "Still night: the poet walks out of the Nevermore field into a parade of afro-futurist ancestors who put stars in his hands, and he names them one by one until they are a constellation of his kin. The same nine-point constellation comes back as the Southern-pine joists over the basement mattress he grew up on, as the veins of blood-light in his fingerprint, and as the veining in the marble wings of a gate that finally opens. It is a poem about inheritance getting bigger: a small man under a wide sky becomes a print too big for the frame, then a gate that runs off all four edges.",
+    "swatches": [
+      "#0a1230",
+      "#2560e1",
+      "#2a2f7a",
+      "#f4e3b0",
+      "#ffc94a",
+      "#e08a3c",
+      "#b9874f",
+      "#e8e4dc",
+      "#3a2a22"
+    ],
+    "lines": [
+      {
+        "time": "00:00.0",
+        "text": "They tell me to ask if I can inherit the earth,"
+      },
+      {
+        "time": "00:03.6",
+        "text": "to ask if I can name my own stars, even galaxies if I may."
+      },
+      {
+        "time": "00:09.0",
+        "text": "The past too was waiting for me."
+      },
+      {
+        "time": "00:11.6",
+        "text": "Coming of age in the shared rooms of human basements"
+      },
+      {
+        "time": "00:15.0",
+        "text": "as bedrooms, mattress pads where the wood beams"
+      },
+      {
+        "time": "00:18.9",
+        "text": "of southern pine could comfort my spine, it didn't."
+      },
+      {
+        "time": "00:24.2",
+        "text": "To dream was to prevail."
+      },
+      {
+        "time": "00:28.2",
+        "text": "They tell me to ask if I can invent a new universe,"
+      },
+      {
+        "time": "00:31.5",
+        "text": "to ask if God would let me, little old me,"
+      },
+      {
+        "time": "00:34.4",
+        "text": "award a blessing here or there."
+      },
+      {
+        "time": "00:37.1",
+        "text": "Even grant miracles where the needs"
+      },
+      {
+        "time": "00:39.0",
+        "text": "of the spoken word exists."
+      },
+      {
+        "time": "00:41.8",
+        "text": "In uncertain times, in forsaken times,"
+      },
+      {
+        "time": "00:46.2",
+        "text": "in tears that spoke in lieu of forbidden lines,"
+      },
+      {
+        "time": "00:50.2",
+        "text": "or a history too battered and bruised to travel."
+      },
+      {
+        "time": "00:55.1",
+        "text": "To dream was to prevail."
+      },
+      {
+        "time": "00:57.4",
+        "text": "Their blood flows through my hands."
+      },
+      {
+        "time": "01:00.6",
+        "text": "Fingerprints that orchestra great powers,"
+      },
+      {
+        "time": "01:03.2",
+        "text": "they tell me, sun kissing my skin"
+      },
+      {
+        "time": "01:05.9",
+        "text": "and deepening my voice to a baritone of a million cries,"
+      },
+      {
+        "time": "01:10.2",
+        "text": "to an unanswered plight."
+      },
+      {
+        "time": "01:12.2",
+        "text": "Beware of me."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "NAME MY OWN STARS",
+        "beat": "he walks out of the Nevermore field into the ancestors' parade; Mae puts the first star in his hands; he lifts each star up and a name types out beside it",
+        "feeling": "awe, permission",
+        "image": "a small man under a huge sky lifting a white-gold star while a name plate types 'MAE' beside it, the first tie of the constellation drawing on"
+      },
+      {
+        "movement": "SOUTHERN PINE",
+        "beat": "the past was waiting: the humid shared basement, the thin mattress pad on concrete, the pine joists that did not comfort his spine",
+        "feeling": "tired, restless, stubborn",
+        "image": "top-down: him on his back on a stained blue mattress pad, the constellation sawn into pine joists above, two named stars in the window well"
+      },
+      {
+        "movement": "A NEW UNIVERSE",
+        "beat": "back in the field the ancestors urge him to ask; a universe unfolds as a web from his raised hands; he touches nodes and blesses them, one swells into a miracle ring",
+        "feeling": "asking, humble, then delighted",
+        "image": "palms up at centre, a web of light filaments growing out of his hands, the marble gate still shut far above"
+      },
+      {
+        "movement": "BEWARE OF ME",
+        "beat": "their blood flows through his hands: the ancestors' hands on his wrist, the fingerprint glows and outgrows the frame; dawn-gold light kisses his skin; his voice drops",
+        "feeling": "power, gravity",
+        "image": "extreme close on his palm, fingerprint ridges glowing ring by ring like a conductor's beat, ancestors' fingers resting on his wrist"
+      },
+      {
+        "movement": "THE GATES OPEN",
+        "beat": "the gate whose leaves are marble wings swings open toward us; the ancestors stand beyond it as an orchestra under their names; he walks through toward a far neon glow",
+        "feeling": "welcome, arrival",
+        "image": "two marble leaves turning into feathered wings rib by rib, hymn-light rings through the seam, Atlantis glowing beyond"
+      }
+    ],
+    "stages": [
+      {
+        "set": "05.0 \u00b7 set night_field_parade",
+        "title": "The field goes still",
+        "lyric": "They tell me to ask if I can inherit the earth",
+        "blocking": "locked-off wide, 4-layer multiplane: star sky plate (pinholed, back-lit), the gate ring as a pale arc on the horizon strip, red soil rise card, foreground grass fringe. POET is a 6 cm puppet left of centre on the rise, hands just restored, held still for 2 s. From the far right edge a row of 5-6 warm points (lantern staffs on a slider rod hidden behind the horizon card) slides in; nothing else moves.",
+        "scenebook": "Scene book: wide static on the field at night, POET small at center, procession lights entering from the far edge. the field's edge where 04 ended"
+      },
+      {
+        "set": "05.1 \u00b7 set night_field_parade",
+        "title": "Naming stars",
+        "lyric": "name my own stars even galaxies if I may",
+        "blocking": "medium track: POET in profile walking left-to-right on a treadmill paper strip while the ancestor silhouettes and rib-vault cards pan past at three speeds. Cut to inserts: an ancestor's hand card passes the star orb into his cupped hand card; the orb rises, a name plate (IDA, RUTH, OTIS, MAE) types on beside it. Under the vault the light is ember from below, nebula above.",
+        "scenebook": "Scene book: medium tracking alongside POET as he walks into the parade; inserts of hands passing points of light. the avenue through the field"
+      },
+      {
+        "set": "05.2 \u00b7 set humid_basement",
+        "title": "Southern-pine basement (memory)",
+        "lyric": "humid basements as bedrooms wood beams of Southern pine it didn't",
+        "blocking": "black surround, one warm bulb pool. Low angle up at pine joists (3 nested portal cards receding to a pinpoint of light, after views/076); then top-down: POET on his back on the blue mattress pad card on concrete, the joists' grade stamps carrying the same name plates. Match-cut: the bulb becomes a star and we lift back into the sky plate.",
+        "scenebook": "Scene book: low-angle insert up at exposed pine joists, shallow focus, then match-cut back to the night sky. memory: the Southern-pine basement"
+      },
+      {
+        "set": "05.3 \u00b7 set night_field_parade",
+        "title": "Universes and blessings",
+        "lyric": "invent a new universe award a-blessing here & there even grant miracles",
+        "blocking": "slow push (camera on rails toward a static stack) on POET's face card, sunglasses on; ancestors behind as a soft-focus row of silhouette cards on a frosted acetate layer. Galaxy disc placed in his palms from frame bottom; the universe web (acetate print of the ring-and-node drawing) unfolds outward in 3 replacement sizes.",
+        "scenebook": "Scene book: slow push-in on POET's face as galaxies are placed in his hands; crowd of ancestors soft behind. the heart of the parade"
+      },
+      {
+        "set": "05.4 \u00b7 set night_field_parade",
+        "title": "Blood through the hands",
+        "lyric": "their blood flows through my hands fingerprints that orchestra great powers",
+        "blocking": "extreme close on an oversize palm card (40 cm) lit from below by the star orb; the red vein acetate lights ring by ring under the skin card; ancestors' fingertip cards rest on the wrist. Rack focus = slide the frosted acetate from the ancestors' layer onto the palm layer so the crowd sharpens behind.",
+        "scenebook": "Scene book: extreme close-up of palms and fingerprints lit by star-glow, rack focus to the ancestors. the far end of the parade, facing the city"
+      },
+      {
+        "set": "05.5 \u00b7 set winged_marble_gate",
+        "title": "Baritone and warning",
+        "lyric": "deepening my voice to a baritone of a million cries beware",
+        "blocking": "low-angle hero medium: camera at soil level, POET's full puppet against the sky plate, Milky Way and the black spire strip behind. On 'beware' he turns (replacement head + torso turn, 3 cards) toward camera-right where a cold cyan glow (the Perimeter fence, a lit strip of mesh) rises on the horizon; the marble gate leaves open beyond.",
+        "scenebook": "Scene book: low-angle hero medium, POET turning out of frame toward the gate light. the trailhead at the Perimeter"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  red_black_sunglasses",
+        "role": "the heir: he asks, receives, names and finally walks through the gate"
+      },
+      {
+        "id": "c-ancestors",
+        "name": "ANCESTORS  ancestor_robe_indigo_gold / ancestor_elder_white_silver",
+        "role": "the welcoming parade and later the orchestra beyond the gate: nine of them, the nine named stars (AMOS, IDA, OTIS, RUTH, MAE ...)"
+      }
+    ]
+  },
+  {
+    "num": "06",
+    "title": "Resurrecting Atlantis",
+    "district": "The Light Gate & Atlantis Central Plaza",
+    "essence": "Generations walk a yellow-brick causeway out over black water toward a drowned city whose spire tips barely break the surface, while comets carry souls to the capital dome. The waterline falls once across the whole poem and the city comes up streaming, neon and vines on wet marble; the poet pays a glowing coin at the admission booth, walks candlelit narrow streets where music throws rainbows on the walls, and stands in the plaza while every window lights and a crowd raises its arms. It is the suite's one utopia: populated on purpose, and ending at the door of a house party.",
+    "swatches": [
+      "#05101c",
+      "#0e2a3a",
+      "#e2b33c",
+      "#d98c4a",
+      "#e05aa8",
+      "#2fb7b0",
+      "#efe9e0",
+      "#ffb547",
+      "#bb7362"
+    ],
+    "lines": [
+      {
+        "time": "00:00.0",
+        "text": "The gates open with wings gifted from evolution, and made of marble stones"
+      },
+      {
+        "time": "00:05.9",
+        "text": "kissed by the hymns our creator composed with an orchestra of our ancestors wildest dreams to"
+      },
+      {
+        "time": "00:12.5",
+        "text": "welcome us. Poets who eased generations down yellow brick roads and plucked our souls out"
+      },
+      {
+        "time": "00:20.3",
+        "text": "of their secret places to follow comets to the capital city of our collective consciousness,"
+      },
+      {
+        "time": "00:27.6",
+        "text": "resurrecting Atlantis. Here we are all one. The pack we've made here with nature"
+      },
+      {
+        "time": "00:35.7",
+        "text": "abandon and hope for the best back on life. A relearned currency we reassess as a mission,"
+      },
+      {
+        "time": "00:44.4",
+        "text": "but here we are all safe. Here we are all one. The pack we've made here with nature"
+      },
+      {
+        "time": "00:52.7",
+        "text": "abandon and hope for the best back on life. A relearned currency we reassess as a mission,"
+      },
+      {
+        "time": "01:01.5",
+        "text": "but here we are all safe. An unfamiliar flickering candlelight illuminating smiles"
+      },
+      {
+        "time": "01:08.6",
+        "text": "at night where shadows cast from narrow streets beaming with love, and the joyful noises that"
+      },
+      {
+        "time": "01:15.7",
+        "text": "color rainbows, and give us infinite time to heal and set clouds free. I know my soul and"
+      },
+      {
+        "time": "01:24.4",
+        "text": "it could stay here forever, leaving behind crosshairs for continuums and strains for"
+      },
+      {
+        "time": "01:31.5",
+        "text": "serendipity. A city born in unison out of the purest of fictions welcoming me and welcoming all."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "THE COMETS",
+        "beat": "a file of generations led by an elder poet with a lantern walks the causeway; a soul-light lifts out of a traveller's chest to follow a comet; the comet sets a spark on the drowned dome",
+        "feeling": "pilgrim awe",
+        "image": "yellow-brick road running to a vanishing point on black water, two spire tips above the waterline, comets overhead"
+      },
+      {
+        "movement": "THE WATERLINE FALLS",
+        "beat": "the sea draws back and the city rises, wet stone and neon streaming water; travellers stand exactly where the water leaves; he opens his arms",
+        "feeling": "wonder, belonging",
+        "image": "one unbroken waterline sliding down the frame while domes and towers surface behind the crowd"
+      },
+      {
+        "movement": "ADMISSION",
+        "beat": "at the booth he sets down a glowing coin and is nodded through; candle faces smile in lantern-windows; the ones already inside stand small and warm",
+        "feeling": "relief, safety",
+        "image": "his pinched fingers setting a blue spiral coin on a marble counter with a neon rim"
+      },
+      {
+        "movement": "NARROW STREETS",
+        "beat": "he walks narrow painted streets under string lights; a street musician's joyful noise throws rainbows on the walls; clouds between the roofs loosen and drift up",
+        "feeling": "joy, healing",
+        "image": "long shadows and rainbow light bands striping a narrow street"
+      },
+      {
+        "movement": "CROSSHAIRS TO CONTINUUMS",
+        "beat": "a scope reticle over him dissolves into rings that widen past the frame; he unclenches from braced to open",
+        "feeling": "release",
+        "image": "a reticle's four arms replaced cell by cell by a ring, the poet's hand coming off his chest"
+      },
+      {
+        "movement": "WELCOMING ALL",
+        "beat": "night settles and every window lights at once; he is met at the middle of the plaza; the crowd fills in and raises its arms; the beacon lights on the dome; voiceover over, he wanders to a house where music spills out and goes in",
+        "feeling": "communion",
+        "image": "top-down rose plaza filling with people, arms up, the dome beacon lit"
+      }
+    ],
+    "stages": [
+      {
+        "set": "06.0 \u00b7 set atlantis_gate",
+        "title": "The Light Gates open",
+        "lyric": "The gates open with wings made of marble stones an orchestra of our ancestors wildest dreams",
+        "blocking": "low wide from ground level: the ceramic ring of the gate fills the frame, two marble leaves (from 05) part; white-gold back plate overexposed. POET's puppet enters from behind camera (a large out-of-focus card at frame bottom that shrinks across 3 replacements as he walks in) among a file of traveller silhouettes. Reverse: from inside, the crowd strip walking toward us into glow.",
+        "scenebook": "Scene book: low wide on the gates opening, POET entering frame from behind camera; reverse to the city glowing through. the Light Gate, from the field"
+      },
+      {
+        "set": "06.1 \u00b7 set causeway_road",
+        "title": "Road down, following comets",
+        "lyric": "down yellow brick roads to follow comets to the capital city",
+        "blocking": "crane down: a long vertical pan over a tall card of the processional road descending into the market's lights; POET small, walking down screen; tilt up to comet sparks (coded discs with shrinking trails) crossing a teal sky. The causeway bricks lead the eye down.",
+        "scenebook": "Scene book: drone or crane following POET down the processional road, tilt up to comet streaks. the processional road descending from the gate into the market"
+      },
+      {
+        "set": "06.2 \u00b7 set atlantis_plaza",
+        "title": "The city rises / here we are all one",
+        "lyric": "resurrecting Atlantis Here we are all one",
+        "blocking": "extreme wide: the skyline row card rises behind the waterline card (slot-mounted, slides up 30 cm over 4 s, water drips coded). Cut to the top-down aerial over the round plaza: rose terrace rings with crowd dots, POET a single red-black dot at the white centre; faces lit from above.",
+        "scenebook": "Scene book: extreme wide establishing as the city lifts, cut to POET in the gathering, faces lit from above. the round plaza"
+      },
+      {
+        "set": "06.3 \u00b7 set atlantis_gate",
+        "title": "Jungle Interface and the heart-scan admission",
+        "lyric": "the pact we've made here with nature a relearned currency the admission",
+        "blocking": "handheld walk (small jitter coded) through vine cards over stone, into the hall of crystal trees; insert at chest height: the booth's neon rim, his pinched fingers set the coin down, a cyan scan ring passes across his chest card. Children drawing symbols in white sand on a floor card in the foreground.",
+        "scenebook": "Scene book: handheld walk-through of vines on stone; insert of the heart-scan gate reading POET's chest. the hall of crystal trees"
+      },
+      {
+        "set": "06.4 \u00b7 set atlantis_plaza",
+        "title": "City Center: all safe",
+        "lyric": "But here we are all safe",
+        "blocking": "slow 360 orbit: POET centred on a turntable, the surrounding layers (forum lip with radial light slots, crowd ring, facades, a dish turning) on a cyclorama strip that scrolls round; a ring of protective light coded as a cyan halo on the floor.",
+        "scenebook": "Scene book: slow 360 orbit around POET in the plaza. the cathedral square, under the dish"
+      },
+      {
+        "set": "06.5 \u00b7 set narrow_streets",
+        "title": "Narrow streets by candlelight",
+        "lyric": "flickering candle light shadows cast from narrow streets heal & set clouds free",
+        "blocking": "Steadicam behind: POET's back at frame centre, the two alley wall cards scrolling past on either side at different speeds, string-light points overhead; candle close-ups (single flame card with coded flicker); window POVs onto families as warm cut-out silhouettes in a lit frame; rainbow bands from the guitar thrown across the wall card as gobos.",
+        "scenebook": "Scene book: Steadicam behind POET down the alley (never a face-on EX; none present), candle close-ups, window POVs. the hidden stairwells, two people wide"
+      },
+      {
+        "set": "06.6 \u00b7 set house_party_exterior",
+        "title": "Could stay forever, then wandering to the house",
+        "lyric": "I know my soul it could stay here forever welcoming me, & welcoming all",
+        "blocking": "seated medium: POET on the alley stair (views/061), hazy light from above; then wide: he stands and wanders; container row with neon puddle reflections; ends on the House door: backs of party guests climbing into warm light under string bulbs, POET last in.",
+        "scenebook": "Scene book: seated medium then wide; later documentary-style wandering (Mexico City footage) ending on a doorway with people filing in. the Container Rows to the House door"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  red_black_sunglasses",
+        "role": "one of the arriving generations; the 'me' in 'welcoming me and welcoming all'"
+      },
+      {
+        "id": "c-atlantis",
+        "name": "ATLANTIS PEOPLE  atlantis_traveler / atlantis_citizen / atlantis_gatekeeper / poet_elder_coat",
+        "role": "the generations on the road, the citizens in the lit city, the gatekeeper at the booth, the elder poet with the lantern"
+      },
+      {
+        "id": "c-party",
+        "name": "PARTY, CLUB AND DJ  party_guest",
+        "role": "guests going into the house at the end"
+      }
+    ]
+  },
+  {
+    "num": "07",
+    "title": "DJ Turn Me Up",
+    "district": "Naraka Market",
+    "essence": "A full house party in an Atlantis house: the DJ drops onto the decks and scratches, and the poet, standing at the bar as in the part 1 reading video, eyes shut and chin pressed down under the weight of his words, tells the love story while a projection wall behind him shows it: ghosts walking out of a dying vineyard, two wedding bands drifting apart, a house trucked off down one-way streets, eleven petals plucked off a daisy, three roads. The whole poem is one climb in volume: starved at the start, turnt up at the end, chin high, the room erupting.",
+    "swatches": [
+      "#0b0f1e",
+      "#01acd4",
+      "#e0479e",
+      "#ffb04a",
+      "#8a6fa8",
+      "#6e8b3d",
+      "#c9b37a",
+      "#cfd6e0",
+      "#1c1424"
+    ],
+    "lines": [
+      {
+        "time": "00:00.0",
+        "text": "DJ turn me up please. With eyes wide shut and my chin nested at the arc of the weight of these"
+      },
+      {
+        "time": "00:07.0",
+        "text": "spoken words, I have a story to tell. Of ghosts whispering unfolded delusions, birthed in purity"
+      },
+      {
+        "time": "00:15.8",
+        "text": "and dying and the veneers of sun-soaked evergreen fields are nourished. A love story of one by one"
+      },
+      {
+        "time": "00:24.1",
+        "text": "treasures escaping and devaluing themselves after defamed unsalted stars diminish their glares."
+      },
+      {
+        "time": "00:32.5",
+        "text": "And I've walked a thousand light years across the greatest divide to be heard. So DJ please turn me"
+      },
+      {
+        "time": "00:40.3",
+        "text": "up. So I can speak of wedding bands diverging across abstract skies of wounded souls. Of a"
+      },
+      {
+        "time": "00:48.0",
+        "text": "shared home boxed in truck on separate one-way streets not built with u-turns or stop. Maybe"
+      },
+      {
+        "time": "00:55.7",
+        "text": "we shouldn't signs. A love story of years 11 years each plucked off as daisy pedals"
+      },
+      {
+        "time": "01:03.3",
+        "text": "we love we not. Of a future gone swiftly and a past left empty handed to pick a road of heavy rain"
+      },
+      {
+        "time": "01:11.9",
+        "text": "or a frontal fog or of dim night lights under a cloud with the silver lining. Of now turning"
+      },
+      {
+        "time": "01:19.9",
+        "text": "forth to face the lights and shadows one night at a time, one tear at a time. When called to a friend"
+      },
+      {
+        "time": "01:28.5",
+        "text": "at a time. One open mic at a time. Chin now nested high and volume turned up in a story to tell."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "CHIN NESTED",
+        "beat": "the DJ drops in and scratches; the crowd cheers; the poet at the bar, eyes shut, chin tucked toward the mic as if under weight, pressing lower on each beat",
+        "feeling": "burdened, quiet",
+        "image": "the poet small under an arch of his own words, chin on chest, mic at his mouth, the meter barely moving"
+      },
+      {
+        "movement": "VINEYARD GHOSTS",
+        "beat": "on the projection wall two translucent ghosts (him and the EX, backs to us) walk down sun-soaked vineyard rows that brown as the sun leaves the field",
+        "feeling": "tender, grieving",
+        "image": "two see-through figures far down a vineyard while the light goes out of the field from the far end"
+      },
+      {
+        "movement": "THOUSAND LIGHT YEARS",
+        "beat": "the ceiling stars dim one by one; he leaves the bar and walks the length of the packed room to a mic stand; his hand lands on it on the beat; 'DJ please turn me up'",
+        "feeling": "determined",
+        "image": "the long walk through a parting crowd under an LED star ceiling going dark"
+      },
+      {
+        "movement": "DIVERGING RINGS",
+        "beat": "two wedding bands slide apart on a diagonal across a wounded sky; a house boxed into two trucks driving off down separate one-way streets",
+        "feeling": "bitter clarity",
+        "image": "the gap between two gold rings widening into a sky"
+      },
+      {
+        "movement": "ELEVEN PETALS",
+        "beat": "he holds a daisy to the mic and plucks eleven petals onto the bar; the guests mouth 'we love, we not'; a lighter goes up; the bare stem drops, his hand stays open",
+        "feeling": "grief turning to release",
+        "image": "an empty open palm over eleven petals on a bar top"
+      },
+      {
+        "movement": "THREE ROADS",
+        "beat": "the wall splits into three roads: heavy rain, frontal fog, dim night lights under a cloud with a silver lining; he points to each; the DJ lifts one earcup to listen",
+        "feeling": "choosing",
+        "image": "three panels side by side, the third cloud edged in silver"
+      },
+      {
+        "movement": "CHIN HIGH",
+        "beat": "he turns to face the room half in light, half in shadow, chin high, eyes shut, arm open; the DJ pushes the master to the top; the house erupts",
+        "feeling": "triumph",
+        "image": "the reverse of the opening: chin up, arm open, phones and lighters raised all round"
+      }
+    ],
+    "stages": [
+      {
+        "set": "07.0 \u00b7 set house_party",
+        "title": "DJ drops in",
+        "lyric": "Dj turn me up, please",
+        "blocking": "whip-pan (coded motion-blur smear between two frames) from the crowd to the booth on its raised landing at the foot of the back stair; insert top-down on the fader panel, a fader cap slides; wide of the hushed room: foreground crowd strip of backs, teal haze acetate, the bright booth card at the back.",
+        "scenebook": "Scene book: whip-pan to the booth, insert on the fader, wide of the hushed room. the House: the booth on the back wall"
+      },
+      {
+        "set": "07.1 \u00b7 set house_party",
+        "title": "Eyes wide shut at the mic",
+        "lyric": "With eyes wide shut chin nested at the arch of this mic I have a love story to tell",
+        "blocking": "tight profile of POET at the bar, chin-down head card, sunglasses on, mic at his mouth; slow push (camera dolly 10 cm). Strobe = alternating frames of a white glint card on the lens of the sunglasses. Reverse: three faces in the crowd as cut-outs in pink-orange haze.",
+        "scenebook": "Scene book: tight profile close-up at the mic, slow push; reverse onto faces in the crowd. the bar, facing the floor"
+      },
+      {
+        "set": "07.2 \u00b7 set projection_vineyard",
+        "title": "Ghosts in the speaker mesh",
+        "lyric": "ghosts whispering unfolded dilutions dying in the vineyards treasures escaping",
+        "blocking": "macro on a speaker grille (real perforated metal or punched card) with two translucent back-view ghost cards (POET and EX, EX's face never turned) sliding behind it on tracing paper; cut to the projection wall: the vineyard rows browning from the far end; crowd heads in silhouette in front.",
+        "scenebook": "Scene book: macro on speaker mesh with superimposed silhouettes; cutaways to crowd watching. the speaker stacks"
+      },
+      {
+        "set": "07.3 \u00b7 set house_party",
+        "title": "A thousand light years, into the red",
+        "lyric": "i walked 1,000 light years across the greatest divide Dj please turn me up",
+        "blocking": "galactic insert (the LED star ceiling, holes closing one by one), cut to VU meter close-up: the needle card swings into the painted red band; then low angle from floor level on POET at the mic stand, the amplitude rig scales him up one step, the mic bloom coded.",
+        "scenebook": "Scene book: cut from galactic insert to VU meter close-up, then low angle on POET as the volume jumps. between bar and booth"
+      },
+      {
+        "set": "07.4 \u00b7 set house_party",
+        "title": "Wedding bands and the boxed home",
+        "lyric": "wedding bands diverging a shared home boxed & trucked maybe-we-shouldn't signs",
+        "blocking": "projection wall (corrugated rust card, plated in one corner) behind POET: two gold ring cards slide apart on a diagonal; a house card folds into a box and splits into two truck cards on one-way-street strips with arrowless signs and a blank billboard; crowd silhouettes in front at the bottom of frame.",
+        "scenebook": "Scene book: projected inserts on the wall behind the POET; crowd silhouettes in the foreground. the projection wall: the container's steel side"
+      },
+      {
+        "set": "07.5 \u00b7 set house_party",
+        "title": "Eleven years in daisy petals",
+        "lyric": "years, eleven years daisy petals maybe we do love we not",
+        "blocking": "overhead on the platter: the black disc card turns, pink neon ring, eleven petal cards fall one per beat onto the vinyl under the needle; calendar pages flick off; cut to POET at the bar holding the mic out to the empty space beside him (the EX's absence: an empty bar stool).",
+        "scenebook": "Scene book: overhead on the platter, petals under the needle; cut to the empty space beside POET. the platters"
+      },
+      {
+        "set": "07.6 \u00b7 set projection_three_roads",
+        "title": "Rain, fog, dim lights, then chin high",
+        "lyric": "heavy rain, or frontal fog dimmed night lights under a cloud one open mic at a time chin now nested high",
+        "blocking": "wide of the dance floor (grid light box) in haze; a dark cloud card hangs on wire over the dancers, its rim edged in silver foil; the three-roads triptych on the wall. End: low-angle close-up, POET swaps to the chin-high head card into a hard spotlight, half his face in shadow, lighters and phones raised.",
+        "scenebook": "Scene book: wide of the floor in haze with the cloud practical overhead; end on a low-angle close-up, POET's chin raised into the spotlight. the dance floor under the dark cloud"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  red_black_sunglasses",
+        "role": "the performer: neo-soul reading at a full house party"
+      },
+      {
+        "id": "c-ex",
+        "name": "EX  ex_jacket",
+        "role": "the other ghost in the vineyard projection"
+      },
+      {
+        "id": "c-party",
+        "name": "PARTY, CLUB AND DJ  dj_cyber / party_guest",
+        "role": "the DJ who turns him up and the full house that reacts"
+      }
+    ]
+  },
+  {
+    "num": "08",
+    "title": "Newly Single",
+    "district": "Ankhu Spires",
+    "essence": "He leaves the party for an open-air rooftop club over Atlantis, all strobes and blue-pink light, where the dancers smear in shifted time and he stands still and empty. His soul, a glowing see-through copy of him, peels out and floats up, watches the whole city lit below, is set down on a white-hot plain at the equator of a giant planet, and is cooled by angels pouring ice baths; back in the club the same water lands on his body under the strobe. Haze fills the room, the soul comes home, he leans back and breathes it in, and ends on the ledge staring at far mountains, then walks out into a street where he glimpses the EX's back and cannot reach him.",
+    "swatches": [
+      "#0d1630",
+      "#3a6fd8",
+      "#9b5fd0",
+      "#ff5fa8",
+      "#bfe6f2",
+      "#b0303a",
+      "#fbf6ea",
+      "#d36f46",
+      "#1a2238"
+    ],
+    "lines": [
+      {
+        "time": "00:00.0",
+        "text": "The soul has escaped my body for the moment and left him on the dance floor. He can now just be"
+      },
+      {
+        "time": "00:06.1",
+        "text": "flesh and bones, rejection and heartache hit differently when there are no feelings afloat."
+      },
+      {
+        "time": "00:12.9",
+        "text": "I want my soul now to imagine my body pulsing and head throbbing from the music and empty on"
+      },
+      {
+        "time": "00:20.3",
+        "text": "a crowded floor of sweated perfumes and temptations. Let's watch strangers collide and spark electric"
+      },
+      {
+        "time": "00:27.3",
+        "text": "currents that gamut the mood, a good one. We want him to be the last one to leave, prolonging the"
+      },
+      {
+        "time": "00:34.5",
+        "text": "bitter refraction inside the walls of an escape that few pleasures offer us. Now let us put my"
+      },
+      {
+        "time": "00:42.2",
+        "text": "soul in the middle of an open field at the equator of a planet much larger than my own"
+      },
+      {
+        "time": "00:46.9",
+        "text": "and much hotter. Cool me down by pouring unfiltered water out of the ice bath salted from the closest"
+      },
+      {
+        "time": "00:54.7",
+        "text": "moons from angels of the newest religions and its joys capturing my body transiting in a flash of"
+      },
+      {
+        "time": "01:02.6",
+        "text": "strobe lights. Their gracious cursor blessed me, only infinity will tell. Now bring my soul back"
+      },
+      {
+        "time": "01:11.0",
+        "text": "to my body to lean back, breathe in the smoke that now fills the room and tell myself how good"
+      },
+      {
+        "time": "01:18.1",
+        "text": "it is to finally get acquainted with the night, staring into unfamiliar yet relatable mountains"
+      },
+      {
+        "time": "01:24.4",
+        "text": "in the distance and wandering eyes and wandering thoughts within reach."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "PULSING",
+        "beat": "he walks out onto the rooftop club: fast dancing, strobes, time-shifted dancers; he stands still on the moving floor, wincing on each beat; a hand slides off his arm",
+        "feeling": "numb, overwhelmed",
+        "image": "the one still body on a strobing floor of smeared dancers"
+      },
+      {
+        "movement": "THE ESCAPE",
+        "beat": "the translucent soul peels out of the body from the same spot and rises over the dancers' hands; the body sags onto a hip; weights fall at his feet instead of rising",
+        "feeling": "detached, relieved",
+        "image": "two copies of him: solid below, glowing see-through above, looking back down"
+      },
+      {
+        "movement": "IMAGINE MY BODY",
+        "beat": "two strangers collide and spark; cut to the soul far above all of Atlantis lit blue and pink; the floor thins and the body is the last one dancing",
+        "feeling": "wistful, watching",
+        "image": "top-down: the whole city glowing, the soul small in the foreground"
+      },
+      {
+        "movement": "THE EQUATOR",
+        "beat": "the soul stands alone on an endless flat plain whose curve barely shows; the white sun climbs and burns the air off the sky; it shields its eyes; back in the club the body overheats and angels appear in the haze",
+        "feeling": "exposed, scorched",
+        "image": "a tiny glowing figure on a red-white plain under a blinding sun, equator ticks across the ground"
+      },
+      {
+        "movement": "COOL ME DOWN",
+        "beat": "three angels at different angles tip ice-bath basins over the body under the strobe; on the plain a pool spreads round the soul's feet, salt piling, steam rising",
+        "feeling": "grace, shock, relief",
+        "image": "three white-winged angels pouring braided streams onto him in the middle of the dance floor"
+      },
+      {
+        "movement": "BACK TO MY BODY",
+        "beat": "haze rolls in and fills the club; the soul glides down along the path it left by and settles into him; he leans back and breathes the smoke in; small smile",
+        "feeling": "acceptance",
+        "image": "the body leaning back in the smoke as the glow sinks under his skin"
+      },
+      {
+        "movement": "MOUNTAINS IN THE DISTANCE",
+        "beat": "he sits on the ledge, back to the club, staring at a far mountain range; then (no voiceover) walks the night street, fans reaching for him; he sees the EX's back through the crowd and cannot reach him",
+        "feeling": "quiet, unresolved longing",
+        "image": "a seated silhouette on the rooftop ledge against pale mountains beyond the lit city"
+      }
+    ],
+    "stages": [
+      {
+        "set": "08.0 \u00b7 set rooftop_club",
+        "title": "The soul leaves the dancer",
+        "lyric": "The soul has escaped my body for the moment & left him on the dance floor\u2014 flesh & bones\u2014",
+        "blocking": "medium on POET on the pulsing tile floor (grid light box), strobe on alternating frames; the soul card (same poet cards printed on perforated pale-blue acetate) peels up from the chest; camera cranes up with it past the crown's rail and two stem cards with lamp cables into violet sky.",
+        "scenebook": "Scene book: medium on the dancer under strobe, then a slow crane up following the soul out of frame. the rooftop club on a spire crown (up the elevator shaft from the House)"
+      },
+      {
+        "set": "08.1 \u00b7 set rooftop_club",
+        "title": "Strangers collide; the last one to leave",
+        "lyric": "Let's watch strangers collide & spark We want him to be the last one to leave,",
+        "blocking": "overhead (soul POV): the dance floor as a disc with crowd silhouettes in a motion-smeared ring, slowly turning; two stranger cards brush and a coded spark flares; then a 360 orbit around the body as crowd cards are pulled off one by one until he is alone in a light ring.",
+        "scenebook": "Scene book: overhead slow-motion panorama (soul POV), then a 360 orbit around the lone dancer as the floor thins. the dance floor from above"
+      },
+      {
+        "set": "08.2 \u00b7 set equator_plain",
+        "title": "Soul over Atlantis / the open field at the equator",
+        "lyric": "Now let us put my soul in the middle of an open field\u2014 at the equator of a planet",
+        "blocking": "top-down aerial: the Atlantis print (06's round plaza at centre) lit blue and pink, cloud acetate drifting across, the soul small in the foreground layer; match-cut on the soul's silhouette to an extreme wide of the red plain, horizon a near-flat sag, a gas giant card filling the top third, white sun card back-lit; equator ticks along the ground.",
+        "scenebook": "Scene book: top-down aerial of the lit city, match-cut to an extreme wide of a curved-horizon prairie with a gas giant in the sky. the sky over Atlantis; the planet field"
+      },
+      {
+        "set": "08.3 \u00b7 set rooftop_club",
+        "title": "Angels' ice-water baptism",
+        "lyric": "Cool me down by pouring unfiltered water out of ice baths\u2014",
+        "blocking": "high angle looking down: three angel cards at three tilts on the rail above, basins tipping; braided water strips (clear acetate with white streaks, 4 replacement lengths) fall onto POET's upturned face; slow motion = hold each water state 3 frames; tight on the face as it hits, sunglasses beaded.",
+        "scenebook": "Scene book: high angle looking down the water's arc in slow motion; tight on the face as it hits. the middle of the club floor"
+      },
+      {
+        "set": "08.4 \u00b7 set rooftop_club",
+        "title": "Haze and the soul's return",
+        "lyric": "Now bring my soul back to my body to lean back\u2014 breathe in the smoke",
+        "blocking": "haze acetate layers roll in over the floor (3 sheets sliding at different speeds); side light through them as beams; slow push to the chest as the soul card slides back down its own path and sinks under the torso card; the body leans back against the subwoofer wall, breathing in.",
+        "scenebook": "Scene book: push-in to the chest as the soul re-enters; side light through fog beams. the subwoofer wall at the floor's edge"
+      },
+      {
+        "set": "08.5 \u00b7 set rooftop_club",
+        "title": "Mountains from the rooftop",
+        "lyric": "Staring into unfamiliar yet\u2014relatable mountains in the distance within reach.",
+        "blocking": "over-the-shoulder at the parapet: POET's back/shoulder card large at frame left, rail card, three mist layers, a pale mountain range card far off under a crescent moon; long-lens compression = the layers close together and barely parallaxing; his hand card reaches toward the ridge and stops short.",
+        "scenebook": "Scene book: over-the-shoulder at the parapet, long lens compressing the ridgeline under a crescent moon. the parapet"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  red_black_sunglasses",
+        "role": "the body (flesh) left on the dance floor and, as POET_SOUL, the glowing copy that leaves and comes back"
+      },
+      {
+        "id": "c-party",
+        "name": "PARTY, CLUB AND DJ  club_dress / club_shirt / club_jacket",
+        "role": "the rooftop dancers, the colliding strangers and the fans on the street"
+      },
+      {
+        "id": "c-angels",
+        "name": "ANGELS  angel_white_robe",
+        "role": "the angels of the newest religions who pour cooling water"
+      },
+      {
+        "id": "c-ex",
+        "name": "EX  ex_jacket",
+        "role": "glimpsed at the end, walking away down the street (bridges into 09 Yet Heard)"
+      }
+    ]
+  },
+  {
+    "num": "09",
+    "title": "Yet, Heard",
+    "district": "The Shrouded Arcade",
+    "essence": "Three calls made at the edge of a harbour before leaving: to the lover under a shared moon, to the mother over a black hole that opens in the water, to the father who walks out of the eastern sky. One night on one quay, and the light is the clock: moon high, the dead hour, first grey, the sun coming up out of the harbour mouth. Each call is a dashed line of light strung between two people, and behind every call the same breakup keeps playing on the sidewalk.",
+    "swatches": [
+      "#0d1526",
+      "#16303d",
+      "#1f6f78",
+      "#e08a3c",
+      "#c2283a",
+      "#ece6d6",
+      "#8a8f9a",
+      "#f2b35a",
+      "#2f6bff"
+    ],
+    "lines": [
+      {
+        "time": "00:00.0",
+        "text": "Accepting you'll never say nor ever feel, my love was real."
+      },
+      {
+        "time": "00:05.6",
+        "text": "What isn't mine I still cannot give."
+      },
+      {
+        "time": "00:09.0",
+        "text": "I gather my things to go."
+      },
+      {
+        "time": "00:11.3",
+        "text": "Before I go, we look at the moon the way we used to see it"
+      },
+      {
+        "time": "00:15.3",
+        "text": "and settle down the stillnessism."
+      },
+      {
+        "time": "00:18.9",
+        "text": "We talk for years and travel through time"
+      },
+      {
+        "time": "00:21.8",
+        "text": "and it feels so good."
+      },
+      {
+        "time": "00:23.7",
+        "text": "We grow old together."
+      },
+      {
+        "time": "00:24.9",
+        "text": "I believe maybe we could have it all,"
+      },
+      {
+        "time": "00:27.8",
+        "text": "or swing in my humbled late nights and heartbreaks"
+      },
+      {
+        "time": "00:31.8",
+        "text": "and an end story unchanging."
+      },
+      {
+        "time": "00:35.1",
+        "text": "You help me gather my things to go."
+      },
+      {
+        "time": "00:38.0",
+        "text": "Before I go, I call on my mother."
+      },
+      {
+        "time": "00:40.3",
+        "text": "In tears, speaking of an abyss, she's never known."
+      },
+      {
+        "time": "00:44.5",
+        "text": "And we talk for years and we closet wounds"
+      },
+      {
+        "time": "00:48.3",
+        "text": "and we explain my way of birth then and even after prayer."
+      },
+      {
+        "time": "00:53.5",
+        "text": "What isn't mine I still cannot give."
+      },
+      {
+        "time": "00:56.7",
+        "text": "We grow old together with the moon looking at us"
+      },
+      {
+        "time": "00:59.7",
+        "text": "the way we used to be."
+      },
+      {
+        "time": "01:01.7",
+        "text": "As my tears fall between the creases and faith,"
+      },
+      {
+        "time": "01:05.4",
+        "text": "dancing on my own, maternal ears in tune."
+      },
+      {
+        "time": "01:10.5",
+        "text": "She watches us gather my things to go."
+      },
+      {
+        "time": "01:13.7",
+        "text": "Before I go, I call on my father."
+      },
+      {
+        "time": "01:16.5",
+        "text": "Summon his calming demeanor from the yonders"
+      },
+      {
+        "time": "01:20.0",
+        "text": "and we walk for years and travel east toward the sunrises"
+      },
+      {
+        "time": "01:24.5",
+        "text": "and retrace his footsteps now and then."
+      },
+      {
+        "time": "01:28.6",
+        "text": "Guiding a settling down moon the way it used to leave"
+      },
+      {
+        "time": "01:31.9",
+        "text": "and my tears fall between the creases"
+      },
+      {
+        "time": "01:35.1",
+        "text": "and wave shadows of the inner harbor."
+      },
+      {
+        "time": "01:38.4",
+        "text": "We stroll, father and son, hearted and shaken."
+      },
+      {
+        "time": "01:43.5",
+        "text": "Someone borrowed and someone blew."
+      },
+      {
+        "time": "01:46.4",
+        "text": "Yet broken, yet hurt."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "THE SHARED MOON",
+        "beat": "out of the club, through a fawning crowd, he glimpses EX's back and cannot reach him; then the two of them walk the waterfront and look up at the same moon while the years pass as moonlight",
+        "feeling": "tender, already elegiac",
+        "image": "two backs on the quay lip, heads tipped up at one paper moon, each with his own road of light on the water opening into a V"
+      },
+      {
+        "movement": "TEARS, AN ABYSS",
+        "beat": "suitcases on the sidewalk; he calls his mother from a lit booth while the breakup plays behind him; she weeps and the harbour between them goes bottomless",
+        "feeling": "grief, shame, being held anyway",
+        "image": "the call-cord sagging into a black hole cut in the water, tears peeling off the cord and falling into nothing"
+      },
+      {
+        "movement": "HIS FOOTSTEPS, RETRACED",
+        "beat": "he hangs up, the mother dissolves; he dials again and the father resolves out of the paling east; they walk the quay east, the son stepping into prints already worn in the stone",
+        "feeling": "calm, steadied",
+        "image": "a dark footprint trail on wet stone pointing east under the first grey"
+      },
+      {
+        "movement": "EAST, AT THE HARBOR",
+        "beat": "father and son stroll into the sunrise, one brief shake on 'shaken'; back at the booth EX turns to haze and is gone; the poet stands alone in first sun",
+        "feeling": "broken and heard",
+        "image": "a half sun sitting in the harbour mouth, harbour lights going out, one blue point on the poet's chest"
+      }
+    ],
+    "stages": [
+      {
+        "set": "09.0 \u00b7 set atlantis_club_sidewalk",
+        "title": "The EX in the crowd",
+        "lyric": "accepting you'll never say nor ever feel my love was real\u2014",
+        "blocking": "handheld-feel follow on the street plane: three crowd strips at different depths slide past the lens (foreground strip blurred, oversized); the EX is a back in the mid strip under a pink door glow; POET's hand card reaches in from frame-left foreground and is blocked by a shoulder card. Neon signs pulse on the back plate.",
+        "scenebook": "Scene book: handheld follow through the crowd; EX kept back-to-camera, soft focus, reaching hand in foreground. the sidewalk at the foot of the spire"
+      },
+      {
+        "set": "09.1 \u00b7 set atlantis_harbor_street",
+        "title": "Walking toward the moon",
+        "lyric": "we look at the moon\u2014 the way we used to see it we talk for years & travel through time",
+        "blocking": "long lens from behind: POET and EX as two back cards side by side centre-low, the street's two kerb lines converging on a paper moon at the vanishing point; the walk is a slow push in, the moon held still. Insert: the puddle card with both inverted reflections wobbling.",
+        "scenebook": "Scene book: long tracking two-shot from behind (EX's face never shown), moon framed at the vanishing point; insert of both reflections in a puddle. the avenue toward the moon"
+      },
+      {
+        "set": "09.2 \u00b7 set harbor_phonebooth",
+        "title": "Suitcases at the phone booth",
+        "lyric": "You help me gather my things to go. before I go\u2014",
+        "blocking": "camera at suitcase height on the curb: the two cases fill the foreground, the booth's white light lays a trapezoid on the wet curb card, POET's legs and the EX's hands and back only enter above the cases. Rain as two layers of short white strokes.",
+        "scenebook": "Scene book: low shot at suitcase level, booth light spilling on the curb; EX present only as hands and back. the booth curb"
+      },
+      {
+        "set": "09.3 \u00b7 set mother_living_room",
+        "title": "The call to Mother",
+        "lyric": "I call on my mother. In tears\u2014 & re-closet wounds maternal ears in tune.",
+        "blocking": "from outside the booth through its glass card (one smear, one reflection strip): POET in the white box with the handset; behind him, on the street plate, the breakup plays as small back cards. Cut to mother's room: armchair, lamp, corded phone; her window card holds the same sidewalk plate. On hang-up she is pulled off on a replacement fade.",
+        "scenebook": "Scene book: through the booth glass with the break-up on the sidewalk behind; in the living room, a window frame holding the sidewalk scene (window inferred). inside the booth (by phone: the mother's living room, the Overseer)"
+      },
+      {
+        "set": "09.4 \u00b7 set harbor_path_east",
+        "title": "Father and son to the inner harbor",
+        "lyric": "I call on my Father & travel east toward the of the inner harbor\u2014 Father & son,",
+        "blocking": "wide from behind on the quay path: two backs walking away along a kerb light strip toward a pale band of dawn; water card on the right with lamp-dash reflections; the breakup kept small on a far back plate at frame left. Sky band swaps from navy to orange haze in hard steps.",
+        "scenebook": "Scene book: wide walking shot along pier lights from behind, dawn ahead; break-up layered in the background plate. by phone: the Inner Harbour before dawn"
+      },
+      {
+        "set": "09.5 \u00b7 set harbor_phonebooth",
+        "title": "The EX turns to haze",
+        "lyric": "yet, broken\u2014 yet, heard.",
+        "blocking": "locked-off wide two-shot at the booth curb, frontal and flat: POET and the EX's back stand apart; the EX card is replaced in three steps by an orange haze card of his silhouette, then by nothing. Hold on POET alone under the one lamp, the bike's shape already at the kerb in the dark (10).",
+        "scenebook": "Scene book: locked-off wide two-shot; the EX dissolves out, hold on the POET alone at the curb. back at the booth curb"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  red_black_sunglasses",
+        "role": "the caller; appears twice in one frame (the caller and the man in the breakup)"
+      },
+      {
+        "id": "c-ex",
+        "name": "EX  ex_jacket",
+        "role": "the lover leaving; face never seen"
+      },
+      {
+        "id": "c-woman",
+        "name": "THE WOMAN (was \"the poet\" puppet)  mother_cardigan",
+        "role": "MOTHER, the first call"
+      },
+      {
+        "id": "c-parents",
+        "name": "PARENTS  elder_father_coat",
+        "role": "FATHER, summoned from the yonders"
+      },
+      {
+        "id": "c-party",
+        "name": "PARTY, CLUB AND DJ  club_dress / club_shirt / club_jacket",
+        "role": "the crowd outside the clubs"
+      }
+    ]
+  },
+  {
+    "num": "10",
+    "title": "Magic Ride",
+    "district": "The Orange Haze",
+    "essence": "Alone on the sidewalk after the breakup, the poet finds a motorcycle he wasn't looking for, rubs his aggressions into its steel and rides. The bike holds frame centre and the world streams past it: neon Atlantis, rows of heads that turn, the city's last towers, then mountains, while the night is replaced by morning one dot at a time. He arrives, chilled and innocent, at a ruined chapel on the shore.",
+    "swatches": [
+      "#120c1c",
+      "#2a2350",
+      "#ff8a1e",
+      "#e8601c",
+      "#9aa3ad",
+      "#f4ead8",
+      "#ffcf6b",
+      "#bcd3e0",
+      "#ffffff"
+    ],
+    "lines": [
+      {
+        "time": "00:00.1",
+        "text": "I wasn't looking for a ride, but here you are, blissful and oddly sensitive,"
+      },
+      {
+        "time": "00:08.0",
+        "text": "withering a soul purveying both the dark and the light worlds I've known."
+      },
+      {
+        "time": "00:13.0",
+        "text": "So I rub my aggressions into your steel coverings and hop on to amuse myself."
+      },
+      {
+        "time": "00:20.9",
+        "text": "Loneliness is having everything with no one to tell,"
+      },
+      {
+        "time": "00:24.6",
+        "text": "being everywhere with no one to love and escape,"
+      },
+      {
+        "time": "00:27.8",
+        "text": "wide-eyed and stone but alive and well, wandering with no clear end."
+      },
+      {
+        "time": "00:36.1",
+        "text": "I let the noise block the noise so the way I ride through the streets with the swag and eyes turn,"
+      },
+      {
+        "time": "00:42.1",
+        "text": "has twists, improve, yeah, the magic still exists."
+      },
+      {
+        "time": "00:47.8",
+        "text": "All preparations to live and dream in darkness I no longer desire."
+      },
+      {
+        "time": "00:53.3",
+        "text": "The moon settles and the tease of distant stars subsides"
+      },
+      {
+        "time": "00:57.2",
+        "text": "and I can see a morning ahead for me."
+      },
+      {
+        "time": "01:01.4",
+        "text": "It looks like a morning I could believe in,"
+      },
+      {
+        "time": "01:03.5",
+        "text": "a morning where loss and life aren't so well, ripe with sunlight that's deceptively warm."
+      },
+      {
+        "time": "01:10.7",
+        "text": "The tripping of birds, feeling of nests, spring out of the night that has covered me,"
+      },
+      {
+        "time": "01:16.5",
+        "text": "with my own curiosities for a chance at an end, where everything will be okay."
+      },
+      {
+        "time": "01:22.7",
+        "text": "I want to live in this feeling forever, blissful and oddly innocent,"
+      },
+      {
+        "time": "01:28.6",
+        "text": "riding in a way you can't help but double-click,"
+      },
+      {
+        "time": "01:32.9",
+        "text": "improve, yeah, the magic still exists."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "HOP ON",
+        "beat": "he walks in off-frame, sees the parked bike under the moon, rubs his aggressions into the tank, loads his knees and is seated (a cut)",
+        "feeling": "raw, restless",
+        "image": "a palm working hard circles into a scuffed steel tank, the plates filling in under his hand"
+      },
+      {
+        "movement": "HEADS TWIST",
+        "beat": "the bike holds centre while neon streets, cars and rows of watchers stream past; heads turn to follow",
+        "feeling": "lonely swagger",
+        "image": "a row of silhouettes whose heads all turn the same way as he passes"
+      },
+      {
+        "movement": "MOON SETTLES",
+        "beat": "out past the last towers; the moon sinks to the skyline and the stars go out; a pale patch opens low in the east",
+        "feeling": "letting go of the dark",
+        "image": "the moon settling behind the receding city while a small paper patch opens on the horizon"
+      },
+      {
+        "movement": "NIGHT REPLACED",
+        "beat": "climbing the mountain road a front of morning sweeps across the sky; birds burst out of a roadside nest",
+        "feeling": "awe, belief",
+        "image": "a ragged dithered edge of morning sweeping across the night sky over the fixed bike"
+      },
+      {
+        "movement": "BLISSFUL, INNOCENT",
+        "beat": "the road forks and he rides the seam, choosing neither; he smiles, opens a hand into the wind",
+        "feeling": "innocent joy",
+        "image": "two roads drifting apart from one, the bike riding between them"
+      },
+      {
+        "movement": "CHILLY MORNING",
+        "beat": "down out of the hills past turning heads, two glints (double-click), to the ruined chapel on the shore; he dismounts, breath showing",
+        "feeling": "cold, clean, arrived",
+        "image": "the bike parked by roofless stone walls, his breath a small white cloud"
+      }
+    ],
+    "stages": [
+      {
+        "set": "10.0 \u00b7 set atlantis_sidewalk_night",
+        "title": "The bike under the street lamp",
+        "lyric": "I wasn't looking for a ride but here you are\u2014 blissful &",
+        "blocking": "wide flat side-on of the empty curb: one lamp-post card with a cone of light, the bike in the cone, POET entering from left and stopping; then an insert: the round chrome mirror card with his sunglassed face painted in it, the neon street a smear behind.",
+        "scenebook": "Scene book: wide of the empty sidewalk with the bike in lamplight, then a chrome-mirror insert. the same curb, the bike under the lamp"
+      },
+      {
+        "set": "10.1 \u00b7 set atlantis_sidewalk_night",
+        "title": "Mounting the machine",
+        "lyric": "so i rub my aggressions into your steel & hop on",
+        "blocking": "tight inserts, each a single card plate: palm circling on the tank (tank card with scuff layer revealed under the hand), fist on the fender (shake), boot swinging over the seat; then medium side-on, he laughs, the background strips start to move.",
+        "scenebook": "Scene book: tight inserts on gloved palms, fist on fender, boot swing; chrome panels reflecting the city. curbside"
+      },
+      {
+        "set": "10.2 \u00b7 set atlantis_streets",
+        "title": "Loneliness through midnight intersections",
+        "lyric": "loneliness is having everything with no one to tell\u2014 with no clear end.",
+        "blocking": "rear framing: bike back card centre, empty pillion seat foreground; underpass ceiling lights stream toward camera as dashes; through the flooded underpass the floor is a mirror card and white spray flecks peel off the back wheel; then the empty commons with the forum's lit lip sliding past.",
+        "scenebook": "Scene book: rear rig framing the empty pillion seat; goggles reflecting tunnel lights. empty plazas and the tunnels under the market"
+      },
+      {
+        "set": "10.3 \u00b7 set atlantis_streets",
+        "title": "Swagger down the avenue",
+        "lyric": "So the way I ride\u2014 through the streets & eyes turn, heads twist\u2014 the magic still exists.",
+        "blocking": "low side-on tracking: bike fixed, one hand off the bar; canopy sky card above, shopfront strip and two rows of head-and-shoulder silhouettes scroll past; each head is a pivot card that turns as he passes (a wave of turns). Magenta streak cards on walls and floor.",
+        "scenebook": "Scene book: low-angle tracking on tire spray, whip-pans across crowd silhouettes, neon blur. the avenue under the LED canopy"
+      },
+      {
+        "set": "10.4 \u00b7 set atlantis_outskirts",
+        "title": "Out of Atlantis as the moon settles",
+        "lyric": "the moon settles & I can see a morning ahead for me.",
+        "blocking": "wide from behind the rider: viaduct arch card frames the road; behind, the spire skyline strip recedes (scales down) while the moon card sinks behind it; the NEW DAWN sign card passes at right; ahead, a pale patch opens low on the sky card.",
+        "scenebook": "Scene book: wide from behind the rider leaving the city edge, skyline behind and dawn gradient ahead. the rail viaduct out of the city as the moon sets"
+      },
+      {
+        "set": "10.5 \u00b7 set mountain_road",
+        "title": "Mountain road at first light",
+        "lyric": "The chirping of birds\u2014fueling Riding in a way\u2014 doubleclick\u2014",
+        "blocking": "high wide on switchbacks (three hill strips in receding greys), then low side angle on the lean: the bike card rotates 25 degrees into the curve; the nest tree passes, bird cards burst from it; a bystander's flash is a one-frame white card; the road splits into two strips drifting apart, bike between.",
+        "scenebook": "Scene book: drone chase on mountain switchbacks, then a low side angle on the lean; snap-zoom bystander flash. the pass under the mountain, the rail beside the road"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  red_black_sunglasses",
+        "role": "the rider"
+      },
+      {
+        "id": "c-family",
+        "name": "BROTHER, FRIENDS, ELDERS, COUPLES  street_clothes",
+        "role": "the roadside watchers whose heads turn"
+      }
+    ]
+  },
+  {
+    "num": "11",
+    "title": "New Day",
+    "district": "Cenotaph Rail",
+    "essence": "The poet dismounts at a ruined chapel on a foggy shore and, as the morning comes, a new temple builds itself with him: white, clean, modern, counted into being piece by piece. He walks laps round its edgeless pool, reads from a journal, walks on the still sea, and in the last movement the sun clears the ridge and a line of light runs across the valley to the finished temple and to him.",
+    "swatches": [
+      "#1e2a44",
+      "#3a4b66",
+      "#b9c2c8",
+      "#3e5a3a",
+      "#6f9fae",
+      "#f5f3ec",
+      "#e9b9a0",
+      "#f6c45a",
+      "#a94022"
+    ],
+    "lines": [
+      {
+        "time": "00:00.3",
+        "text": "Even here is chilly in the morning."
+      },
+      {
+        "time": "00:04.2",
+        "text": "River rafting fall covers the seas in the distance"
+      },
+      {
+        "time": "00:07.9",
+        "text": "and hugs the bases of tree-covered hills."
+      },
+      {
+        "time": "00:10.9",
+        "text": "This world is at peace."
+      },
+      {
+        "time": "00:13.7",
+        "text": "In silent resounds, choir chords calm the nerves of things I can't control"
+      },
+      {
+        "time": "00:19.4",
+        "text": "and offer them as keepsakes back to the higher powers."
+      },
+      {
+        "time": "00:23.3",
+        "text": "Exhausted emotions carry forward a diminishing flame"
+      },
+      {
+        "time": "00:26.2",
+        "text": "to emit jazz tuned lyrics that heat and dry the morning dew."
+      },
+      {
+        "time": "00:30.4",
+        "text": "All the remnants of the destruction revealed in the sunlight."
+      },
+      {
+        "time": "00:35.5",
+        "text": "We can rebuild this temple."
+      },
+      {
+        "time": "00:38.1",
+        "text": "It's a new day."
+      },
+      {
+        "time": "00:40.9",
+        "text": "The catharsis evoked by loss in the painful crawl"
+      },
+      {
+        "time": "00:44.7",
+        "text": "along the cobblestone boulevards of broken dreams."
+      },
+      {
+        "time": "00:48.9",
+        "text": "I can close a chapter and open a journal stored away"
+      },
+      {
+        "time": "00:51.9",
+        "text": "from moments of great clarity."
+      },
+      {
+        "time": "00:54.8",
+        "text": "Words written from life's triumphs to offer a blueprint"
+      },
+      {
+        "time": "00:57.9",
+        "text": "of keeping faith alive and as majestic."
+      },
+      {
+        "time": "01:01.5",
+        "text": "When words are read aloud and sung alone as gospels"
+      },
+      {
+        "time": "01:06.8",
+        "text": "to the lonely mirror's midnight hours,"
+      },
+      {
+        "time": "01:10.6",
+        "text": "the left tears drying with time that is common to past."
+      },
+      {
+        "time": "01:15.7",
+        "text": "We can embrace a new day."
+      },
+      {
+        "time": "01:17.9",
+        "text": "We can receive a new day."
+      },
+      {
+        "time": "01:19.9",
+        "text": "We can welcome a new day."
+      },
+      {
+        "time": "01:23.2",
+        "text": "Everything I've known and learned,"
+      },
+      {
+        "time": "01:26.0",
+        "text": "every circumference of life we're celebrating and believing"
+      },
+      {
+        "time": "01:29.6",
+        "text": "is here together in this sacred place,"
+      },
+      {
+        "time": "01:34.5",
+        "text": "reveling in the sunlight of a new beginning"
+      },
+      {
+        "time": "01:36.7",
+        "text": "with this world and a heart at peace."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "MORNING FOG",
+        "beat": "at the ruined chapel wall he watches fog raft in over the sea and wrap the hills; it passes over him and goes out again",
+        "feeling": "spent, quiet",
+        "image": "a flat fog bank sliding across the sea and the hill feet while the chapel ruin and the parked bike sit small on the shore"
+      },
+      {
+        "movement": "FIRST COURSES",
+        "beat": "dawn comes up from the horizon; he walks onto the rubble and the first white courses of a platform arrive under his raised palms",
+        "feeling": "hesitant hope",
+        "image": "three long white stone courses settling one by one on dark rubble"
+      },
+      {
+        "movement": "COLUMNS AND BEAMS",
+        "beat": "sun rays cut through the air; six columns rise, beams slide on; he walks the stylobate behind the colonnade, lost and found by each column; dew winks",
+        "feeling": "growing awe",
+        "image": "the poet appearing and disappearing between white columns, cut through with wedges of light"
+      },
+      {
+        "movement": "THE INFINITY POOL",
+        "beat": "he walks a lap of the edgeless pool, sits at its lip and opens the journal; the sky is mirrored whole",
+        "feeling": "clarity",
+        "image": "a walking figure and its exact mirror on a pool that has no edge"
+      },
+      {
+        "movement": "WALKING ON WATER",
+        "beat": "he walks across the sea reading aloud; the water goes flat and bright under his feet and nowhere else, breathing with him",
+        "feeling": "faith, ease",
+        "image": "a pool of calm light travelling with him across choppy water"
+      },
+      {
+        "movement": "A NEW DAY",
+        "beat": "in blue hour the finial arrives and the temple is complete; the sun clears the ridge and the line of light runs west across the valley to the temple; he raises his arms in welcome",
+        "feeling": "peace",
+        "image": "the terminator line sweeping across the valley floor onto the finished white temple"
+      }
+    ],
+    "stages": [
+      {
+        "set": "11.0 \u00b7 set shore_decaying_chapel",
+        "title": "Arrival on the chilly shore",
+        "lyric": "Even here is chilly in the morning. covers the seas in the distance hugs the bases of tree-covered hills This world is at peace.",
+        "blocking": "extreme wide from the water, locked off: sea strip foreground, the shore steps with lantern dots at left, the chapel ruin small centre, ridge silhouette behind; a fog band card slides in across the sea; the bike card enters down the shore road and stops; slow push only by scaling the plate.",
+        "scenebook": "Scene book: extreme wide from the water looking inland, bike small against the hills; slow push. the shore steps beneath the mountain"
+      },
+      {
+        "set": "11.1 \u00b7 set shore_decaying_chapel",
+        "title": "Remnants in the sunlight",
+        "lyric": "All the remnants of the destruction revealed in the sunlight.",
+        "blocking": "low and close on the rubble floor card: fallen stones, a broken tambourine rim with two jingles; a hard-edged light wedge card slides across them left to right and the dew sheen layer drops out where it passes.",
+        "scenebook": "Scene book: low macro dolly across debris as light rakes across it; sun flare. the chapel's remnants in low sun"
+      },
+      {
+        "set": "11.2 \u00b7 set temple_shore",
+        "title": "The temple builds itself",
+        "lyric": "We can rebuild this temple. It's a new day.",
+        "blocking": "locked-off frontal wide on the chapel footprint: POET raises his palms and a white course arrives under them (3-step replacement), then columns, then beams; each card stays. Intercut a side-on medium of him on the stylobate with columns sliding in between him and the lens.",
+        "scenebook": "Scene book: locked-off time-lapse wide plus a tracking medium on the POET as walls assemble around him. the old footprint at the waterline"
+      },
+      {
+        "set": "11.3 \u00b7 set temple_shore",
+        "title": "Choir chords in the new nave (inferred)",
+        "lyric": "choir chords calm the nerves of things I can't control offer them as keepsakes back to the higher powers",
+        "blocking": "symmetrical wide down the colonnade: white column cards in two rows receding, sunbeam wedges between them, POET appearing and disappearing behind each column as he walks; the chapel's dark stone kept below the line on the back wall.",
+        "scenebook": "Scene book: symmetrical wide down the nave; sunbeam shafts; slow crane up. the new nave"
+      },
+      {
+        "set": "11.4 \u00b7 set temple_infinity_pool",
+        "title": "Journal and the lonely mirror (inferred)",
+        "lyric": "I can close a chapter and open a journal stored away sung alone as gospels to the lonely mirror's midnight hours",
+        "blocking": "POET seated at the pool lip, profile, the journal open on his knee; the pool card below holds his inverted figure exactly; cut to over-shoulder onto the page, then down the mirror hall of white piers on black water with him small at the edge.",
+        "scenebook": "Scene book: close-up on pages and his profile; over-shoulder into a mirror. the mirror hall"
+      },
+      {
+        "set": "11.5 \u00b7 set temple_shore",
+        "title": "Welcoming the new day",
+        "lyric": "We can embrace a new day. is here together in this sacred place with this world and a heart at peace.",
+        "blocking": "reverse from inside: dark interior frame card, the doorway a bright card of sea and sky, POET's silhouette in it raising both arms; then exterior hero wide: the sun card clears the ridge, the terminator band sweeps the valley floor card left to right onto the finished white temple and him.",
+        "scenebook": "Scene book: reverse from inside the doors out to the sea, then wide exterior hero shot of the white temple. the threshold facing the harbour"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  red_black_sunglasses",
+        "role": "the builder and the one who welcomes the day"
+      },
+      {
+        "id": "c-family",
+        "name": "BROTHER, FRIENDS, ELDERS, COUPLES  street_clothes",
+        "role": "optional: the second figure the world module stages (a fellow mason already at the far end of the platform in M2; the second welcomer arriving from the west in M6)"
+      }
+    ]
+  },
+  {
+    "num": "12",
+    "title": "Reunion",
+    "district": "The White Temple & its Pools",
+    "essence": "Decades later, the poet hosts his brothers and friends in the white temple he built in 11: hugs with no reason, laughter, football on a wall screen, an old snapshot restaged. Underneath the noise one quantity only grows, the distance between two brothers, from a hug to talking distance to the width of a memory, while a yard of burning hourglasses goes out one by one until a single one is left, and its last ember drifts out over the sea through the gap the wind opened.",
+    "swatches": [
+      "#ece6da",
+      "#c99765",
+      "#2fa3a8",
+      "#8a6a4a",
+      "#3a3f63",
+      "#14121c",
+      "#7b6fd6",
+      "#e0632a"
+    ],
+    "lines": [
+      {
+        "time": "00:00.0",
+        "text": "Decades later, there was less time for words and more space for laughter, hugs with no reason,"
+      },
+      {
+        "time": "00:08.6",
+        "text": "loud voices so our hearts can be overheard. My mind drifts into the darkness of our afterlives,"
+      },
+      {
+        "time": "00:16.8",
+        "text": "and those rooms are empty. We are all here, each holding hourglasses of burning sands"
+      },
+      {
+        "time": "00:24.5",
+        "text": "and known journeys, and grateful to every living tree in the forest for the shared airs"
+      },
+      {
+        "time": "00:29.9",
+        "text": "and the shared memories. This is brotherhood. Smiles with no reason,"
+      },
+      {
+        "time": "00:37.5",
+        "text": "narrow differences so our hearts can be overheard. Decades later, we can place our ears upon the next"
+      },
+      {
+        "time": "00:45.2",
+        "text": "brother's soul and follow paths of hilltops and canyons, of blinding lights and infinite nights,"
+      },
+      {
+        "time": "00:54.4",
+        "text": "all too familiar and create the type of space for laughter"
+      },
+      {
+        "time": "00:59.8",
+        "text": "and football and recollections that bring us home every time."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "HUGS WITH NO REASON",
+        "beat": "friends arrive through the colonnade; the poet and his brother hug across the centre of the frame; loud voices, rings leave their chests (00:00-00:11)",
+        "feeling": "loud joy",
+        "image": "two men overlapping in one hug in the white colonnade, three dark rings leaving the shared chest"
+      },
+      {
+        "movement": "LESS TIME, MORE SPACE",
+        "beat": "they step apart and throw both arms up at the football on the wall screen; a friend restages an old snapshot; the word WORDS shrinks and LAUGHTER lands",
+        "feeling": "ease, play",
+        "image": "both men arms-up at talking distance, a white wall screen of football between them, the room nearly empty"
+      },
+      {
+        "movement": "ELDERS, NOW PAST",
+        "beat": "'my mind drifts into the darkness of our afterlives, and those rooms are empty' (00:11-00:19): the hall goes black and the elders stand cut out of it as paper, then the dark drains down, crown first, and takes them",
+        "feeling": "grief held quietly",
+        "image": "a black drop with elder-shaped holes in it, the two brothers solid in front, further apart than before"
+      },
+      {
+        "movement": "BURNING HOURGLASSES",
+        "beat": "'each holding hourglasses of burning sands and known journeys' (00:16.8-00:30): everyone holds a burning hourglass; they go out in no left-right order until only the tall one on the white shelf burns",
+        "feeling": "the question: is this a one-time occasion?",
+        "image": "a yard of twelve guttering hourglasses, smoke standing in the top of frame, one tall glass on the shelf still lit"
+      },
+      {
+        "movement": "WINDS PART",
+        "beat": "'This is brotherhood... ears upon the next brother's soul... hilltops and canyons, blinding lights and infinite nights... laughter and football and recollections that bring us home' (00:30-01:04): on the shore terrace at dusk the gap keeps widening, arms open to each other, and the last ember drifts out through it",
+        "feeling": "grateful, bittersweet, at home",
+        "image": "two tiny men at the frame edges on the dusk terrace, one ember crossing the empty middle over the sea"
+      }
+    ],
+    "stages": [
+      {
+        "set": "12.0 \u00b7 set temple_hall",
+        "title": "Welcome home in the hall",
+        "lyric": "Decades later less time for words and more space for laughter hugs with no reason",
+        "blocking": "Locked wide from high up the nave (the 'rafters' view), symmetrical: back plane is the end wall with one arched window, mid planes are three pairs of niche-pier cards stepping toward camera, floor is the black gloss card doubling everyone. Friends enter from the colonnade at frame right in a staggered line; the circle forms centre floor. Cut to a handheld-feel medium (coded 1-2px drift) inside the circle as two pairs hug and rock.",
+        "scenebook": "Scene book: wide master from the rafters, then handheld into the hugging circle. the hall under its rafters"
+      },
+      {
+        "set": "12.1 \u00b7 set temple_hall",
+        "title": "Loud voices, overheard hearts",
+        "lyric": "loud voices so our hearts can be overheard",
+        "blocking": "Chest-height mediums, three or four quick cuts on laughter: background is the white niche wall blurred (a softened copy of the wall card), foreground shoulders cross frame out of focus. On each shout a warm ring pulses from the speaker's chest (heard_rings fx). Crowd motion as smeared duplicate silhouettes.",
+        "scenebook": "Scene book: tight chest-height mediums, shallow focus, fast cuts on laughter. the centre of the gathering"
+      },
+      {
+        "set": "12.2 \u00b7 set temple_backroom",
+        "title": "The empty rooms of the afterlife",
+        "lyric": "My mind drifts into the darkness of our afterlives and those rooms are empty",
+        "blocking": "Tilt up the white pier card into the dark of the vault (gradient to black), then a hard cut to a static wide of a side room: rows of empty folding chairs on bare boards under one sagging wire of bulbs, a single chair turned away at the foot of a lit stair. Nothing moves except dust motes and one bulb's flicker.",
+        "scenebook": "Scene book: tilt up into dim rafters; static wide of the dusty backroom. the rafters and a back room of empty chairs"
+      },
+      {
+        "set": "12.3 \u00b7 set temple_hall",
+        "title": "Hourglasses and the group photo",
+        "lyric": "We are all here each holding our glasses of burning sands and known journeys",
+        "blocking": "Locked frontal tableau composed exactly like the old snapshot: two rows, the seated row on the low dark benches, the standing row behind, each figure holding a burning hand hourglass at waist. The snapshot card is held up in the foreground lower left, then lowered as the live group matches it. Macro insert: dotted sand falling through the neck, flame on the rim. Phone flash (camera_flash) whites out one frame.",
+        "scenebook": "Scene book: locked frontal group tableau matched to the archival photo; macro on falling grains. the hall's front, posed like the photographs"
+      },
+      {
+        "set": "12.4 \u00b7 set temple_grove",
+        "title": "Trees at the forest edge",
+        "lyric": "grateful to every living tree in the forest and the shared memories",
+        "blocking": "Low angle up into a canopy card (dark green cut leaves, string of picnic bulbs looping between trunks); slow lateral pan along three trunk cards in the mid layer as friends lay palms on the bark. Faint memory images projected on a fog card behind (tracing-paper layer with a looping old-film texture).",
+        "scenebook": "Scene book: low angle up into the canopy; slow lateral track along the trunks. the grounds where the hill's woods begin"
+      },
+      {
+        "set": "12.5 \u00b7 set temple_shore_terrace",
+        "title": "Brotherhood chain",
+        "lyric": "This is brotherhood. we can place our ears upon the next brother's soul",
+        "blocking": "Profile track left to right down a chain of men on a sandy path, wrists interlocked, heads leaning together; the camera stops on the poet with his ear to BROTHER_1's chest. Insert: interlocked wrists. The sea is a flat band behind, the sky going blue.",
+        "scenebook": "Scene book: profile tracking shot down the listening chain; extreme close-up of an ear on a chest. the sandy path to the shore"
+      },
+      {
+        "set": "12.6 \u00b7 set temple_shore_terrace",
+        "title": "Football in the meadow, then home",
+        "lyric": "follow paths of hilltops and canyons laughter and football and recollections that bring us home every time",
+        "blocking": "Golden-hour wide: meadow as three grass strip cards, the hill line behind, the football card arcing through frame on a coded parabola with a 4-frame spin cycle. Polaroids flutter down as paper cards. Final: from behind the group, their backs a single silhouette row, climbing porch steps toward the temple door as a bulb switches on; its reflection lands in the pool of stars.",
+        "scenebook": "Scene book: wide golden-hour meadow with the ball arcing through frame; closing shot from behind the group toward a lit porch. the meadow, ending at a porch"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  red_black_sunglasses",
+        "role": "the host: he built this temple in 11 and now fills it with his people"
+      },
+      {
+        "id": "c-family",
+        "name": "BROTHER, FRIENDS, ELDERS, COUPLES  brother_casual",
+        "role": "BROTHER_1, the next brother whose soul he puts his ear to; the other half of the one number the poem is about"
+      },
+      {
+        "id": "c-family",
+        "name": "BROTHER, FRIENDS, ELDERS, COUPLES  friend_casual",
+        "role": "FRIEND_1 and FRIEND_2: the room that makes it a reunion, the archivist who restages the old photo"
+      },
+      {
+        "id": "c-family",
+        "name": "BROTHER, FRIENDS, ELDERS, COUPLES  elder_memory_silhouette",
+        "role": "the ELDERS, now past: three near and a row of the rest behind, one with an arm raised telling the creed"
+      }
+    ]
+  },
+  {
+    "num": "13",
+    "title": "How to Win My Heart",
+    "district": "Mirror Thread Bay",
+    "essence": "The poet walks down from the white temple to a corner caf\u00e9 on the harbor of the heavens and sits at a small table, watching couples, while the tide comes in under the boats. Dusk counts out Jupiter's moons over the water; his younger self watches from the rail, the elders pray with their pearls, and his love letters burn on the quay stones. He harvests a field of scarlet poppies and purple blossoms until it flowers out of his own arms, and then, across the water, a distant window comes into focus with a woman in it, and he takes off his sunglasses and says hello.",
+    "swatches": [
+      "#465fb1",
+      "#0f5f63",
+      "#10243f",
+      "#f0a64a",
+      "#5c6670",
+      "#c8231e",
+      "#7a3fa0",
+      "#e9dcc4"
+    ],
+    "lines": [
+      {
+        "time": "00:00.0",
+        "text": "I want you to notice me in a corner cafe"
+      },
+      {
+        "time": "00:03.0",
+        "text": "at the Harbor of the Heavens, wandering in thought,"
+      },
+      {
+        "time": "00:07.3",
+        "text": "discovering water on Jupiter's moons,"
+      },
+      {
+        "time": "00:10.4",
+        "text": "healing the sick with silent prayers"
+      },
+      {
+        "time": "00:12.1",
+        "text": "and molding a better world to return to"
+      },
+      {
+        "time": "00:14.6",
+        "text": "with every pulsing beat after walking alone."
+      },
+      {
+        "time": "00:19.3",
+        "text": "I want you to really notice me"
+      },
+      {
+        "time": "00:21.4",
+        "text": "with the distances we couldn't avoid"
+      },
+      {
+        "time": "00:23.6",
+        "text": "and our younger selves watching and dreaming,"
+      },
+      {
+        "time": "00:27.3",
+        "text": "while our elders clutch their pearls,"
+      },
+      {
+        "time": "00:29.5",
+        "text": "hold their faith and breath closely,"
+      },
+      {
+        "time": "00:32.6",
+        "text": "freeing their worries peacefully."
+      },
+      {
+        "time": "00:35.9",
+        "text": "I've journeyed beyond any place you can conceivably be."
+      },
+      {
+        "time": "00:39.3",
+        "text": "So I thought, life has burned all of my love stories."
+      },
+      {
+        "time": "00:44.4",
+        "text": "All ends led to losses,"
+      },
+      {
+        "time": "00:47.1",
+        "text": "victory-less seasons for a man that wanted just one win."
+      },
+      {
+        "time": "00:50.9",
+        "text": "I could celebrate forever."
+      },
+      {
+        "time": "00:54.2",
+        "text": "Ice has frozen and thawed"
+      },
+      {
+        "time": "00:56.4",
+        "text": "friendships in death and departure."
+      },
+      {
+        "time": "00:59.7",
+        "text": "I've learned to love myself more,"
+      },
+      {
+        "time": "01:02.1",
+        "text": "manage loss and harvest a wizardry more brilliant"
+      },
+      {
+        "time": "01:06.1",
+        "text": "than the scarlet poppies and purple blossoms"
+      },
+      {
+        "time": "01:09.1",
+        "text": "that time and tears have disclaimed."
+      },
+      {
+        "time": "01:12.8",
+        "text": "Yet from a distant window, beautiful and calm,"
+      },
+      {
+        "time": "01:16.8",
+        "text": "hope tells me you'll see me."
+      },
+      {
+        "time": "01:19.2",
+        "text": "And if you notice me and capture my eyes"
+      },
+      {
+        "time": "01:22.5",
+        "text": "as you refocus yours,"
+      },
+      {
+        "time": "01:24.6",
+        "text": "stepping back and letting them say hello,"
+      },
+      {
+        "time": "01:27.7",
+        "text": "all the fatigue of wandering alone in thought,"
+      },
+      {
+        "time": "01:31.7",
+        "text": "in winless seasons and scarlet poppies"
+      },
+      {
+        "time": "01:34.9",
+        "text": "won't prevent me from sharing a smile"
+      },
+      {
+        "time": "01:37.5",
+        "text": "worth the promise of my heart."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "SMALL TABLES",
+        "beat": "daytime: he walks down from the temple along the quay and lowers himself onto the third chair; the tide comes in under the tables and the two moored boats right themselves (00:00-00:19)",
+        "feeling": "hopeful, alone",
+        "image": "four small caf\u00e9 tables on the quay, one man in sunglasses at the third, the water rising under the boats"
+      },
+      {
+        "movement": "COUNTED ORBITS",
+        "beat": "'discovering water on Jupiter's moons... with the distances we couldn't avoid': dusk comes down dot by dot; couples circle each other hand in hand by the tables and a banded planet's moons come out one at a time",
+        "feeling": "longing, counting",
+        "image": "a banded planet low over the harbor, four moons, couples turning in pairs under the string lights, him alone at his table"
+      },
+      {
+        "movement": "BURNED STORIES",
+        "beat": "'our younger selves watching and dreaming, while our elders clutch their pearls... life has burned all of my love stories... victory-less seasons' (00:23-00:54): the young poet at the rail, an old couple bowing in a pew, five letters catching one by one on the quay stones",
+        "feeling": "loss without bitterness",
+        "image": "five folded letters burning on wet quay stones, smoke rising pale into the night, the poet crouched beside them"
+      },
+      {
+        "movement": "HARVESTED POWER",
+        "beat": "'ice has frozen and thawed friendships... I've learned to love myself more, manage loss and harvest a wizardry more brilliant than the scarlet poppies and purple blossoms' (00:54-01:12): he cuts the field; it goes down in front of him and then flowers out of his hands, shoulders and crown",
+        "feeling": "self-possession, power",
+        "image": "the poet standing in cut stubble, arms open, poppy and blossom stems growing out of his hands and crown"
+      },
+      {
+        "movement": "REFOCUS",
+        "beat": "'yet from a distant window, beautiful and calm, hope tells me you'll see me... capture my eyes as you refocus yours, stepping back and letting them say hello' (01:12-01:27): the far wall comes into focus, then her, then her eyes; he takes his sunglasses off and steps back toward us",
+        "feeling": "hope, recognition",
+        "image": "a gabled far wall across the water resolving into one lit window with a woman in red in it, her eyes the only sharp thing"
+      },
+      {
+        "movement": "WON'T LEAVE",
+        "beat": "'all the fatigue of wandering alone... won't prevent me from sharing a smile worth the promise of my heart' (01:27-01:40): same quay, same chair, the tide in; his hand grips the table edge, lets go; he stands and walks the harbor smiling",
+        "feeling": "quiet resolve",
+        "image": "an empty caf\u00e9 chair, the tide high, the window still lit across the water, the poet walking away along the quay"
+      }
+    ],
+    "stages": [
+      {
+        "set": "13.0 \u00b7 set harbor_cafe",
+        "title": "Walk from the temple around the harbor",
+        "lyric": "with every pulsing beat after walking alone",
+        "blocking": "Long-lens lateral: camera tracks right along the promenade, the water and two moored boats between camera and the poet (boats and rail as front layer, him mid, quay buildings and the temple's white rise far back). He walks right to left past the drowned atrium's glowing window. Reflections lead: the shot opens on his reflection in the water strip.",
+        "scenebook": "Scene book: long lens lateral track along the promenade, water and boats between camera and POET. the promenade from the temple round the harbour"
+      },
+      {
+        "set": "13.1 \u00b7 set harbor_cafe",
+        "title": "The corner cafe table",
+        "lyric": "I want you to notice me in a corner cafe at the Harbor of the Heavens, wandering in thought",
+        "blocking": "Static medium: the poet at the corner table by the window, espresso cup, sunglasses on; foreground two out-of-focus couple silhouettes at a near table; the window behind shows the bay. Eyeline cuts to the other tables: couples leaning in, orbiting.",
+        "scenebook": "Scene book: static medium on the POET at the corner table, couples soft in the foreground; eyeline cuts to the tables. the pier caf\u00e9's corner table"
+      },
+      {
+        "set": "13.2 \u00b7 set church_pews",
+        "title": "Distances, younger selves, praying elders",
+        "lyric": "with the distances we couldn't avoid our younger selves watching and dreaming while our elders clutch their pearls",
+        "blocking": "The caf\u00e9 window glass as a semi-transparent card: his face reflected with YOUNG_POET's small face appearing beside it on the outside of the glass. Cut to two silhouettes on opposite shores (flat halftone layers). Cut to a quiet wide of a church: rows of dark pews, one lancet window, two elders with pearls and a rosary in the second pew.",
+        "scenebook": "Scene book: reflections in the cafe window double his face with the ghost children; quiet wide in a church pew for the elders. the caf\u00e9 glass; a harbour church"
+      },
+      {
+        "set": "13.3 \u00b7 set harbor_quay_night_fire",
+        "title": "Victory-less seasons (inner montage)",
+        "lyric": "I've journeyed beyond any place you can conceivably be life has burned all of my love stories victory-less seasons for a man that wanted just one win",
+        "blocking": "Slow push in on his still face at the table, then match cuts: a lone traveller on a far road, the love letters burning on the quay stones at night, a dusty trophy case, flowers frozen in an ice block. Each insert is a single plate with one moving element.",
+        "scenebook": "Scene book: push in on his still face, then match-cuts into the montage. the table (mental space)"
+      },
+      {
+        "set": "13.4 \u00b7 set flower_field",
+        "title": "Harvesting the poppies",
+        "lyric": "harvest a wizardry more brilliant than the scarlet poppies and purple blossoms",
+        "blocking": "High top-down over the field: rows of scarlet poppy and purple spike cards in strips, the cut half as stubble; he moves along a row cutting. Close-up: the armful against his chest, light flowing from the flowers into him, then the same flowers growing out of his hands.",
+        "scenebook": "Scene book: aerial over flower fields; light flowing into his chest in a close-up. the Night Garden Field by day, harvested"
+      },
+      {
+        "set": "13.5 \u00b7 set harbor_cafe",
+        "title": "From a distant window",
+        "lyric": "Yet from a distant window, beautiful and calm hope tells me you'll see me capture my eyes as you refocus yours",
+        "blocking": "Reverse from outside, across the water: the caf\u00e9 window as a lit frame in the teal wall, him inside. Rack focus (coded blur swap between layers) from his reflection to his eyes. Then his POV across the bay: a far gable with one lit window, a woman in red in it, which sharpens from a soft card to a crisp one. He takes off the sunglasses.",
+        "scenebook": "Scene book: through-the-glass shot from outside the cafe; rack focus from reflection to his eyes; iris close-up. the caf\u00e9 window from the harbour"
+      },
+      {
+        "set": "13.6 \u00b7 set harbor_cafe",
+        "title": "Stands and walks the harbor",
+        "lyric": "all the fatigue of wandering alone in thought won't prevent me from sharing a smile worth the promise of my heart",
+        "blocking": "Follow from behind along the waterline, the rail as a front strip; the frame widens (pull the layers apart) as the haze rises off the water from the bottom of frame, orange then white, erasing the far shore first, then the boats, then the quay.",
+        "scenebook": "Scene book: follow from behind along the waterline; widen as haze rises off the water. the harbour edge and piers, the haze rising"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  red_black_sunglasses",
+        "role": "the watcher at the small table who wants to be noticed"
+      },
+      {
+        "id": "c-young_poet",
+        "name": "YOUNG POET  child_clothes",
+        "role": "'our younger selves watching and dreaming'"
+      },
+      {
+        "id": "c-family",
+        "name": "BROTHER, FRIENDS, ELDERS, COUPLES  couple_summer_casual",
+        "role": "the couples at the other tables and on the water's edge, orbiting each other like Jupiter's moons"
+      },
+      {
+        "id": "c-family",
+        "name": "BROTHER, FRIENDS, ELDERS, COUPLES  elder_robe_pearls",
+        "role": "the elders clutching their pearls, holding faith and breath closely"
+      },
+      {
+        "id": "c-woman",
+        "name": "THE WOMAN (was \"the poet\" puppet)  window_woman_dress",
+        "role": "SHE, in the distant window, beautiful and calm"
+      }
+    ]
+  },
+  {
+    "num": "14",
+    "title": "Hot Minute",
+    "district": "The Ascent",
+    "essence": "The finale. Haze gathers on the water and climbs, and everything the poet built, the city, the temple, the harbor, becomes weather; then it takes him last, from the feet up, while he resists. He floats again in the black of 01, but there are no walls this time, and his life flashes past as a reel of the suite's own motifs. Two of him dance and land the spin as a victory, and an old vintage door appears in the black. He opens it on a slow-motion party, the kind he once fell out of a window to escape, walks into the crowd, and the door closes.",
+    "swatches": [
+      "#2560e1",
+      "#8fa6b8",
+      "#d7dde2",
+      "#050507",
+      "#1a1d2b",
+      "#ffc46b",
+      "#b5652e",
+      "#7a1f2b"
+    ],
+    "lines": [
+      {
+        "time": "00:00.0",
+        "text": "Don't make me leave and go where promises, hearts,"
+      },
+      {
+        "time": "00:04.3",
+        "text": "spectrums of light-filled constellations are broken."
+      },
+      {
+        "time": "00:08.1",
+        "text": "I escaped here for a reason,"
+      },
+      {
+        "time": "00:10.3",
+        "text": "believing this would give me a sharpened key of answers"
+      },
+      {
+        "time": "00:13.3",
+        "text": "in a more grounded bravado"
+      },
+      {
+        "time": "00:15.3",
+        "text": "for my life of conquests and queries."
+      },
+      {
+        "time": "00:19.0",
+        "text": "The way you see things felt safe and timeless."
+      },
+      {
+        "time": "00:23.3",
+        "text": "Whatever has terminated this moment, damn you,"
+      },
+      {
+        "time": "00:27.3",
+        "text": "but let it feel love and lost as we must endure,"
+      },
+      {
+        "time": "00:31.9",
+        "text": "absent artificial escapes and machine learning strengths"
+      },
+      {
+        "time": "00:35.4",
+        "text": "for my highs and lows as resource materials."
+      },
+      {
+        "time": "00:39.9",
+        "text": "Well, I can't leave behind the impulse"
+      },
+      {
+        "time": "00:41.8",
+        "text": "that comes from battle scars"
+      },
+      {
+        "time": "00:44.1",
+        "text": "and can't leave behind the wisdom that brushes gray tones"
+      },
+      {
+        "time": "00:47.5",
+        "text": "into our melanin after disappointments and defeats."
+      },
+      {
+        "time": "00:52.8",
+        "text": "I trust that you'll be fine."
+      },
+      {
+        "time": "00:55.0",
+        "text": "I escaped here for a reason."
+      },
+      {
+        "time": "00:57.0",
+        "text": "Our dance together is a victory to entwine muses,"
+      },
+      {
+        "time": "01:01.3",
+        "text": "immersed in twisted dawns for a hot minute,"
+      },
+      {
+        "time": "01:05.5",
+        "text": "and a genesis of a New Testament as it ends."
+      }
+    ],
+    "movements": [
+      {
+        "movement": "EVERYTHING I BUILT",
+        "beat": "the container's opening seconds into 'Don't make me leave... constellations are broken' (00:00-00:08): haze gathers on the water and climbs over the city towers, the white temple and the pier; one roofline trace survives, then goes",
+        "feeling": "dread, letting go",
+        "image": "Atlantis skyline over the harbor eaten from the waterline up by pale haze, the temple eave the last line standing"
+      },
+      {
+        "movement": "FROM THE GROUND UP",
+        "beat": "'I escaped here for a reason... the way you see things felt safe and timeless' (00:08-00:23): the same haze takes him last, feet first; it stalls at his chest (reluctant) then closes over his lifted chin",
+        "feeling": "reluctance, then surrender",
+        "image": "the poet standing arms half open, legs already gone into haze, his chest and head still solid"
+      },
+      {
+        "movement": "NO WALLS",
+        "beat": "'Whatever has terminated this moment, damn you, but let it feel love and loss' (00:23-00:32): all black again, as in 01, but no room around it; one open horizon of faint light; he floats, breathing",
+        "feeling": "anger into acceptance",
+        "image": "a small figure floating in breathing black above one faint bent horizon line, nothing else"
+      },
+      {
+        "movement": "THE REEL",
+        "beat": "'absent artificial escapes... highs and lows as resource materials... battle scars... gray tones' (00:32-00:52): nine motif frames flash, faster each time, cut against him floating: window, tambourine, field, stars, candle, daisy, ride, temple, hourglass, with human B-roll highs and lows",
+        "feeling": "a life seen whole",
+        "image": "a film strip of nine framed icons with black frame-lines between them, the hourglass last"
+      },
+      {
+        "movement": "TWO ENTWINED MUSES",
+        "beat": "'I trust that you'll be fine. I escaped here for a reason. Our dance together is a victory to entwine muses' (00:52-01:01): two of him hold hands and orbit on a faint ring of floor; the spin slows to a landing and both arms go up; far behind, an old door has appeared",
+        "feeling": "victory, self-reconciled",
+        "image": "two identical poets mid-turn, hands joined, a small burst of rays above, a door with light under it in the distance"
+      },
+      {
+        "movement": "I CHOOSE THE DOOR",
+        "beat": "'immersed in twisted dawns for a hot minute, and a genesis of a New Testament as it ends' (01:01-end): he walks to the door and opens it; warm light spills; inside a slow-motion vintage party, a shut dark window on the wall; he walks into the crowd from the back and disappears; the door closes. END.",
+        "feeling": "chosen joy",
+        "image": "an old panelled door alone in the black, warm light pouring out across him as he steps through"
+      }
+    ],
+    "stages": [
+      {
+        "set": "14.0 \u00b7 set harbor_atlantis_wide",
+        "title": "Taken by the haze",
+        "lyric": "Don't make me leave and go where promises, hearts, spectrums of light-filled constellations are broken.",
+        "blocking": "Wide: the harbour with everything he built as flat silhouette bands (Atlantis spires, the temple's white rise, the pier arm, a moored boat), all re-graded orange. Haze cards rise from the ground layer up through each band in turn; he stands at the rail of the platform at the catwalk's end. Slow tilt up his body as the haze climbs; close-up of his hand gripping the rail edge, stalling (reluctant_stall), then letting go.",
+        "scenebook": "Scene book: slow tilt up the body as haze climbs; hand gripping a frame edge in close-up. the harbour edge, then the end of the catwalk"
+      },
+      {
+        "set": "14.1 \u00b7 set black_void",
+        "title": "Floating in the black",
+        "lyric": "I escaped here for a reason The way you see things felt safe and timeless. Whatever has terminated this moment, damn you",
+        "blocking": "Static locked frame, all black, the poet small centre frame, rotating slowly on a coded pivot, lit from above only. On 'terminated' the frame cracks: a white crack line card across the lens, held 6 frames.",
+        "scenebook": "Scene book: static frame with the POET slowly rotating in black; frame cracks on 'terminated'. the centre of the void"
+      },
+      {
+        "set": "14.2 \u00b7 set broll_life",
+        "title": "Cross-cut: highs and lows of life",
+        "lyric": "let it feel love and lost as we must endure absent artificial escapes and machine learning strengths for my highs and lows as resource materials",
+        "blocking": "Hard cuts on the beat between the floating poet and the reel's framed inserts (nine motif frames on a black film strip with sprocket holes, plus human B-roll). Each insert is a small rectangle in the black that slides through frame left to right.",
+        "scenebook": "Scene book: hard cuts on the beat between void and documentary B-roll. void and B-roll"
+      },
+      {
+        "set": "14.3 \u00b7 set black_void",
+        "title": "Battle scars and graytones",
+        "lyric": "can't leave behind the impulse that comes from battle scars the wisdom that brushes gray tones",
+        "blocking": "Macro along his forearm and cheek: a thin warm light line traces scar marks drawn on the puppet's skin card; the grade desaturates his costume card toward grey step by step.",
+        "scenebook": "Scene book: macro along skin and scars; desaturating grade. void"
+      },
+      {
+        "set": "14.4 \u00b7 set black_void",
+        "title": "The vintage door appears",
+        "lyric": "I trust that you'll be fine. I escaped here for a reason.",
+        "blocking": "Wide: the old panelled door alone in the black, far, warm light under it. The poet enters frame from behind camera, his back to us, and walks to it. Faint ring of floor appears only around the door.",
+        "scenebook": "Scene book: wide of the lone door in black, POET entering frame from behind. before the door"
+      },
+      {
+        "set": "14.5 \u00b7 set vintage_party",
+        "title": "The dance at the vintage party",
+        "lyric": "Our dance together is a victory to entwine muses immersed in twisted dons for a hot minute",
+        "blocking": "Follow from behind through the slow-motion crowd: crowd as three depth layers of couple cards moving at 1/3 speed, paper-lantern garland overhead, gramophone on a side table, the dark shut window on the back wall. Then overhead: two dancers (the poet and POET_MUSE) under one spotlight disc on the floor.",
+        "scenebook": "Scene book: Steadicam following through the slow-motion crowd from behind; overhead on two dancers under one spotlight. the ballroom beyond the door"
+      },
+      {
+        "set": "14.6 \u00b7 set vintage_party",
+        "title": "Disappears into the crowd; door closes",
+        "lyric": "and a genesis of a New Testament as it ends.",
+        "blocking": "Hold on the back of the crowd as he walks into it and is lost among the couple cards. Reverse from the black: the open door, the amber party inside, the door swings shut toward camera, the light leak under it narrows to a line and goes out. END.",
+        "scenebook": "Scene book: hold on the back of the crowd as he vanishes; reverse from the void as the door swings shut to black. the doorway, from outside"
+      }
+    ],
+    "cast": [
+      {
+        "id": "c-poet",
+        "name": "POET  red_black_sunglasses",
+        "role": "the man everything he built dissolves around, and who chooses, at last, a door"
+      },
+      {
+        "id": "c-poet",
+        "name": "POET  red_black_sunglasses",
+        "role": "POET_MUSE, his double: the second entwined muse"
+      },
+      {
+        "id": "c-party",
+        "name": "PARTY, CLUB AND DJ  vintage_party",
+        "role": "the slow-motion vintage party guests behind the door, the same party he fled through a window in 01"
+      },
+      {
+        "id": "c-family",
+        "name": "BROTHER, FRIENDS, ELDERS, COUPLES  street_clothes",
+        "role": "B-roll people: the highs and lows of life in THE REEL"
+      }
+    ]
+  }
+]

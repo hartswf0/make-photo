@@ -1,0 +1,606 @@
+/* Make-Photo City Universal Suite Navigation, 23-Look GPU Shader Bar, 5-Bus Sound & Severn Pilot Sync */
+:root {
+  --mp-bg: #0f1112;
+  --mp-panel: rgba(12, 16, 22, 0.90);
+  --mp-panel-strong: rgba(10, 13, 18, 0.95);
+  --mp-paper: #f4eedd;
+  --mp-muted: rgba(244, 238, 221, 0.74);
+  --mp-brass: #e0b46a;
+  --mp-amber: #f2a541;
+  --mp-cyan: #18b4ff;
+  --mp-rule: rgba(244, 238, 221, 0.18);
+  --mp-suite-nav-h: 32px;
+  --mp-suite-dock-h: 42px;
+}
+
+.mp-suite-root,
+.mp-suite-root * {
+  box-sizing: border-box;
+}
+
+.mp-suite-root a:focus-visible,
+.mp-suite-root button:focus-visible,
+.mp-suite-root select:focus-visible,
+.mp-suite-root input:focus-visible {
+  outline: 2.5px solid var(--mp-amber);
+  outline-offset: 2px;
+}
+
+/* Top Navigation Bar (Non-occluding, collapsible, zero horizontal scroll rail) */
+.mp-suite-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: var(--mp-suite-nav-h);
+  padding: 4px 10px;
+  background: var(--mp-panel-strong);
+  border-bottom: 1px solid var(--mp-rule);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font: 500 11px/1.25 Inter, system-ui, -apple-system, sans-serif;
+  color: var(--mp-paper);
+  pointer-events: auto;
+  user-select: none;
+}
+
+.mp-suite-nav.mp-pos-bottom {
+  top: auto;
+  bottom: 0;
+  border-bottom: none;
+  border-top: 1px solid var(--mp-rule);
+}
+
+/* Quiet corner mode (default on design-room entrance or when collapsed) */
+.mp-suite-nav.mp-quiet {
+  left: auto;
+  right: 12px;
+  top: 10px;
+  border: 1px solid var(--mp-rule);
+  border-radius: 6px;
+  padding: 4px 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.42);
+}
+
+.mp-suite-nav.mp-quiet .mp-suite-links {
+  display: none;
+}
+
+.mp-suite-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mp-brass);
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.mp-suite-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mp-cyan);
+  box-shadow: 0 0 7px rgba(24, 180, 255, 0.8);
+  display: inline-block;
+}
+
+.mp-suite-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
+}
+
+.mp-suite-pill {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  padding: 3px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(244, 238, 221, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--mp-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+
+.mp-suite-pill:hover {
+  border-color: var(--mp-brass);
+  color: var(--mp-paper);
+  background: rgba(224, 180, 106, 0.14);
+}
+
+/* Understandable without color alone: bold + underline + thicker border */
+.mp-suite-pill.active,
+.mp-suite-pill[aria-current="page"] {
+  border: 1.5px solid var(--mp-cyan);
+  background: rgba(24, 180, 255, 0.20);
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mp-suite-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.mp-pilot-chip {
+  appearance: none;
+  border: 1px solid rgba(224, 180, 106, 0.38);
+  background: rgba(224, 180, 106, 0.10);
+  color: var(--mp-paper);
+  border-radius: 4px;
+  padding: 3px 7px;
+  font: 600 10px/1.2 Inter, system-ui, sans-serif;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mp-pilot-chip:hover {
+  border-color: var(--mp-amber);
+  background: rgba(242, 165, 65, 0.20);
+}
+
+.mp-suite-toggle-btn {
+  appearance: none;
+  border: 1px solid var(--mp-rule);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--mp-paper);
+  border-radius: 4px;
+  padding: 3px 7px;
+  font: 600 10px/1.2 Inter, system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mp-suite-toggle-btn:hover {
+  border-color: var(--mp-brass);
+}
+
+/* Mobile / Quiet Route Sheet Popover */
+.mp-route-drawer {
+  position: fixed;
+  top: 40px;
+  right: 12px;
+  z-index: 9200;
+  width: min(520px, calc(100vw - 24px));
+  background: var(--mp-panel-strong);
+  border: 1px solid var(--mp-brass);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.58);
+  display: none;
+  font: 400 12px/1.4 Inter, system-ui, sans-serif;
+  color: var(--mp-paper);
+}
+
+.mp-route-drawer.open {
+  display: block;
+}
+
+.mp-route-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.mp-route-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  min-height: 42px;
+  border: 1px solid var(--mp-rule);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--mp-paper);
+  text-decoration: none;
+}
+
+.mp-route-card:hover {
+  border-color: var(--mp-brass);
+  background: rgba(224, 180, 106, 0.12);
+}
+
+.mp-route-card[aria-current="page"] {
+  border: 1.5px solid var(--mp-cyan);
+  background: rgba(24, 180, 255, 0.16);
+}
+
+.mp-route-card strong {
+  font-size: 11.5px;
+  color: var(--mp-paper);
+}
+
+.mp-route-card span {
+  font-size: 10.5px;
+  color: var(--mp-muted);
+}
+
+/* Bottom Shader, Lens, Time, Sound & Plate Capsule */
+.mp-shader-dock {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+  max-width: calc(100vw - 16px);
+  padding: 5px 9px;
+  background: var(--mp-panel-strong);
+  border: 1px solid var(--mp-rule);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font: 500 10.5px/1.2 Inter, system-ui, -apple-system, sans-serif;
+  color: var(--mp-paper);
+  pointer-events: auto;
+  user-select: none;
+}
+
+.mp-shader-dock.mp-dock-collapsed {
+  left: auto;
+  right: 12px;
+  bottom: 12px;
+  transform: none;
+  padding: 4px 8px;
+}
+
+.mp-shader-dock.mp-dock-collapsed .mp-dock-body {
+  display: none;
+}
+
+.mp-dock-body {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 5px;
+}
+
+.mp-dock-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mp-dock-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--mp-rule);
+  margin: 0 2px;
+}
+
+.mp-btn {
+  appearance: none;
+  border: 1px solid var(--mp-rule);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--mp-paper);
+  border-radius: 4px;
+  padding: 5px 8px;
+  min-height: 26px;
+  font: 600 10px/1.2 Inter, system-ui, sans-serif;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.mp-btn:hover {
+  border-color: var(--mp-brass);
+  color: #ffffff;
+}
+
+.mp-btn.active {
+  border: 1.5px solid var(--mp-cyan);
+  background: rgba(24, 180, 255, 0.22);
+  color: #ffffff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mp-btn.mp-brass-active.active {
+  border-color: var(--mp-brass);
+  background: rgba(224, 180, 106, 0.24);
+  color: var(--mp-paper);
+}
+
+.mp-btn.mp-mute-on {
+  border-color: #d96b52;
+  background: rgba(217, 107, 82, 0.20);
+  color: #ffe7e0;
+}
+
+.mp-shader-select {
+  appearance: none;
+  background: rgba(24, 180, 255, 0.14);
+  border: 1px solid var(--mp-cyan);
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 4px 8px;
+  min-height: 26px;
+  font: 600 10px/1.2 Inter, system-ui, sans-serif;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  max-width: 186px;
+}
+
+.mp-shader-select option,
+.mp-shader-select optgroup {
+  background: #131618;
+  color: #f4eedd;
+}
+
+.mp-pal-strip {
+  display: none;
+  width: 34px;
+  height: 14px;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--mp-rule);
+}
+
+.mp-pal-strip.visible {
+  display: inline-flex;
+}
+
+.mp-pal-chip {
+  flex: 1;
+  height: 100%;
+}
+
+.mp-slider-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 5px;
+  border: 1px solid rgba(244, 238, 221, 0.12);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.mp-slider-lbl {
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mp-muted);
+  white-space: nowrap;
+}
+
+.mp-slider-val {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--mp-brass);
+  min-width: 30px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mp-slider-wrap input[type="range"] {
+  width: 58px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--mp-cyan);
+  cursor: pointer;
+}
+
+.mp-shutter-btn {
+  appearance: none;
+  border: 1px solid var(--mp-paper);
+  background: var(--mp-paper);
+  color: #101214;
+  border-radius: 4px;
+  padding: 5px 10px;
+  min-height: 26px;
+  font: 700 10px/1.2 Inter, system-ui, sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mp-shutter-btn:hover {
+  background: #ffffff;
+  border-color: var(--mp-cyan);
+}
+
+.mp-plate-badge {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--mp-cyan);
+  padding: 4px 6px;
+  border: 1px solid rgba(24, 180, 255, 0.35);
+  border-radius: 4px;
+  background: rgba(24, 180, 255, 0.10);
+  white-space: nowrap;
+}
+
+/* Floating Popovers: 5-Bus Sound Mixer (Brief 8) & Severn Pilot State (Brief 9) */
+.mp-popover {
+  position: fixed;
+  bottom: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9200;
+  width: min(480px, calc(100vw - 24px));
+  background: var(--mp-panel-strong);
+  border: 1px solid var(--mp-brass);
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+  display: none;
+  font: 400 11.5px/1.4 Inter, system-ui, sans-serif;
+  color: var(--mp-paper);
+}
+
+.mp-popover.open {
+  display: block;
+}
+
+.mp-pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--mp-rule);
+}
+
+.mp-pop-title {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mp-brass);
+}
+
+.mp-bus-row {
+  display: grid;
+  grid-template-columns: 118px 1fr 42px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.mp-bus-row label {
+  font-size: 11px;
+  color: var(--mp-paper);
+}
+
+.mp-bus-row input[type="range"] {
+  width: 100%;
+  accent-color: var(--mp-cyan);
+  cursor: pointer;
+}
+
+.mp-bus-val {
+  font-size: 10.5px;
+  color: var(--mp-brass);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mp-pilot-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.mp-pilot-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mp-pilot-field label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mp-muted);
+}
+
+.mp-pilot-field select,
+.mp-pilot-field input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--mp-rule);
+  color: var(--mp-paper);
+  border-radius: 4px;
+  padding: 5px 7px;
+  font: 500 11px/1.2 Inter, system-ui, sans-serif;
+}
+
+.mp-pilot-field select option {
+  background: #131618;
+  color: #f4eedd;
+}
+
+.mp-shutter-flash {
+  position: fixed;
+  inset: 0;
+  background: #ffffff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9500;
+  transition: opacity 160ms ease;
+}
+
+.mp-suite-toast {
+  position: fixed;
+  top: 42px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9400;
+  background: rgba(12, 16, 20, 0.96);
+  border: 1px solid var(--mp-brass);
+  border-radius: 5px;
+  padding: 7px 14px;
+  font: 500 11.5px/1.35 Inter, system-ui, sans-serif;
+  color: var(--mp-paper);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+  max-width: min(520px, calc(100vw - 24px));
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.mp-suite-toast.show {
+  opacity: 1;
+}
+
+.mp-canvas2d-overlay {
+  pointer-events: none !important;
+  display: block;
+}
+
+/* Responsive mobile view: collapse inline pill bar cleanly into accessible sheet */
+@media (max-width: 960px) {
+  .mp-suite-nav .mp-suite-links {
+    display: none;
+  }
+  .mp-slider-wrap input[type="range"] {
+    width: 46px;
+  }
+  .mp-shader-select {
+    max-width: 148px;
+  }
+  .mp-pilot-grid {
+    grid-template-columns: 1fr;
+  }
+  .mp-btn,
+  .mp-shutter-btn,
+  .mp-suite-toggle-btn,
+  .mp-pilot-chip {
+    min-height: 34px;
+    padding: 6px 9px;
+  }
+}

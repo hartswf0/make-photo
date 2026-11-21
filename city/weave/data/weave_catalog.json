@@ -1,0 +1,4969 @@
+{
+  "passages": [
+    {
+      "id": "p04_hands",
+      "tab": "Poem 04 · Hands",
+      "title": "POEM 04 · \"I PUT THEM BACK ON\"",
+      "about": "WYGWYL poem 04: the clouds meet the stars, she searches the bare ground for her two hands, a 1969 man at a ship's rail laughs, and she puts her hands back on.",
+      "clock": {
+        "source": "WYGWYL_Suite_Audio.mp3 (her recording)",
+        "t0": 364,
+        "t1": 392.6,
+        "fps": 24,
+        "frames": 686
+      },
+      "ledger": [
+        [
+          "OBSERVED",
+          "Her voice, 364.0-392.6 s of the WYGWYL suite recording. Word times by faster-whisper (small)."
+        ],
+        [
+          "OBSERVED",
+          "Eagle Has Landed: The Flight of Apollo 11 (1969), clip 6bb6d333 (source film 1513.81-1523.96 s), silent in this library. The man at the rail: frames 256-304."
+        ],
+        [
+          "RETOUCHED",
+          "The 1969 sky: a per-pixel median of the clip's own sky pixels; where no frame shows sky it is filled by a smooth blur."
+        ],
+        [
+          "INVENTED",
+          "The night garden: WYGWYL poem 04 AI plate (keyframe 84, held). The ledge is cut from it."
+        ],
+        [
+          "INVENTED",
+          "The puppet (reused from p07) and her second, open hand (generated). The rule that her hands come off and go back on."
+        ],
+        [
+          "DRAWN",
+          "The ground strip, the stick, the dust, the light, the labels."
+        ],
+        [
+          "CHARACTER BELIEF",
+          "\"They too used to be mine\": hers, about her hands. The 1969 man is not her memory and is not presented as one."
+        ]
+      ],
+      "joins": [
+        [
+          "Wipe",
+          "the 1969 sky wipes into the plate's own sky (its sky mask), behind the spires, labelled while it shows"
+        ],
+        [
+          "Citizen",
+          "the 1969 man rises as a cut-out on a stick behind the plate's ledge; his film plays inside one fixed scissor cut; tagged"
+        ],
+        [
+          "Touch",
+          "her wrist stubs find her own loose hands; one hand carries the other to the far wrist; every hand-off is a logged contact"
+        ]
+      ],
+      "measured": [
+        [
+          "puppet height (standing)",
+          "834.1 px",
+          null
+        ],
+        [
+          "grip error < 1% (A pinching B)",
+          "2.189 px max over 50 frames (0.262%)",
+          true
+        ],
+        [
+          "press error < 1% (wrist onto A)",
+          "0.0 px over 6 frames",
+          true
+        ],
+        [
+          "pat error < 1% (stub on ground)",
+          "2.092 px over 10 frames",
+          true
+        ],
+        [
+          "fit gap before the brad < 1%",
+          "2.16 px (0.259%)",
+          true
+        ],
+        [
+          "near toe drift",
+          "0.0 px",
+          true
+        ],
+        [
+          "far toe planted (outside its one step 3.69-4.84 s)",
+          "0.0 px along, 0.0 px off ground",
+          true
+        ],
+        [
+          "knees on ground after kneel",
+          "0.0 px off",
+          true
+        ]
+      ],
+      "tracks": [
+        [
+          "wipe",
+          "#9fc6e8"
+        ],
+        [
+          "dark",
+          "#a9a0d6"
+        ],
+        [
+          "rise",
+          "#e7a35a"
+        ],
+        [
+          "glow",
+          "#ffd38a"
+        ],
+        [
+          "kneel",
+          "#7fd3c4"
+        ],
+        [
+          "bow",
+          "#d98bb0"
+        ]
+      ],
+      "states": [
+        {
+          "id": "S1_standing",
+          "t": [
+            0,
+            0.42
+          ],
+          "visible": "she stands in the night garden; her arms end at the wrist tabs; her two hands lie on the ground ahead, in shadow"
+        },
+        {
+          "id": "S2_clouds_meet_stars",
+          "t": [
+            0.42,
+            3.34
+          ],
+          "visible": "the 1969 sky wipes down into the plate's own sky, behind the spires; labelled; the garden darkens"
+        },
+        {
+          "id": "S3_kneel",
+          "t": [
+            3.34,
+            5.09
+          ],
+          "visible": "she kneels: toes pinned, shins turn about them, both knees land; dust"
+        },
+        {
+          "id": "S4_wrong_attempts",
+          "t": [
+            5.09,
+            8.07
+          ],
+          "visible": "she bows and pats the bare ground twice with her wrist stub; nothing there; dust rises and stays on the stub"
+        },
+        {
+          "id": "S5_found",
+          "t": [
+            8.07,
+            9.46
+          ],
+          "visible": "a warm light finds the two hands; she sees them"
+        },
+        {
+          "id": "S6_citizen",
+          "t": [
+            9.46,
+            17.84
+          ],
+          "visible": "a 1969 man at a ship's rail rises on a stick behind the ledge (labelled); from \"find\" his film runs: he turns and laughs"
+        },
+        {
+          "id": "S7_used_to_be_mine",
+          "t": [
+            17.84,
+            20.48
+          ],
+          "visible": "she lifts both wrist stubs and looks at them; the 1969 sky goes back up; the man stays"
+        },
+        {
+          "id": "S8_first_hand",
+          "t": [
+            20.48,
+            21.98
+          ],
+          "visible": "she bows and presses the near wrist onto hand A; the brad goes in"
+        },
+        {
+          "id": "S9_pinch",
+          "t": [
+            21.98,
+            22.64
+          ],
+          "visible": "hand A, now hers, reaches for hand B and pinches its top edge"
+        },
+        {
+          "id": "S10_carry",
+          "t": [
+            22.64,
+            24.44
+          ],
+          "visible": "she rises carrying B; a held stop on \"care\"; the far wrist comes to meet it"
+        },
+        {
+          "id": "S11_fit_release",
+          "t": [
+            24.44,
+            25.24
+          ],
+          "visible": "B goes onto the far wrist on \"stake\"; A lets go"
+        },
+        {
+          "id": "S12_nevermore",
+          "t": [
+            25.24,
+            28.6
+          ],
+          "visible": "she holds both hands up and looks at them; on \"nevermore\" they go down to rest on her thighs; both stay dusty"
+        }
+      ],
+      "words": [
+        {
+          "w": "called",
+          "t0": 362,
+          "t1": 362.32
+        },
+        {
+          "w": "Ford.",
+          "t0": 362.32,
+          "t1": 362.7
+        },
+        {
+          "w": "The",
+          "t0": 364.32,
+          "t1": 364.52
+        },
+        {
+          "w": "clouds",
+          "t0": 364.52,
+          "t1": 364.94
+        },
+        {
+          "w": "meet",
+          "t0": 364.94,
+          "t1": 365.18
+        },
+        {
+          "w": "the",
+          "t0": 365.18,
+          "t1": 365.38
+        },
+        {
+          "w": "stars",
+          "t0": 365.38,
+          "t1": 365.72
+        },
+        {
+          "w": "for",
+          "t0": 365.72,
+          "t1": 366
+        },
+        {
+          "w": "the",
+          "t0": 366,
+          "t1": 366.12
+        },
+        {
+          "w": "deepest",
+          "t0": 366.12,
+          "t1": 366.48
+        },
+        {
+          "w": "level",
+          "t0": 366.48,
+          "t1": 366.82
+        },
+        {
+          "w": "of",
+          "t0": 366.82,
+          "t1": 366.98
+        },
+        {
+          "w": "darkness",
+          "t0": 366.98,
+          "t1": 367.34
+        },
+        {
+          "w": "welcoming",
+          "t0": 367.34,
+          "t1": 367.92
+        },
+        {
+          "w": "extra",
+          "t0": 367.92,
+          "t1": 368.78
+        },
+        {
+          "w": "hard",
+          "t0": 368.78,
+          "t1": 369.08
+        },
+        {
+          "w": "work",
+          "t0": 369.08,
+          "t1": 369.48
+        },
+        {
+          "w": "to",
+          "t0": 370.08,
+          "t1": 370.4
+        },
+        {
+          "w": "search",
+          "t0": 370.4,
+          "t1": 370.64
+        },
+        {
+          "w": "for",
+          "t0": 370.64,
+          "t1": 370.88
+        },
+        {
+          "w": "the",
+          "t0": 370.88,
+          "t1": 371.02
+        },
+        {
+          "w": "bare",
+          "t0": 371.02,
+          "t1": 371.28
+        },
+        {
+          "w": "ground",
+          "t0": 371.28,
+          "t1": 371.86
+        },
+        {
+          "w": "for",
+          "t0": 371.86,
+          "t1": 372.22
+        },
+        {
+          "w": "two",
+          "t0": 372.22,
+          "t1": 372.48
+        },
+        {
+          "w": "hands.",
+          "t0": 372.48,
+          "t1": 373.04
+        },
+        {
+          "w": "Hands",
+          "t0": 373.56,
+          "t1": 373.76
+        },
+        {
+          "w": "that",
+          "t0": 373.76,
+          "t1": 373.98
+        },
+        {
+          "w": "once",
+          "t0": 373.98,
+          "t1": 374.2
+        },
+        {
+          "w": "could",
+          "t0": 374.2,
+          "t1": 374.44
+        },
+        {
+          "w": "tusk",
+          "t0": 374.44,
+          "t1": 374.82
+        },
+        {
+          "w": "dusk",
+          "t0": 374.82,
+          "t1": 375.42
+        },
+        {
+          "w": "after",
+          "t0": 375.42,
+          "t1": 375.74
+        },
+        {
+          "w": "dusk",
+          "t0": 375.74,
+          "t1": 376.4
+        },
+        {
+          "w": "find",
+          "t0": 376.4,
+          "t1": 377.18
+        },
+        {
+          "w": "and",
+          "t0": 377.18,
+          "t1": 377.5
+        },
+        {
+          "w": "celebrate",
+          "t0": 377.5,
+          "t1": 378.04
+        },
+        {
+          "w": "a",
+          "t0": 378.04,
+          "t1": 378.88
+        },
+        {
+          "w": "new",
+          "t0": 378.88,
+          "t1": 379.14
+        },
+        {
+          "w": "life",
+          "t0": 379.14,
+          "t1": 379.54
+        },
+        {
+          "w": "and",
+          "t0": 379.54,
+          "t1": 379.96
+        },
+        {
+          "w": "feel",
+          "t0": 379.96,
+          "t1": 380.26
+        },
+        {
+          "w": "good.",
+          "t0": 380.26,
+          "t1": 380.68
+        },
+        {
+          "w": "And",
+          "t0": 381.54,
+          "t1": 382.04
+        },
+        {
+          "w": "they",
+          "t0": 382.04,
+          "t1": 382.22
+        },
+        {
+          "w": "too",
+          "t0": 382.22,
+          "t1": 382.56
+        },
+        {
+          "w": "used",
+          "t0": 382.56,
+          "t1": 383.18
+        },
+        {
+          "w": "to",
+          "t0": 383.18,
+          "t1": 383.34
+        },
+        {
+          "w": "be",
+          "t0": 383.34,
+          "t1": 383.44
+        },
+        {
+          "w": "mine.",
+          "t0": 383.44,
+          "t1": 383.74
+        },
+        {
+          "w": "I",
+          "t0": 385.48,
+          "t1": 385.96
+        },
+        {
+          "w": "put",
+          "t0": 385.96,
+          "t1": 386.14
+        },
+        {
+          "w": "them",
+          "t0": 386.14,
+          "t1": 386.38
+        },
+        {
+          "w": "back",
+          "t0": 386.38,
+          "t1": 386.64
+        },
+        {
+          "w": "on",
+          "t0": 386.64,
+          "t1": 386.94
+        },
+        {
+          "w": "with",
+          "t0": 386.94,
+          "t1": 387.2
+        },
+        {
+          "w": "the",
+          "t0": 387.2,
+          "t1": 387.3
+        },
+        {
+          "w": "care",
+          "t0": 387.3,
+          "t1": 387.6
+        },
+        {
+          "w": "of",
+          "t0": 387.6,
+          "t1": 387.74
+        },
+        {
+          "w": "my",
+          "t0": 387.74,
+          "t1": 387.86
+        },
+        {
+          "w": "future",
+          "t0": 387.86,
+          "t1": 388.18
+        },
+        {
+          "w": "at",
+          "t0": 388.18,
+          "t1": 388.44
+        },
+        {
+          "w": "stake",
+          "t0": 388.44,
+          "t1": 388.72
+        },
+        {
+          "w": "and",
+          "t0": 388.72,
+          "t1": 389.06
+        },
+        {
+          "w": "say",
+          "t0": 389.06,
+          "t1": 389.38
+        },
+        {
+          "w": "to",
+          "t0": 389.38,
+          "t1": 389.58
+        },
+        {
+          "w": "myself",
+          "t0": 389.58,
+          "t1": 390.1
+        },
+        {
+          "w": "nevermore.",
+          "t0": 390.92,
+          "t1": 391.44
+        },
+        {
+          "w": "I've",
+          "t0": 393.12,
+          "t1": 393.64
+        },
+        {
+          "w": "won",
+          "t0": 393.64,
+          "t1": 393.84
+        },
+        {
+          "w": "at",
+          "t0": 393.84,
+          "t1": 393.96
+        },
+        {
+          "w": "the",
+          "t0": 393.96,
+          "t1": 394.06
+        },
+        {
+          "w": "world",
+          "t0": 394.06,
+          "t1": 394.42
+        },
+        {
+          "w": "and",
+          "t0": 394.42,
+          "t1": 394.66
+        },
+        {
+          "w": "lost",
+          "t0": 394.66,
+          "t1": 394.9
+        },
+        {
+          "w": "my",
+          "t0": 394.9,
+          "t1": 395.12
+        },
+        {
+          "w": "soul.",
+          "t0": 395.12,
+          "t1": 395.5
+        }
+      ],
+      "urls": {
+        "plate": "https://hartswf0.github.io/wygwyl-world-arch/shots/weave/p04_hands/set/plate.jpg",
+        "skyArchive": "https://hartswf0.github.io/wygwyl-world-arch/shots/weave/p04_hands/archive/sky1969.jpg",
+        "skyMask": "https://hartswf0.github.io/wygwyl-world-arch/shots/weave/p04_hands/set/sky_mask.png",
+        "fgCutout": "https://hartswf0.github.io/wygwyl-world-arch/shots/weave/p04_hands/set/ledge.png",
+        "puppetTorso": "https://hartswf0.github.io/wygwyl-world-arch/shots/weave/assets/parts/torso.png",
+        "puppetHead": "https://hartswf0.github.io/wygwyl-world-arch/shots/weave/assets/parts/head.png",
+        "shotPairId": "c8158a76-90f8-41b7-81c6-076a892834c8_1"
+      }
+    },
+    {
+      "id": "p07_turn_me_up",
+      "tab": "Poem 07 · Turn Me Up",
+      "title": "POEM 07 · \"SO DJ PLEASE TURN ME UP\"",
+      "about": "WYGWYL poem 07, DJ TURN ME UP: the line \"So DJ please turn me up\", as one registered cut-out passage",
+      "clock": {
+        "source": "WYGWYL_Suite_Audio.mp3 (her recording)",
+        "t0": 661,
+        "t1": 674.8,
+        "fps": 24,
+        "frames": 331
+      },
+      "ledger": [
+        [
+          "OBSERVED",
+          "Her voice: \"So DJ please turn me up\" (WYGWYL suite recording, 661.0-674.8 s). Word times by faster-whisper."
+        ],
+        [
+          "OBSERVED",
+          "Sound And The Story (1956), clip da69b1ba: the canopy footage, the knob, the inset hand."
+        ],
+        [
+          "RETOUCHED",
+          "The console: one 1956 frame (3.75 s), upscaled 4x, meter needle painted out so a drawn needle can show the level."
+        ],
+        [
+          "INVENTED",
+          "Atlantis: WYGWYL poem 07 AI plate (keyframe 60, held). Crowd figures cut from it; the floor under them painted."
+        ],
+        [
+          "INVENTED",
+          "The puppet: generated cardboard parts, cut and rigged here. The rule that the knob drives the canopy."
+        ],
+        [
+          "DRAWN",
+          "The needle, the labels, the cardboard stand and floor."
+        ]
+      ],
+      "joins": [
+        [
+          "Touch",
+          "her fingertip is on the 1956 knob; the knob angle sets the level"
+        ],
+        [
+          "Screen",
+          "the archive plays on the AI canopy, behind its palms and pillars"
+        ],
+        [
+          "Answer",
+          "after the line, the 1956 hand on the same knob, captioned"
+        ]
+      ],
+      "measured": [
+        [
+          "puppet height",
+          "991.2 px",
+          null
+        ],
+        [
+          "grip frames",
+          43,
+          null
+        ],
+        [
+          "fingertip error < 1% of height",
+          "2.55 px (0.257%)",
+          true
+        ],
+        [
+          "sole drift",
+          "0.0 px",
+          true
+        ],
+        [
+          "overlap @0.0s",
+          "body/console 0 · arm/meter 0",
+          null
+        ],
+        [
+          "overlap @6.625s",
+          "body/console 0 · arm/meter 0",
+          null
+        ]
+      ],
+      "tracks": [
+        [
+          "level",
+          "#e7a35a"
+        ],
+        [
+          "canopy",
+          "#7fd3c4"
+        ],
+        [
+          "loud",
+          "#bbbbbb"
+        ],
+        [
+          "tip_err/10",
+          "#ff7b6b"
+        ]
+      ],
+      "states": [
+        {
+          "id": "S1_reading",
+          "t": [
+            0,
+            4.98
+          ],
+          "visible": "she reads from the page held low; the canopy shows the archive faintly (10%)"
+        },
+        {
+          "id": "S2_looks_up",
+          "t": [
+            4.98,
+            5.16
+          ],
+          "visible": "chin lifts toward the console"
+        },
+        {
+          "id": "S3_anticipation",
+          "t": [
+            5.16,
+            5.51
+          ],
+          "visible": "shoulder and upper arm lift first, forearm and hand lag"
+        },
+        {
+          "id": "S4_reach",
+          "t": [
+            5.51,
+            6.64
+          ],
+          "visible": "the hand travels on an arc to the 1956 knob"
+        },
+        {
+          "id": "S5_grip",
+          "t": [
+            6.64,
+            7.04
+          ],
+          "visible": "fingertip on the knob edge, held (camera pushed in)"
+        },
+        {
+          "id": "S6_turn",
+          "t": [
+            7.04,
+            7.68
+          ],
+          "visible": "the knob turns 75 degrees on \"turn me up\"; meter needle rises"
+        },
+        {
+          "id": "S7_flood",
+          "t": [
+            7.68,
+            8.45
+          ],
+          "visible": "the archive fills the canopy; the 1956 hand on the same knob answers in an inset"
+        },
+        {
+          "id": "S8_release",
+          "t": [
+            8.45,
+            9.35
+          ],
+          "visible": "she lets go; the hand lifts off and falls back; camera pulls out wide"
+        },
+        {
+          "id": "S9_after",
+          "t": [
+            9.35,
+            13.8
+          ],
+          "visible": "she reads on; the knob stays turned, the canopy stays lit, the needle keeps reading the archive"
+        }
+      ],
+      "words": [
+        {
+          "w": "diminished",
+          "t0": 659,
+          "t1": 659.32
+        },
+        {
+          "w": "their",
+          "t0": 659.32,
+          "t1": 659.68
+        },
+        {
+          "w": "glares.",
+          "t0": 659.68,
+          "t1": 660.26
+        },
+        {
+          "w": "And",
+          "t0": 661.1,
+          "t1": 661.46
+        },
+        {
+          "w": "I've",
+          "t0": 661.46,
+          "t1": 661.62
+        },
+        {
+          "w": "walked",
+          "t0": 661.62,
+          "t1": 661.82
+        },
+        {
+          "w": "a",
+          "t0": 661.82,
+          "t1": 662.06
+        },
+        {
+          "w": "thousand",
+          "t0": 662.06,
+          "t1": 662.48
+        },
+        {
+          "w": "light",
+          "t0": 662.48,
+          "t1": 662.82
+        },
+        {
+          "w": "years",
+          "t0": 662.82,
+          "t1": 663.3
+        },
+        {
+          "w": "across",
+          "t0": 663.3,
+          "t1": 663.96
+        },
+        {
+          "w": "the",
+          "t0": 663.96,
+          "t1": 664.32
+        },
+        {
+          "w": "greatest",
+          "t0": 664.32,
+          "t1": 664.58
+        },
+        {
+          "w": "divide",
+          "t0": 664.58,
+          "t1": 665.06
+        },
+        {
+          "w": "to",
+          "t0": 665.06,
+          "t1": 665.3
+        },
+        {
+          "w": "be",
+          "t0": 665.3,
+          "t1": 665.46
+        },
+        {
+          "w": "heard,",
+          "t0": 665.46,
+          "t1": 665.78
+        },
+        {
+          "w": "so",
+          "t0": 665.98,
+          "t1": 666.16
+        },
+        {
+          "w": "DJ,",
+          "t0": 666.16,
+          "t1": 667.16
+        },
+        {
+          "w": "please",
+          "t0": 667.64,
+          "t1": 668.04
+        },
+        {
+          "w": "turn",
+          "t0": 668.04,
+          "t1": 668.3
+        },
+        {
+          "w": "me",
+          "t0": 668.3,
+          "t1": 668.5
+        },
+        {
+          "w": "up.",
+          "t0": 668.5,
+          "t1": 668.68
+        },
+        {
+          "w": "So",
+          "t0": 669.5,
+          "t1": 669.68
+        },
+        {
+          "w": "I",
+          "t0": 669.68,
+          "t1": 669.78
+        },
+        {
+          "w": "can",
+          "t0": 669.78,
+          "t1": 669.92
+        },
+        {
+          "w": "speak",
+          "t0": 669.92,
+          "t1": 670.14
+        },
+        {
+          "w": "of",
+          "t0": 670.14,
+          "t1": 670.36
+        },
+        {
+          "w": "wedding",
+          "t0": 670.36,
+          "t1": 670.6
+        },
+        {
+          "w": "bands",
+          "t0": 670.6,
+          "t1": 671.1
+        },
+        {
+          "w": "diverging",
+          "t0": 671.1,
+          "t1": 671.82
+        },
+        {
+          "w": "across",
+          "t0": 671.82,
+          "t1": 672.16
+        },
+        {
+          "w": "abstract",
+          "t0": 672.16,
+          "t1": 672.86
+        },
+        {
+          "w": "skies",
+          "t0": 672.86,
+          "t1": 673.52
+        },
+        {
+          "w": "of",
+          "t0": 673.52,
+          "t1": 673.82
+        },
+        {
+          "w": "wounded",
+          "t0": 673.82,
+          "t1": 674.14
+        },
+        {
+          "w": "souls.",
+          "t0": 674.14,
+          "t1": 674.6
+        }
+      ],
+      "urls": {
+        "plate": "https://hartswf0.github.io/wygwyl-world-arch/shots/weave/set/plate.jpg",
+        "skyArchive": "https://hartswf0.github.io/wygwyl-world-arch/shots/weave/p04_hands/archive/sky1969.jpg",
+        "skyMask": "https://hartswf0.github.io/wygwyl-world-arch/shots/weave/set/canopy_mask.png",
+        "fgCutout": "https://hartswf0.github.io/wygwyl-world-arch/shots/weave/set/crowd_00.png",
+        "consolePart": "https://hartswf0.github.io/wygwyl-world-arch/shots/weave/assets/parts/console_base.png",
+        "shotPairId": "bdc7d6ec-1d4e-4f99-ad7e-9917394c542a_2"
+      }
+    }
+  ],
+  "shots": [
+    {
+      "id": "05a0677a-e3e8-49d1-a313-eb729b649cad_3",
+      "index": 0,
+      "title": "Hidden stairwell in narrow alley of Afro-Diasporic corridor",
+      "district": "naraka",
+      "bible_no": 45,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "Hidden stairwell in narrow alley of Afro-Diasporic corridor, folded staircase beneath stacked air conditioners, ancestral family crests inscribed on worn steps. Grimy synth-concrete, weathered metal, faint scent of traditional cooking, subtle murmur of ancestral voices. Smoke from burning offering blurs the crests, atmospheric sense of stepping into a deeper spirit-rooted reality. Panasonic GH6, Voigtländer 25mm f/0.95, ISO 1600, 1/15s, f/1.4, slow reverent pan. Focus on smoke blurring carved crests, memories leaking into present, profound connection. Emotional tone of warm belonging, timeless tradition, spiritual rootedness. --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 1151,
+        "focal_35mm_equiv": 28.5,
+        "fov_h_deg": 64.6,
+        "height_m": 1.54,
+        "pitch_deg": -3.7,
+        "roll_deg": 5.1,
+        "shot_class": "eye-level",
+        "physics_confidence": 0.54,
+        "ground_frac": 0.187,
+        "sky_frac": 0.001
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.33,
+          "max_depth_m": 5.54
+        },
+        "mg": {
+          "frac": 0.33,
+          "max_depth_m": 10.18
+        },
+        "bg": {
+          "frac": 0.341
+        }
+      },
+      "detections": [
+        {
+          "label": "stairs",
+          "score": 0.785,
+          "box": [
+            223.3,
+            528.5,
+            1310.6,
+            815
+          ],
+          "area_frac": 0.1789
+        },
+        {
+          "label": "air conditioner",
+          "score": 0.595,
+          "box": [
+            164.9,
+            207.2,
+            305.3,
+            427.8
+          ],
+          "area_frac": 0.0163
+        },
+        {
+          "label": "railing",
+          "score": 0.44,
+          "box": [
+            -1.6,
+            324.4,
+            393,
+            814.5
+          ],
+          "area_frac": 0.0709
+        },
+        {
+          "label": "window",
+          "score": 0.382,
+          "box": [
+            800.4,
+            337.4,
+            888.2,
+            574.9
+          ],
+          "area_frac": 0.0096
+        },
+        {
+          "label": "weathered metal",
+          "score": 0.367,
+          "box": [
+            4.4,
+            325.9,
+            395.3,
+            808
+          ],
+          "area_frac": 0.0709
+        },
+        {
+          "label": "wall",
+          "score": 0.362,
+          "box": [
+            878.9,
+            1.1,
+            1454.5,
+            811.5
+          ],
+          "area_frac": 0.2985
+        },
+        {
+          "label": "window",
+          "score": 0.361,
+          "box": [
+            1215.6,
+            343.3,
+            1320.4,
+            538.4
+          ],
+          "area_frac": 0.0079
+        },
+        {
+          "label": "sky",
+          "score": 0.326,
+          "box": [
+            475.9,
+            -0.9,
+            595.4,
+            319.1
+          ],
+          "area_frac": 0.0146
+        },
+        {
+          "label": "window",
+          "score": 0.315,
+          "box": [
+            482.6,
+            124.7,
+            520.9,
+            203.3
+          ],
+          "area_frac": 0.0017
+        },
+        {
+          "label": "window",
+          "score": 0.313,
+          "box": [
+            619.3,
+            16.1,
+            833.6,
+            157.6
+          ],
+          "area_frac": 0.0192
+        }
+      ],
+      "multiplane": {
+        "move": "push",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 0.06,
+        "z_ref_m": 10,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0.279,
+            "z_median_m": 5.09,
+            "parallax": 1.963,
+            "contents": [
+              "railing",
+              "wall",
+              "weathered metal",
+              "window",
+              "building"
+            ]
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.181,
+            "z_median_m": 4.69,
+            "parallax": 2.133,
+            "contents": [
+              "grimy synth - concrete",
+              "stairs",
+              "building"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0.002,
+            "z_median_m": 12.07,
+            "parallax": 0.828,
+            "contents": [
+              "street lamp",
+              "signboard"
+            ]
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.376,
+            "z_median_m": 10,
+            "parallax": 1,
+            "contents": [
+              "air conditioner",
+              "cloud",
+              "f 1",
+              "sign",
+              "string lights"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.147,
+            "z_median_m": 31.59,
+            "parallax": 0.317,
+            "contents": [
+              "wall",
+              "window",
+              "building"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.014,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "sky",
+              "building"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 241,
+        "value_merges": 0
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/05a0677a-e3e8-49d1-a313-eb729b649cad_3/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/05a0677a-e3e8-49d1-a313-eb729b649cad_3/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/05a0677a-e3e8-49d1-a313-eb729b649cad_3/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/05a0677a-e3e8-49d1-a313-eb729b649cad_3/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/05a0677a-e3e8-49d1-a313-eb729b649cad_3/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/05a0677a-e3e8-49d1-a313-eb729b649cad_3/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "c8158a76-90f8-41b7-81c6-076a892834c8_1",
+      "index": 1,
+      "title": "The Orange Catwalk",
+      "district": "haze",
+      "bible_no": 85,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "The Orange Catwalk, elevated glowing concrete path pulsing with ancestral energy, vibrant amber haze, slightly metallic ionized air. Subtle environmental changes from ancestral energy, long silhouettes walking the path. RED Komodo 6K still frame, Angénieux EZ zoom telephoto, ISO 5000, f/3.5, 1/25s, high static vantage. Focus on subtle ecological and spiritual impact, historical contamination mapped into the ground. Emotional tone of weighty history, quiet defiance, deep ancestral resonance. --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 1905,
+        "focal_35mm_equiv": 47.1,
+        "fov_h_deg": 41.8,
+        "height_m": 1.62,
+        "pitch_deg": -2.7,
+        "roll_deg": 0.3,
+        "shot_class": "eye-level",
+        "physics_confidence": 0.8,
+        "ground_frac": 0.313,
+        "sky_frac": 0.355
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.213,
+          "max_depth_m": 7.97
+        },
+        "mg": {
+          "frac": 0.213,
+          "max_depth_m": 16.34
+        },
+        "bg": {
+          "frac": 0.574
+        }
+      },
+      "detections": [
+        {
+          "label": "floor",
+          "score": 0.536,
+          "box": [
+            5.4,
+            344.6,
+            1006.6,
+            813
+          ],
+          "area_frac": 0.2324
+        },
+        {
+          "label": "concrete catwalk",
+          "score": 0.448,
+          "box": [
+            9.9,
+            342.6,
+            1000.7,
+            808.7
+          ],
+          "area_frac": 0.2323
+        },
+        {
+          "label": "sky",
+          "score": 0.445,
+          "box": [
+            0.7,
+            0.5,
+            1455,
+            441.8
+          ],
+          "area_frac": 0.3783
+        },
+        {
+          "label": "street",
+          "score": 0.443,
+          "box": [
+            202.4,
+            259.7,
+            407.1,
+            392.1
+          ],
+          "area_frac": 0.0132
+        },
+        {
+          "label": "person",
+          "score": 0.439,
+          "box": [
+            701.8,
+            316.7,
+            735.2,
+            403.9
+          ],
+          "area_frac": 0.0014
+        },
+        {
+          "label": "person",
+          "score": 0.418,
+          "box": [
+            657.4,
+            318.7,
+            692.4,
+            398.3
+          ],
+          "area_frac": 0.0013
+        },
+        {
+          "label": "street",
+          "score": 0.412,
+          "box": [
+            -1.1,
+            342.9,
+            1006.5,
+            812
+          ],
+          "area_frac": 0.2325
+        },
+        {
+          "label": "railing",
+          "score": 0.391,
+          "box": [
+            724.3,
+            330,
+            1456.6,
+            815.2
+          ],
+          "area_frac": 0.1807
+        },
+        {
+          "label": "railing",
+          "score": 0.375,
+          "box": [
+            0.9,
+            328.1,
+            614.6,
+            702.2
+          ],
+          "area_frac": 0.0863
+        },
+        {
+          "label": "pillar",
+          "score": 0.348,
+          "box": [
+            86.6,
+            47.2,
+            151.6,
+            426.4
+          ],
+          "area_frac": 0.0123
+        }
+      ],
+      "multiplane": {
+        "move": "push",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 0.06,
+        "z_ref_m": 40.44,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0.265,
+            "z_median_m": 8.62,
+            "parallax": 4.688,
+            "contents": [
+              "pillar",
+              "railing",
+              "building",
+              "tree",
+              "rail"
+            ]
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.259,
+            "z_median_m": 9.07,
+            "parallax": 4.458,
+            "contents": [
+              "concrete catwalk",
+              "floor",
+              "street",
+              "building",
+              "tree"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0.003,
+            "z_median_m": 40.44,
+            "parallax": 1,
+            "contents": [
+              "deep ancestral resonance",
+              "person",
+              "sidewalk",
+              "rail"
+            ]
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0.002,
+            "z_median_m": 60.19,
+            "parallax": 0.671,
+            "contents": [
+              "person",
+              "street lamp",
+              "tree",
+              "sidewalk"
+            ]
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.044,
+            "z_median_m": 40.84,
+            "parallax": 0.99,
+            "contents": [
+              "pillar",
+              "building",
+              "tree",
+              "sidewalk",
+              "rail"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.042,
+            "z_median_m": 63.56,
+            "parallax": 0.636,
+            "contents": [
+              "pillar",
+              "street",
+              "building",
+              "tree",
+              "sidewalk"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.385,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "sky",
+              "building",
+              "tree"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 475,
+        "value_merges": 3
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/c8158a76-90f8-41b7-81c6-076a892834c8_1/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/c8158a76-90f8-41b7-81c6-076a892834c8_1/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/c8158a76-90f8-41b7-81c6-076a892834c8_1/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/c8158a76-90f8-41b7-81c6-076a892834c8_1/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/c8158a76-90f8-41b7-81c6-076a892834c8_1/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/c8158a76-90f8-41b7-81c6-076a892834c8_1/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "bdc7d6ec-1d4e-4f99-ad7e-9917394c542a_2",
+      "index": 2,
+      "title": "Afrofuturist public square",
+      "district": "commons",
+      "bible_no": 16,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "Afrofuturist public square, Cortex Commons built atop a partially submerged satellite dish, smooth synth-concrete, embedded fiber-optic pathways, vibrant shifting projected light, ambient sound of human voices shifting in dialect, cultural function as central gathering place for collective consciousness, emotional undercurrent of unity and subtle monitoring, synth-city realist perspective, Sony A7S III Zeiss Batis 35mm, focusing on children running barefoot stained with projected light, emotional undercurrent of future coded by play and raw reality --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 736,
+        "focal_35mm_equiv": 18.2,
+        "fov_h_deg": 89.4,
+        "height_m": 0.43,
+        "pitch_deg": 14.4,
+        "roll_deg": -3.5,
+        "shot_class": "ground / worm's-eye",
+        "physics_confidence": 0.83,
+        "ground_frac": 0.272,
+        "sky_frac": 0.382
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.204,
+          "max_depth_m": 3.33
+        },
+        "mg": {
+          "frac": 0.204,
+          "max_depth_m": 13.15
+        },
+        "bg": {
+          "frac": 0.592
+        }
+      },
+      "detections": [
+        {
+          "label": "sky",
+          "score": 0.561,
+          "box": [
+            0,
+            3,
+            1455.3,
+            519.2
+          ],
+          "area_frac": 0.34
+        },
+        {
+          "label": "person",
+          "score": 0.512,
+          "box": [
+            386.2,
+            248.9,
+            618.1,
+            735.8
+          ],
+          "area_frac": 0.0368
+        },
+        {
+          "label": "person",
+          "score": 0.509,
+          "box": [
+            1224.3,
+            420.5,
+            1306.9,
+            609.9
+          ],
+          "area_frac": 0.0054
+        },
+        {
+          "label": "person",
+          "score": 0.508,
+          "box": [
+            1096.8,
+            403.4,
+            1176.3,
+            635.8
+          ],
+          "area_frac": 0.0066
+        },
+        {
+          "label": "person",
+          "score": 0.5,
+          "box": [
+            809.6,
+            353.9,
+            947.1,
+            648.5
+          ],
+          "area_frac": 0.0136
+        },
+        {
+          "label": "street lamp",
+          "score": 0.496,
+          "box": [
+            3.1,
+            236.9,
+            182,
+            587.9
+          ],
+          "area_frac": 0.0312
+        },
+        {
+          "label": "person",
+          "score": 0.496,
+          "box": [
+            641.3,
+            294.9,
+            823.6,
+            677.5
+          ],
+          "area_frac": 0.0225
+        },
+        {
+          "label": "floor",
+          "score": 0.495,
+          "box": [
+            0.7,
+            580,
+            1454.2,
+            811.3
+          ],
+          "area_frac": 0.2122
+        },
+        {
+          "label": "person",
+          "score": 0.495,
+          "box": [
+            155,
+            352.5,
+            407.6,
+            748.8
+          ],
+          "area_frac": 0.0253
+        },
+        {
+          "label": "person",
+          "score": 0.454,
+          "box": [
+            1016.7,
+            483.2,
+            1050.5,
+            600.6
+          ],
+          "area_frac": 0.0014
+        }
+      ],
+      "multiplane": {
+        "move": "truck",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 50.96000000000001,
+        "z_ref_m": 3.11,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.115,
+            "z_median_m": 1.91,
+            "parallax": 1.627,
+            "contents": [
+              "- optic pathways",
+              "floor",
+              "street",
+              "sidewalk"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0.084,
+            "z_median_m": 3.11,
+            "parallax": 1,
+            "contents": [
+              "person"
+            ]
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0.071,
+            "z_median_m": 20.86,
+            "parallax": 0.281,
+            "contents": [
+              "person",
+              "street lamp",
+              "building",
+              "tree",
+              "sidewalk"
+            ]
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.235,
+            "z_median_m": 8.39,
+            "parallax": 0.37,
+            "contents": [
+              "- optic pathways",
+              "floor",
+              "person",
+              "satellite dish",
+              "smooth synth-concrete"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.112,
+            "z_median_m": 38.75,
+            "parallax": 0.08,
+            "contents": [
+              "street lamp",
+              "wall",
+              "building",
+              "tree",
+              "grass"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.382,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "cloud",
+              "sky"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 697,
+        "value_merges": 1
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/bdc7d6ec-1d4e-4f99-ad7e-9917394c542a_2/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/bdc7d6ec-1d4e-4f99-ad7e-9917394c542a_2/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/bdc7d6ec-1d4e-4f99-ad7e-9917394c542a_2/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/bdc7d6ec-1d4e-4f99-ad7e-9917394c542a_2/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/bdc7d6ec-1d4e-4f99-ad7e-9917394c542a_2/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/bdc7d6ec-1d4e-4f99-ad7e-9917394c542a_2/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "646ab0f0-8950-495f-9f61-f2db42db81ce_0",
+      "index": 3,
+      "title": "Ankhu Spires",
+      "district": "ankhu",
+      "bible_no": 28,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "Ankhu Spires, high-altitude open-air platforms connecting spires, cultivated bioluminescent flora, mist-generating emitters, soft rustle of leaves; style inspired by Digital Mystic Urbanist Eliah Rhose, Hasselblad X2D with 65mm f/2.8, mist-diffusing filter, capturing subtle energetic pulses from plants, flow of ancestral data and healing vibrations; emotional undercurrent of peace, connection, communal breathing space, bio-data collection, blending digital aura with life --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 2298,
+        "focal_35mm_equiv": 56.8,
+        "fov_h_deg": 35.2,
+        "height_m": 1.32,
+        "pitch_deg": -6.7,
+        "roll_deg": 52.7,
+        "shot_class": "eye-level",
+        "physics_confidence": 0.14,
+        "ground_frac": 0.425,
+        "sky_frac": 0.187
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.268,
+          "max_depth_m": 7.24
+        },
+        "mg": {
+          "frac": 0.269,
+          "max_depth_m": 11.8
+        },
+        "bg": {
+          "frac": 0.463
+        }
+      },
+      "detections": [
+        {
+          "label": "street lamp",
+          "score": 0.508,
+          "box": [
+            1056.7,
+            432.4,
+            1154,
+            516.5
+          ],
+          "area_frac": 0.0032
+        },
+        {
+          "label": "street lamp",
+          "score": 0.472,
+          "box": [
+            1243.9,
+            517.3,
+            1455.2,
+            814.2
+          ],
+          "area_frac": 0.0355
+        },
+        {
+          "label": "street lamp",
+          "score": 0.467,
+          "box": [
+            -1.4,
+            217.2,
+            477.3,
+            572
+          ],
+          "area_frac": 0.0658
+        },
+        {
+          "label": "street lamp",
+          "score": 0.459,
+          "box": [
+            788,
+            4.6,
+            877.9,
+            84.9
+          ],
+          "area_frac": 0.0033
+        },
+        {
+          "label": "railing",
+          "score": 0.436,
+          "box": [
+            2.2,
+            477,
+            777.7,
+            603
+          ],
+          "area_frac": 0.0534
+        },
+        {
+          "label": "street lamp",
+          "score": 0.42,
+          "box": [
+            716.7,
+            374.9,
+            880.9,
+            503.4
+          ],
+          "area_frac": 0.01
+        },
+        {
+          "label": "sky",
+          "score": 0.415,
+          "box": [
+            675.2,
+            3.4,
+            1463.2,
+            573.5
+          ],
+          "area_frac": 0.1707
+        },
+        {
+          "label": "street lamp",
+          "score": 0.382,
+          "box": [
+            932.7,
+            535.5,
+            1028.4,
+            598.9
+          ],
+          "area_frac": 0.0035
+        },
+        {
+          "label": "ankhu spires",
+          "score": 0.369,
+          "box": [
+            904.3,
+            85.7,
+            1017,
+            561.8
+          ],
+          "area_frac": 0.0208
+        },
+        {
+          "label": "cultivated bioluminescent flora",
+          "score": 0.365,
+          "box": [
+            2.3,
+            216.7,
+            475.1,
+            572.1
+          ],
+          "area_frac": 0.0658
+        }
+      ],
+      "multiplane": {
+        "move": "push",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 0.06,
+        "z_ref_m": 10.02,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0.146,
+            "z_median_m": 6.17,
+            "parallax": 1.624,
+            "contents": [
+              "wall",
+              "building",
+              "tree",
+              "mountain"
+            ]
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.214,
+            "z_median_m": 5.66,
+            "parallax": 1.771,
+            "contents": [
+              "cultivated bioluminescent flora",
+              "platform",
+              "railing",
+              "street lamp",
+              "window"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0.081,
+            "z_median_m": 10.02,
+            "parallax": 1,
+            "contents": [
+              "street lamp",
+              "wall",
+              "building",
+              "tree",
+              "plant"
+            ]
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0.033,
+            "z_median_m": 19.48,
+            "parallax": 0.609,
+            "contents": [
+              "street lamp",
+              "building",
+              "tree",
+              "water",
+              "bannister"
+            ]
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.193,
+            "z_median_m": 11.67,
+            "parallax": 0.859,
+            "contents": [
+              "street lamp",
+              "water",
+              "wall",
+              "building",
+              "tree"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.145,
+            "z_median_m": 24.78,
+            "parallax": 0.404,
+            "contents": [
+              "ankhu spires",
+              "elevator shaft",
+              "building",
+              "floor",
+              "tree"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.188,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "sky"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 721,
+        "value_merges": 2
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/646ab0f0-8950-495f-9f61-f2db42db81ce_0/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/646ab0f0-8950-495f-9f61-f2db42db81ce_0/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/646ab0f0-8950-495f-9f61-f2db42db81ce_0/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/646ab0f0-8950-495f-9f61-f2db42db81ce_0/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/646ab0f0-8950-495f-9f61-f2db42db81ce_0/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/646ab0f0-8950-495f-9f61-f2db42db81ce_0/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "bf0a66ea-3b8d-4c15-9513-a1b874283e73_0",
+      "index": 4,
+      "title": "abstract neon reflections in an alleyway",
+      "district": "arcade",
+      "bible_no": 6,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "abstract neon reflections in an alleyway, chrome door reflecting only your eyes no matter the distance, ritual of reciting a dream you never had but wish you did, symbolism of emotional subconscious and liminal realm, portal to AR-generated ghost city built from lost dreams and alternate timelines --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 1453,
+        "focal_35mm_equiv": 35.9,
+        "fov_h_deg": 53.2,
+        "height_m": 0.7,
+        "pitch_deg": -1.5,
+        "roll_deg": -0.4,
+        "shot_class": "eye-level",
+        "physics_confidence": 0.59,
+        "ground_frac": 0.38,
+        "sky_frac": 0.18
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.331,
+          "max_depth_m": 5.38
+        },
+        "mg": {
+          "frac": 0.329,
+          "max_depth_m": 7.28
+        },
+        "bg": {
+          "frac": 0.34
+        }
+      },
+      "detections": [
+        {
+          "label": "window",
+          "score": 0.459,
+          "box": [
+            1111.7,
+            124.8,
+            1173.9,
+            419.7
+          ],
+          "area_frac": 0.012
+        },
+        {
+          "label": "chrome door",
+          "score": 0.442,
+          "box": [
+            627.6,
+            190.8,
+            851,
+            508.6
+          ],
+          "area_frac": 0.0504
+        },
+        {
+          "label": "window",
+          "score": 0.419,
+          "box": [
+            305.3,
+            114.1,
+            365.1,
+            419
+          ],
+          "area_frac": 0.0114
+        },
+        {
+          "label": "window",
+          "score": 0.34,
+          "box": [
+            1002,
+            211.9,
+            1030.7,
+            409.7
+          ],
+          "area_frac": 0.004
+        },
+        {
+          "label": "floor",
+          "score": 0.336,
+          "box": [
+            1.1,
+            422,
+            1453.5,
+            812.7
+          ],
+          "area_frac": 0.3506
+        },
+        {
+          "label": "window",
+          "score": 0.318,
+          "box": [
+            450.2,
+            218.1,
+            477,
+            407.6
+          ],
+          "area_frac": 0.0039
+        },
+        {
+          "label": "street lamp",
+          "score": 0.301,
+          "box": [
+            1.2,
+            616,
+            1454.2,
+            813.1
+          ],
+          "area_frac": 0.1343
+        },
+        {
+          "label": "window",
+          "score": 0.293,
+          "box": [
+            965.2,
+            252,
+            995.9,
+            412.6
+          ],
+          "area_frac": 0.0031
+        },
+        {
+          "label": "window",
+          "score": 0.289,
+          "box": [
+            424.8,
+            182.1,
+            487.1,
+            423.5
+          ],
+          "area_frac": 0.0097
+        },
+        {
+          "label": "window",
+          "score": 0.265,
+          "box": [
+            1001.4,
+            175.6,
+            1055.4,
+            416.9
+          ],
+          "area_frac": 0.009
+        }
+      ],
+      "multiplane": {
+        "move": "push",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 0.06,
+        "z_ref_m": 2.88,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.013,
+            "z_median_m": 2.37,
+            "parallax": 1.218,
+            "contents": [
+              "road"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0.134,
+            "z_median_m": 2.88,
+            "parallax": 1,
+            "contents": [
+              "street lamp",
+              "road"
+            ]
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.522,
+            "z_median_m": 5.59,
+            "parallax": 0.516,
+            "contents": [
+              "floor",
+              "window",
+              "building",
+              "road",
+              "sidewalk"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.331,
+            "z_median_m": 9.58,
+            "parallax": 0.301,
+            "contents": [
+              "chrome door",
+              "storefront",
+              "street lamp",
+              "window",
+              "building"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 84,
+        "value_merges": 1
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/bf0a66ea-3b8d-4c15-9513-a1b874283e73_0/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/bf0a66ea-3b8d-4c15-9513-a1b874283e73_0/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/bf0a66ea-3b8d-4c15-9513-a1b874283e73_0/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/bf0a66ea-3b8d-4c15-9513-a1b874283e73_0/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/bf0a66ea-3b8d-4c15-9513-a1b874283e73_0/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/bf0a66ea-3b8d-4c15-9513-a1b874283e73_0/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "018da7e9-231c-44d0-87f5-b0b0cb7b61cb_0",
+      "index": 5,
+      "title": "The Shrouded Arcade (Abandoned Consumer District)",
+      "district": "arcade",
+      "bible_no": 91,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "The Shrouded Arcade (Abandoned Consumer District), nostalgic and glitching atmosphere, escalators looping endlessly with no passengers, broken vending kiosks glowing with out-of-date ads, ambient speaker voice glitching between sale announcements and poetry, shot by Post-Consumer Semiotician perspective, ARRI Alexa 35, 24mm prime lens, f/2.8, tracking shot freeze-frame, symbols rotting backwards, brand glyphs consumed themselves, promises echoing off glass, ghostly atmosphere --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 1692,
+        "focal_35mm_equiv": 41.8,
+        "fov_h_deg": 46.6,
+        "height_m": 1.34,
+        "pitch_deg": 1.6,
+        "roll_deg": -0.3,
+        "shot_class": "eye-level",
+        "physics_confidence": 0.52,
+        "ground_frac": 0.323,
+        "sky_frac": 0.016
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.325,
+          "max_depth_m": 12.55
+        },
+        "mg": {
+          "frac": 0.325,
+          "max_depth_m": 20.83
+        },
+        "bg": {
+          "frac": 0.351
+        }
+      },
+      "detections": [
+        {
+          "label": "floor",
+          "score": 0.534,
+          "box": [
+            0.2,
+            512.7,
+            1455,
+            814.7
+          ],
+          "area_frac": 0.2655
+        },
+        {
+          "label": "stairs",
+          "score": 0.488,
+          "box": [
+            778,
+            160.8,
+            1034.2,
+            642.3
+          ],
+          "area_frac": 0.0269
+        },
+        {
+          "label": "escalators looping endlessly",
+          "score": 0.483,
+          "box": [
+            447.4,
+            115.7,
+            1048.6,
+            668.1
+          ],
+          "area_frac": 0.171
+        },
+        {
+          "label": "broken vending kiosks glowing",
+          "score": 0.482,
+          "box": [
+            1218.7,
+            390.8,
+            1375.5,
+            624.8
+          ],
+          "area_frac": 0.0244
+        },
+        {
+          "label": "escalator",
+          "score": 0.397,
+          "box": [
+            777.6,
+            153.9,
+            1037.5,
+            642.5
+          ],
+          "area_frac": 0.0269
+        },
+        {
+          "label": "stairs",
+          "score": 0.386,
+          "box": [
+            602.9,
+            173.6,
+            895.2,
+            661.2
+          ],
+          "area_frac": 0.0187
+        },
+        {
+          "label": "escalator",
+          "score": 0.378,
+          "box": [
+            603.6,
+            168.3,
+            907.7,
+            655.1
+          ],
+          "area_frac": 0.0218
+        },
+        {
+          "label": "window",
+          "score": 0.36,
+          "box": [
+            1078.9,
+            126.1,
+            1158.4,
+            182.1
+          ],
+          "area_frac": 0.0033
+        },
+        {
+          "label": "brand glyphs consumed themselves",
+          "score": 0.36,
+          "box": [
+            1289.2,
+            427.9,
+            1367.6,
+            518.7
+          ],
+          "area_frac": 0.0032
+        },
+        {
+          "label": "arri alexa 35",
+          "score": 0.357,
+          "box": [
+            47.8,
+            276.2,
+            143,
+            355.2
+          ],
+          "area_frac": 0.0025
+        }
+      ],
+      "multiplane": {
+        "move": "push",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 0.06,
+        "z_ref_m": 13.83,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0.065,
+            "z_median_m": 10.99,
+            "parallax": 1.258,
+            "contents": [
+              "ceiling"
+            ]
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.223,
+            "z_median_m": 8.44,
+            "parallax": 1.639,
+            "contents": [
+              "floor",
+              "escalator"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0.024,
+            "z_median_m": 13.83,
+            "parallax": 1,
+            "contents": [
+              "brand glyphs consumed themselves",
+              "broken vending kiosks glowing",
+              "storefront",
+              "wall",
+              "floor"
+            ]
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0.013,
+            "z_median_m": 20.56,
+            "parallax": 0.531,
+            "contents": [
+              "arri alexa 35",
+              "neon sign",
+              "out - of - date ads",
+              "wall",
+              "signboard"
+            ]
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.413,
+            "z_median_m": 17.11,
+            "parallax": 0.808,
+            "contents": [
+              "chrome door",
+              "escalator",
+              "escalators looping endlessly",
+              "stairs",
+              "storefront"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.245,
+            "z_median_m": 31.14,
+            "parallax": 0.444,
+            "contents": [
+              "chrome door",
+              "window",
+              "wall",
+              "floor",
+              "ceiling"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.016,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "sky"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 210,
+        "value_merges": 0
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/018da7e9-231c-44d0-87f5-b0b0cb7b61cb_0/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/018da7e9-231c-44d0-87f5-b0b0cb7b61cb_0/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/018da7e9-231c-44d0-87f5-b0b0cb7b61cb_0/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/018da7e9-231c-44d0-87f5-b0b0cb7b61cb_0/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/018da7e9-231c-44d0-87f5-b0b0cb7b61cb_0/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/018da7e9-231c-44d0-87f5-b0b0cb7b61cb_0/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "3603f621-18f4-4711-ab93-946cab123329_0",
+      "index": 6,
+      "title": "indigo hive spires with cold grandeur and signal lights in the a",
+      "district": "hive",
+      "bible_no": 46,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "indigo hive spires with cold grandeur and signal lights in the abyss, night beacon commons installed at the spire bases, low warm communal fire-simulation LEDs, analog instruments people can play that trigger colored beacons up the towers, personal action causing skyline reply, memory hook: we hit the drum and the top of Tower 9 flashed our color, atmospheric, grand and towering, fusion of dark futuristic architecture with interactive communal lights, cosmic scale with human touch --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 767,
+        "focal_35mm_equiv": 19,
+        "fov_h_deg": 87,
+        "height_m": 1.06,
+        "pitch_deg": 11.8,
+        "roll_deg": -0.3,
+        "shot_class": "eye-level",
+        "physics_confidence": 0.55,
+        "ground_frac": 0.174,
+        "sky_frac": 0.381
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.205,
+          "max_depth_m": 5.4
+        },
+        "mg": {
+          "frac": 0.204,
+          "max_depth_m": 8.05
+        },
+        "bg": {
+          "frac": 0.591
+        }
+      },
+      "detections": [
+        {
+          "label": "sky",
+          "score": 0.448,
+          "box": [
+            -0.1,
+            -2.3,
+            1455.7,
+            595.1
+          ],
+          "area_frac": 0.3388
+        },
+        {
+          "label": "floor",
+          "score": 0.407,
+          "box": [
+            1.2,
+            597.2,
+            1453.5,
+            814.5
+          ],
+          "area_frac": 0.1363
+        },
+        {
+          "label": "lattice tower",
+          "score": 0.394,
+          "box": [
+            419.9,
+            139.4,
+            534.1,
+            607.6
+          ],
+          "area_frac": 0.0296
+        },
+        {
+          "label": "lattice tower",
+          "score": 0.328,
+          "box": [
+            664.8,
+            196.6,
+            835.5,
+            600.8
+          ],
+          "area_frac": 0.0188
+        },
+        {
+          "label": "lattice tower",
+          "score": 0.311,
+          "box": [
+            711.7,
+            200.7,
+            792.9,
+            585
+          ],
+          "area_frac": 0.0177
+        },
+        {
+          "label": "person",
+          "score": 0.296,
+          "box": [
+            631.6,
+            569.5,
+            662.1,
+            611.5
+          ],
+          "area_frac": 0.0006
+        },
+        {
+          "label": "lattice tower",
+          "score": 0.287,
+          "box": [
+            1035.3,
+            3.5,
+            1348,
+            654.7
+          ],
+          "area_frac": 0.1242
+        },
+        {
+          "label": "lattice tower",
+          "score": 0.286,
+          "box": [
+            6.3,
+            6.4,
+            356.1,
+            665.4
+          ],
+          "area_frac": 0.1484
+        }
+      ],
+      "multiplane": {
+        "move": "tilt_up",
+        "why": "the camera follows the pulse up the tower — the movement reveals that the sky is the answer",
+        "amplitude": 40.800000000000004,
+        "z_ref_m": 20.12,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0.3,
+            "z_median_m": 5.9,
+            "parallax": 3.41,
+            "contents": [
+              "lattice tower",
+              "building",
+              "table",
+              "hill",
+              "tower"
+            ]
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.205,
+            "z_median_m": 4.82,
+            "parallax": 4.178,
+            "contents": [
+              "floor",
+              "building",
+              "earth",
+              "rail",
+              "box"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0.047,
+            "z_median_m": 20.12,
+            "parallax": 1,
+            "contents": [
+              "lattice tower",
+              "tower"
+            ]
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0.001,
+            "z_median_m": 16.64,
+            "parallax": 1.209,
+            "contents": [
+              "person",
+              "earth"
+            ]
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.058,
+            "z_median_m": 26.59,
+            "parallax": 0.757,
+            "contents": [
+              "building",
+              "person",
+              "earth",
+              "mountain",
+              "rail"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.006,
+            "z_median_m": 10000,
+            "parallax": 0.02,
+            "contents": [
+              "mountain",
+              "rail"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.382,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "sky"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 463,
+        "value_merges": 2
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/3603f621-18f4-4711-ab93-946cab123329_0/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/3603f621-18f4-4711-ab93-946cab123329_0/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/3603f621-18f4-4711-ab93-946cab123329_0/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/3603f621-18f4-4711-ab93-946cab123329_0/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/3603f621-18f4-4711-ab93-946cab123329_0/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/3603f621-18f4-4711-ab93-946cab123329_0/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "0240b488-d006-4713-9207-ed6548dfa7b7_1",
+      "index": 7,
+      "title": "PROMPT\": \"16:9 - high-altitude wide shot of indigo gothic megaci",
+      "district": "hive",
+      "bible_no": 70,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "PROMPT\": \"16:9 - high-altitude wide shot of indigo gothic megacity, monolithic spire forest piercing midnight sky, scattered crimson beacon lights, layered hive density below, cool ambient glow, silent cosmic scale, subtle drone-glide perspective, gothic futurism meets dark fantasy --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 655,
+        "focal_35mm_equiv": 16.2,
+        "fov_h_deg": 96,
+        "height_m": 5.45,
+        "pitch_deg": -8.4,
+        "roll_deg": -0.8,
+        "shot_class": "elevated",
+        "physics_confidence": 0.3,
+        "ground_frac": 0.536,
+        "sky_frac": 0.423
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.191,
+          "max_depth_m": 10.55
+        },
+        "mg": {
+          "frac": 0.191,
+          "max_depth_m": 18.05
+        },
+        "bg": {
+          "frac": 0.619
+        }
+      },
+      "detections": [
+        {
+          "label": "skyscraper",
+          "score": 0.537,
+          "box": [
+            554.5,
+            70.7,
+            682.1,
+            545.2
+          ],
+          "area_frac": 0.0164
+        },
+        {
+          "label": "sky",
+          "score": 0.515,
+          "box": [
+            0.2,
+            1.2,
+            1455.9,
+            414.2
+          ],
+          "area_frac": 0.4005
+        },
+        {
+          "label": "spire",
+          "score": 0.396,
+          "box": [
+            558.9,
+            71.5,
+            680.7,
+            538.5
+          ],
+          "area_frac": 0.0162
+        },
+        {
+          "label": "street lamp",
+          "score": 0.375,
+          "box": [
+            724.9,
+            372.3,
+            787.3,
+            596.4
+          ],
+          "area_frac": 0.0058
+        },
+        {
+          "label": "skyscraper",
+          "score": 0.37,
+          "box": [
+            723.4,
+            372.2,
+            787,
+            594.4
+          ],
+          "area_frac": 0.0057
+        },
+        {
+          "label": "spire",
+          "score": 0.36,
+          "box": [
+            855.7,
+            296.8,
+            898.9,
+            448.2
+          ],
+          "area_frac": 0.0018
+        },
+        {
+          "label": "spire",
+          "score": 0.358,
+          "box": [
+            595.7,
+            74.3,
+            643.1,
+            362.8
+          ],
+          "area_frac": 0.0036
+        },
+        {
+          "label": "skyscraper",
+          "score": 0.356,
+          "box": [
+            1189.9,
+            175.5,
+            1334.3,
+            472.5
+          ],
+          "area_frac": 0.0109
+        },
+        {
+          "label": "spire",
+          "score": 0.35,
+          "box": [
+            722.9,
+            370.9,
+            788.1,
+            595.5
+          ],
+          "area_frac": 0.0058
+        },
+        {
+          "label": "street lamp",
+          "score": 0.344,
+          "box": [
+            855.8,
+            299.1,
+            898.3,
+            449.9
+          ],
+          "area_frac": 0.0018
+        }
+      ],
+      "multiplane": {
+        "move": "push",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 0.06,
+        "z_ref_m": 12.68,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.198,
+            "z_median_m": 8.47,
+            "parallax": 1.497,
+            "contents": [
+              "skyscraper",
+              "spire",
+              "building",
+              "earth"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0.006,
+            "z_median_m": 12.68,
+            "parallax": 1,
+            "contents": [
+              "skyscraper",
+              "spire",
+              "street lamp",
+              "earth"
+            ]
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0.015,
+            "z_median_m": 25.34,
+            "parallax": 0.497,
+            "contents": [
+              "skyscraper",
+              "spire",
+              "street lamp",
+              "tree",
+              "earth"
+            ]
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.224,
+            "z_median_m": 14.45,
+            "parallax": 0.878,
+            "contents": [
+              "scattered crimson beacon lights",
+              "skyscraper",
+              "spire",
+              "wall",
+              "building"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.135,
+            "z_median_m": 31.09,
+            "parallax": 0.408,
+            "contents": [
+              "spire",
+              "street lamp",
+              "earth",
+              "water"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.423,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "cloud",
+              "sky",
+              "spire"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 304,
+        "value_merges": 3
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/0240b488-d006-4713-9207-ed6548dfa7b7_1/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/0240b488-d006-4713-9207-ed6548dfa7b7_1/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/0240b488-d006-4713-9207-ed6548dfa7b7_1/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/0240b488-d006-4713-9207-ed6548dfa7b7_1/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/0240b488-d006-4713-9207-ed6548dfa7b7_1/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/0240b488-d006-4713-9207-ed6548dfa7b7_1/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "62b9740c-d0be-4b4a-a311-d653a2580907_1",
+      "index": 8,
+      "title": "underpass shadow-pool ritual in Naraka Market",
+      "district": "naraka",
+      "bible_no": 92,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "underpass shadow-pool ritual in Naraka Market, water dripping in rhythm like drums from stacked containers, threshold mood, mirrorfish shimmering in concrete crack, symbol of changing luck, underworld broker perspective, iPhone NightCam, emotional undercurrent of hidden opportunities and urban myth, ambient sound of quiet water movements and faint echoes --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 998,
+        "focal_35mm_equiv": 24.7,
+        "fov_h_deg": 72.2,
+        "height_m": 0.32,
+        "pitch_deg": 3.8,
+        "roll_deg": 0.1,
+        "shot_class": "ground / worm's-eye",
+        "physics_confidence": 0.98,
+        "ground_frac": 0.36,
+        "sky_frac": 0.002
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.33,
+          "max_depth_m": 3.3
+        },
+        "mg": {
+          "frac": 0.329,
+          "max_depth_m": 6.22
+        },
+        "bg": {
+          "frac": 0.341
+        }
+      },
+      "detections": [
+        {
+          "label": "water",
+          "score": 0.605,
+          "box": [
+            0.7,
+            462.8,
+            1454.2,
+            815
+          ],
+          "area_frac": 0.3455
+        },
+        {
+          "label": "person",
+          "score": 0.377,
+          "box": [
+            670.8,
+            407.3,
+            718.2,
+            492.5
+          ],
+          "area_frac": 0.0016
+        },
+        {
+          "label": "wall",
+          "score": 0.335,
+          "box": [
+            0.1,
+            0.8,
+            1455.4,
+            573.7
+          ],
+          "area_frac": 0.5561
+        },
+        {
+          "label": "wall",
+          "score": 0.291,
+          "box": [
+            1030.7,
+            -1.6,
+            1452.4,
+            590.4
+          ],
+          "area_frac": 0.1746
+        },
+        {
+          "label": "shipping container",
+          "score": 0.288,
+          "box": [
+            306.7,
+            94.6,
+            470,
+            476.5
+          ],
+          "area_frac": 0.0438
+        },
+        {
+          "label": "window",
+          "score": 0.281,
+          "box": [
+            624.6,
+            282.8,
+            658.9,
+            351.4
+          ],
+          "area_frac": 0.0012
+        },
+        {
+          "label": "window",
+          "score": 0.269,
+          "box": [
+            625.8,
+            344.5,
+            654.6,
+            410.7
+          ],
+          "area_frac": 0.0013
+        },
+        {
+          "label": "shop stall",
+          "score": 0.269,
+          "box": [
+            534.3,
+            120.4,
+            1055.9,
+            497.8
+          ],
+          "area_frac": 0.1192
+        },
+        {
+          "label": "person",
+          "score": 0.266,
+          "box": [
+            834.9,
+            387.7,
+            882.7,
+            470.1
+          ],
+          "area_frac": 0.0017
+        },
+        {
+          "label": "street lamp",
+          "score": 0.254,
+          "box": [
+            -0.1,
+            462.8,
+            1454.5,
+            813.4
+          ],
+          "area_frac": 0.3456
+        }
+      ],
+      "multiplane": {
+        "move": "push",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 0.06,
+        "z_ref_m": 21.76,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0.571,
+            "z_median_m": 6,
+            "parallax": 3.626,
+            "contents": [
+              "shipping container",
+              "shop stall",
+              "wall",
+              "window",
+              "ceiling"
+            ]
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.357,
+            "z_median_m": 1.64,
+            "parallax": 8,
+            "contents": [
+              "street lamp",
+              "water",
+              "wall"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0.002,
+            "z_median_m": 21.76,
+            "parallax": 1,
+            "contents": [
+              "person",
+              "wall",
+              "water",
+              "stairs"
+            ]
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.037,
+            "z_median_m": 21.8,
+            "parallax": 0.998,
+            "contents": [
+              "wall",
+              "ceiling",
+              "person",
+              "water"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.032,
+            "z_median_m": 37.31,
+            "parallax": 0.583,
+            "contents": [
+              "person",
+              "wall",
+              "ceiling",
+              "water"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.002,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "sky"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 154,
+        "value_merges": 1
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/62b9740c-d0be-4b4a-a311-d653a2580907_1/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/62b9740c-d0be-4b4a-a311-d653a2580907_1/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/62b9740c-d0be-4b4a-a311-d653a2580907_1/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/62b9740c-d0be-4b4a-a311-d653a2580907_1/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/62b9740c-d0be-4b4a-a311-d653a2580907_1/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/62b9740c-d0be-4b4a-a311-d653a2580907_1/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "79ea20ae-8370-4658-9f1b-7d12e5c63bf9_2",
+      "index": 9,
+      "title": "Afrofuturist twilight market: Naraka Market district",
+      "district": "naraka",
+      "bible_no": 19,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "Afrofuturist twilight market: Naraka Market district, alley only open at sunset and vanished by dawn, architecture made of bent shipping containers and melted billboard plastics, locals speaking in proverbs and sealing deals with songs, flickering neon light revealing deep cultural layers, emotional undercurrent of fleeting connection and mystery, ambient sound of sung transactions and distant night markets --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 996,
+        "focal_35mm_equiv": 24.6,
+        "fov_h_deg": 72.4,
+        "height_m": 2.29,
+        "pitch_deg": 9.2,
+        "roll_deg": 0.8,
+        "shot_class": "elevated",
+        "physics_confidence": 0.91,
+        "ground_frac": 0.171,
+        "sky_frac": 0.232
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.254,
+          "max_depth_m": 16.59
+        },
+        "mg": {
+          "frac": 0.253,
+          "max_depth_m": 26.04
+        },
+        "bg": {
+          "frac": 0.493
+        }
+      },
+      "detections": [
+        {
+          "label": "floor",
+          "score": 0.487,
+          "box": [
+            0.5,
+            640.6,
+            1454.8,
+            812.8
+          ],
+          "area_frac": 0.1364
+        },
+        {
+          "label": "building",
+          "score": 0.484,
+          "box": [
+            0.4,
+            5.8,
+            1456.3,
+            733.3
+          ],
+          "area_frac": 0.3222
+        },
+        {
+          "label": "door",
+          "score": 0.375,
+          "box": [
+            624.7,
+            454.3,
+            690.5,
+            683.8
+          ],
+          "area_frac": 0.0099
+        },
+        {
+          "label": "sky",
+          "score": 0.367,
+          "box": [
+            0,
+            -1.7,
+            1456,
+            449.6
+          ],
+          "area_frac": 0.1904
+        },
+        {
+          "label": "person",
+          "score": 0.361,
+          "box": [
+            557.3,
+            537.5,
+            604.2,
+            581.4
+          ],
+          "area_frac": 0.0009
+        },
+        {
+          "label": "street",
+          "score": 0.342,
+          "box": [
+            -3.5,
+            658.5,
+            1450.1,
+            811
+          ],
+          "area_frac": 0.1361
+        },
+        {
+          "label": "naraka market district",
+          "score": 0.33,
+          "box": [
+            11.2,
+            12.5,
+            1446.1,
+            747.8
+          ],
+          "area_frac": 0.2792
+        },
+        {
+          "label": "shop stall",
+          "score": 0.315,
+          "box": [
+            244.2,
+            338,
+            935.5,
+            721.7
+          ],
+          "area_frac": 0.1066
+        },
+        {
+          "label": "cable",
+          "score": 0.307,
+          "box": [
+            967.1,
+            109.1,
+            1452.1,
+            235.3
+          ],
+          "area_frac": 0.0036
+        },
+        {
+          "label": "locals speaking in proverbs",
+          "score": 0.305,
+          "box": [
+            554.3,
+            513.4,
+            613.4,
+            584.7
+          ],
+          "area_frac": 0.0019
+        }
+      ],
+      "multiplane": {
+        "move": "push",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 0.06,
+        "z_ref_m": 26.5,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0.275,
+            "z_median_m": 18.91,
+            "parallax": 1.402,
+            "contents": [
+              "building",
+              "door",
+              "locals speaking in proverbs",
+              "naraka market district",
+              "person"
+            ]
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.195,
+            "z_median_m": 13.56,
+            "parallax": 1.954,
+            "contents": [
+              "floor",
+              "street",
+              "building",
+              "road",
+              "sidewalk"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0.001,
+            "z_median_m": 26.5,
+            "parallax": 1,
+            "contents": [
+              "locals speaking in proverbs",
+              "person",
+              "building",
+              "table",
+              "chair"
+            ]
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.154,
+            "z_median_m": 28.73,
+            "parallax": 0.922,
+            "contents": [
+              "locals speaking in proverbs",
+              "window",
+              "building",
+              "sidewalk",
+              "table"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.143,
+            "z_median_m": 38.97,
+            "parallax": 0.68,
+            "contents": [
+              "building",
+              "shop stall",
+              "street",
+              "tree",
+              "signboard"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.232,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "cable",
+              "sky"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 492,
+        "value_merges": 4
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/79ea20ae-8370-4658-9f1b-7d12e5c63bf9_2/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/79ea20ae-8370-4658-9f1b-7d12e5c63bf9_2/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/79ea20ae-8370-4658-9f1b-7d12e5c63bf9_2/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/79ea20ae-8370-4658-9f1b-7d12e5c63bf9_2/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/79ea20ae-8370-4658-9f1b-7d12e5c63bf9_2/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/79ea20ae-8370-4658-9f1b-7d12e5c63bf9_2/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "06881630-142e-41b3-80ed-4ee8a6ec38b1_0",
+      "index": 10,
+      "title": "Afrofuturist city district: Ankhu Spires",
+      "district": "ankhu",
+      "bible_no": 8,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "Afrofuturist city district: Ankhu Spires, high-altitude core with obsidian-threaded towers, droning wind chimes tuned to lost languages, ancestor codes etched into light-reactive windows, the air smells of ozone and hot copper from solar collectors, architecture breathing at human pace, skyline reflecting in puddles below, emotional undercurrent of ancestral presence and technological reverence --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 1474,
+        "focal_35mm_equiv": 36.4,
+        "fov_h_deg": 52.6,
+        "height_m": 1.25,
+        "pitch_deg": 6.6,
+        "roll_deg": 0.2,
+        "shot_class": "eye-level",
+        "physics_confidence": 0.84,
+        "ground_frac": 0.268,
+        "sky_frac": 0.157
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.279,
+          "max_depth_m": 29.7
+        },
+        "mg": {
+          "frac": 0.278,
+          "max_depth_m": 44.69
+        },
+        "bg": {
+          "frac": 0.443
+        }
+      },
+      "detections": [
+        {
+          "label": "afrofuturist city district",
+          "score": 0.46,
+          "box": [
+            7.2,
+            6.8,
+            1448.3,
+            663.3
+          ],
+          "area_frac": 0.4669
+        },
+        {
+          "label": "building",
+          "score": 0.448,
+          "box": [
+            0.1,
+            -1.3,
+            1455.9,
+            668.6
+          ],
+          "area_frac": 0.4611
+        },
+        {
+          "label": "sky",
+          "score": 0.436,
+          "box": [
+            557.7,
+            4.9,
+            1464.5,
+            477.7
+          ],
+          "area_frac": 0.1377
+        },
+        {
+          "label": "water",
+          "score": 0.435,
+          "box": [
+            0.7,
+            613.3,
+            1454.1,
+            814.2
+          ],
+          "area_frac": 0.1794
+        },
+        {
+          "label": "person",
+          "score": 0.409,
+          "box": [
+            1104.3,
+            586.2,
+            1128.1,
+            642.7
+          ],
+          "area_frac": 0.0007
+        },
+        {
+          "label": "person",
+          "score": 0.408,
+          "box": [
+            1129.1,
+            577.6,
+            1152.3,
+            642.2
+          ],
+          "area_frac": 0.0008
+        },
+        {
+          "label": "window",
+          "score": 0.396,
+          "box": [
+            296.7,
+            0.7,
+            428.5,
+            189
+          ],
+          "area_frac": 0.0175
+        },
+        {
+          "label": "person",
+          "score": 0.389,
+          "box": [
+            365.3,
+            589,
+            386.4,
+            647.5
+          ],
+          "area_frac": 0.0006
+        },
+        {
+          "label": "person",
+          "score": 0.381,
+          "box": [
+            1268.2,
+            593.2,
+            1290.9,
+            667.4
+          ],
+          "area_frac": 0.0008
+        },
+        {
+          "label": "window",
+          "score": 0.38,
+          "box": [
+            174.2,
+            401.9,
+            229.4,
+            503.1
+          ],
+          "area_frac": 0.0034
+        }
+      ],
+      "multiplane": {
+        "move": "push",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 0.06,
+        "z_ref_m": 35.34,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0.022,
+            "z_median_m": 22.38,
+            "parallax": 1.58,
+            "contents": [
+              "building",
+              "awning",
+              "flag"
+            ]
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.228,
+            "z_median_m": 12.6,
+            "parallax": 2.805,
+            "contents": [
+              "street",
+              "street lamp",
+              "vehicle",
+              "water",
+              "building"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0.004,
+            "z_median_m": 35.34,
+            "parallax": 1,
+            "contents": [
+              "person",
+              "wall",
+              "building",
+              "earth",
+              "stairs"
+            ]
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0.023,
+            "z_median_m": 64.38,
+            "parallax": 1.053,
+            "contents": [
+              "person",
+              "street lamp",
+              "building",
+              "flag"
+            ]
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.315,
+            "z_median_m": 39.88,
+            "parallax": 0.886,
+            "contents": [
+              "afrofuturist city district",
+              "arch",
+              "building",
+              "person",
+              "vehicle"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.25,
+            "z_median_m": 80,
+            "parallax": 0.442,
+            "contents": [
+              "afrofuturist city district",
+              "ankhu spires",
+              "building",
+              "spire",
+              "street lamp"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.159,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "sky"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 408,
+        "value_merges": 2
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/06881630-142e-41b3-80ed-4ee8a6ec38b1_0/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/06881630-142e-41b3-80ed-4ee8a6ec38b1_0/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/06881630-142e-41b3-80ed-4ee8a6ec38b1_0/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/06881630-142e-41b3-80ed-4ee8a6ec38b1_0/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/06881630-142e-41b3-80ed-4ee8a6ec38b1_0/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/06881630-142e-41b3-80ed-4ee8a6ec38b1_0/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "993cc7a2-9220-4d7a-a0a8-97caf29baf4a_0",
+      "index": 11,
+      "title": "Ankhu Spires high-altitude observation deck",
+      "district": "ankhu",
+      "bible_no": 27,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "Ankhu Spires high-altitude observation deck, vast expanse of shimmering haze obscuring the city. Polished synth-glass and synth-steel surfaces fading into the fog. RED Komodo 6K still frame, Canon CNE 50mm, ISO 5000, f/3.5, 1/25s, slow-moving rig. Emphasizing the scale of controlled environment, mapping the edge of perception as reality fades. Emotional tone of vastness, detachment, fading reality. --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 1695,
+        "focal_35mm_equiv": 41.9,
+        "fov_h_deg": 46.5,
+        "height_m": 1.04,
+        "pitch_deg": -5.9,
+        "roll_deg": -0.7,
+        "shot_class": "eye-level",
+        "physics_confidence": 0.6,
+        "ground_frac": 0.21,
+        "sky_frac": 0.323
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.224,
+          "max_depth_m": 4.75
+        },
+        "mg": {
+          "frac": 0.223,
+          "max_depth_m": 31.75
+        },
+        "bg": {
+          "frac": 0.553
+        }
+      },
+      "detections": [
+        {
+          "label": "floor",
+          "score": 0.487,
+          "box": [
+            592.8,
+            352.1,
+            1453,
+            814.1
+          ],
+          "area_frac": 0.1941
+        },
+        {
+          "label": "building",
+          "score": 0.405,
+          "box": [
+            408.9,
+            467.3,
+            499.1,
+            638
+          ],
+          "area_frac": 0.0079
+        },
+        {
+          "label": "platform",
+          "score": 0.398,
+          "box": [
+            543.2,
+            336.2,
+            1451,
+            813.6
+          ],
+          "area_frac": 0.2006
+        },
+        {
+          "label": "building",
+          "score": 0.383,
+          "box": [
+            324.3,
+            509.2,
+            375.7,
+            659.9
+          ],
+          "area_frac": 0.0051
+        },
+        {
+          "label": "sky bridge",
+          "score": 0.361,
+          "box": [
+            16.6,
+            320.7,
+            1095.1,
+            811.7
+          ],
+          "area_frac": 0.116
+        },
+        {
+          "label": "sky",
+          "score": 0.352,
+          "box": [
+            3.9,
+            4.1,
+            1409.3,
+            304.3
+          ],
+          "area_frac": 0.3283
+        },
+        {
+          "label": "wall",
+          "score": 0.344,
+          "box": [
+            1358.2,
+            2.4,
+            1458.4,
+            655.9
+          ],
+          "area_frac": 0.038
+        },
+        {
+          "label": "person",
+          "score": 0.331,
+          "box": [
+            1126.2,
+            336.8,
+            1152.8,
+            425.4
+          ],
+          "area_frac": 0.001
+        },
+        {
+          "label": "building",
+          "score": 0.321,
+          "box": [
+            1360.6,
+            2.7,
+            1458.5,
+            652.3
+          ],
+          "area_frac": 0.038
+        },
+        {
+          "label": "street",
+          "score": 0.293,
+          "box": [
+            588.4,
+            354,
+            1451.4,
+            812
+          ],
+          "area_frac": 0.1943
+        }
+      ],
+      "multiplane": {
+        "move": "truck",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 50.96000000000001,
+        "z_ref_m": 10.44,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0.171,
+            "z_median_m": 4.69,
+            "parallax": 2.225,
+            "contents": [
+              "building",
+              "railing",
+              "sky bridge",
+              "wall",
+              "rail"
+            ]
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.2,
+            "z_median_m": 4.05,
+            "parallax": 2.579,
+            "contents": [
+              "floor",
+              "market stall",
+              "platform",
+              "street",
+              "building"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0.001,
+            "z_median_m": 10.44,
+            "parallax": 1,
+            "contents": [
+              "person",
+              "building",
+              "floor"
+            ]
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.04,
+            "z_median_m": 11.47,
+            "parallax": 0.91,
+            "contents": [
+              "building",
+              "floor"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.265,
+            "z_median_m": 50.22,
+            "parallax": 0.208,
+            "contents": [
+              "building",
+              "sky"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.323,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "sky"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 274,
+        "value_merges": 1
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/993cc7a2-9220-4d7a-a0a8-97caf29baf4a_0/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/993cc7a2-9220-4d7a-a0a8-97caf29baf4a_0/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/993cc7a2-9220-4d7a-a0a8-97caf29baf4a_0/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/993cc7a2-9220-4d7a-a0a8-97caf29baf4a_0/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/993cc7a2-9220-4d7a-a0a8-97caf29baf4a_0/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/993cc7a2-9220-4d7a-a0a8-97caf29baf4a_0/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "58cbb4ca-4211-4886-9afa-3e5eccf54adc_0",
+      "index": 12,
+      "title": "futuristic city at night",
+      "district": "temple",
+      "bible_no": 42,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "futuristic city at night, a perfect mirror pool with no physical edge, stepping into water without getting wet, reflections showing faces of loved ones, gateway questioning authenticity of reality, submerged corridors beneath the pool leading to a forbidden city --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 1621,
+        "focal_35mm_equiv": 40.1,
+        "fov_h_deg": 48.4,
+        "height_m": 0.56,
+        "pitch_deg": 0.4,
+        "roll_deg": 0,
+        "shot_class": "ground / worm's-eye",
+        "physics_confidence": 0.6,
+        "ground_frac": 0.442,
+        "sky_frac": 0.005
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.329,
+          "max_depth_m": 7.16
+        },
+        "mg": {
+          "frac": 0.328,
+          "max_depth_m": 18.27
+        },
+        "bg": {
+          "frac": 0.343
+        }
+      },
+      "detections": [
+        {
+          "label": "water",
+          "score": 0.495,
+          "box": [
+            1.1,
+            433.6,
+            1454.2,
+            812.7
+          ],
+          "area_frac": 0.4154
+        },
+        {
+          "label": "building",
+          "score": 0.47,
+          "box": [
+            479.7,
+            179,
+            966,
+            422.5
+          ],
+          "area_frac": 0.0864
+        },
+        {
+          "label": "mirror pool pool",
+          "score": 0.439,
+          "box": [
+            3.5,
+            433.4,
+            1451.5,
+            814.2
+          ],
+          "area_frac": 0.4154
+        },
+        {
+          "label": "perfect mirror pool",
+          "score": 0.42,
+          "box": [
+            2.3,
+            430.2,
+            1453.3,
+            810.6
+          ],
+          "area_frac": 0.4155
+        },
+        {
+          "label": "sky",
+          "score": 0.334,
+          "box": [
+            500.8,
+            149.5,
+            979.5,
+            348.1
+          ],
+          "area_frac": 0.039
+        },
+        {
+          "label": "building",
+          "score": 0.322,
+          "box": [
+            728.2,
+            215.1,
+            786.1,
+            405.1
+          ],
+          "area_frac": 0.008
+        },
+        {
+          "label": "building",
+          "score": 0.305,
+          "box": [
+            848.2,
+            182.2,
+            950.7,
+            412.4
+          ],
+          "area_frac": 0.0145
+        }
+      ],
+      "multiplane": {
+        "move": "push",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 0.06,
+        "z_ref_m": 4.03,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.003,
+            "z_median_m": 2.22,
+            "parallax": 1.81,
+            "contents": [
+              "floor"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0.415,
+            "z_median_m": 4.03,
+            "parallax": 1,
+            "contents": [
+              "mirror pool pool",
+              "perfect mirror pool",
+              "water",
+              "floor"
+            ]
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.461,
+            "z_median_m": 17,
+            "parallax": 0.237,
+            "contents": [
+              "wall",
+              "floor",
+              "ceiling",
+              "column"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.08,
+            "z_median_m": 91.06,
+            "parallax": 0.044,
+            "contents": [
+              "building",
+              "wall",
+              "floor",
+              "conveyer belt"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.041,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "sky",
+              "wall",
+              "ceiling"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 149,
+        "value_merges": 1
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/58cbb4ca-4211-4886-9afa-3e5eccf54adc_0/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/58cbb4ca-4211-4886-9afa-3e5eccf54adc_0/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/58cbb4ca-4211-4886-9afa-3e5eccf54adc_0/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/58cbb4ca-4211-4886-9afa-3e5eccf54adc_0/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/58cbb4ca-4211-4886-9afa-3e5eccf54adc_0/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/58cbb4ca-4211-4886-9afa-3e5eccf54adc_0/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "08fe12af-1077-4515-a156-18353f12265f_0",
+      "index": 13,
+      "title": "mirror-pool skyline inspired by Star Trek Federation Plaza’s sci",
+      "district": "temple",
+      "bible_no": 52,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "mirror-pool skyline inspired by Star Trek Federation Plaza’s sci-fi egalitarian gloss, Brasilia Itamaraty Palace pool staging diplomacy on water, Jaipur Jantar Mantar sundials reflecting cosmos in earthwork, Alhambra Court of Myrtles creating paradise with still water and whispered tiles, Roman Villa Adriana’s Canopus canal where emperor watches self in liquid axis, Neolithic Orkney ring-ditch settlements filled by rain as seasonal calendar, and meltwater pond on glacial plain as first sky-mirror birthing self-image myth, ethereal, reflective surfaces, serene architectural balance, subtle natural symbolism --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 1041,
+        "focal_35mm_equiv": 25.7,
+        "fov_h_deg": 69.9,
+        "height_m": 0.43,
+        "pitch_deg": -3.5,
+        "roll_deg": -0.1,
+        "shot_class": "ground / worm's-eye",
+        "physics_confidence": 0.52,
+        "ground_frac": 0.554,
+        "sky_frac": 0.165
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.276,
+          "max_depth_m": 1.83
+        },
+        "mg": {
+          "frac": 0.276,
+          "max_depth_m": 5.58
+        },
+        "bg": {
+          "frac": 0.449
+        }
+      },
+      "detections": [
+        {
+          "label": "water",
+          "score": 0.7,
+          "box": [
+            1.1,
+            386.4,
+            1454.2,
+            810
+          ],
+          "area_frac": 0.4807
+        },
+        {
+          "label": "tree",
+          "score": 0.597,
+          "box": [
+            973.2,
+            47,
+            1423.3,
+            377.6
+          ],
+          "area_frac": 0.0641
+        },
+        {
+          "label": "tree",
+          "score": 0.563,
+          "box": [
+            156.2,
+            41.5,
+            519.4,
+            376.1
+          ],
+          "area_frac": 0.0518
+        },
+        {
+          "label": "sky",
+          "score": 0.501,
+          "box": [
+            46.4,
+            0.5,
+            1465.3,
+            259.9
+          ],
+          "area_frac": 0.1558
+        },
+        {
+          "label": "still water",
+          "score": 0.494,
+          "box": [
+            4.3,
+            388.1,
+            1450.9,
+            808.1
+          ],
+          "area_frac": 0.4804
+        },
+        {
+          "label": "tree",
+          "score": 0.462,
+          "box": [
+            1.7,
+            1.1,
+            181.6,
+            264.3
+          ],
+          "area_frac": 0.0311
+        },
+        {
+          "label": "portico",
+          "score": 0.431,
+          "box": [
+            569.5,
+            255.9,
+            899.1,
+            354.4
+          ],
+          "area_frac": 0.0189
+        },
+        {
+          "label": "tree",
+          "score": 0.345,
+          "box": [
+            877.9,
+            238.9,
+            1047.4,
+            350.2
+          ],
+          "area_frac": 0.0064
+        },
+        {
+          "label": "building",
+          "score": 0.338,
+          "box": [
+            42.2,
+            247.3,
+            1465.3,
+            370.1
+          ],
+          "area_frac": 0.0253
+        },
+        {
+          "label": "cloud",
+          "score": 0.305,
+          "box": [
+            877.3,
+            56.6,
+            1103.7,
+            152.4
+          ],
+          "area_frac": 0.0094
+        }
+      ],
+      "multiplane": {
+        "move": "push",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 0.06,
+        "z_ref_m": 3.2,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.303,
+            "z_median_m": 1.27,
+            "parallax": 2.515,
+            "contents": [
+              "still water",
+              "water",
+              "whispered tiles"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.202,
+            "z_median_m": 3.2,
+            "parallax": 1,
+            "contents": [
+              "tree",
+              "water",
+              "stairs"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.33,
+            "z_median_m": 6.43,
+            "parallax": 0.497,
+            "contents": [
+              "building",
+              "portico",
+              "tree",
+              "wall",
+              "plant"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.165,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "cloud",
+              "sky"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 106,
+        "value_merges": 2
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/08fe12af-1077-4515-a156-18353f12265f_0/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/08fe12af-1077-4515-a156-18353f12265f_0/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/08fe12af-1077-4515-a156-18353f12265f_0/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/08fe12af-1077-4515-a156-18353f12265f_0/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/08fe12af-1077-4515-a156-18353f12265f_0/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/08fe12af-1077-4515-a156-18353f12265f_0/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "3c0e1673-0315-4221-9e8f-cb91cd7b59ea_1",
+      "index": 14,
+      "title": "silhouette in hazy cityscape",
+      "district": "haze",
+      "bible_no": 79,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "silhouette in hazy cityscape, elevated concrete catwalk glowing orange with residual radiation, lit from below, silent crossing ritual with radiation badges turning black, symbolism of ignorance versus cost, isolation zones beyond the catwalk, haze revealing visions for those who pause --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 10272,
+        "focal_35mm_equiv": 254,
+        "fov_h_deg": 8.1,
+        "height_m": 2.3,
+        "pitch_deg": -2.1,
+        "roll_deg": -178.8,
+        "shot_class": "elevated",
+        "physics_confidence": 0.7,
+        "ground_frac": 0.296,
+        "sky_frac": 0.491
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.168,
+          "max_depth_m": 295.89
+        },
+        "mg": {
+          "frac": 0.168,
+          "max_depth_m": 465.74
+        },
+        "bg": {
+          "frac": 0.664
+        }
+      },
+      "detections": [
+        {
+          "label": "person",
+          "score": 0.631,
+          "box": [
+            254.9,
+            491.8,
+            294.7,
+            577.4
+          ],
+          "area_frac": 0.0013
+        },
+        {
+          "label": "person",
+          "score": 0.629,
+          "box": [
+            939.2,
+            487.6,
+            968.1,
+            573.1
+          ],
+          "area_frac": 0.0012
+        },
+        {
+          "label": "person",
+          "score": 0.623,
+          "box": [
+            974.2,
+            489.6,
+            1005.8,
+            573
+          ],
+          "area_frac": 0.0011
+        },
+        {
+          "label": "person",
+          "score": 0.616,
+          "box": [
+            544.7,
+            485.3,
+            578.4,
+            576.2
+          ],
+          "area_frac": 0.0011
+        },
+        {
+          "label": "person",
+          "score": 0.611,
+          "box": [
+            507.5,
+            492.5,
+            534.1,
+            574.3
+          ],
+          "area_frac": 0.001
+        },
+        {
+          "label": "person",
+          "score": 0.589,
+          "box": [
+            702.6,
+            490.8,
+            742.9,
+            575.5
+          ],
+          "area_frac": 0.0013
+        },
+        {
+          "label": "street lamp",
+          "score": 0.55,
+          "box": [
+            1332.8,
+            268,
+            1375,
+            569.1
+          ],
+          "area_frac": 0.0025
+        },
+        {
+          "label": "person",
+          "score": 0.548,
+          "box": [
+            744,
+            510.6,
+            766.4,
+            572.5
+          ],
+          "area_frac": 0.0007
+        },
+        {
+          "label": "sky",
+          "score": 0.527,
+          "box": [
+            0.6,
+            1.5,
+            1454.5,
+            570.8
+          ],
+          "area_frac": 0.4888
+        },
+        {
+          "label": "cloud",
+          "score": 0.449,
+          "box": [
+            1.5,
+            1.2,
+            1453.4,
+            563.3
+          ],
+          "area_frac": 0.4885
+        }
+      ],
+      "multiplane": {
+        "move": "truck",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 50.96000000000001,
+        "z_ref_m": 211.75,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.141,
+            "z_median_m": 158.38,
+            "parallax": 1.337,
+            "contents": [
+              "bridge",
+              "rail"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0.008,
+            "z_median_m": 211.75,
+            "parallax": 1,
+            "contents": [
+              "person",
+              "building",
+              "rail"
+            ]
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0.005,
+            "z_median_m": 416.25,
+            "parallax": 0.659,
+            "contents": [
+              "street lamp",
+              "building"
+            ]
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.183,
+            "z_median_m": 416.5,
+            "parallax": 0.508,
+            "contents": [
+              "building",
+              "lit below catwalk",
+              "railing",
+              "rail",
+              "signboard"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.165,
+            "z_median_m": 499.5,
+            "parallax": 0.424,
+            "contents": [
+              "building",
+              "railing",
+              "rail",
+              "bridge"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.499,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "cloud",
+              "sky",
+              "smokestack",
+              "building"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 404,
+        "value_merges": 1
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/3c0e1673-0315-4221-9e8f-cb91cd7b59ea_1/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/3c0e1673-0315-4221-9e8f-cb91cd7b59ea_1/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/3c0e1673-0315-4221-9e8f-cb91cd7b59ea_1/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/3c0e1673-0315-4221-9e8f-cb91cd7b59ea_1/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/3c0e1673-0315-4221-9e8f-cb91cd7b59ea_1/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/3c0e1673-0315-4221-9e8f-cb91cd7b59ea_1/multiplane/exploded.jpg"
+      }
+    },
+    {
+      "id": "18a6390f-1d57-4872-96e2-7c601f756cbd_0",
+      "index": 15,
+      "title": "Afrometropolis Prime at midnight",
+      "district": "overseer",
+      "bible_no": 25,
+      "size": [
+        1456,
+        816
+      ],
+      "prompt": "Afrometropolis Prime at midnight, synth-city realist style, gridlock of blue-lit towers, industrial rain slicing neon light, gothic arches glitching like failed VR layers, symmetry so clean it’s suspicious, spires splitting midnight with red beacons, deep hum under city breathing underground, shot on Sony A7S III, 35mm Zeiss, ISO 6400, grungy and textured mood --ar 16:9 --v 7",
+      "camera": {
+        "focal_px": 797,
+        "focal_35mm_equiv": 19.7,
+        "fov_h_deg": 84.8,
+        "height_m": 0.45,
+        "pitch_deg": 0.5,
+        "roll_deg": 0.1,
+        "shot_class": "ground / worm's-eye",
+        "physics_confidence": 0.54,
+        "ground_frac": 0.494,
+        "sky_frac": 0.306
+      },
+      "layers": {
+        "fg": {
+          "frac": 0.229,
+          "max_depth_m": 1.7
+        },
+        "mg": {
+          "frac": 0.229,
+          "max_depth_m": 10.21
+        },
+        "bg": {
+          "frac": 0.542
+        }
+      },
+      "detections": [
+        {
+          "label": "gridlock of blue-lit towers",
+          "score": 0.524,
+          "box": [
+            104,
+            73.9,
+            197.8,
+            396.4
+          ],
+          "area_frac": 0.0122
+        },
+        {
+          "label": "water",
+          "score": 0.506,
+          "box": [
+            0.5,
+            423.4,
+            1454.8,
+            812.2
+          ],
+          "area_frac": 0.4502
+        },
+        {
+          "label": "gridlock of blue-lit towers",
+          "score": 0.477,
+          "box": [
+            1043,
+            78.5,
+            1104.5,
+            409.4
+          ],
+          "area_frac": 0.0095
+        },
+        {
+          "label": "sky",
+          "score": 0.347,
+          "box": [
+            6.1,
+            1,
+            1456.1,
+            324.2
+          ],
+          "area_frac": 0.2914
+        },
+        {
+          "label": "gridlock of blue-lit towers",
+          "score": 0.323,
+          "box": [
+            937.3,
+            171.9,
+            980.8,
+            298.2
+          ],
+          "area_frac": 0.0022
+        },
+        {
+          "label": "building",
+          "score": 0.296,
+          "box": [
+            5.7,
+            57.3,
+            1448.7,
+            409.9
+          ],
+          "area_frac": 0.392
+        },
+        {
+          "label": "gridlock of blue-lit towers",
+          "score": 0.281,
+          "box": [
+            220.7,
+            194.9,
+            313.4,
+            388.2
+          ],
+          "area_frac": 0.0101
+        },
+        {
+          "label": "red beacons",
+          "score": 0.276,
+          "box": [
+            968,
+            369.9,
+            996,
+            474.7
+          ],
+          "area_frac": 0.0008
+        },
+        {
+          "label": "street lamp",
+          "score": 0.266,
+          "box": [
+            0.2,
+            427,
+            1454.7,
+            814.1
+          ],
+          "area_frac": 0.4498
+        }
+      ],
+      "multiplane": {
+        "move": "push",
+        "why": "auto: chosen from shot grammar",
+        "amplitude": 0.06,
+        "z_ref_m": 3.72,
+        "planes": [
+          {
+            "id": "P0",
+            "name": "camera mask",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P1",
+            "name": "foreground",
+            "area_frac": 0.29,
+            "z_median_m": 1.26,
+            "parallax": 2.958,
+            "contents": [
+              "street lamp",
+              "water"
+            ]
+          },
+          {
+            "id": "P2",
+            "name": "character action",
+            "area_frac": 0,
+            "z_median_m": null,
+            "parallax": null,
+            "contents": []
+          },
+          {
+            "id": "P3",
+            "name": "secondary / FX",
+            "area_frac": 0.001,
+            "z_median_m": 25.25,
+            "parallax": 0.147,
+            "contents": [
+              "red beacons",
+              "building",
+              "water"
+            ]
+          },
+          {
+            "id": "P4",
+            "name": "midground",
+            "area_frac": 0.153,
+            "z_median_m": 3.72,
+            "parallax": 1,
+            "contents": [
+              "floor",
+              "water"
+            ]
+          },
+          {
+            "id": "P5",
+            "name": "distant background",
+            "area_frac": 0.247,
+            "z_median_m": 21.88,
+            "parallax": 0.17,
+            "contents": [
+              "gridlock of blue-lit towers",
+              "building",
+              "floor",
+              "water"
+            ]
+          },
+          {
+            "id": "P6",
+            "name": "sky / atmosphere",
+            "area_frac": 0.309,
+            "z_median_m": null,
+            "parallax": 0.01,
+            "contents": [
+              "building",
+              "sky"
+            ]
+          }
+        ]
+      },
+      "cartoon": {
+        "regions": 75,
+        "value_merges": 1
+      },
+      "urls": {
+        "image": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/18a6390f-1d57-4872-96e2-7c601f756cbd_0/image.jpg",
+        "depth": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/18a6390f-1d57-4872-96e2-7c601f756cbd_0/depth.jpg",
+        "cel": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/18a6390f-1d57-4872-96e2-7c601f756cbd_0/cartoon/cel.png",
+        "notan": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/18a6390f-1d57-4872-96e2-7c601f756cbd_0/cartoon/notan.png",
+        "planeMap": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/18a6390f-1d57-4872-96e2-7c601f756cbd_0/multiplane/plane_map.jpg",
+        "exploded": "https://hartswf0.github.io/wygwyl-world-arch/shots/out/18a6390f-1d57-4872-96e2-7c601f756cbd_0/multiplane/exploded.jpg"
+      }
+    }
+  ]
+}

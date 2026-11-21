@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <script type="importmap">{"imports":{"three":"../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
   <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="stylesheet" href="./suite-nav.css">
   <title>MAKE-PHOTO CITY · The Nolli Block</title>
   <style>
     :root {
@@ -17,6 +18,10 @@
       --rule: rgba(241, 238, 230, 0.18);
     }
     * { box-sizing: border-box; }
+    button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible {
+      outline: 2.5px solid #f2a541;
+      outline-offset: 2px;
+    }
     html, body {
       margin: 0;
       height: 100%;
@@ -56,7 +61,7 @@
     /* Minimal Top-Left Header */
     #top-bar {
       position: fixed;
-      top: 14px;
+      top: 62px;
       left: 14px;
       z-index: 20;
       display: flex;
@@ -64,7 +69,9 @@
       gap: 6px;
       max-width: 390px;
       pointer-events: auto;
+      transition: top 160ms ease;
     }
+    body.suite-quiet #top-bar { top: 14px; }
     .title-card {
       background: var(--panel);
       border: 1px solid var(--rule);
@@ -128,7 +135,7 @@
     /* Unified Ledger Strip (Top-Right) */
     #ledger-strip {
       position: fixed;
-      top: 14px;
+      top: 62px;
       right: 14px;
       z-index: 20;
       background: var(--panel);
@@ -138,6 +145,7 @@
       backdrop-filter: blur(8px);
       min-width: 245px;
       font-size: 11px;
+      transition: top 160ms ease;
     }
     .ledger-row {
       display: flex;
@@ -221,7 +229,7 @@
     /* Toast */
     #toast {
       position: fixed;
-      top: 14px;
+      top: 62px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 40;
@@ -237,6 +245,7 @@
       max-width: 440px;
       text-align: center;
     }
+    body.suite-quiet #toast { top: 14px; }
     #toast.show { opacity: 1; }
 
     /* Bottom Action Dock */
@@ -528,6 +537,12 @@
       border-radius: 4px;
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
+    @media (max-width: 820px) {
+      #ledger-strip { display: none; }
+      #hint-bar { display: none; }
+      #top-bar { max-width: calc(100vw - 28px); }
+      #dock { max-width: calc(100vw - 16px); flex-wrap: wrap; justify-content: center; }
+    }
   </style>
 </head>
 <body>
@@ -693,12 +708,285 @@
     <button class="dock-btn" id="btn-worldtext">Worldtext (B)</button>
     <button class="dock-btn" id="btn-lighttable">Light Table (L)</button>
     <button class="dock-btn" id="btn-audio">Audio: Off</button>
+    <a class="nav-link" href="./design-room/">Design Room</a>
     <a class="nav-link" href="../night-post/">Night Post</a>
     <a class="nav-link" href="../motion-pipeline/">Studio</a>
   </div>
 
-  <script src="../motion-pipeline/m2m-retarget.js"></script>
+  <script src="../motion-pipeline/mesh2motion/m2m-retarget.js"></script>
   <script src="../motion-pipeline/anny-human-v7.js?v=5"></script>
+  <script type="module">
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+    const origLoad = GLTFLoader.prototype.load;
+    GLTFLoader.prototype.load = function patchedLoad(url, onLoad, onProgress, onError) {
+      if (!this.meshoptDecoder) this.setMeshoptDecoder(MeshoptDecoder);
+      const safeUrl = typeof url === 'string' ? url.replace(/\/clips\/talk\.glb(\?.*)?$/, '/clips/idle-talking.glb$1') : url;
+      return origLoad.call(this, safeUrl, onLoad, onProgress, onError);
+    };
+  </script>
   <script type="module" src="./city.js"></script>
+  <script type="module">
+    import {
+      SUITE_DESTINATIONS,
+      SUITE_TIME_PRESETS,
+      ALL_CITY_LOOKS,
+      hourToTimeKey,
+      applyPilotUrlHash,
+      loadPilotState,
+      savePilotState,
+      subscribePilotState,
+      formatPilotHash,
+    } from './shader-suite-bar.js';
+    import { TIDE_PHASES } from './design-room/pilot-state.js';
+
+    const pilotInit = applyPilotUrlHash();
+    const qs = new URLSearchParams(window.location.search);
+    const shaderParam = qs.get('shader') || qs.get('look');
+    const timeParam = qs.get('time');
+
+    const root = document.createElement('div');
+    root.className = 'mp-suite-root';
+    root.id = 'mp-suite-root';
+
+    const nav = document.createElement('nav');
+    nav.className = 'mp-suite-nav mp-pos-top';
+    nav.setAttribute('aria-label', 'Make-Photo City Suite Navigation');
+
+    const brand = document.createElement('a');
+    brand.className = 'mp-suite-brand';
+    brand.href = './design-room/' + formatPilotHash(pilotInit);
+    brand.innerHTML = '<span class="mp-suite-dot"></span><span>Make-Photo City</span>';
+    nav.appendChild(brand);
+
+    const linksWrap = document.createElement('div');
+    linksWrap.className = 'mp-suite-links';
+    const routeAnchors = [];
+
+    SUITE_DESTINATIONS.forEach((dest) => {
+      const a = document.createElement('a');
+      a.className = 'mp-suite-pill' + (dest.id === 'nolli' ? ' active' : '');
+      if (dest.id === 'nolli') a.setAttribute('aria-current', 'page');
+      a.dataset.baseHref = dest.rel;
+      a.href = dest.rel + formatPilotHash(pilotInit);
+      a.textContent = dest.label;
+      a.title = `${dest.label}: ${dest.verb}`;
+      linksWrap.appendChild(a);
+      routeAnchors.push(a);
+    });
+    nav.appendChild(linksWrap);
+
+    const rightWrap = document.createElement('div');
+    rightWrap.className = 'mp-suite-right';
+
+    const pilotChip = document.createElement('button');
+    pilotChip.type = 'button';
+    pilotChip.className = 'mp-pilot-chip';
+    pilotChip.title = 'Inspect & sync Severn Pilot Scene Record (Brief 9)';
+    rightWrap.appendChild(pilotChip);
+
+    const routesBtn = document.createElement('button');
+    routesBtn.type = 'button';
+    routesBtn.className = 'mp-suite-toggle-btn';
+    routesBtn.setAttribute('aria-expanded', 'false');
+    routesBtn.textContent = 'Routes (10)';
+    rightWrap.appendChild(routesBtn);
+
+    const quietBtn = document.createElement('button');
+    quietBtn.type = 'button';
+    quietBtn.className = 'mp-suite-toggle-btn';
+    quietBtn.textContent = 'Compact';
+    quietBtn.title = 'Toggle compact corner navigation';
+    rightWrap.appendChild(quietBtn);
+
+    nav.appendChild(rightWrap);
+    root.appendChild(nav);
+
+    const routeDrawer = document.createElement('div');
+    routeDrawer.className = 'mp-route-drawer';
+    routeDrawer.setAttribute('role', 'dialog');
+    routeDrawer.setAttribute('aria-label', 'Suite Tool Directory');
+    routeDrawer.innerHTML = `
+      <div class="mp-pop-head">
+        <span class="mp-pop-title">City Worlds &amp; Production Tools (Severn Pilot Synced)</span>
+        <button type="button" class="mp-suite-toggle-btn" id="nolli-close-routes">Close</button>
+      </div>
+      <div class="mp-route-grid" id="nolli-route-grid"></div>
+    `;
+    root.appendChild(routeDrawer);
+
+    const routeGrid = routeDrawer.querySelector('#nolli-route-grid');
+    SUITE_DESTINATIONS.forEach((dest) => {
+      const card = document.createElement('a');
+      card.className = 'mp-route-card';
+      if (dest.id === 'nolli') card.setAttribute('aria-current', 'page');
+      card.dataset.baseHref = dest.rel;
+      card.href = dest.rel + formatPilotHash(pilotInit);
+      card.innerHTML = `<strong>${dest.label}</strong><span>${dest.verb}</span>`;
+      routeGrid.appendChild(card);
+      routeAnchors.push(card);
+    });
+
+    const pilotPop = document.createElement('div');
+    pilotPop.className = 'mp-popover';
+    pilotPop.style.top = '44px';
+    pilotPop.style.bottom = 'auto';
+    pilotPop.style.right = '12px';
+    pilotPop.style.left = 'auto';
+    pilotPop.style.transform = 'none';
+    pilotPop.setAttribute('role', 'dialog');
+    pilotPop.setAttribute('aria-label', 'Shared Severn Pilot State');
+    pilotPop.innerHTML = `
+      <div class="mp-pop-head">
+        <span class="mp-pop-title">Severn Pilot State (Shared Across All 10 Tools)</span>
+        <button type="button" class="mp-suite-toggle-btn" id="nolli-close-pilot">Close</button>
+      </div>
+      <div class="mp-pilot-grid">
+        <div class="mp-pilot-field">
+          <label for="np-door">Severn Threshold Door</label>
+          <select id="np-door">
+            <option value="open">Open (Street Clear)</option>
+            <option value="closed">Closed (Interior Muffled)</option>
+          </select>
+        </div>
+        <div class="mp-pilot-field">
+          <label for="np-parcel">Parcel Ownership</label>
+          <select id="np-parcel">
+            <option value="player">Player (Courier)</option>
+            <option value="bekele">Bekele (Resident Keeper)</option>
+            <option value="maren">Maren (Flat 2A)</option>
+          </select>
+        </div>
+        <div class="mp-pilot-field">
+          <label for="np-tide">Tide Phase</label>
+          <select id="np-tide"></select>
+        </div>
+        <div class="mp-pilot-field">
+          <label for="np-poem">Active Poem</label>
+          <select id="np-poem"></select>
+        </div>
+      </div>
+    `;
+    root.appendChild(pilotPop);
+    document.body.appendChild(root);
+
+    const tideSel = pilotPop.querySelector('#np-tide');
+    TIDE_PHASES.forEach((t) => {
+      const o = document.createElement('option');
+      o.value = t.id;
+      o.textContent = t.label;
+      tideSel.appendChild(o);
+    });
+    const poemSel = pilotPop.querySelector('#np-poem');
+    for (let i = 1; i <= 14; i++) {
+      const code = String(i).padStart(2, '0');
+      const o = document.createElement('option');
+      o.value = code;
+      o.textContent = `Poem ${code}`;
+      poemSel.appendChild(o);
+    }
+    const doorSel = pilotPop.querySelector('#np-door');
+    const parcelSel = pilotPop.querySelector('#np-parcel');
+
+    routesBtn.addEventListener('click', () => {
+      const open = !routeDrawer.classList.contains('open');
+      routeDrawer.classList.toggle('open', open);
+      pilotPop.classList.remove('open');
+      routesBtn.setAttribute('aria-expanded', String(open));
+    });
+    routeDrawer.querySelector('#nolli-close-routes').addEventListener('click', () => {
+      routeDrawer.classList.remove('open');
+      routesBtn.setAttribute('aria-expanded', 'false');
+    });
+    pilotChip.addEventListener('click', () => {
+      const open = !pilotPop.classList.contains('open');
+      pilotPop.classList.toggle('open', open);
+      routeDrawer.classList.remove('open');
+    });
+    pilotPop.querySelector('#nolli-close-pilot').addEventListener('click', () => {
+      pilotPop.classList.remove('open');
+    });
+    quietBtn.addEventListener('click', () => {
+      const q = !nav.classList.contains('mp-quiet');
+      nav.classList.toggle('mp-quiet', q);
+      document.body.classList.toggle('suite-quiet', q);
+      quietBtn.textContent = q ? 'Expand Bar' : 'Compact';
+    });
+
+    doorSel.addEventListener('change', () => savePilotState({ doorOpen: doorSel.value === 'open' }));
+    parcelSel.addEventListener('change', () => savePilotState({ parcelHolder: parcelSel.value }));
+    tideSel.addEventListener('change', () => savePilotState({ tidePhase: tideSel.value }));
+    poemSel.addEventListener('change', () => savePilotState({ poem: poemSel.value }));
+
+    const shaderSelectEl = document.getElementById('shader-select');
+    const applyLookToCity = (lookId) => {
+      if (!shaderSelectEl || !ALL_CITY_LOOKS.some((l) => l.id === lookId)) return;
+      if (shaderSelectEl.value !== lookId) {
+        shaderSelectEl.value = lookId;
+        shaderSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    };
+
+    const applyTimeToCity = (timeKey) => {
+      if (!SUITE_TIME_PRESETS[timeKey] || !window.__CITY__) return;
+      if (window.__CITY__.ledger.timeOfDay !== timeKey) {
+        window.__CITY__.ledger.timeOfDay = timeKey;
+        window.__CITY__.applyCartridgeAndTime();
+      }
+    };
+
+    // Apply initial query or pilot state onto Nolli Block
+    const targetLook = (shaderParam && ALL_CITY_LOOKS.some((l) => l.id === shaderParam) && shaderParam) || pilotInit.shader || 'weave';
+    applyLookToCity(targetLook);
+    if (shaderParam) savePilotState({ shader: targetLook }, { syncHash: false });
+
+    const targetTime = (timeParam && SUITE_TIME_PRESETS[timeParam] && timeParam) || hourToTimeKey(pilotInit.worldTime);
+    if (targetTime) applyTimeToCity(targetTime);
+
+    if (shaderSelectEl) {
+      shaderSelectEl.addEventListener('change', () => {
+        savePilotState({ shader: shaderSelectEl.value });
+      });
+    }
+    ['btn-prev-shader', 'btn-next-shader'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('click', () => {
+        if (shaderSelectEl) savePilotState({ shader: shaderSelectEl.value });
+      });
+    });
+    document.querySelectorAll('#stock-pills [data-stock]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.stock) savePilotState({ shader: btn.dataset.stock });
+      });
+    });
+    document.querySelectorAll('#time-pills [data-time]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const preset = SUITE_TIME_PRESETS[btn.dataset.time];
+        if (preset) savePilotState({ worldTime: preset.worldTime });
+      });
+    });
+    document.querySelectorAll('#cartridge-pills [data-cart]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.cart) savePilotState({ world: btn.dataset.cart });
+      });
+    });
+
+    function syncNavFromPilot(state) {
+      const hash = formatPilotHash(state);
+      brand.href = './design-room/' + hash;
+      routeAnchors.forEach((a) => {
+        a.href = a.dataset.baseHref + hash;
+      });
+      pilotChip.textContent = `Severn: Door ${state.doorOpen ? 'Open' : 'Shut'} | Parcel: ${state.parcelHolder}`;
+      doorSel.value = state.doorOpen ? 'open' : 'closed';
+      parcelSel.value = state.parcelHolder || 'player';
+      tideSel.value = state.tidePhase || 'second-gate';
+      poemSel.value = state.poem || '01';
+      if (state.shader) applyLookToCity(state.shader);
+    }
+
+    syncNavFromPilot(loadPilotState());
+    subscribePilotState(syncNavFromPilot);
+  </script>
 </body>
 </html>
