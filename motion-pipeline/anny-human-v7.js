@@ -30,7 +30,7 @@
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
 
-  const VERSION = '7.0.0';
+  const VERSION = '8.0.0-facs';
 
   const ARCHETYPES = Object.freeze({
     adult_f: {
@@ -99,17 +99,17 @@
     },
   });
 
-  // Viseme definitions: [jawOpen, mouthWide, mouthRound, lipPress]
+  // V8 Viseme definitions: [jawOpen, mouthWide, mouthRound, lipPress]
   const VISEME_SHAPES = Object.freeze({
-    SIL: [0.00, 0.00, 0.00, 0.05],
-    MM:  [0.02, 0.05, 0.08, 0.92],
-    FF:  [0.14, 0.20, 0.35, 0.55],
-    TH:  [0.24, 0.32, 0.05, 0.12],
-    LL:  [0.30, 0.25, 0.10, 0.05],
-    EE:  [0.28, 0.85, 0.00, 0.00],
-    AA:  [0.78, 0.42, 0.08, 0.00],
-    OH:  [0.64, 0.05, 0.72, 0.00],
-    OO:  [0.34, 0.00, 0.95, 0.08],
+    SIL: [0.00, 0.00, 0.00, 0.06],
+    MM:  [0.00, 0.06, 0.10, 1.00],
+    FF:  [0.18, 0.30, 0.34, 0.76],
+    TH:  [0.34, 0.44, 0.04, 0.08],
+    LL:  [0.42, 0.34, 0.08, 0.04],
+    EE:  [0.38, 1.00, 0.00, 0.00],
+    AA:  [0.98, 0.50, 0.10, 0.00],
+    OH:  [0.80, 0.04, 0.90, 0.00],
+    OO:  [0.44, 0.00, 1.00, 0.06],
   });
 
   const VISEMES = Object.freeze(Object.keys(VISEME_SHAPES));
@@ -130,15 +130,15 @@
     'eyeBlinkR',     // 11
   ]);
 
-  // Facial expression presets driving all 12 FACS targets
+  // V8 Facial expression presets driving all 12 FACS targets with expressive anatomical clarity
   const EXPRESSIONS = Object.freeze({
-    neutral:   { label: 'Neutral',       jaw: 0.00, smile: 0.06, frown: 0.00, funnel: 0.00, stretch: 0.00, press: 0.05, squint: 0.00, browIn: 0.00, browOut: 0.00, browDn: 0.00, lidDrop: 0.00, autoTalk: false },
-    talking:   { label: 'Talking',       jaw: 0.00, smile: 0.14, frown: 0.00, funnel: 0.04, stretch: 0.06, press: 0.00, squint: 0.08, browIn: 0.14, browOut: 0.16, browDn: 0.00, lidDrop: 0.00, autoTalk: true },
-    happy:     { label: 'Happy / Smile', jaw: 0.14, smile: 0.92, frown: 0.00, funnel: 0.00, stretch: 0.22, press: 0.00, squint: 0.78, browIn: 0.12, browOut: 0.28, browDn: 0.00, lidDrop: 0.14, autoTalk: false },
-    sad:       { label: 'Sad',           jaw: 0.05, smile: 0.00, frown: 0.86, funnel: 0.14, stretch: 0.00, press: 0.18, squint: 0.12, browIn: 0.90, browOut: 0.00, browDn: 0.15, lidDrop: 0.28, autoTalk: false },
-    surprised: { label: 'Surprised',     jaw: 0.70, smile: 0.00, frown: 0.00, funnel: 0.72, stretch: 0.00, press: 0.00, squint: 0.00, browIn: 0.85, browOut: 0.92, browDn: 0.00, lidDrop: -0.22, autoTalk: false },
-    strain:    { label: 'Strain / Carry',jaw: 0.18, smile: 0.00, frown: 0.32, funnel: 0.05, stretch: 0.54, press: 0.46, squint: 0.64, browIn: 0.18, browOut: 0.00, browDn: 0.76, lidDrop: 0.34, autoTalk: false },
-    angry:     { label: 'Angry',         jaw: 0.22, smile: 0.00, frown: 0.58, funnel: 0.14, stretch: 0.18, press: 0.56, squint: 0.48, browIn: 0.00, browOut: 0.00, browDn: 0.95, lidDrop: 0.22, autoTalk: false },
+    neutral:   { label: 'Neutral',       jaw: 0.00, smile: 0.08, frown: 0.00, funnel: 0.00, stretch: 0.00, press: 0.06, squint: 0.00, browIn: 0.00, browOut: 0.00, browDn: 0.00, lidDrop: 0.00, autoTalk: false },
+    talking:   { label: 'Talking',       jaw: 0.06, smile: 0.18, frown: 0.00, funnel: 0.06, stretch: 0.10, press: 0.00, squint: 0.14, browIn: 0.22, browOut: 0.24, browDn: 0.00, lidDrop: 0.00, autoTalk: true },
+    happy:     { label: 'Happy / Smile', jaw: 0.24, smile: 1.00, frown: 0.00, funnel: 0.00, stretch: 0.36, press: 0.00, squint: 0.92, browIn: 0.18, browOut: 0.36, browDn: 0.00, lidDrop: 0.18, autoTalk: false },
+    sad:       { label: 'Sad',           jaw: 0.08, smile: 0.00, frown: 0.96, funnel: 0.22, stretch: 0.00, press: 0.24, squint: 0.18, browIn: 1.00, browOut: 0.00, browDn: 0.18, lidDrop: 0.34, autoTalk: false },
+    surprised: { label: 'Surprised',     jaw: 0.86, smile: 0.00, frown: 0.00, funnel: 0.84, stretch: 0.00, press: 0.00, squint: 0.00, browIn: 0.96, browOut: 1.00, browDn: 0.00, lidDrop: -0.28, autoTalk: false },
+    strain:    { label: 'Strain / Carry',jaw: 0.28, smile: 0.00, frown: 0.44, funnel: 0.06, stretch: 0.68, press: 0.56, squint: 0.82, browIn: 0.26, browOut: 0.00, browDn: 0.88, lidDrop: 0.40, autoTalk: false },
+    angry:     { label: 'Angry',         jaw: 0.32, smile: 0.00, frown: 0.74, funnel: 0.18, stretch: 0.26, press: 0.68, squint: 0.62, browIn: 0.00, browOut: 0.00, browDn: 1.00, lidDrop: 0.28, autoTalk: false },
   });
 
   // Lazy-allocated scratch math objects (zero per-frame allocations, works before THREE loads)
@@ -853,149 +853,150 @@
       const absDx = Math.abs(dx);
       const cornerSign = dx >= 0 ? 1 : -1;
 
-      // 1. Mouth & Jaw Region (strictly below nose base so nostrils/philtrum stay clean)
+      // 1. V8 Mouth & Mandible Region (strictly below nose base so nostrils/philtrum stay clean)
       const dy = pHead.y - mouthY;
       const dz = pHead.z - mouthZ;
-      const rx = absDx / (mouthW * 1.62);
-      const ry = Math.abs(dy) / (mouthH * 1.78);
-      const rz = Math.max(0, -dz) / (hm.rz * 0.78);
+      const rx = absDx / (mouthW * 1.85);
+      const ry = Math.abs(dy) / (dy < 0 ? mouthH * 2.25 : mouthH * 1.55);
+      const rz = Math.max(0, -dz) / (hm.rz * 0.88);
       const d2 = rx * rx + ry * ry + rz * rz;
-      if (d2 < 1.0 && pHead.y < mouthY + eyeSpanX * 0.52) {
+      if (d2 < 1.0 && pHead.y < mouthY + eyeSpanX * 0.54) {
         const falloff = (1 - d2) * (1 - d2);
-        const horizMouth = clamp(1 - absDx / (mouthW * 1.08), 0, 1);
+        const horizMouth = clamp(1 - absDx / (mouthW * 1.15), 0, 1);
         const horizCurve = horizMouth * horizMouth * (3 - 2 * horizMouth);
         const isLower = dy < 0.0;
         const cornerFactor = clamp(absDx / Math.max(0.012, mouthW), 0, 1);
+        const chinFactor = dy < -eyeSpanX * 0.22 ? clamp((-dy - eyeSpanX * 0.22) / (eyeSpanX * 0.95), 0, 1) * horizCurve : 0;
 
-        const seamDist = Math.abs(dy) / (eyeSpanX * 0.22);
+        const seamDist = Math.abs(dy) / (eyeSpanX * 0.25);
         const seamW = seamDist < 1.0 ? (1 - seamDist * seamDist) * horizCurve : 0;
-        const upperW = dy > 0 ? clamp((eyeSpanX * 0.44 - dy) / (eyeSpanX * 0.44), 0, 1) * clamp(dy / (eyeSpanX * 0.08), 0, 1) * horizCurve : 0;
-        const lowerW = dy < eyeSpanX * 0.03 ? clamp((eyeSpanX * 0.03 - dy) / (eyeSpanX * 0.34), 0, 1) : 0;
+        const upperW = dy > 0 ? clamp((eyeSpanX * 0.46 - dy) / (eyeSpanX * 0.46), 0, 1) * clamp(dy / (eyeSpanX * 0.06), 0, 1) * horizCurve : 0;
+        const lowerW = dy < eyeSpanX * 0.04 ? clamp((eyeSpanX * 0.04 - dy) / (eyeSpanX * 0.28), 0, 1) : 0;
 
-        // 0: jawOpen — upper/lower lip parting + inner lip-seam recession into oral cavity
+        // 0: jawOpen — real lower-face/mandible drop + wide parted lips + deep oral cavity opening
         const jawY =
-          -eyeSpanX * 0.70 * lowerW * Math.pow(falloff, 0.72) +
-          eyeSpanX * 0.22 * upperW * Math.pow(falloff, 0.75);
+          -eyeSpanX * 1.18 * lowerW * Math.pow(falloff, 0.58) +
+          eyeSpanX * 0.34 * upperW * Math.pow(falloff, 0.72);
         const jawZ =
-          -eyeSpanX * 0.56 * seamW -
-          eyeSpanX * 0.14 * lowerW * falloff +
-          eyeSpanX * 0.06 * upperW * falloff;
+          -eyeSpanX * 0.84 * seamW -
+          eyeSpanX * 0.24 * lowerW * falloff +
+          eyeSpanX * 0.09 * upperW * falloff;
         addDelta(mJaw, v, 0, jawY, jawZ);
 
-        // 1: mouthSmile — corner lift + outward pull
+        // 1: mouthSmile — deep zygomatic corner lift + outward pull
         addDelta(
           mSmile, v,
-          cornerSign * hm.rx * 0.17 * falloff * (0.30 + 0.70 * cornerFactor),
-          hm.ry * 0.145 * falloff * (0.20 + 0.80 * cornerFactor),
-          -hm.rz * 0.042 * falloff * cornerFactor
+          cornerSign * hm.rx * 0.29 * falloff * (0.28 + 0.72 * cornerFactor),
+          hm.ry * 0.25 * falloff * (0.18 + 0.82 * cornerFactor),
+          -hm.rz * 0.070 * falloff * cornerFactor
         );
 
-        // 2: mouthFrown — corner drop + slight chin/lower-lip pout
+        // 2: mouthFrown — depressor anguli oris corner drop + chin mentalis dimple pout
         addDelta(
           mFrown, v,
-          -cornerSign * hm.rx * 0.045 * falloff * cornerFactor,
-          -hm.ry * 0.145 * falloff * (0.25 + 0.75 * cornerFactor),
-          (isLower ? hm.rz * 0.032 : -hm.rz * 0.018) * falloff * cornerFactor
+          -cornerSign * hm.rx * 0.075 * falloff * cornerFactor,
+          -hm.ry * 0.24 * falloff * (0.22 + 0.78 * cornerFactor) + hm.ry * 0.065 * chinFactor,
+          (isLower ? hm.rz * 0.065 : -hm.rz * 0.028) * falloff * cornerFactor + hm.rz * 0.060 * chinFactor
         );
 
-        // 3: mouthFunnel — OO/OH lip protrusion & horizontal pursing
+        // 3: mouthFunnel — strong OO/OH lip protrusion & horizontal pursing
         addDelta(
           mFunnel, v,
-          -dx * 0.34 * falloff,
-          (isLower ? -hm.ry * 0.055 : hm.ry * 0.036) * falloff,
-          hm.rz * 0.17 * falloff
+          -dx * 0.52 * falloff,
+          (isLower ? -hm.ry * 0.092 : hm.ry * 0.064) * falloff,
+          hm.rz * 0.30 * falloff
         );
 
-        // 4: mouthStretch — EE wide horizontal stretch
+        // 4: mouthStretch — crisp EE wide horizontal teeth-flash stretch
         addDelta(
           mStretch, v,
-          cornerSign * hm.rx * 0.20 * falloff * (0.25 + 0.75 * cornerFactor),
-          (isLower ? -hm.ry * 0.025 : hm.ry * 0.018) * falloff * cornerFactor,
-          -hm.rz * 0.035 * falloff * cornerFactor
+          cornerSign * hm.rx * 0.35 * falloff * (0.22 + 0.78 * cornerFactor),
+          (isLower ? -hm.ry * 0.055 : hm.ry * 0.052) * falloff * (0.35 + 0.65 * cornerFactor),
+          -hm.rz * 0.055 * falloff * cornerFactor
         );
 
-        // 5: lipPress — MM seal drawing upper & lower lips firmly together
+        // 5: lipPress — firm MM lip seal drawing upper & lower vermilion tightly together
         addDelta(
           mPress, v,
           0,
-          (isLower ? hm.ry * 0.072 : -hm.ry * 0.072) * falloff,
-          -hm.rz * 0.038 * falloff
+          (isLower ? hm.ry * 0.125 : -hm.ry * 0.125) * falloff,
+          -hm.rz * 0.062 * falloff
         );
       }
 
       // 1b. Malar Cheek Raise (contributes to mouthSmile & cheekSquint Duchenne crinkle)
-      const cDx = (absDx - eyeSpanX * 1.05) / (eyeSpanX * 1.15);
-      const cDy = (pHead.y - cheekY) / (eyeSpanX * 0.85);
+      const cDx = (absDx - eyeSpanX * 1.05) / (eyeSpanX * 1.25);
+      const cDy = (pHead.y - cheekY) / (eyeSpanX * 0.95);
       const cd2 = cDx * cDx + cDy * cDy;
-      if (cd2 < 1.0 && pHead.z > eyeZ - hm.rz * 0.22) {
+      if (cd2 < 1.0 && pHead.z > eyeZ - hm.rz * 0.24) {
         const cf = (1 - cd2) * (1 - cd2);
-        // Subtle malar cheek lift baked into mouthSmile
-        addDelta(mSmile, v, cornerSign * hm.rx * 0.025 * cf, hm.ry * 0.058 * cf, hm.rz * 0.042 * cf);
+        // Deep zygomatic cheek lift baked into mouthSmile
+        addDelta(mSmile, v, cornerSign * hm.rx * 0.048 * cf, hm.ry * 0.115 * cf, hm.rz * 0.078 * cf);
         // 6: cheekSquint — Duchenne eye crinkle & lower-lid cheek bunching
         addDelta(
           mSquint, v,
-          -cornerSign * hm.rx * 0.030 * cf,
-          hm.ry * 0.088 * cf,
-          hm.rz * 0.052 * cf
+          -cornerSign * hm.rx * 0.052 * cf,
+          hm.ry * 0.155 * cf,
+          hm.rz * 0.088 * cf
         );
       }
 
       // 2. Brow Region (browInnerUp, browOuterUp, browDown)
       const bdy = pHead.y - browY;
-      const brx = absDx / (eyeSpanX * 2.05);
-      const bry = Math.abs(bdy) / (hm.ry * 0.26);
+      const brx = absDx / (eyeSpanX * 2.15);
+      const bry = Math.abs(bdy) / (hm.ry * 0.30);
       const bd2 = brx * brx + bry * bry;
-      if (bd2 < 1.0 && pHead.z > eyeZ - hm.rz * 0.16) {
+      if (bd2 < 1.0 && pHead.z > eyeZ - hm.rz * 0.18) {
         const bf = (1 - bd2) * (1 - bd2);
         const innerW = clamp(1.0 - absDx / (eyeSpanX * 1.25), 0, 1);
-        const outerW = clamp((absDx - eyeSpanX * 0.35) / (eyeSpanX * 1.30), 0, 1);
+        const outerW = clamp((absDx - eyeSpanX * 0.32) / (eyeSpanX * 1.32), 0, 1);
 
         // 7: browInnerUp (grief/pleading medial lift)
         addDelta(
           mBrowIn, v,
-          -cornerSign * hm.rx * 0.022 * bf * innerW,
-          hm.ry * 0.125 * bf * (0.25 + 0.75 * innerW),
-          hm.rz * 0.015 * bf * innerW
+          -cornerSign * hm.rx * 0.040 * bf * innerW,
+          hm.ry * 0.22 * bf * (0.24 + 0.76 * innerW),
+          hm.rz * 0.028 * bf * innerW
         );
 
         // 8: browOuterUp (surprise lateral arch lift)
         addDelta(
           mBrowOut, v,
-          cornerSign * hm.rx * 0.018 * bf * outerW,
-          hm.ry * 0.120 * bf * (0.20 + 0.80 * outerW),
-          hm.rz * 0.012 * bf * outerW
+          cornerSign * hm.rx * 0.034 * bf * outerW,
+          hm.ry * 0.21 * bf * (0.18 + 0.82 * outerW),
+          hm.rz * 0.024 * bf * outerW
         );
 
         // 9: browDown (anger/focus furrow down & inward)
         addDelta(
           mBrowDn, v,
-          -cornerSign * hm.rx * 0.042 * bf * (0.35 + 0.65 * innerW),
-          -hm.ry * 0.105 * bf * (0.50 + 0.50 * innerW),
-          hm.rz * 0.032 * bf
+          -cornerSign * hm.rx * 0.076 * bf * (0.35 + 0.65 * innerW),
+          -hm.ry * 0.185 * bf * (0.48 + 0.52 * innerW),
+          hm.rz * 0.056 * bf
         );
       }
 
       // 3. Eyelid Socket Region (10: eyeBlinkL, 11: eyeBlinkR)
-      if (pHead.z > eyeZ - eyeR_rad * 0.8) {
+      if (pHead.z > eyeZ - eyeR_rad * 0.85) {
         const eDy = pHead.y - eyeY;
-        const eRadY = eyeR_rad * 1.35;
-        const eRadX = eyeR_rad * 1.65;
+        const eRadY = eyeR_rad * 1.40;
+        const eRadX = eyeR_rad * 1.72;
         // Left eye (dx > 0)
         const lx = (pHead.x - eyeLX) / eRadX;
         const ly = eDy / eRadY;
         const ld2 = lx * lx + ly * ly;
         if (ld2 < 1.0) {
           const lf = (1 - ld2) * (1 - ld2);
-          const lidMoveY = eDy >= 0 ? -eyeR_rad * 0.82 * lf : eyeR_rad * 0.28 * lf;
-          addDelta(mBlinkL, v, 0, lidMoveY, eyeR_rad * 0.18 * lf);
+          const lidMoveY = eDy >= 0 ? -eyeR_rad * 1.04 * lf : eyeR_rad * 0.34 * lf;
+          addDelta(mBlinkL, v, 0, lidMoveY, eyeR_rad * 0.22 * lf);
         }
         // Right eye (dx < 0)
         const rxE = (pHead.x - eyeRX) / eRadX;
         const rd2 = rxE * rxE + ly * ly;
         if (rd2 < 1.0) {
           const rf = (1 - rd2) * (1 - rd2);
-          const lidMoveY = eDy >= 0 ? -eyeR_rad * 0.82 * rf : eyeR_rad * 0.28 * rf;
-          addDelta(mBlinkR, v, 0, lidMoveY, eyeR_rad * 0.18 * rf);
+          const lidMoveY = eDy >= 0 ? -eyeR_rad * 1.04 * rf : eyeR_rad * 0.34 * rf;
+          addDelta(mBlinkR, v, 0, lidMoveY, eyeR_rad * 0.22 * rf);
         }
       }
     }
@@ -1436,8 +1437,9 @@
   }
 
   /**
-   * Build clean minimalist Ethiopian leather sandals hugging the exact measured foot geometry:
-   * thin contoured leather sole + curved forefoot strap + slim ankle/heel strap at y = 0.
+   * Build clean Ethiopian leather sandals hugging the exact measured foot geometry:
+   * contoured dark sole + warm contrasting saddle-leather (#7a4c2a) toe-bridge strap,
+   * crossed dorsal vamp straps, and heel/ankle strap offset +7-9 mm proud above the dorsal foot mesh.
    */
   function buildEthiopianSandal(THREE, footBone, side, footM, heightScale, leatherMat, soleMat, disposables) {
     const group = new THREE.Group();
@@ -1445,17 +1447,27 @@
     const s = heightScale / 1.65;
 
     const fm = footM || {
-      cx: 0, w: 0.088 * s, minY: -0.044 * s, maxY: 0.03 * s,
+      cx: 0, w: 0.088 * s, minY: -0.044 * s, maxY: 0.03 * s, h: 0.074 * s,
       minZ: -0.052 * s, maxZ: 0.185 * s, cz: 0.066 * s, len: 0.237 * s,
     };
 
+    // Warm contrasting saddle-leather (#7a4c2a) so top straps read unmistakably against all skin tones
+    const saddleStrapMat = getSharedSolidMaterial(THREE, 'sandal_saddle_leather_v8', {
+      color: 0x7a4c2a,
+      roughness: 0.56,
+      metalness: 0.04,
+      side: THREE.DoubleSide,
+    });
+
     const soleThick = 0.011 * s;
-    const soleW = Math.max(0.055 * s, fm.w * 1.04);
-    const soleLen = Math.max(0.14 * s, fm.len * 1.02);
+    const soleW = Math.max(0.058 * s, fm.w * 1.06);
+    const soleLen = Math.max(0.145 * s, fm.len * 1.03);
     const soleY = fm.minY - soleThick * 0.45;
+    const footH = Math.max(0.044 * s, (fm.maxY - fm.minY));
+    const proudLift = 0.0082 * s; // +8.2 mm proud above dorsal foot mesh
 
     // Rounded contoured leather sole using extruded pill/stadium shape
-    const hw = soleW * 0.48;
+    const hw = soleW * 0.49;
     const hl = Math.max(0.01, soleLen * 0.5 - hw);
     const shape = new THREE.Shape();
     shape.moveTo(-hw, -hl);
@@ -1474,9 +1486,11 @@
     });
     soleGeo.rotateX(Math.PI * 0.5);
 
-    const foreStrapGeo = new THREE.TorusGeometry(soleW * 0.50, 0.0075 * s, 6, 16, Math.PI);
-    const ankleStrapGeo = new THREE.TorusGeometry(soleW * 0.46, 0.0065 * s, 6, 16, Math.PI * 1.15);
-    disposables.push(soleGeo, foreStrapGeo, ankleStrapGeo);
+    const strapR = soleW * 0.52;
+    const toeBridgeGeo = new THREE.TorusGeometry(strapR, 0.0072 * s, 8, 20, Math.PI);
+    const vampStrapGeo = new THREE.TorusGeometry(strapR * 1.02, 0.0078 * s, 8, 20, Math.PI);
+    const ankleStrapGeo = new THREE.TorusGeometry(soleW * 0.49, 0.0070 * s, 8, 20, Math.PI * 1.25);
+    disposables.push(soleGeo, toeBridgeGeo, vampStrapGeo, ankleStrapGeo);
 
     const sole = new THREE.Mesh(soleGeo, soleMat);
     sole.position.set(fm.cx, soleY + soleThick * 0.5, fm.cz);
@@ -1484,18 +1498,34 @@
     sole.receiveShadow = true;
     group.add(sole);
 
-    // Forefoot leather strap arching cleanly across the instep
-    const foreStrap = new THREE.Mesh(foreStrapGeo, leatherMat);
-    foreStrap.position.set(fm.cx, soleY + soleThick * 0.35, fm.cz + soleLen * 0.14);
-    foreStrap.scale.set(1.02, 0.62, 1.35);
-    foreStrap.castShadow = true;
-    group.add(foreStrap);
+    // 1. Forefoot toe-bridge strap arching +8mm proud across the metatarsal/toe bridge
+    const toeBridgeTargetTop = fm.minY + footH * 0.56 + proudLift;
+    const toeBridgeBaseY = soleY + soleThick * 0.45;
+    const toeBridgeScaleY = Math.max(0.75, (toeBridgeTargetTop - toeBridgeBaseY) / strapR);
+    const toeBridge = new THREE.Mesh(toeBridgeGeo, saddleStrapMat);
+    toeBridge.position.set(fm.cx, toeBridgeBaseY, fm.cz + soleLen * 0.19);
+    toeBridge.scale.set(1.06, toeBridgeScaleY, 1.85);
+    toeBridge.castShadow = true;
+    group.add(toeBridge);
 
-    // Slim ankle/heel leather strap
-    const ankleStrap = new THREE.Mesh(ankleStrapGeo, leatherMat);
-    ankleStrap.position.set(fm.cx, soleY + soleThick * 0.5 + 0.018 * s, fm.cz - soleLen * 0.20);
-    ankleStrap.rotation.x = -0.32;
-    ankleStrap.scale.set(0.98, 0.92, 1.0);
+    // 2. Crossed dorsal vamp straps riding +8.5mm proud over the midfoot instep
+    const vampTargetTop = fm.minY + footH * 0.78 + proudLift;
+    const vampBaseY = soleY + soleThick * 0.45;
+    const vampScaleY = Math.max(0.95, (vampTargetTop - vampBaseY) / (strapR * 1.02));
+    for (const dir of [-1, 1]) {
+      const vamp = new THREE.Mesh(vampStrapGeo, saddleStrapMat);
+      vamp.position.set(fm.cx, vampBaseY, fm.cz + soleLen * 0.02);
+      vamp.rotation.y = dir * 0.34;
+      vamp.scale.set(1.08, vampScaleY, 1.65);
+      vamp.castShadow = true;
+      group.add(vamp);
+    }
+
+    // 3. Proud heel/ankle leather strap wrapping cleanly behind and over the ankle collar
+    const ankleStrap = new THREE.Mesh(ankleStrapGeo, saddleStrapMat);
+    ankleStrap.position.set(fm.cx, fm.minY + footH * 0.52 + proudLift * 0.6, fm.cz - soleLen * 0.18);
+    ankleStrap.rotation.x = -0.30;
+    ankleStrap.scale.set(1.06, 1.02, 1.25);
     ankleStrap.castShadow = true;
     group.add(ankleStrap);
 
@@ -1704,33 +1734,40 @@
     });
 
     const archR = mouthW * 0.62;
-    const archH = refEyeSpan * 0.135;
-    const cavGeo = new THREE.SphereGeometry(mouthW * 0.66, 16, 12);
+    const archH = refEyeSpan * 0.145;
+    const cavGeo = new THREE.SphereGeometry(mouthW * 0.68, 16, 12);
     const upperArchGeo = new THREE.CylinderGeometry(archR, archR * 0.96, archH, 18, 1, true, -0.78, 1.56);
     const lowerArchGeo = new THREE.CylinderGeometry(archR * 0.90, archR * 0.86, archH * 0.84, 16, 1, true, -0.72, 1.44);
-    const tongueGeo = new THREE.SphereGeometry(mouthW * 0.38, 14, 10);
-    disposables.push(cavGeo, upperArchGeo, lowerArchGeo, tongueGeo);
+    const tongueGeo = new THREE.SphereGeometry(mouthW * 0.36, 14, 10);
+    const tongueTipGeo = new THREE.SphereGeometry(mouthW * 0.22, 12, 8);
+    disposables.push(cavGeo, upperArchGeo, lowerArchGeo, tongueGeo, tongueTipGeo);
 
     // Deep dark oral cavity backdrop seated strictly inside the parted lips
     const cavity = new THREE.Mesh(cavGeo, darkCavityMat);
     cavity.position.set(0, -refEyeSpan * 0.05, -archR * 0.72);
-    cavity.scale.set(0.92, 0.58, 0.56);
+    cavity.scale.set(0.92, 0.62, 0.56);
     mouthGroup.add(cavity);
 
     // Curved ivory upper dental arch (fixed to maxilla just behind upper lip)
     const upperTeeth = new THREE.Mesh(upperArchGeo, teethArchMat);
-    upperTeeth.position.set(0, refEyeSpan * 0.045, -archR * 0.78);
+    upperTeeth.position.set(0, refEyeSpan * 0.052, -archR * 0.74);
     mouthGroup.add(upperTeeth);
 
     // Curved ivory lower dental arch (drops dynamically with jawOpen)
     const lowerTeeth = new THREE.Mesh(lowerArchGeo, teethArchMat);
-    lowerTeeth.position.set(0, -refEyeSpan * 0.11, -archR * 0.82);
+    lowerTeeth.position.set(0, -refEyeSpan * 0.11, -archR * 0.78);
     mouthGroup.add(lowerTeeth);
 
-    // Moving pink tongue seated inside the lower arch
-    const tongue = new THREE.Mesh(tongueGeo, pinkTongueMat);
+    // Articulated 3D pink tongue body + mobile tongue tip (lifts on TH/LL, retracts on OH/OO)
+    const tongue = new THREE.Group();
     tongue.position.set(0, -refEyeSpan * 0.14, -archR * 0.50);
-    tongue.scale.set(0.88, 0.38, 0.90);
+    const tongueBody = new THREE.Mesh(tongueGeo, pinkTongueMat);
+    tongueBody.scale.set(0.88, 0.36, 0.92);
+    tongue.add(tongueBody);
+    const tongueTip = new THREE.Mesh(tongueTipGeo, pinkTongueMat);
+    tongueTip.position.set(0, refEyeSpan * 0.02, archR * 0.34);
+    tongueTip.scale.set(0.82, 0.34, 0.86);
+    tongue.add(tongueTip);
     mouthGroup.add(tongue);
 
     mouthGroup.visible = false;
@@ -1746,6 +1783,8 @@
       upperTeeth,
       lowerTeeth,
       tongue,
+      tongueTip,
+      archR,
       hm,
       refEyeSpan,
     };
@@ -2887,25 +2926,38 @@
         currentViseme = targetViseme;
       }
 
-      // 2b. Real 3D eyes (wide-open white sclera + natural blink) & talking mouth interior
+      // 2b. Real 3D eyes (wide-open white sclera + natural blink) & talking mouth interior with articulated tongue tip
       if (faceRig) {
         for (let i = 0; i < faceRig.upperLids.length; i++) {
           const bW = i === 0 ? smoothMorph[10] : smoothMorph[11];
           faceRig.upperLids[i].rotation.x = -0.74 + expr.lidDrop * 0.25 + bW * 1.15;
         }
         const jawNow = smoothMorph[0];
-        faceRig.mouthGroup.visible = jawNow > 0.16;
+        const wideNow = Math.max(smoothMorph[1], smoothMorph[4]);
+        faceRig.mouthGroup.visible = jawNow > 0.08 || wideNow > 0.45;
         if (faceRig.mouthGroup.visible) {
           const sp = faceRig.refEyeSpan || (faceRig.hm.rx * 0.38);
+          const archR = faceRig.archR || (sp * 0.58);
           faceRig.mouthGroup.scale.set(
-            0.90 + Math.max(smoothMorph[1], smoothMorph[4]) * 0.22 - smoothMorph[3] * 0.24,
-            0.48 + jawNow * 0.92,
+            0.90 + wideNow * 0.24 - smoothMorph[3] * 0.26,
+            0.46 + jawNow * 0.98,
             1.0
           );
-          faceRig.lowerTeeth.position.y = -sp * (0.10 + jawNow * 0.28);
-          const tongueLift = (currentViseme.viseme === 'LL' || currentViseme.viseme === 'TH' || currentViseme.viseme === 'EE') ? 0.08 : 0.0;
-          faceRig.tongue.position.y = -sp * (0.14 + jawNow * 0.16 - tongueLift);
-          faceRig.tongue.rotation.x = -0.15 + tongueLift * 3.2;
+          faceRig.lowerTeeth.position.y = -sp * (0.10 + jawNow * 0.32);
+
+          const vName = currentViseme.viseme;
+          const isLift = (vName === 'TH' || vName === 'LL');
+          const isRetract = (vName === 'OH' || vName === 'OO');
+          const tongueLiftY = isLift ? 0.14 : (vName === 'EE' ? 0.05 : (isRetract ? -0.05 : 0.0));
+          const tongueSlideZ = isLift ? archR * 0.30 : (isRetract ? -archR * 0.26 : 0.0);
+
+          faceRig.tongue.position.y = -sp * (0.14 + jawNow * 0.14 - tongueLiftY);
+          faceRig.tongue.position.z = -archR * 0.50 + tongueSlideZ;
+          faceRig.tongue.rotation.x = isLift ? -0.42 : (isRetract ? 0.24 : -0.10);
+          if (faceRig.tongueTip) {
+            faceRig.tongueTip.position.y = sp * (isLift ? 0.085 : (isRetract ? -0.025 : 0.015));
+            faceRig.tongueTip.position.z = archR * (isLift ? 0.44 : (isRetract ? 0.22 : 0.34));
+          }
         }
       }
 
@@ -3007,12 +3059,26 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Sapiens Tracked Pose & Live Webcam Pose Applicator (Anny 104-Bone Rig)
+  // Sapiens Tracked Pose & Live Webcam Pose Applicator (Anny 104-Bone Rig — V8 Smoothed & Amplified)
   // ---------------------------------------------------------------------------
   function applySapiensPoseToRig(rig, sample, mode) {
     if (!rig || !sample || !sample.angles || !rig.bonesByNorm || !_eulSap) return;
     const a = sample.angles;
     const solo = mode === 'solo';
+
+    // Per-rig smoothing state so 18-keyframe Sapiens tracks mirror fluidly without jitter
+    if (!rig._sapSmooth) {
+      rig._sapSmooth = {
+        spP: 0, spY: 0, spR: 0,
+        hdP: 0, hdY: 0, hdR: 0,
+        lArmZ: 0, rArmZ: 0, lArmX: 0, rArmX: 0,
+        lElb: 0, rElb: 0, lWrF: 0, rWrF: 0, lWrR: 0, rWrR: 0,
+        lCurl: 0, rCurl: 0, jaw: 0,
+      };
+    }
+    const sm = rig._sapSmooth;
+    const alpha = 0.32;
+    const sLerp = (cur, target) => cur + (target - cur) * alpha;
 
     if (solo) {
       for (const [name, rest] of rig.restQuats.entries()) {
@@ -3034,62 +3100,81 @@
       }
     };
 
-    const spP = a.spinePitch || 0;
-    const spY = a.spineYaw || 0;
-    const spR = a.spineRoll || 0;
-    const hdP = a.headPitch || 0;
-    const hdY = a.headYaw || 0;
-    const hdR = a.headRoll || 0;
+    // Amplified torso lean & head turns so video acting reads clearly on the 3D character
+    sm.spP = sLerp(sm.spP, clamp((a.spinePitch || 0) * 1.35, -0.55, 0.55));
+    sm.spY = sLerp(sm.spY, clamp((a.spineYaw || 0) * 1.30, -0.65, 0.65));
+    sm.spR = sLerp(sm.spR, clamp((a.spineRoll || 0) * 1.30, -0.45, 0.45));
+    sm.hdP = sLerp(sm.hdP, clamp((a.headPitch || 0) * 1.40, -0.65, 0.65));
+    sm.hdY = sLerp(sm.hdY, clamp((a.headYaw || 0) * 1.45, -0.95, 0.95));
+    sm.hdR = sLerp(sm.hdR, clamp((a.headRoll || 0) * 1.35, -0.55, 0.55));
 
-    applyBone('spine03', spP * 0.5, spY * 0.45, spR * 0.5);
-    applyBone('spine01', spP * 0.5, spY * 0.55, spR * 0.5);
-    applyBone('neck01', hdP * 0.45, hdY * 0.45, hdR * 0.4);
-    applyBone('head', hdP * 0.55, hdY * 0.55, hdR * 0.6);
+    applyBone('spine03', sm.spP * 0.52, sm.spY * 0.48, sm.spR * 0.52);
+    applyBone('spine01', sm.spP * 0.48, sm.spY * 0.52, sm.spR * 0.48);
+    applyBone('neck01', sm.hdP * 0.45, sm.hdY * 0.45, sm.hdR * 0.42);
+    applyBone('head', sm.hdP * 0.55, sm.hdY * 0.55, sm.hdR * 0.58);
 
-    // Clamp arm Z angles so arms never clip into torso
-    const lArmZ = clamp((a.leftArmZ || 0) * 0.55, -0.22, 1.45);
-    const rArmZ = clamp((a.rightArmZ || 0) * 0.55, -0.22, 1.45);
-    const lArmX = clamp((a.leftShoulderX || a.leftArmX || 0) * 0.55, -1.2, 1.2);
-    const rArmX = clamp((a.rightShoulderX || a.rightArmX || 0) * 0.55, -1.2, 1.2);
-    applyBone('upperarm01l', lArmX, 0, lArmZ);
-    applyBone('upperarm01r', rArmX, 0, -rArmZ);
-    applyBone('lowerarm01l', clamp((a.leftElbowFlex || 0) * 0.5, 0, 1.65), 0, 0);
-    applyBone('lowerarm01r', clamp((a.rightElbowFlex || 0) * 0.5, 0, 1.65), 0, 0);
-    applyBone('wristl', clamp((a.leftWristFlex || 0) * 0.45, -0.7, 0.7), 0, clamp((a.leftWristRoll || 0) * 0.4, -0.7, 0.7));
-    applyBone('wristr', clamp((a.rightWristFlex || 0) * 0.45, -0.7, 0.7), 0, clamp((a.rightWristRoll || 0) * 0.4, -0.7, 0.7));
+    // Expressive arm gestures clamped safely so arms never clip into torso
+    sm.lArmZ = sLerp(sm.lArmZ, clamp((a.leftArmZ || 0) * 0.85, -0.22, 1.55));
+    sm.rArmZ = sLerp(sm.rArmZ, clamp((a.rightArmZ || 0) * 0.85, -0.22, 1.55));
+    sm.lArmX = sLerp(sm.lArmX, clamp((a.leftShoulderX || a.leftArmX || 0) * 0.85, -1.35, 1.35));
+    sm.rArmX = sLerp(sm.rArmX, clamp((a.rightShoulderX || a.rightArmX || 0) * 0.85, -1.35, 1.35));
+    sm.lElb = sLerp(sm.lElb, clamp((a.leftElbowFlex || 0) * 0.82, 0, 1.75));
+    sm.rElb = sLerp(sm.rElb, clamp((a.rightElbowFlex || 0) * 0.82, 0, 1.75));
+    sm.lWrF = sLerp(sm.lWrF, clamp((a.leftWristFlex || 0) * 0.65, -0.8, 0.8));
+    sm.rWrF = sLerp(sm.rWrF, clamp((a.rightWristFlex || 0) * 0.65, -0.8, 0.8));
+    sm.lWrR = sLerp(sm.lWrR, clamp((a.leftWristRoll || 0) * 0.55, -0.8, 0.8));
+    sm.rWrR = sLerp(sm.rWrR, clamp((a.rightWristRoll || 0) * 0.55, -0.8, 0.8));
 
-    // Finger curl scalars (palmar-safe positive X flexion on finger1/2/3/4/5)
-    const lCurl = clamp(a.leftFingerCurl || 0, 0, 1);
-    const rCurl = clamp(a.rightFingerCurl || 0, 0, 1);
-    if (lCurl > 0.02 || solo) {
-      const ang = lCurl * 0.78;
+    applyBone('upperarm01l', sm.lArmX, 0, sm.lArmZ);
+    applyBone('upperarm01r', sm.rArmX, 0, -sm.rArmZ);
+    applyBone('lowerarm01l', sm.lElb, 0, 0);
+    applyBone('lowerarm01r', sm.rElb, 0, 0);
+    applyBone('wristl', sm.lWrF, 0, sm.lWrR);
+    applyBone('wristr', sm.rWrF, 0, sm.rWrR);
+
+    // Finger curl scalars (palmar-safe positive X flexion on finger2..5)
+    sm.lCurl = sLerp(sm.lCurl, clamp(a.leftFingerCurl || 0, 0, 1));
+    sm.rCurl = sLerp(sm.rCurl, clamp(a.rightFingerCurl || 0, 0, 1));
+    if (sm.lCurl > 0.02 || solo) {
+      const ang = sm.lCurl * 0.95;
       for (let f = 2; f <= 5; f++) {
         applyBone(`finger${f}1l`, ang, 0, 0);
-        applyBone(`finger${f}2l`, ang * 0.9, 0, 0);
+        applyBone(`finger${f}2l`, ang * 0.92, 0, 0);
       }
     }
-    if (rCurl > 0.02 || solo) {
-      const ang = rCurl * 0.78;
+    if (sm.rCurl > 0.02 || solo) {
+      const ang = sm.rCurl * 0.95;
       for (let f = 2; f <= 5; f++) {
         applyBone(`finger${f}1r`, ang, 0, 0);
-        applyBone(`finger${f}2r`, ang * 0.9, 0, 0);
+        applyBone(`finger${f}2r`, ang * 0.92, 0, 0);
       }
     }
 
-    // Mouth jaw openness & FACS blendshapes from Sapiens 308 face keypoints or live webcam
-    const jawVal = typeof a.jawOpen === 'number' ? a.jawOpen : (typeof sample.mouthOpenRatio === 'number' ? sample.mouthOpenRatio : null);
-    if (jawVal !== null && rig.setJawOpenness) {
-      rig.setJawOpenness(clamp(jawVal * 1.45, 0, 1));
+    // Mouth jaw openness, mouthStretch & expressive brow lift from Sapiens mouthOpenRatio / jawOpen
+    const rawMouth = typeof sample.mouthOpenRatio === 'number'
+      ? Math.max(sample.mouthOpenRatio, typeof a.jawOpen === 'number' ? a.jawOpen : 0)
+      : (typeof a.jawOpen === 'number' ? a.jawOpen : null);
+    if (rawMouth !== null) {
+      sm.jaw = sLerp(sm.jaw, clamp(rawMouth * 1.95, 0, 1));
+      if (rig.setVisemeShape) {
+        const stretch = clamp(sm.jaw * 0.58, 0, 0.85);
+        const funnel = clamp(sm.jaw * 0.22, 0, 0.40);
+        const vis = sm.jaw > 0.55 ? 'AA' : (sm.jaw > 0.28 ? 'EE' : (sm.jaw > 0.12 ? 'LL' : 'SIL'));
+        rig.setVisemeShape(sm.jaw, stretch, funnel, sm.jaw < 0.08 ? 0.12 : 0.0, vis);
+      } else if (rig.setJawOpenness) {
+        rig.setJawOpenness(sm.jaw);
+      }
     }
-    if (rig.setFacsTargets && (sample.facs || a.mouthSmile !== undefined || a.browInnerUp !== undefined || a.eyeBlinkL !== undefined)) {
+    if (rig.setFacsTargets) {
+      const browBoost = clamp(sm.jaw * 0.42 + Math.abs(sm.hdP) * 0.35, 0, 0.65);
       rig.setFacsTargets(sample.facs || {
-        mouthSmile: a.mouthSmile || 0,
+        mouthSmile: a.mouthSmile || clamp(sm.jaw * 0.22, 0, 0.35),
         mouthFrown: a.mouthFrown || 0,
-        mouthFunnel: a.mouthFunnel || 0,
-        mouthStretch: a.mouthStretch || 0,
-        cheekSquint: a.cheekSquint || 0,
-        browInnerUp: a.browInnerUp || 0,
-        browOuterUp: a.browOuterUp || 0,
+        mouthFunnel: a.mouthFunnel || clamp(sm.jaw * 0.22, 0, 0.40),
+        mouthStretch: a.mouthStretch || clamp(sm.jaw * 0.58, 0, 0.85),
+        cheekSquint: a.cheekSquint || clamp(sm.jaw * 0.18, 0, 0.35),
+        browInnerUp: a.browInnerUp !== undefined ? a.browInnerUp : browBoost,
+        browOuterUp: a.browOuterUp !== undefined ? a.browOuterUp : browBoost * 0.9,
         browDown: a.browDown || 0,
         eyeBlinkL: a.eyeBlinkL || 0,
         eyeBlinkR: a.eyeBlinkR || 0,

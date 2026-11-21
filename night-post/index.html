@@ -1246,7 +1246,7 @@
       #focus-knob i { height: 22px; margin-top: -22px; }
     }
 
-    /* Clean Uncluttered Play Mode (90% pure 3D world by default) */
+    /* Immersive 95%-World Play Mode (default on boot; full HUD behind MENU (TAB)) */
     body.hud-clean #tape-bar,
     body.hud-clean #np-carrier-bar,
     body.hud-clean #np-can-meter,
@@ -1256,20 +1256,101 @@
     body.hud-clean #keys,
     body.hud-clean #cam-frame,
     body.hud-clean #wedge-wrap,
-    body.hud-clean #ppc-left-ticks,
-    body.hud-clean #ppc-right-ticks,
-    body.hud-clean #ppc-dashes {
+    body.hud-clean #reel-col,
+    body.hud-clean #focus-dock,
+    body.hud-clean #quest-tracker,
+    body.hud-clean #ppc-hud,
+    body.hud-clean #plate {
       display: none !important;
     }
     body.hud-clean #top-left {
-      top: max(14px, env(safe-area-inset-top));
-      left: max(16px, env(safe-area-inset-left));
+      top: max(12px, env(safe-area-inset-top));
+      left: max(14px, env(safe-area-inset-left));
       gap: 4px;
+      pointer-events: none;
     }
-    body.hud-clean #plate h1 { font-size: clamp(16px, 2vw, 22px); margin: 2px 0 0; }
-    body.hud-clean #hud-sub, body.hud-clean #thought { display: none; }
-    body.hud-clean #focus-dock #wifi-meter-box,
-    body.hud-clean #focus-dock .focus-row { display: none; }
+    #immersive-corner {
+      position: fixed;
+      top: max(12px, env(safe-area-inset-top));
+      left: max(14px, env(safe-area-inset-left));
+      z-index: 22;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(10, 15, 19, .78);
+      border: 1px solid rgba(40, 216, 240, .34);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, .42);
+      pointer-events: auto;
+    }
+    body.intro-active #immersive-corner { opacity: 0; pointer-events: none; }
+    #btn-menu-toggle {
+      font: 700 9.5px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(40, 216, 240, .52);
+      background: rgba(20, 32, 38, .92);
+      color: #dff6ff;
+      cursor: pointer;
+    }
+    #btn-menu-toggle[aria-pressed="true"] {
+      background: #28d8f0;
+      color: #05131b;
+    }
+    #immersive-title {
+      font: 700 10.5px/1.1 Inter, system-ui, sans-serif;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--paper);
+      white-space: nowrap;
+    }
+    #immersive-water {
+      font: 600 10px/1.1 ui-monospace, "SF Mono", Menlo, monospace;
+      color: #28d8f0;
+      letter-spacing: .06em;
+      white-space: nowrap;
+    }
+    #immersive-water.low { color: #ff6b6b; }
+    body:not(.hud-clean) #top-left {
+      top: max(54px, calc(env(safe-area-inset-top) + 46px));
+    }
+    #ctx-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    #ctx-actions:empty { display: none; }
+    .ctx-pill {
+      font: 700 9.5px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      padding: 7px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(40, 216, 240, .62);
+      background: rgba(16, 44, 54, .92);
+      color: #e6fbff;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .14s ease, transform .12s ease, box-shadow .14s ease;
+    }
+    .ctx-pill:hover { background: #28d8f0; color: #04131c; transform: translateY(-1px); }
+    .ctx-pill.urgent {
+      background: rgba(168, 28, 36, .92);
+      border-color: #ff6b6b;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(255, 80, 80, .55);
+    }
+    .play-sep {
+      width: 1px;
+      height: 16px;
+      background: rgba(241, 238, 230, .2);
+      margin: 0 2px;
+    }
 
     /* Slim Play Controls Bar (Bottom-Center, Non-Overlapping Desktop & Mobile) */
     #play-bar {
@@ -1954,15 +2035,17 @@
     <p id="dialogue-sub"></p>
   </div>
 
-  <div id="play-bar" role="toolbar" aria-label="Playable character and action controls">
-    <button type="button" class="play-pill" id="btn-run-toggle" aria-pressed="false" title="Toggle Sprint Run (Shift)">RUN</button>
-    <button type="button" class="play-pill" id="btn-drive-pill" aria-pressed="false" title="Drive or Park Wagon (C)">DRIVE</button>
-    <button type="button" class="play-pill" id="btn-pump-pill" title="Pump Cyan WiFi Water (P)">PUMP</button>
-    <button type="button" class="play-pill" id="btn-squirt-pill" aria-pressed="false" title="Hold or Click to Squirt Pressurized Cyan WiFi Water (F)">SQUIRT (F)</button>
-    <button type="button" class="play-pill" id="btn-talk-pill" title="Talk to Nearby Person or Mistletoe / Quests (E)">TALK (E)</button>
-    <button type="button" class="play-pill" id="btn-throw-obj" title="Throw Jerrycan or Highland Stone (G)">THROW (G)</button>
+  <div id="immersive-corner" role="region" aria-label="Minimal Night Post Header">
+    <button type="button" id="btn-menu-toggle" aria-pressed="false" title="Toggle Full Expedition HUD (Tab)">MENU (TAB)</button>
+    <span id="immersive-title">NIGHT POST · ZONE IV</span>
+    <span id="immersive-water">20L · MISTLETOE 100%</span>
+  </div>
+
+  <div id="play-bar" role="toolbar" aria-label="Contextual actions and view controls">
+    <div id="ctx-actions" aria-label="Nearby contextual actions"></div>
+    <span class="play-sep" id="ctx-sep" aria-hidden="true"></span>
     <button type="button" class="play-pill" id="btn-big-map" title="Open Click-to-Travel Topographic Map (M)">MAP (M)</button>
-    <button type="button" class="play-pill active" id="btn-cam-mode" aria-pressed="true" title="Toggle 3rd-Person / 1st-Person Camera (V)">CAM: 3RD</button>
+    <button type="button" class="play-pill active" id="btn-cam-mode" aria-pressed="true" title="Toggle 3rd-Person / 1st-Person Camera">CAM: 3RD</button>
     <select class="play-select" id="sel-play-as" aria-label="Playable character selector">
       <option value="imani">PLAY AS: IMANI</option>
       <option value="june">PLAY AS: JUNE</option>
@@ -1990,9 +2073,9 @@
     </div>
   </section>
 
-  <div id="np-radio-host" aria-label="Highland 4-station radio" style="position:fixed;right:14px;bottom:84px;z-index:18;pointer-events:auto;max-width:300px"></div>
-  <script src="./world-physics.js?v=v9live1"></script>
+  <div id="np-radio-host" aria-label="Highland audio control" style="position:fixed;right:16px;bottom:16px;z-index:18;pointer-events:auto;max-width:300px"></div>
+  <script src="./world-physics.js?v=v10imm1"></script>
   <script src="../audio/highland-soundscape.js?v=3"></script>
-  <script src="./night-post.js?v=v9live2"></script>
+  <script src="./night-post.js?v=v10imm1"></script>
 </body>
 </html>

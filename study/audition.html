@@ -465,7 +465,7 @@
   <script src="../zones/world-architecture.js?v=v6sculpt1"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-retarget.js?v=3"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=1"></script>
-  <script src="../motion-pipeline/anny-human-v7.js?v=4"></script>
+  <script src="../motion-pipeline/anny-human-v7.js?v=5"></script>
   <script src="./look-audition-mv.js?v=v7pass1"></script>
   <script>
   (function () {
@@ -2283,8 +2283,8 @@
       });
     }
 
-    /* ---------- Speak Phrase (Web speechSynthesis + Synced Viseme Override) & Live Mic Lip-Sync ---------- */
-    let phraseSpeech = { active: false, text: "", startMs: 0, durMs: 2600 };
+    /* ---------- Speak Phrase (Web speechSynthesis + Word-Boundary Synced Visemes) & Live Mic Lip-Sync ---------- */
+    let phraseSpeech = { active: false, text: "", startMs: 0, durMs: 2600, boundaryActive: false, word: "", wordStartMs: 0, wordDurMs: 260 };
     let activeAudUtterance = null;
     function speakAuditionPhrase(customText) {
       const text = String(customText || (lastVox && lastVox.lineText) || "Iron lever cracks before the rooster.").replace(/[“”"]/g, "").trim();
@@ -2293,7 +2293,11 @@
         active: true,
         text,
         startMs: performance.now(),
-        durMs: Math.max(1700, Math.min(5400, text.length * 72 + 450))
+        durMs: Math.max(1700, Math.min(5400, text.length * 72 + 450)),
+        boundaryActive: false,
+        word: "",
+        wordStartMs: 0,
+        wordDurMs: 260
       };
       const btn = $("btn-speak-lyric");
       if (btn) btn.textContent = "SPEAKING...";
@@ -2308,9 +2312,31 @@
           const pref = voices.find(v => /en/i.test(v.lang) && /(samantha|victoria|karen|zira|google us english|natural)/i.test(v.name))
             || voices.find(v => /en/i.test(v.lang));
           if (pref) utt.voice = pref;
-          utt.onstart = () => { phraseSpeech.startMs = performance.now(); };
+          utt.onstart = () => {
+            phraseSpeech.startMs = performance.now();
+            phraseSpeech.boundaryActive = false;
+            phraseSpeech.word = "";
+          };
+          utt.onboundary = (ev) => {
+            if (!ev || (ev.name && ev.name !== "word")) return;
+            const idx = typeof ev.charIndex === "number" ? ev.charIndex : 0;
+            const rest = text.slice(idx);
+            const len = (typeof ev.charLength === "number" && ev.charLength > 0)
+              ? ev.charLength
+              : ((rest.match(/^[A-Za-z0-9']+/) || [""])[0].length || 4);
+            const word = rest.slice(0, len).trim();
+            if (word) {
+              phraseSpeech.boundaryActive = true;
+              phraseSpeech.word = word;
+              phraseSpeech.wordStartMs = performance.now();
+              const syllables = Math.max(1, (word.toLowerCase().match(/[aeiouy]+/g) || []).length);
+              phraseSpeech.wordDurMs = Math.max(180, Math.min(720, syllables * 155 + 65));
+            }
+          };
           utt.onend = () => {
             phraseSpeech.active = false;
+            phraseSpeech.boundaryActive = false;
+            phraseSpeech.word = "";
             activeAudUtterance = null;
             if (btn) btn.textContent = "SPEAK PHRASE";
           };
@@ -2636,7 +2662,12 @@
             if (liveMic && typeof inst.setVisemeShape === "function") {
               inst.setVisemeShape(liveMic.jaw, liveMic.wide, liveMic.round, liveMic.press, liveMic.viseme);
             } else if (phraseActiveNow && typeof inst.setLyricSpeech === "function") {
-              inst.setLyricSpeech(phraseSpeech.text, phraseP01, 0.94);
+              if (phraseSpeech.boundaryActive && phraseSpeech.word) {
+                const wp01 = clamp((nowMs - phraseSpeech.wordStartMs) / Math.max(120, phraseSpeech.wordDurMs), 0, 1);
+                inst.setLyricSpeech(phraseSpeech.word, wp01, 0.96);
+              } else {
+                inst.setLyricSpeech(phraseSpeech.text, phraseP01, 0.96);
+              }
             } else if (sapiensAngles && typeof inst.applySapiensPose === "function") {
               inst.applySapiensPose({ angles: sapiensAngles, mouthOpenRatio: sapiensAngles.mouthOpenRatio }, "additive");
             } else if (vox.singing && typeof inst.setLyricSpeech === "function") {

@@ -1869,14 +1869,9 @@ void main(){
       const atten = spatialMode ? clamp(7.5 / (7.5 + 1.35 * Math.max(0, distMeters - 7.5)), .12, 1.0) : 1.0;
       return { bass: b, mid, high: hi, beatPulse: clamp(beatEnv, 0, 1), spatialBeat: clamp(beatEnv * (.35 + .65 * atten), 0, 1), bands12, distMeters, falloffDb };
     }
-    function tone(freq, dur, vol, type = "triangle", pan = 0, force = false) {
-      if ((!enabled && !force) || !ensure()) return;
-      const t0 = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
-      const p = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
-      o.type = type; o.frequency.setValueAtTime(freq, t0); o.frequency.exponentialRampToValueAtTime(Math.max(40, freq * .96), t0 + dur);
-      g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + .012); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
-      if (p) { p.pan.value = pan; o.connect(g); g.connect(p); p.connect(master); } else { o.connect(g); g.connect(master); }
-      o.start(t0); o.stop(t0 + dur + .02);
+    function tone() {
+      // Legacy continuous/synth oscillators removed: all ambience/foley comes from HighlandSoundscape + song playback.
+      return;
     }
     return {
       toggle() { enabled = !enabled; if (enabled) ensure(); return enabled; },
@@ -1888,44 +1883,16 @@ void main(){
       },
       isOn: () => enabled, connectTape, getRecordStream, sampleTape, setSpatialMode, isSpatial: () => spatialMode, updateSpatial,
       getDistFalloff: () => ({ distMeters, falloffDb }),
-      shutter() { tone(190, .06, .18, "square", 0, true); setTimeout(() => tone(840, .04, .09, "triangle", 0, true), 35); },
-      pumpClank() { tone(138, .08, .22, "square", .1, true); setTimeout(() => tone(520, .14, .11, "sine", -.15, true), 60); setTimeout(() => tone(690, .18, .09, "sine", .15, true), 130); },
-      pourSplash(step) { tone(310 + step * 36, .14, .08, "sine", (step % 2 ? .22 : -.22), true); },
-      relayChime(isP) { (isP ? [293.66, 392, 440, 587.33, 783.99] : [293.66, 440, 587.33]).forEach((f, idx) => setTimeout(() => tone(f, .42, .12, "triangle", (idx - 1) * .25, true), idx * 95)); },
-      forestChime(g) { const b = 329.63 * Math.pow(1.06, g);[1, 1.25, 1.5, 2].forEach((m, idx) => setTimeout(() => tone(b * m, .48, .10, "sine", (idx - 1.5) * .22, true), idx * 75)); },
-      glideWhoosh() { tone(140, .42, .16, "sine", 0, true); setTimeout(() => tone(290, .35, .11, "triangle", 0, true), 80); },
-      playEightSecondTail() {
-        if (!ensure()) return;
-        // 0.2s Metallic camera latch click -> 1.6s wood board thud -> 3.8s breath -> 5.3-7.6s warm laugh formants
-        setTimeout(() => { tone(1850, .025, .20, "square", -.25, true); setTimeout(() => tone(920, .035, .12, "triangle", -.25, true), 35); }, 200);
-        setTimeout(() => { tone(78, .24, .26, "sine", .05, true); tone(122, .14, .18, "triangle", .05, true); }, 1550);
-        setTimeout(() => { tone(240, .65, .06, "sine", -.1, true); }, 3650);
-        [0, 320, 650, 1020, 1450].forEach((off, idx) => {
-          setTimeout(() => {
-            const f = [420, 490, 385, 520, 440][idx];
-            tone(f, .19, .11, "sine", .18, true);
-            setTimeout(() => tone(f * 1.18, .16, .08, "triangle", -.18, true), 70);
-          }, 5100 + off);
-        });
-      },
-      playHarmonyRehearsal() {
-        if (!ensure()) return;
-        // Stone chair scrape followed by 3-voice Ethiopian Tizita pentatonic harmony (including wrong-key entrance)
-        tone(165, .16, .16, "sawtooth", -.35, true);
-        setTimeout(() => tone(210, .14, .14, "sawtooth", -.30, true), 95);
-        const notes = [293.66, 349.23, 392.0, 440.0, 523.25];
-        setTimeout(() => {
-          tone(notes[1] * 0.94, .45, .11, "triangle", -.3, true); // cousin's charming flat early entrance
-          [0, 1, 2, 4].forEach((ni, idx) => setTimeout(() => tone(notes[ni], .65, .11, "sine", (idx - 1.5) * .2, true), 480 + idx * 340));
-          setTimeout(() => { tone(notes[0] * 2, .95, .12, "triangle", .25, true); tone(notes[2], .95, .10, "sine", -.25, true); }, 2100);
-        }, 420);
-      },
-      step(leg, gait) { if (enabled) tone((gait > 1 ? 128 : 92) + leg * 11, .055, gait > 1 ? .08 : .045, "triangle", leg % 2 ? .28 : -.28); },
-      tick(dt, zoneIdx) {
-        if (!enabled) return;
-        const baseFreq = 165 * Math.pow(2, zoneIdx * .07);
-        for (const c of clocks) { c.acc += dt; if (c.acc >= c.period) { c.acc -= c.period; tone(baseFreq * c.ratio, .34, .06, zoneIdx < 3 ? "sine" : "triangle", c.pan); } }
-      }
+      shutter() {},
+      pumpClank() {},
+      pourSplash() {},
+      relayChime() {},
+      forestChime() {},
+      glideWhoosh() {},
+      playEightSecondTail() {},
+      playHarmonyRehearsal() {},
+      step() {},
+      tick() {}
     };
   })();
 
@@ -3888,12 +3855,118 @@ void main(){
         toast(state.sprintToggle ? "Sprint RUN: ON" : "Sprint RUN: OFF");
       });
     }
-    if ($("btn-hud-drawer")) {
-      $("btn-hud-drawer").addEventListener("click", () => {
-        const clean = document.body.classList.toggle("hud-clean");
-        $("btn-hud-drawer").setAttribute("aria-pressed", String(!clean));
-        $("btn-hud-drawer").classList.toggle("active", !clean);
-      });
+    function toggleImmersiveMenu() {
+      const clean = document.body.classList.toggle("hud-clean");
+      const btn = $("btn-menu-toggle");
+      if (btn) {
+        btn.setAttribute("aria-pressed", String(!clean));
+        btn.textContent = clean ? "MENU (TAB)" : "HIDE MENU (TAB)";
+      }
+      return !clean;
+    }
+    if ($("btn-menu-toggle")) {
+      $("btn-menu-toggle").addEventListener("click", toggleImmersiveMenu);
+    }
+
+    let _lastCtxSig = "";
+    function updateContextualActions() {
+      const box = $("ctx-actions");
+      const sep = $("ctx-sep");
+      if (!box) return;
+      const acts = [];
+      const distWagon = Math.hypot(wagon.x - state.x, wagon.z - state.z);
+      const distWell = Math.hypot(well.x - state.x, well.z - state.z);
+      const distDonkey = Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z);
+      let nearCistern = null;
+      for (let i = 0; i < relays.length; i++) {
+        if (Math.hypot(relays[i].x - state.x, relays[i].z - state.z) < 15) {
+          nearCistern = relays[i];
+          break;
+        }
+      }
+      let nearNpc = null;
+      if (cast && Array.isArray(cast.list)) {
+        let bestD = 7.5;
+        for (let i = 0; i < cast.list.length; i++) {
+          const ch = cast.list[i];
+          if (!ch || !ch.group || !ch.group.visible || ch === activeAvatar) continue;
+          const d = Math.hypot(ch.group.position.x - state.x, ch.group.position.z - state.z);
+          if (d < bestD) { bestD = d; nearNpc = ch; }
+        }
+      }
+      const carryingWater = state.waterLiters > 0.1;
+
+      if (state.drivingCart) {
+        acts.push({ id: "park", label: "[C] PARK WAGON", fn: () => toggleCart() });
+      } else if (distWagon < 7.5) {
+        acts.push({ id: "drive", label: "[C] DRIVE WAGON", fn: () => toggleCart() });
+      }
+      if (distWell < 14.5) {
+        acts.push({ id: "pump", label: "[P] PUMP WATER", fn: () => pumpWell() });
+      }
+      if (nearCistern) {
+        acts.push({ id: "pour", label: "[F] POUR INTO CISTERN", fn: () => triggerPour() });
+      }
+      if (state.donkeyCollapsed || distDonkey < 7.5) {
+        acts.push({
+          id: "water-burro",
+          label: state.donkeyCollapsed ? "[F] GIVE WATER (URGENT)" : "[F] GIVE WATER",
+          urgent: state.donkeyCollapsed,
+          fn: () => {
+            if (state.donkeyCollapsed) giveEmergencyWater();
+            else { triggerSquirtBurst(1.1); pumpWell(); }
+          }
+        });
+        if (!state.donkeyCollapsed && distDonkey < 7.5) {
+          acts.push({ id: "ride", label: state.riding ? "[V] DISMOUNT" : "[V] RIDE", fn: () => toggleRide() });
+        }
+        acts.push({ id: "check-burro", label: "[E] CHECK MISTLETOE", fn: () => interactTalk() });
+      }
+      if (nearNpc) {
+        const nm = (nearNpc.state && nearNpc.state.name) ? nearNpc.state.name.toUpperCase() : "VILLAGER";
+        acts.push({ id: "talk", label: `[E] TALK (${nm})`, fn: () => interactTalk() });
+        if (carryingWater) {
+          acts.push({ id: "share", label: "[F] SHARE CYAN WATER", fn: () => triggerSquirtBurst(1.2) });
+        }
+      }
+      if (carryingWater && !state.drivingCart) {
+        if (!acts.some(a => a.id === "share" || a.id === "pour")) {
+          acts.push({ id: "squirt", label: "[F] SQUIRT WATER", fn: () => triggerSquirtBurst(1.4) });
+        }
+        acts.push({ id: "throw", label: "[G] THROW CAN", fn: () => throwObject("jerrycan") });
+      }
+
+      const sig = acts.map(a => a.id + ":" + a.label + ":" + (a.urgent ? 1 : 0)).join("|");
+      if (sig !== _lastCtxSig) {
+        _lastCtxSig = sig;
+        box.innerHTML = "";
+        for (let i = 0; i < acts.length; i++) {
+          const a = acts[i];
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "ctx-pill" + (a.urgent ? " urgent" : "");
+          b.textContent = a.label;
+          b.addEventListener("click", a.fn);
+          box.appendChild(b);
+        }
+        if (sep) sep.hidden = acts.length === 0;
+      }
+
+      // Minimal corner title & water readout
+      const titleEl = $("immersive-title");
+      const waterEl = $("immersive-water");
+      if (titleEl) {
+        const Z = ZONES[state.currentZone] || ZONES[4];
+        titleEl.textContent = `NIGHT POST · ZONE ${Z.n || "IV"}`;
+      }
+      if (waterEl) {
+        const wPct = Math.round(clamp(state.donkeyWater, 0, 1) * 100);
+        const lit = Math.round(state.waterLiters || 0);
+        waterEl.textContent = state.donkeyCollapsed
+          ? `${lit}L · MISTLETOE COLLAPSED (${wPct}%)`
+          : `${lit}L · MISTLETOE ${wPct}%`;
+        waterEl.classList.toggle("low", state.donkeyCollapsed || wPct <= 25);
+      }
     }
 
     /* ---------- Living World: Front/Hip Carry Fix, WiFi Water Squirt Gun, Quests, Speech & NPC Phones ---------- */
@@ -4001,53 +4074,72 @@ void main(){
       cast.list.forEach(ensureNpcSmartphone);
     }
 
-    // Fix behind-the-back jerrycan carry (2341f7bd.jpg): detach carryCanProp from twisted B_HAND_R and seat cleanly at right-side hip / forward of thigh!
+    // Fix behind-the-back jerrycan carry (e1b2ff52.jpg & 79fdfab7.jpg): detach EVERY jerrycan mesh from ANY bone and seat strictly at right-side hip / forward of thigh!
     const _hipCanQuat = new T.Quaternion();
     const _hipCanEuler = new T.Euler(0, 0, 0, "YXZ");
-    function findCarryCanProp(ch) {
-      if (!ch || !ch.group) return null;
-      if (ch.group.userData.frontHipCan) return ch.group.userData.frontHipCan;
-      const handR = ch.bones && ch.bones[20];
-      if (handR && Array.isArray(handR.children)) {
-        for (let i = 0; i < handR.children.length; i++) {
-          const c = handR.children[i];
-          if (c && c.isGroup && c.children && c.children.length >= 4) {
-            // Confirm it's the jerrycan group (has cyan body mesh)
-            const hasCyan = c.children.some(m => m.material && m.material.color && m.material.color.b > 0.7 && m.material.transparent);
-            if (hasCyan) {
-              handR.remove(c);
-              ch.group.add(c);
-              ch.group.userData.frontHipCan = c;
-              return c;
-            }
-          }
+    function findCarryCanProps(ch) {
+      if (!ch || !ch.group) return [];
+      if (Array.isArray(ch.group.userData.frontHipCans) && ch.group.userData.frontHipCans.length > 0) {
+        return ch.group.userData.frontHipCans;
+      }
+      const found = [];
+      const isCyanCanGroup = (obj) => {
+        if (!obj || !obj.isGroup || obj === ch.group || !obj.children || obj.children.length < 4) return false;
+        return obj.children.some(m => {
+          const mat = m && m.material;
+          if (!mat || !mat.color) return false;
+          return mat.color.b > 0.65 && mat.color.g > 0.55 && (mat.transparent || mat.emissiveIntensity > 0.2);
+        });
+      };
+      ch.group.traverse(obj => {
+        if (isCyanCanGroup(obj)) found.push(obj);
+      });
+      for (let i = 0; i < found.length; i++) {
+        const c = found[i];
+        if (c.parent && c.parent !== ch.group) {
+          c.parent.remove(c);
+          ch.group.add(c);
         }
       }
-      return null;
+      if (found.length > 0) {
+        ch.group.userData.frontHipCans = found;
+        ch.group.userData.frontHipCan = found[0];
+      }
+      return found;
     }
 
     function enforceFrontHipJerrycanCarry(ch, nowSec, speed, squirtActive) {
       if (!ch || !ch.group) return;
-      const can = findCarryCanProp(ch);
-      if (!can) return;
+      const cans = findCarryCanProps(ch);
+      if (!cans.length) return;
       const isPlayer = (ch === activeAvatar);
       const shouldShow = isPlayer
         ? (state.waterLiters > 0.1 || squirtActive || Boolean(npCarrier && npCarrier().liters > 0))
         : Boolean(ch.state && ch.state.carryCan);
-      can.visible = shouldShow;
-      if (!shouldShow) return;
       const stride = Math.sin(nowSec * (speed > 2.2 ? 9.5 : 5.4)) * Math.min(1, speed / 2.6);
-      if (squirtActive && isPlayer) {
-        // Cradled forward in front of torso aiming cyan nozzle straight ahead (+Z forward, -X anatomical right)
-        can.position.set(-0.18, 1.06 + Math.sin(nowSec * 14) * 0.008, 0.36);
-        can.rotation.set(0.38, 0.06, 0.08);
-        if (isPlayer) state.carryCanLocalZ = can.position.z;
-      } else {
-        // Right side hip, strictly forward of thigh (+Z > 0, never behind back/spine!)
-        can.position.set(-0.255, 0.80 + Math.abs(stride) * 0.018, 0.16 + stride * 0.045);
-        can.rotation.set(0.06 + stride * 0.09, 0.04, 0.08);
-        if (isPlayer) state.carryCanLocalZ = can.position.z;
+      for (let i = 0; i < cans.length; i++) {
+        const can = cans[i];
+        // Only show primary hip jerrycan; hide any secondary duplicate mesh so nothing floats behind back
+        const showThis = shouldShow && i === 0;
+        can.visible = showThis;
+        if (!showThis) continue;
+        if (can.parent !== ch.group) {
+          if (can.parent) can.parent.remove(can);
+          ch.group.add(can);
+        }
+        if (squirtActive && isPlayer) {
+          // Cradled forward in front of torso aiming cyan nozzle straight ahead (+Z forward, -X anatomical right)
+          can.position.set(-0.18, 1.08 + Math.sin(nowSec * 14) * 0.008, 0.36);
+          can.rotation.set(0.38, 0.06, 0.08);
+          if (isPlayer) state.carryCanLocalZ = can.position.z;
+        } else {
+          // Strictly at right side hip / forward of thigh (+Z = +0.18 in character forward space, upright, never behind back!)
+          can.position.set(-0.26, 0.88 + Math.abs(stride) * 0.015, 0.18 + stride * 0.04);
+          can.rotation.set(0.05 + stride * 0.08, 0.0, 0.04);
+          if (isPlayer) state.carryCanLocalZ = can.position.z;
+        }
       }
+      if (!shouldShow) return;
       // Keep right arm hanging naturally forward toward the side-hip handle (never twisted behind spine)
       if (ch.bones && ch.bones[16] && ch.bones[18]) {
         const uArmR = ch.bones[16], fArmR = ch.bones[18];
@@ -6928,7 +7020,7 @@ void main(){
       else if (e.code === "KeyN" && DEMO && !e.repeat && state.drivingCart) { if (field && field.radio) field.radio.tune(); }
       else if (e.code === "KeyZ" && DEMO && !e.repeat) { if (demo.withCh && demo.ui) { e.preventDefault(); demo.ui.input.focus(); } }
       else if (e.code === "KeyM" && !e.repeat) toggleBigMap();
-      else if (e.code === "Tab") { e.preventDefault(); switchNpCircuit(); }
+      else if (e.code === "Tab") { e.preventDefault(); toggleImmersiveMenu(); }
       else if (e.code === "KeyT") syncResonantZone();
       else if (e.code === "KeyB") deployRig();
       else if (e.code === "KeyH") { state.ppcOn = !state.ppcOn; updateHUD(); }
@@ -8023,24 +8115,46 @@ void main(){
           (state.drivingCart || Math.abs(donkey.state.speed) > 1.2 || fwdInput !== 0) ? .011 : .0045;
         state.donkeyWater = clamp(state.donkeyWater - moveEffort * dt, 0, 1);
       }
-      if (state.donkeyWater <= 0 && !state.donkeyCollapsed) {
+      if (state.donkeyWater <= 0.18 && !state.donkeyCollapsed) {
         if (state.gliding) landGlide(false);
         state.donkeyCollapsed = true;
         donkey.state.collapsed = true;
         donkey.state.downWant = true;
         donkey.state.stamina = .05;
+        donkey.state.speed = 0;
         state.riding = false; state.drivingCart = false; state.wagonCruise = 0; state.donkeyOnRoof = false;
         wagon.speed = 0;
-        applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
-        toast("EMERGENCY: Mistletoe collapsed from thirst! Press P to give water!", "Mistletoe needs water");
+        if (state.cameraMode !== "third") applyLevelFPSCamera(state.x, state.y, state.z, state.yaw, state.pitch);
+        toast("EMERGENCY: Mistletoe collapsed from thirst! Press P or F to give water!", "Mistletoe needs water");
         updateHUD();
-      } else if (state.donkeyCollapsed && state.donkeyWater > .25) {
+      } else if (state.donkeyCollapsed && state.donkeyWater > .22) {
         state.donkeyCollapsed = false;
         donkey.state.collapsed = false;
         donkey.state.downWant = false;
         donkey.state.stamina = 1.0;
         updateHUD();
       }
+
+      /* --- Physical Mistletoe Thirst Collapse Pose (unmistakably down on side/knees in the dirt) --- */
+      const wantCollapsed = Boolean(state.donkeyCollapsed || state.donkeyWater <= 0.18);
+      state.collapseBlend = lerp(state.collapseBlend || 0, wantCollapsed ? 1 : 0, clamp(dt * 3.8, 0, 1));
+      if (state.collapseBlend > 0.002) {
+        const cb = state.collapseBlend;
+        const smoothCb = cb * cb * (3 - 2 * cb);
+        donkey.state.speed = 0;
+        if (wantCollapsed) {
+          donkey.state.collapsed = true;
+          donkey.state.downWant = true;
+          donkey.state.stamina = 0.05;
+        }
+        donkey.group.position.y -= smoothCb * 0.42;
+        donkey.group.rotation.z = lerp(donkey.group.rotation.z, 1.08, smoothCb);
+        donkey.group.rotation.x = lerp(donkey.group.rotation.x, 0.14, smoothCb);
+        donkeyRig.rotation.x = lerp(donkeyRig.rotation.x, 0.28, smoothCb);
+      } else if (!state.drivingCart && !state.gliding && state.danceTimer <= 0) {
+        donkey.group.rotation.z = lerp(donkey.group.rotation.z, 0, clamp(dt * 6, 0, 1));
+      }
+      updateContextualActions();
 
       /* --- Update 3D Spatial Donkey Radio & Speaker Cones --- */
       camera.getWorldDirection(tmpCamFwd);
@@ -8411,7 +8525,7 @@ void main(){
         } else if (!useFieldLayout()) $("ppc-timecode").textContent = `01:14:${String(17 + (Math.floor(nowSec) % 42)).padStart(2, "0")}`;
         updateHUD();
       }
-      audio.tick(dt, state.meteredZone);
+      // Legacy audio.tick oscillator clock removed; ambience comes from HighlandSoundscape + tape playback.
     }
 
     if (!state.introActive) placeAtNpStation(npCarrier().place || "overlook");
@@ -8636,10 +8750,13 @@ void main(){
       setSoloLook: id => { state.soloLook = id ? LOOKS.findIndex(l => l.id === id) : -1; updateHUD(); if (state.trayTab) renderTray(); },
       setDonkeyWater: v => {
         state.donkeyWater = clamp(v, 0, 1);
-        if (state.donkeyWater <= 0) {
-          state.donkeyCollapsed = true; donkey.state.collapsed = true; donkey.state.downWant = true; donkey.state.stamina = .05;
+        if (state.donkeyWater <= 0.18) {
+          state.donkeyCollapsed = true; donkey.state.collapsed = true; donkey.state.downWant = true; donkey.state.stamina = .05; donkey.state.speed = 0;
+        } else if (state.donkeyWater > 0.22) {
+          state.donkeyCollapsed = false; donkey.state.collapsed = false; donkey.state.downWant = false; donkey.state.stamina = 1.0;
         }
         updateHUD();
+        updateContextualActions();
       },
       lookAtDonkey: () => {
         if (state.gliding) landGlide(false);

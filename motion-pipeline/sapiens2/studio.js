@@ -663,6 +663,10 @@ const voiceEngine = (() => {
   let activeUtterance = null;
   let synthStarted = false;
   let synthWatchdog = null;
+  let boundaryActive = false;
+  let boundaryWord = '';
+  let boundaryWordStartMs = 0;
+  let boundaryWordDurMs = 280;
 
   let micActive = false;
   let micStream = null;
@@ -680,6 +684,8 @@ const voiceEngine = (() => {
     speaking = false;
     phraseText = '';
     synthStarted = false;
+    boundaryActive = false;
+    boundaryWord = '';
     activeUtterance = null;
     if (synthWatchdog) { clearTimeout(synthWatchdog); synthWatchdog = null; }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -726,7 +732,27 @@ const voiceEngine = (() => {
         utt.onstart = () => {
           synthStarted = true;
           usingSynthFallback = false;
+          boundaryActive = false;
+          boundaryWord = '';
           phraseStartMs = performance.now();
+        };
+        utt.onboundary = (ev) => {
+          if (!ev || (ev.name && ev.name !== 'word')) return;
+          const idx = typeof ev.charIndex === 'number' ? ev.charIndex : 0;
+          const rest = text.slice(idx);
+          const len = (typeof ev.charLength === 'number' && ev.charLength > 0)
+            ? ev.charLength
+            : ((rest.match(/^[A-Za-z0-9']+/) || [''])[0].length || 4);
+          const word = rest.slice(0, len).trim();
+          if (word) {
+            boundaryActive = true;
+            boundaryWord = word;
+            boundaryWordStartMs = performance.now();
+            // Real-time syllable cadence (~155ms per syllable, min 180ms)
+            const syllables = Math.max(1, (word.toLowerCase().match(/[aeiouy]+/g) || []).length);
+            boundaryWordDurMs = Math.max(180, Math.min(720, syllables * 155 + 65));
+            setStatus(`Speaking: "${word}"`);
+          }
         };
         utt.onend = () => {
           speaking = false;
@@ -891,19 +917,31 @@ const voiceEngine = (() => {
     }
 
     if (speaking && phraseText) {
-      const elapsed = performance.now() - phraseStartMs;
-      const p01 = Math.max(0, Math.min(1, elapsed / phraseDurMs));
-      const env = p01 < 0.94 ? (0.78 + 0.22 * Math.sin(elapsed * 0.022)) : 0;
-      const vis = ch.setLyricSpeech(phraseText, p01, env);
+      const nowMs = performance.now();
+      const elapsed = nowMs - phraseStartMs;
+      let vis = null;
+      if (boundaryActive && boundaryWord) {
+        const wElapsed = nowMs - boundaryWordStartMs;
+        const wp01 = Math.max(0, Math.min(1, wElapsed / Math.max(120, boundaryWordDurMs)));
+        // Syllable-cadence envelope peaks sharply through the spoken word
+        const wEnv = wp01 < 0.92 ? (0.82 + 0.18 * Math.sin(wp01 * Math.PI)) : 0.15;
+        vis = ch.setLyricSpeech(boundaryWord, wp01, wEnv);
+      } else {
+        const p01 = Math.max(0, Math.min(1, elapsed / phraseDurMs));
+        const env = p01 < 0.94 ? (0.80 + 0.20 * Math.sin(elapsed * 0.024)) : 0;
+        vis = ch.setLyricSpeech(phraseText, p01, env);
+      }
       if (usingSynthFallback && vis && vis.active) {
         fallbackPulseAccum += dt;
         if (fallbackPulseAccum >= 0.13) {
           fallbackPulseAccum = 0;
-          soundEngine.playFormantPulse(vis.viseme, env);
+          soundEngine.playFormantPulse(vis.viseme, 0.9);
         }
       }
-      if (elapsed >= phraseDurMs + 180) {
+      if (elapsed >= phraseDurMs + 450 && (!synthStarted || elapsed >= phraseDurMs + 2200)) {
         speaking = false;
+        boundaryActive = false;
+        boundaryWord = '';
         const btn = $('btnSpeakPhrase');
         if (btn) btn.classList.remove('live');
         ch.setLyricSpeech('', 0, 0);
@@ -1582,28 +1620,28 @@ function sampleSceneTrack(track, tSec) {
       p[2] + (q[2] - p[2]) * alpha,
     ];
   });
-  return { t, dur, angles, core17 };
+  const mA = typeof a.mouthOpenRatio === 'number' ? a.mouthOpenRatio : (a.angles && a.angles.jawOpen ? a.angles.jawOpen : 0);
+  const mB = typeof b.mouthOpenRatio === 'number' ? b.mouthOpenRatio : (b.angles && b.angles.jawOpen ? b.angles.jawOpen : 0);
+  const mouthOpenRatio = mA + (mB - mA) * alpha;
+  return { t, dur, angles, core17, mouthOpenRatio };
 }
 
-function drawSceneMiniCanvas(sample) {
-  const cv = $('sceneCanvas');
-  if (!cv || !sample) return;
-  const ctx = cv.getContext('2d');
-  const w = cv.width;
-  const h = cv.height;
-  ctx.fillStyle = '#12100e';
-  ctx.fillRect(0, 0, w, h);
+function drawSkeletonOnContext(ctx, w, h, pts, clearTransparent) {
+  if (clearTransparent) {
+    ctx.clearRect(0, 0, w, h);
+  } else {
+    ctx.fillStyle = '#12100e';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h);
+    ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
+    ctx.stroke();
+  }
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h);
-  ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
-  ctx.stroke();
-
-  const pts = sample.core17 || [];
-  ctx.strokeStyle = '#28d8f0';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = clearTransparent ? 'rgba(40, 216, 240, 0.92)' : '#28d8f0';
+  ctx.lineWidth = clearTransparent ? 2.4 : 2;
   for (const [i, j] of COCO17_EDGES) {
     const p = pts[i];
     const q = pts[j];
@@ -1619,12 +1657,86 @@ function drawSceneMiniCanvas(sample) {
     if (!p || p[2] <= 0.15) continue;
     ctx.fillStyle = i <= 4 ? '#f7d694' : '#7dd3fc';
     ctx.beginPath();
-    ctx.arc(p[0] * w, p[1] * h, i <= 4 ? 3 : 2.4, 0, Math.PI * 2);
+    ctx.arc(p[0] * w, p[1] * h, i <= 4 ? 3.4 : 2.6, 0, Math.PI * 2);
     ctx.fill();
+    if (clearTransparent) {
+      ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
   }
 }
 
-async function selectTrackedScene(idx) {
+function drawSceneMiniCanvas(sample) {
+  if (!sample) return;
+  const pts = sample.core17 || [];
+  const cv = $('sceneCanvas');
+  if (cv) {
+    drawSkeletonOnContext(cv.getContext('2d'), cv.width, cv.height, pts, false);
+  }
+  const ov = $('sceneOverlay');
+  if (ov) {
+    const ctx = ov.getContext('2d');
+    drawSkeletonOnContext(ctx, ov.width, ov.height, pts, true);
+    if (state.sceneMode !== 'off') {
+      ctx.fillStyle = 'rgba(12, 10, 8, 0.72)';
+      ctx.fillRect(6, 6, 132, 18);
+      ctx.fillStyle = '#28d8f0';
+      ctx.font = '600 10px -apple-system, BlinkMacSystemFont, sans-serif';
+      const jawPct = Math.round((sample.mouthOpenRatio || 0) * 100);
+      ctx.fillText(`SAPIENS LIVE | JAW ${jawPct}%`, 11, 18);
+    }
+  }
+}
+
+function setSceneMode(mode) {
+  state.sceneMode = mode;
+  document.querySelectorAll('[data-scenemode]').forEach((b) => {
+    b.classList.toggle('on', b.dataset.scenemode === mode);
+  });
+  const playPrimary = $('btnPlaySapiensScene');
+  if (playPrimary) {
+    playPrimary.classList.toggle('live', mode !== 'off' && state.scenePlaying);
+  }
+  const vid = $('sceneVideo');
+  if (vid) {
+    vid.muted = true;
+    vid.loop = true;
+    if (mode === 'off') {
+      vid.pause();
+    } else if (state.scenePlaying) {
+      vid.play().catch(() => {});
+    }
+  }
+  if (mode !== 'off' && state.sceneManifest) {
+    const sc = state.sceneManifest.scenes[state.activeSceneIdx];
+    if (sc && (sc.id === 'E1' || sc.id === 'E4')) setExpression('talking');
+  }
+}
+
+async function playSapiensScene(idx) {
+  if (typeof idx === 'number' && idx !== state.activeSceneIdx) {
+    await selectTrackedScene(idx, { autoPlay: true });
+    return true;
+  }
+  if (!state.activeSceneTrack && state.sceneManifest && state.sceneManifest.scenes.length) {
+    await selectTrackedScene(state.activeSceneIdx || 0, { autoPlay: true });
+    return true;
+  }
+  state.scenePlaying = true;
+  const playBtn = $('btnScenePlay');
+  if (playBtn) playBtn.textContent = 'Pause';
+  setSceneMode('solo');
+  const vid = $('sceneVideo');
+  if (vid) {
+    vid.muted = true;
+    vid.loop = true;
+    try { await vid.play(); } catch (_) {}
+  }
+  return true;
+}
+
+async function selectTrackedScene(idx, opts) {
   if (!state.sceneManifest || !state.sceneManifest.scenes.length) return;
   const sc = state.sceneManifest.scenes[idx] || state.sceneManifest.scenes[0];
   state.activeSceneIdx = idx;
@@ -1637,16 +1749,30 @@ async function selectTrackedScene(idx) {
   }
   state.activeSceneTrack = tr;
 
+  const autoPlay = !!(opts && opts.autoPlay);
+  if (autoPlay) {
+    state.scenePlaying = true;
+    const playBtn = $('btnScenePlay');
+    if (playBtn) playBtn.textContent = 'Pause';
+    setSceneMode('solo');
+  }
+
   const vid = $('sceneVideo');
   if (vid && sc.video) {
-    vid.src = sc.video;
-    vid.currentTime = 0;
+    vid.muted = true;
+    vid.loop = true;
+    if (vid.getAttribute('src') !== sc.video) {
+      vid.src = sc.video;
+    }
+    try { vid.currentTime = 0; } catch (_) {}
     if (state.scenePlaying && state.sceneMode !== 'off') {
       vid.play().catch(() => {});
     }
   }
 
   $('sceneScrub').max = String(sc.durationSec || 10);
+  $('sceneScrub').value = '0';
+  $('sceneTime').textContent = `0.0s / ${(sc.durationSec || 10).toFixed(1)}s`;
   $('sceneMeta').textContent = `${sc.id}: ${sc.title} | ${sc.sampleCount} kfs | kp ${sc.stats ? sc.stats.meanValidKeypoints : '--'}`;
   const s0 = sampleSceneTrack(tr, 0);
   if (s0) drawSceneMiniCanvas(s0);
@@ -2053,28 +2179,31 @@ function wireUI() {
 
   // Sapiens Tracked Video Scene controls
   $('sceneSelect').addEventListener('change', (e) => {
-    selectTrackedScene(parseInt(e.target.value, 10) || 0);
+    selectTrackedScene(parseInt(e.target.value, 10) || 0, { autoPlay: true });
   });
+
+  const btnPlaySapiens = $('btnPlaySapiensScene');
+  if (btnPlaySapiens) {
+    btnPlaySapiens.addEventListener('click', () => {
+      playSapiensScene();
+    });
+  }
 
   document.querySelectorAll('[data-scenemode]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      state.sceneMode = btn.dataset.scenemode;
-      document.querySelectorAll('[data-scenemode]').forEach((b) => b.classList.toggle('on', b === btn));
-      const vid = $('sceneVideo');
-      if (vid) {
-        if (state.sceneMode === 'off') vid.pause();
-        else if (state.scenePlaying) vid.play().catch(() => {});
-      }
-      if (state.sceneMode !== 'off' && state.sceneManifest) {
-        const sc = state.sceneManifest.scenes[state.activeSceneIdx];
-        if (sc && (sc.id === 'E1' || sc.id === 'E4')) setExpression('talking');
-      }
+      setSceneMode(btn.dataset.scenemode);
     });
   });
 
   $('btnScenePlay').addEventListener('click', (e) => {
     state.scenePlaying = !state.scenePlaying;
     e.target.textContent = state.scenePlaying ? 'Pause' : 'Play';
+    if (state.scenePlaying && state.sceneMode === 'off') {
+      setSceneMode('solo');
+    } else {
+      const playPrimary = $('btnPlaySapiensScene');
+      if (playPrimary) playPrimary.classList.toggle('live', state.sceneMode !== 'off' && state.scenePlaying);
+    }
     const vid = $('sceneVideo');
     if (vid && state.sceneMode !== 'off') {
       if (state.scenePlaying) vid.play().catch(() => {});
@@ -2203,6 +2332,8 @@ window.__STUDIO__ = {
   focusFace,
   focusFullBody,
   selectTrackedScene,
+  playSapiensScene,
+  setSceneMode,
   speakPhrase: (v) => voiceEngine.speakPhrase(v),
   toggleMicLipSync: () => voiceEngine.toggleMic(),
   triggerRagdoll: () => physicsAction.triggerRagdoll(),
