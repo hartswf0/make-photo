@@ -8201,8 +8201,8 @@ void main(){
         body.dew-skin #dk-ctx .verb{min-width:118px;min-height:54px}
         body.dew-skin #dk-chips{gap:10px}body.dew-skin #dk-chips button{min-height:48px;min-width:48px;width:48px;padding:0;overflow:hidden}
         .dk-gauge{position:fixed;left:calc(18px + env(safe-area-inset-left,0px));width:38px;height:38px;background:none;border:0;padding:0;color:transparent}
-        #dk-g-donkey{top:calc(70px + env(safe-area-inset-top,0px))}#dk-g-signal{top:calc(114px + env(safe-area-inset-top,0px))}
-        #dk-map{top:calc(162px + env(safe-area-inset-top,0px));left:calc(14px + env(safe-area-inset-left,0px));width:46px;height:46px;cursor:pointer;touch-action:none}
+        #dk-g-donkey{top:calc(154px + env(safe-area-inset-top,0px))}#dk-g-signal{top:calc(114px + env(safe-area-inset-top,0px))}
+        #dk-map{top:calc(92px + env(safe-area-inset-top,0px));left:calc(16px + env(safe-area-inset-left,0px));width:54px;height:54px;cursor:pointer;touch-action:none}
         body.dew-skin #dk-verbs .verb,body.dew-skin #dk-offers .verb{min-width:0!important;width:58px;height:58px;min-height:0!important;padding:0!important;overflow:hidden}
         body.dew-skin #dk-offers .verb{width:48px;height:48px}
         body.dew-skin #dk-status{width:58px;height:66px}
@@ -8276,7 +8276,7 @@ void main(){
         <div id="demo-bub" class="dm" hidden><b></b><span></span></div>
         <div id="dk-g-donkey" class="dk dk-gauge" data-icon="donkey" data-stain="go" data-fill="1" role="img" aria-label="The donkey's water"></div>
         <div id="dk-g-signal" class="dk dk-gauge" hidden data-icon="beacon" data-stain="lens" data-fill="0" role="img" aria-label="Beacon signal"></div>
-        <button id="dk-map" class="dk dk-gauge" hidden type="button" data-icon="map" data-stain="go" aria-label="Map"></button>
+        <button id="dk-map" class="dk dk-gauge" type="button" data-icon="map" data-stain="go" aria-label="Map"></button>
         <div id="dk-status" class="dk" role="status" data-icon="none" data-stain="water" data-mark=".2" aria-label="Water carried"><span class="can"><i></i><u></u></span><b id="dk-l">0 L</b><span id="dk-sig" aria-label="Beacon signal"><i></i><i></i><i></i><i></i></span><small id="dk-place"></small></div>
         <button id="dk-menu-btn" class="dk" type="button" aria-label="Menu" aria-expanded="false" data-icon="menu">Menu</button>
         <div id="dk-ctx" class="dk"><div id="dk-chips" hidden></div><div id="dk-verbs"></div><div id="dk-offers"></div></div>
@@ -8330,6 +8330,7 @@ void main(){
           if (done) { demo.carryFromCan = k.from === "can"; demoLiveDo(); demo.carryFromCan = false; }
           else demo.dew.drop({ x: e.clientX, y: e.clientY, r: 7, state: "fall", vy: 20, grow: 1, forced: true }); };   // let go over nothing: it falls, nothing is spent
         addEventListener("pointerup", drop, true); addEventListener("pointercancel", e => { if (carry && e.pointerId === carry.id) { carry = null; demo.dew.carry = null; } }, true);
+        q("dk-map").onclick = () => { demo.mapOn = !demo.mapOn; demo.mapUntil = 0; };
         demo.dew.onBreathe = () => { demo.mapUntil = (demo.clock || 0) + 7000; demo.snooze = {}; demo.shownAt = {}; demo.offerT = 0; demo.hintT = 0; demo.dockSig = ""; demo.dockT = 0; };   // breath on the glass brings the drops back
         demo.dew.onMerge = null; const _unusedMerge = (a, b) => { const v = [a, b].find(el => el.dataset && (el.dataset.verb || el.dataset.ctx)), st = [a, b].find(el => el.id === "dk-status"); if (v && st) v.click(); };
         // the pool: on a touch screen you walk from wherever your thumb comes down in the lower left; lift, and it is gone
@@ -8902,6 +8903,11 @@ void main(){
           const sc = Math.min(Wd * .7 / Math.max(1, x1 - x0), Hd * .42 / Math.max(1, z1 - z0)), mx = (x0 + x1) / 2, mz = (z0 + z1) / 2, P = (x, z) => [Wd / 2 + (x - mx) * sc, Hd * .42 + (z - mz) * sc];
           dw.map = { stops: order.map(k => { const p = P(DEMO_SETS[k][0], DEMO_SETS[k][1]); return { x: p[0], y: p[1], icon: IC[k], seen: cN.visited.includes(k), next: k === nx }; }), me: [...P(state.x, state.z), -state.yaw], donkey: P(donkey.state.x, donkey.state.z) };
         } else dw.map = null;
+        { const order = ["basalt", "beacon", "hill", "compound"]; let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const k of order) { x0 = Math.min(x0, DEMO_SETS[k][0]); x1 = Math.max(x1, DEMO_SETS[k][0]); z0 = Math.min(z0, DEMO_SETS[k][1]); z1 = Math.max(z1, DEMO_SETS[k][1]); }
+          const U = (x, z) => [clamp((x - x0) / (x1 - x0), -.1, 1.1), clamp((z - z0) / (z1 - z0), -.1, 1.1)];
+          dw.mini = { stops: order.map(k => [...U(DEMO_SETS[k][0], DEMO_SETS[k][1]), k === nx, cN.visited.includes(k)]), me: U(state.x, state.z) }; }   // the route, for the little drop that holds the map
+        // accents: a strong beat of the song lets one bead go; nothing falls otherwise
+        { const bp = state.beatPulse || 0; if (bp > .62 && !(demo.beatHi) && (demo.clock || 0) - (demo.accentAt || 0) > 3200) { if (dw.accent()) demo.accentAt = demo.clock || 0; } demo.beatHi = bp > .62; }
         if (dw.scrub > .04) dw.map = null;                                 // reaching back in time, the fog shows what was, not the map
         // WEATHER: each place has its own on the glass; arriving, its name is written by the shower that brings its drops
         let near = null, nd = 70; for (const k in DEMO_SETS) { const q = Math.hypot(DEMO_SETS[k][0] - state.x, DEMO_SETS[k][1] - state.z); if (q < nd) { nd = q; near = k; } }
