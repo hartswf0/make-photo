@@ -8136,19 +8136,30 @@ void main(){
         #dk-status b{font-weight:600}#dk-status .can{width:46px;height:7px;background:#12232c;border-radius:4px;overflow:hidden;position:relative;flex:none}#dk-status .can i{position:absolute;inset:0 auto 0 0;background:#38e8ff}
         #dk-status .can u{position:absolute;top:0;bottom:0;left:20%;width:2px;background:#fff}#dk-status small{color:#8fb3bd;overflow:hidden;text-overflow:ellipsis}
         #dk-menu-btn{right:max(10px,env(safe-area-inset-right,0px));top:calc(10px + env(safe-area-inset-top,0px));min-width:44px;height:38px;border-radius:19px;background:rgba(6,14,20,.82);border:1px solid #23414b;padding:0 14px;font-weight:600}
-        #dk-pad{right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(2,58px);grid-template-rows:repeat(2,58px);gap:8px;align-items:center;justify-items:center}
+        #dk-pad{right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column-reverse;gap:8px;align-items:center}
+        #dk-pad [hidden]{display:none!important}
+        #dk-jump{left:calc(30px + env(safe-area-inset-left,0px));bottom:calc(122px + env(safe-area-inset-bottom,0px));width:48px;height:48px;border-radius:50%;background:rgba(6,14,20,.72);border:1px solid #3b6c78;font-size:11.5px;font-weight:600}
+        body:not(.demo-touch) #dk-jump{display:none}
+        #dk-sig{display:inline-flex;gap:2px;align-items:flex-end;height:11px;flex:none}#dk-sig i{width:3px;background:#26343c;border-radius:1px}#dk-sig i.on{background:#38e8ff}
+        #dk-sig i:nth-child(1){height:3px}#dk-sig i:nth-child(2){height:6px}#dk-sig i:nth-child(3){height:9px}#dk-sig i:nth-child(4){height:11px}
+        #dk-place{transition:opacity .4s}#dk-place.gone{opacity:0;width:0}
         #dk-pad button{width:56px;height:56px;border-radius:50%;background:rgba(6,14,20,.82);border:1px solid #3b6c78;font-size:11.5px;font-weight:600;line-height:1.1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
         #dk-pad button span{font-size:18px;line-height:1}#dk-pad button kbd{font:10px ui-monospace,monospace;opacity:.55}
         #dk-pad #dk-expose{width:64px;height:64px;background:rgba(240,236,226,.92);color:#0b1a22;border:3px solid #38e8ff}
         #dk-pad button.on{background:#38e8ff;color:#06222c;border-color:#38e8ff}
         #dk-pad button:active,#dk-ctx button:active{transform:scale(.94)}
-        #dk-ctx{right:max(12px,env(safe-area-inset-right,0px));bottom:calc(150px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:flex-end;gap:7px;max-width:min(380px,calc(100vw - 140px))}
+        #dk-ctx{left:calc(150px + env(safe-area-inset-left,0px));right:calc(90px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:flex-end;gap:7px;pointer-events:none}
+        body:not(.demo-touch) #dk-ctx{left:30%}
+        #dk-ctx button{pointer-events:auto}
+        #dk-verbs{display:flex;flex-direction:column-reverse;align-items:flex-end;gap:7px;max-width:100%}
+        #dk-ctx .verb .csq{display:block;font-size:11.5px;font-weight:500;opacity:.8}
         #dk-ctx .verb{min-height:44px;padding:8px 16px;border-radius:22px;background:#38e8ff;color:#06222c;border:0;font-weight:650;box-shadow:0 3px 14px rgba(0,0,0,.45);text-align:right}
         #dk-ctx .verb.alt{background:rgba(6,14,20,.88);color:#e9f6fb;border:1px solid #38e8ff;font-weight:550}
         #dk-ctx .verb.off{background:rgba(6,14,20,.82);color:#9fbcc4;border:1px solid #2c4c56;font-weight:500;min-height:38px;font-size:13px}
         #dk-ctx .verb small{display:block;font-size:11px;font-weight:450;opacity:.85}
         #dk-ctx .verb.urgent{background:#ff6b5a;color:#1a0806}
-        #dk-chips{display:flex;gap:6px;overflow-x:auto;max-width:100%;scrollbar-width:none;padding:2px 0}#dk-chips::-webkit-scrollbar{display:none}
+        #dk-chips{position:fixed;left:max(10px,env(safe-area-inset-left,0px));right:max(10px,env(safe-area-inset-right,0px));bottom:calc(180px + env(safe-area-inset-bottom,0px));display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0;pointer-events:auto}#dk-chips::-webkit-scrollbar{display:none}
+        #dk-chips[hidden]{display:none}#dk-chips .x{border-color:#5d7c86;color:#a9c6ce;min-width:40px}
         #dk-chips button{flex:none;min-height:38px;padding:6px 12px;border-radius:19px;background:rgba(6,14,20,.9);border:1px solid #8fd0de}
         #dk-chips .who{border:0;background:none;color:#8fd0de;font-size:11px;letter-spacing:.08em;text-transform:uppercase;pointer-events:none;padding:6px 2px}
         #dk-ctx kbd,#dk-chips kbd{font:10px ui-monospace,monospace;opacity:.6;margin-right:5px}
@@ -8172,9 +8183,9 @@ void main(){
         #dk-flash.fly{left:40px;top:28px;width:40px;opacity:.2;border-width:2px}
         body.dk-sheet-open #dk-pad,body.dk-sheet-open #dk-ctx{display:none}
         @media (orientation:portrait) and (max-width:700px){#dk-sheet{left:0;width:auto;top:auto;max-height:78dvh;border-left:0;border-top:1px solid #23414b;border-radius:16px 16px 0 0}
-          #dk-ctx{bottom:calc(146px + env(safe-area-inset-bottom,0px))}}
-        @media (max-height:500px) and (orientation:landscape){#dk-pad{grid-template-columns:repeat(2,50px);grid-template-rows:repeat(2,50px);gap:6px}#dk-pad button{width:48px;height:48px;font-size:10.5px}#dk-pad #dk-expose{width:56px;height:56px}
-          #dk-ctx{bottom:calc(10px + env(safe-area-inset-bottom,0px));right:calc(130px + env(safe-area-inset-right,0px));max-width:calc(100vw - 280px)}}
+          #dk-ctx{left:calc(150px + env(safe-area-inset-left,0px))}}
+        @media (max-height:500px) and (orientation:landscape){#dk-pad button{width:48px;height:48px;font-size:10.5px}#dk-pad #dk-expose{width:56px;height:56px}
+          #dk-ctx{right:calc(84px + env(safe-area-inset-right,0px))}#dk-chips{bottom:calc(70px + env(safe-area-inset-bottom,0px));left:calc(150px + env(safe-area-inset-left,0px))}}
         @media (max-width:700px) and (orientation:portrait){
           #demo-say{bottom:calc(122px + env(safe-area-inset-bottom,0px));left:auto;right:12px;transform:none;width:calc(100vw - 120px)}
           #demo-you{bottom:calc(170px + env(safe-area-inset-bottom,0px))}
@@ -8191,13 +8202,12 @@ void main(){
           <p class="keys" id="demo-keys"></p>
           <button id="demo-brief-ok">Begin</button></div>
         <div id="demo-bub" class="dm" hidden><b></b><span></span></div>
-        <div id="dk-status" class="dk" role="status"><span class="can"><i></i><u></u></span><b id="dk-l">0 L</b><small id="dk-place"></small></div>
+        <div id="dk-status" class="dk" role="status"><span class="can"><i></i><u></u></span><b id="dk-l">0 L</b><span id="dk-sig" aria-label="Beacon signal"><i></i><i></i><i></i><i></i></span><small id="dk-place"></small></div>
         <button id="dk-menu-btn" class="dk" type="button" aria-label="Menu">☰ Menu</button>
-        <div id="dk-ctx" class="dk"><div id="dk-chips"></div><div id="dk-verbs" style="display:flex;flex-direction:column;align-items:flex-end;gap:7px"></div></div>
+        <div id="dk-ctx" class="dk"><div id="dk-chips" hidden></div><div id="dk-verbs"></div></div>
+        <button type="button" id="dk-jump" class="dk" aria-label="Jump">Jump</button>
         <div id="dk-pad" class="dk" role="group" aria-label="Actions">
-          <button type="button" id="dk-jump" aria-label="Jump"><span>⤒</span>Jump<kbd>Space</kbd></button>
-          <button type="button" id="dk-veh" aria-label="Vehicle"><span>⛟</span><em id="dk-veh-l" style="font-style:normal">Drive</em><kbd>C</kbd></button>
-          <button type="button" id="dk-throw" aria-label="Throw"><span>↗</span>Throw<kbd>G</kbd></button>
+          <button type="button" id="dk-veh" aria-label="Vehicle" hidden><span>⛟</span><em id="dk-veh-l" style="font-style:normal">Drive</em><kbd>C</kbd></button>
           <button type="button" id="dk-expose" aria-label="Expose an 8 by 10 plate"><span>◉</span>Expose<kbd>⇧Space</kbd></button>
         </div>
         <section id="dk-sheet" class="dk" hidden aria-label="Menu"><header><b>Night Post · Ahiya</b><button type="button" id="dk-close" aria-label="Close">×</button></header>
@@ -8220,7 +8230,8 @@ void main(){
           <div class="g"><button data-act="listen">Listen &amp; mix<small>O</small></button><button data-act="voice">Voices<small id="dk-voice">on</small></button>
             <button data-act="tape">Tape<small id="dk-tape">playing</small></button><button data-act="radio">Wagon radio<small>N, in the wagon</small></button></div>
           <h6>World</h6>
-          <div class="g"><button data-act="rig">Deploy rig<small>B</small></button><button data-act="sync">Sync zone<small>T</small></button>
+          <div class="g"><button data-act="throw">Throw the can<small>G</small></button><button data-act="squirt">Squirt water<small>F</small></button>
+            <button data-act="rig">Deploy rig<small>B</small></button><button data-act="sync">Sync zone<small>T</small></button>
             <button data-act="video">In-world video<small>Y</small></button><button data-act="trailer">Trailer<small>U</small></button>
             <select id="dk-playas" aria-label="Play as"></select><button data-act="hud">Full game HUD<small id="dk-hud">off</small></button></div>
           <h6>How to play</h6><p class="keys" id="dk-keys"></p><div class="g"><button data-act="help">Show the intro card</button></div>
@@ -8248,13 +8259,14 @@ void main(){
         const b = e.target.closest("button"); if (!b) return; e.stopPropagation();
         if (b.dataset.verb) demoDo(b.dataset.verb);
         else if (b.dataset.ctx) { const a = (state.ctxActs || []).find(a => a.id === b.dataset.ctx); if (a) a.fn(); demo.dockSig = ""; }
+        else if (b.dataset.talk) { demo.talking = true; demo.dockSig = ""; demoDock(1); }
+        else if (b.dataset.untalk) { demo.talking = false; demo.dockSig = ""; demoDock(1); }
         else if (b.dataset.type) { document.body.classList.add("demo-typing"); ui.say.hidden = false; setTimeout(() => ui.input.focus(), 30); }
         else if (b.dataset.ask) demoSay(b.dataset.ask);
       });
       ui.input.addEventListener("blur", () => setTimeout(() => document.body.classList.remove("demo-typing"), 150));
       // the pad: the game's own verbs, always in reach
       q("dk-jump").onclick = () => jumpPlayer();
-      q("dk-throw").onclick = () => throwObject();
       q("dk-expose").onclick = () => { exposePlate(); demoFlash(); };
       q("dk-veh").onclick = () => { if (state.riding) toggleRide(); else toggleCart(); demo.dockSig = ""; };
       const sheet = ui.sheet, openSheet = on => { sheet.hidden = !on; document.body.classList.toggle("dk-sheet-open", on); if (on) demoSheet(true); };
@@ -8294,6 +8306,8 @@ void main(){
         else if (a === "tape") toggleTape();
         else if (a === "radio") { if (field && field.radio && state.drivingCart) field.radio.tune(); }
         else if (a === "rig") { close(); deployRig(); }
+        else if (a === "throw") { close(); throwObject(); }
+        else if (a === "squirt") { close(); triggerSquirtBurst(1.4); }
         else if (a === "sync") syncResonantZone();
         else if (a === "video") { close(); toggleInWorldVideo(); }
         else if (a === "trailer") { close(); if (machinima) machinima.toggle("trailer"); }
@@ -8397,36 +8411,56 @@ void main(){
         const b = ui.sheet.querySelector(`[data-act="${act}"]`); if (b) b.classList.toggle("on", !!on);
       }
     }
+    // The deck shows only what is true now. Each element is bound to the state that makes it so:
+    //   gauge + signal  always (they change every choice); place name  for 4 s after you arrive
+    //   a stop's verb   only while it is allowed, with its consequence; a refused verb is not shown
+    //   Talk to <name>  only within reach of a person; the questions only after you choose to talk (× returns)
+    //   Water the donkey only when she is thirsty and you carry water; Ride only beside her
+    //   Drive / Park / Get down  only beside the wagon, in it, or on the donkey
+    //   Expose          always: making a plate is always possible and always yours
     function demoDock(dt) {
       const ui = demo.ui; if (!ui) return;
       demo.dockT = (demo.dockT || 0) - dt; if (demo.dockT > 0) return; demo.dockT = .25;
-      const c = npCarrier(), busy = !!demo.handoff;
-      // status: water, chalk, where you are
-      const q = id => document.getElementById(id);
+      const c = npCarrier(), busy = !!demo.handoff, q = id => document.getElementById(id), onFoot = !state.drivingCart && !state.riding && !state.gliding;
+      // SENSE
       q("dk-status").querySelector(".can i").style.width = Math.min(100, c.liters / 20 * 100) + "%";
       const lt = `${c.liters} L`; if (q("dk-l").textContent !== lt) q("dk-l").textContent = lt;
-      const pt = (typeof currentPlaceName === "function" ? currentPlaceName() : "") + (ui.los && ui.los.textContent ? " · " + ui.los.textContent : "");
-      if (q("dk-place").textContent !== pt) q("dk-place").textContent = pt;
-      // pad: the vehicle button follows what you are in or near
-      const vl = state.drivingCart ? "Park" : state.riding ? "Dismount" : "Drive", ve = q("dk-veh-l"); if (ve.textContent !== vl) ve.textContent = vl;
-      q("dk-veh").classList.toggle("on", !!(state.drivingCart || state.riding));
+      [...q("dk-sig").children].forEach((b, i) => b.classList.toggle("on", i < (demo.signal || 0)));
+      const place = typeof currentPlaceName === "function" ? currentPlaceName() : "";
+      if (place !== demo.shownPlace) { demo.shownPlace = place; demo.placeUntil = (demo.clock || 0) + 4000; q("dk-place").textContent = place; }
+      q("dk-place").classList.toggle("gone", (demo.clock || 0) > (demo.placeUntil || 0));
       demoSheet();
-      // context row: the stop's water-law verbs, then the game's own nearby actions, minus what the deck already has
+      // vehicle: only where it is real
+      const dWagon = Math.hypot(wagon.x - state.x, wagon.z - state.z), dDonkey = Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z);
+      const veh = state.drivingCart ? "Park" : state.riding ? "Get down" : onFoot && dWagon < 7.5 ? "Drive" : "";
+      q("dk-veh").hidden = !veh; if (veh && q("dk-veh-l").textContent !== veh) q("dk-veh-l").textContent = veh;
+      q("dk-jump").hidden = !onFoot;
+      // ACT: verbs the water law allows here, now
       let verbs = [];
-      if (!busy && !state.drivingCart && !state.riding) { let opts = []; try { opts = npEngine.options(npState) || []; } catch (e) { }
+      if (!busy && onFoot) { let opts = []; try { opts = npEngine.options(npState) || []; } catch (e) { }
         verbs = opts.filter(o => { const V = DEMO_VERB[o.id], ch = V && cast.byId && cast.byId[V.who];
-          return ch && DEMO_STOP_OF[V.who] === c.place && Math.hypot(ch.state.x - state.x, ch.state.z - state.z) < 9; }); }
-      const have = new Set(["talk", "throw", "drive", "park"].concat(verbs.some(o => o.id === "pump") ? ["pump"] : []));
-      const acts = busy ? [] : (state.ctxActs || []).filter(a => !have.has(a.id)).slice(0, 3);
-      const ch = !busy && demo.withCh, kb = ch ? DEMO_KB[ch.state.id] || {} : {};
-      const qs = ch ? ["who", ...Object.keys(kb).filter(k => k !== "who" && kb[k] && DEMO_Q[k])].slice(0, 4) : [];
-      const sig = verbs.map(o => o.id + o.enabled).join() + "|" + acts.map(a => a.id + a.label).join() + "|" + (ch ? ch.state.id : "") + qs.join() + c.liters;
+          return o.enabled && ch && DEMO_STOP_OF[V.who] === c.place && Math.hypot(ch.state.x - state.x, ch.state.z - state.z) < 9; }); }
+      const ctx = state.ctxActs || [], get = id => ctx.find(a => a.id === id);
+      const extra = [];
+      if (!busy && onFoot && (state.donkeyCollapsed || (state.donkeyWater < .5 && c.liters > 0)) && get("water-burro")) extra.push({ id: "water-burro", label: state.donkeyCollapsed ? "Water the donkey now" : "Water the donkey", urgent: state.donkeyCollapsed });
+      if (!busy && onFoot && !verbs.length && dDonkey < 2.6 && !demo.withCh && get("ride")) extra.push({ id: "ride", label: "Ride the donkey" });
+      if (!busy && state.riding && get("ride")) extra.push({ id: "ride", label: "Get down" });
+      const ch = !busy && onFoot ? demo.withCh : null;
+      if (!ch || (demo.talkWith && demo.talkWith !== ch)) demo.talking = false;     // talking is with one person; walking to another asks again
+      if (demo.talking) demo.talkWith = ch; else demo.talkWith = null;
+      const kb = ch ? DEMO_KB[ch.state.id] || {} : {};
+      const qs = ch && demo.talking ? ["who", ...Object.keys(kb).filter(k => k !== "who" && kb[k] && DEMO_Q[k])].slice(0, 4) : [];
+      const sig = verbs.map(o => o.id).join() + "|" + extra.map(a => a.id + a.label).join() + "|" + (ch ? ch.state.id : "") + (demo.talking ? "T" : "") + qs.join() + c.liters;
       if (sig === demo.dockSig) return; demo.dockSig = sig;
-      const NICE = { "water-burro": "Water the donkey", ride: state.riding ? "Get down" : "Ride the donkey", squirt: "Squirt water", share: "Share water", pour: "Pour into the cistern", pump: "Pump" };
-      const nice = (l, id) => NICE[id] || l.replace(/^\[[A-Z]\]\s*/, "").toLowerCase().replace(/^./, m => m.toUpperCase()).replace(/\bcyan\b/i, "").replace(/\s+/g, " ");
-      ui.verbs.innerHTML = verbs.map((o, i) => `<button type="button" class="verb${o.enabled ? "" : " off"}" data-verb="${o.id}">${i === 0 && o.enabled ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${o.enabled ? "" : `<small>${o.reason || "Not yet"}</small>`}</button>`).join("")
-        + acts.map(a => { const k = (/^\[([A-Z])\]/.exec(a.label) || [])[1]; return `<button type="button" class="verb alt${a.urgent ? " urgent" : ""}" data-ctx="${a.id}">${k ? `<kbd>${k}</kbd>` : ""}${nice(a.label, a.id)}</button>`; }).join("");
-      ui.chips.innerHTML = ch ? `<span class="who">${demoName(ch)}</span>` + qs.concat(["where"]).map(k => `<button type="button" data-ask="${k === "where" ? "Where next?" : DEMO_Q[k]}">${k === "where" ? "Where next?" : DEMO_Q[k]}</button>`).join("")
+      const csq = o => { const m = /(\d+)\s*L/.exec(DEMO_VERB[o.id].label); const n = o.id === "pump" ? 20 - c.liters : m ? -(+m[1]) : 0;
+        return n ? `<span class="csq">${c.liters} → ${clamp(c.liters + n, 0, 20)} L</span>` : ""; };     // the consequence, on the button
+      const shown = verbs.slice(0, 2);
+      let html = shown.map((o, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-verb="${o.id}">${i === 0 ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${csq(o)}</button>`).join("");
+      html += extra.slice(0, Math.max(0, 2 - shown.length)).map(a => `<button type="button" class="verb alt${a.urgent ? " urgent" : ""}" data-ctx="${a.id}">${a.label}</button>`).join("");
+      if (ch && !demo.talking) html += `<button type="button" class="verb alt" data-talk="1">Talk to ${demoName(ch)}</button>`;
+      ui.verbs.innerHTML = html;
+      ui.chips.hidden = !(ch && demo.talking);
+      ui.chips.innerHTML = ch && demo.talking ? `<button type="button" class="x" data-untalk="1" aria-label="Stop talking">×</button>` + qs.concat(["where"]).map(k => `<button type="button" data-ask="${k === "where" ? "Where next?" : DEMO_Q[k]}">${k === "where" ? "Where next?" : DEMO_Q[k]}</button>`).join("")
         + `<button type="button" data-type="1" aria-label="Type or speak">⌨︎ Say…</button>` : "";
     }
     /* ---------- A can changing hands, with weight: step in, lift, both hold, the other takes it, sets it down or pours ---------- */
@@ -8587,7 +8621,7 @@ void main(){
         ui.bub.lastElementChild.textContent = L.text.slice(0, Math.ceil(L.text.length * Math.min(1, L.t / (L.dur * .62))));
         demoV.set(L.ch.state.x, L.ch.state.y + 1.98, L.ch.state.z).project(camera);
         const on = demoV.z < 1 && Math.abs(demoV.x) < 1.1;
-        ui.bub.style.left = clamp((demoV.x * .5 + .5) * innerWidth, 150, innerWidth - 150) + "px"; ui.bub.style.top = clamp((-demoV.y * .5 + .5) * innerHeight, 70, innerHeight - 190) + "px";
+        ui.bub.style.left = clamp((demoV.x * .5 + .5) * innerWidth, 150, innerWidth - 150) + "px"; ui.bub.style.top = clamp((-demoV.y * .5 + .5) * innerHeight, 70, innerHeight - (demo.talking ? 250 : 170)) + "px";   // never into the controls band
         ui.bub.hidden = !on;
         if (L.t > L.dur) { const end = L.end; demoRestore(); if (end) demo.withCh = null; }
       }
