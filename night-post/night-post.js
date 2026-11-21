@@ -8297,6 +8297,11 @@ void main(){
       document.body.classList.toggle("dew-skin", !!demo.dew);
       if (demo.dew) {
         // carrying water from one drop into another is the act: litres onto a person, the tap or the donkey; the pump's drop into your litres
+        const keyOf = el => el && el.dataset ? el.dataset.key || (el.dataset.offer ? "o:" + el.dataset.offer : "") : "";
+        demo.dew.onSwat = el => { const k = keyOf(el); if (!k) return; if (k[0] === "o") { el.remove(); return; } (demo.snooze || (demo.snooze = {}))[k] = (demo.clock || 0) + (k[0] === "m" ? 9000 : 26000); demo.dockSig = ""; demo.dockT = 0; };
+        demo.dew.onWipe = () => { const t = (demo.clock || 0) + 12000, z = demo.snooze || (demo.snooze = {}); for (const b of document.querySelectorAll("#dk-verbs [data-key]")) z[b.dataset.key] = b.dataset.key[0] === "m" ? t - 5000 : t;
+          document.getElementById("dk-offers").innerHTML = ""; demo.offerT = 9; demo.talking = false; demo.dockSig = ""; demo.dockT = 0; if (demo.menuOpen) ui.openSheet(false); };
+        demo.dew.onBreathe = () => { demo.snooze = {}; demo.shownAt = {}; demo.offerT = 0; demo.hintT = 0; demo.dockSig = ""; demo.dockT = 0; };   // breath on the glass brings the drops back
         demo.dew.onMerge = (a, b) => { const v = [a, b].find(el => el.dataset && (el.dataset.verb || el.dataset.ctx)), st = [a, b].find(el => el.id === "dk-status"); if (v && st) v.click(); };
         // the pool: on a touch screen you walk from wherever your thumb comes down in the lower left; lift, and it is gone
         if (matchMedia("(pointer:coarse)").matches) {
@@ -8544,17 +8549,28 @@ void main(){
       const ch = !busy && onFoot ? demo.withCh : null;
       if (!ch || (demo.talkWith && demo.talkWith !== ch)) demo.talking = false;     // talking is with one person; walking to another asks again
       if (demo.talking) demo.talkWith = ch; else demo.talkWith = null;
+      // Water yields to the world: a drop is bright for a while, thins, lets go, and falls again later as a reminder if it is
+      // still true. Swatted, it stays away longer. What your state needs never leaves, but it goes faint.
+      const now = demo.clock || 0, snz = demo.snooze || (demo.snooze = {}), born = demo.shownAt || (demo.shownAt = {}), keys = new Set();
+      if (demo.snoozeSig !== c.place + "|" + c.liters) { demo.snoozeSig = c.place + "|" + c.liters; for (const k in snz) if (k[0] !== "m") delete snz[k]; }   // something changed: a fresh shower
+      const tick = (key, life) => { keys.add(key); if (snz[key] > now) return false; const t0 = born[key] || (born[key] = now);
+        if (life && now - t0 > life) { snz[key] = now + 15000 + Math.random() * 9000; delete born[key]; return false; } return true; };
+      verbs = verbs.filter(o => tick("v:" + o.id, 12000));
+      for (let i = extra.length - 1; i >= 0; i--) if (!tick("x:" + extra[i].id, extra[i].urgent ? 0 : 9000)) extra.splice(i, 1);
+      for (let i = must.length - 1; i >= 0; i--) { const k = "m:" + must[i].k; if (!tick(k, 0)) must.splice(i, 1); else must[i].faint = now - born[k] > 5000; }
+      const askLive = ch && !demo.talking && tick("t:" + ch.state.id, 10000);
+      for (const k in born) if (!keys.has(k)) delete born[k];
       const kb = ch ? DEMO_KB[ch.state.id] || {} : {};
       const qs = ch && demo.talking ? ["who", ...Object.keys(kb).filter(k => k !== "who" && kb[k] && DEMO_Q[k])].slice(0, 4) : [];
-      const sig = must.map(m => m.k + m.label).join() + verbs.map(o => o.id).join() + "|" + extra.map(a => a.id + a.label).join() + "|" + (ch ? ch.state.id : "") + (demo.talking ? "T" : "") + qs.join() + c.liters;
+      const sig = (askLive ? "A" : "") + must.map(m => m.k + m.label + (m.faint ? "f" : "")).join() + verbs.map(o => o.id).join() + "|" + extra.map(a => a.id + a.label).join() + "|" + (ch ? ch.state.id : "") + (demo.talking ? "T" : "") + qs.join() + c.liters;
       if (sig === demo.dockSig) return; demo.dockSig = sig;
       const csq = o => { const m = /(\d+)\s*L/.exec(DEMO_VERB[o.id].label); const n = o.id === "pump" ? 20 - c.liters : m ? -(+m[1]) : 0;
         return n ? `<span class="csq">${c.liters} → ${clamp(c.liters + n, 0, 20)} L</span>` : ""; };     // the consequence, on the button
       const shown = verbs.slice(0, 2);
-      let html = shown.map((o, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-verb="${o.id}" data-anchor="${o.id === "pump" ? "pump" : "ch:" + DEMO_VERB[o.id].who}">${i === 0 ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${csq(o)}</button>`).join("");
-      html += extra.slice(0, Math.max(0, 2 - shown.length)).map(a => `<button type="button" class="verb alt${a.urgent ? " urgent" : ""}" data-ctx="${a.id}" data-anchor="${a.id === "share" && ch ? "ch:" + ch.state.id : "donkey"}">${a.label}</button>`).join("");
-      html += must.map((m, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-do="${m.k}" data-anchor="self">${m.label}</button>`).join("");
-      if (ch && !demo.talking) html += `<button type="button" class="verb alt" data-talk="1" data-anchor="head:${ch.state.id}">Ask ${demoName(ch).split(" ").pop()}</button>`;
+      let html = shown.map((o, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-verb="${o.id}" data-key="v:${o.id}" data-anchor="${o.id === "pump" ? "pump" : "ch:" + DEMO_VERB[o.id].who}">${i === 0 ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${csq(o)}</button>`).join("");
+      html += extra.slice(0, Math.max(0, 2 - shown.length)).map(a => `<button type="button" class="verb alt${a.urgent ? " urgent" : ""}" data-ctx="${a.id}" data-key="x:${a.id}" data-anchor="${a.id === "share" && ch ? "ch:" + ch.state.id : "donkey"}">${a.label}</button>`).join("");
+      html += must.map((m, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-do="${m.k}" data-key="m:${m.k}"${m.faint ? ' data-dew-faint="1"' : ""} data-anchor="self">${m.label}</button>`).join("");
+      if (askLive) html += `<button type="button" class="verb alt" data-talk="1" data-key="t:${ch.state.id}" data-anchor="head:${ch.state.id}">Ask ${demoName(ch).split(" ").pop()}</button>`;
       ui.verbs.innerHTML = html;
       ui.chips.hidden = !(ch && demo.talking);
       ui.chips.dataset.who = ch ? ch.state.id : "";
@@ -8567,19 +8583,23 @@ void main(){
       const ui = demo.ui; if (!ui || !demo.dew) return; const Wd = innerWidth, Hd = innerHeight, placed = [];
       const proj = (x, y, z) => { demoV.set(x, y, z).project(camera); return demoV.z < 1 ? [(demoV.x * .5 + .5) * Wd, (-demoV.y * .5 + .5) * Hd] : null; };
       const chPos = (id, up) => { const c = cast.byId && cast.byId[id]; if (!c) return null; const w = c.group.getWorldPosition(hoV.pR); return proj(w.x, w.y + up, w.z); };
-      const put = (b, p, hw, hh) => {
-        let x = p ? p[0] : Wd * .5, y = p ? p[1] : Hd - 150; x = clamp(x, hw + 14, Wd - hw - 14); y = clamp(y, 96 + hh, Hd - 150);
+      const put = (b, p, hw, hh, self) => {
+        let x = p ? p[0] : Wd * .5, y = p ? p[1] : Hd - 150;
+        if (p && !self) { const out = p[0] >= Wd / 2 ? 1 : -1; x = p[0] + out * (hw + 36); y = p[1] - 8;                    // beside its thing, on the outer side
+          if (x > Wd * .3 - hw && x < Wd * .7 + hw && y > Hd * .3 && y < Hd * .8) x = out > 0 ? Wd * .7 + hw + 4 : Wd * .3 - hw - 4; }   // never over the middle of the glass
+        x = clamp(x, hw + 12, Wd - hw - 12); y = clamp(y, 96 + hh, Hd - (self ? 70 : 150));
         for (let n = 0; n < 6; n++) { const hit = placed.find(q => Math.abs(q[0] - x) < q[2] + hw + 6 && Math.abs(q[1] - y) < q[3] + hh + 6); if (!hit) break; y = hit[1] + hit[3] + hh + 8; if (y > Hd - 150) { y = hit[1] - hit[3] - hh - 8; } }
         placed.push([x, y, hw, hh]); b.style.left = x + "px"; b.style.top = y + "px";
+        if (p && !self) { b.dataset.ax = Math.round(p[0]); b.dataset.ay = Math.round(p[1]); } else { delete b.dataset.ax; delete b.dataset.ay; }
       };
       for (const b of ui.verbs.children) {
         const a = b.dataset.anchor || "", r = b.getBoundingClientRect(), hw = r.width / 2 || 60, hh = r.height / 2 || 27; let p = null;
         if (a === "pump") p = proj(DEMO_SETS.basalt[0], driveSurfaceAt(DEMO_SETS.basalt[0], DEMO_SETS.basalt[1]) + 1.25, DEMO_SETS.basalt[1]);
         else if (a === "donkey") p = proj(donkey.state.x, donkey.group.position.y + 1.45, donkey.state.z);
         else if (a.startsWith("ch:")) p = chPos(a.slice(3), 1.15);
-        else if (a.startsWith("head:")) { p = chPos(a.slice(5), 1.72); if (p) p[0] += hw + 26; }
-        else if (a === "self") p = [Wd / 2, Hd - 152];
-        put(b, p, hw, hh);
+        else if (a.startsWith("head:")) p = chPos(a.slice(5), 1.72);
+        else if (a === "self") p = [Wd / 2, Hd - 86];
+        put(b, p, hw, hh, a === "self");
       }
       const who = ui.chips.dataset.who, head = who ? chPos(who, 1.7) : null, list = [...ui.chips.children], n = list.length;
       list.forEach((b, i) => { const r = b.getBoundingClientRect(), hw = r.width / 2 || 50, hh = r.height / 2 || 22;
@@ -8610,6 +8630,18 @@ void main(){
       const now = demo.clock || 0, quiet = demo.handoff || demo.menuOpen || document.body.classList.contains("demo-typing") || !ui.brief.hidden;
       for (const b of [...box.children]) { const o = DEMO_OFFERS.find(x => x.id === b.dataset.offer), age = (now - +b.dataset.born) / 1000;
         if (!o || !o.when() || age > o.stick || quiet) b.remove(); }                                  // its time is up, or it is no longer true: it lets go
+      // small written droplets: what you would want to know, falling now and then at the edge
+      demo.hintT = (demo.hintT ?? 6) - dt;
+      if (!quiet && demo.hintT <= 0) {
+        demo.hintT = 11 + Math.random() * 7; const c = npCarrier(), H = [], seen = demo.hinted || (demo.hinted = {});
+        try { for (const o of npEngine.options(npState) || []) { const V = DEMO_VERB[o.id]; if (V && !o.enabled && o.reason && DEMO_STOP_OF[V.who] === c.place) H.push(["r:" + o.id, `${V.label}: ${o.reason.replace(/\.$/, "").toLowerCase()}.`]); } } catch (e) { }
+        if (state.donkeyCollapsed) H.push(["dk", "The donkey is down. She needs water now."]); else if (state.donkeyWater < .5) H.push(["dk", "The donkey is thirsty."]);
+        if (c.liters <= (c.reserve || 4) && c.place !== "basalt") H.push(["dry", "Only the reserve is left. The pump refills you."]);
+        if (c.liters > 0 && (demo.signal || 0) === 1) H.push(["los", "The ridge hides the beacon. No signal here."]);
+        const nx = ["basalt", "beacon", "hill", "compound"].find(k => !c.visited.includes(k)); if (nx) H.push(["nx:" + nx, "Next: " + DEMO_SETS[nx][2] + "."]);
+        const pick = H.filter(h => now - (seen[h[0]] || -1e9) > 50000)[0];
+        if (pick) { seen[pick[0]] = now; const left = Math.random() < .5, y = innerHeight * (.2 + Math.random() * .16), m = demo.dew.say({ me: true, text: pick[1], anchor: () => [left ? 26 : innerWidth - 26, y] }); m.set(pick[1], 1); setTimeout(() => m.end("fall"), 5200); }
+      }
       demo.offerT = (demo.offerT || 2.5) - dt; if (quiet || demo.offerT > 0 || box.children.length >= 2) return;
       demo.offerT = 3 + Math.random() * 3.5; demo.offered = demo.offered || {};
       const pool = DEMO_OFFERS.filter(o => o.when() && now - (demo.offered[o.id] || -1e9) > 26000 && !box.querySelector(`[data-offer="${o.id}"]`)); if (!pool.length) return;

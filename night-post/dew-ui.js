@@ -34,7 +34,7 @@
     size(); addEventListener('resize', size);
     const drops = [], beads = [], wisps = [], msgs = [], streaks = [], wetPts = [], skins = new Map(), memory = [];
     const D = { drops, beads, wisps, msgs, streaks, skins, rain: 0, enabled: true, light: null, flare: 0, breath: 0, bloomT: 0, mark: null, wet: 0,
-      select: '#dk-status,#dk-menu-btn,#dk-rail .bead,#dk-row .bead,#dk-verbs .verb,#dk-offers .verb,#dk-chips button,#dk-expose,#dk-veh', pool: null, hint: '', drag: null, onMerge: null, ways: [], wind: 0, mist: 0, smoke: 0, titleT: 0, titleText: '' };
+      select: '#dk-status,#dk-menu-btn,#dk-rail .bead,#dk-row .bead,#dk-verbs .verb,#dk-offers .verb,#dk-chips button,#dk-expose,#dk-veh', pool: null, hint: '', drag: null, onMerge: null, ways: [], onSwat: null, onWipe: null, onBreathe: null, lastTouch: 0, wind: 0, mist: 0, smoke: 0, titleT: 0, titleText: '' };
     const RK = 2.1, rOf = m => RK * Math.cbrt(m), mOf = r => Math.pow(r / RK, 3), R_RUN = 7.6, R_STOP = 3.0;
     const SERIF = 'Georgia,"Iowan Old Style","Times New Roman",serif';
 
@@ -176,12 +176,17 @@
     D.bloom = () => { D.bloomT = 1; dirty = true; };
     /* ---------- touch: your finger is in the water ---------- */
     const finger = { down: false, x: 0, y: 0, vx: 0, vy: 0, S: null, acc: 0 };
-    addEventListener('pointerdown', e => { finger.down = true; finger.x = e.clientX; finger.y = e.clientY; finger.vx = finger.vy = 0; finger.S = null; finger.onUi = !!(e.target.closest && e.target.closest('button,select,input'));
+    addEventListener('pointerdown', e => { finger.down = true; finger.x = e.clientX; finger.y = e.clientY; finger.vx = finger.vy = 0; finger.S = null; finger.t0 = T; finger.len = 0; finger.wiped = finger.breathed = false; D.lastTouch = T; finger.onUi = !!(e.target.closest && e.target.closest('button,select,input'));
       const el = e.target.closest && e.target.closest('button,#dk-status'), U = el && skins.get(el); D.drag = U ? { U, moved: false, x0: e.clientX, y0: e.clientY } : null; }, { capture: true, passive: true });
     addEventListener('pointermove', e => {
       if (!finger.down || !D.enabled) return; const dx = e.clientX - finger.x, dy = e.clientY - finger.y, n = Math.hypot(dx, dy); if (n < 1) return;
       finger.vx = dx; finger.vy = dy; finger.x = e.clientX; finger.y = e.clientY;
       if (D.drag && Math.hypot(finger.x - D.drag.x0, finger.y - D.drag.y0) > 26) D.drag.moved = true;
+      finger.len += n; D.lastTouch = T;
+      if (!finger.onUi && !finger.wiped && !D.pool && finger.len > 230 && T - finger.t0 < .75) {                 // one fast stroke wipes the glass
+        finger.wiped = true; if (D.onWipe) D.onWipe();
+        for (const d of drops) if (!d.held) { d.state = 'fall'; d.forced = true; d.vx += dx * 30; d.vy = Math.max(d.vy, 40 + Math.random() * 80); }
+      }
       if (finger.onUi) return; dirty = true;
       if (!finger.S) finger.S = newStreak(7, 5.5); finger.acc += n;
       if (finger.acc > 6) { streakPt(finger.S, finger.x, finger.y);                                           // the wet path your finger leaves
@@ -196,6 +201,7 @@
       if (G && G.moved) {                                                  // water carried from one drop into another: that is the act
         let hit = null; for (const U of skins.values()) if (U !== G.U && Math.abs(finger.x - U.x) < U.rx + 14 && Math.abs(finger.y - U.y) < U.ry + 14) { hit = U; break; }
         if (hit) { hit.swell = 1; G.U.swell = .6; if (D.onMerge) D.onMerge(G.U.el, hit.el); }
+        else if (Math.hypot(finger.vx, finger.vy) > 7 && D.onSwat && (G.U.el.dataset.key || G.U.el.dataset.offer)) { G.U.fling = [finger.vx * 34, finger.vy * 34]; D.onSwat(G.U.el); }   // flicked: it flies off and stays away a while
         else drop({ x: finger.x, y: finger.y, r: 7, state: 'fall', vy: 20, grow: 1, forced: true });   // let go over nothing: it just falls
       }
     }; addEventListener('pointerup', lift, { capture: true, passive: true }); addEventListener('pointercancel', lift, { capture: true, passive: true });
@@ -228,7 +234,7 @@
       for (const [el, U] of skins) if (!seen.has(el)) {                    // its action is no longer true: it lets go, and falls like any other water
         skins.delete(el); const r = Math.min(16, Math.max(5, Math.min(U.rx, U.ry) * .55));
         const hon = U.kind === 'amber' || U.kind === 'honey';
-        drop({ x: U.x, y: U.y, r, state: 'fall', vy: hon ? 4 : 8 + Math.random() * 20, grow: 1, forced: true, visc: hon ? 5 : 0, tint: hon ? 'rgba(232,160,40,.42)' : U.kind === 'go' ? 'rgba(56,232,255,.2)' : null });
+        drop({ x: U.x, y: U.y, r, state: 'fall', vx: U.fling ? U.fling[0] : 0, vy: U.fling ? Math.max(30, U.fling[1]) : hon ? 4 : 8 + Math.random() * 20, grow: 1, forced: true, visc: hon ? 5 : 0, tint: hon ? 'rgba(232,160,40,.42)' : U.kind === 'go' ? 'rgba(56,232,255,.2)' : null });
       }
     }
     const TINT = { amber: 'rgba(232,150,28,.50)', honey: 'rgba(236,176,70,.26)', go: 'rgba(56,232,255,.20)', urgent: 'rgba(255,90,70,.42)' };
@@ -237,16 +243,22 @@
       const k = Math.min(1, dt * (U.land ? 5 : 7)); U.x += (U.hx + U.ox - U.x) * k; U.y += (U.hy + U.oy - U.y) * k;       // stubborn: it comes back to its place
       if (U.land && Math.abs(U.y - U.hy) < 4) { U.land = false; U.swell = 1; for (let i = 0; i < 4; i++) drop({ x: U.x + (Math.random() - .5) * U.trx * 1.6, y: U.y + U.try * .6, r: 2 + Math.random() * 2, state: 'fall', vy: 20 + Math.random() * 40, vx: (Math.random() - .5) * 120, grow: 1, forced: true }); }   // it lands, and splashes
       const g = U.a * (2 - U.a) * (U.press ? .93 : 1) * (1 + U.swell * .1); U.rx += (U.trx * g - U.rx) * k; U.ry += (U.try * g - U.ry) * k;
+      const fixed = U.el.id === 'dk-status' || U.el.id === 'dk-menu-btn' || U.el.id === 'dk-expose', nearF = finger.down && Math.hypot(finger.x - U.x, finger.y - U.y) < U.rx + 90;
+      const want = nearF || U.press || U.land ? 1 : U.el.dataset.dewFaint ? .42 : fixed ? (T - D.lastTouch > 5 && !document.body.classList.contains('dk-menu-open') ? .5 : 1) : U.el.dataset.key && U.age > 5 ? .72 : 1;   // water yields: it thins when you are not reaching for it
+      U.vis = (U.vis ?? 1) + (want - (U.vis ?? 1)) * Math.min(1, dt * 2.2);
+      if (U.el.dataset.ax && !U.land) { const ax = +U.el.dataset.ax, ay = +U.el.dataset.ay, dx = ax - U.x, dy = ay - U.y, n = Math.hypot(dx, dy) || 1;   // a hair of water to the thing it is about
+        if (n > U.rx + 8) { ctx.save(); ctx.globalAlpha = .55 * U.vis; ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(U.x + dx / n * U.rx * .95, U.y + dy / n * U.ry * .95);
+          ctx.quadraticCurveTo((U.x + ax) / 2, (U.y + ay) / 2 + 10, ax, ay); ctx.stroke(); ctx.restore(); lens(ax, ay, 3.2, 3.6, U.vis); } }
       U.age = (U.age || 0) + dt; const sag = U.kind === 'urgent' ? .1 + .05 * Math.sin(T * 9) : U.el.dataset.dewLife ? Math.min(.42, Math.pow(U.age / +U.el.dataset.dewLife, 2) * .42) : U.el.classList.contains('verb') ? Math.min(.18, U.age * .012) : 0;   // what waits, sags; what is about to go, hangs
       const x = U.x + (U.kind === 'urgent' ? Math.sin(T * 23) * 1.2 : 0), y = U.y + Math.sin(T * .8 + U.seed) * 1.2 + U.ry * sag * .5, rx = U.rx * (1 - sag * .25), ry = U.ry * (1 + sag), tear = U.kind === 'tear', amp = U.kind === 'pool' ? .05 : rx > 30 ? .075 : .05;
-      water(x, y, rx, ry, Math.min(1, U.a * 1.2), TINT[U.kind], () => blob(x, y, rx, ry, U.seed, amp, tear));
+      water(x, y, rx, ry, Math.min(1, U.a * 1.2) * U.vis, TINT[U.kind], () => blob(x, y, rx, ry, U.seed, amp, tear));
       if (U.kind === 'pool') { ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 1; for (let i = 0; i < 2; i++) { const u = ((T * .35 + i * .5) % 1); ctx.globalAlpha = (1 - u) * .8; ctx.beginPath(); ctx.ellipse(x, y, rx * (.35 + u * .6), ry * (.35 + u * .6), 0, 0, 6.2832); ctx.stroke(); } ctx.restore(); }
       // the rain feeds it; when it holds too much it sheds a drip that runs
       if (D.rain > .2) { U.wetq += dt * D.rain * (.05 + Math.random() * .1); if (U.wetq > 1 && U.kind !== 'pool') { U.wetq = 0; U.swell = 0; drop({ x: x + (Math.random() - .5) * rx * .8, y: y + ry * (tear ? 1 : .9), r: 3 + Math.random() * 2.6, state: 'fall', vy: 6, grow: .2, forced: true, tint: U.kind === 'amber' ? 'rgba(230,150,30,.4)' : null }); } }
       const hang = U.wetq > .55 && U.kind !== 'pool' ? (U.wetq - .55) / .45 : 0;                            // the drip gathering under it
       if (hang > 0) { const hx = x + Math.sin(U.seed * 3) * rx * .45, hy = y + ry * .96; lens(hx, hy + hang * 5, 2 + hang * 2.2, 2.6 + hang * 5, U.a, TINT[U.kind === 'amber' ? 'amber' : '']); }
       // what it says
-      ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = U.a; ctx.shadowColor = 'rgba(0,8,14,.95)'; ctx.shadowBlur = 6; ctx.fillStyle = '#fff';
+      ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = U.a * Math.min(1, U.vis + .25); ctx.shadowColor = 'rgba(0,8,14,.95)'; ctx.shadowBlur = 6; ctx.fillStyle = '#fff';
       if (U.pic) { /* a held picture is drawn by the element itself, under the water */ }
       const fs = U.cap ? 12 : Math.max(12, Math.min(17, rx * .34 + 6)), ly = tear ? y + ry * .22 : y - (U.sub && !U.cap ? 6 : 0);
       ctx.font = `500 ${fs}px ${SERIF}`; ctx.fillText(U.label, x, ly, rx * 1.75);
@@ -274,6 +286,8 @@
             d.x = (d.x * d.m + o.x * o.m) / (d.m + o.m); d.y = (d.y * d.m + o.y * o.m) / (d.m + o.m); d.m += o.m; d.r = rOf(d.m); o.state = 'gone'; }
         }
       }
+      if (finger.down && !finger.onUi && !finger.breathed && !D.pool && finger.len < 12 && T - finger.t0 > .55) {   // held still on empty glass: your breath brings the drops back
+        finger.breathed = true; for (let i = 0; i < 12; i++) wisp(finger.x + (Math.random() - .5) * 70, finger.y + (Math.random() - .5) * 50, { vy: -6 - Math.random() * 10, r: 14 + Math.random() * 14, rgb: [232, 240, 244] }); if (D.onBreathe) D.onBreathe(); }
       for (const M of msgs) M.place();
       for (let i = msgs.length - 1; i >= 0; i--) { const M = msgs[i]; if (M.done) { M.fade -= dt * 1.1; if (M.fade <= 0) msgs.splice(i, 1); } }
       D.wet += ((D.rain > .2 ? 1 : 0) - D.wet) * Math.min(1, dt * .6);
