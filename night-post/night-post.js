@@ -8199,7 +8199,13 @@ void main(){
         body.dew-skin #dk-pad #dk-expose b{transform:none;visibility:hidden}body.dew-skin #dk-pad #dk-veh b{visibility:hidden}
         body.dew-skin #dk-pad #dk-expose:active{transform:none}
         body.dew-skin #dk-ctx .verb{min-width:118px;min-height:54px}
-        body.dew-skin #dk-chips{gap:10px}body.dew-skin #dk-chips button{min-height:44px;padding:8px 16px}
+        body.dew-skin #dk-chips{gap:10px}body.dew-skin #dk-chips button{min-height:48px;min-width:48px;width:48px;padding:0;overflow:hidden}
+        .dk-gauge{position:fixed;left:calc(18px + env(safe-area-inset-left,0px));width:38px;height:38px;background:none;border:0;padding:0;color:transparent}
+        #dk-g-donkey{top:calc(70px + env(safe-area-inset-top,0px))}#dk-g-signal{top:calc(114px + env(safe-area-inset-top,0px))}
+        #dk-map{top:calc(162px + env(safe-area-inset-top,0px));left:calc(14px + env(safe-area-inset-left,0px));width:46px;height:46px;cursor:pointer;touch-action:none}
+        body.dew-skin #dk-verbs .verb,body.dew-skin #dk-offers .verb{min-width:0!important;width:58px;height:58px;min-height:0!important;padding:0!important;overflow:hidden}
+        body.dew-skin #dk-offers .verb{width:48px;height:48px}
+        body.dew-skin #dk-status{width:58px;height:66px}
         body.dew-skin #dk-verbs .verb,body.dew-skin #dk-chips button{position:fixed;left:50%;top:70%;transform:translate(-50%,-50%);margin:0;touch-action:none;white-space:nowrap}
         body.dew-skin #dk-offers .verb{position:fixed;transform:translate(-50%,-50%);margin:0;touch-action:none;white-space:nowrap;min-width:0;min-height:42px;padding:8px 16px;font-size:14px;pointer-events:auto;background:none!important;border-color:transparent!important;box-shadow:none!important;color:transparent!important;text-shadow:none!important;animation:none!important}
         body.dew-skin #dk-offers .verb::after{display:none}
@@ -8267,13 +8273,16 @@ void main(){
           <p class="keys" id="demo-keys"></p>
           <button id="demo-brief-ok">Begin</button></div>
         <div id="demo-bub" class="dm" hidden><b></b><span></span></div>
-        <div id="dk-status" class="dk" role="status"><span class="can"><i></i><u></u></span><b id="dk-l">0 L</b><span id="dk-sig" aria-label="Beacon signal"><i></i><i></i><i></i><i></i></span><small id="dk-place"></small></div>
-        <button id="dk-menu-btn" class="dk" type="button" aria-label="Menu" aria-expanded="false">Menu</button>
+        <div id="dk-g-donkey" class="dk dk-gauge" data-icon="donkey" data-stain="go" data-fill="1" role="img" aria-label="The donkey's water"></div>
+        <div id="dk-g-signal" class="dk dk-gauge" data-icon="beacon" data-stain="lens" data-fill="0" role="img" aria-label="Beacon signal"></div>
+        <button id="dk-map" class="dk dk-gauge" type="button" data-icon="map" data-stain="go" aria-label="Map"></button>
+        <div id="dk-status" class="dk" role="status" data-icon="none" data-stain="water" data-mark=".2" aria-label="Water carried"><span class="can"><i></i><u></u></span><b id="dk-l">0 L</b><span id="dk-sig" aria-label="Beacon signal"><i></i><i></i><i></i><i></i></span><small id="dk-place"></small></div>
+        <button id="dk-menu-btn" class="dk" type="button" aria-label="Menu" aria-expanded="false" data-icon="menu">Menu</button>
         <div id="dk-ctx" class="dk"><div id="dk-chips" hidden></div><div id="dk-verbs"></div><div id="dk-offers"></div></div>
         <button type="button" id="dk-jump" class="dk" aria-label="Jump">Jump</button>
         <div id="dk-pad" class="dk" role="group" aria-label="Actions">
-          <button type="button" id="dk-veh" aria-label="Vehicle" hidden><b id="dk-veh-l">Drive</b></button>
-          <button type="button" id="dk-expose" aria-label="Expose an 8 by 10 plate"><b>Expose</b></button>
+          <button type="button" id="dk-veh" aria-label="Vehicle" hidden data-icon="drive" data-stain="go"><b id="dk-veh-l">Drive</b></button>
+          <button type="button" id="dk-expose" aria-label="Expose an 8 by 10 plate" data-icon="expose" data-stain="lens"><b>Expose</b></button>
         </div>
         <nav id="dk-rail" class="dk" hidden aria-label="Menu groups"></nav>
         <div id="dk-row" class="dk" hidden role="toolbar" aria-label="Menu items"></div>
@@ -8299,9 +8308,10 @@ void main(){
         // carrying water from one drop into another is the act: litres onto a person, the tap or the donkey; the pump's drop into your litres
         const keyOf = el => el && el.dataset ? el.dataset.key || (el.dataset.offer ? "o:" + el.dataset.offer : "") : "";
         demo.dew.onSwat = el => { const k = keyOf(el); if (!k) return; if (k[0] === "o") { el.remove(); return; } (demo.snooze || (demo.snooze = {}))[k] = (demo.clock || 0) + (k[0] === "m" ? 9000 : 26000); demo.dockSig = ""; demo.dockT = 0; };
-        demo.dew.onWipe = () => { const t = (demo.clock || 0) + 12000, z = demo.snooze || (demo.snooze = {}); for (const b of document.querySelectorAll("#dk-verbs [data-key]")) z[b.dataset.key] = b.dataset.key[0] === "m" ? t - 5000 : t;
+        demo.dew.onWipe = () => { demo.mapOn = false; demo.mapUntil = 0; const t = (demo.clock || 0) + 12000, z = demo.snooze || (demo.snooze = {}); for (const b of document.querySelectorAll("#dk-verbs [data-key]")) z[b.dataset.key] = b.dataset.key[0] === "m" ? t - 5000 : t;
           document.getElementById("dk-offers").innerHTML = ""; demo.offerT = 9; demo.talking = false; demo.dockSig = ""; demo.dockT = 0; if (demo.menuOpen) ui.openSheet(false); };
-        demo.dew.onBreathe = () => { demo.snooze = {}; demo.shownAt = {}; demo.offerT = 0; demo.hintT = 0; demo.dockSig = ""; demo.dockT = 0; };   // breath on the glass brings the drops back
+        q("dk-map").onclick = () => { demo.mapOn = !demo.mapOn; demo.mapUntil = 0; };
+        demo.dew.onBreathe = () => { demo.mapUntil = (demo.clock || 0) + 7000; demo.snooze = {}; demo.shownAt = {}; demo.offerT = 0; demo.hintT = 0; demo.dockSig = ""; demo.dockT = 0; };   // breath on the glass brings the drops back
         demo.dew.onMerge = (a, b) => { const v = [a, b].find(el => el.dataset && (el.dataset.verb || el.dataset.ctx)), st = [a, b].find(el => el.id === "dk-status"); if (v && st) v.click(); };
         // the pool: on a touch screen you walk from wherever your thumb comes down in the lower left; lift, and it is gone
         if (matchMedia("(pointer:coarse)").matches) {
@@ -8383,7 +8393,7 @@ void main(){
           { id: "help", cap: "how to", val: () => "?", act: () => { ui.brief.hidden = false; }, closes: true }]
       };
       const rail = q("dk-rail"), row = q("dk-row"), mbtn = q("dk-menu-btn");
-      rail.innerHTML = Object.keys(MENU).map(k => `<button type="button" class="bead" data-group="${k}">${k}</button>`).join("");
+      rail.innerHTML = Object.keys(MENU).map(k => `<button type="button" class="bead" data-group="${k}" data-icon="${k.toLowerCase()}" aria-label="${k}">${k}</button>`).join("");
       const openMenu = (on, group) => {
         demo.menuOpen = on; demo.menuTouch = demo.clock || 0; demo.menuGroup = on ? (group || demo.menuGroup || "Lens") : demo.menuGroup;
         rail.hidden = row.hidden = !on; mbtn.setAttribute("aria-expanded", on); mbtn.classList.toggle("on", on); document.body.classList.toggle("dk-menu-open", on);
@@ -8498,7 +8508,7 @@ void main(){
       for (const b of rail.children) b.classList.toggle("on", b.dataset.group === demo.menuGroup);
       if (row.dataset.group !== demo.menuGroup) {
         row.dataset.group = demo.menuGroup;
-        row.innerHTML = items.map(it => `<button type="button" class="bead" data-item="${it.id}"><i></i><em>${it.cap}</em></button>`).join(""); row.scrollLeft = 0;
+        row.innerHTML = items.map(it => `<button type="button" class="bead" data-item="${it.id}" data-icon="${{ cam: "eye", glide: "wing", jump: "jump", drive: "drive" }[it.id] || it.id}" aria-label="${it.cap}"><i></i><em>${it.cap}</em></button>`).join(""); row.scrollLeft = 0;
       }
       items.forEach((it, k) => { const b = row.children[k]; if (!b) return; const v = it.val(), i = b.firstElementChild;
         if (i.textContent !== v) i.textContent = v; b.classList.toggle("on", !!(it.on && it.on()));
@@ -8518,6 +8528,8 @@ void main(){
       // SENSE
       q("dk-status").querySelector(".can i").style.width = Math.min(100, c.liters / 20 * 100) + "%";
       const lt = `${c.liters} L`; if (q("dk-l").textContent !== lt) q("dk-l").textContent = lt;
+      q("dk-status").dataset.fill = (c.liters / 20).toFixed(3); q("dk-g-donkey").dataset.fill = clamp(state.donkeyWater, 0, 1).toFixed(2); q("dk-g-donkey").dataset.stain = state.donkeyCollapsed || state.donkeyWater < .35 ? "urgent" : "go";
+      q("dk-g-signal").dataset.fill = ((demo.signal || 0) / 4).toFixed(2);
       q("dk-status").dataset.dewLabel = lt; q("dk-status").dataset.dewScale = (.72 + .4 * c.liters / 20).toFixed(2);          // the litres are a drop as big as what you carry
       if (demo.lastL != null && demo.lastL !== c.liters && demo.dew) {            // the change itself, beside the gauge, then it falls
         const dl = c.liters - demo.lastL, r = q("dk-status").getBoundingClientRect(), m = demo.dew.say({ text: (dl > 0 ? "+" : "−") + Math.abs(dl) + " L", anchor: () => [r.left + 26, r.bottom + 22] });
@@ -8564,18 +8576,21 @@ void main(){
       const qs = ch && demo.talking ? ["who", ...Object.keys(kb).filter(k => k !== "who" && kb[k] && DEMO_Q[k])].slice(0, 4) : [];
       const sig = (askLive ? "A" : "") + must.map(m => m.k + m.label + (m.faint ? "f" : "")).join() + verbs.map(o => o.id).join() + "|" + extra.map(a => a.id + a.label).join() + "|" + (ch ? ch.state.id : "") + (demo.talking ? "T" : "") + qs.join() + c.liters;
       if (sig === demo.dockSig) return; demo.dockSig = sig;
+      const VI = { pump: ["draw", "water"], cool: ["pour", "water"], tap: ["pour", "water"], ask: ["aunt", "talk"], copy: ["archive", "talk"], listen: ["listen", "sys"], screen: ["plates", "lens"] };
+      const XI = { "water-burro": ["donkey", "water"], ride: ["ride", "go"], share: ["share", "water"] }, MI = { land: "down", down: "down", park: "park", fly: "wing" };
+      const QI = { who: "who", water: "drop", chalk: "chalk", donkey: "donkey", song: "song", aunt: "aunt", beacon: "beacon", archive: "archive", compound: "compound", phone: "phone", where: "where" };
       const csq = o => { const m = /(\d+)\s*L/.exec(DEMO_VERB[o.id].label); const n = o.id === "pump" ? 20 - c.liters : m ? -(+m[1]) : 0;
         return n ? `<span class="csq">${c.liters} → ${clamp(c.liters + n, 0, 20)} L</span>` : ""; };     // the consequence, on the button
       const shown = verbs.slice(0, 2);
-      let html = shown.map((o, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-verb="${o.id}" data-key="v:${o.id}" data-anchor="${o.id === "pump" ? "pump" : "ch:" + DEMO_VERB[o.id].who}">${i === 0 ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${csq(o)}</button>`).join("");
-      html += extra.slice(0, Math.max(0, 2 - shown.length)).map(a => `<button type="button" class="verb alt${a.urgent ? " urgent" : ""}" data-ctx="${a.id}" data-key="x:${a.id}" data-anchor="${a.id === "share" && ch ? "ch:" + ch.state.id : "donkey"}">${a.label}</button>`).join("");
-      html += must.map((m, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-do="${m.k}" data-key="m:${m.k}"${m.faint ? ' data-dew-faint="1"' : ""} data-anchor="self">${m.label}</button>`).join("");
-      if (askLive) html += `<button type="button" class="verb alt" data-talk="1" data-key="t:${ch.state.id}" data-anchor="head:${ch.state.id}">Ask ${demoName(ch).split(" ").pop()}</button>`;
+      let html = shown.map((o, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-verb="${o.id}" data-key="v:${o.id}" data-icon="${VI[o.id][0]}" data-stain="${VI[o.id][1]}" data-anchor="${o.id === "pump" ? "pump" : "ch:" + DEMO_VERB[o.id].who}">${i === 0 ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${csq(o)}</button>`).join("");
+      html += extra.slice(0, Math.max(0, 2 - shown.length)).map(a => `<button type="button" class="verb alt${a.urgent ? " urgent" : ""}" data-ctx="${a.id}" data-key="x:${a.id}" data-icon="${(XI[a.id] || ["drop"])[0]}" data-stain="${a.urgent ? "urgent" : (XI[a.id] || [0, "water"])[1]}" data-anchor="${a.id === "share" && ch ? "ch:" + ch.state.id : "donkey"}">${a.label}</button>`).join("");
+      html += must.map((m, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-do="${m.k}" data-key="m:${m.k}" data-icon="${MI[m.k]}" data-stain="go"${m.faint ? ' data-dew-faint="1"' : ""} data-anchor="self">${m.label}</button>`).join("");
+      if (askLive) html += `<button type="button" class="verb alt" data-talk="1" data-key="t:${ch.state.id}" data-icon="ask" data-stain="talk" data-anchor="head:${ch.state.id}">Ask ${demoName(ch).split(" ").pop()}</button>`;
       ui.verbs.innerHTML = html;
       ui.chips.hidden = !(ch && demo.talking);
       ui.chips.dataset.who = ch ? ch.state.id : "";
-      ui.chips.innerHTML = ch && demo.talking ? `<button type="button" class="x" data-untalk="1" aria-label="Stop talking">×</button>` + qs.concat(["where"]).map(k => `<button type="button" data-ask="${k === "where" ? "Where next?" : DEMO_Q[k]}">${k === "where" ? "Where next?" : DEMO_Q[k]}</button>`).join("")
-        + `<button type="button" data-type="1" aria-label="Type or speak">⌨︎ Say…</button>` : "";
+      ui.chips.innerHTML = ch && demo.talking ? `<button type="button" class="x" data-untalk="1" aria-label="Stop talking" data-icon="x">×</button>` + qs.concat(["where"]).map(k => `<button type="button" data-icon="${QI[k]}" data-stain="talk" data-ask="${k === "where" ? "Where next?" : DEMO_Q[k]}">${k === "where" ? "Where next?" : DEMO_Q[k]}</button>`).join("")
+        + `<button type="button" data-type="1" aria-label="Type or speak" data-icon="say" data-stain="talk">Say…</button>` : "";
     }
     // Information condenses where its thing is: each action drop sits on the pump, the person or the donkey it belongs to,
     // and a person's questions bead around their head. Off screen or behind you, a drop waits at the nearest edge.
@@ -8632,7 +8647,7 @@ void main(){
         if (!o || !o.when() || age > o.stick || quiet) b.remove(); }                                  // its time is up, or it is no longer true: it lets go
       // small written droplets: what you would want to know, falling now and then at the edge
       demo.hintT = (demo.hintT ?? 6) - dt;
-      if (!quiet && demo.hintT <= 0) {
+      if (false && !quiet && demo.hintT <= 0) {
         demo.hintT = 11 + Math.random() * 7; const c = npCarrier(), H = [], seen = demo.hinted || (demo.hinted = {});
         try { for (const o of npEngine.options(npState) || []) { const V = DEMO_VERB[o.id]; if (V && !o.enabled && o.reason && DEMO_STOP_OF[V.who] === c.place) H.push(["r:" + o.id, `${V.label}: ${o.reason.replace(/\.$/, "").toLowerCase()}.`]); } } catch (e) { }
         if (state.donkeyCollapsed) H.push(["dk", "The donkey is down. She needs water now."]); else if (state.donkeyWater < .5) H.push(["dk", "The donkey is thirsty."]);
@@ -8647,6 +8662,8 @@ void main(){
       const pool = DEMO_OFFERS.filter(o => o.when() && now - (demo.offered[o.id] || -1e9) > 26000 && !box.querySelector(`[data-offer="${o.id}"]`)); if (!pool.length) return;
       const o = pool[Math.floor(Math.random() * pool.length)]; demo.offered[o.id] = now;
       const b = document.createElement("button"); b.type = "button"; b.className = "verb alt offer"; b.dataset.offer = o.id; b.dataset.born = now; b.dataset.dewLife = o.stick; b.textContent = o.label;
+      const OI = { map: ["map", "go"], ride: ["ride", "go"], glide: ["wing", "go"], lidar: ["lidar", "lens"], plates: ["plates", "lens"], listen: ["listen", "sys"], view: ["eye", "lens"], view3: ["back", "lens"], squirt: ["squirt", "water"], throw: ["throw", "water"], dance: ["dance", "go"], radio: ["radio", "sys"], jump: ["jump", "go"] }[o.id] || ["drop", "water"];
+      b.dataset.icon = OI[0]; b.dataset.stain = OI[1];
       let x = Math.random() < .5 ? 64 + Math.random() * innerWidth * .2 : innerWidth - 64 - Math.random() * innerWidth * .2, y = innerHeight * (.2 + Math.random() * .3);
       if (o.at === "donkey") { demoV.set(donkey.state.x, donkey.group.position.y + 1.5, donkey.state.z).project(camera); if (demoV.z < 1 && Math.abs(demoV.x) < .85) { x = clamp((demoV.x * .5 + .5) * innerWidth, 70, innerWidth - 70); y = clamp((-demoV.y * .5 + .5) * innerHeight, 120, innerHeight - 220); } }
       b.style.left = x + "px"; b.style.top = y + "px"; box.append(b);
@@ -8843,12 +8860,19 @@ void main(){
           return { id: k, on, tx, ty, r, dir, sx: on ? tx : clamp(Wd / 2 + Math.cos(dir) * Wd, r + 18, Wd - r - 18), sy: on ? ty - r - 12 : clamp(Hd / 2 + Math.sin(dir) * Hd, 112 + r, Hd - 205 - r),
             label: NAMES[k], note: `${Math.round(d / 5) * 5} m${Math.abs(rise) < 6 ? "" : rise > 0 ? " · " + Math.round(rise) + " m up" : " · " + Math.round(-rise) + " m down"}` };
         }).filter(Boolean);
-        dw.mark = (demo.signal || 0) >= 3 && !targets.includes("beacon") ? Math.round(Math.hypot(-1610 - state.x, 590 - state.z)) + " m" : null;      // how far the beacon is, written beside its light
+        dw.mark = false && (demo.signal || 0) >= 3 && !targets.includes("beacon") ? Math.round(Math.hypot(-1610 - state.x, 590 - state.z)) + " m" : null;      // how far the beacon is, written beside its light
+        // THE MAP in the fog of your breath: the circuit, where you have been, where is next, you and the donkey; north up
+        if (demo.mapOn || (demo.clock || 0) < (demo.mapUntil || 0)) {
+          const order = ["basalt", "beacon", "hill", "compound"], IC = { basalt: "pump", beacon: "beacon", hill: "archive", compound: "compound" };
+          let x0 = state.x, x1 = state.x, z0 = state.z, z1 = state.z; for (const k of order) { x0 = Math.min(x0, DEMO_SETS[k][0]); x1 = Math.max(x1, DEMO_SETS[k][0]); z0 = Math.min(z0, DEMO_SETS[k][1]); z1 = Math.max(z1, DEMO_SETS[k][1]); }
+          const sc = Math.min(Wd * .7 / Math.max(1, x1 - x0), Hd * .42 / Math.max(1, z1 - z0)), mx = (x0 + x1) / 2, mz = (z0 + z1) / 2, P = (x, z) => [Wd / 2 + (x - mx) * sc, Hd * .42 + (z - mz) * sc];
+          dw.map = { stops: order.map(k => { const p = P(DEMO_SETS[k][0], DEMO_SETS[k][1]); return { x: p[0], y: p[1], icon: IC[k], seen: cN.visited.includes(k), next: k === nx }; }), me: [...P(state.x, state.z), -state.yaw], donkey: P(donkey.state.x, donkey.state.z) };
+        } else dw.map = null;
         // WEATHER: each place has its own on the glass; arriving, its name is written by the shower that brings its drops
         let near = null, nd = 70; for (const k in DEMO_SETS) { const q = Math.hypot(DEMO_SETS[k][0] - state.x, DEMO_SETS[k][1] - state.z); if (q < nd) { nd = q; near = k; } }
         const WX = { basalt: [0, 0, 0], beacon: [75, .15, 0], hill: [30, .6, 0], compound: [0, 0, .85] }[near] || [22, .12, 0], kW = Math.min(1, dt * .8);
         dw.wind += (WX[0] - dw.wind) * kW; dw.mist += (WX[1] - dw.mist) * kW; dw.smoke += (WX[2] - dw.smoke) * kW;
-        const at = nd < 34 ? near : null; if (at && at !== demo.titled) { if (demo.titled !== undefined) dw.title(NAMES[at]); demo.titled = at; } else if (!at && nd > 60) demo.titled = null;
+        const at = nd < 34 ? near : null; if (at && at !== demo.titled) { if (demo.titled !== undefined) dw.title(""); demo.titled = at; } else if (!at && nd > 60) demo.titled = null;
         // breath: running and climbing wind you; it fogs the bottom of the lens until you recover
         const sp = Math.hypot(state.vx || 0, state.vz || 0), onFoot = !state.drivingCart && !state.riding && !state.gliding;
         demo.exert = clamp((demo.exert || 0) + dt * (onFoot && sp > 2.2 ? .16 + .1 * clamp((carrierPhys && carrierPhys.grade) || 0, 0, 1) + npCarrier().liters * .004 : -.07), 0, 1);

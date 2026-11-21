@@ -32,9 +32,10 @@
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); snap.width = Math.max(64, Math.round(W / 3)); snap.height = Math.max(64, Math.round(H / 3));
     }
     size(); addEventListener('resize', size);
+    const fog = document.createElement('canvas');
     const drops = [], beads = [], wisps = [], msgs = [], streaks = [], wetPts = [], skins = new Map(), memory = [];
     const D = { drops, beads, wisps, msgs, streaks, skins, rain: 0, enabled: true, light: null, flare: 0, breath: 0, bloomT: 0, mark: null, wet: 0,
-      select: '#dk-status,#dk-menu-btn,#dk-rail .bead,#dk-row .bead,#dk-verbs .verb,#dk-offers .verb,#dk-chips button,#dk-expose,#dk-veh', pool: null, hint: '', drag: null, onMerge: null, ways: [], onSwat: null, onWipe: null, onBreathe: null, lastTouch: 0, wind: 0, mist: 0, smoke: 0, titleT: 0, titleText: '' };
+      select: '#dk-status,#dk-menu-btn,#dk-rail .bead,#dk-row .bead,#dk-verbs .verb,#dk-offers .verb,#dk-chips button,#dk-expose,#dk-veh,.dk-gauge', map: null, mapA: 0, pool: null, hint: '', drag: null, onMerge: null, ways: [], onSwat: null, onWipe: null, onBreathe: null, lastTouch: 0, wind: 0, mist: 0, smoke: 0, titleT: 0, titleText: '' };
     const RK = 2.1, rOf = m => RK * Math.cbrt(m), mOf = r => Math.pow(r / RK, 3), R_RUN = 7.6, R_STOP = 3.0;
     const SERIF = 'Georgia,"Iowan Old Style","Times New Roman",serif';
 
@@ -53,7 +54,7 @@
       ctx.closePath();
     }
     /* water: the world through it (flipped, wider than it covers), a dark rim, gathered light, the light itself */
-    function water(x, y, rx, ry, a, tint, pathFn) {
+    function water(x, y, rx, ry, a, tint, pathFn, opt) {
       const k = snap.width / W, m = 1.9, [lx, ly] = lightDir(x, y), R = Math.max(rx, ry);
       ctx.save(); ctx.globalAlpha = a; pathFn(); ctx.clip();
       ctx.translate(x, y); ctx.scale(-1, -1);
@@ -61,6 +62,11 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const bx = x - rx * 1.4, by = y - ry * 1.4, bw = rx * 2.8, bh = ry * 2.8;
       if (tint) { ctx.fillStyle = tint; ctx.fillRect(bx, by, bw, bh); }
+      if (opt && opt.fill != null) {                                    // a measure is how full the drop is
+        const f = Math.max(0, Math.min(1, opt.fill)), top = y + ry * .92 - f * ry * 1.84; ctx.fillStyle = opt.col || 'rgba(56,222,255,.62)'; ctx.beginPath(); ctx.moveTo(bx, by + bh);
+        for (let i = 0; i <= 8; i++) { const px = bx + bw * i / 8; ctx.lineTo(px, top + Math.sin(T * 2.2 + i * 1.1 + x) * 1.1); } ctx.lineTo(bx + bw, by + bh); ctx.closePath(); ctx.fill();
+        if (opt.mark != null) { const my = y + ry * .92 - opt.mark * ry * 1.84; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(bx, my); ctx.lineTo(bx + bw, my); ctx.stroke(); }
+      }
       let g = ctx.createRadialGradient(x + lx * rx * .15, y + ly * ry * .15, Math.min(rx, ry) * .3, x, y, R * 1.12);
       ctx.fillStyle = 'rgba(225,242,250,.10)'; ctx.fillRect(bx, by, bw, bh);                                    // water is brighter than what is behind it
       g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(.8, 'rgba(0,8,14,.05)'); g.addColorStop(1, 'rgba(0,6,12,.46)'); ctx.fillStyle = g; ctx.fillRect(bx, by, bw, bh);
@@ -92,9 +98,7 @@
       ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.beginPath(); ctx.ellipse(x + lx * r * .55, y + ly * r * .55, Math.min(5, r * .14), Math.min(3, r * .08), Math.atan2(ly, lx) + 1.57, 0, 6.2832); ctx.fill();
       if (!Wy.on) { const a = Wy.dir; ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.beginPath();                               // it leans toward where the place is
         ctx.moveTo(x + Math.cos(a) * (r + 13), y + Math.sin(a) * (r + 13)); ctx.lineTo(x + Math.cos(a + .5) * (r + 2), y + Math.sin(a + .5) * (r + 2)); ctx.lineTo(x + Math.cos(a - .5) * (r + 2), y + Math.sin(a - .5) * (r + 2)); ctx.closePath(); ctx.fill(); }
-      const right = x < W * .55; ctx.textAlign = right ? 'left' : 'right'; ctx.textBaseline = 'middle';
-      beaded(Wy.label, x + (right ? r + 9 : -r - 9), y - 8, 19, .95); ctx.globalAlpha = .9; ctx.shadowColor = 'rgba(0,8,14,.95)'; ctx.shadowBlur = 6;
-      ctx.font = `italic 12.5px ${SERIF}`; ctx.fillStyle = 'rgba(226,240,246,.9)'; ctx.fillText(Wy.note, x + (right ? r + 10 : -r - 10), y + 13); ctx.restore();
+      ctx.restore();
     }
     D.title = t => { D.titleText = t; D.titleT = 4.2; dirty = true; for (let i = 0; i < 14; i++) drop({ x: 20 + Math.random() * (W - 40), y: -10 - Math.random() * 120, r: 3 + Math.random() * 4, state: 'fall', vy: 60 + Math.random() * 120, grow: 1, forced: true }); };   // an area arrives as a shower
     const lens = (x, y, rx, ry, a, tint) => water(x, y, rx, ry, a, tint, () => { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 6.2832); });
@@ -237,13 +241,79 @@
         drop({ x: U.x, y: U.y, r, state: 'fall', vx: U.fling ? U.fling[0] : 0, vy: U.fling ? Math.max(30, U.fling[1]) : hon ? 4 : 8 + Math.random() * 20, grow: 1, forced: true, visc: hon ? 5 : 0, tint: hon ? 'rgba(232,160,40,.42)' : U.kind === 'go' ? 'rgba(56,232,255,.2)' : null });
       }
     }
+    /* marks, not words: each on a 24-unit field centred on 0,0, drawn in white strokes */
+    const L = (c, ...p) => { c.beginPath(); c.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) c.lineTo(p[i], p[i + 1]); c.stroke(); };
+    const O = (c, x, y, r, f) => { c.beginPath(); c.arc(x, y, r, 0, 6.2832); f ? c.fill() : c.stroke(); };
+    const DR = (c, x, y, s, f) => { c.beginPath(); c.moveTo(x, y - s); c.bezierCurveTo(x + s * .9, y + s * .1, x + s * .7, y + s, x, y + s); c.bezierCurveTo(x - s * .7, y + s, x - s * .9, y + s * .1, x, y - s); f ? c.fill() : c.stroke(); };
+    const A = (c, x, y, r, a0, a1) => { c.beginPath(); c.arc(x, y, r, a0, a1); c.stroke(); };
+    const HEAD = c => { L(c, -4, -2, -6, -10, -1, -4); L(c, 4, -2, 6, -10, 1, -4); c.beginPath(); c.moveTo(-5, -3); c.bezierCurveTo(-7, 4, -3, 10, 0, 10); c.bezierCurveTo(3, 10, 7, 4, 5, -3); c.stroke(); };
+    const NOTE8 = c => { L(c, -3, 6, -3, -7, 6, -9, 6, 3); O(c, -5.5, 6, 2.6, 1); O(c, 3.5, 3, 2.6, 1); };
+    const ICON = {
+      none: () => { }, drop: c => DR(c, 0, 0, 8, 1),
+      draw: c => { DR(c, 0, -5, 5, 1); L(c, -8, 2, -8, 9, 8, 9, 8, 2); },
+      pour: c => { L(c, -9, -6, 1, -8, 4, 0, -6, 2, -9, -6); O(c, 6, 4, 1.3, 1); O(c, 8, 8, 1.3, 1); O(c, 4, 9, 1.3, 1); },
+      share: c => { DR(c, -5, 0, 6, 1); DR(c, 6, 1, 5); },
+      ask: c => { c.beginPath(); c.moveTo(-9, -7); c.lineTo(9, -7); c.lineTo(9, 4); c.lineTo(-2, 4); c.lineTo(-6, 9); c.lineTo(-6, 4); c.lineTo(-9, 4); c.closePath(); c.stroke(); O(c, -4, -1.5, 1.2, 1); O(c, 0, -1.5, 1.2, 1); O(c, 4, -1.5, 1.2, 1); },
+      donkey: c => { HEAD(c); O(c, -2, 1, .9, 1); O(c, 2, 1, .9, 1); }, ride: c => { HEAD(c); L(c, -9, 5, -9, 10); L(c, 9, 5, 9, 10); },
+      down: c => { L(c, 0, -9, 0, 5); L(c, -5, 0, 0, 5, 5, 0); L(c, -8, 9, 8, 9); }, jump: c => { L(c, 0, 6, 0, -8); L(c, -5, -3, 0, -8, 5, -3); L(c, -7, 9, 7, 9); },
+      park: c => { c.strokeRect(-7, -7, 14, 14); c.fillRect(-3, -3, 6, 6); },
+      drive: c => { c.strokeRect(-9, -5, 14, 8); L(c, 5, -1, 9, -1, 9, 3); O(c, -5, 6, 2.5); O(c, 3, 6, 2.5); },
+      map: c => { c.beginPath(); c.moveTo(0, 9); c.bezierCurveTo(-8, 0, -7, -9, 0, -9); c.bezierCurveTo(7, -9, 8, 0, 0, 9); c.stroke(); O(c, 0, -3, 2.2, 1); },
+      lidar: c => { A(c, -8, 8, 6, -1.57, 0); A(c, -8, 8, 11, -1.57, 0); A(c, -8, 8, 16, -1.57, 0); O(c, -8, 8, 1.6, 1); },
+      listen: c => { L(c, -9, -3, -9, 3); L(c, -5, -7, -5, 7); L(c, -1, -4, -1, 4); L(c, 3, -9, 3, 9); L(c, 7, -3, 7, 3); },
+      plates: c => { c.strokeRect(-9, -7, 18, 14); L(c, -9, 5, -3, -1, 1, 3, 4, 0, 9, 5); O(c, 5, -3, 1.4, 1); },
+      eye: c => { c.beginPath(); c.moveTo(-10, 0); c.quadraticCurveTo(0, -9, 10, 0); c.quadraticCurveTo(0, 9, -10, 0); c.stroke(); O(c, 0, 0, 3, 1); },
+      back: c => { O(c, 0, -5, 3); L(c, -6, 9, -6, 4, 0, 1, 6, 4, 6, 9); },
+      squirt: c => { DR(c, -6, 3, 4, 1); O(c, 1, -2, 1.2, 1); O(c, 5, -6, 1.2, 1); O(c, 6, 0, 1.2, 1); O(c, 9, -3, 1, 1); },
+      throw: c => { c.beginPath(); c.moveTo(-9, 6); c.quadraticCurveTo(0, -12, 8, 2); c.stroke(); L(c, 3, 1, 8, 2, 8, -3); },
+      dance: NOTE8, song: NOTE8,
+      radio: c => { L(c, 0, 9, 0, -2); O(c, 0, -3, 1.6, 1); A(c, 0, -3, 5, -2.3, -.84); A(c, 0, -3, 9, -2.3, -.84); },
+      wing: c => { c.beginPath(); c.moveTo(-10, -2); c.quadraticCurveTo(0, -11, 10, -2); c.stroke(); L(c, -8, -3, 0, 8); L(c, 8, -3, 0, 8); L(c, 0, -7, 0, 8); },
+      expose: c => { O(c, 0, 0, 8); O(c, 0, 0, 3.4, 1); },
+      menu: c => { DR(c, 0, -7, 2.6, 1); DR(c, 0, 0, 2.6, 1); DR(c, 0, 7, 2.6, 1); },
+      who: c => { O(c, 0, -5, 3.4); c.beginPath(); c.moveTo(-7, 9); c.quadraticCurveTo(0, -3, 7, 9); c.stroke(); },
+      chalk: c => { L(c, -8, -8, -8, 9, 8, 9, 8, -8); L(c, -11, 3, 11, 3); },
+      aunt: c => { O(c, 0, -4, 3.4); A(c, 0, -4, 6.5, 3.5, 5.9); c.beginPath(); c.moveTo(-7, 9); c.quadraticCurveTo(0, -2, 7, 9); c.stroke(); },
+      beacon: c => { L(c, -4, 9, 0, -3, 4, 9); L(c, -2.5, 4, 2.5, 4); O(c, 0, -5, 1.6, 1); A(c, 0, -5, 5, -2.5, -.64); A(c, 0, -5, 9, -2.5, -.64); },
+      archive: c => { c.strokeRect(-8, -8, 16, 5); c.strokeRect(-8, -1.5, 16, 5); c.strokeRect(-8, 5, 16, 4); },
+      compound: c => { L(c, -9, 0, 0, -8, 9, 0); c.strokeRect(-6, 0, 12, 9); },
+      pump: c => { L(c, -2, 9, -2, -6, 6, -6, 6, -2); L(c, -2, -9, -2, -6); L(c, -8, -9, 2, -9); DR(c, 6, 4, 2.6, 1); },
+      phone: c => { c.strokeRect(-5, -9, 10, 18); L(c, -2, 6, 2, 6); },
+      where: c => { O(c, 0, 0, 9); c.beginPath(); c.moveTo(0, -6); c.lineTo(3, 2); c.lineTo(0, 0); c.lineTo(-3, 2); c.closePath(); c.fill(); },
+      say: c => { O(c, -6, 0, 1.5, 1); O(c, 0, 0, 1.5, 1); O(c, 6, 0, 1.5, 1); L(c, -9, 6, 9, 6); },
+      x: c => { L(c, -6, -6, 6, 6); L(c, 6, -6, -6, 6); },
+      lens: c => { O(c, -2, -2, 6); L(c, 3, 3, 9, 9); }, go: c => { L(c, -8, 0, 7, 0); L(c, 2, -5, 7, 0, 2, 5); },
+      sound: c => { c.beginPath(); c.moveTo(-9, -3); c.lineTo(-5, -3); c.lineTo(0, -8); c.lineTo(0, 8); c.lineTo(-5, 3); c.lineTo(-9, 3); c.closePath(); c.stroke(); A(c, 0, 0, 5, -.8, .8); A(c, 0, 0, 9, -.8, .8); },
+      world: c => { O(c, 0, 0, 9); L(c, -9, 0, 9, 0); c.beginPath(); c.ellipse(0, 0, 4, 9, 0, 0, 6.2832); c.stroke(); },
+      focus: c => { O(c, 0, 0, 5); L(c, 0, -10, 0, -6); L(c, 0, 6, 0, 10); L(c, -10, 0, -6, 0); L(c, 6, 0, 10, 0); },
+      filter: c => { O(c, 0, 0, 8); c.beginPath(); c.arc(0, 0, 8, -1.57, 1.57); c.closePath(); c.fill(); },
+      stop: c => { c.beginPath(); for (let i = 0; i < 6; i++) { const a = i / 6 * 6.2832; c[i ? 'lineTo' : 'moveTo'](Math.cos(a) * 9, Math.sin(a) * 9); } c.closePath(); c.stroke(); O(c, 0, 0, 3.5); },
+      mode: c => { L(c, -9, -3, 0, -8, 9, -3, 0, 2, -9, -3); L(c, -9, 2, 0, 7, 9, 2); },
+      tilt: c => { L(c, -9, 6, 9, -6); L(c, -9, 6, 9, 6); },
+      guides: c => { L(c, -9, -4, -9, -9, -4, -9); L(c, 9, -4, 9, -9, 4, -9); L(c, -9, 4, -9, 9, -4, 9); L(c, 9, 4, 9, 9, 4, 9); },
+      run: c => { L(c, -8, -6, -2, 0, -8, 6); L(c, 0, -6, 6, 0, 0, 6); },
+      region: c => { L(c, -10, 8, -3, -6, 2, 2, 5, -2, 10, 8, -10, 8); },
+      route: c => { c.beginPath(); c.moveTo(-8, 8); c.bezierCurveTo(-8, -4, 8, 6, 8, -8); c.stroke(); O(c, -8, 8, 1.8, 1); O(c, 8, -8, 1.8, 1); },
+      dispatch: c => { c.strokeRect(-8, -9, 16, 18); L(c, -4, -4, 4, -4); L(c, -4, 0, 4, 0); L(c, -4, 4, 1, 4); },
+      voice: c => { c.beginPath(); c.moveTo(-8, 0); c.quadraticCurveTo(0, -7, 8, 0); c.quadraticCurveTo(0, 7, -8, 0); c.stroke(); L(c, -8, 0, 8, 0); },
+      tape: c => { c.strokeRect(-10, -6, 20, 12); O(c, -4, 0, 2.2); O(c, 4, 0, 2.2); },
+      rig: c => { L(c, 0, -6, 0, 0); L(c, 0, 0, -7, 9); L(c, 0, 0, 7, 9); L(c, 0, 0, 0, 9); c.strokeRect(-4, -11, 8, 5); },
+      sync: c => { A(c, 0, 0, 8, .4, 2.8); A(c, 0, 0, 8, 3.5, 5.9); L(c, 8, -1, 7.4, 3.2, 3.6, 2); L(c, -8, 1, -7.4, -3.2, -3.6, -2); },
+      video: c => { c.strokeRect(-10, -7, 20, 14); c.beginPath(); c.moveTo(-3, -4); c.lineTo(4, 0); c.lineTo(-3, 4); c.closePath(); c.fill(); },
+      trailer: c => { c.strokeRect(-9, -8, 18, 16); L(c, -5, -8, -5, 8); L(c, 5, -8, 5, 8); },
+      playas: c => { c.beginPath(); c.moveTo(-9, -6); c.quadraticCurveTo(0, -10, 9, -6); c.quadraticCurveTo(9, 8, 0, 9); c.quadraticCurveTo(-9, 8, -9, -6); c.stroke(); O(c, -4, -1, 1.6, 1); O(c, 4, -1, 1.6, 1); },
+      hud: c => { c.strokeRect(-9, -9, 18, 18); L(c, -3, -9, -3, 9); L(c, 3, -9, 3, 9); L(c, -9, -3, 9, -3); L(c, -9, 3, 9, 3); },
+      help: c => { A(c, 0, -3, 5, 3.4, 6.9); L(c, 2.2, 1.4, 0, 3.6, 0, 5); O(c, 0, 9, 1.2, 1); }
+    };
+    D.ICON = ICON;
+    const STAIN = { water: 'rgba(56,222,255,.30)', talk: 'rgba(248,250,255,.26)', go: 'rgba(110,228,150,.30)', lens: 'rgba(172,142,255,.34)', sys: 'rgba(236,170,50,.42)', urgent: 'rgba(255,84,64,.50)' };
     const TINT = { amber: 'rgba(232,150,28,.50)', honey: 'rgba(236,176,70,.26)', go: 'rgba(56,232,255,.20)', urgent: 'rgba(255,90,70,.42)' };
     function drawSkin(U, dt) {
       U.a = Math.min(1, U.a + dt * 3.2); U.ox *= 1 - Math.min(1, dt * 3); U.oy *= 1 - Math.min(1, dt * 3); U.swell *= 1 - Math.min(1, dt * 1.2);
       const k = Math.min(1, dt * (U.land ? 5 : 7)); U.x += (U.hx + U.ox - U.x) * k; U.y += (U.hy + U.oy - U.y) * k;       // stubborn: it comes back to its place
       if (U.land && Math.abs(U.y - U.hy) < 4) { U.land = false; U.swell = 1; for (let i = 0; i < 4; i++) drop({ x: U.x + (Math.random() - .5) * U.trx * 1.6, y: U.y + U.try * .6, r: 2 + Math.random() * 2, state: 'fall', vy: 20 + Math.random() * 40, vx: (Math.random() - .5) * 120, grow: 1, forced: true }); }   // it lands, and splashes
       const g = U.a * (2 - U.a) * (U.press ? .93 : 1) * (1 + U.swell * .1); U.rx += (U.trx * g - U.rx) * k; U.ry += (U.try * g - U.ry) * k;
-      const fixed = U.el.id === 'dk-status' || U.el.id === 'dk-menu-btn' || U.el.id === 'dk-expose', nearF = finger.down && Math.hypot(finger.x - U.x, finger.y - U.y) < U.rx + 90;
+      const fixed = U.el.id === 'dk-status' || U.el.id === 'dk-menu-btn' || U.el.id === 'dk-expose' || U.el.classList.contains('dk-gauge'), nearF = finger.down && Math.hypot(finger.x - U.x, finger.y - U.y) < U.rx + 90;
       const want = nearF || U.press || U.land ? 1 : U.el.dataset.dewFaint ? .42 : fixed ? (T - D.lastTouch > 5 && !document.body.classList.contains('dk-menu-open') ? .5 : 1) : U.el.dataset.key && U.age > 5 ? .72 : 1;   // water yields: it thins when you are not reaching for it
       U.vis = (U.vis ?? 1) + (want - (U.vis ?? 1)) * Math.min(1, dt * 2.2);
       if (U.el.dataset.ax && !U.land) { const ax = +U.el.dataset.ax, ay = +U.el.dataset.ay, dx = ax - U.x, dy = ay - U.y, n = Math.hypot(dx, dy) || 1;   // a hair of water to the thing it is about
@@ -251,7 +321,9 @@
           ctx.quadraticCurveTo((U.x + ax) / 2, (U.y + ay) / 2 + 10, ax, ay); ctx.stroke(); ctx.restore(); lens(ax, ay, 3.2, 3.6, U.vis); } }
       U.age = (U.age || 0) + dt; const sag = U.kind === 'urgent' ? .1 + .05 * Math.sin(T * 9) : U.el.dataset.dewLife ? Math.min(.42, Math.pow(U.age / +U.el.dataset.dewLife, 2) * .42) : U.el.classList.contains('verb') ? Math.min(.18, U.age * .012) : 0;   // what waits, sags; what is about to go, hangs
       const x = U.x + (U.kind === 'urgent' ? Math.sin(T * 23) * 1.2 : 0), y = U.y + Math.sin(T * .8 + U.seed) * 1.2 + U.ry * sag * .5, rx = U.rx * (1 - sag * .25), ry = U.ry * (1 + sag), tear = U.kind === 'tear', amp = U.kind === 'pool' ? .05 : rx > 30 ? .075 : .05;
-      water(x, y, rx, ry, Math.min(1, U.a * 1.2) * U.vis, TINT[U.kind], () => blob(x, y, rx, ry, U.seed, amp, tear));
+      const ds = U.el.dataset, stain = STAIN[ds.stain] || TINT[U.kind], fill = ds.fill != null && ds.fill !== '' ? +ds.fill : null;
+      water(x, y, rx, ry, Math.min(1, U.a * 1.2) * U.vis, fill != null ? null : stain, () => blob(x, y, rx, ry, U.seed, amp, tear),
+        fill != null ? { fill, mark: ds.mark ? +ds.mark : null, col: (STAIN[ds.stain] || STAIN.water).replace(/[\d.]+\)$/, '.62)') } : null);
       if (U.kind === 'pool') { ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 1; for (let i = 0; i < 2; i++) { const u = ((T * .35 + i * .5) % 1); ctx.globalAlpha = (1 - u) * .8; ctx.beginPath(); ctx.ellipse(x, y, rx * (.35 + u * .6), ry * (.35 + u * .6), 0, 0, 6.2832); ctx.stroke(); } ctx.restore(); }
       // the rain feeds it; when it holds too much it sheds a drip that runs
       if (D.rain > .2) { U.wetq += dt * D.rain * (.05 + Math.random() * .1); if (U.wetq > 1 && U.kind !== 'pool') { U.wetq = 0; U.swell = 0; drop({ x: x + (Math.random() - .5) * rx * .8, y: y + ry * (tear ? 1 : .9), r: 3 + Math.random() * 2.6, state: 'fall', vy: 6, grow: .2, forced: true, tint: U.kind === 'amber' ? 'rgba(230,150,30,.4)' : null }); } }
@@ -261,8 +333,12 @@
       ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = U.a * Math.min(1, U.vis + .25); ctx.shadowColor = 'rgba(0,8,14,.95)'; ctx.shadowBlur = 6; ctx.fillStyle = '#fff';
       if (U.pic) { /* a held picture is drawn by the element itself, under the water */ }
       const fs = U.cap ? 12 : Math.max(12, Math.min(17, rx * .34 + 6)), ly = tear ? y + ry * .22 : y - (U.sub && !U.cap ? 6 : 0);
-      ctx.font = `500 ${fs}px ${SERIF}`; ctx.fillText(U.label, x, ly, rx * 1.75);
-      if (U.sub) { ctx.font = U.cap ? `italic 10.5px ${SERIF}` : `italic 11.5px ${SERIF}`; ctx.globalAlpha = U.a * .9; ctx.fillText(U.sub, x, U.cap ? y + ry + 9 : ly + 15, U.cap ? 70 : rx * 1.8); }
+      const ic = ICON[ds.icon];
+      if (ic) {                                                           // a mark, not a word; the word only while your finger rests on it
+        const sc = Math.min(rx, ry) * (tear ? .5 : .58) / 11; ctx.save(); ctx.translate(x, tear ? y + ry * .28 : y); ctx.scale(sc, sc); ctx.lineWidth = 2 / Math.max(.8, Math.min(1.3, sc)); ctx.strokeStyle = '#fff'; ctx.lineCap = ctx.lineJoin = 'round'; ic(ctx); ctx.restore();
+        if (U.press && U.label && ds.icon !== 'none') { ctx.font = `italic 12px ${SERIF}`; ctx.fillText(U.label, Math.max(50, Math.min(W - 50, x)), y - ry - 12); }
+      } else { ctx.font = `500 ${fs}px ${SERIF}`; ctx.fillText(U.label, x, ly, rx * 1.75); }
+      if (U.sub && !ic) { ctx.font = U.cap ? `italic 10.5px ${SERIF}` : `italic 11.5px ${SERIF}`; ctx.globalAlpha = U.a * .9; ctx.fillText(U.sub, x, U.cap ? y + ry + 9 : ly + 15, U.cap ? 70 : rx * 1.8); }
       ctx.restore();
     }
     /* ---------- per frame ---------- */
@@ -291,7 +367,7 @@
       for (const M of msgs) M.place();
       for (let i = msgs.length - 1; i >= 0; i--) { const M = msgs[i]; if (M.done) { M.fade -= dt * 1.1; if (M.fade <= 0) msgs.splice(i, 1); } }
       D.wet += ((D.rain > .2 ? 1 : 0) - D.wet) * Math.min(1, dt * .6);
-      const busy = D.ways.length || D.titleT > 0 || D.mist > .02 || D.smoke > .02 || drops.length || beads.length || wisps.length || msgs.length || streaks.length || skins.size || D.flare > .02 || D.breath > .02 || D.bloomT > 0 || D.wet > .02 || D.mark;
+      const busy = D.map || D.mapA > .02 || D.ways.length || D.titleT > 0 || D.mist > .02 || D.smoke > .02 || drops.length || beads.length || wisps.length || msgs.length || streaks.length || skins.size || D.flare > .02 || D.breath > .02 || D.bloomT > 0 || D.wet > .02 || D.mark;
       if (!busy) { if (dirty) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); dirty = false; } return; }
       dirty = true; snapAge += dt; if (snapAge > .033) snapshot();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
@@ -320,6 +396,22 @@
       // the name of where you have come to, written by the shower that brought it
       if (D.titleT > 0) { D.titleT -= dt; const a = Math.min(1, D.titleT / .8) * Math.min(1, (4.2 - D.titleT) / .5); ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; beaded(D.titleText, W / 2, H * .27, Math.min(40, W / (D.titleText.length * .52)), a); ctx.restore();
         if (D.titleT <= 0) for (let i = 0; i < 6; i++) drop({ x: W * .2 + Math.random() * W * .6, y: H * .27 + (Math.random() - .5) * 20, r: 2.6 + Math.random() * 3, state: 'fall', vy: 10 + Math.random() * 30, grow: 1, forced: true }); }
+      // THE MAP: breath on the glass, and the route wiped clear through it; you see the world through the lines
+      D.mapA += ((D.map ? 1 : 0) - D.mapA) * Math.min(1, dt * 3); if (D.map) D.lastMap = D.map;
+      if (D.mapA > .02 && D.lastMap) { const M = D.lastMap, a = D.mapA; fog.width = Math.round(W / 2); fog.height = Math.round(H / 2); const f = fog.getContext('2d'); f.setTransform(.5, 0, 0, .5, 0, 0);
+        const g = f.createRadialGradient(W / 2, H * .42, H * .1, W / 2, H * .42, H * .5); g.addColorStop(0, 'rgba(222,232,238,.74)'); g.addColorStop(.75, 'rgba(222,232,238,.6)'); g.addColorStop(1, 'rgba(222,232,238,0)'); f.fillStyle = g; f.fillRect(0, 0, W, H);
+        f.globalCompositeOperation = 'destination-out'; f.lineCap = f.lineJoin = 'round'; f.strokeStyle = '#000'; f.fillStyle = '#000';
+        f.lineWidth = 9; f.beginPath(); M.stops.forEach((s, i) => f[i ? 'lineTo' : 'moveTo'](s.x, s.y)); f.stroke();
+        for (const s of M.stops) { f.beginPath(); f.arc(s.x, s.y, s.next ? 24 : 18, 0, 6.2832); f.fill(); }
+        f.lineWidth = 4; f.setLineDash([3, 9]); f.beginPath(); f.moveTo(M.me[0], M.me[1]); const nx = M.stops.find(s => s.next); if (nx) f.lineTo(nx.x, nx.y); f.stroke(); f.setLineDash([]);
+        f.beginPath(); f.arc(M.me[0], M.me[1], 11, 0, 6.2832); f.fill(); f.beginPath(); f.arc(M.donkey[0], M.donkey[1], 7, 0, 6.2832); f.fill();
+        f.globalCompositeOperation = 'source-over';
+        ctx.save(); ctx.globalAlpha = a; ctx.drawImage(fog, 0, 0, W, H); ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = '#fff'; ctx.fillStyle = '#fff';
+        for (const s of M.stops) { ctx.save(); ctx.translate(s.x, s.y); ctx.scale(s.next ? 1.25 : .95, s.next ? 1.25 : .95); ctx.lineWidth = 1.8; ctx.globalAlpha = a * (s.seen || s.next ? 1 : .55); ctx.shadowColor = 'rgba(0,8,14,.9)'; ctx.shadowBlur = 5; ICON[s.icon](ctx); ctx.restore();
+          if (s.next) { ctx.globalAlpha = a * (.5 + .5 * Math.sin(T * 3)); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(s.x, s.y, 30 + 3 * Math.sin(T * 3), 0, 6.2832); ctx.stroke(); ctx.globalAlpha = a; } }
+        ctx.restore(); lens(M.me[0], M.me[1], 9, 10, a, 'rgba(56,222,255,.3)');
+        ctx.save(); ctx.globalAlpha = a; ctx.translate(M.me[0], M.me[1]); ctx.rotate(M.me[2]); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(0, -17); ctx.lineTo(4.5, -10); ctx.lineTo(-4.5, -10); ctx.closePath(); ctx.fill(); ctx.restore();
+        ctx.save(); ctx.globalAlpha = a; ctx.translate(M.donkey[0], M.donkey[1]); ctx.scale(.55, .55); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ICON.donkey(ctx); ctx.restore(); }
       // PLACES: each a drop over where it is, looking at it
       for (const Wy of D.ways) tele(Wy, dt);
       // WATER DOWN THE FRAME
@@ -363,7 +455,8 @@
         water(P.x, P.y, 58 * a, 46 * a, a, null, () => blob(P.x, P.y, 58 * a, 46 * a, 1.7, .06));
         ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = 1; for (let i = 0; i < 2; i++) { const u = (T * .5 + i * .5) % 1; ctx.globalAlpha = (1 - u) * .8; ctx.beginPath(); ctx.ellipse(P.x, P.y, 58 * (.3 + u * .75), 46 * (.3 + u * .75), 0, 0, 6.2832); ctx.stroke(); } ctx.restore();
         lens(P.x + P.kx * 40, P.y + P.ky * 32, 15, 15, 1, Math.hypot(P.kx, P.ky) > .93 ? 'rgba(56,232,255,.3)' : null); }
-      else if (D.hint) { ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; beaded(D.hint, 22, H - 96, 21, .8 + .2 * Math.sin(T * 1.4)); ctx.restore(); }
+      else if (D.hint) { const hx = 84, hy = H - 92, a = .3 + .12 * Math.sin(T * 1.4);                    // where the pool will form, shown as a ghost of it until you first use it
+        water(hx, hy, 52, 40, a, null, () => blob(hx, hy, 52, 40, 1.7, .06)); ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1; const u = (T * .5) % 1; ctx.globalAlpha = (1 - u) * .7; ctx.beginPath(); ctx.ellipse(hx, hy, 52 * (.3 + u * .75), 40 * (.3 + u * .75), 0, 0, 6.2832); ctx.stroke(); ctx.restore(); }
       // WATER IN YOUR HAND: a strand drawn from one drop toward another
       if (D.drag && D.drag.moved) { const G = D.drag, U = G.U, mx = (U.x + finger.x) / 2 + (finger.y - U.y) * .12, my = (U.y + finger.y) / 2 + 14;
         ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(0,8,14,.3)'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(U.x, U.y); ctx.quadraticCurveTo(mx, my, finger.x, finger.y); ctx.stroke();
