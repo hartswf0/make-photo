@@ -1271,52 +1271,179 @@
     body.hud-clean #focus-dock #wifi-meter-box,
     body.hud-clean #focus-dock .focus-row { display: none; }
 
-    /* Slim Play Controls Bar (Top-Center / Bottom-Center) */
+    /* Slim Play Controls Bar (Bottom-Center, Non-Overlapping Desktop & Mobile) */
     #play-bar {
       position: fixed;
       left: 50%;
-      bottom: max(14px, calc(env(safe-area-inset-bottom) + 10px));
+      bottom: max(12px, calc(env(safe-area-inset-bottom) + 8px));
       transform: translateX(-50%);
-      z-index: 12;
+      z-index: 15;
       display: flex;
       align-items: center;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 6px;
+      gap: 5px;
       padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(12, 16, 20, .86);
-      border: 1px solid rgba(40, 216, 240, .38);
-      box-shadow: 0 8px 28px rgba(0, 0, 0, .55);
+      border-radius: 18px;
+      background: rgba(11, 16, 20, .90);
+      border: 1px solid rgba(40, 216, 240, .42);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .58);
       backdrop-filter: blur(8px);
       pointer-events: auto;
-      max-width: calc(100vw - 24px);
+      max-width: min(980px, calc(100vw - 200px));
     }
-    body.intro-active #play-bar { opacity: 0; pointer-events: none; }
+    body.intro-active #play-bar,
+    body.intro-active #quest-tracker,
+    body.intro-active #dialogue-card { opacity: 0; pointer-events: none; }
     .play-pill, .play-select {
-      font: 700 10px/1 Inter, system-ui, sans-serif;
-      letter-spacing: .10em;
+      font: 700 9.5px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .09em;
       text-transform: uppercase;
-      padding: 7px 11px;
+      padding: 7px 10px;
       border-radius: 999px;
       border: 1px solid rgba(241, 238, 230, .28);
-      background: rgba(20, 25, 28, .92);
+      background: rgba(20, 26, 30, .94);
       color: var(--paper);
       cursor: pointer;
       white-space: nowrap;
-      transition: border-color .15s ease, background .15s ease, color .15s ease;
+      transition: border-color .15s ease, background .15s ease, color .15s ease, box-shadow .15s ease;
     }
     .play-pill:hover, .play-select:hover { border-color: #28d8f0; }
     .play-pill.active, .play-pill[aria-pressed="true"] {
       background: #28d8f0;
       color: #06131c;
       border-color: #28d8f0;
+      box-shadow: 0 0 12px rgba(40, 216, 240, .42);
+    }
+    .play-pill.squirt-live {
+      background: #28d8f0;
+      color: #041219;
+      border-color: #7eeeff;
+      box-shadow: 0 0 18px rgba(40, 216, 240, .75);
     }
     .play-select {
       appearance: none;
-      padding-right: 14px;
+      padding-right: 12px;
       color: #dff6ff;
       border-color: rgba(40, 216, 240, .48);
+    }
+
+    /* Compact Live World Quest Tracker & NPC Dialogue Toast */
+    #quest-tracker {
+      position: fixed;
+      left: max(14px, env(safe-area-inset-left));
+      top: max(146px, calc(env(safe-area-inset-top) + 138px));
+      z-index: 12;
+      width: min(268px, 44vw);
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(11, 16, 20, .82);
+      border: 1px solid rgba(40, 216, 240, .32);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .45);
+      backdrop-filter: blur(6px);
+      pointer-events: auto;
+      font: 500 10.5px/1.35 Inter, system-ui, sans-serif;
+      color: var(--paper);
+      transition: opacity .3s ease, border-color .3s ease, box-shadow .3s ease;
+    }
+    #quest-tracker.reward-glow {
+      border-color: #28d8f0;
+      box-shadow: 0 0 24px rgba(40, 216, 240, .65);
+    }
+    .quest-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font: 700 9.5px/1.1 Inter, system-ui, sans-serif;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #28d8f0;
+      margin-bottom: 5px;
+    }
+    .quest-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .quest-item {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 6px;
+      color: rgba(241, 238, 230, .86);
+    }
+    .quest-item.done {
+      color: #7eeeff;
+      text-decoration: line-through;
+      opacity: .78;
+    }
+    .quest-prog {
+      font: 700 9.5px/1 ui-monospace, "SF Mono", Menlo, monospace;
+      color: #cbb182;
+      white-space: nowrap;
+    }
+    .quest-item.done .quest-prog { color: #28d8f0; }
+
+    #dialogue-card {
+      position: fixed;
+      left: 50%;
+      bottom: max(108px, calc(env(safe-area-inset-bottom) + 102px));
+      transform: translateX(-50%);
+      z-index: 22;
+      max-width: min(520px, calc(100vw - 32px));
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(10, 15, 20, .92);
+      border: 1px solid rgba(40, 216, 240, .55);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .62);
+      backdrop-filter: blur(8px);
+      pointer-events: auto;
+      text-align: left;
+    }
+    #dialogue-card[hidden] { display: none; }
+    #dialogue-speaker {
+      display: block;
+      font: 700 10px/1.2 Inter, system-ui, sans-serif;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: #28d8f0;
+      margin-bottom: 4px;
+    }
+    #dialogue-text {
+      margin: 0;
+      font: 400 13px/1.38 "Instrument Serif", Georgia, serif;
+      color: #f4f2ec;
+    }
+    #dialogue-sub {
+      margin: 5px 0 0;
+      font: 600 10px/1.25 Inter, system-ui, sans-serif;
+      letter-spacing: .06em;
+      color: #cbb182;
+    }
+
+    @media (max-width: 900px) {
+      #play-bar {
+        max-width: calc(100vw - 16px);
+        bottom: max(8px, env(safe-area-inset-bottom));
+        padding: 5px 7px;
+        gap: 4px;
+        border-radius: 14px;
+      }
+      .play-pill, .play-select {
+        padding: 6px 8px;
+        font-size: 9px;
+      }
+      #quest-tracker {
+        width: min(220px, 56vw);
+        top: max(130px, calc(env(safe-area-inset-top) + 124px));
+        font-size: 9.5px;
+      }
+      #dialogue-card {
+        bottom: max(96px, calc(env(safe-area-inset-bottom) + 90px));
+      }
     }
 
     /* Full-Screen Interactive Click-to-Travel Topographic Map */
@@ -1809,7 +1936,32 @@
   <script src="../zones/machinima.js?v=v6sculpt1"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-retarget.js?v=3"></script>
   <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=1"></script>
+  <aside id="quest-tracker" aria-label="Active World Quests">
+    <div class="quest-head">
+      <span>WORLD QUESTS</span>
+      <span id="quest-count">0/3</span>
+    </div>
+    <ul class="quest-list" id="quest-list">
+      <li class="quest-item" data-qid="q1_mistletoe"><span>1. Hydrate Mistletoe at overlook</span><span class="quest-prog">0%</span></li>
+      <li class="quest-item" data-qid="q2_elder_relay"><span>2. Boost Elder relay (5L cyan)</span><span class="quest-prog">0.0/5L</span></li>
+      <li class="quest-item" data-qid="q3_june_moraine"><span>3. June phone &amp; Moraine Cistern</span><span class="quest-prog">0/2</span></li>
+    </ul>
+  </aside>
+
+  <div id="dialogue-card" hidden role="status" aria-live="polite">
+    <span id="dialogue-speaker">IMANI</span>
+    <p id="dialogue-text"></p>
+    <p id="dialogue-sub"></p>
+  </div>
+
   <div id="play-bar" role="toolbar" aria-label="Playable character and action controls">
+    <button type="button" class="play-pill" id="btn-run-toggle" aria-pressed="false" title="Toggle Sprint Run (Shift)">RUN</button>
+    <button type="button" class="play-pill" id="btn-drive-pill" aria-pressed="false" title="Drive or Park Wagon (C)">DRIVE</button>
+    <button type="button" class="play-pill" id="btn-pump-pill" title="Pump Cyan WiFi Water (P)">PUMP</button>
+    <button type="button" class="play-pill" id="btn-squirt-pill" aria-pressed="false" title="Hold or Click to Squirt Pressurized Cyan WiFi Water (F)">SQUIRT (F)</button>
+    <button type="button" class="play-pill" id="btn-talk-pill" title="Talk to Nearby Person or Mistletoe / Quests (E)">TALK (E)</button>
+    <button type="button" class="play-pill" id="btn-throw-obj" title="Throw Jerrycan or Highland Stone (G)">THROW (G)</button>
+    <button type="button" class="play-pill" id="btn-big-map" title="Open Click-to-Travel Topographic Map (M)">MAP (M)</button>
     <button type="button" class="play-pill active" id="btn-cam-mode" aria-pressed="true" title="Toggle 3rd-Person / 1st-Person Camera (V)">CAM: 3RD</button>
     <select class="play-select" id="sel-play-as" aria-label="Playable character selector">
       <option value="imani">PLAY AS: IMANI</option>
@@ -1818,11 +1970,6 @@
       <option value="elder">PLAY AS: ELDER</option>
       <option value="hanna">PLAY AS: HANNA</option>
     </select>
-    <button type="button" class="play-pill" id="btn-throw-obj" title="Throw Jerrycan or Highland Stone (G)">THROW (G)</button>
-    <button type="button" class="play-pill" id="btn-jump-foot" title="Jump (Space)">JUMP</button>
-    <button type="button" class="play-pill" id="btn-big-map" title="Open Click-to-Travel Topographic Map (M)">MAP (M)</button>
-    <button type="button" class="play-pill" id="btn-drive-pill" aria-pressed="false" title="Drive or Park Wagon (C)">DRIVE (C)</button>
-    <button type="button" class="play-pill" id="btn-hud-drawer" aria-pressed="false" title="Expand or Collapse Expedition Drawers">HUD</button>
   </div>
 
   <section id="big-map-modal" hidden aria-label="Interactive Click-to-Travel Topographic Map">
@@ -1844,8 +1991,8 @@
   </section>
 
   <div id="np-radio-host" aria-label="Highland 4-station radio" style="position:fixed;right:14px;bottom:84px;z-index:18;pointer-events:auto;max-width:300px"></div>
-  <script src="./world-physics.js?v=8"></script>
-  <script src="../audio/highland-soundscape.js?v=2"></script>
-  <script src="./night-post.js?v=v8play1"></script>
+  <script src="./world-physics.js?v=v9live1"></script>
+  <script src="../audio/highland-soundscape.js?v=3"></script>
+  <script src="./night-post.js?v=v9live1"></script>
 </body>
 </html>
