@@ -8128,6 +8128,7 @@ void main(){
         body.demo-touch #demo-say{display:none}
         body.demo-touch.demo-typing #demo-say{display:flex!important;left:12px;right:12px;width:auto;transform:none;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:80}
         body.demo-typing #dk-ctx,body.demo-typing #dk-pad{display:none}
+        body.rain2 .dk,body.rain2 #demo-say,body.rain2 #demo-you,body.rain2 #demo-bub,body.rain2 #demo-phone,body.rain2 #field-move{display:none!important}
         /* ---- dew: every control is water on the lens; you see the world through it ---- */
         #demo-bub,#demo-you{display:none!important}
         #dk-status,#dk-menu-btn,#dk-pad button,#dk-jump,#dk-ctx .verb,#dk-chips button,.dk .bead{
@@ -8303,7 +8304,11 @@ void main(){
       document.body.classList.add("demo-clean");
       const phone = q("demo-phone"); phone.firstElementChild.onclick = () => phone.classList.toggle("shut");
       document.body.classList.add("demo-mode");
-      demo.dew = window.makeDew ? window.makeDew(canvas) : null;
+      const RAIN2 = urlParams.get("rain") === "2";                         // the vendored rain engine (night-post/rain/) instead of dew-ui
+      demo.dew = window.makeDew && !RAIN2 ? window.makeDew(canvas) : null;
+      document.body.classList.toggle("rain2", RAIN2);
+      if (RAIN2) { const V = "?v=1", lk = document.createElement("link"); lk.rel = "stylesheet"; lk.href = "./rain/rain.css" + V; document.head.append(lk);
+        const en = document.createElement("script"); en.src = "./rain/engine.js" + V; en.onload = () => { const su = document.createElement("script"); su.src = "./rain/surface.js" + V; document.head.append(su); }; document.head.append(en); }
       document.body.classList.toggle("dew-skin", !!demo.dew);
       if (demo.dew) {
         // carrying water from one drop into another is the act: litres onto a person, the tap or the donkey; the pump's drop into your litres
@@ -8444,6 +8449,43 @@ void main(){
       const via = id => () => { const b = document.getElementById(id); if (b) b.click(); phone.classList.add("shut"); };   // the game's own controls, reached from the phone
       q("demo-map").onclick = via("btn-big-map"); q("demo-wagon").onclick = via("btn-drive-pill");
       q("demo-cam").onclick = e => { via("btn-cam-mode")(); e.currentTarget.textContent = state.cameraMode === "third" ? "First person" : "Third person"; };
+      // THE BRIDGE: everything a surface needs from the game, and nothing of its internals. night-post/rain/ is built on this.
+      window.AhiyaBridge = {
+        version: 1, canvas,
+        state() {
+          const c = npCarrier(), L = demo.live, w = demo.wetPos, ln = demo.line, order = ["basalt", "beacon", "hill", "compound"], nx = order.find(k => !c.visited.includes(k)) || null;
+          let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const k of order) { x0 = Math.min(x0, DEMO_SETS[k][0]); x1 = Math.max(x1, DEMO_SETS[k][0]); z0 = Math.min(z0, DEMO_SETS[k][1]); z1 = Math.max(z1, DEMO_SETS[k][1]); }
+          const U = (x, z) => [(x - x0) / (x1 - x0), (z - z0) / (z1 - z0)];
+          let head = null; if (ln) { demoV.set(ln.ch.state.x, (ln.ch.state.y || 0) + 1.8, ln.ch.state.z).project(camera); if (demoV.z < 1) head = [(demoV.x * .5 + .5) * innerWidth, (-demoV.y * .5 + .5) * innerHeight]; }
+          return {
+            ready: !!state.ready && !state.introActive, clock: demo.clock || 0, lang: demo.lang || "en",
+            water: { liters: c.liters, capacity: 20, reserve: c.reserve || 4, donkey: clamp(state.donkeyWater, 0, 1), donkeyDown: !!state.donkeyCollapsed },
+            place: { id: c.place, name: currentPlaceName(), next: nx, visited: c.visited.slice() }, signal: demo.signal || 0,
+            mode: state.gliding ? "glide" : state.drivingCart ? "drive" : state.riding ? "ride" : "walk", speed: Math.hypot(state.vx || 0, state.vz || 0),
+            exit: state.gliding ? { id: "land", label: state.donkeyOnRoof ? glideActionLabel() : "Come down" } : state.riding ? { id: "down", label: "Get down" } : state.drivingCart ? { id: "park", label: "Park the wagon" } : null,
+            live: L ? { kind: L.kind, id: L.verb || L.ctx || "ask", label: L.verb ? DEMO_VERB[L.verb].label : L.ctx === "share" ? "Share water" : L.ctx ? "Water the donkey" : "Ask " + demoName(L.ask), delta: L.dl || 0, x: w ? w.x : null, y: w ? w.y : null, r: w ? w.r : 0, person: L.ask ? demoName(L.ask) : null } : null,
+            busy: !!demo.handoff,
+            speech: ln ? { seq: ln.seq, name: demoName(ln.ch), text: ln.text, spoken: (ln.text.match(/“[^”]*”/g) || []).map(q => q.slice(1, -1)).join(" "), t: ln.t, dur: ln.dur, x: head ? head[0] : null, y: head ? head[1] : null } : null,
+            said: demo.youLine || null,
+            lens: { focus: state.focusDist, filter: state.filterIdx, filterName: FILTERS[state.filterIdx].short, filters: FILTERS.map(f => f.short), stop: state.stopIdx, stopName: STOPS[state.stopIdx].name, stops: STOPS.map(s => s.name),
+              mode: state.modeIdx, modeName: MODES[state.modeIdx].label, modes: MODES.map(m => m.label), tilt: state.tilt, guides: !!state.ppcOn, lidar: !!state.lidarOn, camera: state.cameraMode, plates: state.plates.length },
+            map: { stops: order.map(k => ({ id: k, name: DEMO_SETS[k][2], u: U(DEMO_SETS[k][0], DEMO_SETS[k][1])[0], v: U(DEMO_SETS[k][0], DEMO_SETS[k][1])[1], next: k === nx, seen: c.visited.includes(k) })), me: U(state.x, state.z), donkey: U(donkey.state.x, donkey.state.z), heading: -state.yaw },
+            sound: { voices: !!demo.voice, tape: !audioEl.paused, radio: !!(field && field.radio && field.radio.on) }
+          };
+        },
+        act: {
+          live: fromCan => { demo.carryFromCan = !!fromCan; const ok = demoLiveDo(); demo.carryFromCan = false; return ok; },
+          exit: () => { if (state.gliding) toggleGlide(); else if (state.riding) toggleRide(); else if (state.drivingCart) toggleCart(); demo.dockSig = ""; },
+          expose: () => exposePlate(), lastPlate: () => (state.plates.at(-1) || {}).dataUrl || null,
+          steer: (x, y, active) => { stickPointer = active ? -7 : null; stickX = active ? clamp(x, -1, 1) : 0; stickY = active ? clamp(y, -1, 1) : 0; },
+          look: (dx, dy) => { state.yaw -= dx * .0045; state.lookDragAt = performance.now(); state.pitch = clamp(state.pitch - dy * .0038, -.82, .82); },
+          say: text => demoSay(text), ask: () => { demo.carryFromCan = false; return demoLiveDo(); },
+          focus: m => { state.focusDist = clamp(m, 1.2, 900); state.focusPulse = 1; updateHUD(); },
+          set: (what, i) => { if (what === "filter") state.filterIdx = clamp(i | 0, 0, FILTERS.length - 1); else if (what === "stop") state.stopIdx = clamp(i | 0, 0, STOPS.length - 1); else if (what === "mode") state.modeIdx = clamp(i | 0, 0, MODES.length - 1); else if (what === "tilt") state.tilt = clamp(+i, -.35, .35); updateHUD(); },
+          lang: code => demo.setLang && demo.setLang(code), jump: () => jumpPlayer(), begin: () => { ui.brief.hidden = true; startField(); if (state.introActive) finishIntro(true); }
+        },
+        menu: () => Object.entries(demo.MENU || {}).flatMap(([g, items]) => items.map(it => ({ id: it.id, group: g, label: it.cap, value: String(it.val()), on: !!(it.on && it.on()), run: () => it.act() })))
+      };
       ui.say.addEventListener("submit", e => { e.preventDefault(); const v = ui.input.value.trim(); if (v) demoSay(v); ui.input.value = ""; ui.input.blur(); document.body.classList.remove("demo-typing"); });
       ui.input.addEventListener("keydown", e => { if (e.code === "Escape") ui.input.blur(); });
       ui.voice.onclick = () => { demo.voice = !demo.voice; ui.voice.setAttribute("aria-pressed", demo.voice); ui.voice.textContent = demo.voice ? "Voice on" : "Voice off"; if (!demo.voice && window.speechSynthesis) speechSynthesis.cancel(); };
@@ -8483,7 +8525,7 @@ void main(){
       if (!demo.line || demo.line.ch !== ch) demo.keep = { pose: ch.state.pose, opts: ch.state.poseOpts };
       ch.setPose({ pose: r.pose || demo.keep.pose, speaking: true, emotion: r.emotion || "speaking_animated", emotionIntensity: .9,
         handGestureL: r.gesture || "talking_gesticulate", handGestureR: r.pose ? undefined : "talking_gesticulate", expressiveArmGesture: true, phoneOut: r.phone ? true : undefined });
-      demo.line = { ch, text: demoTr(text), t: 0, dur, end: r.end };
+      demo.line = { ch, text: demoTr(text), t: 0, dur, end: r.end, seq: (demo.lineSeq = (demo.lineSeq || 0) + 1) };
       ui.bub.firstElementChild.textContent = demoName(ch); ui.bub.hidden = false;
       if (demo.dew) {                                                       // the line condenses beside the speaker; said aloud it will fall, refused or narrated it will smoke
         if (demo.msg) demo.msg.end(demo.msg.kind);
@@ -8630,7 +8672,7 @@ void main(){
     // Information condenses where its thing is: each action drop sits on the pump, the person or the donkey it belongs to,
     // and a person's questions bead around their head. Off screen or behind you, a drop waits at the nearest edge.
     function demoAnchors() {
-      const ui = demo.ui; if (!ui || !demo.dew) return; const Wd = innerWidth, Hd = innerHeight, placed = [];
+      const ui = demo.ui; if (!ui) return; const Wd = innerWidth, Hd = innerHeight, placed = [];
       const proj = (x, y, z) => { demoV.set(x, y, z).project(camera); return demoV.z < 1 ? [(demoV.x * .5 + .5) * Wd, (-demoV.y * .5 + .5) * Hd] : null; };
       const chPos = (id, up) => { const c = cast.byId && cast.byId[id]; if (!c) return null; const w = c.group.getWorldPosition(hoV.pR); return proj(w.x, w.y + up, w.z); };
       const put = (b, p, hw, hh, self) => {
@@ -8653,7 +8695,7 @@ void main(){
       const L = demo.live; let wt = null;
       if (L) { const a = L.at, p = a === "pump" ? proj(DEMO_SETS.basalt[0], driveSurfaceAt(DEMO_SETS.basalt[0], DEMO_SETS.basalt[1]) + 1.0, DEMO_SETS.basalt[1]) : a === "donkey" ? proj(donkey.state.x, donkey.group.position.y + 1.0, donkey.state.z) : chPos(a.slice(3), 1.0);
         if (p && p[0] > 20 && p[0] < Wd - 20 && p[1] > 70 && p[1] < Hd - 60) { const d = a === "pump" ? Math.hypot(DEMO_SETS.basalt[0] - state.x, DEMO_SETS.basalt[1] - state.z) : 3; wt = { x: p[0], y: p[1], r: clamp(150 / Math.max(2, d), 34, 62), kind: L.kind }; } }
-      demo.dew.wetThing = demo.wetPos = wt; demo.dew.lure = wt ? [wt.x, wt.y] : null;
+      demo.wetPos = wt; if (demo.dew) { demo.dew.wetThing = wt; demo.dew.lure = wt ? [wt.x, wt.y] : null; }
     }
     // Commands fall as rain. Each one that fits your state drops in from above now and then, sticks for as long as it matters
     // (stick, in seconds), sags as its time runs out, then lets go and runs down the glass. Touch it while it is there.
@@ -8815,7 +8857,7 @@ void main(){
       }
       const ch = demo.withCh; if (!ch) return null;
       demo.greeted = true; (demo.greetedAt = demo.greetedAt || {})[ch.state.id] = demo.clock || 0;   // you spoke first: no greeting over your answer
-      const ui = demoUi(); ui.you.textContent = text; ui.you.hidden = false; demo.youUntil = (demo.clock || 0) + 2600;
+      const ui = demoUi(); ui.you.textContent = text; ui.you.hidden = false; demo.youUntil = (demo.clock || 0) + 2600; demo.youLine = { text, seq: (demo.youSeq = (demo.youSeq || 0) + 1) };
       if (demo.dew) { const m = demo.dew.say({ me: true, text, anchor: () => [innerWidth - 34, innerHeight - 222] }); m.set(text, 1); setTimeout(() => m.end("fall"), 1700); }   // your words: a small drop that falls
       demoThread("You", text, true);
       const r = demoAnswer(ch, text); demoSpeakAs(ch, r); return r.say;
