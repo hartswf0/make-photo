@@ -8758,7 +8758,26 @@ void main(){
         const seen = demoV.z < 1 && Math.abs(demoV.x) < 1.05 && Math.abs(demoV.y) < 1.05;
         dw.light = demoV.z < 1 ? [(demoV.x * .5 + .5) * innerWidth, (-demoV.y * .5 + .5) * innerHeight] : null;
         dw.flare += ((seen && (demo.signal || 0) >= 3 ? .85 : 0) - dw.flare) * Math.min(1, dt * 2.5);
-        dw.mark = (demo.signal || 0) >= 3 ? Math.round(Math.hypot(-1610 - state.x, 590 - state.z)) + " m" : null;      // how far the beacon is, written beside its light
+        // PLACES: where you are going is a drop over that place, looking at it; behind you or over a ridge it waits at the edge, leaning that way
+        const cN = npCarrier(), NAMES = { basalt: "Basalt Pump", beacon: "Cross-Beacon", hill: "Hill Archive", compound: "Daylight Compound" }, Wd = innerWidth, Hd = innerHeight;
+        const targets = []; const nx = ["basalt", "beacon", "hill", "compound"].find(k => !cN.visited.includes(k)); if (nx) targets.push(nx);
+        if (cN.liters <= (cN.reserve || 4) && !targets.includes("basalt")) targets.push("basalt");                  // dry: the pump matters again
+        const gHere = driveSurfaceAt(state.x, state.z);
+        dw.ways = targets.map(k => {
+          const [px, pz] = DEMO_SETS[k], d = Math.hypot(px - state.x, pz - state.z); if (d < 26) return null;
+          const gy = driveSurfaceAt(px, pz); demoV.set(px, gy + (k === "beacon" ? 16 : 3), pz).project(camera);
+          const r = clamp(46 - d / 13, 22, 44), behind = demoV.z >= 1, ux = behind ? -demoV.x : demoV.x, uy = behind ? -demoV.y : demoV.y;
+          const tx = (demoV.x * .5 + .5) * Wd, ty = (-demoV.y * .5 + .5) * Hd, on = !behind && tx > r + 10 && tx < Wd - r - 10 && ty > 96 + r && ty < Hd - 190;
+          const dir = Math.atan2(-uy, ux), rise = gy - gHere;
+          return { id: k, on, tx, ty, r, dir, sx: on ? tx : clamp(Wd / 2 + Math.cos(dir) * Wd, r + 18, Wd - r - 18), sy: on ? ty - r - 12 : clamp(Hd / 2 + Math.sin(dir) * Hd, 112 + r, Hd - 205 - r),
+            label: NAMES[k], note: `${Math.round(d / 5) * 5} m${Math.abs(rise) < 6 ? "" : rise > 0 ? " · " + Math.round(rise) + " m up" : " · " + Math.round(-rise) + " m down"}` };
+        }).filter(Boolean);
+        dw.mark = (demo.signal || 0) >= 3 && !targets.includes("beacon") ? Math.round(Math.hypot(-1610 - state.x, 590 - state.z)) + " m" : null;      // how far the beacon is, written beside its light
+        // WEATHER: each place has its own on the glass; arriving, its name is written by the shower that brings its drops
+        let near = null, nd = 70; for (const k in DEMO_SETS) { const q = Math.hypot(DEMO_SETS[k][0] - state.x, DEMO_SETS[k][1] - state.z); if (q < nd) { nd = q; near = k; } }
+        const WX = { basalt: [0, 0, 0], beacon: [75, .15, 0], hill: [30, .6, 0], compound: [0, 0, .85] }[near] || [22, .12, 0], kW = Math.min(1, dt * .8);
+        dw.wind += (WX[0] - dw.wind) * kW; dw.mist += (WX[1] - dw.mist) * kW; dw.smoke += (WX[2] - dw.smoke) * kW;
+        const at = nd < 34 ? near : null; if (at && at !== demo.titled) { if (demo.titled !== undefined) dw.title(NAMES[at]); demo.titled = at; } else if (!at && nd > 60) demo.titled = null;
         // breath: running and climbing wind you; it fogs the bottom of the lens until you recover
         const sp = Math.hypot(state.vx || 0, state.vz || 0), onFoot = !state.drivingCart && !state.riding && !state.gliding;
         demo.exert = clamp((demo.exert || 0) + dt * (onFoot && sp > 2.2 ? .16 + .1 * clamp((carrierPhys && carrierPhys.grade) || 0, 0, 1) + npCarrier().liters * .004 : -.07), 0, 1);

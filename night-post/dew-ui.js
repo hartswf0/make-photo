@@ -34,7 +34,7 @@
     size(); addEventListener('resize', size);
     const drops = [], beads = [], wisps = [], msgs = [], streaks = [], wetPts = [], skins = new Map(), memory = [];
     const D = { drops, beads, wisps, msgs, streaks, skins, rain: 0, enabled: true, light: null, flare: 0, breath: 0, bloomT: 0, mark: null, wet: 0,
-      select: '#dk-status,#dk-menu-btn,#dk-rail .bead,#dk-row .bead,#dk-verbs .verb,#dk-chips button,#dk-expose,#dk-veh', pool: null, hint: '', drag: null, onMerge: null };
+      select: '#dk-status,#dk-menu-btn,#dk-rail .bead,#dk-row .bead,#dk-verbs .verb,#dk-chips button,#dk-expose,#dk-veh', pool: null, hint: '', drag: null, onMerge: null, ways: [], wind: 0, mist: 0, smoke: 0, titleT: 0, titleText: '' };
     const RK = 2.1, rOf = m => RK * Math.cbrt(m), mOf = r => Math.pow(r / RK, 3), R_RUN = 7.6, R_STOP = 3.0;
     const SERIF = 'Georgia,"Iowan Old Style","Times New Roman",serif';
 
@@ -73,6 +73,30 @@
       if (R > 16) { ctx.globalAlpha = a * .5; ctx.beginPath(); ctx.ellipse(x - lx * rx * .55, y - ly * ry * .6, rx * .3, ry * .12, Math.atan2(ly, lx) + 1.57, 0, 6.2832); ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fill(); }
       ctx.restore();
     }
+    /* a drop about a place: an upright, magnified view of exactly that spot; off screen, the last view it had */
+    const wayMem = new Map();
+    function tele(Wy, dt) {
+      const x = Wy.sx, y = Wy.sy, r = Wy.r, k = snap.width / W, zoom = 2.6, seed = Wy.id.length * 1.3;
+      let mem = wayMem.get(Wy.id); if (!mem) { mem = { cv: document.createElement('canvas'), has: false, t: 9 }; mem.cv.width = mem.cv.height = 72; wayMem.set(Wy.id, mem); }
+      mem.t += dt;
+      if (Wy.on && mem.t > .6) { mem.t = 0; mem.has = true; const f = r / zoom * 1.3; try { mem.cv.getContext('2d').drawImage(snap, (Wy.tx - f) * k, (Wy.ty - f) * k, f * 2 * k, f * 2 * k, 0, 0, 72, 72); } catch (e) { } }
+      const path = () => blob(x, y, r, r * 1.04, seed, .06);
+      ctx.save(); path(); ctx.clip();
+      if (Wy.on) { const f = r / zoom * 1.3; ctx.drawImage(snap, (Wy.tx - f) * k, (Wy.ty - f) * k, f * 2 * k, f * 2 * k, x - r * 1.3, y - r * 1.3, r * 2.6, r * 2.6); }
+      else if (mem.has) { ctx.globalAlpha = .85; ctx.drawImage(mem.cv, x - r * 1.3, y - r * 1.3, r * 2.6, r * 2.6); ctx.globalAlpha = 1; }
+      else { ctx.fillStyle = 'rgba(214,228,234,.34)'; ctx.fillRect(x - r * 1.3, y - r * 1.3, r * 2.6, r * 2.6); }           // never seen: only fog in it
+      const [lx, ly] = lightDir(x, y); let g = ctx.createRadialGradient(x, y, r * .45, x, y, r * 1.1);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,6,12,.55)'); ctx.fillStyle = g; ctx.fillRect(x - r * 1.3, y - r * 1.3, r * 2.6, r * 2.6);
+      ctx.restore();
+      ctx.save(); path(); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.beginPath(); ctx.ellipse(x + lx * r * .55, y + ly * r * .55, Math.min(5, r * .14), Math.min(3, r * .08), Math.atan2(ly, lx) + 1.57, 0, 6.2832); ctx.fill();
+      if (!Wy.on) { const a = Wy.dir; ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.beginPath();                               // it leans toward where the place is
+        ctx.moveTo(x + Math.cos(a) * (r + 13), y + Math.sin(a) * (r + 13)); ctx.lineTo(x + Math.cos(a + .5) * (r + 2), y + Math.sin(a + .5) * (r + 2)); ctx.lineTo(x + Math.cos(a - .5) * (r + 2), y + Math.sin(a - .5) * (r + 2)); ctx.closePath(); ctx.fill(); }
+      const right = x < W * .55; ctx.textAlign = right ? 'left' : 'right'; ctx.textBaseline = 'middle';
+      beaded(Wy.label, x + (right ? r + 9 : -r - 9), y - 8, 19, .95); ctx.globalAlpha = .9; ctx.shadowColor = 'rgba(0,8,14,.95)'; ctx.shadowBlur = 6;
+      ctx.font = `italic 12.5px ${SERIF}`; ctx.fillStyle = 'rgba(226,240,246,.9)'; ctx.fillText(Wy.note, x + (right ? r + 10 : -r - 10), y + 13); ctx.restore();
+    }
+    D.title = t => { D.titleText = t; D.titleT = 4.2; dirty = true; for (let i = 0; i < 14; i++) drop({ x: 20 + Math.random() * (W - 40), y: -10 - Math.random() * 120, r: 3 + Math.random() * 4, state: 'fall', vy: 60 + Math.random() * 120, grow: 1, forced: true }); };   // an area arrives as a shower
     const lens = (x, y, rx, ry, a, tint) => water(x, y, rx, ry, a, tint, () => { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 6.2832); });
     /* ---------- loose drops ---------- */
     function drop(o) {
@@ -191,7 +215,8 @@
         if (el.closest('[hidden]')) continue; const r = el.getBoundingClientRect(); if (r.width < 8 || r.height < 8) continue;
         if (rr && el.parentElement === row && (r.right > rr.right - 6 || r.left < rr.left - 6)) continue;
         seen.add(el); let U = skins.get(el);
-        if (!U) { U = { el, x: r.left + r.width / 2, y: r.top + r.height / 2 - 14, rx: 4, ry: 4, ox: 0, oy: 0, seed: Math.random() * 9, wetq: Math.random() * .6, swell: 0, a: 0, ui: true }; skins.set(el, U); dirty = true; }
+        if (!U) { const sky = el.classList.contains('verb') || el.parentElement.id === 'dk-chips';   // what the weather brings falls in from above and lands on its thing
+          U = { el, x: r.left + r.width / 2 + (sky ? (Math.random() - .5) * 30 + D.wind * -.4 : 0), y: sky ? -40 - Math.random() * 70 : r.top + r.height / 2 - 14, land: sky, rx: 4, ry: 4, ox: 0, oy: 0, seed: Math.random() * 9, wetq: Math.random() * .6, swell: 0, a: 0, ui: true }; skins.set(el, U); dirty = true; }
         const sc = +(el.dataset.dewScale || 1); U.hx = r.left + r.width / 2; U.hy = r.top + r.height / 2; U.trx = r.width / 2 * sc; U.try = r.height / 2 * sc;
         U.kind = el.id === 'dk-expose' ? 'tear' : el.id === 'dk-menu-btn' ? 'amber' : el.id === 'field-stick' ? 'pool' : el.classList.contains('verb') && !el.classList.contains('alt') ? 'go' : el.classList.contains('urgent') ? 'urgent' : 'clear';
         const inMenu = el.parentElement && (el.parentElement.id === 'dk-rail' || el.parentElement.id === 'dk-row');
@@ -209,7 +234,8 @@
     const TINT = { amber: 'rgba(232,150,28,.50)', honey: 'rgba(236,176,70,.26)', go: 'rgba(56,232,255,.20)', urgent: 'rgba(255,90,70,.42)' };
     function drawSkin(U, dt) {
       U.a = Math.min(1, U.a + dt * 3.2); U.ox *= 1 - Math.min(1, dt * 3); U.oy *= 1 - Math.min(1, dt * 3); U.swell *= 1 - Math.min(1, dt * 1.2);
-      const k = Math.min(1, dt * 7); U.x += (U.hx + U.ox - U.x) * k; U.y += (U.hy + U.oy - U.y) * k;       // stubborn: it comes back to its place
+      const k = Math.min(1, dt * (U.land ? 5 : 7)); U.x += (U.hx + U.ox - U.x) * k; U.y += (U.hy + U.oy - U.y) * k;       // stubborn: it comes back to its place
+      if (U.land && Math.abs(U.y - U.hy) < 4) { U.land = false; U.swell = 1; for (let i = 0; i < 4; i++) drop({ x: U.x + (Math.random() - .5) * U.trx * 1.6, y: U.y + U.try * .6, r: 2 + Math.random() * 2, state: 'fall', vy: 20 + Math.random() * 40, vx: (Math.random() - .5) * 120, grow: 1, forced: true }); }   // it lands, and splashes
       const g = U.a * (2 - U.a) * (U.press ? .93 : 1) * (1 + U.swell * .1); U.rx += (U.trx * g - U.rx) * k; U.ry += (U.try * g - U.ry) * k;
       U.age = (U.age || 0) + dt; const sag = U.kind === 'urgent' ? .1 + .05 * Math.sin(T * 9) : U.el.classList.contains('verb') ? Math.min(.18, U.age * .012) : 0;   // what waits, sags
       const x = U.x + (U.kind === 'urgent' ? Math.sin(T * 23) * 1.2 : 0), y = U.y + Math.sin(T * .8 + U.seed) * 1.2 + U.ry * sag * .5, rx = U.rx * (1 - sag * .25), ry = U.ry * (1 + sag), tear = U.kind === 'tear', amp = U.kind === 'pool' ? .05 : rx > 30 ? .075 : .05;
@@ -251,7 +277,7 @@
       for (const M of msgs) M.place();
       for (let i = msgs.length - 1; i >= 0; i--) { const M = msgs[i]; if (M.done) { M.fade -= dt * 1.1; if (M.fade <= 0) msgs.splice(i, 1); } }
       D.wet += ((D.rain > .2 ? 1 : 0) - D.wet) * Math.min(1, dt * .6);
-      const busy = drops.length || beads.length || wisps.length || msgs.length || streaks.length || skins.size || D.flare > .02 || D.breath > .02 || D.bloomT > 0 || D.wet > .02 || D.mark;
+      const busy = D.ways.length || D.titleT > 0 || D.mist > .02 || D.smoke > .02 || drops.length || beads.length || wisps.length || msgs.length || streaks.length || skins.size || D.flare > .02 || D.breath > .02 || D.bloomT > 0 || D.wet > .02 || D.mark;
       if (!busy) { if (dirty) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); dirty = false; } return; }
       dirty = true; snapAge += dt; if (snapAge > .033) snapshot();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
@@ -272,6 +298,16 @@
           const x = lx + (cx - lx) * t, y = ly + (cy - ly) * t; ctx.strokeStyle = `rgba(${c},${.22 * a})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.stroke(); ctx.fillStyle = `rgba(${c},${.07 * a})`; ctx.fill(); });
         if (D.mark) { ctx.save(); ctx.textAlign = lx > W * .6 ? 'right' : 'left'; ctx.textBaseline = 'middle'; beaded(D.mark, lx + (lx > W * .6 ? -16 : 16), Math.max(70, ly + 26), 24, a); ctx.restore(); }
       }
+      // MIST of a place: it takes the top of the glass first
+      if (D.mist > .02) { const g = ctx.createLinearGradient(0, 0, 0, H * .75); g.addColorStop(0, `rgba(214,226,232,${.34 * D.mist})`); g.addColorStop(1, 'rgba(214,226,232,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H * .75);
+        if (Math.random() < dt * 2.2 * D.mist) wisp(Math.random() * W, 60 + Math.random() * H * .4, { vx: D.wind * .3 + (Math.random() - .5) * 10, vy: -4, r: 16 + Math.random() * 18, life: 3 + Math.random() * 2, rgb: [226, 234, 238] }); }
+      // SMOKE of a place: a fire nearby sends it up the glass
+      if (D.smoke > .02 && Math.random() < dt * 5 * D.smoke) wisp(Math.random() * W, H + 10, { vx: (Math.random() - .5) * 16 + D.wind * .2, vy: -34 - Math.random() * 30, r: 9 + Math.random() * 10, life: 3 + Math.random() * 2, rgb: [236, 206, 170] });
+      // the name of where you have come to, written by the shower that brought it
+      if (D.titleT > 0) { D.titleT -= dt; const a = Math.min(1, D.titleT / .8) * Math.min(1, (4.2 - D.titleT) / .5); ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; beaded(D.titleText, W / 2, H * .27, Math.min(40, W / (D.titleText.length * .52)), a); ctx.restore();
+        if (D.titleT <= 0) for (let i = 0; i < 6; i++) drop({ x: W * .2 + Math.random() * W * .6, y: H * .27 + (Math.random() - .5) * 20, r: 2.6 + Math.random() * 3, state: 'fall', vy: 10 + Math.random() * 30, grow: 1, forced: true }); }
+      // PLACES: each a drop over where it is, looking at it
+      for (const Wy of D.ways) tele(Wy, dt);
       // WATER DOWN THE FRAME
       if (D.wet > .02) for (const side of [0, 1]) {
         const bx = side ? W - 7 : 7, sg = side ? -1 : 1;
@@ -333,7 +369,7 @@
           let pull = 0, wet = 0;
           for (let k = wetPts.length - 1, n = 0; k >= 0 && n < 90; k--, n++) { const b = wetPts[k], dy = b.y - d.y; if (b.t < 6 && dy > 0 && dy < 30 && Math.abs(b.x - d.x) < 20) { pull += (b.x - d.x); wet++; } }
           d.vx += ((wet ? pull / wet * 7 : Math.sin(d.t * 5 / (d.visc || 1) + d.wob) * (d.slow ? 34 : 24 / (d.visc || 1))) - d.vx) * dt * 4; if (wet) d.vy += 120 * dt;
-          d.x += d.vx * dt; d.y += d.vy * dt;
+          d.x += (d.vx + D.wind * (d.visc ? .1 : .6)) * dt; d.y += d.vy * dt;                 // the wind leans the rain
           for (const o of drops) if (o !== d && o.state === 'hold' && !o.held && Math.hypot(o.x - d.x, o.y - d.y) < o.r + d.r) { d.m += o.m; d.r = rOf(d.m); d.x += (o.x - d.x) * .25; o.state = 'gone'; }
           for (const U of skins.values()) if (!d.forced && Math.abs(d.x - U.x) < U.rx * .9 && Math.abs(d.y - U.y) < U.ry * .9) { U.swell = Math.min(1, U.swell + .7); U.wetq += .3; d.state = 'gone'; }   // a stubborn drop swallows it
           if (!d.trail) d.trail = newStreak(Math.max(2.2, d.r * (d.cells ? 1.5 : d.visc ? 1.25 : .9)), d.cells ? 16 : d.visc ? 14 : 6 + Math.random() * 4, d.visc ? '240,180,70' : null);
