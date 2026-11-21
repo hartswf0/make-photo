@@ -201,9 +201,20 @@ function unfold(id) {
 // Collision: carry one drop into another and their functions mix. The share climbs while they stay together; at 100% the
 // mixed function happens. Part them early and nothing moves. A pair with nothing to do together only says why.
 const NAME = { can: 'Can', primary: () => S.live ? (S.live.kind === 'draw' ? 'Source' : S.live.person || 'Donkey') : 'Here', donkey: 'Donkey', next: 'Next stop', 'voice-current': () => S.speech?.name || 'Voice', place: 'Here' };
-const nameOf = id => id === 'me' ? 'You' : id.startsWith('stop-') ? shortName((S.map.stops.find(x => 'stop-' + x.id === id) || {}).name || '') : typeof NAME[id] === 'function' ? NAME[id]() : NAME[id] || id;
+const nameOf = id => id.startsWith('w:') ? id.slice(2) : id === 'me' ? 'You' : id.startsWith('stop-') ? shortName((S.map.stops.find(x => 'stop-' + x.id === id) || {}).name || '') : typeof NAME[id] === 'function' ? NAME[id]() : NAME[id] || id;
+// One water. A drop on the glass and the water it stands for in the scene are the same body: the can, the source, the
+// donkey's share, a person's cup. Any of them can be carried into any other, from either side of the glass.
+function kindOf(id) { const L = S.live; if (id === 'can' || id === 'w:can') return 'can'; if (id === 'w:source') return 'source'; if (id === 'w:donkey' || id === 'donkey') return 'donkey'; if (id === 'w:person') return 'person';
+  if (id === 'primary' && L) return L.kind === 'draw' ? 'source' : L.id === 'water-burro' ? 'donkey' : L.id === 'share' ? 'person' : null; return null; }
 function combo(a, b) {
   const has = x => a === x || b === x, L = S.live, w = S.water, T = S.things || {};
+  { const ka = kindOf(a), kb = kindOf(b), K = x => ka === x || kb === x;
+    if (ka && kb && ka !== kb && K('can')) {
+      if (K('source')) return L && L.kind === 'draw' ? { what: 'Filled', litres: Math.abs(L.delta) || 0, run: () => B.act.live(true) } : { what: w.liters >= 19.9 ? 'Full' : 'Closer', dry: true };
+      if (K('donkey')) return L && L.id === 'water-burro' ? { what: 'Watered', litres: Math.abs(L.delta) || 0, run: () => B.act.live(true) } : { what: w.liters < .05 ? 'Empty' : S.water.donkey > .5 ? 'Not thirsty' : 'Closer', dry: true };
+      if (K('person')) return L && L.id === 'share' ? { what: 'Shared', run: () => B.act.live(true) } : { what: w.liters < .05 ? 'Empty' : 'Closer', dry: true };
+    }
+    if (ka && kb && ka !== kb && K('source') && (K('donkey') || K('person'))) return { what: 'Use the can', dry: true }; }
   if (has('me')) { const o = a === 'me' ? b : a, st = o.startsWith('stop-') && S.map.stops.find(x => 'stop-' + x.id === o); if (!st) return null;
     return st.dist < 14 ? { what: 'You are here', dry: true } : { what: `Travel ${Math.round(st.dist)} m ${st.dir}`, run: () => { B.act.travel(st.id); ui.scene = 'world'; } }; }
   if (has('can') && has('primary') && L && L.kind !== 'talk') return { what: L.kind === 'draw' ? 'Fill the can' : L.id === 'share' ? 'Share water' : 'Water the donkey', litres: Math.abs(L.delta) || 0, run: () => B.act.live(true) };
@@ -214,7 +225,17 @@ function combo(a, b) {
   if (has('primary') && has('voice-current') && L && L.kind === 'talk') return { what: 'Ask', run: () => B.act.live(false) };
   return null;
 }
+function sceneWaters() {                                              // where the scene's water shows through the glass, in screen pixels
+  if (!S.ready || ui.scene !== 'world' || ui.menu || ui.past) return []; const T = S.things || {}, W = world.clientWidth, H = world.clientHeight, L = S.live, out = [];
+  const on = t => t && t.front && t.x > 10 && t.x < W - 10 && t.y > 10 && t.y < H - 10;
+  if (on(T.can) && S.mode === 'walk') out.push({ id: 'w:can', x: T.can.x, y: T.can.y, r: 13 + S.water.liters * .55 });
+  if (L && L.kind === 'draw' && L.x != null) out.push({ id: 'w:source', x: L.x, y: L.y, r: 27 }); else if (on(T.source) && T.source.dist < 45) out.push({ id: 'w:source', x: T.source.x, y: T.source.y, r: clamp(260 / Math.max(6, T.source.dist), 9, 27) });
+  if (on(T.donkey) && T.donkey.dist < 30) out.push({ id: 'w:donkey', x: T.donkey.x, y: T.donkey.y + 16, r: clamp(190 / Math.max(5, T.donkey.dist), 8, 20) * (.6 + S.water.donkey * .5) });
+  const p = (T.people || [])[0]; if (p && on(p) && p.dist < 6) out.push({ id: 'w:person', x: p.x, y: p.y + 46, r: 11 });
+  return out;
+}
 function mixTick(bodies, dt) {
+  for (const w of sceneWaters()) if (!bodies.has(w.id)) bodies.set(w.id, { id: w.id, x: w.x, y: w.y, rx: w.r, ry: w.r });
   if (!held || ui.past || ui.menu || (ui.scene !== 'world' && ui.scene !== 'map')) { mix = null; return; }
   let hit = null; for (const [id, b] of bodies) { if (id === held || /^(time-current|steer|mix|menu-)/.test(id)) continue; if (Math.hypot(ptr.x - b.x, ptr.y - b.y) < Math.max(b.rx || 40, b.ry || 30) + 16 && combo(held, id)) { hit = id; break; } }
   const c = hit && combo(held, hit);
@@ -369,6 +390,7 @@ function initializeField() {
       const from = pulls.get(id + ':from'), sp = refs.get(id)?._spec;
       if (from && sp && Math.abs(sp.number - from.number) > 1e-6) { pushUndo(from.label, () => from.action(from.number)); cause = `${from.label} became ${inkLabel(id)}.`; render(); }
       const mixed = held === id && mix; if (mixed && !mix.fired && !mix.c.dry && mix.t > .12) announce('Parted. Nothing moved.'); if (held === id) { held = null; mix = null; }
+      const far = Math.hypot(meta.totalDx || 0, meta.totalDy || 0); if (id === 'can' && meta.dragged && !mixed && far > 150 && throwWater('can', ptr.x, ptr.y, far)) { /* thrown, not opened */ } else
       if (meta.dragged && !mixed && sp?.opens && ui.open !== id) { ui.open = id; ui.openAt = performance.now(); render(); }
       pulls.delete(id); pulls.delete(id + ':from'); if (id === 'primary') ui.flowHeld = false;
     }
@@ -410,6 +432,17 @@ $('steer').addEventListener('pointerdown', e => { e.preventDefault(); e.stopProp
 $('steer').addEventListener('pointermove', e => { if (drag && e.pointerId === drag.id) steerInput(clamp((e.clientX - drag.x) / drag.range, -1, 1), clamp((e.clientY - drag.y) / drag.range, -1, 1)); });
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) $('steer').addEventListener(type, () => stopSteer());
 // rubbing: a finger dragged across the world thins the wet words and traces under it (the same drag still turns the view)
+let grab = null;
+window.addEventListener('pointerdown', e => {
+  if (e.target.closest?.('#rw .liquid,input,textarea,button,a,nav') || e.button > 0 || ui.menu || ui.past || ui.scene !== 'world') return;
+  const w = sceneWaters().find(w => Math.hypot(e.clientX - w.x, e.clientY - w.y) < w.r + 26); if (!w) return;
+  e.stopPropagation(); e.preventDefault(); grab = { id: e.pointerId, from: w, x0: e.clientX, y0: e.clientY, far: 0 }; held = w.id; seePtr(e); splash(w.x, w.y, .6);
+}, true);
+window.addEventListener('pointermove', e => { if (!grab || grab.id !== e.pointerId) return; e.stopPropagation(); e.preventDefault(); grab.far = Math.max(grab.far, Math.hypot(e.clientX - grab.x0, e.clientY - grab.y0)); }, true);
+for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, e => { if (!grab || grab.id !== e.pointerId) return; e.stopPropagation();
+  if (!(mix && mix.fired)) throwWater(grab.from.id, e.clientX, e.clientY, grab.far); held = null; mix = null; grab = null; }, true);
+// water let go over open ground goes back into the scene: the can squirts where it was released
+function throwWater(id, x, y, far) { if (kindOf(id) !== 'can' || far < 130 || S.water.liters < .05 || ui.past) return false; const it = menuItems().find(m => m.id === 'squirt'); if (!it) return false; it.run(); splash(x, y, 1.3); cause = 'Water thrown on the ground.'; return true; }
 let rub = null;
 window.addEventListener('pointerdown', e => { if (e.target.closest?.('#rw .liquid,input,textarea,button,a,nav') || e.button > 0 || ui.menu || ui.past) return; if (ui.open) { ui.open = null; render(); } if (ui.scene === 'map') splash(e.clientX, e.clientY, .55); rub = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false }; }, true);
 window.addEventListener('pointermove', e => { if (!rub || rub.id !== e.pointerId) return; if (Math.hypot(e.clientX - rub.x, e.clientY - rub.y) > 8) rub.moved = true; if (rub.moved) { ink.rub(e.clientX, e.clientY, 25); field?.erodeAt?.(e.clientX, e.clientY, 25); } }, true);
@@ -447,6 +480,40 @@ function inkTick(now, dt) {
   t._ink = (t._ink ?? .3) + (Math.max(.3, near, ui.menu ? 1 : 0) - (t._ink ?? .3)) * k; t.style.setProperty('--ink', t._ink.toFixed(3));
   const st = $('steer'); if (!st.hidden) one(st, 'steer', .14, 0);
 }
+// ---- one membrane ------------------------------------------------------------------------------------------------------
+// Every body of water on the glass (drops, the scene's water showing through, a carried blob and its strand, flying
+// splash) is summed into one field and contoured with marching squares, so near bodies neck together and merge as one skin.
+const MS = { cv: document.createElement('canvas'), low: document.createElement('canvas'), F: null, trail: [] };
+MS.cv.id = 'rw-ms'; MS.cv.setAttribute('aria-hidden', 'true'); Object.assign(MS.cv.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', zIndex: '4', pointerEvents: 'none' }); world.append(MS.cv);
+function msTick(now, dt) {
+  const W = world.clientWidth, H = world.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), cv = MS.cv, cell = W < 700 ? 6 : 9, cols = Math.ceil(W / cell) + 1, rows = Math.ceil(H / cell) + 1;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  if (!MS.F || MS.F.length !== cols * rows) { MS.F = new Float32Array(cols * rows); MS.low.width = cols; MS.low.height = rows; MS.img = MS.low.getContext('2d').createImageData(cols, rows); }
+  const g = cv.getContext('2d'), F = MS.F, src = [];
+  if (S.ready && !ui.past) {
+    for (const b of field?.getBodies() || []) { if (/^menu-|^time-current$/.test(b.id)) continue; src.push([b.x, b.y, Math.max(12, (b.rx || 30) * .56), Math.max(10, (b.ry || 24) * .56)]); }
+    for (const w of sceneWaters()) src.push([w.x, w.y, w.r, w.r]);
+    const carrying = held && now - ptr.at < 4000;
+    if (carrying) { src.push([ptr.x, ptr.y, 21, 21]); const last = MS.trail.at(-1); if (!last || Math.hypot(last[0] - ptr.x, last[1] - ptr.y) > 14) MS.trail.push([ptr.x, ptr.y, 1]); }
+    for (const t of MS.trail) { t[2] -= dt * (carrying ? .55 : 1.6); if (t[2] > 0) src.push([t[0], t[1], 4 + t[2] * 9, 4 + t[2] * 9]); } MS.trail = MS.trail.filter(t => t[2] > 0).slice(-40);
+    for (const p of SP.parts) { const a = 1 - p.life / p.ttl; if (a > 0) src.push([p.x, p.y, 3 + p.r * 2.2 * a, 3 + p.r * 2.2 * a]); }
+  }
+  if (!src.length) { if (MS.dirty) { g.clearRect(0, 0, cv.width, cv.height); MS.dirty = false; } return; }
+  F.fill(0);
+  for (const [x, y, rx, ry] of src) { const c0 = Math.max(0, Math.floor((x - rx * 3) / cell)), c1 = Math.min(cols - 1, Math.ceil((x + rx * 3) / cell)), r0 = Math.max(0, Math.floor((y - ry * 3) / cell)), r1 = Math.min(rows - 1, Math.ceil((y + ry * 3) / cell));
+    for (let r = r0; r <= r1; r++) { const dy = (r * cell - y) / ry, dy2 = dy * dy; for (let c = c0; c <= c1; c++) { const dx = (c * cell - x) / rx, d2 = dx * dx + dy2; if (d2 < 9) F[r * cols + c] += 1 / (d2 + .06) - .11; } } }
+  const d = MS.img.data; for (let i = 0; i < F.length; i++) { const t = clamp((F[i] - .7) / .7, 0, 1), a = t * t * (3 - 2 * t); d[i * 4] = 150; d[i * 4 + 1] = 228; d[i * 4 + 2] = 236; d[i * 4 + 3] = a * 30; }
+  MS.low.getContext('2d').putImageData(MS.img, 0, 0);
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); g.imageSmoothingEnabled = true; g.drawImage(MS.low, -cell / 2, -cell / 2, cols * cell, rows * cell); MS.dirty = true;
+  const T = 1, lerp = (a, b) => (T - a) / (b - a); g.beginPath();
+  for (let r = 0; r < rows - 1; r++) for (let c = 0; c < cols - 1; c++) {
+    const i = r * cols + c, a = F[i], b = F[i + 1], cc = F[i + cols + 1], dd = F[i + cols], k = (a > T ? 8 : 0) | (b > T ? 4 : 0) | (cc > T ? 2 : 0) | (dd > T ? 1 : 0); if (k === 0 || k === 15) continue;
+    const x = c * cell, y = r * cell, top = [x + lerp(a, b) * cell, y], right = [x + cell, y + lerp(b, cc) * cell], bottom = [x + lerp(dd, cc) * cell, y + cell], left = [x, y + lerp(a, dd) * cell];
+    const seg = (p, q) => { g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); };
+    switch (k) { case 1: case 14: seg(left, bottom); break; case 2: case 13: seg(bottom, right); break; case 3: case 12: seg(left, right); break; case 4: case 11: seg(top, right); break; case 6: case 9: seg(top, bottom); break; case 7: case 8: seg(top, left); break; case 5: seg(top, left); seg(bottom, right); break; case 10: seg(top, right); seg(left, bottom); break; }
+  }
+  g.lineCap = 'round'; g.lineWidth = 3.4; g.strokeStyle = 'rgba(4,22,30,.28)'; g.stroke(); g.lineWidth = 1.25; g.strokeStyle = 'rgba(206,250,250,.62)'; g.stroke();
+}
 // ---- splash -------------------------------------------------------------------------------------------------------------
 // Water answers a touch: a crown of droplets thrown up and falling back, and rings running out across the glass.
 const SP = { cv: document.createElement('canvas'), parts: [], rings: [] };
@@ -470,7 +537,7 @@ function splashTick(dt) {
 // the glass. It is never simply shown: it lies dry and invisible, and is read only where a finger or a pulled trail has
 // wetted the glass, drying again behind it (the lantern/spotlight idea from pretext-field, with water for light).
 const TF = { cv: document.createElement('canvas'), mask: document.createElement('canvas'), wet: 0, text: '', prep: null, font: "italic 17px 'Iowan Old Style','Palatino Linotype',Georgia,serif", lh: 25, ready: false, lx: null, ly: null };
-TF.cv.id = 'rw-text'; TF.cv.setAttribute('aria-hidden', 'true'); Object.assign(TF.cv.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', zIndex: '4', pointerEvents: 'none' }); world.append(TF.cv);
+TF.cv.id = 'rw-text'; TF.cv.setAttribute('aria-hidden', 'true'); Object.assign(TF.cv.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', zIndex: '5', pointerEvents: 'none' }); world.append(TF.cv);
 { const sc = document.createElement('script'); sc.src = './rain/pretext.js?v=1'; sc.onload = () => { TF.ready = !!window.Pretext; }; document.head.append(sc); }
 function fieldText() {
   if (ui.past) { const v = memory.view(), sn = v.snapshot || {}; return `Earlier, ${n(ui.timeAge)} seconds ago. ${sn.place || S.place.name}. ${n(sn.can ?? S.water.liters)} litres in the can. ${v.event?.label || 'The surface was still.'} Looking back changes nothing.`; }
@@ -514,7 +581,7 @@ function tick(now) {
   const dt = Math.min(.15, Math.max(0, (now - frameTime) / 1000)); frameTime = now;
   if (!document.hidden) {
     if (!ui.past) { memory.tick(dt); ui.recordClock += dt; if (ui.recordClock >= .25) { S = B.state(); if (S.ready) { watchGame(); captureWeather(); } ui.recordClock = 0; } }
-    field?.tick(dt); inkTick(now, dt); splashTick(dt); try { textTick(now, dt); } catch (err) { if (!TF.err) { TF.err = true; console.error('[rain] text field', err); } } ink.tick(ui.past ? 0 : dt); ink.setTrails(field?.getTrails() || []);
+    field?.tick(dt); inkTick(now, dt); splashTick(dt); try { msTick(now, dt); } catch (err) { if (!MS.err) { MS.err = true; console.error('[rain] membrane', err); } } try { textTick(now, dt); } catch (err) { if (!TF.err) { TF.err = true; console.error('[rain] text field', err); } } ink.tick(ui.past ? 0 : dt); ink.setTrails(field?.getTrails() || []);
     world.dataset.timeMode = ui.past ? 'past' : 'now'; world.dataset.timeAge = n(ui.timeAge);
     if (now - lastRender > 180) { render(); lastRender = now; }
   }
@@ -522,7 +589,7 @@ function tick(now) {
 }
 new ResizeObserver(() => syncField()).observe(world);
 initializeField(); render(); requestAnimationFrame(tick);
-window.__rainSurface = { SP, splash, TF, stamp, fieldText, ui, weather, glass, memory, ink, render, get field() { return field; }, get specs() { return specs; }, get undo() { return undo; }, setTimeAge, returnNow, go: s => go(s)() };
+window.__rainSurface = { MS, sceneWaters, get held() { return held; }, get mix() { return mix; }, SP, splash, TF, stamp, fieldText, ui, weather, glass, memory, ink, render, get field() { return field; }, get specs() { return specs; }, get undo() { return undo; }, setTimeAge, returnNow, go: s => go(s)() };
 }
 boot();
 })();

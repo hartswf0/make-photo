@@ -8307,7 +8307,7 @@ void main(){
       const RAIN2 = urlParams.get("rain") !== "1";                         // the vendored rain engine (night-post/rain/) instead of dew-ui
       demo.dew = window.makeDew && !RAIN2 ? window.makeDew(canvas) : null;
       document.body.classList.toggle("rain2", RAIN2);
-      if (RAIN2) { const V = "?v=10", lk = document.createElement("link"); lk.rel = "stylesheet"; lk.href = "./rain/rain.css" + V; document.head.append(lk);
+      if (RAIN2) { const V = "?v=11", lk = document.createElement("link"); lk.rel = "stylesheet"; lk.href = "./rain/rain.css" + V; document.head.append(lk);
         const en = document.createElement("script"); en.src = "./rain/engine.js" + V; en.onload = () => { const su = document.createElement("script"); su.src = "./rain/surface.js" + V; document.head.append(su); }; document.head.append(en); }
       document.body.classList.toggle("dew-skin", !!demo.dew);
       if (demo.dew) {
@@ -8473,6 +8473,7 @@ void main(){
               const ppl = !cast ? [] : cast.list.filter(ch => ch.group.visible && ch !== activeAvatar && D(ch.state.x, ch.state.z) < 16).sort((a, b) => D(a.state.x, a.state.z) - D(b.state.x, b.state.z)).slice(0, 2);
               return { donkey: { ...pj(donkey.state.x, (donkey.state.y || state.y || 0) + 1.5, donkey.state.z), dist: D(donkey.state.x, donkey.state.z) },
                 next: nx ? { ...pj(DEMO_SETS[nx][0], (state.y || 0) + 2.2, DEMO_SETS[nx][1]), name: DEMO_SETS[nx][2], dist: D(DEMO_SETS[nx][0], DEMO_SETS[nx][1]) } : null,
+                can: (() => { const av = activeAvatar && activeAvatar.group && activeAvatar.group.visible ? activeAvatar.group.position : null; return av ? { ...pj(av.x, av.y + .95, av.z), dist: 0 } : null; })(), source: { ...pj(DEMO_SETS.basalt[0], groundAt(DEMO_SETS.basalt[0], DEMO_SETS.basalt[1]) + 1.1, DEMO_SETS.basalt[1]), dist: D(DEMO_SETS.basalt[0], DEMO_SETS.basalt[1]) },
                 people: ppl.map(ch => ({ id: ch.state.id, name: demoName(ch), ...pj(ch.state.x, (ch.state.y || 0) + 1.9, ch.state.z), dist: D(ch.state.x, ch.state.z) })) }; })(),
             map: { stops: order.map(k => ({ id: k, name: DEMO_SETS[k][2], dist: Math.hypot(DEMO_SETS[k][0] - state.x, DEMO_SETS[k][1] - state.z), dir: (() => { const dx = DEMO_SETS[k][0] - state.x, dz = DEMO_SETS[k][1] - state.z; return ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'][Math.round(Math.atan2(dx, -dz) / (Math.PI / 4) + 8) % 8]; })(), u: U(DEMO_SETS[k][0], DEMO_SETS[k][1])[0], v: U(DEMO_SETS[k][0], DEMO_SETS[k][1])[1], next: k === nx, seen: c.visited.includes(k) })), me: U(state.x, state.z), donkey: U(donkey.state.x, donkey.state.z), heading: -state.yaw },
             sound: { voices: !!demo.voice, tape: !audioEl.paused, radio: !!(field && field.radio && field.radio.on) }
