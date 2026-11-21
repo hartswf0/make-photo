@@ -8318,7 +8318,7 @@ void main(){
         let carry = null; const canPos = () => { const r = q("dk-status").getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
         addEventListener("pointerdown", e => {
           if (carry || demo.handoff || state.introActive) return; const w = demo.wetPos, t = e.target, onCan = t.closest && t.closest("#dk-status");
-          const onThing = w && (t === canvas || t.id === "viewfinder") && Math.hypot(e.clientX - w.x, e.clientY - w.y) < w.r + 30;
+          const onThing = w && (t === canvas || t.id === "viewfinder") && (typeof demo.dew.worldHit === "function" ? demo.dew.worldHit(e.clientX, e.clientY) : Math.hypot(e.clientX - w.x, e.clientY - w.y) < w.r + 30);
           if (!onCan && !onThing) return; if (onCan && !w) return;
           e.stopImmediatePropagation(); const c0 = canPos(); carry = { id: e.pointerId, from: onCan ? "can" : "thing", x0: onCan ? c0[0] : w.x, y0: onCan ? c0[1] : w.y, moved: 0, sx: e.clientX, sy: e.clientY };
           demo.dew.carry = { x0: carry.x0, y0: carry.y0, x: e.clientX, y: e.clientY };
@@ -10088,6 +10088,38 @@ void main(){
       npOptions: () => { try { return npEngine.options(npState).map(o => ({ id: o.id, label: o.label, enabled: o.enabled, reason: o.reason })); } catch (e) { return String(e); } },
       handoffDbg: () => demo.handoff ? { u: +(demo.handoff.t / demo.handoff.dur).toFixed(2), can: demo.can.canRoot.position.clone(), gL: hoV.gL.clone(), gR: hoV.gR.clone() } : null,
       dewDbg: () => demo.dew ? { drops: demo.dew.drops.length, beads: demo.dew.beads.length, wisps: demo.dew.wisps.length, rain: +(demo.dew.rain || 0).toFixed(2), glyphs: demo.dew.glyphs.length, gust: +demo.dew.gust.toFixed(2), cloud: demo.dew.clouds.map(c => +c.d.toFixed(1)).join(' '), flare: +demo.dew.flare.toFixed(2), breath: +demo.dew.breath.toFixed(2), running: demo.dew.drops.filter(d => d.state === 'fall').length, big: +Math.max(0, ...demo.dew.drops.map(d => d.r)).toFixed(1) } : null,
+      // The rain renderer reads this bridge; the game remains the sole action/ledger owner.
+      rainState: () => {
+        const c = npCarrier(), L = demo.live;
+        return { liters: c.liters, capacity: 20, reserve: c.reserve, place: c.place,
+          sceneId: npState.active + ":" + c.place + ":" + state.region,
+          ledgerValid: npEngine.validate(npState), wet: demo.wetPos ? { ...demo.wetPos } : null,
+          live: L ? { kind: L.kind, verb: L.verb, ctx: L.ctx, dl: L.dl } : null,
+          busy: !!demo.handoff || state.introActive,
+          focus: state.focusDist, stop: state.stopIdx, stopCount: STOPS.length, tilt: state.tilt };
+      },
+      rainTransfer: from => {
+        if (!DEMO || (from !== "can" && from !== "thing") || state.introActive || demo.handoff ||
+            state.riding || state.drivingCart || state.gliding) return false;
+        demoDock(1); // Re-evaluate the same legal/proximity choices as the native controls.
+        if (!demo.live) return false;
+        demo.carryFromCan = from === "can";
+        try { return demoLiveDo(); } finally { demo.carryFromCan = false; }
+      },
+      rainAdjust: (id, value) => {
+        if (!DEMO || !Number.isFinite(value)) return false;
+        if (id === "focus") { state.focusDist = clamp(value, 1.2, 900); state.focusPulse = 1; }
+        else if (id === "stop") state.stopIdx = clamp(Math.round(value), 0, STOPS.length - 1);
+        else if (id === "tilt") state.tilt = clamp(value, -.32, .32);
+        else return false;
+        updateHUD(); if (state.trayTab && id === "stop") renderTray();
+        demoBeads(true); return true;
+      },
+      rainMap: () => {
+        demo.mapOn = !demo.mapOn; demo.mapUntil = 0;
+        if (demo.ui && demo.ui.openSheet) demo.ui.openSheet(false);
+        return demo.mapOn;
+      },
       wetDbg: () => ({ live: demo.live ? { kind: demo.live.kind, verb: demo.live.verb, ctx: demo.live.ctx, ask: !!demo.live.ask, dl: demo.live.dl } : null, pos: demo.wetPos }),
       voiceDbg: () => ({ last: demo.lastVoice, man: !!demo.voiceMan, voices: field ? field.voices.length : -1, env: field ? field.voiceEnv : 0, hits: field ? field.hits.filter(h => h.bus === 'voice').length : 0 }),
       demo: () => ({ on: DEMO, solids: demo.solids ? demo.solids.length : (DEMO ? (demoBuildSolids(), demo.solids.length) : 0), withCh: demo.withCh ? demo.withCh.state.id : null, line: demo.line ? demo.line.text : "", pose: demo.withCh ? demo.withCh.state.pose : "",
