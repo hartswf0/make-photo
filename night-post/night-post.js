@@ -3868,6 +3868,90 @@ void main(){
       $("btn-menu-toggle").addEventListener("click", toggleImmersiveMenu);
     }
 
+    const _npcWorldTmp = new T.Vector3();
+    const _donkeyWorldTmp = new T.Vector3();
+    const _playerWorldTmp = new T.Vector3();
+    const NPC_INTERACT_RADIUS = 11.0;
+
+    function getNpcWorldPos(ch, out) {
+      if (!ch || !ch.group) return null;
+      ch.group.updateMatrixWorld(false);
+      return ch.group.getWorldPosition(out);
+    }
+
+    function getDonkeyWorldPos(out) {
+      if (donkey && donkey.group) {
+        donkey.group.updateMatrixWorld(false);
+        return donkey.group.getWorldPosition(out);
+      }
+      return out.set(donkey.state.x, driveSurfaceAt(donkey.state.x, donkey.state.z), donkey.state.z);
+    }
+
+    function getNpcDisplayInfo(ch) {
+      const cid = String((ch && ch.state && ch.state.id) || "").toLowerCase();
+      const job = ch && ch.group && ch.group.userData && ch.group.userData.npcJob;
+      const name = (job && job.displayName)
+        || (ch && ch.state && (ch.state.displayName || ch.state.name))
+        || "Villager";
+      const jobTitle = (job && job.jobTitle)
+        || (ch && ch.state && ch.state.role)
+        || "Night Post Crew";
+      const jobStatus = (job && job.currentStatus)
+        || "Monitoring the station and cyan water reserves";
+      return { cid, name, jobTitle, jobStatus, job };
+    }
+
+    function findNearestInteractable(maxDist = NPC_INTERACT_RADIUS) {
+      let best = null;
+      let bestD = maxDist;
+      const px = state.drivingCart ? wagon.x : state.x;
+      const pz = state.drivingCart ? wagon.z : state.z;
+      if (cast && Array.isArray(cast.list)) {
+        for (let i = 0; i < cast.list.length; i++) {
+          const ch = cast.list[i];
+          if (!ch || !ch.group || !ch.group.visible || ch === activeAvatar) continue;
+          const wp = getNpcWorldPos(ch, _npcWorldTmp);
+          if (!wp) continue;
+          const d = Math.hypot(wp.x - px, wp.z - pz);
+          if (d < bestD) {
+            bestD = d;
+            const info = getNpcDisplayInfo(ch);
+            best = {
+              kind: "npc",
+              npc: ch,
+              id: info.cid,
+              name: info.name,
+              jobTitle: info.jobTitle,
+              jobStatus: info.jobStatus,
+              dist: d,
+              wx: wp.x,
+              wy: wp.y,
+              wz: wp.z
+            };
+          }
+        }
+      }
+      const dw = getDonkeyWorldPos(_donkeyWorldTmp);
+      const dDonkey = Math.hypot(dw.x - px, dw.z - pz);
+      if (dDonkey < bestD) {
+        best = {
+          kind: "donkey",
+          npc: null,
+          id: "mistletoe",
+          name: "Mistletoe",
+          jobTitle: "Expedition Donkey",
+          jobStatus: state.donkeyCollapsed
+            ? "Dehydrated and collapsed — needs cyan water immediately"
+            : `Standing ready with 20L saddle pack (${Math.round(clamp(state.donkeyWater, 0, 1) * 100)}% hydrated)`,
+          dist: dDonkey,
+          wx: dw.x,
+          wy: dw.y,
+          wz: dw.z
+        };
+      }
+      return best;
+    }
+
     let _lastCtxSig = "";
     function updateContextualActions() {
       const box = $("ctx-actions");
@@ -3876,7 +3960,8 @@ void main(){
       const acts = [];
       const distWagon = Math.hypot(wagon.x - state.x, wagon.z - state.z);
       const distWell = Math.hypot(well.x - state.x, well.z - state.z);
-      const distDonkey = Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z);
+      const dw = getDonkeyWorldPos(_donkeyWorldTmp);
+      const distDonkey = Math.hypot(dw.x - state.x, dw.z - state.z);
       let nearCistern = null;
       for (let i = 0; i < relays.length; i++) {
         if (Math.hypot(relays[i].x - state.x, relays[i].z - state.z) < 15) {
@@ -3884,18 +3969,18 @@ void main(){
           break;
         }
       }
-      let nearNpc = null;
-      if (cast && Array.isArray(cast.list)) {
-        let bestD = 7.5;
-        for (let i = 0; i < cast.list.length; i++) {
-          const ch = cast.list[i];
-          if (!ch || !ch.group || !ch.group.visible || ch === activeAvatar) continue;
-          const d = Math.hypot(ch.group.position.x - state.x, ch.group.position.z - state.z);
-          if (d < bestD) { bestD = d; nearNpc = ch; }
-        }
-      }
+      const nearTarget = findNearestInteractable(NPC_INTERACT_RADIUS);
       const carryingWater = state.waterLiters > 0.1;
 
+      if (nearTarget) {
+        const nm = String(nearTarget.name || "CREW").toUpperCase();
+        const jt = String(nearTarget.jobTitle || "CREW").toUpperCase();
+        acts.push({
+          id: "talk",
+          label: `[E] TALK TO ${nm} (${jt})`,
+          fn: () => openDialogue(nearTarget)
+        });
+      }
       if (state.drivingCart) {
         acts.push({ id: "park", label: "[C] PARK WAGON", fn: () => toggleCart() });
       } else if (distWagon < 7.5) {
@@ -3907,7 +3992,7 @@ void main(){
       if (nearCistern) {
         acts.push({ id: "pour", label: "[F] POUR INTO CISTERN", fn: () => triggerPour() });
       }
-      if (state.donkeyCollapsed || distDonkey < 7.5) {
+      if (state.donkeyCollapsed || distDonkey < NPC_INTERACT_RADIUS) {
         acts.push({
           id: "water-burro",
           label: state.donkeyCollapsed ? "[F] GIVE WATER (URGENT)" : "[F] GIVE WATER",
@@ -3917,17 +4002,12 @@ void main(){
             else { triggerSquirtBurst(1.1); pumpWell(); }
           }
         });
-        if (!state.donkeyCollapsed && distDonkey < 7.5) {
+        if (!state.donkeyCollapsed && distDonkey < 8.0) {
           acts.push({ id: "ride", label: state.riding ? "[V] DISMOUNT" : "[V] RIDE", fn: () => toggleRide() });
         }
-        acts.push({ id: "check-burro", label: "[E] CHECK MISTLETOE", fn: () => interactTalk() });
       }
-      if (nearNpc) {
-        const nm = (nearNpc.state && nearNpc.state.name) ? nearNpc.state.name.toUpperCase() : "VILLAGER";
-        acts.push({ id: "talk", label: `[E] TALK (${nm})`, fn: () => interactTalk() });
-        if (carryingWater) {
-          acts.push({ id: "share", label: "[F] SHARE CYAN WATER", fn: () => triggerSquirtBurst(1.2) });
-        }
+      if (nearTarget && nearTarget.kind === "npc" && carryingWater) {
+        acts.push({ id: "share", label: "[F] SHARE CYAN WATER", fn: () => triggerSquirtBurst(1.2) });
       }
       if (carryingWater && !state.drivingCart) {
         if (!acts.some(a => a.id === "share" || a.id === "pour")) {
@@ -3982,16 +4062,33 @@ void main(){
     };
 
     const _speechState = { lastAt: 0, hideTimer: 0 };
-    function speakLine(speaker, text, sub = "", pitch = 1.0, rate = 1.02) {
-      state.lastDialogue = { speaker, text, sub, at: Date.now() };
+    state.activeDialogueTarget = null;
+    function closeDialogue() {
+      state.activeDialogueTarget = null;
+      _speechState.hideTimer = 0;
+      const card = $("dialogue-card");
+      if (card) card.hidden = true;
+      try {
+        if (typeof window !== "undefined" && window.speechSynthesis) window.speechSynthesis.cancel();
+      } catch (e) {}
+    }
+
+    function speakLine(speaker, text, sub = "", pitch = 1.0, rate = 1.02, jobLine = "", interactive = false) {
+      state.lastDialogue = { speaker, text, sub, jobLine, interactive, at: Date.now() };
       const card = $("dialogue-card");
       if (card) {
         card.hidden = false;
         if ($("dialogue-speaker")) $("dialogue-speaker").textContent = speaker;
         if ($("dialogue-text")) $("dialogue-text").textContent = text;
+        if ($("dialogue-job")) {
+          $("dialogue-job").textContent = jobLine || "";
+          $("dialogue-job").hidden = !jobLine;
+        }
         if ($("dialogue-sub")) $("dialogue-sub").textContent = sub;
+        const actRow = $("dialogue-actions");
+        if (actRow) actRow.hidden = !interactive;
       }
-      _speechState.hideTimer = 5.2;
+      _speechState.hideTimer = interactive ? 26.0 : 5.4;
       if (typeof window !== "undefined" && window.speechSynthesis && typeof SpeechSynthesisUtterance !== "undefined") {
         try {
           const nowMs = Date.now();
@@ -4108,13 +4205,104 @@ void main(){
       return found;
     }
 
+    const _armRelaxQuat = new T.Quaternion();
+    const _armRelaxEuler = new T.Euler(0, 0, 0, "XYZ");
+    function slerpBoneEuler(bone, ex, ey, ez, weight) {
+      if (!bone) return;
+      _armRelaxEuler.set(ex, ey, ez, "XYZ");
+      _armRelaxQuat.setFromEuler(_armRelaxEuler);
+      bone.quaternion.slerp(_armRelaxQuat, weight);
+    }
+
+    // Natural relaxed arms & hands matching c8a89055.png:
+    // - Idle: arms hang naturally down at sides, palms facing inward toward thighs, softly curved fingers, zero twisted wrists/elbows.
+    // - Walk: gentle natural counter-swing at sides with soft elbow flex and neutral forearm twist.
+    // - Carry: left arm relaxed/swinging at side, right arm cleanly holding jerrycan at right hip when waterLiters > 0.
+    function applyNaturalRelaxedArmsAndHands(ch, nowSec, speed, isPlayer, carryingCan, squirtActive) {
+      if (!ch || !ch.bones) return;
+      const b = ch.bones;
+      const st = ch.state || {};
+      const pose = String(st.pose || "idle");
+      if (pose === "pump" || pose === "heaveSaddle20kg" || pose === "childReceive20kg" || pose === "ride" || pose === "driving" || pose === "dance" || pose === "eskista" || pose === "greeting" || pose === "wave") {
+        return;
+      }
+      if (isPlayer && carrierPhys && carrierPhys.tumbleTimer > 0) return;
+      const ud = ch.group && ch.group.userData ? ch.group.userData : null;
+      if (ud && ud.cheerTimer > 0) return;
+
+      const phaseSeed = (st.phase || 0) + (isPlayer ? 0 : 1.3);
+      const breath = Math.sin(nowSec * 1.85 + phaseSeed) * 0.016;
+      const isIdle = speed < 0.25;
+      const stride = isIdle ? 0 : Math.sin(nowSec * (speed > 2.4 ? 9.2 : 5.6) + phaseSeed) * clamp(speed / 2.2, 0, 1);
+
+      // Clavicles (9 = L, 15 = R): relaxed level shoulders, never shrugged/twisted
+      slerpBoneEuler(b[9], 0.0, 0.0, 0.025 + breath * 0.4, isIdle ? 0.80 : 0.55);
+      slerpBoneEuler(b[15], 0.0, 0.0, -0.025 - breath * 0.4, isIdle ? 0.80 : 0.55);
+
+      // Left arm (10 = UARM_L, 12 = FARM_L, 13 = FARM_TWIST_L, 14 = HAND_L)
+      if (isIdle) {
+        slerpBoneEuler(b[10], 0.04 + breath, 0.0, 0.075, 0.86);
+        slerpBoneEuler(b[12], -0.14 - breath * 0.5, 0.0, 0.0, 0.86);
+        slerpBoneEuler(b[13], 0.0, 0.0, 0.0, 0.90);
+        slerpBoneEuler(b[14], 0.05, 0.0, -0.05, 0.88);
+      } else {
+        const swingL = stride * 0.26;
+        const elbowL = -0.18 - Math.max(0, swingL) * 0.22;
+        slerpBoneEuler(b[10], swingL, 0.0, 0.08, 0.62);
+        slerpBoneEuler(b[12], elbowL, 0.0, 0.0, 0.65);
+        slerpBoneEuler(b[13], 0.0, 0.0, 0.0, 0.85);
+        slerpBoneEuler(b[14], 0.05, 0.0, -0.04, 0.82);
+      }
+
+      // Right arm (16 = UARM_R, 18 = FARM_R, 19 = FARM_TWIST_R, 20 = HAND_R)
+      if (squirtActive && isPlayer) {
+        slerpBoneEuler(b[16], -0.64, 0.08, -0.10, 0.82);
+        slerpBoneEuler(b[18], -0.46, 0.0, 0.0, 0.82);
+        slerpBoneEuler(b[19], 0.0, 0.0, 0.0, 0.88);
+        slerpBoneEuler(b[20], 0.04, 0.0, 0.04, 0.84);
+      } else if (carryingCan) {
+        // Clean right-hip jerrycan carry: arm hangs naturally at right hip without twisting elbow or wrist
+        slerpBoneEuler(b[16], -0.10 - stride * 0.09, 0.0, -0.11, 0.86);
+        slerpBoneEuler(b[18], -0.14, 0.0, 0.0, 0.84);
+        slerpBoneEuler(b[19], 0.0, 0.0, 0.0, 0.90);
+        slerpBoneEuler(b[20], 0.05, 0.0, 0.05, 0.86);
+      } else if (isIdle) {
+        slerpBoneEuler(b[16], 0.04 + breath, 0.0, -0.075, 0.86);
+        slerpBoneEuler(b[18], -0.14 - breath * 0.5, 0.0, 0.0, 0.86);
+        slerpBoneEuler(b[19], 0.0, 0.0, 0.0, 0.90);
+        slerpBoneEuler(b[20], 0.05, 0.0, 0.05, 0.88);
+      } else {
+        const swingR = -stride * 0.26;
+        const elbowR = -0.18 - Math.max(0, swingR) * 0.22;
+        slerpBoneEuler(b[16], swingR, 0.0, -0.08, 0.62);
+        slerpBoneEuler(b[18], elbowR, 0.0, 0.0, 0.65);
+        slerpBoneEuler(b[19], 0.0, 0.0, 0.0, 0.85);
+        slerpBoneEuler(b[20], 0.05, 0.0, 0.04, 0.82);
+      }
+
+      // Softly curved relaxed fingers (if finger bones are attached under B_HAND_L / B_HAND_R)
+      if (!ch.__fingerBones) {
+        const fL = [], fR = [];
+        if (b[14]) b[14].traverse(o => { if (o !== b[14] && o.isBone) fL.push(o); });
+        if (b[20]) b[20].traverse(o => { if (o !== b[20] && o.isBone) fR.push(o); });
+        ch.__fingerBones = { fL, fR };
+      }
+      const curlL = 0.22;
+      const curlR = carryingCan ? 0.52 : 0.22;
+      for (let i = 0; i < ch.__fingerBones.fL.length; i++) {
+        slerpBoneEuler(ch.__fingerBones.fL[i], curlL, 0, -0.04, 0.72);
+      }
+      for (let i = 0; i < ch.__fingerBones.fR.length; i++) {
+        slerpBoneEuler(ch.__fingerBones.fR[i], curlR, 0, 0.04, 0.72);
+      }
+    }
+
     function enforceFrontHipJerrycanCarry(ch, nowSec, speed, squirtActive) {
       if (!ch || !ch.group) return;
       const cans = findCarryCanProps(ch);
-      if (!cans.length) return;
       const isPlayer = (ch === activeAvatar);
       const shouldShow = isPlayer
-        ? (state.waterLiters > 0.1 || squirtActive || Boolean(npCarrier && npCarrier().liters > 0))
+        ? (state.waterLiters > 0.1 || squirtActive)
         : Boolean(ch.state && ch.state.carryCan);
       const stride = Math.sin(nowSec * (speed > 2.2 ? 9.5 : 5.4)) * Math.min(1, speed / 2.6);
       for (let i = 0; i < cans.length; i++) {
@@ -4133,32 +4321,13 @@ void main(){
           can.rotation.set(0.38, 0.06, 0.08);
           if (isPlayer) state.carryCanLocalZ = can.position.z;
         } else {
-          // Strictly at right side hip / forward of thigh (+Z = +0.18 in character forward space, upright, never behind back!)
-          can.position.set(-0.26, 0.88 + Math.abs(stride) * 0.015, 0.18 + stride * 0.04);
-          can.rotation.set(0.05 + stride * 0.08, 0.0, 0.04);
+          // Strictly at right side hip / forward of thigh (+Z = +0.16 in character forward space, upright, never behind back!)
+          can.position.set(-0.27, 0.84 + Math.abs(stride) * 0.014, 0.16 + stride * 0.035);
+          can.rotation.set(0.04 + stride * 0.06, 0.0, 0.04);
           if (isPlayer) state.carryCanLocalZ = can.position.z;
         }
       }
-      if (!shouldShow) return;
-      // Keep right arm hanging naturally forward toward the side-hip handle (never twisted behind spine)
-      if (ch.bones && ch.bones[16] && ch.bones[18]) {
-        const uArmR = ch.bones[16], fArmR = ch.bones[18];
-        if (squirtActive && isPlayer) {
-          _hipCanEuler.set(-0.72, 0.12, -0.14);
-          _hipCanQuat.setFromEuler(_hipCanEuler);
-          uArmR.quaternion.slerp(_hipCanQuat, 0.82);
-          _hipCanEuler.set(-0.55, 0.0, 0.0);
-          _hipCanQuat.setFromEuler(_hipCanEuler);
-          fArmR.quaternion.slerp(_hipCanQuat, 0.82);
-        } else {
-          _hipCanEuler.set(-0.14 - stride * 0.12, 0.04, -0.10);
-          _hipCanQuat.setFromEuler(_hipCanEuler);
-          uArmR.quaternion.slerp(_hipCanQuat, 0.78);
-          _hipCanEuler.set(-0.16, 0.0, 0.0);
-          _hipCanQuat.setFromEuler(_hipCanEuler);
-          fArmR.quaternion.slerp(_hipCanQuat, 0.72);
-        }
-      }
+      applyNaturalRelaxedArmsAndHands(ch, nowSec, speed, isPlayer, shouldShow, squirtActive);
     }
 
     // 3D Pressurized Cyan WiFi Water Squirt Stream Mesh
@@ -4418,7 +4587,232 @@ void main(){
       sqBtn.addEventListener("pointercancel", releaseSquirt);
     }
 
-    // Talk & Quests (E / TALK button)
+    /* ---------- Autonomous Multi-Waypoint NPC Jobs & Interactive Dialogue ---------- */
+    const NPC_JOB_SPECS = {
+      makeda: {
+        displayName: "Makeda",
+        jobTitle: "Wellhead Pump Operator",
+        pitch: 1.12,
+        questId: "q1_mistletoe",
+        greeting: "I am running the standpipe and keeping the terracotta basin topped off for every carrier on the ridge.",
+        questLine: "Quest 1: Keep Mistletoe hydrated at the overlook wellhead and refill her 20L saddle cans.",
+        waypoints: [
+          { label: "Standpipe Pump", x: () => well.x - 1.15, z: () => well.z + 0.15, lookX: () => well.x, lookZ: () => well.z, dur: 6.5, workPose: "pump", status: () => `Pumping cyan water at the cast-iron standpipe (Well ${npWorld && npWorld.places && npWorld.places.overlook ? npWorld.places.overlook.well : 32}/40 L)` },
+          { label: "Terracotta Basin", x: () => well.x + 1.55, z: () => well.z + 2.45, lookX: () => well.x + 1.75, lookZ: () => well.z + 1.75, dur: 5.0, workPose: "idle", carryCan: true, status: () => "Checking well level and refilling terracotta basin jugs" },
+          { label: "Jerrycan Pad", x: () => well.x - 1.9, z: () => well.z - 1.6, lookX: () => well.x, lookZ: () => well.z, dur: 4.5, workPose: "idle", carryCan: true, status: () => "Chalk-marking 20L jerrycans on the wellhead pad" }
+        ]
+      },
+      june: {
+        displayName: "June",
+        jobTitle: "Signal Scout & Relay Runner",
+        pitch: 1.24,
+        questId: "q3_june_moraine",
+        greeting: "Imani! My smartphone bars climb every time fresh cyan water flows through the overlook. Help me light up Moraine Cistern!",
+        questLine: "Quest 3: Splash cyan water on June's phone and fill Moraine Switchback Cistern.",
+        waypoints: [
+          { label: "Overlook Screen", x: () => -18.4, z: () => -1.6, lookX: () => -22.2, lookZ: () => -6.2, dur: 5.5, workPose: "idle-talking", phoneOut: true, status: () => `Checking WiFi bars on her smartphone at the overlook (${Math.round(state.coveragePct || 34)}% signal)` },
+          { label: "Wellhead Relay", x: () => well.x + 3.0, z: () => well.z - 1.8, lookX: () => well.x, lookZ: () => well.z, dur: 5.0, workPose: "idle", phoneOut: true, status: () => `Logging live WiFi coverage at the wellhead (${Math.round(state.wifiCharge * 100)}% charge)` },
+          { label: "Relay Dish Rim", x: () => -15.6, z: () => -7.2, lookX: () => -48, lookZ: () => -168, dur: 5.5, workPose: "idle-talking", phoneOut: true, status: () => "Relaying live signal telemetry toward Moraine Switchback" }
+        ]
+      },
+      ferry_bekele: {
+        displayName: "Elder Bekele",
+        jobTitle: "Archivist & Projectionist",
+        pitch: 0.84,
+        questId: "q2_elder_relay",
+        greeting: "The outdoor 35mm linen screen and ridge ledger are set. Bring five liters of cyan water to lock the Addis relay.",
+        questLine: "Quest 2: Boost Elder Bekele's relay dish with 5.0 L of living cyan water.",
+        waypoints: [
+          { label: "35mm Cinema Screen", x: () => -18.2, z: () => 4.2, lookX: () => -22.0, lookZ: () => 5.5, dur: 6.0, workPose: "idle", status: () => "Tending the outdoor 35mm linen cinema screen and focus frame" },
+          { label: "Ledger Table", x: () => -16.4, z: () => 0.8, lookX: () => well.x, lookZ: () => well.z, dur: 5.5, workPose: "idle-talking", status: () => `Inspecting incoming water deliveries (${state.worldWaterDeliveredL.toFixed(1)} L logged)` },
+          { label: "Ridge Dispatch", x: () => -13.4, z: () => -3.6, lookX: () => -248, lookZ: () => -55, dur: 5.0, workPose: "idle", status: () => "Charting ridge dispatch routes across Silver Ford and Oxbow" }
+        ]
+      },
+      ppc_op_female: {
+        displayName: "Hanna",
+        jobTitle: "Donkey Handler & Mechanic",
+        pitch: 1.06,
+        questId: "q1_mistletoe",
+        greeting: "I am splitting shifts between Mistletoe's sawbuck harness and the Cruiser Woody suspension. Let me know if she needs water.",
+        questLine: "Quest 1: Keep Mistletoe hydrated (100%) and the Cruiser Woody chassis road-ready.",
+        waypoints: [
+          { label: "Mistletoe Harness", x: () => donkey.state.x + 2.0, z: () => donkey.state.z + 1.1, lookX: () => donkey.state.x, lookZ: () => donkey.state.z, dur: 5.5, workPose: "idle", taskFn: (dt) => { if (state.donkeyWater < 0.72) state.donkeyWater = clamp(state.donkeyWater + dt * 0.04, 0, 1); }, status: () => `Checking Mistletoe's sawbuck straps and hydration (${Math.round(clamp(state.donkeyWater, 0, 1) * 100)}%)` },
+          { label: "Wagon Engine Bay", x: () => wagon.x + 2.3, z: () => wagon.z - 0.8, lookX: () => wagon.x, lookZ: () => wagon.z, dur: 5.5, workPose: "idle", taskFn: (dt) => { if (vehPhys && vehPhys.integrity < 98) vehPhys.integrity = Math.min(100, vehPhys.integrity + dt * 2.5); }, status: () => `Inspecting and repairing Cruiser Woody chassis (${vehPhys ? Math.round(vehPhys.integrity) : 100}%)` },
+          { label: "Wagon Tailgate", x: () => wagon.x - 1.9, z: () => wagon.z + 1.8, lookX: () => wagon.x, lookZ: () => wagon.z, dur: 4.5, workPose: "idle", status: () => "Checking spare jerrycan tie-downs on the cruiser wagon" }
+        ]
+      },
+      rahel: {
+        displayName: "Rahel",
+        jobTitle: "Route Dispatcher",
+        pitch: 1.09,
+        questId: "q3_june_moraine",
+        greeting: "I am patrolling between the wagon and the trailhead checking cargo weight, wind gusts, and departure windows.",
+        questLine: "Quest 3: Coordinate night-route cargo runs to Moraine Cistern and Ahiya.",
+        waypoints: [
+          { label: "Wagon Cargo Check", x: () => wagon.x + 2.7, z: () => wagon.z + 2.1, lookX: () => wagon.x, lookZ: () => wagon.z, dur: 5.0, workPose: "idle-talking", phoneOut: true, status: () => `Monitoring wagon cargo weight (${state.waterLiters.toFixed(1)} kg) and slosh balance` },
+          { label: "Overlook Trailhead", x: () => -27.8, z: () => 3.8, lookX: () => -48, lookZ: () => -168, dur: 5.5, workPose: "idle", phoneOut: true, status: () => `Patrolling trailhead and monitoring ridge wind (${Math.round(state.wind01 * 100)}%)` },
+          { label: "North Rim Marker", x: () => -25.8, z: () => -6.8, lookX: () => well.x, lookZ: () => well.z, dur: 5.0, workPose: "idle-talking", phoneOut: true, status: () => "Clearing carrier departure timing at the overlook trailhead" }
+        ]
+      }
+    };
+
+    function initNpcJobs() {
+      if (!cast || !Array.isArray(cast.list)) return;
+      for (let i = 0; i < cast.list.length; i++) {
+        const ch = cast.list[i];
+        if (!ch || !ch.group || !ch.state) continue;
+        const cid = String(ch.state.id || `cast_${i}`).toLowerCase();
+        const ud = ch.group.userData || (ch.group.userData = {});
+        const spec = NPC_JOB_SPECS[cid];
+        if (spec) {
+          const wp0 = spec.waypoints[0];
+          const x0 = typeof wp0.x === "function" ? wp0.x() : wp0.x;
+          const z0 = typeof wp0.z === "function" ? wp0.z() : wp0.z;
+          const y0 = driveSurfaceAt(x0, z0);
+          ch.group.visible = true;
+          ch.group.position.set(x0, y0, z0);
+          ch.state.x = x0;
+          ch.state.y = y0;
+          ch.state.z = z0;
+          ch.state.name = spec.displayName;
+          ch.state.displayName = spec.displayName;
+          ch.state.role = spec.jobTitle;
+          ud.npcJob = {
+            id: cid,
+            displayName: spec.displayName,
+            jobTitle: spec.jobTitle,
+            spec,
+            wpIdx: 0,
+            mode: "work",
+            timer: 2.2 + (i % 4) * 1.1,
+            x: x0,
+            z: z0,
+            heading: ch.state.heading || 0,
+            speed: 0,
+            boostTimer: 0,
+            currentStatus: `On duty at ${wp0.label} (${spec.jobTitle})`,
+            currentStation: wp0.label
+          };
+        } else if (cid !== "imani") {
+          const homeX = ch.state.x || ch.group.position.x;
+          const homeZ = ch.state.z || ch.group.position.z;
+          const role = ch.state.role || "Station Crew";
+          ud.npcJob = {
+            id: cid,
+            displayName: ch.state.displayName || ch.state.name || "Crew Member",
+            jobTitle: role,
+            spec: null,
+            wpIdx: 0,
+            mode: "work",
+            timer: 3.5 + (i % 5),
+            homeX,
+            homeZ,
+            x: homeX,
+            z: homeZ,
+            heading: ch.state.heading || 0,
+            speed: 0,
+            boostTimer: 0,
+            currentStatus: `On duty: ${role}`,
+            currentStation: "Station Post"
+          };
+        }
+      }
+    }
+    initNpcJobs();
+
+    function updateNpcJobs(dt, nowSec) {
+      if (!cast || !Array.isArray(cast.list)) return;
+      if (machinima && machinima.isActive()) return;
+      for (let i = 0; i < cast.list.length; i++) {
+        const ch = cast.list[i];
+        if (!ch || !ch.group || !ch.state || ch === activeAvatar) continue;
+        const ud = ch.group.userData;
+        const job = ud && ud.npcJob;
+        if (!job || !job.spec) continue;
+        if (ud.knockdown && ud.knockdown.active) continue;
+        ch.group.visible = true;
+
+        if (job.boostTimer > 0) job.boostTimer = Math.max(0, job.boostTimer - dt);
+        const speedMult = job.boostTimer > 0 ? 1.35 : 1.0;
+
+        // Pause autonomous walking while actively conversing with the player
+        const isTalking = (ud.talkTimer > 0) || (state.activeDialogueTarget && state.activeDialogueTarget.npc === ch);
+        if (isTalking) {
+          const aim = Math.atan2(state.x - job.x, state.z - job.z);
+          const dh = Math.atan2(Math.sin(aim - job.heading), Math.cos(aim - job.heading));
+          job.heading += clamp(dh, -5.0 * dt, 5.0 * dt);
+          job.speed = 0;
+          const gy = driveSurfaceAt(job.x, job.z);
+          ch.group.position.set(job.x, gy, job.z);
+          ch.group.rotation.y = job.heading;
+          ch.state.x = job.x; ch.state.y = gy; ch.state.z = job.z;
+          ch.state.heading = job.heading;
+          ch.state.speed = 0;
+          ch.state.pose = "talk";
+          ch.state.speaking = true;
+          continue;
+        }
+
+        const wps = job.spec.waypoints;
+        const wp = wps[job.wpIdx % wps.length];
+        const tx = typeof wp.x === "function" ? wp.x() : wp.x;
+        const tz = typeof wp.z === "function" ? wp.z() : wp.z;
+        const dx = tx - job.x, dz = tz - job.z;
+        const dist = Math.hypot(dx, dz);
+
+        if (job.mode === "walk" || dist > 0.65) {
+          job.mode = "walk";
+          const walkSpd = 1.38 * speedMult;
+          const step = Math.min(dist, walkSpd * dt);
+          if (dist > 0.01) {
+            job.x += (dx / dist) * step;
+            job.z += (dz / dist) * step;
+            const aim = Math.atan2(dx, dz);
+            const dh = Math.atan2(Math.sin(aim - job.heading), Math.cos(aim - job.heading));
+            job.heading += clamp(dh, -4.6 * dt, 4.6 * dt);
+          }
+          job.speed = dist > 0.25 ? walkSpd : 0;
+          job.currentStation = wp.label;
+          job.currentStatus = `Walking to ${wp.label} (${job.jobTitle})`;
+          ch.state.pose = "walk";
+          ch.state.carryCan = Boolean(wp.carryCan);
+          if (dist <= 0.55) {
+            job.mode = "work";
+            job.timer = (wp.dur || 5.0) / speedMult;
+            job.speed = 0;
+          }
+        } else {
+          job.speed = 0;
+          job.timer -= dt;
+          const lx = typeof wp.lookX === "function" ? wp.lookX() : wp.lookX;
+          const lz = typeof wp.lookZ === "function" ? wp.lookZ() : wp.lookZ;
+          const aim = Math.atan2(lx - job.x, lz - job.z);
+          const dh = Math.atan2(Math.sin(aim - job.heading), Math.cos(aim - job.heading));
+          job.heading += clamp(dh, -4.2 * dt, 4.2 * dt);
+          ch.state.pose = wp.workPose || "idle";
+          ch.state.carryCan = Boolean(wp.carryCan);
+          job.currentStation = wp.label;
+          job.currentStatus = typeof wp.status === "function" ? wp.status() : wp.status;
+          if (typeof wp.taskFn === "function") wp.taskFn(dt, nowSec);
+          if (wp.workPose === "pump" && well && well.leverPivot) {
+            well.leverPivot.rotation.z = Math.sin(nowSec * 3.8) * 0.36;
+          }
+          if (job.timer <= 0) {
+            job.wpIdx = (job.wpIdx + 1) % wps.length;
+            job.mode = "walk";
+          }
+        }
+
+        const gy = driveSurfaceAt(job.x, job.z);
+        ch.group.position.set(job.x, gy, job.z);
+        ch.group.rotation.y = job.heading;
+        ch.state.x = job.x; ch.state.y = gy; ch.state.z = job.z;
+        ch.state.heading = job.heading;
+        ch.state.speed = job.speed;
+      }
+    }
+
+    // Talk & Interactive Dialogue (E key / Context Button / Direct 3D Click)
     const NPC_DIALOGUES = {
       june: {
         line: "Imani! My phone signal is flickering. Splash a little cyan water on my screen and help fill Moraine Cistern!",
@@ -4426,8 +4820,8 @@ void main(){
         pitch: 1.24
       },
       makeda: {
-        line: "We are watching the Addis highland reels on our phones. Aim your cyan nozzle our way to boost the broadcast!",
-        quest: "Tip: Hold SQUIRT (F) near villagers to boost WiFi & upload video",
+        line: "The cast-iron standpipe is pulling clear cyan water. Keep the basin full and Mistletoe hydrated!",
+        quest: "Quest 1: Hydrate Mistletoe at the overlook wellhead",
         pitch: 1.12
       },
       ferry_bekele: {
@@ -4436,9 +4830,14 @@ void main(){
         pitch: 0.84
       },
       ppc_op_female: {
-        line: "Telemetry shows strong cyan rain inside the ridge dome. Keep Mistletoe hydrated and the relay links alive!",
-        quest: "Quest 1: Hydrate Mistletoe at the overlook",
+        line: "Telemetry shows strong cyan rain inside the ridge dome. I am checking Mistletoe's straps and the cruiser wagon chassis.",
+        quest: "Quest 1: Hydrate Mistletoe & keep the wagon tuned",
         pitch: 1.06
+      },
+      rahel: {
+        line: "Cargo weight and ridge wind look steady. Keep the 20L saddle cans topped off before heading down the trailhead.",
+        quest: "Quest 3: Deliver water along the night route to Moraine Cistern",
+        pitch: 1.09
       },
       imani: {
         line: "Mistletoe is ready by the pump. Let us carry cyan water up to the cisterns and share the signal.",
@@ -4447,62 +4846,167 @@ void main(){
       }
     };
 
-    function interactTalk() {
-      let bestNpc = null, bestDist = 14.0;
-      if (cast && Array.isArray(cast.list)) {
-        for (let i = 0; i < cast.list.length; i++) {
-          const ch = cast.list[i];
-          if (!ch || !ch.group || !ch.group.visible || ch === activeAvatar) continue;
-          const d = Math.hypot(ch.group.position.x - state.x, ch.group.position.z - state.z);
-          if (d < bestDist) { bestDist = d; bestNpc = ch; }
-        }
+    function openDialogue(target) {
+      if (!target) {
+        speakLine("NIGHT POST DISPATCH", "Walk near Makeda, June, Elder Bekele, Hanna, Rahel, or Mistletoe and press TALK (E), or click them directly in 3D!", "3 Active World Quests in tracker", 1.0, 1.02, "", false);
+        return { speaker: "DISPATCH", kind: "hint" };
       }
-      const dDonkey = Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z);
-      if (dDonkey < bestDist && dDonkey < 9.0) {
-        // Turn Mistletoe toward player & drink if hydrated
-        const aim = Math.atan2(state.x - donkey.state.x, state.z - donkey.state.z);
+      state.activeDialogueTarget = target;
+      if (target.kind === "donkey") {
+        const dw = getDonkeyWorldPos(_donkeyWorldTmp);
+        const aim = Math.atan2(state.x - dw.x, state.z - dw.z);
         donkey.state.heading = aim;
         donkey.group.rotation.y = aim;
-        donkey.playDrink(2.4);
-        state.donkeyWater = clamp(state.donkeyWater + 0.35, 0, 1);
-        state.quests.q1_mistletoe.drinkSec += 1.0;
-        if (!state.quests.q1_mistletoe.done) {
-          state.quests.q1_mistletoe.done = true;
-          updateQuestUI(true);
-        }
-        speakLine("MISTLETOE", "Mistletoe nudges your shoulder gently and drinks fresh cyan water at the overlook.", "Quest 1 Complete: Mistletoe hydrated (100%)", 0.90, 1.0);
+        if (typeof donkey.soothe === "function") donkey.soothe();
         if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playDonkeyCall === "function") {
-          window.HighlandSoundscape.playDonkeyCall({ x: donkey.state.x, y: donkey.group.position.y + 1.1, z: donkey.state.z });
+          window.HighlandSoundscape.playDonkeyCall({ x: dw.x, y: dw.y + 1.1, z: dw.z });
         }
+        const hPct = Math.round(clamp(state.donkeyWater, 0, 1) * 100);
+        const jobLine = `JOB: EXPEDITION DONKEY · ${target.jobStatus}`;
+        speakLine(
+          "MISTLETOE (EXPEDITION DONKEY)",
+          hPct < 60
+            ? "Mistletoe lowers her ears and nudges your empty canteen — she needs cool cyan water soon."
+            : "Mistletoe nudges your shoulder warmly, ears perked and 20L sawbuck saddle steady.",
+          `Hydration ${hPct}% · Quest 1: Hydrate Mistletoe at the overlook`,
+          0.90, 1.0, jobLine, true
+        );
         return { speaker: "MISTLETOE", kind: "donkey" };
       }
-      if (bestNpc) {
-        const cid = String((bestNpc.state && bestNpc.state.id) || "").toLowerCase();
-        const name = (bestNpc.state && bestNpc.state.name) || "Villager";
-        const aim = Math.atan2(state.x - bestNpc.group.position.x, state.z - bestNpc.group.position.z);
-        bestNpc.group.rotation.y = aim;
-        if (bestNpc.state) {
-          bestNpc.state.heading = aim;
-          bestNpc.state.speaking = true;
+
+      const npc = target.npc;
+      const wp = getNpcWorldPos(npc, _npcWorldTmp) || npc.group.position;
+      const aim = Math.atan2(state.x - wp.x, state.z - wp.z);
+      npc.group.rotation.y = aim;
+      if (npc.state) {
+        npc.state.heading = aim;
+        npc.state.speaking = true;
+      }
+      const ud = npc.group.userData || (npc.group.userData = {});
+      ud.talkTimer = 8.0;
+      const info = getNpcDisplayInfo(npc);
+      const spec = NPC_JOB_SPECS[info.cid];
+      const entry = NPC_DIALOGUES[info.cid] || {
+        line: (spec && spec.greeting) || `${info.name} looks up from duty: "Bring us cyan water and help boost the relay dish to Addis!"`,
+        quest: (spec && spec.questLine) || "World Quests: Hydrate Mistletoe · Boost Relay (5L) · June & Moraine",
+        pitch: (spec && spec.pitch) || 1.02
+      };
+      const jobLine = `JOB: ${info.jobTitle.toUpperCase()} · ${info.jobStatus}`;
+      speakLine(`${info.name.toUpperCase()} (${info.jobTitle.toUpperCase()})`, entry.line, entry.quest, entry.pitch, 1.02, jobLine, true);
+      return { speaker: info.name, id: info.cid, jobTitle: info.jobTitle, kind: "npc" };
+    }
+
+    function handleDialogueAction(action) {
+      const target = state.activeDialogueTarget;
+      if (!target) { closeDialogue(); return; }
+      if (action === "close") { closeDialogue(); return; }
+
+      if (target.kind === "donkey") {
+        if (action === "job") {
+          const hPct = Math.round(clamp(state.donkeyWater, 0, 1) * 100);
+          speakLine("MISTLETOE (EXPEDITION DONKEY)",
+            `Mistletoe carries the 20L cyan jerrycans and WiFi relay pack across the ridge. Current hydration is ${hPct}%.`,
+            "Click GIVE WATER (5L) to hydrate her immediately", 0.90, 1.0,
+            `JOB: EXPEDITION DONKEY · Carrying 20L pack (${hPct}% hydrated)`, true);
+        } else if (action === "water") {
+          donkey.playDrink(2.8);
+          state.donkeyWater = 1.0;
+          state.donkeyCollapsed = false;
+          donkey.state.collapsed = false;
+          donkey.state.downWant = false;
+          state.waterLiters = Math.max(0, state.waterLiters - 5.0);
+          state.quests.q1_mistletoe.drinkSec = Math.max(1.0, state.quests.q1_mistletoe.drinkSec + 1.0);
+          if (!state.quests.q1_mistletoe.done) {
+            state.quests.q1_mistletoe.done = true;
+            updateQuestUI(true);
+          }
+          speakLine("MISTLETOE (EXPEDITION DONKEY)",
+            "Mistletoe drinks deeply from the 5L cyan pour and shakes her ears warmly! Hydration 100%.",
+            "Quest 1 Complete: Mistletoe hydrated (100%)", 0.92, 1.0,
+            "JOB: EXPEDITION DONKEY · Fully hydrated and energized!", true);
+        } else if (action === "quest") {
+          const done = state.quests.q1_mistletoe.done;
+          updateQuestUI(false);
+          speakLine("MISTLETOE (EXPEDITION DONKEY)",
+            done ? "Quest 1 is complete! Mistletoe is hydrated and ready to climb to Moraine Switchback."
+                 : "Quest 1 Active: Give Mistletoe 5L of cyan water right here at the overlook.",
+            done ? "Quest 1: DONE" : "Quest 1: Hydrate Mistletoe at overlook", 0.90, 1.0,
+            "JOB: EXPEDITION DONKEY · Ready for ridge dispatch", true);
         }
-        const ud = bestNpc.group.userData || (bestNpc.group.userData = {});
-        ud.talkTimer = 4.6;
-        const entry = NPC_DIALOGUES[cid] || {
-          line: `${name} holds up a glowing cyan phone: "Bring us cyan water and help boost the relay dish to Addis!"`,
-          quest: "World Quests: Hydrate Mistletoe · Boost Relay (5L) · June & Moraine",
-          pitch: 1.02
-        };
-        if (cid === "june" && state.waterLiters > 1.0 && !state.quests.q3_june_moraine.juneDone) {
+        return;
+      }
+
+      const npc = target.npc;
+      const info = getNpcDisplayInfo(npc);
+      const ud = npc.group.userData || (npc.group.userData = {});
+      ud.talkTimer = 8.0;
+      if (npc.state) npc.state.speaking = true;
+      const spec = NPC_JOB_SPECS[info.cid];
+      const pitch = (spec && spec.pitch) || 1.04;
+
+      if (action === "job") {
+        const jobDesc = `Right now I am ${info.jobStatus.charAt(0).toLowerCase() + info.jobStatus.slice(1)}.`;
+        speakLine(`${info.name.toUpperCase()} (${info.jobTitle.toUpperCase()})`,
+          jobDesc,
+          `Active station: ${(info.job && info.job.currentStation) || "Overlook Hub"}`,
+          pitch, 1.02, `JOB: ${info.jobTitle.toUpperCase()} · ${info.jobStatus}`, true);
+      } else if (action === "water") {
+        if (state.waterLiters < 5.0) {
+          state.waterLiters = 10.0; // draw from wellhead reserve so interaction always succeeds smoothly
+        }
+        state.waterLiters = Math.max(0, state.waterLiters - 5.0);
+        state.worldWaterDeliveredL += 5.0;
+        state.wifiCharge = clamp(state.wifiCharge + 0.25, 0, 1);
+        state.coveragePct = Math.min(100, (state.coveragePct || 34) + 12);
+        ud.cheerTimer = 3.2;
+        if (info.job) info.job.boostTimer = 25.0;
+        if (window.HighlandSoundscape && typeof window.HighlandSoundscape.playWaterDeliver === "function") {
+          window.HighlandSoundscape.playWaterDeliver();
+        }
+        let rewardSub = `Job Boosted + WiFi ${Math.round(state.wifiCharge * 100)}%`;
+        if (info.cid === "ferry_bekele" && !state.quests.q2_elder_relay.done) {
+          state.quests.q2_elder_relay.liters = state.quests.q2_elder_relay.targetL;
+          state.quests.q2_elder_relay.done = true;
+          updateQuestUI(true);
+          rewardSub = "Quest 2 Complete: Elder's Relay Dish Boosted (5.0 L)!";
+        } else if (info.cid === "june" && !state.quests.q3_june_moraine.juneDone) {
           state.quests.q3_june_moraine.juneDone = true;
           if (state.quests.q3_june_moraine.moraineDone) state.quests.q3_june_moraine.done = true;
           updateQuestUI(state.quests.q3_june_moraine.done);
+          rewardSub = state.quests.q3_june_moraine.done ? "Quest 3 Complete!" : "Quest 3 Progress: June's phone boosted (1/2)!";
+        } else if (info.cid === "ppc_op_female") {
+          state.donkeyWater = 1.0;
+          if (vehPhys) vehPhys.integrity = 100;
+          rewardSub = "Mistletoe hydrated (100%) & Wagon chassis tuned (100%)!";
         }
-        speakLine(name.toUpperCase(), entry.line, entry.quest, entry.pitch, 1.02);
-        return { speaker: name, id: cid, kind: "npc" };
+        speakLine(`${info.name.toUpperCase()} (${info.jobTitle.toUpperCase()})`,
+          `Thank you for the 5 liters of living cyan water! That boosts my station and jumps our WiFi signal to ${Math.round(state.coveragePct)}%!`,
+          rewardSub, pitch, 1.04, `JOB: ${info.jobTitle.toUpperCase()} · Boosted`, true);
+      } else if (action === "quest") {
+        let qText = (spec && spec.questLine) || "Keep Mistletoe hydrated, boost Elder Bekele's relay with 5L, and reach Moraine Cistern.";
+        let qSub = "World Quests Tracker updated";
+        if (info.cid === "ferry_bekele") {
+          qSub = state.quests.q2_elder_relay.done ? "Quest 2: COMPLETE" : `Quest 2: ${state.quests.q2_elder_relay.liters.toFixed(1)}/5.0 L delivered`;
+        } else if (info.cid === "june" || info.cid === "rahel") {
+          const parts = (state.quests.q3_june_moraine.juneDone ? 1 : 0) + (state.quests.q3_june_moraine.moraineDone ? 1 : 0);
+          qSub = state.quests.q3_june_moraine.done ? "Quest 3: COMPLETE" : `Quest 3: ${parts}/2 steps done`;
+        } else {
+          qSub = state.quests.q1_mistletoe.done ? "Quest 1: COMPLETE" : "Quest 1: Hydrate Mistletoe at the overlook";
+        }
+        updateQuestUI(false);
+        speakLine(`${info.name.toUpperCase()} (${info.jobTitle.toUpperCase()})`, qText, qSub, pitch, 1.02,
+          `JOB: ${info.jobTitle.toUpperCase()} · ${info.jobStatus}`, true);
       }
-      // Fallback: prompt nearest quest target
-      speakLine("NIGHT POST DISPATCH", "Walk near Mistletoe, June, Makeda, or Elder Bekele and press TALK (E), or hold SQUIRT (F) to spray cyan WiFi water!", "3 Active World Quests in tracker", 1.0, 1.02);
-      return { speaker: "DISPATCH", kind: "hint" };
+    }
+
+    if ($("dlg-btn-job")) $("dlg-btn-job").addEventListener("click", () => handleDialogueAction("job"));
+    if ($("dlg-btn-water")) $("dlg-btn-water").addEventListener("click", () => handleDialogueAction("water"));
+    if ($("dlg-btn-quest")) $("dlg-btn-quest").addEventListener("click", () => handleDialogueAction("quest"));
+    if ($("dlg-btn-close")) $("dlg-btn-close").addEventListener("click", () => handleDialogueAction("close"));
+
+    function interactTalk() {
+      const target = findNearestInteractable(NPC_INTERACT_RADIUS);
+      return openDialogue(target);
     }
     if ($("btn-talk-pill")) $("btn-talk-pill").addEventListener("click", () => interactTalk());
 
@@ -6981,6 +7485,11 @@ void main(){
         updateHUD();
         return;
       }
+      if (e.code === "Escape" && state.activeDialogueTarget) {
+        e.preventDefault();
+        closeDialogue();
+        return;
+      }
       if (e.code === "Escape" && state.bigMapOpen) {
         e.preventDefault();
         setBigMapOpen(false);
@@ -7037,12 +7546,79 @@ void main(){
     addEventListener("keyup", e => { keys[e.code] = false; });
 
     let lookPointer = null, lastPX = 0, lastPY = 0;
+    let clickDownX = 0, clickDownY = 0, clickDownAt = 0;
+    const _clickRaycaster = new T.Raycaster();
+    const _clickNdc = new T.Vector2();
+
+    function tryRaycastClickTalk(clientX, clientY) {
+      if (state.introActive || state.bigMapOpen || contextLost) return false;
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return false;
+      _clickNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      _clickNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      _clickRaycaster.setFromCamera(_clickNdc, camera);
+      const targets = [];
+      if (donkey && donkey.group && donkey.group.visible) targets.push(donkey.group);
+      if (cast && Array.isArray(cast.list)) {
+        for (let i = 0; i < cast.list.length; i++) {
+          const ch = cast.list[i];
+          if (!ch || !ch.group || !ch.group.visible || ch === activeAvatar) continue;
+          targets.push(ch.group);
+        }
+      }
+      if (!targets.length) return false;
+      const hits = _clickRaycaster.intersectObjects(targets, true);
+      if (!hits.length || hits[0].distance > 42.0) return false;
+      let obj = hits[0].object;
+      while (obj) {
+        if (donkey && obj === donkey.group) {
+          const dw = getDonkeyWorldPos(_donkeyWorldTmp);
+          openDialogue({
+            kind: "donkey",
+            npc: null,
+            id: "mistletoe",
+            name: "Mistletoe",
+            jobTitle: "Expedition Donkey",
+            jobStatus: state.donkeyCollapsed
+              ? "Dehydrated and collapsed — needs cyan water immediately"
+              : `Standing ready with 20L saddle pack (${Math.round(clamp(state.donkeyWater, 0, 1) * 100)}% hydrated)`,
+            dist: hits[0].distance,
+            wx: dw.x, wy: dw.y, wz: dw.z
+          });
+          return true;
+        }
+        if (cast && Array.isArray(cast.list)) {
+          const found = cast.list.find(c => c && c.group === obj && c !== activeAvatar);
+          if (found) {
+            const wp = getNpcWorldPos(found, _npcWorldTmp) || found.group.position;
+            const info = getNpcDisplayInfo(found);
+            openDialogue({
+              kind: "npc",
+              npc: found,
+              id: info.cid,
+              name: info.name,
+              jobTitle: info.jobTitle,
+              jobStatus: info.jobStatus,
+              dist: hits[0].distance,
+              wx: wp.x, wy: wp.y, wz: wp.z
+            });
+            return true;
+          }
+        }
+        obj = obj.parent;
+      }
+      return false;
+    }
+
     canvas.addEventListener("pointerdown", e => {
       if (lookPointer !== null || e.button !== 0 || state.introActive || contextLost) return;
       if (!fieldBandPicker.hidden) showFieldTool("dial");
       lookPointer = e.pointerId;
       lastPX = e.clientX;
       lastPY = e.clientY;
+      clickDownX = e.clientX;
+      clickDownY = e.clientY;
+      clickDownAt = performance.now();
       canvas.setPointerCapture(e.pointerId);
     });
     canvas.addEventListener("pointermove", e => {
@@ -7058,7 +7634,16 @@ void main(){
         state.pitch = clamp(state.pitch - dy * .0038, -.82, .82);
       }
     });
-    for (const event of ["pointerup", "pointercancel", "lostpointercapture"]) {
+    canvas.addEventListener("pointerup", e => {
+      if (lookPointer !== e.pointerId) return;
+      lookPointer = null;
+      const moved = Math.hypot(e.clientX - clickDownX, e.clientY - clickDownY);
+      const elapsed = performance.now() - clickDownAt;
+      if (moved < 7 && elapsed < 450) {
+        tryRaycastClickTalk(e.clientX, e.clientY);
+      }
+    });
+    for (const event of ["pointercancel", "lostpointercapture"]) {
       canvas.addEventListener(event, e => { if (lookPointer === e.pointerId) lookPointer = null; });
     }
 
@@ -8310,7 +8895,7 @@ void main(){
       }
       if (_speechState.hideTimer > 0) {
         _speechState.hideTimer = Math.max(0, _speechState.hideTimer - dt);
-        if (_speechState.hideTimer <= 0 && $("dialogue-card")) $("dialogue-card").hidden = true;
+        if (_speechState.hideTimer <= 0) closeDialogue();
       }
 
       leadRope.visible = !state.riding && !state.drivingCart && !state.gliding && !state.donkeyCollapsed && !(machinima && machinima.isActive());
@@ -8334,6 +8919,7 @@ void main(){
           machinimaActive: Boolean(machinima && machinima.isActive()),
           hideLabels: Boolean(machinima && machinima.areCaptionsHidden())
         });
+        updateNpcJobs(dt, nowSec);
         if (worldBridge && Array.isArray(cast.list)) {
           const dancingGlobal = state.danceTimer > 0;
           const playerSpeed = Math.hypot(state.vx || 0, state.vz || 0);
@@ -8388,9 +8974,9 @@ void main(){
               if (ud.talkTimer > 0) {
                 ud.talkTimer = Math.max(0, ud.talkTimer - dt);
                 if (ch.state) ch.state.speaking = ud.talkTimer > 0;
-                // Visible jaw talking motion
-                if (ch.bones && ch.bones[9]) {
-                  ch.bones[9].rotation.x = Math.max(ch.bones[9].rotation.x, 0.14 + 0.16 * Math.abs(Math.sin(nowSec * 9.5 + ci)));
+                // Gentle expressive head nod while speaking (never bone[9], which is B_CLAV_L!)
+                if (ch.bones && ch.bones[8]) {
+                  ch.bones[8].rotation.x += Math.sin(nowSec * 7.2 + ci) * 0.045;
                 }
               }
               if (ud.cheerTimer > 0) {
@@ -8697,6 +9283,17 @@ void main(){
           riverFocus01: +state.riverFocus01.toFixed(3),
           npcBumpCount: state.npcBumpCount,
           lastDialogue: state.lastDialogue,
+          dialogueOpen: Boolean($("dialogue-card") && !$("dialogue-card").hidden),
+          nearestInteractable: (() => {
+            const t = findNearestInteractable(NPC_INTERACT_RADIUS);
+            return t ? { kind: t.kind, id: t.id, name: t.name, jobTitle: t.jobTitle, dist: +t.dist.toFixed(2) } : null;
+          })(),
+          npcJobs: cast && Array.isArray(cast.list) ? cast.list
+            .filter(c => c && c.group && c.group.userData && c.group.userData.npcJob && c.group.userData.npcJob.spec)
+            .map(c => {
+              const j = c.group.userData.npcJob;
+              return { id: j.id, name: j.displayName, job: j.jobTitle, mode: j.mode, station: j.currentStation, status: j.currentStatus, x: +j.x.toFixed(2), z: +j.z.toFixed(2) };
+            }) : [],
           quests: state.quests,
           physics: {
             gravity: NP_PHYS ? NP_PHYS.GRAVITY : 22.0,

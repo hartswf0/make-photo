@@ -1504,6 +1504,52 @@
       letter-spacing: .06em;
       color: #cbb182;
     }
+    #dialogue-job {
+      margin: 4px 0 0;
+      font: 500 10.5px/1.3 ui-monospace, "SF Mono", Menlo, monospace;
+      color: #9fe8f8;
+      letter-spacing: .03em;
+    }
+    .dialogue-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 9px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(40, 216, 240, .24);
+    }
+    .dlg-btn {
+      font: 700 9.5px/1 Inter, system-ui, sans-serif;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(241, 238, 230, .34);
+      background: rgba(18, 26, 32, .9);
+      color: #f1eee6;
+      cursor: pointer;
+      transition: background .15s ease, border-color .15s ease, color .15s ease;
+    }
+    .dlg-btn:hover {
+      border-color: #28d8f0;
+      color: #ffffff;
+      background: rgba(24, 180, 255, .22);
+    }
+    .dlg-btn.water {
+      border-color: rgba(40, 216, 240, .72);
+      background: rgba(24, 180, 255, .18);
+      color: #ccf6ff;
+    }
+    .dlg-btn.quest {
+      border-color: rgba(203, 177, 130, .72);
+      background: rgba(203, 177, 130, .14);
+      color: #f6e7c6;
+    }
+    .dlg-btn.close {
+      margin-left: auto;
+      border-color: rgba(241, 238, 230, .24);
+      color: rgba(241, 238, 230, .78);
+    }
 
     @media (max-width: 900px) {
       #play-bar {
@@ -2029,10 +2075,17 @@
     </ul>
   </aside>
 
-  <div id="dialogue-card" hidden role="status" aria-live="polite">
+  <div id="dialogue-card" hidden role="dialog" aria-label="Character dialogue">
     <span id="dialogue-speaker">IMANI</span>
     <p id="dialogue-text"></p>
+    <p id="dialogue-job"></p>
     <p id="dialogue-sub"></p>
+    <div class="dialogue-actions" id="dialogue-actions">
+      <button type="button" class="dlg-btn" id="dlg-btn-job">ASK ABOUT JOB</button>
+      <button type="button" class="dlg-btn water" id="dlg-btn-water">GIVE WATER (5L)</button>
+      <button type="button" class="dlg-btn quest" id="dlg-btn-quest">TAKE / CHECK QUEST</button>
+      <button type="button" class="dlg-btn close" id="dlg-btn-close">CLOSE (ESC)</button>
+    </div>
   </div>
 
   <div id="immersive-corner" role="region" aria-label="Minimal Night Post Header">
@@ -2076,6 +2129,6 @@
   <div id="np-radio-host" aria-label="Highland audio control" style="position:fixed;right:16px;bottom:16px;z-index:18;pointer-events:auto;max-width:300px"></div>
   <script src="./world-physics.js?v=v10imm1"></script>
   <script src="../audio/highland-soundscape.js?v=3"></script>
-  <script src="./night-post.js?v=v10imm1"></script>
+  <script src="./night-post.js?v=v11npc1"></script>
 </body>
 </html>
