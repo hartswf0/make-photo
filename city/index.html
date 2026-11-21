@@ -637,16 +637,37 @@
   <div class="modal" id="nolli-modal">
     <div class="modal-box">
       <div class="modal-head">
-        <span class="modal-title" id="nolli-title">2D Nolli Plan · Click Any Street or Interior Room to Travel</span>
+        <span class="modal-title" id="nolli-title">City Map · Nolli / MovieMap / Mood</span>
+        <div class="pill-row" style="margin-top:0" id="map-mode-pills">
+          <button class="pill active" data-mapmode="nolli">Nolli Plan</button>
+          <button class="pill cyan" data-mapmode="moviemap">MovieMap Shots</button>
+          <button class="pill" data-mapmode="mood">Mood &amp; Signal</button>
+        </div>
         <button class="pill" id="close-nolli">Close (M / Esc)</button>
       </div>
       <canvas id="nolli-canvas" width="560" height="560"></canvas>
-      <div class="nolli-legend">
+      <div class="nolli-legend" id="nolli-legend">
         <span>White: Walkable Streets &amp; Public Interiors</span>
         <span>Charcoal: Solid Masonry Walls</span>
         <span>Cyan: Water &amp; Signal Network</span>
-        <span>Brass: You &amp; Persistent Cast</span>
+        <span>Brass: Persistent Anny V8 Cast</span>
       </div>
+      <div class="pill-row" id="moviemap-list" style="justify-content:center;margin-top:10px;display:none;"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="worldtext-modal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <span class="modal-title" id="wt-title">Worldtext Bible · Gazetteer, Language &amp; Districts</span>
+        <div class="pill-row" style="margin-top:0" id="wt-tabs">
+          <button class="pill active" data-wttab="gazetteer">Gazetteer</button>
+          <button class="pill" data-wttab="language">Language</button>
+          <button class="pill" data-wttab="districts">Districts</button>
+        </div>
+        <button class="pill" id="close-worldtext">Close (W / Esc)</button>
+      </div>
+      <div id="wt-body" style="font-size:12.5px;line-height:1.55;color:var(--paper);"></div>
     </div>
   </div>
 
@@ -668,13 +689,16 @@
   <div id="dock">
     <button class="dock-btn" id="btn-cam">Cam (C)</button>
     <button class="dock-btn" id="btn-xray">X-Ray (X)</button>
-    <button class="dock-btn" id="btn-nolli">Nolli Map (M)</button>
+    <button class="dock-btn" id="btn-nolli">City Map (M)</button>
+    <button class="dock-btn" id="btn-worldtext">Worldtext (B)</button>
     <button class="dock-btn" id="btn-lighttable">Light Table (L)</button>
     <button class="dock-btn" id="btn-audio">Audio: Off</button>
     <a class="nav-link" href="../night-post/">Night Post</a>
     <a class="nav-link" href="../motion-pipeline/">Studio</a>
   </div>
 
+  <script src="../motion-pipeline/m2m-retarget.js"></script>
+  <script src="../motion-pipeline/anny-human-v7.js?v=5"></script>
   <script type="module" src="./city.js"></script>
 </body>
 </html>

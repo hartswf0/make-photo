@@ -1,7 +1,10 @@
 import * as THREE from 'three';
-import { CARTRIDGES, TIME_PRESETS } from './cartridges.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { CARTRIDGES, TIME_PRESETS, MOVIE_SHOTS } from './cartridges.js';
 import { CityAudioEngine } from './audio.js';
 import { CITY_LOOKS, CityShaderPipeline } from './shaders.js';
+
+const gltfLoader = new GLTFLoader();
 
 const STORAGE_KEY = 'make_photo_city_nolli_v1';
 
@@ -537,22 +540,68 @@ const cisternWater = new THREE.Mesh(new THREE.CylinderGeometry(2.15, 2.15, 0.5, 
 cisternWater.position.set(-14, 0.28, -16);
 scene.add(cisternWater);
 
-// --- SURROUNDING NEIGHBORHOOD BLOCKS, TREES, STREETLAMPS & 2D CUTOUTS ---
+// --- ISLAND PENINSULA WATERFRONT (Canal Quay + Shimmering Water + Bollards) ---
+const canalMat = new THREE.MeshStandardMaterial({
+  color: '#15394a',
+  roughness: 0.14,
+  metalness: 0.45,
+  emissive: '#071b26',
+  emissiveIntensity: 0.35,
+});
+const canalSouth = new THREE.Mesh(new THREE.PlaneGeometry(180, 56), canalMat);
+canalSouth.rotation.x = -Math.PI / 2;
+canalSouth.position.set(0, -0.35, 56);
+canalSouth.receiveShadow = true;
+scene.add(canalSouth);
+
+const canalWest = new THREE.Mesh(new THREE.PlaneGeometry(56, 180), canalMat);
+canalWest.rotation.x = -Math.PI / 2;
+canalWest.position.set(-64, -0.35, 0);
+canalWest.receiveShadow = true;
+scene.add(canalWest);
+
+// Stone Quay Seawall & Mooring Bollards along z = +28
+addBox(88, 0.85, 1.2, 4, 0.18, 28.0, mats.trim, { collide: true, tag: 'quay' });
+for (let bx = -32; bx <= 36; bx += 11) {
+  const bollard = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.72, 10), mats.masonryDark || mats.trim);
+  bollard.position.set(bx, 0.82, 28.0);
+  bollard.castShadow = true;
+  scene.add(bollard);
+}
+
+// --- SURROUNDING NEIGHBORHOOD BLOCKS (Cornices, Awnings, Rooftop Water Towers) ---
 const neighborSpecs = [
   [-26, 7.5, -10, 14, 15, 18],
   [24, 8.5, -8, 14, 17, 16],
   [25, 6.5, 14, 14, 13, 12],
-  [-30, 9.0, 22, 16, 18, 14],
+  [-30, 8.0, 20, 14, 16, 12],
   [0, 7.0, -28, 22, 14, 12],
   [18, 10.5, -30, 14, 21, 12],
 ];
 const neighborMat = mats.masonryExt.clone();
-neighborSpecs.forEach(([x, y, z, w, h, d]) => {
+neighborSpecs.forEach(([x, y, z, w, h, d], bIdx) => {
   addBox(w, h, d, x, y, z, neighborMat, { collide: true, tag: 'neighbor' });
+  // Architectural stone cornice band at roofline
+  addBox(w + 0.7, 0.55, d + 0.7, x, h + 0.25, z, mats.trim, { collide: false });
+  // Ground-floor shopfront awning facing the street
+  addBox(w * 0.72, 0.18, 1.6, x, 3.3, z + d / 2 + 0.75, mats.trim, { collide: false });
+  // Rooftop wooden/iron water tower on alternate mid-rise blocks
+  if (bIdx % 2 === 0) {
+    const wtLegs = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.25, 2.2, 6, 1, true), mats.trim);
+    wtLegs.position.set(x - w * 0.2, h + 1.2, z);
+    scene.add(wtLegs);
+    const wtTank = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.15, 2.6, 12), mats.trunk);
+    wtTank.position.set(x - w * 0.2, h + 3.4, z);
+    wtTank.castShadow = true;
+    scene.add(wtTank);
+    const wtRoof = new THREE.Mesh(new THREE.ConeGeometry(1.3, 1.0, 12), mats.trim);
+    wtRoof.position.set(x - w * 0.2, h + 5.2, z);
+    scene.add(wtRoof);
+  }
   // Warm lit apartment windows on facing sides
-  for (let wy = 2.4; wy < h - 1.5; wy += 3.1) {
+  for (let wy = 4.6; wy < h - 1.5; wy += 3.1) {
     for (let wx = -w * 0.32; wx <= w * 0.32; wx += 3.2) {
-      if (Math.random() > 0.42) {
+      if ((Math.abs(Math.floor(wx + wy + bIdx)) % 3) !== 0) {
         const win = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.5), mats.windowGlow);
         win.position.set(x + wx, wy, z + d / 2 + 0.04);
         scene.add(win);
@@ -607,25 +656,54 @@ lampCoords.forEach(([lx, lz]) => {
   lampSprites.push(sp);
 });
 
-// Multi-tier Instanced-style Urban Trees
+// Multi-Branch Layered Urban Trees with Stone Planters
 const treeCoords = [
-  [-12, 21], [12, 21], [15, 6], [15, -4], [-21, 8], [-11, -12], [-17, -20], [10, -16],
+  [-12, 22], [12, 22], [15, 6], [15, -4], [-21, 8], [-11, -12], [-17, -20], [10, -16], [2, 25.5], [-19, 25.5],
 ];
-treeCoords.forEach(([tx, tz]) => {
+const foliageDarkMat = mats.foliage.clone();
+treeCoords.forEach(([tx, tz], tIdx) => {
   const g = new THREE.Group();
   g.position.set(tx, 0, tz);
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 3.0, 7), mats.trunk);
-  trunk.position.y = 1.5;
+  const scale = 0.85 + (tIdx % 3) * 0.16;
+
+  // Stone tree curb planter
+  const curb = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.22, 1.4), mats.trim);
+  curb.position.y = 0.11;
+  g.add(curb);
+
+  // Tapered main trunk
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.14 * scale, 0.26 * scale, 3.2 * scale, 8), mats.trunk);
+  trunk.position.y = 1.6 * scale;
   trunk.castShadow = true;
   g.add(trunk);
-  const crown1 = new THREE.Mesh(new THREE.IcosahedronGeometry(1.75, 1), mats.foliage);
-  crown1.position.set(0, 3.7, 0);
-  crown1.castShadow = true;
-  g.add(crown1);
-  const crown2 = new THREE.Mesh(new THREE.IcosahedronGeometry(1.25, 1), mats.foliage);
-  crown2.position.set(0.65, 4.5, -0.35);
-  crown2.castShadow = true;
-  g.add(crown2);
+
+  // 3 forked structural branches + 5 staggered foliage clusters
+  const branchAngles = [0.4, 2.5, 4.6];
+  branchAngles.forEach((ba, bi) => {
+    const bLen = (1.35 + bi * 0.15) * scale;
+    const br = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * scale, 0.10 * scale, bLen, 6), mats.trunk);
+    br.position.set(Math.cos(ba) * 0.42 * scale, (2.8 + bi * 0.22) * scale, Math.sin(ba) * 0.42 * scale);
+    br.rotation.z = -Math.cos(ba) * 0.58;
+    br.rotation.x = Math.sin(ba) * 0.58;
+    br.castShadow = true;
+    g.add(br);
+
+    const leaf = new THREE.Mesh(
+      new THREE.DodecahedronGeometry((1.25 + (bi % 2) * 0.25) * scale, 1),
+      bi === 1 ? foliageDarkMat : mats.foliage
+    );
+    leaf.position.set(Math.cos(ba) * 1.05 * scale, (3.65 + bi * 0.28) * scale, Math.sin(ba) * 1.05 * scale);
+    leaf.scale.set(1.15, 0.82, 1.15);
+    leaf.castShadow = true;
+    g.add(leaf);
+  });
+
+  const crownTop = new THREE.Mesh(new THREE.DodecahedronGeometry(1.48 * scale, 1), mats.foliage);
+  crownTop.position.set(0, 4.45 * scale, 0);
+  crownTop.scale.set(1.1, 0.78, 1.1);
+  crownTop.castShadow = true;
+  g.add(crownTop);
+
   scene.add(g);
 });
 
@@ -644,90 +722,51 @@ const particles = new THREE.Points(partGeo, partMat);
 scene.add(particles);
 
 // ---------------------------------------------------------------------------
-// Articulated Persistent Cast (Natural Downward-Hanging Arms & Real Jobs)
+// Persistent Anny V8 Cast (Real 104-bone Skinned Humans + FACS Lip-Sync + Jobs)
 // ---------------------------------------------------------------------------
 const residents = [];
 const residentHitMeshes = [];
+const v8Cache = new Map(); // archetype -> Promise<AnnyHumanV7 instance>
 
 function createArticulatedResident(def) {
   const root = new THREE.Group();
+  const fallbackGroup = new THREE.Group();
   const skinMat = new THREE.MeshStandardMaterial({ color: def.skin, roughness: 0.65 });
   const coatMat = new THREE.MeshStandardMaterial({ color: def.coat, roughness: 0.8 });
   const darkMat = new THREE.MeshStandardMaterial({ color: '#1b1d20', roughness: 0.85 });
-  const accentMat = new THREE.MeshStandardMaterial({ color: def.accent, emissive: def.accent, emissiveIntensity: 0.3, roughness: 0.4 });
 
-  // Torso / Coat
-  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.30, 0.88, 12), coatMat);
+  // Lightweight instant proxy shown only while Anny V8 GLB streams (~250ms)
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.28, 0.86, 10), coatMat);
   torso.position.y = 1.08;
-  torso.castShadow = true;
-  root.add(torso);
-
-  // Head + Ophthalmic White Sclera Eyes
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.155, 16, 14), skinMat);
-  head.position.y = 1.66;
-  head.castShadow = true;
-  root.add(head);
-
-  const eyeWhiteMat = new THREE.MeshBasicMaterial({ color: '#f4f2ec' });
-  const pupilMat = new THREE.MeshBasicMaterial({ color: '#141110' });
-  [-0.052, 0.052].forEach((ex) => {
-    const ew = new THREE.Mesh(new THREE.SphereGeometry(0.024, 10, 8), eyeWhiteMat);
-    ew.position.set(ex, 1.68, 0.138);
-    root.add(ew);
-    const ep = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 8), pupilMat);
-    ep.position.set(ex, 1.68, 0.156);
-    root.add(ep);
+  fallbackGroup.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), skinMat);
+  head.position.y = 1.65;
+  fallbackGroup.add(head);
+  const legL = new THREE.Group(); legL.position.set(-0.1, 0.66, 0);
+  const legR = new THREE.Group(); legR.position.set(0.1, 0.66, 0);
+  const armL = new THREE.Group(); armL.position.set(-0.26, 1.44, 0);
+  const armR = new THREE.Group(); armR.position.set(0.26, 1.44, 0);
+  [legL, legR].forEach((lg) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.66, 8), darkMat);
+    m.position.y = -0.33;
+    lg.add(m);
+    fallbackGroup.add(lg);
   });
-
-  // Hair cap
-  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.165, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.62), darkMat);
-  hair.position.set(0, 1.69, -0.015);
-  root.add(hair);
-
-  // Natural Downward-Hanging Arms (pivots at shoulders, inward palms)
-  const makeArm = (side) => {
-    const piv = new THREE.Group();
-    piv.position.set(side * 0.27, 1.44, 0);
-    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.048, 0.62, 8), coatMat);
-    upper.position.y = -0.31;
-    upper.castShadow = true;
-    piv.add(upper);
-    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.11, 0.08), skinMat);
-    hand.position.y = -0.66;
-    piv.add(hand);
-    piv.rotation.z = side * 0.06; // subtle natural downward hang
-    root.add(piv);
-    return piv;
-  };
-  const armL = makeArm(-1);
-  const armR = makeArm(1);
-
-  // Legs
-  const makeLeg = (side) => {
-    const piv = new THREE.Group();
-    piv.position.set(side * 0.11, 0.66, 0);
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.055, 0.66, 8), darkMat);
-    leg.position.y = -0.33;
-    leg.castShadow = true;
-    piv.add(leg);
-    root.add(piv);
-    return piv;
-  };
-  const legL = makeLeg(-1);
-  const legR = makeLeg(1);
-
-  // Role badge / collar accent
-  const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.035, 8, 16), accentMat);
-  scarf.rotation.x = Math.PI / 2;
-  scarf.position.y = 1.49;
-  root.add(scarf);
+  [armL, armR].forEach((ar, idx) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.62, 8), coatMat);
+    m.position.y = -0.31;
+    ar.add(m);
+    ar.rotation.z = (idx === 0 ? -1 : 1) * 0.06;
+    fallbackGroup.add(ar);
+  });
+  root.add(fallbackGroup);
 
   // Invisible raycast hit cylinder for effortless click-to-talk
   const hitMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.45, 0.45, 1.9, 8),
+    new THREE.CylinderGeometry(0.48, 0.48, 1.95, 8),
     new THREE.MeshBasicMaterial({ visible: false })
   );
-  hitMesh.position.y = 0.95;
+  hitMesh.position.y = 0.96;
   hitMesh.userData.residentId = def.id;
   root.add(hitMesh);
   residentHitMeshes.push(hitMesh);
@@ -736,22 +775,69 @@ function createArticulatedResident(def) {
   root.position.set(st0.x, st0.y, st0.z);
   scene.add(root);
 
-  return {
+  const resObj = {
     id: def.id,
     def,
     root,
+    fallbackGroup,
     armL,
     armR,
     legL,
     legR,
+    v8: null,
+    currentClip: 'idle',
+    speechText: '',
+    speechTimer: 0,
+    speechDur: 0,
     stationIdx: 0,
     dwellTimer: 4 + Math.random() * 4,
     walkPhase: Math.random() * 6,
   };
+
+  // Load real Anny V8 human (104-bone skinned mesh, garments, hair, sandals, 12-target FACS)
+  const arch = def.archetype || 'adult_f';
+  if (typeof window !== 'undefined' && window.AnnyHumanV7 && window.AnnyHumanV7.createCharacter) {
+    let prom = v8Cache.get(arch);
+    if (!prom) {
+      prom = window.AnnyHumanV7.createCharacter({
+        THREE,
+        loader: gltfLoader,
+        archetype: arch,
+        assetBaseUrl: '../abyssinian-highlands/human-forge/assets',
+        clipsBaseUrl: '../motion-pipeline/mesh2motion/clips',
+        clothed: true,
+        groundY: 0,
+        preloadClips: ['idle', 'walk', 'talk'],
+        initialClip: 'idle',
+      }).catch((err) => {
+        console.warn('Anny V8 load fallback:', arch, err);
+        return null;
+      });
+      v8Cache.set(arch, prom);
+    }
+    prom.then((v8Inst) => {
+      if (!v8Inst) return;
+      // Reparent cached V8 character cleanly into this resident's root
+      if (v8Inst.root.parent) v8Inst.root.parent.remove(v8Inst.root);
+      v8Inst.root.position.set(0, 0, 0);
+      v8Inst.root.rotation.set(0, 0, 0);
+      resObj.root.add(v8Inst.root);
+      resObj.fallbackGroup.visible = false;
+      resObj.v8 = v8Inst;
+      v8Inst.setGroundY(0);
+    });
+  }
+
+  return resObj;
 }
 
 function rebuildResidentsForCartridge(cart) {
-  residents.forEach((r) => scene.remove(r.root));
+  residents.forEach((r) => {
+    if (r.v8 && r.v8.root && r.v8.root.parent === r.root) {
+      r.root.remove(r.v8.root);
+    }
+    scene.remove(r.root);
+  });
   residents.length = 0;
   residentHitMeshes.length = 0;
   cart.residents.forEach((def) => {
@@ -882,6 +968,8 @@ function applyCartridgeAndTime() {
   mats.asphalt.color.set(cart.palette.asphalt);
   mats.sidewalk.color.set(cart.palette.sidewalk);
   mats.foliage.color.set(cart.palette.foliage);
+  foliageDarkMat.color.set(cart.palette.foliage).multiplyScalar(0.72);
+  canalMat.color.set(cart.palette.water || '#15394a');
   mats.cyanActive.color.set(cart.palette.cyan);
   mats.cyanActive.emissive.set(cart.palette.cyan);
 
@@ -1092,6 +1180,20 @@ function capturePlate() {
 // ---------------------------------------------------------------------------
 // Resident Duet Dialogue
 // ---------------------------------------------------------------------------
+function triggerResidentSpeech(res, text, expr = 'warm') {
+  res.speechText = text;
+  res.speechDur = Math.max(2.6, Math.min(7.5, text.length * 0.055));
+  res.speechTimer = res.speechDur;
+  if (res.v8) {
+    res.v8.setExpression(expr);
+    if (res.v8.hasClip('talk') && res.currentClip !== 'talk') {
+      res.currentClip = 'talk';
+      res.v8.crossFadeTo('talk', 0.25);
+    }
+  }
+  audio.speakDuet(res.def.name, text, res.def.id === 'bekele' ? 0.88 : 1.05);
+}
+
 function openDialogue(res) {
   activeDialogueResident = res;
   const d = res.def;
@@ -1101,7 +1203,7 @@ function openDialogue(res) {
   document.getElementById('dlg-body').textContent = d.duet.greeting;
   document.getElementById('dlg-reply').textContent = `You: "${d.duet.reply}"`;
 
-  audio.speakDuet(d.name, d.duet.greeting, d.id === 'bekele' ? 0.88 : 1.05);
+  triggerResidentSpeech(res, d.duet.greeting, 'warm');
 
   const actions = document.getElementById('dlg-actions');
   actions.innerHTML = '';
@@ -1116,7 +1218,7 @@ function openDialogue(res) {
 
   addBtn('Ask About Job', () => {
     document.getElementById('dlg-body').textContent = d.duet.job;
-    audio.speakDuet(d.name, d.duet.job, d.id === 'bekele' ? 0.88 : 1.05);
+    triggerResidentSpeech(res, d.duet.job, 'focus');
   });
 
   // Check for pending portrait permission of this resident
@@ -1129,7 +1231,7 @@ function openDialogue(res) {
       syncWorldVisualsFromLedger();
       renderLightTable();
       document.getElementById('dlg-body').textContent = d.duet.creditApprove;
-      audio.speakDuet(d.name, d.duet.creditApprove, d.id === 'bekele' ? 0.88 : 1.05);
+      triggerResidentSpeech(res, d.duet.creditApprove, 'smile');
       showToast(`${pendingPlate.id} approved for Camera Shop Window & Screening Hall.`);
       openDialogue(res);
     });
@@ -1145,7 +1247,7 @@ function openDialogue(res) {
       syncWorldVisualsFromLedger();
       audio.playPour();
       document.getElementById('dlg-body').textContent = d.duet.waterThanks;
-      audio.speakDuet(d.name, d.duet.waterThanks, d.id === 'bekele' ? 0.88 : 1.05);
+      triggerResidentSpeech(res, d.duet.waterThanks, 'smile');
       openDialogue(res);
     });
   }
@@ -1293,8 +1395,24 @@ function evaluateContextPrompt() {
 }
 
 // ---------------------------------------------------------------------------
-// 2D Nolli Plan Map (Click Any Street or Public Interior to Travel)
+// 3-Layer City Map (NOLLI | MOVIEMAP SHOTS | MOOD & SIGNAL) + WORLDTEXT BIBLE
 // ---------------------------------------------------------------------------
+let mapMode = 'nolli';
+let worldtextOpen = false;
+let wtTab = 'gazetteer';
+
+function jumpToMovieShot(shot) {
+  player.pos.set(shot.pos[0], shot.pos[1], shot.pos[2]);
+  player.floorY = shot.pos[1];
+  player.yaw = shot.yaw;
+  player.pitch = shot.pitch;
+  camState.focalMm = shot.focalMm;
+  document.getElementById('sl-focal').value = String(shot.focalMm);
+  setLook(shot.look, false);
+  toggleNolliMap(false);
+  showToast(`MovieMap Shot ${shot.name} (${shot.focalMm}mm · ${shot.look.toUpperCase()})`, 3600);
+}
+
 function drawNolliMap() {
   const canvas = document.getElementById('nolli-canvas');
   const ctx = canvas.getContext('2d');
@@ -1304,13 +1422,18 @@ function drawNolliMap() {
   const toX = (wx) => W / 2 + wx * scale;
   const toY = (wz) => H / 2 + wz * scale;
 
-  // Nolli Convention: Open white/parchment = walkable streets & public interiors
-  ctx.fillStyle = '#ece8de';
+  // Base background by mode
+  ctx.fillStyle = mapMode === 'mood' ? '#13191f' : '#ece8de';
   ctx.fillRect(0, 0, W, H);
+
+  // Island Canal Waterfront along South (z > 28) & West (x < -34)
+  ctx.fillStyle = mapMode === 'mood' ? '#091f2b' : '#c6dce6';
+  ctx.fillRect(0, toY(28), W, H - toY(28));
+  ctx.fillRect(0, 0, toX(-34), H);
 
   // Subtle Atlantis concentric rings when Atlantis cartridge is active
   if (ledger.cartridge === 'atlantis') {
-    ctx.strokeStyle = 'rgba(24, 180, 255, 0.22)';
+    ctx.strokeStyle = 'rgba(24, 180, 255, 0.28)';
     ctx.lineWidth = 1.5;
     [16, 28, 40].forEach((r) => {
       ctx.beginPath();
@@ -1319,34 +1442,61 @@ function drawNolliMap() {
     });
   }
 
+  // MOOD LAYER: Acoustic Sanctuary + Warm Sodium Street + Cyan Water/Signal Auras
+  if (mapMode === 'mood') {
+    const drawGlow = (wx, wz, radM, colorRgba) => {
+      const gx = toX(wx), gy = toY(wz), gr = radM * scale;
+      const grad = ctx.createRadialGradient(gx, gy, 2, gx, gy, gr);
+      grad.addColorStop(0, colorRgba);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(gx, gy, gr, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    // Warm sodium streetlamps
+    lampCoords.forEach(([lx, lz]) => drawGlow(lx, lz, 9, 'rgba(255, 190, 110, 0.32)'));
+    // Acoustic quiet interior sanctuary
+    drawGlow(0, 0, 10, 'rgba(203, 177, 130, 0.28)');
+    // Active Cyan water & signal fields
+    drawGlow(-16, 14, 11, 'rgba(24, 180, 255, 0.45)');
+    drawGlow(-14, -16, 9, 'rgba(24, 180, 255, 0.38)');
+    if (ledger.projectorTankL >= 5.0) {
+      drawGlow(-4, 2, 16, 'rgba(24, 180, 255, 0.52)');
+    }
+  }
+
   // Solid Poche (dark charcoal) for surrounding private building footprints
-  ctx.fillStyle = '#1b1d20';
+  ctx.fillStyle = mapMode === 'mood' ? '#1f262e' : '#1b1d20';
   neighborSpecs.forEach(([x, , z, w, , d]) => {
     ctx.fillRect(toX(x - w / 2), toY(z - d / 2), w * scale, d * scale);
   });
 
-  // Hero Nolli Building: Solid exterior poche walls ONLY, leaving public interior carved WHITE!
-  ctx.strokeStyle = '#141618';
+  // Hero Nolli Building: Solid exterior poche walls ONLY, leaving public interior carved open!
+  ctx.strokeStyle = mapMode === 'mood' ? '#95b2c4' : '#141618';
   ctx.lineWidth = 6;
   ctx.strokeRect(toX(-9), toY(-7), 18 * scale, 14 * scale);
-  // Open front doorway gap in white
-  ctx.fillStyle = '#ece8de';
+  // Open front doorway gap
+  ctx.fillStyle = mapMode === 'mood' ? '#13191f' : '#ece8de';
   ctx.fillRect(toX(-2.4), toY(6.4), 4.8 * scale, 1.4 * scale);
 
-  // Lightwell dashed square & stair indicators
-  ctx.strokeStyle = 'rgba(24, 180, 255, 0.65)';
+  // Lightwell dashed square
+  ctx.strokeStyle = 'rgba(24, 180, 255, 0.72)';
   ctx.lineWidth = 1.5;
   ctx.setLineDash([4, 4]);
   ctx.strokeRect(toX(-2.4), toY(-2.2), 4.8 * scale, 4.4 * scale);
   ctx.setLineDash([]);
 
   // Threshold Gate bar
-  ctx.strokeStyle = gateCollider.active ? '#b04a3a' : '#18b4ff';
+  ctx.strokeStyle = gateCollider.active ? '#c45241' : '#18b4ff';
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(toX(-19), toY(-7));
   ctx.lineTo(toX(-9), toY(-7));
   ctx.stroke();
+
+  const labelInk = mapMode === 'mood' ? '#e8e4da' : '#141618';
+  ctx.font = '600 10px Inter, sans-serif';
 
   // Cyan Network Points
   const cyanPoints = [
@@ -1355,38 +1505,151 @@ function drawNolliMap() {
     [-1.8, 1.2, 'Upper Projector'],
     [-6.5, 4.5, 'Rooftop Relay'],
   ];
-  ctx.font = '600 10px Inter, sans-serif';
   cyanPoints.forEach(([x, z, label]) => {
-    ctx.fillStyle = '#0e90d4';
+    ctx.fillStyle = '#18b4ff';
     ctx.beginPath();
     ctx.arc(toX(x), toY(z), 5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#141618';
+    ctx.fillStyle = labelInk;
     ctx.fillText(label, toX(x) + 8, toY(z) + 3);
   });
 
   // Labels for Public Nolli Interior
-  ctx.fillStyle = '#4c4942';
+  ctx.fillStyle = mapMode === 'mood' ? '#cbb182' : '#4c4942';
   ctx.fillText('CAMERA SHOP & ARCHIVE (Y=0)', toX(-7.5), toY(4.5));
   ctx.fillText('SCREENING HALL (Y=4.6)', toX(-7.5), toY(-4.5));
-  ctx.fillText('STAIRS ->', toX(4.8), toY(0));
+  ctx.fillText('CANAL QUAY WATERFRONT', toX(-8), toY(32));
 
-  // Residents
+  // MOVIEMAP LAYER: Draw 5 composed 35mm Director Shot Pins & View Cones
+  const mmList = document.getElementById('moviemap-list');
+  if (mapMode === 'moviemap') {
+    mmList.style.display = 'flex';
+    mmList.innerHTML = '';
+    MOVIE_SHOTS.forEach((shot) => {
+      const sx = toX(shot.pos[0]);
+      const sy = toY(shot.pos[2]);
+      // View frustum wedge
+      const ang = -shot.yaw - Math.PI / 2;
+      ctx.fillStyle = 'rgba(24, 180, 255, 0.25)';
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.arc(sx, sy, 28, ang - 0.35, ang + 0.35);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#18b4ff';
+      ctx.beginPath();
+      ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#141618';
+      ctx.fillText(shot.id, sx + 8, sy + 3);
+
+      const btn = document.createElement('button');
+      btn.className = 'pill cyan';
+      btn.textContent = `${shot.name} (${shot.look})`;
+      btn.addEventListener('click', () => jumpToMovieShot(shot));
+      mmList.appendChild(btn);
+    });
+  } else {
+    mmList.style.display = 'none';
+  }
+
+  // Persistent Anny V8 Residents
   residents.forEach((r) => {
-    ctx.fillStyle = '#9c7b43';
+    ctx.fillStyle = '#cbb182';
     ctx.beginPath();
     ctx.arc(toX(r.root.position.x), toY(r.root.position.z), 5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#141618';
+    ctx.fillStyle = labelInk;
     ctx.fillText(r.def.name, toX(r.root.position.x) + 7, toY(r.root.position.z) + 3);
   });
 
   // Player
-  ctx.fillStyle = '#d93829';
+  ctx.fillStyle = '#e04838';
   ctx.beginPath();
   ctx.arc(toX(player.pos.x), toY(player.pos.z), 6, 0, Math.PI * 2);
   ctx.fill();
 }
+
+document.querySelectorAll('#map-mode-pills .pill').forEach((b) => {
+  b.addEventListener('click', () => {
+    mapMode = b.dataset.mapmode;
+    document.querySelectorAll('#map-mode-pills .pill').forEach((p) => p.classList.toggle('active', p === b));
+    drawNolliMap();
+  });
+});
+
+function renderWorldtext() {
+  const cart = CARTRIDGES[ledger.cartridge];
+  const wt = cart.worldtext;
+  document.getElementById('wt-title').textContent = `Worldtext Bible · ${cart.name}`;
+  const body = document.getElementById('wt-body');
+
+  if (wtTab === 'gazetteer') {
+    body.innerHTML = `
+      <div style="margin-bottom:12px;">
+        <div style="color:var(--brass);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;">Founding &amp; Elevation</div>
+        <div style="margin-top:3px;">${wt.gazetteer.founded}</div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="color:var(--cyan);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;">Hydrological &amp; Archival Law</div>
+        <div style="margin-top:3px;">${wt.gazetteer.law}</div>
+      </div>
+      <div>
+        <div style="color:var(--brass);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;">Nolli &amp; Inverse-Tomology Grammar</div>
+        <div style="margin-top:3px;">${wt.gazetteer.architecture}</div>
+      </div>
+    `;
+  } else if (wtTab === 'language') {
+    body.innerHTML = wt.lexicon.map((entry) => `
+      <div style="padding:8px 0;border-bottom:1px solid var(--rule);">
+        <strong style="color:var(--cyan);">${entry.term}</strong>
+        <span style="color:var(--brass);font-size:11px;margin-left:8px;">/${entry.pron}/</span>
+        <div style="color:var(--muted);margin-top:2px;">${entry.meaning}</div>
+      </div>
+    `).join('');
+  } else {
+    body.innerHTML = '';
+    wt.districts.forEach((dist) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:10px 0;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:12px;';
+      row.innerHTML = `
+        <div>
+          <strong style="color:var(--paper);">${dist.name}</strong>
+          <div style="font-size:11px;color:var(--brass);margin-top:2px;">Mood: ${dist.mood}</div>
+          <div style="font-size:11px;color:var(--muted);">Acoustic: ${dist.acoustic}</div>
+        </div>
+      `;
+      const goBtn = document.createElement('button');
+      goBtn.className = 'pill cyan';
+      goBtn.textContent = 'Visit District';
+      goBtn.addEventListener('click', () => {
+        player.pos.set(dist.pos[0], dist.pos[1], dist.pos[2]);
+        player.floorY = dist.pos[1];
+        toggleWorldtext(false);
+        showToast(`Arrived at ${dist.name} (${dist.mood}).`);
+      });
+      row.appendChild(goBtn);
+      body.appendChild(row);
+    });
+  }
+}
+
+function toggleWorldtext(force) {
+  worldtextOpen = typeof force === 'boolean' ? force : !worldtextOpen;
+  document.getElementById('worldtext-modal').classList.toggle('open', worldtextOpen);
+  document.getElementById('btn-worldtext').classList.toggle('active', worldtextOpen);
+  if (worldtextOpen) renderWorldtext();
+}
+
+document.querySelectorAll('#wt-tabs .pill').forEach((b) => {
+  b.addEventListener('click', () => {
+    wtTab = b.dataset.wttab;
+    document.querySelectorAll('#wt-tabs .pill').forEach((p) => p.classList.toggle('active', p === b));
+    renderWorldtext();
+  });
+});
+document.getElementById('btn-worldtext').addEventListener('click', () => toggleWorldtext());
+document.getElementById('close-worldtext').addEventListener('click', () => toggleWorldtext(false));
 
 document.getElementById('nolli-canvas').addEventListener('click', (e) => {
   const rect = e.target.getBoundingClientRect();
@@ -1625,6 +1888,7 @@ window.addEventListener('keydown', (e) => {
     closeDialogue();
     toggleNolliMap(false);
     toggleLightTable(false);
+    toggleWorldtext(false);
     if (camState.active) toggleCameraMode(false);
     return;
   }
@@ -1632,6 +1896,7 @@ window.addEventListener('keydown', (e) => {
   if (k === 'x') toggleXray();
   if (k === 'm') toggleNolliMap();
   if (k === 'l') toggleLightTable();
+  if (k === 'b') toggleWorldtext();
   if (k === '[') document.getElementById('btn-prev-shader').click();
   if (k === ']') document.getElementById('btn-next-shader').click();
   if (k === ' ' && camState.active) {
@@ -1727,8 +1992,17 @@ if (urlParams.get('xray') === '1') {
   player.floorY = 0;
   player.yaw = 0.04;
   player.pitch = 0.06;
+} else if (urlParams.get('view') === 'cast') {
+  // Close-up of Bekele (real Anny V8 adult_m) inside Camera Shop
+  player.pos.set(-4.2, 0, 6.2);
+  player.floorY = 0;
+  player.yaw = 0.0;
+  player.pitch = -0.02;
 } else if (urlParams.get('map') === '1') {
+  if (urlParams.get('mapmode')) mapMode = urlParams.get('mapmode');
   toggleNolliMap(true);
+} else if (urlParams.get('wt') === '1') {
+  toggleWorldtext(true);
 }
 
 const clock = new THREE.Clock();
@@ -1786,22 +2060,24 @@ function animate() {
   const euler = new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ');
   camera.quaternion.setFromEuler(euler);
 
-  // Persistent Resident Jobs & Natural Walking / Idle Pose
+  // Persistent Anny V8 Resident Jobs, Clip Crossfades & FACS Lip-Sync
   for (const r of residents) {
     const targetSt = r.def.stations[r.stationIdx];
     const targetVec = new THREE.Vector3(targetSt.x, targetSt.y, targetSt.z);
     const toT = targetVec.clone().sub(r.root.position);
     const dist = toT.length();
     const distToPlayer = r.root.position.distanceTo(player.pos);
+    let desiredClip = 'idle';
 
     if (distToPlayer < 4.5 && Math.abs(r.root.position.y - player.floorY) < 2.0) {
-      // Turn to face player with relaxed downward-hanging arms
+      // Turn to face player
       const ang = Math.atan2(player.pos.x - r.root.position.x, player.pos.z - r.root.position.z);
       r.root.rotation.y = THREE.MathUtils.lerp(r.root.rotation.y, ang, dt * 5);
       r.armL.rotation.x = THREE.MathUtils.lerp(r.armL.rotation.x, 0, dt * 6);
       r.armR.rotation.x = THREE.MathUtils.lerp(r.armR.rotation.x, 0, dt * 6);
       r.legL.rotation.x = THREE.MathUtils.lerp(r.legL.rotation.x, 0, dt * 6);
       r.legR.rotation.x = THREE.MathUtils.lerp(r.legR.rotation.x, 0, dt * 6);
+      desiredClip = r.speechTimer > 0 ? 'talk' : 'idle';
     } else if (dist > 0.35) {
       toT.normalize();
       r.root.position.addScaledVector(toT, dt * 1.45);
@@ -1812,8 +2088,8 @@ function animate() {
       r.armR.rotation.x = -swing;
       r.legL.rotation.x = -swing * 1.1;
       r.legR.rotation.x = swing * 1.1;
+      desiredClip = 'walk';
     } else {
-      // Working at station (subtle natural breathing / relaxed arms)
       r.armL.rotation.x = THREE.MathUtils.lerp(r.armL.rotation.x, 0.04 * Math.sin(elapsed * 2), dt * 4);
       r.armR.rotation.x = THREE.MathUtils.lerp(r.armR.rotation.x, -0.04 * Math.sin(elapsed * 2), dt * 4);
       r.legL.rotation.x = THREE.MathUtils.lerp(r.legL.rotation.x, 0, dt * 5);
@@ -1822,6 +2098,30 @@ function animate() {
       if (r.dwellTimer <= 0) {
         r.stationIdx = (r.stationIdx + 1) % r.def.stations.length;
         r.dwellTimer = 6 + Math.random() * 6;
+      }
+      desiredClip = r.speechTimer > 0 ? 'talk' : 'idle';
+    }
+
+    if (r.v8) {
+      if (r.currentClip !== desiredClip && r.v8.hasClip(desiredClip)) {
+        r.currentClip = desiredClip;
+        r.v8.crossFadeTo(desiredClip, 0.28);
+      }
+      if (r.speechTimer > 0) {
+        r.speechTimer = Math.max(0, r.speechTimer - dt);
+        const prog = 1 - r.speechTimer / Math.max(0.1, r.speechDur);
+        r.v8.setLyricSpeech(r.speechText, prog, 0.85);
+      } else {
+        r.v8.setJawOpenness(0);
+      }
+      r.v8.update(dt);
+      // Ensure relaxed natural downward-hanging arms if Mesh2Motion clip is still streaming
+      if (!r.v8.hasClip(r.currentClip) && r.v8.bonesByNorm) {
+        const uL = r.v8.bonesByNorm.get('upperarm01l') || r.v8.bonesByNorm.get('upperarm01.l');
+        const uR = r.v8.bonesByNorm.get('upperarm01r') || r.v8.bonesByNorm.get('upperarm01.r');
+        const walkSwing = desiredClip === 'walk' ? Math.sin(r.walkPhase) * 0.28 : 0.03 * Math.sin(elapsed * 1.8);
+        if (uL) { uL.rotation.z = -0.62; uL.rotation.x = walkSwing; }
+        if (uR) { uR.rotation.z = 0.62; uR.rotation.x = -walkSwing; }
       }
     }
   }

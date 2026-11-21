@@ -1,5 +1,5 @@
-// Swappable Make-Photo City Worldtext & Aesthetic Cartridges
-// One Nolli Block geometry, three Invisible Cities (Calvino + Verne + Night Post)
+// Swappable Make-Photo City Worldtext Cartridges (Gazetteer, Language, Districts, MovieMap Shots)
+// One Nolli Island Block, three Invisible Cities with real Anny V8 cast archetypes
 
 export const TIME_PRESETS = {
   dawn: {
@@ -64,6 +64,59 @@ export const TIME_PRESETS = {
   },
 };
 
+export const MOVIE_SHOTS = [
+  {
+    id: 'S01',
+    name: '01 · Canal Quay & Facade',
+    pos: [-8.5, 0, 26.0],
+    yaw: -0.28,
+    pitch: 0.06,
+    focalMm: 35,
+    look: 'jerikan',
+    note: 'Wide street-and-waterfront establishing frame showing the stone quay, standpipe depot, and open Nolli doorway.',
+  },
+  {
+    id: 'S02',
+    name: '02 · Standpipe & Threshold Gate',
+    pos: [-19.5, 0, 12.5],
+    yaw: -0.45,
+    pitch: 0.02,
+    focalMm: 50,
+    look: 'woodblock',
+    note: 'Mid-shot down the alley toward the optical Threshold Gate and hidden Courtyard Cistern.',
+  },
+  {
+    id: 'S03',
+    name: '03 · Camera Shop Lightwell',
+    pos: [-3.0, 0, 4.8],
+    yaw: -0.35,
+    pitch: 0.14,
+    focalMm: 28,
+    look: 'silver',
+    note: 'Interior Nolli shot looking across the glowing Archive Light Table up into the double-height glass lightwell.',
+  },
+  {
+    id: 'S04',
+    name: '04 · Upper Screening Hall',
+    pos: [1.5, 4.6, 3.8],
+    yaw: 0.16,
+    pitch: 0.02,
+    focalMm: 40,
+    look: 'cyanotype',
+    note: 'Upper floor darkroom framing the cyan cooling sight-glass and stretched 35 mm linen screening sheet.',
+  },
+  {
+    id: 'S05',
+    name: '05 · Rooftop Relay Overlook',
+    pos: [6.2, 9.2, 5.2],
+    yaw: 0.72,
+    pitch: -0.08,
+    focalMm: 32,
+    look: 'natural',
+    note: 'High overlook across the skylight dome, cyan rooftop relay mast, and surrounding island skyline.',
+  },
+];
+
 export const CARTRIDGES = {
   ahiya: {
     id: 'ahiya',
@@ -82,14 +135,34 @@ export const CARTRIDGES = {
       foliage: '#3c4c38',
       sodium: '#ffbe73',
       cyan: '#18b4ff',
-      fogTint: '#252c31',
-      skyTint: 0.0,
+      water: '#15394a',
       submerged: false,
     },
     assignment: 'Carry 5 L from the Standpipe to the Upper Projector Tank, photograph the block, clear portrait credit if needed, and project tonight\'s picture.',
+    worldtext: {
+      gazetteer: {
+        founded: 'Survey Cycle 2086 · Upper Basalt Bench (2,410 m)',
+        law: 'Every liter moved through Block IV is logged once across standpipe, cooling glass, and archive ledger. No portrait hangs publicly without the sitter\'s margin credit.',
+        architecture: 'Dry-laid basalt lower stories, lime-plastered lightwells carved continuously from the street (Nolli voids), and stretched linen rooftop cinemas.',
+      },
+      lexicon: [
+        { term: 'Nolli-Void', pron: 'NOH-lee voyd', meaning: 'Any interior floor legally and physically continuous with the public street; drawn in white on block plans.' },
+        { term: 'Chalk-Reserve', pron: 'chawk ree-ZURV', meaning: 'The protected 4 L floor of a carrier\'s jerrycan that may never be spent on spectacle.' },
+        { term: 'Sight-Glass', pron: 'syt-glas', meaning: 'Vertical cyan tube beside a 35 mm projector showing whether the cooling loop is wet enough to screen.' },
+        { term: 'Margin-Credit', pron: 'MAR-jin KREH-dit', meaning: 'Spoken approval from a photographed resident authorizing public window mounting or evening projection.' },
+        { term: 'Zone-Gate', pron: 'zohn gayt', meaning: 'An iron threshold whose solidity yields when shifted out of the camera\'s focal plane or exposed into Zone II.' },
+      ],
+      districts: [
+        { id: 'quay', name: 'Canal Quay & Wet Avenue', mood: 'Reflective · Sodium + Mist', acoustic: 'Open wind & distant gorge water', pos: [0, 0, 23] },
+        { id: 'shop', name: 'Severn Camera Shop (Ground)', mood: 'Quiet · Archival Paper', acoustic: 'Stone room tone, muffled street', pos: [0, 0, 2] },
+        { id: 'hall', name: 'Upper Screening Hall (4.6 m)', mood: 'Focused · Cyan Loop', acoustic: 'Projector pump condition-reactive', pos: [0, 4.6, 1.5] },
+        { id: 'cistern', name: 'Threshold Cistern Garden', mood: 'Secluded · Optical Passage', acoustic: 'Resonant courtyard drip', pos: [-14, 0, -13] },
+      ],
+    },
     residents: [
       {
         id: 'makeda',
+        archetype: 'elder',
         name: 'Makeda',
         role: 'Depot Steward',
         skin: '#5a3826',
@@ -109,6 +182,7 @@ export const CARTRIDGES = {
       },
       {
         id: 'bekele',
+        archetype: 'adult_m',
         name: 'Bekele',
         role: 'Archivist',
         skin: '#68432f',
@@ -128,6 +202,7 @@ export const CARTRIDGES = {
       },
       {
         id: 'june',
+        archetype: 'child7',
         name: 'June',
         role: 'Projectionist',
         skin: '#4f3122',
@@ -165,14 +240,34 @@ export const CARTRIDGES = {
       foliage: '#295754',
       sodium: '#7ce8ff',
       cyan: '#24e0ff',
-      fogTint: '#0e242e',
-      skyTint: 0.35,
+      water: '#0c3342',
       submerged: true,
     },
     assignment: 'Transfer 5 L of fresh condensate to the Rotunda projector loop, open the Pressure-Lock Gate optically, and screen your plate under the glass lightwell.',
+    worldtext: {
+      gazetteer: {
+        founded: 'Fourteen Poems · Plato\'s Ring Plan & Verne\'s Nautilus Log (Depth -38 m)',
+        law: 'Only fresh condensate keeps the rotunda optics free of salt bloom. Every submerged doorway remains open to the public ring.',
+        architecture: 'Concentric stone colonnades cut with deep glass-dome lightwells that funnel bioluminescent cyan silt into vaulted screening rooms.',
+      },
+      lexicon: [
+        { term: 'Pelagic-Ring', pron: 'peh-LAJ-ik ring', meaning: 'One of the concentric public walkways circling the sunken archive.' },
+        { term: 'Silt-Plate', pron: 'silt playt', meaning: 'A cyanotype photograph exposed directly to drifting bioluminescent water.' },
+        { term: 'Nautilus-Well', pron: 'NAW-ti-lus wel', meaning: 'Vertical glass lightwell uniting lower archive floors with the ocean roof.' },
+        { term: 'Brine-Lens', pron: 'bryne lenz', meaning: 'Pressurized camera optic calibrated for submerged contrast and focus-plane gates.' },
+        { term: 'Pressure-Chord', pron: 'PRESH-er kord', meaning: 'The steady low acoustic pulse heard indoors once a projector\'s cooling loop is balanced.' },
+      ],
+      districts: [
+        { id: 'quay', name: 'Ring III Canal Colonnade', mood: 'Submerged · Bioluminescent', acoustic: 'Deep hydrophone water bed', pos: [0, 0, 23] },
+        { id: 'shop', name: 'Nolli Cartography Vault', mood: 'Still · Cyanotype Glass', acoustic: 'Vaulted stone hush', pos: [0, 0, 2] },
+        { id: 'hall', name: 'Rotunda Screening Gallery', mood: 'Luminous · Wet Beam', acoustic: 'Steady condensate hum', pos: [0, 4.6, 1.5] },
+        { id: 'cistern', name: 'Pressure-Lock Cistern', mood: 'Hidden · Refracted', acoustic: 'Echoing drip behind iron bars', pos: [-14, 0, -13] },
+      ],
+    },
     residents: [
       {
         id: 'makeda',
+        archetype: 'elder',
         name: 'Makeda',
         role: 'Condenser Keeper',
         skin: '#5a3826',
@@ -192,6 +287,7 @@ export const CARTRIDGES = {
       },
       {
         id: 'bekele',
+        archetype: 'adult_m',
         name: 'Bekele',
         role: 'Nolli Cartographer',
         skin: '#68432f',
@@ -211,6 +307,7 @@ export const CARTRIDGES = {
       },
       {
         id: 'june',
+        archetype: 'child7',
         name: 'June',
         role: 'Hydro-Projectionist',
         skin: '#4f3122',
@@ -248,14 +345,34 @@ export const CARTRIDGES = {
       foliage: '#374d35',
       sodium: '#ffc478',
       cyan: '#18b4ff',
-      fogTint: '#23282e',
-      skyTint: 0.05,
+      water: '#132836',
       submerged: false,
     },
     assignment: 'Draw 5 L from the Hydrant Cart, carry it up to the Loft Screening Room, frame West 40th Street before the light turns, and hang your contact print in the shop window.',
+    worldtext: {
+      gazetteer: {
+        founded: 'West 40th St · Bryant Park Photographic Circuit',
+        law: 'Photographs made on the avenue return to the block\'s storefront glass and loft sheet. Portraits require the sitter\'s credit before public display.',
+        architecture: 'Cast-iron and limestone loft fronts, wet asphalt canyons catching sodium lamps, rooftop water towers, and an open-plan camera shop.',
+      },
+      lexicon: [
+        { term: 'Canyon-Stop', pron: 'KAN-yun stop', meaning: 'A street corner where building shadows compress the sky into a narrow vertical meter reading.' },
+        { term: 'Wet-Glass', pron: 'wet glas', meaning: 'Storefront display window where newly printed 8x10 contact sheets face the sidewalk.' },
+        { term: 'Steam-Zone', pron: 'steem zohn', meaning: 'Street-level vapor cloud used to separate foreground figures from distant brick.' },
+        { term: 'Fire-Frame', pron: 'fy-er fraym', meaning: 'Elevated fire-escape or rooftop vantage point reserved for tripod compositions.' },
+        { term: 'Stoop-Ledger', pron: 'stoop LED-jer', meaning: 'The neighborhood record tying every photograph to its date, lens, caption, and credited subject.' },
+      ],
+      districts: [
+        { id: 'quay', name: 'West 40th & Harbor Slip', mood: 'Cinematic · Wet Asphalt', acoustic: 'Avenue wind & distant harbor', pos: [0, 0, 23] },
+        { id: 'shop', name: 'Severn Camera Shop', mood: 'Warm · Tungsten + Paper', acoustic: 'Quiet shop floor & shutter clicks', pos: [0, 0, 2] },
+        { id: 'hall', name: 'Loft Screening Room', mood: 'Intimate · 35 mm Sheet', acoustic: 'Soft projector cooling loop', pos: [0, 4.6, 1.5] },
+        { id: 'cistern', name: 'Fire-Alley Cistern', mood: 'Liminal · Out-of-Focus Gate', acoustic: 'Alleyway echo', pos: [-14, 0, -13] },
+      ],
+    },
     residents: [
       {
         id: 'makeda',
+        archetype: 'elder',
         name: 'Makeda',
         role: 'Depot Runner',
         skin: '#5a3826',
@@ -275,6 +392,7 @@ export const CARTRIDGES = {
       },
       {
         id: 'bekele',
+        archetype: 'adult_m',
         name: 'Bekele',
         role: 'Camera Shop Archivist',
         skin: '#68432f',
@@ -294,6 +412,7 @@ export const CARTRIDGES = {
       },
       {
         id: 'june',
+        archetype: 'child7',
         name: 'June',
         role: 'Loft Projectionist',
         skin: '#4f3122',
