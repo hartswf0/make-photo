@@ -7423,7 +7423,7 @@ void main(){
         #demo-brief h3{margin:0 0 2px;font:600 18px/1.2 Georgia,serif;color:#fff}#demo-brief .sub{margin:0 0 10px;color:#8fd0de;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
         #demo-brief p{margin:0 0 10px}#demo-brief .keys{color:#b9d7df;font-size:13px;border-top:1px solid #1d3540;padding-top:10px}
         #demo-brief button#demo-brief-ok{width:100%;min-height:44px;font-size:15px;background:#38e8ff;color:#06222c;border:0;font-weight:600}
-        body.demo-mode #play-bar,body.demo-mode #cinema-intro,body.demo-mode #field-intro,body.demo-mode .letterbox,body.demo-mode #cloth{display:none!important}
+        body.demo-mode #play-bar,body.demo-mode #quest-tracker,body.demo-mode #cinema-intro,body.demo-mode #field-intro,body.demo-mode .letterbox,body.demo-mode #cloth{display:none!important}
         body.demo-clean #top-left,body.demo-clean #reel-col,body.demo-clean #rack-tray,body.demo-clean #wedge-wrap,body.demo-clean #focus-dock,body.demo-clean #keys,
         body.demo-clean #ppc-hud,body.demo-clean #inworld-video-bar,body.demo-clean #field-status,body.demo-clean #field-tools,body.demo-clean #field-actions,body.demo-clean #np-radio-host,body.demo-clean .hs-radio-hud{display:none!important}
         #demo-sig{display:inline-flex;gap:2px;align-items:flex-end;height:12px}#demo-sig i{width:4px;background:#26343c;border-radius:1px}#demo-sig i.on{background:#38e8ff}
