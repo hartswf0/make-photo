@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#101a24">
+<title>Mix · Donkey Water stones</title><style>html,body{margin:0;height:100%;background:#101a24;overflow:hidden;overscroll-behavior:none}canvas{display:block;position:fixed;inset:0;touch-action:none;-webkit-user-select:none;user-select:none}
+a.back{position:fixed;left:10px;top:10px;z-index:2;color:#cfe9e6;font:italic 20px Georgia,serif;text-decoration:none;padding:8px 12px;opacity:.6}</style></head>
+<body><canvas></canvas><a class="back" href="./" aria-label="All stones">‹</a><script src="./water.js?v=1"></script><script>
+// STONE 2. Carry one kept moment into another. While they touch, a point slides between their two places; let go to stand there.
+const K = Water, TONES = ['120,200,255', '255,190,120', '160,255,190', '230,170,255'], s = { x: .5, tx: .5, tone: null, keeps: [], carry: null, mix: null, back: null };
+const home = i => [st.W * (.2 + .2 * i), st.H * (.26 + (i % 2) * .07)];
+const keep = (x, tone) => { if (s.keeps.length >= 4) s.keeps.shift(); s.keeps.push({ px: x, tone, x: 0, y: 0, hx: 0, hy: 0, born: st.t }); };
+const st = K.stage((g, st, dt) => {
+  const gy = st.ground + st.H * .17; s.x = K.lerp(s.x, s.tx, .08);
+  K.scene(g, st); if (s.tone) { g.fillStyle = `rgba(${s.tone},.13)`; g.fillRect(0, 0, st.W, st.H); }
+  K.wall(g, st.W * .12, gy - 20, .8); K.pump(g, st.W * .84, gy - 20, .8); K.person(g, st.W * s.x, gy);
+  const src = []; s.keeps.forEach((k, i) => { const h = home(i); k.hx = h[0]; k.hy = h[1]; if (s.carry !== k) { k.x = K.lerp(k.x || h[0], h[0], .18); k.y = K.lerp(k.y || h[1], h[1], .18); } src.push([k.x, k.y, 24]); });
+  if (s.back) { s.back.life = 1 - (st.t - s.back.born) / 14; if (s.back.life <= 0) s.back = null; else src.push([s.back.x, s.back.y, 10 + 12 * s.back.life]); }
+  const c = s.carry, o = c && s.keeps.find(k => k !== c && Math.hypot(k.x - c.x, k.y - c.y) < 54);
+  if (c && o) { if (!s.mix || s.mix.o !== o) s.mix = { o, ph: 0 }; s.mix.ph += dt / 2.6; const tri = 1 - Math.abs((s.mix.ph % 1) * 2 - 1); s.mix.t = tri;
+    const xa = st.W * c.px, xb = st.W * o.px, xs = K.lerp(xa, xb, tri), n = 14; for (let i = 0; i <= n; i++) src.push([K.lerp(xa, xb, i / n), gy + 14 + Math.sin(i + st.t * 3) * 2, 5]); src.push([xs, gy + 14, 13]);
+    K.ink(g, Math.round(tri * 100) + '%', xs, gy + 48, 1, 18, 'center', '#a9f7ee'); } else s.mix = null;
+  K.membrane(g, st, src);
+  for (const k of s.keeps) { K.drop(g, k.x, k.y, 26, { tone: k.tone }); g.fillStyle = `rgba(${k.tone},.9)`; g.beginPath(); g.arc(st.W * k.px, gy + 14, 4, 0, 7); g.fill(); }
+  if (s.back) K.drop(g, s.back.x, s.back.y, 12 + 12 * s.back.life, { tone: '255,223,168', fill: s.back.life, alpha: .4 + .6 * s.back.life });
+  if (s.press && st.ptr.down && st.ptr.moved < 12 && performance.now() - st.ptr.t0 > 480) { s.press = false; keep(s.x, TONES[(s.n = (s.n || 3) + 1) % 4]); K.splash(st.ptr.x, st.ptr.y, 1.2, '255,223,168'); }
+  K.chrome(g, st, 'Mix', 'carry one bead into another and hold');
+});
+st.on.size = () => { }; keep(.16, TONES[0]); keep(.5, TONES[1]); keep(.84, TONES[2]);
+st.on.down = p => { s.carry = s.keeps.find(k => K.near(p, k.x, k.y, 36)) || null; s.press = !s.carry && K.near(p, st.W * s.x, st.ground + st.H * .1, 70); };
+st.on.move = p => { if (s.carry) { s.carry.x = p.x; s.carry.y = p.y; } };
+st.on.up = p => { const c = s.carry; s.carry = null; s.press = false; if (c && s.mix) { const here = { x: s.x, tone: s.tone }; s.tx = K.lerp(c.px, s.mix.o.px, s.mix.t); s.tone = c.tone; s.back = { x: st.W * here.x, y: st.ground + st.H * .02, born: st.t, life: 1, here }; K.splash(st.W * s.tx, st.ground + st.H * .17, 1.5); s.mix = null; st.skipTap = true; } };
+st.on.tap = p => { if (st.skipTap) { st.skipTap = false; return; } if (s.back && K.near(p, s.back.x, s.back.y, 34)) { s.tx = s.back.here.x; s.tone = s.back.here.tone; K.splash(p.x, p.y, 1, '255,223,168'); s.back = null; return; }
+  const k = s.keeps.find(k => K.near(p, k.x, k.y, 36)); if (k) { s.back = { x: st.W * s.x, y: st.ground + st.H * .02, born: st.t, life: 1, here: { x: s.x, tone: s.tone } }; s.tx = k.px; s.tone = k.tone; K.splash(p.x, p.y, 1); } else if (p.y > st.ground) s.tx = K.clamp(p.x / st.W, .08, .92); };
+
+</script></body></html>

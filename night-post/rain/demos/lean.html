@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#101a24">
+<title>Lean · Donkey Water stones</title><style>html,body{margin:0;height:100%;background:#101a24;overflow:hidden;overscroll-behavior:none}canvas{display:block;position:fixed;inset:0;touch-action:none;-webkit-user-select:none;user-select:none}
+a.back{position:fixed;left:10px;top:10px;z-index:2;color:#cfe9e6;font:italic 20px Georgia,serif;text-decoration:none;padding:8px 12px;opacity:.6}</style></head>
+<body><canvas></canvas><a class="back" href="./" aria-label="All stones">‹</a><script src="./water.js?v=1"></script><script>
+// STONE 3. A drop that owns a quantity is held and leaned. How far is how much. Lifting the finger is Stop.
+const K = Water, s = { liters: 12, dk: .25, puddle: 0, lean: null, before: null, undo: null, shown: 0 };
+const P = () => ({ can: [st.W * .5, st.H * .8], pump: [st.W * .8, st.ground + st.H * .1], donkey: [st.W * .2, st.ground + st.H * .1] });
+const st = K.stage((g, st, dt) => {
+  const p = P(); K.scene(g, st, { rain: .3 }); K.pump(g, p.pump[0], p.pump[1]); K.donkey(g, p.donkey[0], p.donkey[1]);
+  if (s.puddle > 0) { g.fillStyle = 'rgba(90,230,245,.35)'; g.beginPath(); g.ellipse(st.W * .5, st.ground + st.H * .13, 20 + s.puddle * 9, 5 + s.puddle * 1.6, 0, 0, 7); g.fill(); }
+  const src = [[p.can[0], p.can[1], 44]]; let to = null, m = 0;
+  if (s.lean) { const dx = st.ptr.x - p.can[0], dy = st.ptr.y - p.can[1], len = Math.hypot(dx, dy); m = K.clamp((len - 26) / 130, 0, 1); const ang = Math.atan2(dy, dx), aim = (q, w) => Math.abs(Math.atan2(Math.sin(ang - Math.atan2(q[1] - 50 - p.can[1], q[0] - p.can[0])), Math.cos(ang - Math.atan2(q[1] - 50 - p.can[1], q[0] - p.can[0])))) < w;
+    to = m <= 0 ? null : aim(p.donkey, .5) ? 'donkey' : aim(p.pump, .5) ? 'pump' : 'ground'; const rate = m * m * 5 * dt;
+    if (to === 'donkey') { const a = Math.min(rate, s.liters, (1 - s.dk) * 12); s.liters -= a; s.dk += a / 12; if (a <= 0) to = 'stuck'; }
+    else if (to === 'pump') { const a = Math.min(rate, 20 - s.liters); s.liters += a; if (a <= 0) to = 'stuck'; }
+    else if (to === 'ground') { const a = Math.min(rate * .6, s.liters); s.liters -= a; s.puddle += a; if (a <= 0) to = 'stuck'; }
+    const n = 10; for (let i = 1; i <= n; i++) src.push([p.can[0] + dx * i / n, p.can[1] + dy * i / n, 5 + m * 11 * (1 - i / n * .5)]);
+    if (to && to !== 'stuck' && Math.random() < m) { const tgt = to === 'donkey' ? [p.donkey[0] + 40, p.donkey[1] - 60] : to === 'pump' ? [p.pump[0] + 30, p.pump[1] - 20] : [st.W * .5, st.ground + st.H * .13], back = to === 'pump';
+      const a = back ? tgt : [st.ptr.x, st.ptr.y], b = back ? [st.ptr.x, st.ptr.y] : tgt; K.parts.push({ x: a[0], y: a[1], vx: (b[0] - a[0]) * 1.6, vy: (b[1] - a[1]) * 1.6 - 220, r: 1.5 + m * 2, life: 0, ttl: .6, tone: '178,247,240' }); } }
+  K.membrane(g, st, src);
+  K.drop(g, p.can[0], p.can[1], 46, { fill: s.liters / 20, text: s.liters.toFixed(1), sub: 'L' });
+  if (s.lean) K.ink(g, s.before.liters.toFixed(1), p.can[0], p.can[1] - 58, .45, 15);
+  K.drop(g, p.donkey[0] + 34, p.donkey[1] - 124, 22, { fill: s.dk, text: Math.round(s.dk * 100) + '', size: 13, tone: s.dk < .3 ? '255,223,168' : undefined });
+  if (to === 'stuck') K.ink(g, s.liters <= 0.01 ? 'Empty' : 'Full', st.ptr.x, st.ptr.y - 30, 1, 17, 'center', '#ffdfa8');
+  if (s.shown > 0) { s.shown -= dt; K.ink(g, s.changed, p.can[0], p.can[1] - 64, Math.min(1, s.shown), 18); }
+  if (s.undo) { s.undo.life -= dt / 9; if (s.undo.life <= 0) s.undo = null; else K.drop(g, p.can[0] + 78, p.can[1] - 8, 13 + 10 * s.undo.life, { tone: '255,223,168', fill: s.undo.life, text: '↩', size: 15 }); }
+  K.chrome(g, st, 'Lean', 'hold the can and lean it toward something');
+});
+st.on.down = p => { const q = P(); if (K.near(p, q.can[0], q.can[1], 60)) { s.lean = true; s.before = { liters: s.liters, dk: s.dk, puddle: s.puddle }; } };
+st.on.up = p => { if (!s.lean) return; s.lean = null; if (Math.abs(s.before.liters - s.liters) > .05) { s.changed = `${s.before.liters.toFixed(1)} → ${s.liters.toFixed(1)} L`; s.shown = 2.6; s.undo = { life: 1, before: s.before }; K.splash(p.x, p.y, .8); } st.skipTap = true; };
+st.on.tap = p => { if (st.skipTap) { st.skipTap = false; return; } const q = P(); if (s.undo && K.near(p, q.can[0] + 78, q.can[1] - 8, 36)) { Object.assign(s, s.undo.before); s.undo = null; K.splash(p.x, p.y, 1, '255,223,168'); } };
+
+</script></body></html>

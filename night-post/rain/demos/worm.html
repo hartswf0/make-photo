@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#101a24">
+<title>Worm · Donkey Water stones</title><style>html,body{margin:0;height:100%;background:#101a24;overflow:hidden;overscroll-behavior:none}canvas{display:block;position:fixed;inset:0;touch-action:none;-webkit-user-select:none;user-select:none}
+a.back{position:fixed;left:10px;top:10px;z-index:2;color:#cfe9e6;font:italic 20px Georgia,serif;text-decoration:none;padding:8px 12px;opacity:.6}</style></head>
+<body><canvas></canvas><a class="back" href="./" aria-label="All stones">‹</a><script src="./water.js?v=1"></script><script>
+// STONE 6. An act that takes time grows one strand; each bead is a moment of it. Touch the strand to stop there. Done, it draws up into a single bead: before and after, and the way back.
+const K = Water, s = { liters: 0, dk: .2, act: null, done: null };
+const P = () => ({ pump: [st.W * .78, st.ground + st.H * .13], donkey: [st.W * .22, st.ground + st.H * .14], root: [st.W * .5, st.H * .2] });
+const begin = kind => { if (s.act) return; if (kind === 'draw' && s.liters >= 20) return; if (kind === 'pour' && (s.liters < .5 || s.dk > .98)) return; s.done = null; s.act = { kind, t: 0, segs: [], before: { liters: s.liters, dk: s.dk } }; };
+const finish = () => { const a = s.act; s.act = null; s.done = { kind: a.kind, before: a.before, segs: a.segs, born: st.t, life: 1 }; K.splash(P().root[0], P().root[1], 1.4); };
+const st = K.stage((g, st, dt) => {
+  const p = P(); K.scene(g, st, { rain: .3 }); K.pump(g, p.pump[0], p.pump[1]); K.donkey(g, p.donkey[0], p.donkey[1]); K.person(g, st.W * .5, st.ground + st.H * .17); K.can(g, st.W * .5 + 26, st.ground + st.H * .17, 1, s.liters / 20);
+  const src = [[54, 70, 30]], a = s.act;
+  if (a) { a.t += dt; const rate = 3.2 * dt; if (a.kind === 'draw') s.liters = Math.min(20, s.liters + rate); else { const x = Math.min(rate, s.liters, (1 - s.dk) * 10); s.liters -= x; s.dk += x / 10; }
+    while (a.segs.length < Math.floor(a.t / .9) + 1) a.segs.push({ liters: s.liters }); a.segs[a.segs.length - 1].liters = s.liters;
+    if ((a.kind === 'draw' && s.liters >= 20) || (a.kind === 'pour' && (s.liters <= .01 || s.dk >= .995)) || a.segs.length > 7) finish(); }
+  const segs = a ? a.segs : s.done ? s.done.segs : [], pull = s.done ? K.clamp((st.t - s.done.born) / .7, 0, 1) : 0, gap = 52 * (1 - pull);
+  if (segs.length) src.push([p.root[0], p.root[1], 22]); segs.forEach((q, i) => { q.x = p.root[0] + Math.sin(st.t * 1.6 + i * .8) * 7 * (1 - pull); q.y = p.root[1] + (i + 1) * gap; if (pull < 1) src.push([q.x, q.y, i === segs.length - 1 && a ? 17 + Math.sin(st.t * 8) * 2 : 15]); });
+  if (s.done) { s.done.life = 1 - (st.t - s.done.born) / 16; if (s.done.life <= 0) s.done = null; }
+  K.membrane(g, st, src);
+  K.drop(g, 54, 70, 34, { fill: s.liters / 20, text: s.liters.toFixed(0), sub: 'L' }); K.drop(g, p.donkey[0] + 34, p.donkey[1] - 124, 18, { fill: s.dk, tone: s.dk < .3 ? '255,223,168' : undefined });
+  if (pull < 1) segs.forEach((q, i) => { K.drop(g, q.x, q.y, 17, { fill: q.liters / 20, text: q.liters.toFixed(0), size: 12, alpha: 1 - pull }); });
+  if (a) K.drop(g, p.root[0], p.root[1], 24, { text: a.kind === 'draw' ? 'Draw' : 'Pour', size: 14, tone: '170,247,238' });
+  if (s.done) { const d = s.done; K.drop(g, p.root[0], p.root[1], 20 + 10 * d.life, { tone: '255,223,168', fill: d.life, text: `${d.before.liters.toFixed(0)} → ${segs[segs.length - 1].liters.toFixed(0)}`, size: 14, alpha: .4 + .6 * d.life }); }
+  if (!a) { if (s.liters < 20) K.ink(g, 'Draw', p.pump[0] + 30, p.pump[1] - 100, .55 + .2 * Math.sin(st.t * 2), 17, 'center', '#a9f7ee'); if (s.liters >= .5 && s.dk < .98) K.ink(g, 'Pour', p.donkey[0] + 10, p.donkey[1] - 150, .55 + .2 * Math.sin(st.t * 2 + 1), 17, 'center', '#a9f7ee'); }
+  K.chrome(g, st, 'Worm', 'touch the pump; touch the strand to stop');
+});
+st.on.tap = p => { const q = P(), a = s.act;
+  if (a) { if (Math.abs(p.x - q.root[0]) < 60 && p.y > q.root[1] - 40 && p.y < q.root[1] + (a.segs.length + 1) * 52 + 30) finish(); return; }
+  if (s.done && K.near(p, q.root[0], q.root[1], 44)) { s.liters = s.done.before.liters; s.dk = s.done.before.dk; s.done = null; K.splash(p.x, p.y, 1.1, '255,223,168'); return; }
+  if (K.near(p, q.pump[0] + 20, q.pump[1] - 40, 70)) begin('draw'); else if (K.near(p, q.donkey[0], q.donkey[1] - 50, 80)) begin('pour'); };
+
+</script></body></html>

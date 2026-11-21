@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#101a24">
+<title>Tutor · Donkey Water stones</title><style>html,body{margin:0;height:100%;background:#101a24;overflow:hidden;overscroll-behavior:none}canvas{display:block;position:fixed;inset:0;touch-action:none;-webkit-user-select:none;user-select:none}
+a.back{position:fixed;left:10px;top:10px;z-index:2;color:#cfe9e6;font:italic 20px Georgia,serif;text-decoration:none;padding:8px 12px;opacity:.6}</style></head>
+<body><canvas></canvas><a class="back" href="./" aria-label="All stones">‹</a><script src="./water.js?v=1"></script><script>
+// STONE 5. It rains hardest on the one thing that matters most now. Off-screen need slants in from that edge. When nothing is needed, no rain points.
+const K = Water, s = { liters: 0, dk: .5, shared: false, pan: 0, drip: 0 }, WX = { donkey: .3, pump: 1.25, person: 2.05 }, SPAN = 2.4;
+const need = () => s.dk < .08 ? ['donkey', 10] : s.dk < .45 && s.liters > 0 ? ['donkey', 6] : s.liters < 1 ? ['pump', 5] : !s.shared ? ['person', 2] : s.dk < .45 ? ['pump', 3] : null;
+const sx = k => WX[k] * st.W - s.pan;
+const st = K.stage((g, st, dt) => {
+  const gy = st.ground + st.H * .14; s.dk = Math.max(0, s.dk - dt * .012); s.pan = K.clamp(s.pan, 0, st.W * (SPAN - 1));
+  K.scene(g, st, { rain: .25, pan: s.pan }); K.donkey(g, sx('donkey'), gy, 1, s.dk < .08); K.pump(g, sx('pump'), gy); K.person(g, sx('person'), gy, 1, '#6a5a8a'); K.person(g, st.W * .5, gy + 22);
+  const n = need(); s.drip -= dt;
+  if (n && s.drip <= 0) { s.drip = 2.6 / n[1] * (.7 + Math.random() * .6); const x = sx(n[0]), on = x > 20 && x < st.W - 20, count = n[1] >= 10 ? 3 : 1;
+    for (let i = 0; i < count; i++) { if (on) K.fall(x + (Math.random() - .5) * 60, gy - 60 - Math.random() * 40, { tone: '255,223,168', k: .4 }); else { const left = x < 0; K.fall(left ? 10 + Math.random() * 70 : st.W - 10 - Math.random() * 70, st.ground + Math.random() * st.H * .2, { tone: '255,223,168', k: .3, vx: left ? -150 : 150, from: st.H * .1 }); } } }
+  K.membrane(g, st, [[54, 70, 30]]); K.drop(g, 54, 70, 34, { fill: s.liters / 20, text: s.liters.toFixed(0), sub: 'L' });
+  const dx = sx('donkey'); if (dx > -40 && dx < st.W + 40) K.drop(g, dx + 34, gy - 124, 18, { fill: s.dk, tone: s.dk < .3 ? '255,223,168' : undefined });
+  K.chrome(g, st, 'Tutor', 'drag the world sideways; follow the rain');
+});
+st.on.move = p => { s.pan -= p.dx || 0; };
+st.on.tap = p => { const gy = st.ground + st.H * .14, hit = k => K.near(p, sx(k), gy - 50, 80);
+  if (hit('pump') && s.liters < 20) { s.liters = 20; K.splash(p.x, p.y, 1.5); }
+  else if (hit('donkey') && s.liters >= 1) { const a = Math.min(8, s.liters); s.liters -= a; s.dk = Math.min(1, s.dk + a / 10); K.splash(p.x, p.y, 1.5); }
+  else if (hit('person') && s.liters >= 2 && !s.shared) { s.liters -= 2; s.shared = true; K.splash(p.x, p.y, 1.2); } };
+
+</script></body></html>
