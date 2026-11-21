@@ -41,7 +41,8 @@ const button = (id, slot, label, note, action, extra = {}) => add({ id, slot, la
 const range = (id, slot, kicker, value, min, max, step, number, action, extra = {}) => add({ id, slot, kicker, value, min, max, step, number, action, kind: 'range', ...extra });
 const live = fn => (...a) => { if (ui.past) { announce('Return to now to act.'); return; } const r = fn(...a); S = B.state(); render(); return r; };
 const menuItems = () => { try { return B.menu(); } catch { return []; } };
-function item(id, slot, viscosity = 2, extra = {}) { const it = menuItems().find(x => x.id === id); if (!it) return; button('it-' + id, slot, null, null, live(() => it.run()), { kicker: it.label, value: it.value || (it.on ? 'on' : 'off'), viscosity, className: 'acts', ...extra }); }
+const val = it => /^[A-Z]$|^$/.test(String(it.value || '').trim()) ? (it.on ? 'on' : '') : it.value;
+function item(id, slot, viscosity = 2, extra = {}) { const it = menuItems().find(x => x.id === id); if (!it) return; button('it-' + id, slot, null, null, live(() => it.run()), { kicker: it.label, value: val(it), viscosity, className: 'acts', ...extra }); }
 
 // ---- time held in weather ------------------------------------------------------------------------------------------
 function captureWeather() { if (ui.past) return; memory.record({ scene: ui.scene, label: cause, values: { can: S.water.liters, place: S.place.name, focus: S.lens.focus, mode: S.mode } }); }
@@ -137,10 +138,24 @@ const BUILD = {
     if ((!open || open === 'next') && nx && nx.dist > 14) { const side = !nx.front ? (nx.x < W / 2 ? .8 : .16) : clamp(nx.x / W, .16, .8);
       button('next', 'c', null, null, opener('next'), { kicker: 'Next', value: nx.name.split(' at the ').pop().replace(/^the /, ''), viscosity: 1.2, home: [side, nx.front ? clamp(nx.y / H - .05, .17, .5) : .5], opens: true }); }
     if (performance.now() < ui.titleUntil && !open) button('place', 'title', S.place.name, '', opener('place'), { className: 'drop-title', viscosity: 4, kicker: MODE[S.mode], opens: true });
-    if (!open && !S.busy) { const acts = [], it = id => menuItems().find(x => x.id === id), near = d && d.dist < 7;
+    if (!open && !S.busy && !ui.touch) { const acts = [], it = id => menuItems().find(x => x.id === id), near = d && d.dist < 7;
       if (S.mode === 'walk') { acts.push(['jump', 'Jump']); acts.push(['run', 'Run']); if (near) acts.push(['ride', 'Ride']); else acts.push(['glide', 'Glide']); }
       else if (S.mode === 'ride' || S.mode === 'drive') acts.push(['run', 'Run']);
       acts.slice(0, 3).forEach(([id, word], i) => { const m = it(id); if (m) button('act-' + id, 'a', word, '', live(() => m.run()), { className: 'acts quick' + (m.on ? ' on' : ''), viscosity: .6 + i * .3, home: [.83, .8 - i * .105] }); }); }
+    if (ui.touch && performance.now() - ui.touch.at > 7000) ui.touch = null;
+    if (ui.touch && !open && !S.busy) { const t = ui.touch, L = S.live, mi = id => menuItems().find(x => x.id === id), list = [];
+      const act = (id, word, run, cls = 'acts') => list.push([id, word, run, cls]), it = (id, word) => { const m = mi(id); if (m) act(id, word, () => m.run()); };
+      if (t.kind === 'donkey') { if (L && L.id === 'water-burro') act('pour', 'Pour', () => B.act.live(false), 'action-drop'); it('ride', S.mode === 'ride' ? 'Down' : 'Ride'); it('drive', 'Wagon'); }
+      else if (t.kind === 'source') { if (L && L.kind === 'draw') act('draw', 'Draw', () => B.act.live(false), 'action-drop'); else list.push(['closer', S.water.liters >= 19.9 ? 'Full' : 'Closer', null, 'amber']); }
+      else if (t.kind === 'person') { if (L && L.kind === 'talk') act('ask', 'Ask', () => B.act.live(false), 'action-drop'); if (L && L.id === 'share') act('share', 'Share', () => B.act.live(false), 'action-drop'); act('say', 'Say', () => { ui.scene = 'people'; ui.say = true; render(); $('say-text').focus(); }); if (!L || L.kind === 'draw') list.push(['closer', 'Closer', null, 'amber']); }
+      else if (t.kind === 'wagon') it('drive', S.mode === 'drive' ? 'Park' : 'Drive');
+      else if (t.kind === 'me') { it('jump', 'Jump'); it('run', 'Run'); it('glide', 'Glide'); }
+      else if (t.kind === 'sky') { it('glide', S.mode === 'glide' ? 'Land' : 'Glide'); act('weather', 'Weather', () => { ui.scene = 'weather'; }); }
+      else if (t.kind === 'next') act('map', 'Map', () => { ui.mapSel = null; ui.scene = 'map'; });
+      else { if (S.water.liters > .05) it('squirt', 'Squirt'); it('jump', 'Jump'); }
+      const up = t.y / H > .3 ? -1 : 1; list.slice(0, 3).forEach(([id, word, run, cls], i, arr) => { const a = (i - (arr.length - 1) / 2) * .95, hm = [clamp(t.x / W + Math.sin(a) * 86 / W, .15, .82), clamp(t.y / H + up * Math.cos(a) * 92 / H, .13, .8)];
+        if (run) button('aff-' + id, 'a', word, '', live(() => { run(); ui.touch = null; }), { className: cls + ' quick', viscosity: .7 + i * .3, home: hm, critical: true }); else info('aff-' + id, 'a', '', '', '', { label: word, className: cls + ' quick', viscosity: 2, home: hm, critical: true }); }); }
+    for (const k of keeps) button(k.id, 'a', null, null, () => restoreKeep(k), { value: k.label, className: 'keep amber', viscosity: 4.5, home: [k.x, k.y], keep: true });
     if (open) unfold(open);
   },
   lens() {
@@ -172,7 +187,7 @@ const BUILD = {
   all() {                                                             // every operational control the game has, eight to a page, nothing left out
     const items = menuItems(), per = 8, pages = Math.max(1, Math.ceil(items.length / per)); ui.page = ((ui.page % pages) + pages) % pages;
     const small = world.clientWidth < 701, lx = small ? .22 : .16, rx = small ? .74 : .84;
-    items.slice(ui.page * per, ui.page * per + per).forEach((it, i) => button('all-' + it.id, 'a', null, null, live(() => it.run()), { kicker: it.label, value: it.value || (it.on ? 'on' : 'off'), className: 'acts', viscosity: 1.6 + (i % 3) * .4, home: [i % 2 ? rx : lx, .26 + Math.floor(i / 2) * .135] }));
+    items.slice(ui.page * per, ui.page * per + per).forEach((it, i) => button('all-' + it.id, 'a', null, null, live(() => it.run()), { kicker: it.label, value: val(it), className: 'acts', viscosity: 1.6 + (i % 3) * .4, home: [i % 2 ? rx : lx, .26 + Math.floor(i / 2) * .135] }));
     button('primary', 'primary', 'More', `${ui.page + 1} of ${pages}`, () => { ui.page++; render(); }, { className: 'action-drop', viscosity: 2, home: [rx, .82] });
     exitDrop();
   },
@@ -190,7 +205,7 @@ function unfold(id) {
   const parent = specs.find(sp => sp.id === id); if (!parent) { ui.open = null; return; }
   const [px, py] = homeFor(parent), W = world.clientWidth, H = world.clientHeight, kids = [];
   const kInfo = (kid, kicker, value) => kids.push(h => info(kid, 'a', kicker, value, '', { viscosity: 2, home: h }));
-  const kItem = (mid, visc) => { const it = menuItems().find(x => x.id === mid); if (it) kids.push(h => button('it-' + mid, 'a', null, null, live(() => { it.run(); ui.openAt = performance.now(); }), { kicker: it.label, value: it.value || (it.on ? 'on' : 'off'), viscosity: visc, className: 'acts', home: h })); };
+  const kItem = (mid, visc) => { const it = menuItems().find(x => x.id === mid); if (it) kids.push(h => button('it-' + mid, 'a', null, null, live(() => { it.run(); ui.openAt = performance.now(); }), { kicker: it.label, value: val(it), viscosity: visc, className: 'acts', home: h })); };
   if (id === 'can') { kInfo('k-space', 'Room', `${n(20 - S.water.liters)} L`); kInfo('k-reserve', 'Keep back', `${n(S.water.reserve)} L`); if (S.water.liters > 0) { kItem('squirt', .6); kItem('throw', .7); } }
   else if (id === 'donkey') { kInfo('k-dwater', 'Water', `${Math.round(S.water.donkey * 100)}%`); kItem('ride', 1.1); kItem('drive', 1.4); }
   else if (id === 'next') { ui.open = null; ui.mapSel = null; ui.scene = 'map'; return; }
@@ -358,7 +373,6 @@ function routeCurrent() {
 function inkLabel(id) {
   const sp = refs.get(id)?._spec; if (sp?.voiceText) return `${sp.kicker}. ${sp.voiceText}`;
   if (id === 'time-current') return ui.past ? `−${n(ui.timeAge)} s` : 'Now';
-  const thick = sp?.kind !== 'range' && !sp?.cycle ? describe(id) : ''; if (thick) return thick;
   if (sp) { const words = [sp.kicker, sp.value || sp.label].filter(Boolean).join(' '); return words || sp.note || ''; }
   if (id === 'steer') return 'Move';
   return $(id)?.getAttribute('aria-label') || $(id)?.textContent.trim() || '';
@@ -371,6 +385,7 @@ function initializeField() {
   };
   field = createRainField({ host: world, glass: proxy, historyLabels: false,
     onCatch: (id, meta) => {
+      catchAt = { id, x: ptr.x, y: ptr.y };
       const body = field?.getBodies().find(b => b.id === id), sp = refs.get(id)?._spec; if (meta.reason !== 'focus' && meta.reason !== 'keyboard' && !/^(time-current|mix)$/.test(id)) held = id;
       ink.arm({ id, text: inkLabel(id), x: meta.x ?? body?.x ?? 50, y: meta.y ?? body?.y ?? 100, keyboard: id === 'time-current' || meta.reason === 'focus' || meta.reason === 'keyboard', kind: id === 'voice-current' ? 'voice' : 'water' });
       if (id === 'voice-current' && sp?.voiceId) { caughtVoices.set(id, sp.voiceId); memory.holdDialogue(sp.voiceId, true); }
@@ -397,7 +412,11 @@ function initializeField() {
       const from = pulls.get(id + ':from'), sp = refs.get(id)?._spec;
       if (from && sp && Math.abs(sp.number - from.number) > 1e-6) { pushUndo(from.label, () => from.action(from.number)); cause = `${from.label} became ${inkLabel(id)}.`; render(); }
       const mixed = held === id && mix; if (mixed && !mix.fired && !mix.c.dry && mix.t > .12) announce('Parted. Nothing moved.'); if (held === id) { held = null; mix = null; }
-      const far = Math.hypot(meta.totalDx || 0, meta.totalDy || 0); if (id === 'can' && meta.dragged && !mixed && far > 150 && throwWater('can', ptr.x, ptr.y, far)) { /* thrown, not opened */ } else
+      const c0 = catchAt && catchAt.id === id ? catchAt : { x: ptr.x, y: ptr.y }, far = Math.max(Math.hypot(ptr.x - c0.x, ptr.y - c0.y), Math.hypot(meta.totalDx || 0, meta.totalDy || 0)), rise = c0.y - ptr.y;
+      if (!mixed && id === 'time-current' && rise > 70 && !ui.past) addKeep('moment', ptr.x, ptr.y);
+      else if (!mixed && far > 110 && /^menu-camera|^focus$|^filter$|^stop$|^tilt$/.test(id)) { addKeep('lens', ptr.x, ptr.y); closeMenu(); }
+      else if (far > 120 && id.startsWith('keep-')) { splash(ptr.x, ptr.y, 1.1, '255,223,168'); dropKeep(id); }
+      else if (id === 'can' && meta.dragged && !mixed && far > 150 && throwWater('can', ptr.x, ptr.y, far)) { /* thrown, not opened */ } else
       if (meta.dragged && !mixed && sp?.opens && ui.open !== id) { ui.open = id; ui.openAt = performance.now(); render(); }
       pulls.delete(id); pulls.delete(id + ':from'); if (id === 'primary') ui.flowHeld = false;
     }
@@ -422,7 +441,7 @@ function syncField() {
     let width = sp.kind === 'range' ? (mobile ? 116 : 145) : sp.value ? clamp(String(sp.value).length * 12 + 36, 78, mobile ? 132 : 175) : clamp(String(sp.label || sp.note || '').length * 7 + 36, 72, mobile ? 132 : 175);
     if (sp.id === 'place' || sp.id === 'time-current') width = mobile ? 145 : 195; if (sp.id === 'voice-current') width = mobile ? 150 : 210; if (sp.className?.includes('trace-drop')) width = mobile ? 185 : 240; if (sp.className?.includes('plate-detail')) width = mobile ? 215 : 300; if (sp.className?.includes('map-drop')) width = Math.min(world.clientWidth - 60, 420); element.style.width = width + 'px';
     if (sp.kind === 'range') { element.setAttribute('role', 'slider'); element.setAttribute('aria-label', sp.kicker); element.setAttribute('aria-valuemin', sp.min); element.setAttribute('aria-valuemax', sp.max); element.setAttribute('aria-valuenow', sp.number); element.setAttribute('aria-valuetext', sp.value); const input = element.querySelector('input'); input.tabIndex = -1; input.setAttribute('aria-hidden', 'true'); if (!sp.note) { const note = element.querySelector('.drop-note'); note.hidden = false; note.textContent = sp.id === 'time-current' ? 'pull sideways through time' : `pull up · ${sp.min} to ${sp.max}`; } }
-    descriptors.push({ id: sp.id, element, anchorX, anchorY, viscosity: sp.viscosity || 1.5, role: sp.kind === 'button' ? 'action' : sp.kind, critical, label: [sp.kicker, sp.value || sp.label || sp.note].filter(Boolean).join(' · '), adjust: sp.kind === 'range' || !!sp.cycle || !!sp.flow || !!sp.carry });
+    descriptors.push({ id: sp.id, element, anchorX, anchorY, viscosity: sp.viscosity || 1.5, role: sp.kind === 'button' ? 'action' : sp.kind, critical, label: [sp.kicker, sp.value || sp.label || sp.note].filter(Boolean).join(' · '), adjust: sp.kind === 'range' || !!sp.cycle || !!sp.flow || !!sp.carry || !!sp.keep });
   }
   const fixed = (id, anchorX, anchorY, extra = {}) => { const element = $(id); if (element && !element.hidden && element.getClientRects().length) descriptors.push({ id, element, anchorX, anchorY, role: 'action', viscosity: 1.7, label: [...element.querySelectorAll('.drop-label,.drop-value,.drop-note')].map(el => el.textContent.trim()).filter(Boolean).join(' · '), ...extra }); };
   if (!ui.menu) { fixed('steer', .2, .81, { critical: true, viscosity: .55 }); fixed('say-form', mobile ? .32 : .23, .43, { role: 'info', critical: true, viscosity: 4 }); }
@@ -457,14 +476,40 @@ window.addEventListener('pointermove', e => { if (!rub || rub.id !== e.pointerId
 for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, e => { if (rub?.id === e.pointerId) rub = null; }, true);
 let swAt = 0;
 $('menu-toggle').addEventListener('click', () => { if (performance.now() - swAt < 600) return; returnNow(false); stopSteer(); ui.menu = !ui.menu; ui.menuGroup = null; ui.menuTouch = performance.now(); render(); });
+// Touch anything in the scene and the water shows what can be done with it, there, on the thing.
+function thingsOnScreen() { const T = S.things || {}, W = world.clientWidth, H = world.clientHeight, on = t => t && t.front && t.x > 0 && t.x < W && t.y > 0 && t.y < H, out = [];
+  if (on(T.donkey)) out.push({ kind: 'donkey', x: T.donkey.x, y: T.donkey.y - T.donkey.s * .2, r: clamp(T.donkey.s * 1.2, 26, 170), dist: T.donkey.dist });
+  if (on(T.source)) out.push({ kind: 'source', x: T.source.x, y: T.source.y, r: clamp(T.source.s * 1.2, 26, 150), dist: T.source.dist });
+  for (const p of T.people || []) if (on(p)) out.push({ kind: 'person', x: p.x, y: p.y + p.s * .9, r: clamp(p.s * 1.05, 26, 170), dist: p.dist });
+  if (on(T.wagon)) out.push({ kind: 'wagon', x: T.wagon.x, y: T.wagon.y, r: clamp(T.wagon.s * 1.8, 26, 190), dist: T.wagon.dist });
+  if (on(T.can)) out.push({ kind: 'me', x: T.can.x, y: T.can.y - T.can.s * .2, r: clamp(T.can.s * 1.0, 26, 170), dist: 0 });
+  if (on(T.next)) out.push({ kind: 'next', x: T.next.x, y: T.next.y, r: 44, dist: T.next.dist });
+  return out; }
+function touchThing(x, y) {
+  const hit = thingsOnScreen().map(t => ({ t, d: Math.hypot(x - t.x, y - t.y) - t.r })).filter(o => o.d < 18).sort((a, b) => (a.d + a.t.r) / a.t.r - (b.d + b.t.r) / b.t.r)[0];
+  const kind = hit ? hit.t.kind : y < world.clientHeight * .24 ? 'sky' : 'ground'; ui.touch = { kind, x, y, at: performance.now() }; ui.open = null; splash(x, y, .7); render();
+}
+// A moment can be kept. Drag "Now" up off its line, or carry a camera drop out onto the glass, and a bead stays where you
+// let go, holding that state: where you stood and how the lens was set. Touch the bead to be there again; carry it far to let it go.
+const keeps = []; let keepN = 0, catchAt = null;
+function addKeep(kind, x, y) {
+  if (keeps.length >= 5) { const old = keeps.shift(); PIC.thumbs.delete(old.id); }
+  const id = 'keep-' + (++keepN), L = S.lens, W = world.clientWidth, H = world.clientHeight, th = document.createElement('canvas'); th.width = th.height = PIC.TH;
+  try { const r = Math.min(W, H) * (kind === 'lens' ? .2 : .46), k = B.canvas.width / W; th.getContext('2d').drawImage(B.canvas, (W / 2 - r) * k, (H / 2 - r) * k, r * 2 * k, r * 2 * k, 0, 0, PIC.TH, PIC.TH); th._ok = true; } catch { }
+  PIC.thumbs.set(id, th);
+  keeps.push({ id, kind, x: clamp(x / W, .14, .82), y: clamp(y / H, .13, .82), lens: { focus: L.focus, filter: L.filter, stop: L.stop, tilt: L.tilt }, pos: kind === 'moment' ? { ...S.pos } : null, label: kind === 'lens' ? `${n(Math.min(100, L.focus))} m` : shortName(S.place.name) });
+  cause = kind === 'lens' ? 'A lens setting was kept.' : 'This moment was kept.'; announce(cause); splash(x, y, 1.3, '255,223,168'); render();
+}
+function restoreKeep(k) { if (ui.past) return; B.act.focus(k.lens.focus); B.act.set('filter', k.lens.filter); B.act.set('stop', k.lens.stop); B.act.set('tilt', k.lens.tilt); if (k.pos) B.act.warp(k.pos.x, k.pos.z, k.pos.yaw); cause = k.pos ? `Back at ${k.label}.` : `Lens back to ${k.label}.`; announce(cause); S = B.state(); render(); }
+function dropKeep(id) { const i = keeps.findIndex(k => k.id === id); if (i < 0) return; keeps.splice(i, 1); PIC.thumbs.delete(id); cause = 'Let go.'; render(); }
 // the menu is left the way it was entered: touch the world to close it, swipe toward the edge to step back, swipe in from the edge to open
 let sw = null;
-window.addEventListener('pointerdown', e => { if (e.button > 0 || !S.ready) return; const onDrop = !!e.target.closest?.('#rw .liquid:not(#menu-toggle),input,textarea'); sw = { id: e.pointerId, x: e.clientX, y: e.clientY, edge: e.clientX > world.clientWidth - 30, onDrop, done: false };
+window.addEventListener('pointerdown', e => { if (e.button > 0 || !S.ready) return; const onDrop = !!e.target.closest?.('#rw .liquid:not(#menu-toggle),input,textarea'); sw = { id: e.pointerId, t0: performance.now(), x: e.clientX, y: e.clientY, edge: e.clientX > world.clientWidth - 30, onDrop, done: false };
   if (ui.menu && !onDrop && !sw.edge) { sw.tapClose = true; } }, true);
 window.addEventListener('pointermove', e => { if (!sw || sw.id !== e.pointerId || sw.done) return; const dx = e.clientX - sw.x, dy = e.clientY - sw.y; if (Math.abs(dx) < 46 || Math.abs(dy) > Math.abs(dx)) return;
   if (ui.menu && dx > 0) { sw.done = true; swAt = performance.now(); sw.tapClose = false; if (ui.menuGroup) { ui.menuGroup = null; ui.menuAt = 0; ui.menuTouch = performance.now(); } else closeMenu(); render(); }
   else if (!ui.menu && sw.edge && dx < 0 && !ui.past) { sw.done = true; swAt = performance.now(); ui.menu = true; ui.menuGroup = null; ui.menuTouch = performance.now(); stopSteer(); render(); } }, true);
-for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, e => { if (!sw || sw.id !== e.pointerId) return; if (sw.done) swAt = performance.now(); if (sw.tapClose && ui.menu && Math.hypot(e.clientX - sw.x, e.clientY - sw.y) < 14) { closeMenu(); swAt = performance.now(); render(); } sw = null; }, true);
+for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, e => { if (!sw || sw.id !== e.pointerId) return; if (sw.done) swAt = performance.now(); else if (!sw.onDrop && !sw.edge && !ui.menu && !ui.past && ui.scene === 'world' && !grab && performance.now() - sw.t0 < 380 && Math.hypot(e.clientX - sw.x, e.clientY - sw.y) < 12) touchThing(e.clientX, e.clientY); if (sw.tapClose && ui.menu && Math.hypot(e.clientX - sw.x, e.clientY - sw.y) < 14) { closeMenu(); swAt = performance.now(); render(); } sw = null; }, true);
 $('say-form').addEventListener('submit', e => { e.preventDefault(); const text = $('say-text').value.trim(); if (!text || ui.past) return; B.act.say(text); ui.say = false; $('say-text').value = ''; render(); });
 for (const type of ['keydown', 'keyup', 'keypress']) $('say-text').addEventListener(type, e => e.stopPropagation());
 document.addEventListener('keydown', e => {
@@ -521,7 +566,7 @@ const PRE = ['menu-go', 'menu-water', 'menu-camera', 'menu-talk', 'menu-more', '
 const HAS_MORE = /^menu-(go|water|camera|talk|more)$|^menu-[a-z]+-(map|can|donkey|lens|rig|people|sound|weather|all)$/;
 function picTick(now) {
   const W = world.clientWidth, H = world.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), cv = PIC.cv; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => /^menu-(?!spring|edge)|^act-|^can$|^next$|^it-|^all-/.test(b.id));
+  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => /^menu-(?!spring|edge)|^act-|^can$|^next$|^it-|^all-|^keep-|^aff-/.test(b.id));
   if (S.ready && !ui.past && now - (PIC.pre || 0) > 900) { PIC.pre = now;      // keep a view of every subject while it is in frame, so its drop can show it later
     const W2 = Math.round(W * .6), H2 = Math.round(H * .6); if (PIC.snap.width !== W2 || PIC.snap.height !== H2) { PIC.snap.width = W2; PIC.snap.height = H2; } let shot = false;
     for (const id of PRE) { if (bodies.some(b => b.id === id)) continue; const src = subjectOf(id); if (!src || src.img) continue; if (!shot) { try { PIC.snap.getContext('2d').drawImage(B.canvas, 0, 0, W2, H2); } catch { } shot = true; }
@@ -537,7 +582,7 @@ function picTick(now) {
   for (const b of bodies) { const th = PIC.thumbs.get(b.id), has = th && th._ok; if (!has && !b.id.startsWith('menu-')) continue; const menu = b.id.startsWith('menu-'), R = menu ? 27 : clamp(Math.min(b.rx || 30, b.ry || 26) * .62, 15, 26), x = menu ? b.x + 34 : b.x, y = b.y + (menu ? 0 : -1), wob = Math.sin(now / 900 + x) * 1.2;
     g.save(); g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.clip(); g.globalAlpha = .94; if (has) g.drawImage(th, x - R * 1.12, y - R * 1.12, R * 2.24, R * 2.24); else { g.fillStyle = 'rgba(150,225,235,.10)'; g.fillRect(x - R * 1.2, y - R * 1.2, R * 2.4, R * 2.4); }
     const sh = g.createRadialGradient(x - R * .35, y - R * .42, R * .1, x, y, R * 1.1); sh.addColorStop(0, 'rgba(255,255,255,.34)'); sh.addColorStop(.28, 'rgba(255,255,255,0)'); sh.addColorStop(.78, 'rgba(4,20,28,0)'); sh.addColorStop(1, 'rgba(4,20,28,.62)'); g.globalAlpha = 1; g.fillStyle = sh; g.fillRect(x - R * 1.2, y - R * 1.2, R * 2.4, R * 2.4); g.restore();
-    g.lineWidth = 1.3; g.strokeStyle = 'rgba(214,250,250,.7)'; g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.stroke();
+    g.shadowColor = 'rgba(200,248,250,.5)'; g.shadowBlur = 8; g.lineWidth = 2; g.strokeStyle = 'rgba(214,250,250,.10)'; g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.stroke(); g.shadowBlur = 0;
     g.fillStyle = 'rgba(255,255,255,.8)'; g.beginPath(); g.ellipse(x - R * .42, y - R * .5, R * .16, R * .08, -.6, 0, 7); g.fill();
     if (HAS_MORE.test(b.id)) { for (let i = 0; i < 3; i++) { const yy = y + R * 1.05 + 5 + i * 8, rr = 3.6 - i * .9; g.beginPath(); g.arc(x + Math.sin(now / 700 + i) * 1.5, yy, rr, 0, 7); g.fillStyle = 'rgba(190,240,245,.42)'; g.fill(); g.lineWidth = 1; g.strokeStyle = 'rgba(214,250,250,.75)'; g.stroke(); } }
   }
@@ -564,7 +609,7 @@ function msTick(now, dt) {
   F.fill(0);
   for (const [x, y, rx, ry] of src) { const c0 = Math.max(0, Math.floor((x - rx * 3) / cell)), c1 = Math.min(cols - 1, Math.ceil((x + rx * 3) / cell)), r0 = Math.max(0, Math.floor((y - ry * 3) / cell)), r1 = Math.min(rows - 1, Math.ceil((y + ry * 3) / cell));
     for (let r = r0; r <= r1; r++) { const dy = (r * cell - y) / ry, dy2 = dy * dy; for (let c = c0; c <= c1; c++) { const dx = (c * cell - x) / rx, d2 = dx * dx + dy2; if (d2 < 9) F[r * cols + c] += 1 / (d2 + .06) - .11; } } }
-  const d = MS.img.data; for (let i = 0; i < F.length; i++) { const t = clamp((F[i] - .7) / .7, 0, 1), a = t * t * (3 - 2 * t); d[i * 4] = 150; d[i * 4 + 1] = 228; d[i * 4 + 2] = 236; d[i * 4 + 3] = a * 30; }
+  const d = MS.img.data; for (let i = 0; i < F.length; i++) { const t = clamp((F[i] - .7) / .7, 0, 1), a = t * t * (3 - 2 * t); d[i * 4] = 150; d[i * 4 + 1] = 228; d[i * 4 + 2] = 236; d[i * 4 + 3] = a * 46; }
   MS.low.getContext('2d').putImageData(MS.img, 0, 0);
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); g.imageSmoothingEnabled = true; g.drawImage(MS.low, -cell / 2, -cell / 2, cols * cell, rows * cell); MS.dirty = true;
   const T = 1, lerp = (a, b) => (T - a) / (b - a); g.beginPath();
@@ -574,7 +619,7 @@ function msTick(now, dt) {
     const seg = (p, q) => { g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); };
     switch (k) { case 1: case 14: seg(left, bottom); break; case 2: case 13: seg(bottom, right); break; case 3: case 12: seg(left, right); break; case 4: case 11: seg(top, right); break; case 6: case 9: seg(top, bottom); break; case 7: case 8: seg(top, left); break; case 5: seg(top, left); seg(bottom, right); break; case 10: seg(top, right); seg(left, bottom); break; }
   }
-  g.lineCap = 'round'; g.lineWidth = 3.4; g.strokeStyle = 'rgba(4,22,30,.28)'; g.stroke(); g.lineWidth = 1.25; g.strokeStyle = 'rgba(206,250,250,.62)'; g.stroke();
+  g.lineCap = 'round'; g.lineJoin = 'round'; g.shadowColor = 'rgba(200,248,250,.55)'; g.shadowBlur = 7; g.lineWidth = 2.2; g.strokeStyle = 'rgba(206,250,250,.07)'; g.stroke(); g.shadowBlur = 0;   // a soft meniscus glow, never a drawn outline
 }
 // ---- splash -------------------------------------------------------------------------------------------------------------
 // Water answers a touch: a crown of droplets thrown up and falling back, and rings running out across the glass.
@@ -586,12 +631,20 @@ function splash(x, y, k = 1, tone = '178,247,240') {
   const count = Math.round(12 + 10 * k); for (let i = 0; i < count; i++) { const a = -Math.PI / 2 + (Math.random() - .5) * Math.PI * 1.25, sp = (150 + Math.random() * 260) * k; SP.parts.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: 1.2 + Math.random() * 2.6, life: 0, ttl: .55 + Math.random() * .5, tone }); }
   glass.burst(x, y, 'water'); if (navigator.vibrate && k > 1) { try { navigator.vibrate(8); } catch { } }
 }
+function guideTick(now) {
+  if (ui.reduced || ui.menu || ui.past || ui.scene !== 'world' || !S.ready || now - (SP.guideAt || 0) < 3400) return; SP.guideAt = now;
+  const L = S.live, c = thingsOnScreen().filter(t => t.kind === 'source' ? (L && L.kind === 'draw') || t.dist < 30 : t.kind === 'donkey' ? t.dist < 14 : t.kind === 'person' ? t.dist < 9 : t.kind === 'wagon' ? t.dist < 12 : false); if (!c.length) return;
+  const t = c[(SP.guideN = (SP.guideN || 0) + 1) % c.length]; SP.falls = SP.falls || []; SP.falls.push({ x: t.x + (Math.random() - .5) * 10, y: -20, ty: t.y - t.r * .35, v: 520 });
+}
 function splashTick(dt) {
+  guideTick(performance.now());
+  if (SP.falls && SP.falls.length) { for (const f of SP.falls) { f.v += 1500 * dt; f.y += f.v * dt; if (f.y >= f.ty && !f.done) { f.done = true; splash(f.x, f.ty, .5); } } }
   const W = world.clientWidth, H = world.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), cv = SP.cv; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-  const g = cv.getContext('2d'); if (!SP.parts.length && !SP.rings.length) { if (SP.dirty) { g.clearRect(0, 0, cv.width, cv.height); SP.dirty = false; } return; }
+  const g = cv.getContext('2d'); if (!SP.parts.length && !SP.rings.length && !(SP.falls && SP.falls.length)) { if (SP.dirty) { g.clearRect(0, 0, cv.width, cv.height); SP.dirty = false; } return; }
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); g.lineCap = 'round'; SP.dirty = true;
   for (const r of SP.rings) { r.r += r.v * dt; r.v *= Math.pow(.05, dt); r.a -= dt * 1.25; if (r.a <= 0) continue; g.strokeStyle = `rgba(${r.tone},${r.a})`; g.lineWidth = r.w; g.beginPath(); g.ellipse(r.x, r.y, r.r, r.r * .42, 0, 0, 7); g.stroke(); }
   for (const p of SP.parts) { p.life += dt; p.vy += 1150 * dt; p.x += p.vx * dt; p.y += p.vy * dt; const a = 1 - p.life / p.ttl; if (a <= 0) continue; g.strokeStyle = `rgba(${p.tone},${a * .9})`; g.lineWidth = p.r * 2; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * .022, p.y - p.vy * .022); g.stroke(); g.fillStyle = `rgba(255,255,255,${a * .7})`; g.beginPath(); g.arc(p.x - p.r * .3, p.y - p.r * .3, p.r * .45, 0, 7); g.fill(); }
+  if (SP.falls) { for (const f of SP.falls) if (!f.done) { g.strokeStyle = 'rgba(200,248,250,.75)'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(f.x, f.y); g.lineTo(f.x, f.y - Math.min(46, f.v * .05)); g.stroke(); } SP.falls = SP.falls.filter(f => !f.done); }
   SP.rings = SP.rings.filter(r => r.a > 0); SP.parts = SP.parts.filter(p => p.life < p.ttl && p.y < H + 20);
 }
 // ---- the text field ----------------------------------------------------------------------------------------------------
@@ -614,7 +667,7 @@ function fieldText() {
   return parts.filter(Boolean).join(' ').replace(/\b(\d+) m\b/g, (_, d) => `${Math.round(d / 5) * 5 || d} m`);   // coarse distances keep the paragraph from re-setting every step
 }
 function stamp(x, y, r, a) { const g = TF.mask.getContext('2d'), k = TF.mask.width / world.clientWidth, gr = g.createRadialGradient(x * k, y * k, 0, x * k, y * k, r * k); gr.addColorStop(0, `rgba(255,255,255,${a})`); gr.addColorStop(.62, `rgba(255,255,255,${a * .85})`); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x * k, y * k, r * k, 0, 7); g.fill(); TF.wet = performance.now(); }
-function wetAt(e) {                                                   // every pointer move wets the glass under it; a held drop wets wider
+function wetAt(e) { return;                                                   // every pointer move wets the glass under it; a held drop wets wider
   if (ui.menu || !S.ready || !TF.mask.width || !held) { TF.lx = null; return; } const x = e.clientX, y = e.clientY, now = performance.now();
   if (TF.lx != null && now - TF.lt < 500 && Math.hypot(x - TF.lx, y - TF.ly) < 260) { const steps = Math.max(1, Math.ceil(Math.hypot(x - TF.lx, y - TF.ly) / 28)); for (let i = 1; i <= steps; i++) stamp(TF.lx + (x - TF.lx) * i / steps, TF.ly + (y - TF.ly) * i / steps, held ? 125 : 96, 1); } else stamp(x, y, 96, 1);
   TF.lx = x; TF.ly = y; TF.lt = now;
@@ -651,7 +704,7 @@ function tick(now) {
 }
 new ResizeObserver(() => syncField()).observe(world);
 initializeField(); render(); requestAnimationFrame(tick);
-window.__rainSurface = { PIC, subjectOf, MS, sceneWaters, get held() { return held; }, get mix() { return mix; }, SP, splash, TF, stamp, fieldText, ui, weather, glass, memory, ink, render, get field() { return field; }, get specs() { return specs; }, get undo() { return undo; }, setTimeAge, returnNow, go: s => go(s)() };
+window.__rainSurface = { keeps, touchThing, thingsOnScreen, PIC, subjectOf, MS, sceneWaters, get held() { return held; }, get mix() { return mix; }, SP, splash, TF, stamp, fieldText, ui, weather, glass, memory, ink, render, get field() { return field; }, get specs() { return specs; }, get undo() { return undo; }, setTimeAge, returnNow, go: s => go(s)() };
 }
 boot();
 })();

@@ -485,3 +485,5 @@
 /* the menu is five small words by the thumb, never a wall */
 #rw #menu-ink text{font:italic 16px Georgia,serif}
 #rw #menu-stream .liquid{width:96px!important;min-height:44px!important;height:44px!important;padding:6px!important}
+#rw .keep .drop-value{font-size:15px!important;font-style:italic;opacity:.9}
+#rw .keep .drop-value{font-size:15px!important;font-style:italic;opacity:.9}
