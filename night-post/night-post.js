@@ -8206,6 +8206,7 @@ void main(){
         body.dew-skin #dk-verbs .verb,body.dew-skin #dk-offers .verb{min-width:0!important;width:58px;height:58px;min-height:0!important;padding:0!important;overflow:hidden}
         body.dew-skin #dk-offers .verb{width:48px;height:48px}
         body.dew-skin #dk-status{width:58px;height:66px}
+        body.dew-skin #dk-verbs .verb[data-plain]{width:auto;min-width:118px!important;height:50px;padding:0 20px!important}
         body.dew-skin #dk-verbs .verb,body.dew-skin #dk-chips button{position:fixed;left:50%;top:70%;transform:translate(-50%,-50%);margin:0;touch-action:none;white-space:nowrap}
         body.dew-skin #dk-offers .verb{position:fixed;transform:translate(-50%,-50%);margin:0;touch-action:none;white-space:nowrap;min-width:0;min-height:42px;padding:8px 16px;font-size:14px;pointer-events:auto;background:none!important;border-color:transparent!important;box-shadow:none!important;color:transparent!important;text-shadow:none!important;animation:none!important}
         body.dew-skin #dk-offers .verb::after{display:none}
@@ -8312,13 +8313,25 @@ void main(){
           if (demo.lang !== "en") fetch(`./lang/${demo.lang}.json`).then(r => r.json()).then(j => { if (demo.lang === RL.get(code).code) demo.tr = j; }).catch(() => { }); document.documentElement.lang = demo.lang; try { localStorage.setItem("ahiya-lang", demo.lang); } catch (e) { } };
         demo.setLang(lc || "en");
         const keyOf = el => el && el.dataset ? el.dataset.key || (el.dataset.offer ? "o:" + el.dataset.offer : "") : "";
-        demo.dew.onSwat = el => { const k = keyOf(el); if (!k) return; if (k[0] === "o") { el.remove(); return; } const sw = demo.swats || (demo.swats = (() => { try { return JSON.parse(localStorage.getItem("ahiya-swat") || "{}"); } catch (e) { return {}; } })()); sw[k] = Math.min(6, (sw[k] || 0) + 1); try { localStorage.setItem("ahiya-swat", JSON.stringify(sw)); } catch (e) { }
-          (demo.snooze || (demo.snooze = {}))[k] = (demo.clock || 0) + (k[0] === "m" ? 9000 : 26000 * sw[k]); demo.dockSig = ""; demo.dockT = 0; };   // erosion: what you keep swatting away stays away longer
-        demo.dew.onWipe = () => { demo.mapOn = false; demo.mapUntil = 0; const t = (demo.clock || 0) + 12000, z = demo.snooze || (demo.snooze = {}); for (const b of document.querySelectorAll("#dk-verbs [data-key]")) z[b.dataset.key] = b.dataset.key[0] === "m" ? t - 5000 : t;
-          document.getElementById("dk-offers").innerHTML = ""; demo.offerT = 9; demo.talking = false; demo.dockSig = ""; demo.dockT = 0; if (demo.menuOpen) ui.openSheet(false); };
-        q("dk-map").onclick = () => { demo.mapOn = !demo.mapOn; demo.mapUntil = 0; };
+        // CARRY: water moves between the can and the wet thing. Start on either; let go on the other. A touch on the wet
+        // thing alone also does it. Let go anywhere else and the water goes back.
+        let carry = null; const canPos = () => { const r = q("dk-status").getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+        addEventListener("pointerdown", e => {
+          if (carry || demo.handoff || state.introActive) return; const w = demo.wetPos, t = e.target, onCan = t.closest && t.closest("#dk-status");
+          const onThing = w && (t === canvas || t.id === "viewfinder") && Math.hypot(e.clientX - w.x, e.clientY - w.y) < w.r + 30;
+          if (!onCan && !onThing) return; if (onCan && !w) return;
+          e.stopImmediatePropagation(); const c0 = canPos(); carry = { id: e.pointerId, from: onCan ? "can" : "thing", x0: onCan ? c0[0] : w.x, y0: onCan ? c0[1] : w.y, moved: 0, sx: e.clientX, sy: e.clientY };
+          demo.dew.carry = { x0: carry.x0, y0: carry.y0, x: e.clientX, y: e.clientY };
+        }, true);
+        addEventListener("pointermove", e => { if (!carry || e.pointerId !== carry.id) return; e.stopImmediatePropagation(); carry.moved = Math.max(carry.moved, Math.hypot(e.clientX - carry.sx, e.clientY - carry.sy)); demo.dew.carry.x = e.clientX; demo.dew.carry.y = e.clientY; }, true);
+        const drop = e => { if (!carry || e.pointerId !== carry.id) return; const w = demo.wetPos, c0 = canPos(), k = carry; carry = null; demo.dew.carry = null;
+          const nearThing = w && Math.hypot(e.clientX - w.x, e.clientY - w.y) < w.r + 34, nearCan = Math.hypot(e.clientX - c0[0], e.clientY - c0[1]) < 70;
+          const done = k.from === "can" ? nearThing : (nearCan || k.moved < 16);                      // carried across, or the thing simply touched
+          if (done) { demo.carryFromCan = k.from === "can"; demoLiveDo(); demo.carryFromCan = false; }
+          else demo.dew.drop({ x: e.clientX, y: e.clientY, r: 7, state: "fall", vy: 20, grow: 1, forced: true }); };   // let go over nothing: it falls, nothing is spent
+        addEventListener("pointerup", drop, true); addEventListener("pointercancel", e => { if (carry && e.pointerId === carry.id) { carry = null; demo.dew.carry = null; } }, true);
         demo.dew.onBreathe = () => { demo.mapUntil = (demo.clock || 0) + 7000; demo.snooze = {}; demo.shownAt = {}; demo.offerT = 0; demo.hintT = 0; demo.dockSig = ""; demo.dockT = 0; };   // breath on the glass brings the drops back
-        demo.dew.onMerge = (a, b) => { const v = [a, b].find(el => el.dataset && (el.dataset.verb || el.dataset.ctx)), st = [a, b].find(el => el.id === "dk-status"); if (v && st) v.click(); };
+        demo.dew.onMerge = null; const _unusedMerge = (a, b) => { const v = [a, b].find(el => el.dataset && (el.dataset.verb || el.dataset.ctx)), st = [a, b].find(el => el.id === "dk-status"); if (v && st) v.click(); };
         // the pool: on a touch screen you walk from wherever your thumb comes down in the lower left; lift, and it is gone
         if (matchMedia("(pointer:coarse)").matches) {
           demo.dew.hint = "touch here to walk";
@@ -8421,7 +8434,7 @@ void main(){
       });
       addEventListener("keydown", e => {                                   // E does the stop's verb when there is one; every other key is the game's
         if (document.activeElement === ui.input || e.repeat) return;
-        if (e.code === "KeyE") { const b = ui.verbs.querySelector("button.verb[data-verb]:not(.off)"); if (b) { e.stopImmediatePropagation(); e.preventDefault(); demoDo(b.dataset.verb); } }
+        if (e.code === "KeyE" && demo.live) { e.stopImmediatePropagation(); e.preventDefault(); demoLiveDo(); }
         if (e.code === "Escape" && demo.menuOpen) { e.stopImmediatePropagation(); openMenu(false); }
       }, true);
       q("demo-keys").textContent = touch ? "Left stick walks; push it to the rim to run. Drag anywhere else to look. Jump, Expose, Throw and the wagon are bottom right; everything else is in Menu."
@@ -8544,6 +8557,15 @@ void main(){
     //   Water the donkey only when she is thirsty and you carry water; Ride only beside her
     //   Drive / Park / Get down  only beside the wagon, in it, or on the donkey
     //   Expose          always: making a plate is always possible and always yours
+    function demoLiveDo() {
+      const L = demo.live; if (!L || demo.handoff) return false;
+      if (L.verb) demoDo(L.verb);
+      else if (L.ctx && L.ctx !== "share") { const a = (state.ctxActs || []).find(a => a.id === L.ctx); if (a) a.fn(); }
+      else if (L.ctx === "share" && demo.carryFromCan) { const a = (state.ctxActs || []).find(a => a.id === "share"); if (a) a.fn(); }
+      else if (L.ask) { const who = L.ask, kb = DEMO_KB[who.state.id] || {}, list = ["who", ...Object.keys(kb).filter(k => k !== "who" && kb[k] && DEMO_Q[k]), "where"];
+        const ix = demo.askIx || (demo.askIx = {}), k = list[(ix[who.state.id] || 0) % list.length]; ix[who.state.id] = (ix[who.state.id] || 0) + 1; demoFocus(who); demoSay(k === "where" ? "Where next?" : DEMO_Q[k]); }
+      demo.dockSig = ""; return true;
+    }
     function demoDock(dt) {
       const ui = demo.ui; if (!ui) return;
       demo.dockT = (demo.dockT || 0) - dt; if (demo.dockT > 0) return; demo.dockT = .25;
@@ -8585,46 +8607,24 @@ void main(){
       const ch = !busy && onFoot ? demo.withCh : null;
       if (!ch || (demo.talkWith && demo.talkWith !== ch)) demo.talking = false;     // talking is with one person; walking to another asks again
       if (demo.talking) demo.talkWith = ch; else demo.talkWith = null;
-      // Water yields to the world: a drop is bright for a while, thins, lets go, and falls again later as a reminder if it is
-      // still true. Swatted, it stays away longer. What your state needs never leaves, but it goes faint.
-      const now = demo.clock || 0, snz = demo.snooze || (demo.snooze = {}), born = demo.shownAt || (demo.shownAt = {}), keys = new Set();
-      if (demo.snoozeSig !== c.place + "|" + c.liters) { demo.snoozeSig = c.place + "|" + c.liters; for (const k in snz) if (k[0] !== "m") delete snz[k]; }   // something changed: a fresh shower
-      // One at a time. Of everything that is true, only the most pressing is on the glass; when it thins and lets go, or is
-      // used, there is a pause, and then the next falls. While someone is speaking nothing else is there at all.
-      const cand = [];
-      for (const m of must) cand.push(["m:" + m.k, 0]);
-      for (const a of extra) if (a.urgent) cand.push(["x:" + a.id, 0]);
-      for (const o of verbs) cand.push(["v:" + o.id, 13000]);
-      for (const a of extra) if (!a.urgent) cand.push(["x:" + a.id, 9000]);
-      if (ch && !demo.talking) cand.push(["t:" + ch.state.id, 11000]);
-      const speaking = !!demo.line;
-      let cur = cand.find(c => c[0] === demo.curKey && !(snz[c[0]] > now));
-      if (cur && cur[1] && now - (born[cur[0]] || now) > cur[1]) { snz[cur[0]] = now + 16000 + Math.random() * 8000; delete born[cur[0]]; cur = null; demo.gapUntil = now + 2200; }
-      if (!cur) { demo.curKey = null; if (now > (demo.gapUntil || 0) && !speaking) { cur = cand.find(c => !(snz[c[0]] > now)) || null; if (cur) { demo.curKey = cur[0]; born[cur[0]] = now; } } }
-      const keep = k => !speaking && cur && cur[0] === k || (k[0] === "m" && cur && cur[0] === k);
-      verbs = verbs.filter(o => keep("v:" + o.id));
-      for (let i = extra.length - 1; i >= 0; i--) if (!keep("x:" + extra[i].id)) extra.splice(i, 1);
-      for (let i = must.length - 1; i >= 0; i--) { const k = "m:" + must[i].k; if (!(cur && cur[0] === k)) must.splice(i, 1); else must[i].faint = speaking || now - (born[k] || now) > 5000; }
-      const askLive = !!(ch && !demo.talking && keep("t:" + ch.state.id));
-      const kb = ch ? DEMO_KB[ch.state.id] || {} : {};
-      const qs = ch && demo.talking ? ["who", ...Object.keys(kb).filter(k => k !== "who" && kb[k] && DEMO_Q[k])].slice(0, 4) : [];
-      const sig = (askLive ? "A" : "") + must.map(m => m.k + m.label + (m.faint ? "f" : "")).join() + verbs.map(o => o.id).join() + "|" + extra.map(a => a.id + a.label).join() + "|" + (ch ? ch.state.id : "") + (demo.talking ? "T" : "") + qs.join() + c.liters;
+      // WET THINGS. The glass offers nothing. The one thing in the world you can act on gets wet, and water moves between
+      // the can and that thing: carry from the pump to the can to draw, from the can to a person, tap or donkey to give.
+      // A person with nothing to take is touched to be asked. The only control drawn for you is the way out of a state.
+      const speaking = !!demo.line; let live = null;
+      const urg = extra.find(a => a.urgent);
+      if (!busy && !speaking && onFoot) {
+        if (urg) live = { kind: "give", ctx: urg.id, at: "donkey", dl: 0 };
+        else if (verbs.length) { const o = verbs[0], V = DEMO_VERB[o.id], m = /(\d+)\s*L/.exec(V.label);
+          live = { kind: V.kind === "draw" ? "draw" : V.kind === "talk" ? "talk" : "give", verb: o.id, at: o.id === "pump" ? "pump" : "ch:" + V.who, dl: o.id === "pump" ? 20 - c.liters : V.kind === "talk" ? 0 : m ? -(+m[1]) : 0 }; }
+        else if (extra.some(a => a.id === "share")) live = { kind: "give", ctx: "share", at: "ch:" + ch.state.id, dl: 0, ask: ch };
+        else if (ch) live = { kind: "talk", ask: ch, at: "ch:" + ch.state.id, dl: 0 };
+      }
+      demo.live = live;
+      const st = q("dk-status"); if (live && live.dl) st.dataset.ghost = (clamp(c.liters + live.dl, 0, 20) / 20).toFixed(3); else delete st.dataset.ghost;   // what this act would leave in the can
+      const sig = must.map(m => m.k + m.label).join() + (speaking ? "s" : "");
       if (sig === demo.dockSig) return; demo.dockSig = sig;
-      const VI = { pump: ["draw", "water"], cool: ["pour", "water"], tap: ["pour", "water"], ask: ["aunt", "talk"], copy: ["archive", "talk"], listen: ["listen", "sys"], screen: ["plates", "lens"] };
-      const XI = { "water-burro": ["donkey", "water"], ride: ["ride", "go"], share: ["share", "water"] }, MI = { land: "down", down: "down", park: "park", fly: "wing" };
-      const QI = { who: "who", water: "drop", chalk: "chalk", donkey: "donkey", song: "song", aunt: "aunt", beacon: "beacon", archive: "archive", compound: "compound", phone: "phone", where: "where" };
-      const csq = o => { const m = /(\d+)\s*L/.exec(DEMO_VERB[o.id].label); const n = o.id === "pump" ? 20 - c.liters : m ? -(+m[1]) : 0;
-        return n ? `<span class="csq">${c.liters} → ${clamp(c.liters + n, 0, 20)} L</span>` : ""; };     // the consequence, on the button
-      const shown = verbs.slice(0, 2);
-      let html = shown.map((o, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-verb="${o.id}" data-key="v:${o.id}" data-icon="${VI[o.id][0]}" data-stain="${VI[o.id][1]}" data-anchor="${o.id === "pump" ? "pump" : "ch:" + DEMO_VERB[o.id].who}">${i === 0 ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${csq(o)}</button>`).join("");
-      html += extra.slice(0, Math.max(0, 2 - shown.length)).map(a => `<button type="button" class="verb alt${a.urgent ? " urgent" : ""}" data-ctx="${a.id}" data-key="x:${a.id}" data-icon="${(XI[a.id] || ["drop"])[0]}" data-stain="${a.urgent ? "urgent" : (XI[a.id] || [0, "water"])[1]}" data-anchor="${a.id === "share" && ch ? "ch:" + ch.state.id : "donkey"}">${a.label}</button>`).join("");
-      html += must.map((m, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-do="${m.k}" data-key="m:${m.k}" data-icon="${MI[m.k]}" data-stain="go"${m.faint ? ' data-dew-faint="1"' : ""} data-anchor="self">${m.label}</button>`).join("");
-      if (askLive) html += `<button type="button" class="verb alt" data-talk="1" data-key="t:${ch.state.id}" data-icon="ask" data-stain="talk" data-anchor="head:${ch.state.id}">Ask ${demoName(ch).split(" ").pop()}</button>`;
-      ui.verbs.innerHTML = html;
-      ui.chips.hidden = !(ch && demo.talking);
-      ui.chips.dataset.who = ch ? ch.state.id : "";
-      ui.chips.innerHTML = ch && demo.talking ? `<button type="button" class="x" data-untalk="1" aria-label="Stop talking" data-icon="x">×</button>` + qs.concat(["where"]).map(k => `<button type="button" data-topic="${k}" data-icon="${QI[k]}" data-stain="talk" data-ask="${k === "where" ? "Where next?" : DEMO_Q[k]}">${k === "where" ? "Where next?" : DEMO_Q[k]}</button>`).join("")
-        + `<button type="button" data-type="1" aria-label="Type or speak" data-icon="say" data-stain="talk">Say…</button>` : "";
+      ui.verbs.innerHTML = must.map((m, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-do="${m.k}" data-key="m:${m.k}" data-plain="1" data-stain="go" data-anchor="self">${m.label}</button>`).join("");
+      ui.chips.hidden = true; ui.chips.innerHTML = "";
     }
     // Information condenses where its thing is: each action drop sits on the pump, the person or the donkey it belongs to,
     // and a person's questions bead around their head. Off screen or behind you, a drop waits at the nearest edge.
@@ -8648,20 +8648,11 @@ void main(){
         return t === "who" || t === "phone" ? chPos(who, 1.6) : t === "water" ? proj(state.x, driveSurfaceAt(state.x, state.z) + 1.0, state.z) : t === "chalk" ? setP("basalt") : t === "donkey" ? proj(donkey.state.x, donkey.group.position.y + 1.1, donkey.state.z)
           : t === "aunt" ? chPos("aunt_lemlem", 1.6) : t === "beacon" ? setP("beacon") : t === "archive" ? setP("hill") : t === "compound" ? setP("compound")
           : t === "where" ? setP(["basalt", "beacon", "hill", "compound"].find(k => !c.visited.includes(k)) || "compound") : null; };
-      for (const b of ui.verbs.children) {
-        const a = b.dataset.anchor || "", r = b.getBoundingClientRect(), hw = r.width / 2 || 60, hh = r.height / 2 || 27; let p = null;
-        if (a === "pump") p = proj(DEMO_SETS.basalt[0], driveSurfaceAt(DEMO_SETS.basalt[0], DEMO_SETS.basalt[1]) + 1.25, DEMO_SETS.basalt[1]);
-        else if (a === "donkey") p = proj(donkey.state.x, donkey.group.position.y + 1.45, donkey.state.z);
-        else if (a.startsWith("ch:")) p = chPos(a.slice(3), 1.15);
-        else if (a.startsWith("head:")) p = chPos(a.slice(5), 1.72);
-        else if (a === "self") p = [Wd / 2, Hd - 86];
-        put(b, p, hw, hh, a === "self");
-      }
-      const who = ui.chips.dataset.who, head = who ? chPos(who, 1.7) : null, list = [...ui.chips.children], n = list.length;
-      list.forEach((b, i) => { const r = b.getBoundingClientRect(), hw = r.width / 2 || 50, hh = r.height / 2 || 22;
-        if (!head) return put(b, null, hw, hh, true);
-        const ring = i < 4 ? 0 : 1, k = ring ? i - 4 : i, m = ring ? Math.max(1, n - 4) : Math.min(4, n), ang = (-158 + (m > 1 ? k / (m - 1) : .5) * 136) * Math.PI / 180, rad = ring ? 168 : 104;
-        put(b, [head[0] + Math.cos(ang) * rad * 1.15, head[1] + Math.sin(ang) * rad * .8 + 30], hw, hh, true); });
+      for (const b of ui.verbs.children) { const r = b.getBoundingClientRect(); put(b, [Wd / 2, Hd - 86], r.width / 2 || 60, r.height / 2 || 27, true); }
+      const L = demo.live; let wt = null;
+      if (L) { const a = L.at, p = a === "pump" ? proj(DEMO_SETS.basalt[0], driveSurfaceAt(DEMO_SETS.basalt[0], DEMO_SETS.basalt[1]) + 1.0, DEMO_SETS.basalt[1]) : a === "donkey" ? proj(donkey.state.x, donkey.group.position.y + 1.0, donkey.state.z) : chPos(a.slice(3), 1.0);
+        if (p && p[0] > 20 && p[0] < Wd - 20 && p[1] > 70 && p[1] < Hd - 60) { const d = a === "pump" ? Math.hypot(DEMO_SETS.basalt[0] - state.x, DEMO_SETS.basalt[1] - state.z) : 3; wt = { x: p[0], y: p[1], r: clamp(150 / Math.max(2, d), 34, 62), kind: L.kind }; } }
+      demo.dew.wetThing = demo.wetPos = wt; demo.dew.lure = wt ? [wt.x, wt.y] : null;
     }
     // Commands fall as rain. Each one that fits your state drops in from above now and then, sticks for as long as it matters
     // (stick, in seconds), sags as its time runs out, then lets go and runs down the glass. Touch it while it is there.
@@ -8880,7 +8871,6 @@ void main(){
       if (demo.youUntil && now > demo.youUntil) { ui.you.hidden = true; demo.youUntil = 0; }
       fieldTick(dt);
       demoHandoffTick(dt); demoDock(dt); demoAnchors(); demoOffers(dt);
-      if (demo.dew) { const b = demo.ui.verbs.firstElementChild; demo.dew.lure = b && b.dataset.ax && !demo.line ? [+b.dataset.ax, +b.dataset.ay] : null; }   // the weather leans toward what can be done
       if (demo.menuOpen && (demo.clock || 0) - (demo.menuTouch || 0) > 14000) demo.ui.openSheet(false);       // honey left alone drains away
       if (demo.dew) {
         const dw = demo.dew; let rIn = 0; for (const em of sampleWifiEmitters()) { const R = em.r * .9, d = Math.hypot(camera.position.x - em.x, camera.position.z - em.z); rIn = Math.max(rIn, clamp(1 - (d - R * .8) / (R * .2 + 4), 0, 1)); }
@@ -10092,6 +10082,7 @@ void main(){
       npOptions: () => { try { return npEngine.options(npState).map(o => ({ id: o.id, label: o.label, enabled: o.enabled, reason: o.reason })); } catch (e) { return String(e); } },
       handoffDbg: () => demo.handoff ? { u: +(demo.handoff.t / demo.handoff.dur).toFixed(2), can: demo.can.canRoot.position.clone(), gL: hoV.gL.clone(), gR: hoV.gR.clone() } : null,
       dewDbg: () => demo.dew ? { drops: demo.dew.drops.length, beads: demo.dew.beads.length, wisps: demo.dew.wisps.length, rain: +(demo.dew.rain || 0).toFixed(2), glyphs: demo.dew.glyphs.length, gust: +demo.dew.gust.toFixed(2), cloud: demo.dew.clouds.map(c => +c.d.toFixed(1)).join(' '), flare: +demo.dew.flare.toFixed(2), breath: +demo.dew.breath.toFixed(2), running: demo.dew.drops.filter(d => d.state === 'fall').length, big: +Math.max(0, ...demo.dew.drops.map(d => d.r)).toFixed(1) } : null,
+      wetDbg: () => ({ live: demo.live ? { kind: demo.live.kind, verb: demo.live.verb, ctx: demo.live.ctx, ask: !!demo.live.ask, dl: demo.live.dl } : null, pos: demo.wetPos }),
       voiceDbg: () => ({ last: demo.lastVoice, man: !!demo.voiceMan, voices: field ? field.voices.length : -1, env: field ? field.voiceEnv : 0, hits: field ? field.hits.filter(h => h.bus === 'voice').length : 0 }),
       demo: () => ({ on: DEMO, solids: demo.solids ? demo.solids.length : (DEMO ? (demoBuildSolids(), demo.solids.length) : 0), withCh: demo.withCh ? demo.withCh.state.id : null, line: demo.line ? demo.line.text : "", pose: demo.withCh ? demo.withCh.state.pose : "",
         speaking: demo.withCh ? Boolean(demo.withCh.state.poseOpts && demo.withCh.state.poseOpts.speaking) : false, signal: demo.signal, thread: demo.thread || [] }),
