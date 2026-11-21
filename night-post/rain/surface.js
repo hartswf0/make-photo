@@ -328,7 +328,7 @@ function renderMenu() {
   const t = $('menu-toggle'), menu = $('menu-stream');
   t.setAttribute('aria-expanded', String(ui.menu)); t.setAttribute('aria-label', ui.menu ? 'Close menu' : 'Open menu'); t.querySelector('.drop-label').textContent = ui.menu ? '' : 'Menu'; menu.hidden = !ui.menu;
   if (!ui.menu) { ui.menuAt = 0; ui.menuGroup = null; menu._sig = ''; if (menu.children.length) menu.replaceChildren(); return; }
-  if (!ui.menuAt) ui.menuAt = performance.now(); if (!ui.menuTouch) ui.menuTouch = performance.now();
+  if (!ui.menuAt) ui.menuAt = performance.now(); if (!ui.menuTouch) ui.menuTouch = performance.now(); if (ui.menuGroup === 'go' && !drawMap.c) { try { drawMap(); } catch { } }
   if (performance.now() - ui.menuTouch > 20000) { closeMenu(); ui.menuTouch = 0; menu.hidden = true; return; }
   const list = menuList(), sig = (ui.menuGroup || 'top') + '|' + list.map(x => x.id + ':' + x.label).join(',');
   if (menu._sig !== sig) { menu._sig = sig; menu.replaceChildren(); for (const it of list) { const b = document.createElement('button'); b.id = 'menu-' + it.id; b.className = 'liquid'; b.dataset.viscosity = '1.8'; b.innerHTML = '<span class="drop-label"></span>'; b.firstElementChild.textContent = it.label; b.addEventListener('click', e => { if (field?.suppressClick(e)) return; ui.menuTouch = performance.now(); const r = b.getBoundingClientRect(); splash(r.x + r.width / 2, r.y + r.height / 2, .7, '255,223,168'); it.run(); }); menu.append(b); } }
@@ -343,7 +343,7 @@ function paintMenuWater(bodies) {
     menuWater.push({ id: key, kind: 'menu', nodes }); liveIds.add(key);
     let group = menuInk.querySelector(`[data-id="${key}"]`);
     if (!group) { group = document.createElementNS(svgNS, 'g'); group.dataset.id = key; const path = document.createElementNS(svgNS, 'path'); path.id = key; path.setAttribute('fill', 'none'); path.setAttribute('stroke', 'none'); group.append(path); const text = document.createElementNS(svgNS, 'text'); text.setAttribute('text-anchor', 'middle'); const flow = document.createElementNS(svgNS, 'textPath'); flow.setAttribute('href', '#' + key); flow.setAttribute('startOffset', '50%'); text.append(flow); group.append(text); menuInk.append(group); }
-    group.firstChild.setAttribute('d', `M${nodes[0].x},${nodes[0].y} Q${b.x},${b.y - 7} ${nodes[2].x},${nodes[2].y}`);
+    group.firstChild.setAttribute('d', `M${nodes[0].x - 36},${nodes[0].y} Q${b.x - 36},${b.y - 7} ${nodes[2].x - 36},${nodes[2].y}`);
     const native = $(b.id), label = native?.textContent.trim() || ''; group.querySelector('textPath').textContent = label; native?.setAttribute('aria-label', label);
   }
   for (const g of [...menuInk.children]) if (!liveIds.has(g.dataset.id)) g.remove();
@@ -381,6 +381,9 @@ function initializeField() {
       const sp = refs.get(id)?._spec;
       if (id === 'time-current') { const target = meta.key === 'Home' ? 0 : meta.key === 'End' ? timeAvailable() : clamp((pulls.get(id) ?? ui.timeAge) + (meta.phase === 'keyboard' ? -delta * 12 : -(meta.dx || 0) / Math.max(150, world.clientWidth * .6) * 12), 0, timeAvailable()); pulls.set(id, target); setTimeAge(target); ink.arm({ id, text: inkLabel(id), x: meta.x ?? 50, y: meta.y ?? 100, keyboard: true }); return; }
       if (id === 'voice-current' || ui.past) return;
+      if (/^menu-(camera|camera-lens|camera-expose)$/.test(id)) { ui.menuTouch = performance.now(); const L = S.lens, t = pulls.get(id) || { f: Math.min(100, L.focus), x: 0 };
+        t.f = clamp(t.f + delta * 75, 1.5, 100); t.x += meta.dx || 0; if (Math.abs(t.x) >= 38) { const dir = Math.sign(t.x); t.x -= dir * 38; B.act.set('filter', (L.filter + dir + L.filters.length) % L.filters.length); }
+        B.act.focus(Math.round(t.f * 2) / 2); pulls.set(id, t); S = B.state(); ink.arm({ id, text: `Focus ${n(Math.min(100, S.lens.focus))} m · ${S.lens.filterName.split(' ')[0]}`, x: meta.x ?? 50, y: meta.y ?? 100 }); return; }
       if (sp?.cycle) { let travel = (pulls.get(id) || 0) + (meta.phase === 'keyboard' ? (delta > 0 ? 35 : -35) : (meta.dx || 0)); const dir = travel >= 35 ? 1 : travel <= -35 ? -1 : 0;
         if (dir) { travel -= dir * 35; const [what, len] = sp.cycle; if (what === 'material') { const modes = ['worms', 'pane', 'fall', 'dew', 'breath']; weather.material = modes[(modes.indexOf(weather.material) + dir + len) % len]; } else B.act.set(what, (S.lens[what] + dir + len) % len); render(); ink.arm({ id, text: inkLabel(id), x: meta.x ?? 50, y: meta.y ?? 100 }); }
         pulls.set(id, travel); return; }
@@ -423,8 +426,8 @@ function syncField() {
   }
   const fixed = (id, anchorX, anchorY, extra = {}) => { const element = $(id); if (element && !element.hidden && element.getClientRects().length) descriptors.push({ id, element, anchorX, anchorY, role: 'action', viscosity: 1.7, label: [...element.querySelectorAll('.drop-label,.drop-value,.drop-note')].map(el => el.textContent.trim()).filter(Boolean).join(' · '), ...extra }); };
   if (!ui.menu) { fixed('steer', .2, .81, { critical: true, viscosity: .55 }); fixed('say-form', mobile ? .32 : .23, .43, { role: 'info', critical: true, viscosity: 4 }); }
-  else { const entries = [...$('menu-stream').children], mob = world.clientWidth < 701, step = Math.min(.082, 58 / world.clientHeight + .012), y0 = .56 - (entries.length - 1) * step / 2;   // one short column by the right thumb
-    entries.forEach((element, i) => { if (element.hidden) return; descriptors.push({ id: element.id, element, role: 'action', viscosity: 2.3 + (i % 3) * .4, anchorX: mob ? .76 : .88, anchorY: y0 + i * step, label: element.textContent.trim() }); }); }
+  else { const entries = [...$('menu-stream').children], mob = world.clientWidth < 701, step = Math.min(.09, 66 / world.clientHeight), y0 = .56 - (entries.length - 1) * step / 2;   // one short column by the right thumb
+    entries.forEach((element, i) => { if (element.hidden) return; descriptors.push({ id: element.id, element, role: 'action', viscosity: 2.3 + (i % 3) * .4, anchorX: mob ? .76 : .88, anchorY: y0 + i * step, label: element.textContent.trim(), adjust: /^menu-(camera|camera-lens|camera-expose)$/.test(element.id) }); }); }
   field.setMenuOpen(ui.menu); field.sync(descriptors);
   const stats = glass.getStats(); world.dataset.fluidRenderer = stats.renderer; world.dataset.fluidFrameMs = stats.cpuFrameMs; world.dataset.fluidTexture = stats.sourceReady ? 'ready' : stats.textureError || 'loading';
 }
@@ -493,6 +496,51 @@ function inkTick(now, dt) {
   const t = $('menu-toggle'); let near = 0; if (alive) { near = clamp(1 - (world.clientWidth - ptr.x - 30) / 110, 0, 1); }
   t._ink = (t._ink ?? .3) + (Math.max(.3, near, ui.menu ? 1 : 0) - (t._ink ?? .3)) * k; t.style.setProperty('--ink', t._ink.toFixed(3));
   const st = $('steer'); if (!st.hidden) one(st, 'steer', .14, 0);
+}
+// ---- a drop is what it does ---------------------------------------------------------------------------------------------
+// Each drop carries a small live view of the thing it acts on, lifted from the scene itself: the wagon drop shows the
+// wagon, the lens drop shows what the lens sees, the donkey drop the donkey. A view is kept when its subject leaves the
+// frame, so the drop still shows it. A drop that opens into more trails a string of smaller beads.
+const PIC = { cv: document.createElement('canvas'), snap: document.createElement('canvas'), at: 0, thumbs: new Map(), TH: 112 };
+PIC.cv.id = 'rw-pic'; PIC.cv.setAttribute('aria-hidden', 'true'); Object.assign(PIC.cv.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', zIndex: '4', pointerEvents: 'none' }); world.append(PIC.cv);
+function subjectOf(id) {                                              // -> { x, y, r } source circle on screen, or { img }, or null
+  const T = S.things || {}, W = world.clientWidth, H = world.clientHeight, on = t => t && t.front && t.x > -40 && t.x < W + 40 && t.y > -40 && t.y < H + 40;
+  const k = id.replace(/^menu-/, '').replace(/^(go|water|camera|talk|more)-/, '').replace(/^act-|^it-|^all-/, '');
+  const me = T.can, sky = { x: W * .5, y: H * .13, r: 74 }, eye = { x: W * .5, y: H * .5, r: clamp(128 - Math.min(100, S.lens.focus) * .9, 34, 120) };
+  const donkey = on(T.donkey) ? { x: T.donkey.x, y: T.donkey.y - T.donkey.s * .2, r: clamp(T.donkey.s * 1.25, 16, 150) } : null;
+  const can = on(me) ? { x: me.x + me.s * .22, y: me.y + me.s * .1, r: clamp(me.s * .48, 12, 90) } : null, feet = on(me) ? { x: me.x, y: me.y + me.s * .62, r: clamp(me.s * .62, 14, 110) } : null, self = on(me) ? { x: me.x, y: me.y - me.s * .25, r: clamp(me.s * 1.05, 18, 150) } : null;
+  const person = (T.people || []).find(on), face = person ? { x: person.x, y: person.y + person.s * .22, r: clamp(person.s * .42, 12, 90) } : null;
+  const next = on(T.next) ? { x: T.next.x, y: T.next.y, r: clamp(T.next.s * 7, 22, 120) } : null, source = on(T.source) ? { x: T.source.x, y: T.source.y, r: clamp(T.source.s * 1.1, 14, 130) } : null, wagon = on(T.wagon) ? { x: T.wagon.x, y: T.wagon.y, r: clamp(T.wagon.s * 1.7, 16, 160) } : null;
+  switch (k) {
+    case 'go': case 'next': case 'route': return next; case 'map': return { img: 'map' }; case 'jump': case 'run': return feet; case 'ride': case 'donkey': return donkey; case 'glide': case 'weather': case 'more': case 'hold': return sky;
+    case 'drive': return wagon; case 'water': case 'can': case 'squirt': case 'throw': return can; case 'camera': case 'lens': case 'expose': case 'focus': return eye; case 'cam': case 'all': return { x: W * .5, y: H * .5, r: Math.min(W, H) * .48 };
+    case 'rig': case 'sync': case 'plates': return eye; case 'talk': case 'say': case 'people': case 'memory': case 'lang': case 'voice': return face || self; case 'rest': case 'here': return self; case 'sound': case 'tape': case 'radio': return face || sky; default: return null;
+  }
+}
+const PRE = ['menu-go', 'menu-water', 'menu-camera', 'menu-talk', 'menu-more', 'menu-go-ride', 'menu-go-drive', 'menu-go-jump', 'menu-go-run', 'menu-go-glide', 'menu-water-can', 'menu-water-donkey', 'menu-water-squirt', 'menu-water-throw', 'menu-talk-say', 'menu-talk-memory', 'menu-talk-people', 'menu-talk-lang', 'act-ride', 'act-jump', 'act-run', 'act-glide', 'can', 'next'];
+const HAS_MORE = /^menu-(go|water|camera|talk|more)$|^menu-[a-z]+-(map|can|donkey|lens|rig|people|sound|weather|all)$/;
+function picTick(now) {
+  const W = world.clientWidth, H = world.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), cv = PIC.cv; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => /^menu-(?!spring|edge)|^act-|^can$|^next$|^it-|^all-/.test(b.id));
+  if (S.ready && !ui.past && now - (PIC.pre || 0) > 900) { PIC.pre = now;      // keep a view of every subject while it is in frame, so its drop can show it later
+    const W2 = Math.round(W * .6), H2 = Math.round(H * .6); if (PIC.snap.width !== W2 || PIC.snap.height !== H2) { PIC.snap.width = W2; PIC.snap.height = H2; } let shot = false;
+    for (const id of PRE) { if (bodies.some(b => b.id === id)) continue; const src = subjectOf(id); if (!src || src.img) continue; if (!shot) { try { PIC.snap.getContext('2d').drawImage(B.canvas, 0, 0, W2, H2); } catch { } shot = true; }
+      let th = PIC.thumbs.get(id); if (!th) { th = document.createElement('canvas'); th.width = th.height = PIC.TH; PIC.thumbs.set(id, th); } const k = W2 / W; th.getContext('2d').drawImage(PIC.snap, (src.x - src.r) * k, (src.y - src.r) * k, src.r * 2 * k, src.r * 2 * k, 0, 0, PIC.TH, PIC.TH); th._ok = true; } }
+  if (!S.ready || ui.past || !bodies.length) { if (PIC.dirty) { g.clearRect(0, 0, cv.width, cv.height); PIC.dirty = false; } return; }
+  if (now - PIC.at > 110) { PIC.at = now; const sw = Math.round(W * .6), sh = Math.round(H * .6); if (PIC.snap.width !== sw || PIC.snap.height !== sh) { PIC.snap.width = sw; PIC.snap.height = sh; }
+    try { PIC.snap.getContext('2d').drawImage(B.canvas, 0, 0, sw, sh); } catch { }
+    for (const b of bodies) { const src = subjectOf(b.id); if (!src) continue; let th = PIC.thumbs.get(b.id); if (!th) { th = document.createElement('canvas'); th.width = th.height = PIC.TH; PIC.thumbs.set(b.id, th); }
+      const tg = th.getContext('2d'), k = PIC.snap.width / W;
+      if (src.img === 'map') { const im = drawMap.c; if (im) tg.drawImage(im, 0, 0, im.width, im.height, 0, 0, PIC.TH, PIC.TH); th._ok = true; continue; }
+      tg.drawImage(PIC.snap, (src.x - src.r) * k, (src.y - src.r) * k, src.r * 2 * k, src.r * 2 * k, 0, 0, PIC.TH, PIC.TH); th._ok = true; } }
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); PIC.dirty = true;
+  for (const b of bodies) { const th = PIC.thumbs.get(b.id), has = th && th._ok; if (!has && !b.id.startsWith('menu-')) continue; const menu = b.id.startsWith('menu-'), R = menu ? 27 : clamp(Math.min(b.rx || 30, b.ry || 26) * .62, 15, 26), x = menu ? b.x + 34 : b.x, y = b.y + (menu ? 0 : -1), wob = Math.sin(now / 900 + x) * 1.2;
+    g.save(); g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.clip(); g.globalAlpha = .94; if (has) g.drawImage(th, x - R * 1.12, y - R * 1.12, R * 2.24, R * 2.24); else { g.fillStyle = 'rgba(150,225,235,.10)'; g.fillRect(x - R * 1.2, y - R * 1.2, R * 2.4, R * 2.4); }
+    const sh = g.createRadialGradient(x - R * .35, y - R * .42, R * .1, x, y, R * 1.1); sh.addColorStop(0, 'rgba(255,255,255,.34)'); sh.addColorStop(.28, 'rgba(255,255,255,0)'); sh.addColorStop(.78, 'rgba(4,20,28,0)'); sh.addColorStop(1, 'rgba(4,20,28,.62)'); g.globalAlpha = 1; g.fillStyle = sh; g.fillRect(x - R * 1.2, y - R * 1.2, R * 2.4, R * 2.4); g.restore();
+    g.lineWidth = 1.3; g.strokeStyle = 'rgba(214,250,250,.7)'; g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,.8)'; g.beginPath(); g.ellipse(x - R * .42, y - R * .5, R * .16, R * .08, -.6, 0, 7); g.fill();
+    if (HAS_MORE.test(b.id)) { for (let i = 0; i < 3; i++) { const yy = y + R * 1.05 + 5 + i * 8, rr = 3.6 - i * .9; g.beginPath(); g.arc(x + Math.sin(now / 700 + i) * 1.5, yy, rr, 0, 7); g.fillStyle = 'rgba(190,240,245,.42)'; g.fill(); g.lineWidth = 1; g.strokeStyle = 'rgba(214,250,250,.75)'; g.stroke(); } }
+  }
 }
 // ---- one membrane ------------------------------------------------------------------------------------------------------
 // Every body of water on the glass (drops, the scene's water showing through, a carried blob and its strand, flying
@@ -595,7 +643,7 @@ function tick(now) {
   const dt = Math.min(.15, Math.max(0, (now - frameTime) / 1000)); frameTime = now;
   if (!document.hidden) {
     if (!ui.past) { memory.tick(dt); ui.recordClock += dt; if (ui.recordClock >= .25) { S = B.state(); if (S.ready) { watchGame(); captureWeather(); } ui.recordClock = 0; } }
-    field?.tick(dt); inkTick(now, dt); splashTick(dt); try { msTick(now, dt); } catch (err) { if (!MS.err) { MS.err = true; console.error('[rain] membrane', err); } } try { textTick(now, dt); } catch (err) { if (!TF.err) { TF.err = true; console.error('[rain] text field', err); } } ink.tick(ui.past ? 0 : dt); ink.setTrails(field?.getTrails() || []);
+    field?.tick(dt); inkTick(now, dt); try { picTick(now); } catch (err) { if (!PIC.err) { PIC.err = true; console.error('[rain] pictures', err); } } splashTick(dt); try { msTick(now, dt); } catch (err) { if (!MS.err) { MS.err = true; console.error('[rain] membrane', err); } } try { textTick(now, dt); } catch (err) { if (!TF.err) { TF.err = true; console.error('[rain] text field', err); } } ink.tick(ui.past ? 0 : dt); ink.setTrails(field?.getTrails() || []);
     world.dataset.timeMode = ui.past ? 'past' : 'now'; world.dataset.timeAge = n(ui.timeAge);
     if (now - lastRender > 180) { render(); lastRender = now; }
   }
@@ -603,7 +651,7 @@ function tick(now) {
 }
 new ResizeObserver(() => syncField()).observe(world);
 initializeField(); render(); requestAnimationFrame(tick);
-window.__rainSurface = { MS, sceneWaters, get held() { return held; }, get mix() { return mix; }, SP, splash, TF, stamp, fieldText, ui, weather, glass, memory, ink, render, get field() { return field; }, get specs() { return specs; }, get undo() { return undo; }, setTimeAge, returnNow, go: s => go(s)() };
+window.__rainSurface = { PIC, subjectOf, MS, sceneWaters, get held() { return held; }, get mix() { return mix; }, SP, splash, TF, stamp, fieldText, ui, weather, glass, memory, ink, render, get field() { return field; }, get specs() { return specs; }, get undo() { return undo; }, setTimeAge, returnNow, go: s => go(s)() };
 }
 boot();
 })();
