@@ -8187,6 +8187,19 @@ void main(){
         body.demo-mode.field-ui #field-stick:active #field-stick-dot{opacity:1}
         body.demo-mode.field-ui #field-stick:active #field-stick-name{opacity:.25}
         @media (max-height:500px) and (orientation:landscape){#dk-pad #dk-expose{width:60px;height:60px;margin:16px 8px 10px}body.demo-mode.field-ui #field-stick{width:96px;height:66px}}
+        /* ---- one water: the controls' bodies are drawn in the rain layer; these elements are only where you touch ---- */
+        body.dew-skin #dk-status,body.dew-skin #dk-menu-btn,body.dew-skin #dk-rail .bead,body.dew-skin #dk-row .bead:not(.pic),body.dew-skin #dk-ctx .verb,body.dew-skin #dk-chips button,body.dew-skin #dk-pad button,body.dew-skin.field-ui #field-stick{
+          background:none!important;border-color:transparent!important;box-shadow:none!important;-webkit-backdrop-filter:none;backdrop-filter:none;color:transparent!important;text-shadow:none!important;animation:none!important}
+        body.dew-skin #dk-row .bead.pic{border-color:transparent!important;box-shadow:none!important;color:transparent!important;text-shadow:none!important;border-radius:50%}
+        body.dew-skin #dk-status::after,body.dew-skin #dk-menu-btn::after,body.dew-skin #dk-ctx .verb::after,body.dew-skin #dk-pad #dk-veh::after{display:none}
+        body.dew-skin #dk-status *,body.dew-skin #dk-row .bead em,body.dew-skin #dk-row .bead i,body.dew-skin #dk-ctx .verb *,body.dew-skin.field-ui #field-stick-name{color:transparent!important;text-shadow:none!important;visibility:hidden}
+        body.dew-skin #dk-status{width:74px;height:50px;padding:0;max-width:none}
+        body.dew-skin #dk-pad #dk-expose,body.dew-skin #dk-pad #dk-veh,body.dew-skin #dk-menu-btn,body.dew-skin #dk-status{background:none!important;border-color:transparent!important;box-shadow:none!important}
+        body.dew-skin #dk-pad #dk-expose{transform:none;width:76px;height:98px;margin:4px 4px 6px;border-radius:0}
+        body.dew-skin #dk-pad #dk-expose b{transform:none;visibility:hidden}body.dew-skin #dk-pad #dk-veh b{visibility:hidden}
+        body.dew-skin #dk-pad #dk-expose:active{transform:none}
+        body.dew-skin #dk-ctx .verb{min-width:118px;min-height:54px}
+        body.dew-skin #dk-chips{gap:10px}body.dew-skin #dk-chips button{min-height:44px;padding:8px 16px}
         @media (prefers-reduced-motion:reduce){#dk-ctx .verb,#dk-chips button,.dk .bead,#dk-status,#dk-pad #dk-veh,body.demo-mode.field-ui #field-stick{animation:none}#dk-status::after,#dk-menu-btn::after,#dk-ctx .verb::after{animation:none}}
         body.demo-full #dk-pad,body.demo-full #dk-ctx,body.demo-full #dk-status{display:none!important}
         body.demo-mode #dialogue-card,body.demo-mode #immersive-corner,body.demo-mode #ctx-actions{display:none!important}
@@ -8275,6 +8288,7 @@ void main(){
       const phone = q("demo-phone"); phone.firstElementChild.onclick = () => phone.classList.toggle("shut");
       document.body.classList.add("demo-mode");
       demo.dew = window.makeDew ? window.makeDew(canvas) : null;
+      document.body.classList.toggle("dew-skin", !!demo.dew);
       const touch = matchMedia("(pointer:coarse)").matches;
       document.body.classList.toggle("demo-touch", touch);
       ui.verbs = q("dk-verbs"); ui.chips = q("dk-chips"); ui.dk = q("dk-ctx");
@@ -8471,6 +8485,7 @@ void main(){
       // SENSE
       q("dk-status").querySelector(".can i").style.width = Math.min(100, c.liters / 20 * 100) + "%";
       const lt = `${c.liters} L`; if (q("dk-l").textContent !== lt) q("dk-l").textContent = lt;
+      q("dk-status").dataset.dewLabel = lt; q("dk-status").dataset.dewScale = (.72 + .4 * c.liters / 20).toFixed(2);          // the litres are a drop as big as what you carry
       if (demo.lastL != null && demo.lastL !== c.liters && demo.dew) {            // the change itself, beside the gauge, then it falls
         const dl = c.liters - demo.lastL, r = q("dk-status").getBoundingClientRect(), m = demo.dew.say({ text: (dl > 0 ? "+" : "−") + Math.abs(dl) + " L", anchor: () => [r.left + 26, r.bottom + 22] });
         m.set(m.full || ((dl > 0 ? "+" : "−") + Math.abs(dl) + " L"), 1); setTimeout(() => m.end("fall"), 1800);
@@ -8531,6 +8546,7 @@ void main(){
     }
     function demoHandoffTick(dt) {
       const H = demo.handoff; if (!H) return;
+      if (demo.dew && (H.memT = (H.memT || 0) - dt) <= 0) { H.memT = .55; demo.dew.remember(); }                // the action, kept frame by frame
       H.t += dt; const u = Math.min(1, H.t / H.dur), ch = H.ch, can = demo.can, A = activeAvatar, sm = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
       const [dx, dz] = H.dir, rx = -dz, rz = dx, hdg = Math.atan2(dx, dz);
       const N = H.N, gy = (x, z) => driveSurfaceAt(x, z);
@@ -8609,6 +8625,7 @@ void main(){
         ch.setPose(H.keep.pose || "idle"); ch.state.poseOpts = H.keep.opts || {};
         if (A.state.scripted) { A.setPose("idle"); A.state.scripted = false; }
         demo.handoff = null; demo.shot = null; demo.dockSig = ""; if (field && field.swell) field.swell(7);
+        if (demo.dew) { const r = document.getElementById("dk-status").getBoundingClientRect(); demo.dew.recall(r.left + r.width / 2, r.bottom + 4); }   // it hangs from the litres as a worm of its own frames
         if (H.kind === "give") setTimeout(() => { if (!demo.handoff && demo.can) demo.can.canRoot.visible = false; }, 9000);
       }
     }
@@ -8690,6 +8707,7 @@ void main(){
         const seen = demoV.z < 1 && Math.abs(demoV.x) < 1.05 && Math.abs(demoV.y) < 1.05;
         dw.light = demoV.z < 1 ? [(demoV.x * .5 + .5) * innerWidth, (-demoV.y * .5 + .5) * innerHeight] : null;
         dw.flare += ((seen && (demo.signal || 0) >= 3 ? .85 : 0) - dw.flare) * Math.min(1, dt * 2.5);
+        dw.mark = (demo.signal || 0) >= 3 ? Math.round(Math.hypot(-1610 - state.x, 590 - state.z)) + " m" : null;      // how far the beacon is, written beside its light
         // breath: running and climbing wind you; it fogs the bottom of the lens until you recover
         const sp = Math.hypot(state.vx || 0, state.vz || 0), onFoot = !state.drivingCart && !state.riding && !state.gliding;
         demo.exert = clamp((demo.exert || 0) + dt * (onFoot && sp > 2.2 ? .16 + .1 * clamp((carrierPhys && carrierPhys.grade) || 0, 0, 1) + npCarrier().liters * .004 : -.07), 0, 1);

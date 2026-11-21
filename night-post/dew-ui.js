@@ -1,121 +1,143 @@
-/* Dew on the glass: the interface of the Ahiya demo as water on the lens.
+/* The interface is rain. One pane, one water.
    After the Afterlight screening room (bolas/afterlight/room): Dew five ways, Air, Lens.
 
-   PANE   A drop has volume. Small drops stay pinned where they land; rain adds to them and they merge; a drop heavy
-          enough lets go and runs, swallowing what it touches, following tracks that are still wet, thinning as it
-          leaves beads behind until it is light enough to stop. One light is shared by every drop.
-   WORMS  The track keeps the moment: each bead holds the world as it was when the drop passed.
-   SMOKE  What is refused or only narrated does not fall. It leaves as smoke, coloured by the place it left.
-   FLARE  The brightest thing in the shot (the beacon, when you can see it) throws a streak and a chain of ghosts.
-   BREATH Your own breath fogs the bottom of the lens after you have run.
-   BLOOM  Making a plate overfills the glass with light for a moment.
+   Everything on the glass is a drop in the same simulation:
+     rain      lands small, pins, gathers, merges, lets go, runs, thins, pins again; out of the rain the glass dries
+     controls  are stubborn drops: real lenses, sized by what they carry, that stay near their place, swell when rain
+               feeds them, shed drips that run, and let go and fall the moment their action stops being true
+     words     are written in beaded script beside the speaker's drop, and run or lift when the line ends
+     streaks   are ribbons of water; each keeps the moment its drop passed (worms), and later drops follow them
+     memory    an action you did hangs from the litres as a worm of its own frames
+     touch     your finger is in the water: it smears the pane, drags loose drops, leaves a wet path, raises mist
+   SMOKE takes the colour of what it leaves. FLARE is the beacon, seen. BREATH is yours. BLOOM is a plate being made.
 
-   A message is a drop held beside whoever speaks; when the line ends it lets go.
-   The layer never takes a touch (pointer-events: none) and draws nothing when the glass is dry and dark. */
+   The DOM controls stay underneath, invisible, as the touch targets and for screen readers; the water is their body.
+   The layer itself never takes a touch (pointer-events: none). */
 (function () {
   window.makeDew = function (game) {
     const cv = document.createElement('canvas'); cv.id = 'dew-glass';
-    cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:61';
+    cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:64';
     document.body.append(cv);
     const text = document.createElement('div'); text.id = 'dew-text'; document.body.append(text);
     const st = document.createElement('style');
-    st.textContent = `#dew-text{position:fixed;inset:0;pointer-events:none;z-index:63;font:15px/1.38 Georgia,'Iowan Old Style',serif;color:#fff}
-      #dew-text p{position:absolute;margin:0;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}#dew-text p b{display:block;font:600 10.5px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#bfe9f2;margin-bottom:1px}
-      #dew-text p.me{font-style:italic;color:#d8f6ff}`;
+    st.textContent = `#dew-text{position:fixed;inset:0;pointer-events:none;z-index:63}
+      #dew-text p{position:absolute;margin:0;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}`;
     document.head.append(st);
-    // the hand that writes on the glass: Dancing Script (SIL Open Font License), bundled so every device writes alike
     try { const ff = new FontFace('Dancing Script', 'url(./fonts/dancing-script-latin-600-normal.woff2)', { weight: '600' }); ff.load().then(f => document.fonts.add(f)).catch(() => { }); } catch (e) { }
     const ctx = cv.getContext('2d'), snap = document.createElement('canvas'), sctx = snap.getContext('2d', { willReadFrequently: true });
-    const CELL = 20, COLS = 16, ROWS = 10, atlas = document.createElement('canvas'), actx = atlas.getContext('2d'); atlas.width = CELL * COLS; atlas.height = CELL * ROWS;
-    let cell = 0, W = 0, H = 0, dpr = 1, snapAge = 9, dirty = false;
+    const CELL = 24, COLS = 16, ROWS = 12, atlas = document.createElement('canvas'), actx = atlas.getContext('2d'); atlas.width = CELL * COLS; atlas.height = CELL * ROWS;
+    let cell = 0, W = 0, H = 0, dpr = 1, snapAge = 9, dirty = false, T = 0, tick = 0;
     function size() {
       dpr = Math.min(1.5, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight;
       cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); snap.width = Math.max(64, Math.round(W / 3)); snap.height = Math.max(64, Math.round(H / 3));
     }
     size(); addEventListener('resize', size);
-    const drops = [], beads = [], wisps = [], msgs = [];
-    const D = { drops, beads, wisps, msgs, rain: 0, enabled: true, light: null, flare: 0, breath: 0, bloomT: 0 };
-    const RK = 2.1, rOf = m => RK * Math.cbrt(m), mOf = r => Math.pow(r / RK, 3);          // volume <-> the radius you see
-    const R_RUN = 7.6, R_STOP = 3.0;
+    const drops = [], beads = [], wisps = [], msgs = [], streaks = [], wetPts = [], skins = new Map(), memory = [];
+    const D = { drops, beads, wisps, msgs, streaks, skins, rain: 0, enabled: true, light: null, flare: 0, breath: 0, bloomT: 0, mark: null, wet: 0,
+      select: '#dk-status,#dk-menu-btn,#dk-rail .bead,#dk-row .bead,#dk-verbs .verb,#dk-chips button,#dk-expose,#dk-veh,#field-stick' };
+    const RK = 2.1, rOf = m => RK * Math.cbrt(m), mOf = r => Math.pow(r / RK, 3), R_RUN = 7.6, R_STOP = 3.0;
+    const SERIF = 'Georgia,"Iowan Old Style","Times New Roman",serif';
 
-    /* one small copy of the world per frame; every lens samples it, flipped as a drop flips it */
     function snapshot() { try { sctx.drawImage(game, 0, 0, snap.width, snap.height); } catch (e) { } snapAge = 0; }
-    function lightDir(x, y) {                                           // one light for the whole pane
-      const L = D.light || [W * .2, -H * .2], dx = L[0] - x, dy = L[1] - y, n = Math.hypot(dx, dy) || 1; return [dx / n, dy / n];
+    function lightDir(x, y) { const L = D.light || [W * .2, -H * .2], dx = L[0] - x, dy = L[1] - y, n = Math.hypot(dx, dy) || 1; return [dx / n, dy / n]; }
+    /* ---------- shapes ---------- */
+    function blob(x, y, rx, ry, seed, amp, tear) {                      // a closed liquid outline; tear: pointed at the top
+      const N = 16, P = [];
+      for (let i = 0; i < N; i++) {
+        const th = i / N * 6.2832, k = 1 + amp * (.5 * Math.sin(2 * th + seed + T * .7) + .3 * Math.sin(3 * th + seed * 2.3 - T * .5) + .2 * Math.sin(5 * th + seed * .7 + T * .9));
+        if (tear) { const s = Math.sin(th / 2); P.push([x + rx * k * Math.sin(th) * Math.pow(s, 1.5) * 1.3, y - ry * k * Math.cos(th) * (Math.cos(th) > 0 ? 1.15 : .9)]); }
+        else P.push([x + Math.cos(th) * rx * k, y + Math.sin(th) * ry * k]);
+      }
+      ctx.beginPath();
+      for (let i = 0; i < N; i++) { const a = P[i], b = P[(i + 1) % N], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2; if (!i) { const z = P[N - 1]; ctx.moveTo((z[0] + a[0]) / 2, (z[1] + a[1]) / 2); } ctx.quadraticCurveTo(a[0], a[1], mx, my); }
+      ctx.closePath();
     }
-    function lens(x, y, rx, ry, a, tint) {
-      const k = snap.width / W, m = 1.9, [lx, ly] = lightDir(x, y);
-      ctx.save(); ctx.globalAlpha = a; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 6.2832); ctx.clip();
+    /* water: the world through it (flipped, wider than it covers), a dark rim, gathered light, the light itself */
+    function water(x, y, rx, ry, a, tint, pathFn) {
+      const k = snap.width / W, m = 1.9, [lx, ly] = lightDir(x, y), R = Math.max(rx, ry);
+      ctx.save(); ctx.globalAlpha = a; pathFn(); ctx.clip();
       ctx.translate(x, y); ctx.scale(-1, -1);
-      ctx.drawImage(snap, (x - rx * m) * k, (y - ry * m) * k, rx * 2 * m * k, ry * 2 * m * k, -rx, -ry, rx * 2, ry * 2);
+      ctx.drawImage(snap, (x - rx * m) * k, (y - ry * m) * k, rx * 2 * m * k, ry * 2 * m * k, -rx * 1.25, -ry * 1.25, rx * 2.5, ry * 2.5);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (tint) { ctx.fillStyle = tint; ctx.fillRect(x - rx, y - ry, rx * 2, ry * 2); }
-      let g = ctx.createRadialGradient(x + lx * rx * .15, y + ly * ry * .15, Math.min(rx, ry) * .35, x, y, Math.max(rx, ry) * 1.02);   // the dark rim that makes it water
-      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(.78, 'rgba(0,8,14,.10)'); g.addColorStop(1, 'rgba(0,6,12,.62)');
-      ctx.fillStyle = g; ctx.fillRect(x - rx, y - ry, rx * 2, ry * 2);
-      g = ctx.createRadialGradient(x - lx * rx * .5, y - ly * ry * .5, 0, x - lx * rx * .5, y - ly * ry * .5, rx * .85);               // the light it gathers, on the far side
-      g.addColorStop(0, 'rgba(255,255,255,.36)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(x - rx, y - ry, rx * 2, ry * 2);
+      const bx = x - rx * 1.4, by = y - ry * 1.4, bw = rx * 2.8, bh = ry * 2.8;
+      if (tint) { ctx.fillStyle = tint; ctx.fillRect(bx, by, bw, bh); }
+      let g = ctx.createRadialGradient(x + lx * rx * .15, y + ly * ry * .15, Math.min(rx, ry) * .3, x, y, R * 1.12);
+      ctx.fillStyle = 'rgba(225,242,250,.10)'; ctx.fillRect(bx, by, bw, bh);                                    // water is brighter than what is behind it
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(.8, 'rgba(0,8,14,.05)'); g.addColorStop(1, 'rgba(0,6,12,.46)'); ctx.fillStyle = g; ctx.fillRect(bx, by, bw, bh);
+      g = ctx.createRadialGradient(x - lx * rx * .5, y - ly * ry * .5, 0, x - lx * rx * .5, y - ly * ry * .5, R * .8);
+      g.addColorStop(0, 'rgba(255,255,255,.34)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(bx, by, bw, bh);
       ctx.restore();
-      ctx.save(); ctx.globalAlpha = a * .9; ctx.fillStyle = 'rgba(255,255,255,.88)';                                                    // the light itself, small, on the near side
-      ctx.beginPath(); ctx.ellipse(x + lx * rx * .5, y + ly * ry * .5, Math.max(.8, rx * .2), Math.max(.6, ry * .11), Math.atan2(ly, lx) + 1.57, 0, 6.2832); ctx.fill();
-      if (rx > 5) { ctx.globalAlpha = a * .5; ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(x, y, rx - .5, ry - .5, 0, 0, 6.2832); ctx.stroke(); }
+      ctx.save(); ctx.globalAlpha = a; pathFn(); ctx.lineWidth = R > 12 ? 1.4 : 1; ctx.strokeStyle = 'rgba(255,255,255,.62)'; ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.beginPath();                                                    // the light, small and bright, on the near side
+      ctx.ellipse(x + lx * rx * .52, y + ly * ry * .52, Math.max(.8, Math.min(6, rx * .12)), Math.max(.6, Math.min(3.2, ry * .08)), Math.atan2(ly, lx) + 1.57, 0, 6.2832); ctx.fill();
+      if (R > 16) { ctx.globalAlpha = a * .5; ctx.beginPath(); ctx.ellipse(x - lx * rx * .55, y - ly * ry * .6, rx * .3, ry * .12, Math.atan2(ly, lx) + 1.57, 0, 6.2832); ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.fill(); }
       ctx.restore();
     }
-    /* ---------- drops ---------- */
+    const lens = (x, y, rx, ry, a, tint) => water(x, y, rx, ry, a, tint, () => { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 6.2832); });
+    /* ---------- loose drops ---------- */
     function drop(o) {
-      const d = Object.assign({ x: W / 2, y: H / 2, r: 14, grow: 0, state: 'hold', vy: 0, vx: 0, life: 1e9, t: 0, a: 1, tint: null, lastBead: 0, wob: Math.random() * 6, held: false }, o);
+      const d = Object.assign({ x: W / 2, y: H / 2, r: 14, grow: 0, state: 'hold', vy: 0, vx: 0, life: 1e9, t: 0, a: 1, tint: null, lastPt: -1e9, wob: Math.random() * 6, held: false, trail: null }, o);
       d.m = mOf(d.r); drops.push(d); dirty = true;
       d.release = () => { if (d.state === 'hold') { d.state = 'fall'; d.vy = Math.max(d.vy, 20); d.held = false; d.forced = true; } };
       d.smoke = () => { if (d.state !== 'gone') { for (let i = 0; i < 10; i++) wisp(d.x + (Math.random() - .5) * d.r, d.y + (Math.random() - .5) * d.r); d.state = 'gone'; } };
       return d;
     }
-    function bead(x, y, r, life) {                                      // a worm segment: it keeps what the drop saw as it passed
-      const c = cell; cell = (cell + 1) % (COLS * ROWS); const cx = (c % COLS) * CELL, cy = Math.floor(c / COLS) * CELL, k = snap.width / W, f = Math.max(r * 3.4, 7);
+    function cellRect(c) { return [(c % COLS) * CELL, Math.floor(c / COLS) * CELL]; }
+    function capture(x, y, f, upright) {                                 // keep a moment: a round cell of what the glass shows here, now
+      const c = cell; cell = (cell + 1) % (COLS * ROWS); const [cx, cy] = cellRect(c), k = snap.width / W;
       actx.save(); actx.clearRect(cx, cy, CELL, CELL); actx.beginPath(); actx.arc(cx + CELL / 2, cy + CELL / 2, CELL / 2 - .5, 0, 6.2832); actx.clip();
-      actx.translate(cx + CELL / 2, cy + CELL / 2); actx.scale(-1, -1);
+      actx.translate(cx + CELL / 2, cy + CELL / 2); if (!upright) actx.scale(-1, -1);
       try { actx.drawImage(snap, (x - f) * k, (y - f) * k, f * 2 * k, f * 2 * k, -CELL / 2, -CELL / 2, CELL, CELL); } catch (e) { }
       actx.setTransform(1, 0, 0, 1, 0, 0);
-      const g = actx.createRadialGradient(cx + CELL * .5, cy + CELL * .5, CELL * .2, cx + CELL * .5, cy + CELL * .5, CELL * .5);
-      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,6,12,.6)'); actx.fillStyle = g; actx.fillRect(cx, cy, CELL, CELL);
-      actx.fillStyle = 'rgba(255,255,255,.8)'; actx.beginPath(); actx.arc(cx + CELL * .34, cy + CELL * .3, CELL * .07, 0, 6.2832); actx.fill();
-      actx.restore();
-      if (beads.length > 150) beads.shift();
-      beads.push({ x, y, r, t: 0, life, cx, cy, c });
+      const g = actx.createRadialGradient(cx + CELL * .5, cy + CELL * .5, CELL * .22, cx + CELL * .5, cy + CELL * .5, CELL * .5);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,6,12,.55)'); actx.fillStyle = g; actx.fillRect(cx, cy, CELL, CELL);
+      actx.fillStyle = 'rgba(255,255,255,.85)'; actx.beginPath(); actx.arc(cx + CELL * .34, cy + CELL * .3, CELL * .06, 0, 6.2832); actx.fill();
+      actx.restore(); return c;
     }
+    function bead(x, y, r, life, c) { if (beads.length > 170) beads.shift(); if (c == null) c = capture(x, y, Math.max(r * 3.4, 8)); const [cx, cy] = cellRect(c); beads.push({ x, y, r, t: 0, life, cx, cy }); }
+    D.remember = () => { if (snapAge > .2) snapshot(); const s = Math.min(W, H) * .32; memory.push(capture(W / 2, H * .52, s, true)); if (memory.length > 9) memory.shift(); };
+    D.recall = (x, y) => {                                               // what you just did runs down the glass as a worm of its own frames
+      if (!memory.length) return; const cells = memory.splice(0); drop({ x, y, r: 13, state: 'fall', vy: 14, grow: 1, forced: true, cells, slow: true });
+    };
     function colourAt(x, y) { try { const d = sctx.getImageData(Math.max(0, Math.min(snap.width - 1, x * snap.width / W | 0)), Math.max(0, Math.min(snap.height - 1, y * snap.height / H | 0)), 1, 1).data; return [d[0], d[1], d[2]]; } catch (e) { return [200, 215, 220]; } }
-    function wisp(x, y, o = {}) {                                       // smoke takes the colour of the moment it leaves
+    function wisp(x, y, o = {}) {
       const c = o.rgb || colourAt(x, y), mix = v => Math.round(v * .45 + 232 * .55);
       wisps.push(Object.assign({ x, y, vx: (Math.random() - .5) * 14, vy: -18 - Math.random() * 26, r: 5 + Math.random() * 7, t: 0, life: 1.6 + Math.random() * 1.2, rgb: [mix(c[0]), mix(c[1]), mix(c[2])] }, o)); dirty = true;
     }
-    /* ---------- a message: a held drop with words beside it ---------- */
-    function say(o) {                                                   // o: { anchor: () => [x, y] | null, name, text, me }
-      const p = document.createElement('p'); if (o.me) p.className = 'me';
-      if (o.name) { const b = document.createElement('b'); b.textContent = o.name; p.append(b); }
+    function streakPt(S, x, y) { S.pts.push({ x, y, t: 0 }); if (S.pts.length > 110) S.pts.shift(); wetPts.push(S.pts[S.pts.length - 1]); if (wetPts.length > 260) wetPts.shift(); }
+    function newStreak(w, life) { const S = { pts: [], w, life }; streaks.push(S); if (streaks.length > 26) streaks.shift(); return S; }
+    /* ---------- messages ---------- */
+    function say(o) {
+      const p = document.createElement('p'); if (o.name) { const b = document.createElement('b'); b.textContent = o.name + ': '; p.append(b); }
       const s = document.createElement('span'); p.append(s); p.setAttribute('role', 'status'); text.append(p);
       const a0 = o.anchor && o.anchor() || [W / 2, H * .4];
       const d = drop({ x: a0[0], y: a0[1], r: o.me ? 9 : 15, grow: 0, held: true, tint: o.me ? 'rgba(56,232,255,.16)' : null });
-      const M = { d, p, s, full: o.text || '', shown: 0, anchor: o.anchor, me: !!o.me, done: false };
+      const M = { d, p, s, full: o.text || '', shown: 0, anchor: o.anchor, me: !!o.me, done: false, name: o.name || '', fade: 1, box: null };
       M.set = (t, frac) => { const n = Math.ceil(t.length * Math.min(1, frac)); if (n !== M.shown || t !== M.full) { M.full = t; M.shown = n; s.textContent = t.slice(0, n); } };
-      M.end = (how = 'fall') => {                                       // 'fall': it was said, it runs down the glass; 'smoke': refused or only narrated
+      M.end = (how = 'fall') => {
         if (M.done) return; M.done = true; M.how = how; setTimeout(() => p.remove(), 800);
         if (how === 'smoke') d.smoke(); else d.release();
-        if (M.box) for (let i = 0; i < (how === 'smoke' ? 7 : 5); i++) {                 // the writing lets go too: beads run from the letters, or it lifts as vapour
+        if (M.box) for (let i = 0; i < (how === 'smoke' ? 7 : 5); i++) {
           const x = M.box[0] + Math.random() * M.box[2], y = M.box[1] + Math.random() * M.box[3];
           if (how === 'smoke') wisp(x, y); else drop({ x, y, r: 2.6 + Math.random() * 2.4, state: 'fall', vy: 10 + Math.random() * 30, grow: 1, forced: true });
         }
       };
-      M.name = o.name || ''; M.fade = 1; M.box = null;
       M.place = () => { if (M.done) return; const a = M.anchor && M.anchor(); if (a) { d.x += (a[0] - d.x) * .25; d.y += (a[1] - d.y) * .25; } };
       msgs.push(M); return M;
     }
-    const SCRIPT = `600 29px "Dancing Script","Snell Roundhand","Segoe Script","Apple Chancery","Bradley Hand",cursive`, NOTE = `italic 13.5px Georgia,"Iowan Old Style",serif`;
+    const SCRIPT = px => `600 ${px}px "Dancing Script","Snell Roundhand","Segoe Script","Apple Chancery","Bradley Hand",cursive`, NOTE = `italic 13.5px ${SERIF}`;
     function wrap(str, font, maxW) { ctx.font = font; const out = []; let line = ''; for (const w of str.split(/\s+/)) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t; } if (line) out.push(line); return out; }
+    function beaded(l, x, y, px, a, fill) {                               // script whose every stroke is a row of beads
+      ctx.font = SCRIPT(px); ctx.lineJoin = ctx.lineCap = 'round'; ctx.globalAlpha = a; ctx.shadowColor = 'rgba(0,8,14,.95)'; ctx.shadowBlur = 7;
+      ctx.fillStyle = fill || 'rgba(240,250,255,.58)'; ctx.fillText(l, x, y);
+      ctx.shadowBlur = 0; ctx.setLineDash([.1, 3.6]); ctx.lineWidth = Math.max(1.5, px / 15); ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.strokeText(l, x, y); ctx.setLineDash([]);
+    }
     function writing(M) {
       const full = M.full || ''; if (!full) return;
       const shown = full.slice(0, M.shown), quoted = t => (t.match(/“[^”]*”?/g) || []).map(q => q.replace(/[“”]/g, '').trim()).join(' ');
       const spoken = M.me ? shown : quoted(shown), note = M.me ? '' : shown.replace(/“[^”]*”?/g, ' ').replace(/\s+/g, ' ').trim();
-      const maxW = Math.min(250, W * .58), d = M.d, a = Math.max(0, M.done ? M.fade : 1);
-      const sl = spoken ? wrap(spoken, M.me ? SCRIPT.replace('29px', '22px') : SCRIPT, maxW) : [], nl = note ? wrap(note, NOTE, maxW) : [];
+      const maxW = Math.min(250, W * .58), d = M.d, a = Math.max(0, M.done ? M.fade : 1), px = M.me ? 22 : 29;
+      const sl = spoken ? wrap(spoken, SCRIPT(px), maxW) : [], nl = note ? wrap(note, NOTE, maxW) : [];
       const lh = M.me ? 26 : 33, hgt = (M.name ? 16 : 0) + sl.length * lh + nl.length * 18 + 4;
       const roomR = W - 12 - (d.x + d.r + 12), roomL = d.x - d.r - 12 - 12; let x, y, al = 'left';
       if (roomR >= maxW) { x = d.x + d.r + 12; y = d.y - Math.min(hgt / 2, 26); } else if (roomL >= maxW) { x = d.x - d.r - 12; al = 'right'; y = d.y - Math.min(hgt / 2, 26); }
@@ -123,49 +145,109 @@
       y = Math.max(58, Math.min(H - hgt - 150, y)); M.box = [al === 'right' ? x - maxW : x, y, maxW, hgt];
       ctx.save(); ctx.textAlign = al; ctx.textBaseline = 'top'; ctx.globalAlpha = a; ctx.shadowColor = 'rgba(0,8,14,.95)'; ctx.shadowBlur = 7;
       if (M.name) { ctx.font = `italic 15px "Dancing Script","Snell Roundhand",cursive`; ctx.fillStyle = 'rgba(214,240,248,.86)'; ctx.fillText(M.name, x, y); y += 16; }
-      ctx.font = M.me ? SCRIPT.replace('29px', '22px') : SCRIPT; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-      for (const l of sl) {
-        ctx.fillStyle = M.me ? 'rgba(200,244,255,.62)' : 'rgba(240,250,255,.58)'; ctx.fillText(l, x, y);            // the film of water the finger left
-        ctx.shadowBlur = 0; ctx.setLineDash([.1, 3.6]); ctx.lineWidth = 1.9; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.strokeText(l, x, y);   // beaded along every stroke
-        ctx.setLineDash([]); ctx.shadowBlur = 7; y += lh;
-      }
-      ctx.font = NOTE; ctx.fillStyle = 'rgba(226,240,246,.86)'; for (const l of nl) { ctx.fillText(l, x, y + 2); y += 18; }
+      for (const l of sl) { beaded(l, x, y, px, a, M.me ? 'rgba(200,244,255,.62)' : null); y += lh; }
+      ctx.globalAlpha = a; ctx.shadowBlur = 7; ctx.font = NOTE; ctx.fillStyle = 'rgba(226,240,246,.86)'; for (const l of nl) { ctx.fillText(l, x, y + 2); y += 18; }
       ctx.restore();
     }
     D.bloom = () => { D.bloomT = 1; dirty = true; };
+    /* ---------- touch: your finger is in the water ---------- */
+    const finger = { down: false, x: 0, y: 0, vx: 0, vy: 0, S: null, acc: 0 };
+    addEventListener('pointerdown', e => { finger.down = true; finger.x = e.clientX; finger.y = e.clientY; finger.vx = finger.vy = 0; finger.S = null; finger.onUi = !!(e.target.closest && e.target.closest('button,select,input')); }, { capture: true, passive: true });
+    addEventListener('pointermove', e => {
+      if (!finger.down || !D.enabled) return; const dx = e.clientX - finger.x, dy = e.clientY - finger.y, n = Math.hypot(dx, dy); if (n < 1) return;
+      finger.vx = dx; finger.vy = dy; finger.x = e.clientX; finger.y = e.clientY; if (finger.onUi) return; dirty = true;
+      if (!finger.S) finger.S = newStreak(7, 5.5); finger.acc += n;
+      if (finger.acc > 6) { streakPt(finger.S, finger.x, finger.y);                                           // the wet path your finger leaves
+        if (finger.acc > 18 && drops.length < 70 && Math.random() < .7) drop({ amb: true, x: finger.x + (Math.random() - .5) * 22, y: finger.y + (Math.random() - .5) * 22, r: 1.4 + Math.random() * 2.4, grow: .3, a: .9 });   // mist raised by the touch
+        finger.acc = 0; }
+      for (const d of drops) { if (d.held || d.ui) continue; const q = Math.hypot(d.x - finger.x, d.y - finger.y); if (q < 30 + d.r) {         // loose water goes with the finger
+        const k = 1 - q / (30 + d.r); d.x += dx * k * .9; d.y += dy * k * .9; d.vx += dx * k * 6; if (d.state === 'hold' && n > 2) { d.state = 'fall'; d.vy = Math.max(6, dy * 8); d.t = 0; } } }
+      for (const U of skins.values()) { const q = Math.hypot(U.x - finger.x, U.y - finger.y); if (q < U.rx + 26) { U.ox += dx * .12; U.oy += dy * .12; } }   // even the stubborn ones lean
+    }, { capture: true, passive: true });
+    const lift = () => { finger.down = false; finger.S = null; }; addEventListener('pointerup', lift, { capture: true, passive: true }); addEventListener('pointercancel', lift, { capture: true, passive: true });
+    /* ---------- stubborn drops: the controls ---------- */
+    function labelOf(el) {
+      if (el.dataset.dewLabel) return [el.dataset.dewLabel, ''];
+      let main = '', sub = '';
+      for (const n of el.childNodes) if (n.nodeType === 3) main += n.textContent;
+      main = main.trim(); const b = el.querySelector('b,i,#dk-l,#field-stick-name'); if (!main && b) main = b.textContent.trim();
+      const s = el.querySelector('.csq,small,em'); if (s) sub = s.textContent.trim();
+      return [main || el.getAttribute('aria-label') || '', sub];
+    }
+    function syncSkins() {
+      const seen = new Set();
+      const row = document.getElementById('dk-row'), rr = row && !row.hidden ? row.getBoundingClientRect() : null;
+      for (const el of document.querySelectorAll(D.select)) {
+        if (el.closest('[hidden]')) continue; const r = el.getBoundingClientRect(); if (r.width < 8 || r.height < 8) continue;
+        if (rr && el.parentElement === row && (r.right > rr.right - 6 || r.left < rr.left - 6)) continue;
+        seen.add(el); let U = skins.get(el);
+        if (!U) { U = { el, x: r.left + r.width / 2, y: r.top + r.height / 2 - 14, rx: 4, ry: 4, ox: 0, oy: 0, seed: Math.random() * 9, wetq: Math.random() * .6, swell: 0, a: 0, ui: true }; skins.set(el, U); dirty = true; }
+        const sc = +(el.dataset.dewScale || 1); U.hx = r.left + r.width / 2; U.hy = r.top + r.height / 2; U.trx = r.width / 2 * sc; U.try = r.height / 2 * sc;
+        U.kind = el.id === 'dk-expose' ? 'tear' : el.id === 'dk-menu-btn' ? 'amber' : el.id === 'field-stick' ? 'pool' : el.classList.contains('verb') && !el.classList.contains('alt') ? 'go' : el.classList.contains('urgent') ? 'urgent' : 'clear';
+        if (el.classList.contains('on') && U.kind === 'clear') U.kind = 'go';
+        [U.label, U.sub] = labelOf(el); U.pic = el.classList.contains('pic') ? el.style.backgroundImage : ''; U.cap = el.parentElement === row;
+        U.press = el.matches(':active');
+      }
+      for (const [el, U] of skins) if (!seen.has(el)) {                    // its action is no longer true: it lets go, and falls like any other water
+        skins.delete(el); const r = Math.min(16, Math.max(5, Math.min(U.rx, U.ry) * .55));
+        drop({ x: U.x, y: U.y, r, state: 'fall', vy: 8 + Math.random() * 20, grow: 1, forced: true, tint: U.kind === 'amber' ? 'rgba(230,150,30,.4)' : U.kind === 'go' ? 'rgba(56,232,255,.2)' : null });
+      }
+    }
+    const TINT = { amber: 'rgba(232,150,28,.50)', go: 'rgba(56,232,255,.20)', urgent: 'rgba(255,90,70,.42)' };
+    function drawSkin(U, dt) {
+      U.a = Math.min(1, U.a + dt * 3.2); U.ox *= 1 - Math.min(1, dt * 3); U.oy *= 1 - Math.min(1, dt * 3); U.swell *= 1 - Math.min(1, dt * 1.2);
+      const k = Math.min(1, dt * 7); U.x += (U.hx + U.ox - U.x) * k; U.y += (U.hy + U.oy - U.y) * k;       // stubborn: it comes back to its place
+      const g = U.a * (2 - U.a) * (U.press ? .93 : 1) * (1 + U.swell * .1); U.rx += (U.trx * g - U.rx) * k; U.ry += (U.try * g - U.ry) * k;
+      const x = U.x, y = U.y + Math.sin(T * .8 + U.seed) * 1.2, rx = U.rx, ry = U.ry, tear = U.kind === 'tear', amp = U.kind === 'pool' ? .05 : rx > 30 ? .075 : .05;
+      water(x, y, rx, ry, Math.min(1, U.a * 1.2), TINT[U.kind], () => blob(x, y, rx, ry, U.seed, amp, tear));
+      if (U.kind === 'pool') { ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 1; for (let i = 0; i < 2; i++) { const u = ((T * .35 + i * .5) % 1); ctx.globalAlpha = (1 - u) * .8; ctx.beginPath(); ctx.ellipse(x, y, rx * (.35 + u * .6), ry * (.35 + u * .6), 0, 0, 6.2832); ctx.stroke(); } ctx.restore(); }
+      // the rain feeds it; when it holds too much it sheds a drip that runs
+      if (D.rain > .2) { U.wetq += dt * D.rain * (.05 + Math.random() * .1); if (U.wetq > 1 && U.kind !== 'pool') { U.wetq = 0; U.swell = 0; drop({ x: x + (Math.random() - .5) * rx * .8, y: y + ry * (tear ? 1 : .9), r: 3 + Math.random() * 2.6, state: 'fall', vy: 6, grow: .2, forced: true, tint: U.kind === 'amber' ? 'rgba(230,150,30,.4)' : null }); } }
+      const hang = U.wetq > .55 && U.kind !== 'pool' ? (U.wetq - .55) / .45 : 0;                            // the drip gathering under it
+      if (hang > 0) { const hx = x + Math.sin(U.seed * 3) * rx * .45, hy = y + ry * .96; lens(hx, hy + hang * 5, 2 + hang * 2.2, 2.6 + hang * 5, U.a, TINT[U.kind === 'amber' ? 'amber' : '']); }
+      // what it says
+      ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = U.a; ctx.shadowColor = 'rgba(0,8,14,.95)'; ctx.shadowBlur = 6; ctx.fillStyle = '#fff';
+      if (U.pic) { /* a held picture is drawn by the element itself, under the water */ }
+      const fs = U.cap ? 12 : Math.max(12, Math.min(17, rx * .34 + 6)), ly = tear ? y + ry * .22 : y - (U.sub && !U.cap ? 6 : 0);
+      ctx.font = `500 ${fs}px ${SERIF}`; ctx.fillText(U.label, x, ly, rx * 1.75);
+      if (U.sub) { ctx.font = U.cap ? `italic 10.5px ${SERIF}` : `italic 11.5px ${SERIF}`; ctx.globalAlpha = U.a * .9; ctx.fillText(U.sub, x, U.cap ? y + ry + 9 : ly + 15, U.cap ? 70 : rx * 1.8); }
+      ctx.restore();
+    }
     /* ---------- per frame ---------- */
     let rainT = 0;
     function frame(dt) {
       if (!D.enabled) return;
-      dt = Math.min(.05, dt);
-      // rain lands on the lens only where it is raining on you; it lands small, and gathers
+      dt = Math.min(.05, dt); T += dt; tick++;
+      if (tick % 4 === 0 || !skins.size) syncSkins();
       rainT -= dt;
-      if (D.rain > .2 && rainT <= 0) {
+      if (D.rain > .2 && rainT <= 0) {                                   // rain lands small and gathers; on a beaded pane it feeds what is there
         rainT = (.1 + Math.random() * .22) / D.rain;
-        const x = 8 + Math.random() * (W - 16), y = 56 + Math.random() * (H * .62), r = 1.6 + Math.random() * 2.6;
-        const amb = drops.filter(d => d.amb && d.state === 'hold');
-        let hit = amb.find(d => Math.hypot(d.x - x, d.y - y) < d.r + r + 3);
-        if (!hit && amb.length >= 22) { let bd = 1e9; for (const d of amb) { const q = Math.hypot(d.x - x, d.y - y); if (q < bd) { bd = q; hit = d; } } }   // a beaded pane: new rain feeds what is there
-        if (hit) { hit.m += mOf(r) * 1.6; hit.r = rOf(hit.m); }
-        else drop({ amb: true, x, y, r, grow: .4, a: .9 });
-        for (const d of amb) for (const o of amb) if (o !== d && o.state === 'hold' && d.state === 'hold' && d.m >= o.m && Math.hypot(o.x - d.x, o.y - d.y) < (o.r + d.r) * .92) {   // neighbours that touch become one
-          d.x = (d.x * d.m + o.x * o.m) / (d.m + o.m); d.y = (d.y * d.m + o.y * o.m) / (d.m + o.m); d.m += o.m; d.r = rOf(d.m); o.state = 'gone'; }
+        const x = 8 + Math.random() * (W - 16), y = 30 + Math.random() * (H * .7), r = 1.6 + Math.random() * 2.6;
+        let ui = null; for (const U of skins.values()) if (Math.abs(x - U.x) < U.rx && Math.abs(y - U.y) < U.ry) { ui = U; break; }
+        if (ui) { ui.swell = Math.min(1, ui.swell + .5); ui.wetq += .16; }                                 // rain on a control: it takes it in
+        else {
+          const amb = drops.filter(d => d.amb && d.state === 'hold');
+          let hit = amb.find(d => Math.hypot(d.x - x, d.y - y) < d.r + r + 3);
+          if (!hit && amb.length >= 24) { let bd = 1e9; for (const d of amb) { const q = Math.hypot(d.x - x, d.y - y); if (q < bd) { bd = q; hit = d; } } }
+          if (hit) { hit.m += mOf(r) * 1.6; hit.r = rOf(hit.m); } else drop({ amb: true, x, y, r, grow: .4, a: .9 });
+          for (const d of amb) for (const o of amb) if (o !== d && o.state === 'hold' && d.state === 'hold' && d.m >= o.m && Math.hypot(o.x - d.x, o.y - d.y) < (o.r + d.r) * .92) {
+            d.x = (d.x * d.m + o.x * o.m) / (d.m + o.m); d.y = (d.y * d.m + o.y * o.m) / (d.m + o.m); d.m += o.m; d.r = rOf(d.m); o.state = 'gone'; }
+        }
       }
       for (const M of msgs) M.place();
       for (let i = msgs.length - 1; i >= 0; i--) { const M = msgs[i]; if (M.done) { M.fade -= dt * 1.1; if (M.fade <= 0) msgs.splice(i, 1); } }
-      const lit = D.flare > .02 || D.breath > .02 || D.bloomT > 0 || D.rain > .2 || D.wet > .02;
-      D.wet = (D.wet || 0) + ((D.rain > .2 ? 1 : 0) - (D.wet || 0)) * Math.min(1, dt * .6);
-      if (!drops.length && !beads.length && !wisps.length && !msgs.length && !lit) { if (dirty) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); dirty = false; } return; }
-      dirty = true; snapAge += dt; if (snapAge > .033 && (drops.length || wisps.length)) snapshot();
+      D.wet += ((D.rain > .2 ? 1 : 0) - D.wet) * Math.min(1, dt * .6);
+      const busy = drops.length || beads.length || wisps.length || msgs.length || streaks.length || skins.size || D.flare > .02 || D.breath > .02 || D.bloomT > 0 || D.wet > .02 || D.mark;
+      if (!busy) { if (dirty) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); dirty = false; } return; }
+      dirty = true; snapAge += dt; if (snapAge > .033) snapshot();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-      // BREATH: fog rising from the bottom edge, in the rhythm of breathing; it clears as you recover
+      // BREATH
       if (D.breath > .02) {
-        const ph = .5 + .5 * Math.sin(performance.now() / 1000 * (2.4 + 2.2 * D.breath)), a = D.breath * (.16 + .2 * ph);
+        const ph = .5 + .5 * Math.sin(T * (2.4 + 2.2 * D.breath)), a = D.breath * (.16 + .2 * ph);
         const g = ctx.createRadialGradient(W / 2, H + 30, 20, W / 2, H + 30, H * (.34 + .16 * ph));
-        g.addColorStop(0, `rgba(226,236,240,${a})`); g.addColorStop(.6, `rgba(226,236,240,${a * .45})`); g.addColorStop(1, 'rgba(226,236,240,0)');
-        ctx.fillStyle = g; ctx.fillRect(0, H * .4, W, H * .6);
+        g.addColorStop(0, `rgba(226,236,240,${a})`); g.addColorStop(.6, `rgba(226,236,240,${a * .45})`); g.addColorStop(1, 'rgba(226,236,240,0)'); ctx.fillStyle = g; ctx.fillRect(0, H * .4, W, H * .6);
       }
-      // FLARE: a streak and a chain of ghosts from the light, only while you can see it
+      // FLARE, and what the light tells you, written beside it
       if (D.flare > .02 && D.light) {
         const [lx, ly] = D.light, a = D.flare, cx = W / 2, cy = H / 2;
         let g = ctx.createLinearGradient(0, 0, W, 0); const u = Math.max(0, Math.min(1, lx / W));
@@ -173,49 +255,64 @@
         ctx.fillStyle = g; ctx.fillRect(0, ly - 1, W, 2);
         g = ctx.createRadialGradient(lx, ly, 0, lx, ly, 46); g.addColorStop(0, `rgba(200,250,255,${.42 * a})`); g.addColorStop(1, 'rgba(200,250,255,0)'); ctx.fillStyle = g; ctx.fillRect(lx - 46, ly - 46, 92, 92);
         [[.45, 9, '160,240,255'], [.85, 16, '255,214,150'], [1.3, 26, '150,220,255'], [1.7, 12, '255,190,160']].forEach(([t, r, c]) => {
-          const x = lx + (cx - lx) * t, y = ly + (cy - ly) * t; ctx.strokeStyle = `rgba(${c},${.22 * a})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.stroke();
-          ctx.fillStyle = `rgba(${c},${.07 * a})`; ctx.fill(); });
+          const x = lx + (cx - lx) * t, y = ly + (cy - ly) * t; ctx.strokeStyle = `rgba(${c},${.22 * a})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.stroke(); ctx.fillStyle = `rgba(${c},${.07 * a})`; ctx.fill(); });
+        if (D.mark) { ctx.save(); ctx.textAlign = lx > W * .6 ? 'right' : 'left'; ctx.textBaseline = 'middle'; beaded(D.mark, lx + (lx > W * .6 ? -16 : 16), Math.max(70, ly + 26), 24, a); ctx.restore(); }
       }
-      // WATER DOWN THE FRAME: while it rains on you, the edges of the glass run
-      if (D.wet > .02) {
-        const t = performance.now() / 1000;
-        for (const side of [0, 1]) {
-          const bx = side ? W - 7 : 7, sg = side ? -1 : 1;
-          for (const [off, w, col] of [[1.6, 3.4, `rgba(0,10,16,${.22 * D.wet})`], [0, 2.6, `rgba(210,240,250,${.16 * D.wet})`], [-.9, .9, `rgba(255,255,255,${.5 * D.wet})`]]) {
-            ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath();
-            for (let y = -10; y <= H + 10; y += 14) { const x = bx + sg * (off + 3.2 * Math.sin(y * .021 + t * .5 + side * 2) + 1.8 * Math.sin(y * .067 - t * .9) + 2.4 * Math.sin(y * .009 + side)); if (y < 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
-            ctx.stroke();
-          }
+      // WATER DOWN THE FRAME
+      if (D.wet > .02) for (const side of [0, 1]) {
+        const bx = side ? W - 7 : 7, sg = side ? -1 : 1;
+        for (const [off, w, col] of [[1.8, 4.4, `rgba(0,10,16,${.22 * D.wet})`], [0, 3.4, `rgba(210,240,250,${.15 * D.wet})`], [-1, 1, `rgba(255,255,255,${.5 * D.wet})`]]) {
+          ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath();
+          for (let y = -10; y <= H + 10; y += 14) { const x = bx + sg * (off + 3.6 * Math.sin(y * .021 + T * .5 + side * 2) + 2 * Math.sin(y * .067 - T * .9) + 2.6 * Math.sin(y * .009 + side)); if (y < 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+          ctx.stroke(); }
+      }
+      // STREAKS: ribbons of water, thinning from the tail; the easy way down for whatever comes next
+      ctx.lineCap = ctx.lineJoin = 'round';
+      for (let i = streaks.length - 1; i >= 0; i--) {
+        const S = streaks[i]; let alive = false;
+        for (const p of S.pts) { p.t += dt; if (p.t < S.life) alive = true; }
+        if (!alive && S.pts.length) { streaks.splice(i, 1); continue; }
+        for (let k = 1; k < S.pts.length; k += 1) {
+          const a = S.pts[k - 1], b = S.pts[k], al = Math.max(0, 1 - b.t / S.life); if (al <= 0 || Math.hypot(a.x - b.x, a.y - b.y) > 60) continue;
+          const w = S.w * (.45 + .55 * al) * (.8 + .3 * Math.sin(k * .9 + S.w));
+          ctx.strokeStyle = `rgba(0,8,14,${.26 * al})`; ctx.lineWidth = w + 1.6; ctx.beginPath(); ctx.moveTo(a.x + .8, a.y); ctx.lineTo(b.x + .8, b.y); ctx.stroke();
+          ctx.strokeStyle = `rgba(214,238,248,${.16 * al})`; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+          ctx.strokeStyle = `rgba(255,255,255,${.55 * al})`; ctx.lineWidth = .9; ctx.beginPath(); ctx.moveTo(a.x - w * .32, a.y); ctx.lineTo(b.x - w * .32, b.y); ctx.stroke();
         }
       }
-      // WRITING ON THE GLASS: speech in beaded script beside the speaker's drop; what is only narrated, small beneath it
-      for (const M of msgs) writing(M);
-      // WORMS: the track, each bead holding the moment it was left, thinning until the glass is dry
+      // WORMS: the moments kept along the way
       for (let i = beads.length - 1; i >= 0; i--) {
         const b = beads[i]; b.t += dt; const a = 1 - b.t / b.life; if (a <= 0) { beads.splice(i, 1); continue; }
-        const r = b.r * (.6 + .4 * a); ctx.globalAlpha = Math.min(1, a * 1.4); ctx.drawImage(atlas, b.cx, b.cy, CELL, CELL, b.x - r, b.y - r * 1.12, r * 2, r * 2.24);
+        const r = b.r * (.7 + .3 * a); ctx.globalAlpha = Math.min(1, a * 1.5); ctx.drawImage(atlas, b.cx, b.cy, CELL, CELL, b.x - r, b.y - r * 1.08, r * 2, r * 2.16);
       }
       ctx.globalAlpha = 1;
-      // PANE
+      for (const M of msgs) writing(M);
+      // the menu's beads hang on one thread of water
+      const rail = [...skins.values()].filter(U => U.el.parentElement && U.el.parentElement.id === 'dk-rail').sort((a, b) => a.y - b.y), menu = [...skins.values()].find(U => U.kind === 'amber');
+      if (rail.length && menu) { ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(menu.x, menu.y); let px = menu.x, py = menu.y;
+        for (const U of rail) { ctx.quadraticCurveTo(px + 9 * Math.sin(T + py * .05), (py + U.y) / 2, U.x, U.y); px = U.x; py = U.y; } ctx.stroke(); }
+      // THE PANE: loose water
       for (let i = drops.length - 1; i >= 0; i--) {
         const d = drops[i]; d.t += dt;
         if (d.grow < 1) d.grow = Math.min(1, d.grow + dt * 3);
         if (d.state === 'hold' && !d.held) {
-          if (d.t > d.life || d.r > R_RUN) { d.state = 'fall'; d.vy = 12; }                     // heavy enough: it lets go
-          else if (d.amb && D.rain < .15) { d.m *= 1 - dt * .12; d.r = rOf(d.m); if (d.r < 1.1) d.state = 'gone'; }   // out of the rain the glass dries
+          if (d.t > d.life || d.r > R_RUN) { d.state = 'fall'; d.vy = 12; }
+          else if (d.amb && D.rain < .15) { d.m *= 1 - dt * .12; d.r = rOf(d.m); if (d.r < 1.1) d.state = 'gone'; }
         }
         if (d.state === 'fall') {
-          d.vy = Math.min(560, d.vy + (150 + d.r * 22) * dt);                                  // heavier drops run faster
-          let pull = 0, wet = 0;                                                               // a wet track is the easy way down
-          for (let k = beads.length - 1, n = 0; k >= 0 && n < 40; k--, n++) { const b = beads[k], dy = b.y - d.y; if (dy > 0 && dy < 26 && Math.abs(b.x - d.x) < 16) { pull += (b.x - d.x); wet++; } }
-          d.vx += ((wet ? pull / wet * 6 : Math.sin(d.t * 5 + d.wob) * 24) - d.vx) * dt * 4; if (wet) d.vy += 120 * dt;
+          d.vy = Math.min(d.slow ? 150 : 560, d.vy + (d.slow ? 60 : 150 + d.r * 22) * dt);
+          let pull = 0, wet = 0;
+          for (let k = wetPts.length - 1, n = 0; k >= 0 && n < 90; k--, n++) { const b = wetPts[k], dy = b.y - d.y; if (b.t < 6 && dy > 0 && dy < 30 && Math.abs(b.x - d.x) < 20) { pull += (b.x - d.x); wet++; } }
+          d.vx += ((wet ? pull / wet * 7 : Math.sin(d.t * 5 + d.wob) * (d.slow ? 34 : 24)) - d.vx) * dt * 4; if (wet) d.vy += 120 * dt;
           d.x += d.vx * dt; d.y += d.vy * dt;
-          for (const o of drops) if (o !== d && o.state === 'hold' && !o.held && Math.hypot(o.x - d.x, o.y - d.y) < o.r + d.r) { d.m += o.m; d.r = rOf(d.m); d.x += (o.x - d.x) * .25; o.state = 'gone'; }   // merge
-          if (d.y - d.lastBead > 6 + d.r * .5) {
-            d.lastBead = d.y; const br = Math.min(d.r * .5, Math.random() < .22 ? 2.8 + Math.random() * 2.2 : 1.3 + Math.random() * 1.4);
-            bead(d.x + (Math.random() - .5) * d.r * .4, d.y - d.r, br, 5 + Math.random() * 6); d.m = Math.max(.2, d.m - mOf(br) * .8); d.r = rOf(d.m);
-            if (d.r < R_STOP && !d.forced && d.amb) { d.state = 'hold'; d.vy = 0; d.t = 0; d.life = 1e9; }   // too light to run: it pins again
-            else if (d.r < 2.2) d.state = 'gone';
+          for (const o of drops) if (o !== d && o.state === 'hold' && !o.held && Math.hypot(o.x - d.x, o.y - d.y) < o.r + d.r) { d.m += o.m; d.r = rOf(d.m); d.x += (o.x - d.x) * .25; o.state = 'gone'; }
+          for (const U of skins.values()) if (!d.forced && Math.abs(d.x - U.x) < U.rx * .9 && Math.abs(d.y - U.y) < U.ry * .9) { U.swell = Math.min(1, U.swell + .7); U.wetq += .3; d.state = 'gone'; }   // a stubborn drop swallows it
+          if (!d.trail) d.trail = newStreak(Math.max(2.2, d.r * (d.cells ? 1.5 : .9)), d.cells ? 16 : 6 + Math.random() * 4);
+          if (Math.hypot(d.x - (d.lpx ?? -1e9), d.y - (d.lpy ?? -1e9)) > 5) {
+            d.lpx = d.x; d.lpy = d.y; streakPt(d.trail, d.x, d.y - d.r * .6); d.steps = (d.steps || 0) + 1;
+            if (d.cells) { if (d.steps % 5 === 2 && d.cells.length) bead(d.x, d.y - d.r, 12, 15 + Math.random() * 4, d.cells.shift()); if (!d.cells.length && d.steps > 60) d.cells = null; }   // the action, frame by frame
+            else if (d.steps % 2 === 0) { const br = Math.min(d.r * .55, 1.6 + Math.random() * 2.6); bead(d.x + (Math.random() - .5) * d.r * .3, d.y - d.r, br, 5 + Math.random() * 6); d.m = Math.max(.2, d.m - mOf(br) * .7); d.r = rOf(d.m); }
+            if (!d.cells && !d.slow) { if (d.r < R_STOP && !d.forced && d.amb) { d.state = 'hold'; d.vy = 0; d.t = 0; d.life = 1e9; d.trail = null; } else if (d.r < 2.2) d.state = 'gone'; }
           }
           if (d.y - d.r > H) d.state = 'gone';
         }
@@ -223,14 +320,15 @@
         const g = d.grow * (2 - d.grow), stretch = d.state === 'fall' ? 1 + Math.min(.55, d.vy / 700) : 1 + .04 * Math.sin(d.t * 2.2 + d.wob);
         lens(d.x, d.y, d.r * g / Math.sqrt(stretch), d.r * g * stretch, d.a, d.tint);
       }
+      // the stubborn ones, over everything loose
+      for (const U of skins.values()) drawSkin(U, dt);
       // SMOKE
       for (let i = wisps.length - 1; i >= 0; i--) {
         const w = wisps[i]; w.t += dt; const u = w.t / w.life; if (u >= 1) { wisps.splice(i, 1); continue; }
         w.x += (w.vx + Math.sin(w.t * 3 + w.r) * 9) * dt; w.y += w.vy * dt; w.vy *= 1 - dt * .5; const r = w.r * (1 + u * 3.4), a = (u < .15 ? u / .15 : 1 - u) * .36, c = w.rgb.join(',');
-        const g = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, r); g.addColorStop(0, `rgba(${c},${a})`); g.addColorStop(1, `rgba(${c},0)`);
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(w.x, w.y, r, 0, 6.2832); ctx.fill();
+        const g = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, r); g.addColorStop(0, `rgba(${c},${a})`); g.addColorStop(1, `rgba(${c},0)`); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(w.x, w.y, r, 0, 6.2832); ctx.fill();
       }
-      // BLOOM: the charge spills and runs down
+      // BLOOM
       if (D.bloomT > 0) {
         D.bloomT = Math.max(0, D.bloomT - dt * 1.9); const u = 1 - D.bloomT, a = D.bloomT * D.bloomT * .7;
         const g = ctx.createRadialGradient(W / 2, H * (.42 + .18 * u), 10, W / 2, H * (.42 + .18 * u), Math.max(W, H) * (.25 + .6 * u));
