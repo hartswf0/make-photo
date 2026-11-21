@@ -8307,7 +8307,7 @@ void main(){
       const RAIN2 = urlParams.get("rain") !== "1";                         // the vendored rain engine (night-post/rain/) instead of dew-ui
       demo.dew = window.makeDew && !RAIN2 ? window.makeDew(canvas) : null;
       document.body.classList.toggle("rain2", RAIN2);
-      if (RAIN2) { const V = "?v=7", lk = document.createElement("link"); lk.rel = "stylesheet"; lk.href = "./rain/rain.css" + V; document.head.append(lk);
+      if (RAIN2) { const V = "?v=8", lk = document.createElement("link"); lk.rel = "stylesheet"; lk.href = "./rain/rain.css" + V; document.head.append(lk);
         const en = document.createElement("script"); en.src = "./rain/engine.js" + V; en.onload = () => { const su = document.createElement("script"); su.src = "./rain/surface.js" + V; document.head.append(su); }; document.head.append(en); }
       document.body.classList.toggle("dew-skin", !!demo.dew);
       if (demo.dew) {
@@ -8474,7 +8474,7 @@ void main(){
               return { donkey: { ...pj(donkey.state.x, (donkey.state.y || state.y || 0) + 1.5, donkey.state.z), dist: D(donkey.state.x, donkey.state.z) },
                 next: nx ? { ...pj(DEMO_SETS[nx][0], (state.y || 0) + 2.2, DEMO_SETS[nx][1]), name: DEMO_SETS[nx][2], dist: D(DEMO_SETS[nx][0], DEMO_SETS[nx][1]) } : null,
                 people: ppl.map(ch => ({ id: ch.state.id, name: demoName(ch), ...pj(ch.state.x, (ch.state.y || 0) + 1.9, ch.state.z), dist: D(ch.state.x, ch.state.z) })) }; })(),
-            map: { stops: order.map(k => ({ id: k, name: DEMO_SETS[k][2], u: U(DEMO_SETS[k][0], DEMO_SETS[k][1])[0], v: U(DEMO_SETS[k][0], DEMO_SETS[k][1])[1], next: k === nx, seen: c.visited.includes(k) })), me: U(state.x, state.z), donkey: U(donkey.state.x, donkey.state.z), heading: -state.yaw },
+            map: { stops: order.map(k => ({ id: k, name: DEMO_SETS[k][2], dist: Math.hypot(DEMO_SETS[k][0] - state.x, DEMO_SETS[k][1] - state.z), dir: (() => { const dx = DEMO_SETS[k][0] - state.x, dz = DEMO_SETS[k][1] - state.z; return ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'][Math.round(Math.atan2(dx, -dz) / (Math.PI / 4) + 8) % 8]; })(), u: U(DEMO_SETS[k][0], DEMO_SETS[k][1])[0], v: U(DEMO_SETS[k][0], DEMO_SETS[k][1])[1], next: k === nx, seen: c.visited.includes(k) })), me: U(state.x, state.z), donkey: U(donkey.state.x, donkey.state.z), heading: -state.yaw },
             sound: { voices: !!demo.voice, tape: !audioEl.paused, radio: !!(field && field.radio && field.radio.on) }
           };
         },
@@ -8487,8 +8487,45 @@ void main(){
           say: text => demoSay(text), ask: () => { demo.carryFromCan = false; return demoLiveDo(); },
           focus: m => { state.focusDist = clamp(m, 1.2, 900); state.focusPulse = 1; updateHUD(); },
           set: (what, i) => { if (what === "filter") state.filterIdx = clamp(i | 0, 0, FILTERS.length - 1); else if (what === "stop") state.stopIdx = clamp(i | 0, 0, STOPS.length - 1); else if (what === "mode") state.modeIdx = clamp(i | 0, 0, MODES.length - 1); else if (what === "tilt") state.tilt = clamp(+i, -.35, .35); updateHUD(); },
+          travel: id => { const st = DEMO_SETS[id]; if (!st) return false; teleportToWorld(st[0] + 2.4, st[1] + 2.6, st[2]); demo.dockSig = ""; return true; },
           lang: code => demo.setLang && demo.setLang(code), jump: () => jumpPlayer(), begin: () => { ui.brief.hidden = true; startField(); if (state.introActive) finishIntro(true); }
         },
+        // A chart of the ground itself: relief from the terrain, water, the route in order, the stops, the donkey and you with your heading.
+        chart: (() => { let relief = null, view = null; const order = ["basalt", "beacon", "hill", "compound"];
+          const short = n => n.replace(/^the /, "").replace(/^white wall at the /, "");
+          return {
+            draw(cv, sel) {
+              const g = cv.getContext("2d"), W = cv.width, H = cv.height, c = npCarrier(), nx = order.find(k => !c.visited.includes(k)) || null;
+              let x0 = state.x, x1 = state.x, z0 = state.z, z1 = state.z; for (const k of order) { x0 = Math.min(x0, DEMO_SETS[k][0]); x1 = Math.max(x1, DEMO_SETS[k][0]); z0 = Math.min(z0, DEMO_SETS[k][1]); z1 = Math.max(z1, DEMO_SETS[k][1]); }
+              let sx = Math.max(160, (x1 - x0) * 1.34), sz = Math.max(160, (z1 - z0) * 1.34); const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2; if (sx / sz < W / H) sx = sz * W / H; else sz = sx * H / W;
+              const q = v => Math.round(v / 24) * 24, vx = q(cx - sx / 2), vz = q(cz - sz / 2); sx = q(sx) + 24; sz = sx * H / W; view = { vx, vz, sx, sz };
+              const P = (x, z) => [(x - vx) / sx * W, (z - vz) / sz * H], key = [vx, vz, sx, W, H].join();
+              if (!relief || relief.key !== key) { const cols = 72, rows = Math.round(cols * H / W), rc = document.createElement("canvas"); rc.width = cols; rc.height = rows; const rg = rc.getContext("2d"), im = rg.createImageData(cols, rows), hs = new Float32Array(cols * rows);
+                for (let r = 0; r < rows; r++) for (let q2 = 0; q2 < cols; q2++) hs[r * cols + q2] = groundAt(vx + (q2 + .5) / cols * sx, vz + (r + .5) / rows * sz);
+                let lo = 1e9, hi = -1e9; for (const h of hs) { lo = Math.min(lo, h); hi = Math.max(hi, h); } const band = Math.max(4, (hi - lo) / 9);
+                for (let r = 0; r < rows; r++) for (let q2 = 0; q2 < cols; q2++) { const i = r * cols + q2, h = hs[i], hw = q2 ? hs[i - 1] : h, hn = r ? hs[i - cols] : h, wet = mw.wet(vx + (q2 + .5) / cols * sx, vz + (r + .5) / rows * sz) > -.45;
+                  const t = (h - lo) / Math.max(1, hi - lo), sh = clamp(.5 + (hw - h) * .05 + (hn - h) * .035, .12, 1), line = Math.abs(h / band - Math.round(h / band)) < .09 ? .78 : 1;
+                  const R = wet ? 18 : (34 + t * 58) * sh * 1.5 * line, G = wet ? 78 : (52 + t * 62) * sh * 1.5 * line, B2 = wet ? 104 : (62 + t * 54) * sh * 1.5 * line; im.data[i * 4] = R; im.data[i * 4 + 1] = G; im.data[i * 4 + 2] = B2; im.data[i * 4 + 3] = 255; }
+                rg.putImageData(im, 0, 0); relief = { key, rc }; }
+              g.imageSmoothingEnabled = true; g.drawImage(relief.rc, 0, 0, W, H); g.fillStyle = "rgba(3,16,22,.28)"; g.fillRect(0, 0, W, H);
+              const u = W / 360; g.lineCap = "round"; g.lineJoin = "round";
+              g.setLineDash([2 * u, 7 * u]); g.lineWidth = 2.2 * u; g.strokeStyle = "rgba(210,245,240,.6)"; g.beginPath(); order.forEach((k, i) => { const [x, y] = P(DEMO_SETS[k][0], DEMO_SETS[k][1]); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); g.setLineDash([]);
+              const [mx, my] = P(state.x, state.z), tgt = sel || nx;
+              if (tgt) { const [tx, ty] = P(DEMO_SETS[tgt][0], DEMO_SETS[tgt][1]); g.strokeStyle = "#f8cd91"; g.lineWidth = 3 * u; g.beginPath(); g.moveTo(mx, my); g.lineTo(tx, ty); g.stroke();
+                const d = Math.hypot(DEMO_SETS[tgt][0] - state.x, DEMO_SETS[tgt][1] - state.z); if (d > 30) { g.font = `600 ${12 * u}px system-ui,sans-serif`; g.textAlign = "center"; g.lineWidth = 3.5 * u; g.strokeStyle = "rgba(3,16,22,.9)"; g.strokeText(Math.round(d) + " m", (mx + tx) / 2, (my + ty) / 2 - 6 * u); g.fillStyle = "#ffe2b0"; g.fillText(Math.round(d) + " m", (mx + tx) / 2, (my + ty) / 2 - 6 * u); } }
+              g.font = `italic ${15 * u}px Georgia,serif`; const boxes = [];
+              order.forEach((k, i) => { const [x, y] = P(DEMO_SETS[k][0], DEMO_SETS[k][1]), seen = c.visited.includes(k), isSel = k === sel, isNx = k === nx;
+                g.beginPath(); g.arc(x, y, (isSel ? 11 : 8) * u, 0, 7); g.fillStyle = isNx ? "#f8cd91" : seen ? "rgba(3,16,22,.75)" : "#e6f5f1"; g.fill(); g.lineWidth = (isSel ? 3.5 : 2) * u; g.strokeStyle = isSel ? "#ffffff" : seen ? "rgba(200,240,235,.85)" : "rgba(3,16,22,.9)"; g.stroke();
+                g.fillStyle = isNx ? "#04141a" : seen ? "#d9eeea" : "#04141a"; g.font = `700 ${10 * u}px system-ui,sans-serif`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(String(i + 1), x, y + .5 * u);
+                g.font = `italic ${15 * u}px Georgia,serif`; g.textBaseline = "alphabetic"; const name = short(DEMO_SETS[k][2]), tw = g.measureText(name).width; let lx = clamp(x, tw / 2 + 6 * u, W - tw / 2 - 6 * u), ly = y + 26 * u; if (ly > H - 8 * u || boxes.some(b => Math.abs(b[0] - lx) < (b[2] + tw) / 2 && Math.abs(b[1] - ly) < 16 * u)) ly = y - 15 * u; boxes.push([lx, ly, tw]);
+                g.lineWidth = 4 * u; g.strokeStyle = "rgba(3,16,22,.92)"; g.strokeText(name, lx, ly); g.fillStyle = isNx ? "#ffe2b0" : "#e9f4f0"; g.fillText(name, lx, ly); });
+              const [dx, dy] = P(donkey.state.x, donkey.state.z); g.fillStyle = "#c9a36a"; g.strokeStyle = "rgba(3,16,22,.9)"; g.lineWidth = 2 * u; g.beginPath(); g.ellipse(clamp(dx, 8, W - 8), clamp(dy, 8, H - 8), 7 * u, 5 * u, 0, 0, 7); g.fill(); g.stroke();
+              g.save(); g.translate(clamp(mx, 12, W - 12), clamp(my, 12, H - 12)); g.rotate(-state.yaw); g.fillStyle = "#ffffff"; g.strokeStyle = "rgba(3,16,22,.95)"; g.lineWidth = 2.5 * u; g.beginPath(); g.moveTo(0, -15 * u); g.lineTo(10 * u, 11 * u); g.lineTo(0, 5 * u); g.lineTo(-10 * u, 11 * u); g.closePath(); g.fill(); g.stroke(); g.restore();
+              const bar = [20, 50, 100, 200, 500, 1000].find(b => b / sx * W > 54 * u) || 1000, bw = bar / sx * W; g.strokeStyle = "#e9f4f0"; g.lineWidth = 2 * u; g.beginPath(); g.moveTo(12 * u, H - 12 * u); g.lineTo(12 * u + bw, H - 12 * u); g.stroke(); g.font = `600 ${10 * u}px system-ui,sans-serif`; g.textAlign = "left"; g.fillStyle = "#e9f4f0"; g.fillText(bar + " m", 12 * u, H - 18 * u);
+              g.textAlign = "center"; g.fillText("N", W - 16 * u, 16 * u); g.beginPath(); g.moveTo(W - 16 * u, 34 * u); g.lineTo(W - 16 * u, 20 * u); g.stroke();
+            },
+            hit(u, v) { if (!view) return null; const wx = view.vx + u * view.sx, wz = view.vz + v * view.sz; let best = null, bd = view.sx * .16; for (const k of order) { const d = Math.hypot(DEMO_SETS[k][0] - wx, DEMO_SETS[k][1] - wz); if (d < bd) { bd = d; best = k; } } return best; }
+          }; })(),
         menu: () => Object.entries(demo.MENU || {}).flatMap(([g, items]) => items.map(it => ({ id: it.id, group: g, label: it.cap, value: String(it.val()), on: !!(it.on && it.on()), run: () => it.act() })))
       };
       ui.say.addEventListener("submit", e => { e.preventDefault(); const v = ui.input.value.trim(); if (v) demoSay(v); ui.input.value = ""; ui.input.blur(); document.body.classList.remove("demo-typing"); });

@@ -103,9 +103,9 @@ function liveDrop(slot = 'primary') {
 }
 function exitDrop() { if (S.exit) button('exit', 'recovery', S.exit.label, 'back to your feet', live(() => B.act.exit()), { critical: true, className: 'amber', viscosity: 3, home: ui.scene === 'world' ? [.5, .86] : null }); }
 function base() {
-  if (!ui.menu && ui.scene !== 'world') button('place', 'title', TITLES[ui.scene] || S.place.name, 'tap for more', () => { ui.details = !ui.details; render(); }, { className: 'drop-title', viscosity: 4, kicker: ui.scene === 'world' ? MODE[S.mode] : S.place.name });
+  if (!ui.menu && ui.scene !== 'world' && ui.scene !== 'map') button('place', 'title', TITLES[ui.scene] || S.place.name, 'tap for more', () => { ui.details = !ui.details; render(); }, { className: 'drop-title', viscosity: 4, kicker: ui.scene === 'world' ? MODE[S.mode] : S.place.name });
   if (ui.menu) { exitDrop(); if (undo.length) button('undo', 'recovery', 'Undo', undo.at(-1).label, doUndo, { critical: true, viscosity: 4, home: S.exit ? [.47, .68] : null }); return false; }
-  if (ui.scene !== 'world') button('can', 'water', null, null, () => { ui.details = !ui.details; render(); }, { fill: S.water.liters / 20, kicker: 'Can', value: `${n(S.water.liters)} L`, note: ui.details ? 'of 20 L' : '', viscosity: 1.8 });
+  if (ui.scene !== 'world' && ui.scene !== 'map') button('can', 'water', null, null, () => { ui.details = !ui.details; render(); }, { fill: S.water.liters / 20, kicker: 'Can', value: `${n(S.water.liters)} L`, note: ui.details ? 'of 20 L' : '', viscosity: 1.8 });
   if (ui.scene !== 'world' && (S.water.donkeyDown || S.water.donkey < .3)) button('need', 'need', null, null, () => { ui.scene = 'donkey'; render(); }, { kicker: 'Donkey', value: S.water.donkeyDown ? 'Down' : 'Thirsty', note: 'water before the climb', className: 'amber', viscosity: 3 });
   if (ui.rest) { info('rest', 'speech', 'Rest', 'The world waits.', 'Your water, plates and place are kept.', { className: 'speech-drop', viscosity: 3 }); button('resume', 'primary', 'Return', 'to this moment', () => { ui.rest = false; render(); }, { className: 'action-drop' }); return false; }
   if (ui.memory) { buildRecall(); return false; }
@@ -147,7 +147,14 @@ const BUILD = {
   water() { info('reserve', 'a', 'Keep back', `${n(S.water.reserve)} L`, 'for the way home', { viscosity: 2.2 }); info('space', 'b', 'Space in the can', `${n(20 - S.water.liters)} L`, 'Nothing disappears.', { viscosity: 1.9 }); item('squirt', 'c', .6); item('throw', 'd', .7); if (!liveDrop()) info('walk-to', 'primary', 'Water', 'Find the pump', 'Basalt Pump holds the source', { viscosity: 2 }); },
   people() { const v = currentVoice(); if (!ui.say) { if (v) voiceDrop(v, voiceHome()); else info('no-voice', 'speech', 'No one near', '', 'Walk up to someone. Their voice arrives as water.', { viscosity: 4 }); } if (S.live && S.live.kind === 'talk') liveDrop('topic1'); button('say', 'c', ui.say ? 'Cancel' : 'Say', ui.say ? 'keep listening' : 'write into the water', () => { ui.say = !ui.say; render(); if (ui.say) $('say-text').focus(); }, { viscosity: 4 }); item('voice', 'd', 2); },
   rig() { item('rig', 'a', 2.4); item('sync', 'b', 1.8); item('plates', 'c', 2.6); item('cam', 'd', 1.4); if (ui.details) item('playas', 'e', 2); const p = B.act.lastPlate(); if (p) info('plate-view', 'speech', 'Last plate', '', `${n(Math.min(100, S.lens.focus))} m · ${S.lens.stopName}`, { className: 'plate-detail', image: p, viscosity: 3 }); button('primary', 'primary', 'Expose', 'capture one plate', live(() => B.act.expose()), { className: 'action-drop', viscosity: 2.2 }); },
-  map() { info('map-view', 'speech', 'The way', '', S.place.next ? `Next: ${(S.map.stops.find(x => x.next) || {}).name}` : 'Every stop reached.', { className: 'plate-detail map-drop', image: drawMap(), viscosity: 3, home: [world.clientWidth < 701 ? .36 : .24, .4] }); item('route', 'c', 1.4); item('region', 'd', 2); if (ui.details) item('map', 'e', 2); },
+  map() {                                                             // the chart: tap a stop to read it, then go
+    const stops = S.map.stops, sel = stops.find(x => x.id === ui.mapSel) || stops.find(x => x.next) || stops[0]; ui.mapSel = sel.id;
+    const WHAT = { basalt: 'The source. Saba keeps the pump; the can fills here.', beacon: 'The white wall. Ask here for the way on.', hill: 'The archive on the hill. Cool the reels and copy them.', compound: 'The compound. Listen, screen, and tap the line.' };
+    const nm = sel.name.replace(/^the /, '').replace(/^white wall at the /, ''), here = sel.dist < 14;
+    info('map-view', 'speech', '', '', `${stops.indexOf(sel) + 1}. ${nm}. ${WHAT[sel.id] || ''} ${here ? 'You are here.' : `${Math.round(sel.dist)} m ${sel.dir}.`} ${sel.seen ? 'Reached.' : sel.next ? 'Next.' : 'Not yet.'}`, { className: 'plate-detail map-drop', image: drawMap(), viscosity: 5, home: [.46, .36], onPoint: (u, v) => { const k = B.chart.hit(u, v); if (k) { ui.mapSel = k; mapAt = 0; render(); } } });
+    if (!here) button('primary', 'primary', `Go to ${nm}`, `${Math.round(sel.dist)} m`, live(() => { B.act.travel(sel.id); cause = `Travelled to ${nm}.`; ui.scene = 'world'; }), { className: 'action-drop', viscosity: 2, home: [.7, .8] });
+    button('map-back', 'recovery', 'Back', '', () => { ui.scene = 'world'; render(); }, { className: 'amber', viscosity: 3, home: [.3, .8] });
+  },
   all() {                                                             // every operational control the game has, eight to a page, nothing left out
     const items = menuItems(), per = 8, pages = Math.max(1, Math.ceil(items.length / per)); ui.page = ((ui.page % pages) + pages) % pages;
     const small = world.clientWidth < 701, lx = small ? .22 : .16, rx = small ? .74 : .84;
@@ -172,7 +179,7 @@ function unfold(id) {
   const kItem = (mid, visc) => { const it = menuItems().find(x => x.id === mid); if (it) kids.push(h => button('it-' + mid, 'a', null, null, live(() => { it.run(); ui.openAt = performance.now(); }), { kicker: it.label, value: it.value || (it.on ? 'on' : 'off'), viscosity: visc, className: 'acts', home: h })); };
   if (id === 'can') { kInfo('k-space', 'Room', `${n(20 - S.water.liters)} L`); kInfo('k-reserve', 'Keep back', `${n(S.water.reserve)} L`); if (S.water.liters > 0) { kItem('squirt', .6); kItem('throw', .7); } }
   else if (id === 'donkey') { kInfo('k-dwater', 'Water', `${Math.round(S.water.donkey * 100)}%`); kItem('ride', 1.1); kItem('drive', 1.4); }
-  else if (id === 'next') { kids.push(h => info('map-view', 'speech', 'The way', '', '', { className: 'plate-detail map-drop', image: drawMap(), viscosity: 3, home: [W < 701 ? .4 : .3, .52] })); kItem('route', 1.4); }
+  else if (id === 'next') { ui.open = null; ui.mapSel = null; ui.scene = 'map'; return; }
   else if (id === 'place') { kInfo('k-stops', 'Reached', `${S.place.visited.length} of 4`); kItem('region', 2); kItem('run', .7); }
   else if (id === 'voice-current') { kids.push(h => button('say', 'a', 'Say', '', () => { ui.scene = 'people'; ui.say = true; ui.open = null; render(); $('say-text').focus(); }, { viscosity: 4, className: 'acts', home: h })); kids.push(h => button('k-voices', 'a', 'Voices', '', () => { ui.memory = true; ui.open = null; render(); }, { viscosity: 4, className: 'amber', home: h })); }
   const toward = Math.atan2((.5 - py) * H, (.5 - px) * W), R = Math.min(150, W * .34), list = kids.filter(k => k.length);
@@ -213,15 +220,9 @@ function describe(id) {
   return '';
 }
 function drawMap() {
-  if (performance.now() - mapAt < 900 && mapImage) return mapImage; mapAt = performance.now();
-  const c = drawMap.c || (drawMap.c = document.createElement('canvas')); c.width = 360; c.height = 250; const g = c.getContext('2d'), P = (u, v) => [36 + u * 288, 34 + v * 176];
-  g.fillStyle = '#04141a'; g.fillRect(0, 0, 360, 250); g.lineCap = 'round'; g.lineJoin = 'round';
-  g.strokeStyle = 'rgba(150,230,225,.5)'; g.lineWidth = 2.5; g.setLineDash([2, 9]); g.beginPath(); S.map.stops.forEach((s, i) => { const [x, y] = P(s.u, s.v); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); g.setLineDash([]);
-  g.font = 'italic 14px Georgia,serif'; g.textAlign = 'center';
-  for (const s of S.map.stops) { const [x, y] = P(s.u, s.v); g.beginPath(); g.arc(x, y, s.next ? 11 : 7, 0, 7); g.fillStyle = s.next ? '#f8cd91' : s.seen ? 'rgba(150,230,225,.45)' : 'rgba(215,245,240,.9)'; g.fill(); g.fillStyle = s.next ? '#ffe9c4' : '#d9eeea'; g.fillText(s.name.replace(/^the /, ''), clamp(x, 95, 265), y + (s.v > .6 ? -16 : 28)); }
-  const [dx, dy] = P(S.map.donkey[0], S.map.donkey[1]); g.fillStyle = '#c9a36a'; g.beginPath(); g.ellipse(clamp(dx, 8, 352), clamp(dy, 8, 242), 7, 5, 0, 0, 7); g.fill();
-  const [mx, my] = P(S.map.me[0], S.map.me[1]), h = S.map.heading; g.save(); g.translate(clamp(mx, 10, 350), clamp(my, 10, 240)); g.rotate(h); g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(0, -12); g.lineTo(8, 9); g.lineTo(0, 4); g.lineTo(-8, 9); g.closePath(); g.fill(); g.restore();
-  return (mapImage = c.toDataURL('image/jpeg', .82));
+  if (performance.now() - mapAt < 700 && mapImage) return mapImage; mapAt = performance.now();
+  const c = drawMap.c || (drawMap.c = document.createElement('canvas')); c.width = 720; c.height = 660; B.chart.draw(c, ui.mapSel);
+  return (mapImage = c.toDataURL('image/jpeg', .86));
 }
 
 // ---- render: specs -> DOM drops -> the field -------------------------------------------------------------------------
@@ -233,7 +234,7 @@ function render() {
   { const now = performance.now(), want = new Set(specs.map(sp => sp.id)); for (const id of admitted) if (!want.has(id)) admitted.delete(id);
     specs = specs.filter(sp => { if (admitted.has(sp.id)) return true; if (sp.critical || now - lastAdmit > 380) { admitted.add(sp.id); if (!sp.critical) lastAdmit = now; return true; } return false; }); }
   syncDrops(); renderMenu();
-  const canSteer = S.ready && !ui.past && !ui.rest && !ui.memory && !ui.menu && !ui.say;
+  const canSteer = S.ready && !ui.past && !ui.rest && !ui.memory && !ui.menu && !ui.say && ui.scene !== 'map';
   $('steer').hidden = !canSteer; $('say-form').hidden = !ui.say || ui.scene !== 'people' || ui.past; $('menu-toggle').hidden = !S.ready;
   field?.setErosion?.(weather.erosion); glass.setErosion?.(weather.erosion); memory.setErosion(weather.erosion); ink.setErosion(weather.erosion);
   glass.setMode(weather.material); field?.setMaterial(weather.material); glass.setIntensity(weather.rain); glass.setActivity(!!S.busy && !ui.past);
@@ -248,6 +249,7 @@ function syncDrops() {
       el = document.createElement(sp.kind === 'button' ? 'button' : sp.kind === 'range' ? 'label' : 'div'); el.id = sp.id;
       el.innerHTML = '<span class="drop-kicker"></span><span class="drop-value"></span><span class="drop-label"></span><span class="drop-note"></span>';
       if (sp.kind === 'range') { const input = document.createElement('input'); input.type = 'range'; input.className = 'control-range'; input.addEventListener('input', () => el._spec.action(Number(input.value))); el.append(input); }
+      else if (sp.kind === 'info') el.addEventListener('click', e => { const p = el._spec, img = el.querySelector('.plate-preview'); if (!p.onPoint || !img || field?.suppressClick(e)) return; const r = img.getBoundingClientRect(); p.onPoint((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); });
       else if (sp.kind === 'button') el.addEventListener('click', e => { if (field?.suppressClick(e)) return; el._spec.action?.(); });
       $('drops').append(el); refs.set(sp.id, el);
     }
@@ -364,7 +366,7 @@ function syncField() {
     const element = refs.get(sp.id); if (!element) continue; const [anchorX, anchorY] = homeFor(sp);
     const critical = !!sp.critical || /undo/.test(sp.id); element.classList.toggle('critical', critical); element.dataset.message = String(!sp.value && !sp.label && !!sp.note);
     let width = sp.kind === 'range' ? (mobile ? 116 : 145) : sp.value ? clamp(String(sp.value).length * 12 + 36, 78, mobile ? 132 : 175) : clamp(String(sp.label || sp.note || '').length * 7 + 36, 72, mobile ? 132 : 175);
-    if (sp.id === 'place' || sp.id === 'time-current') width = mobile ? 145 : 195; if (sp.id === 'voice-current') width = mobile ? 150 : 210; if (sp.className?.includes('trace-drop')) width = mobile ? 185 : 240; if (sp.className?.includes('plate-detail')) width = mobile ? 215 : 300; element.style.width = width + 'px';
+    if (sp.id === 'place' || sp.id === 'time-current') width = mobile ? 145 : 195; if (sp.id === 'voice-current') width = mobile ? 150 : 210; if (sp.className?.includes('trace-drop')) width = mobile ? 185 : 240; if (sp.className?.includes('plate-detail')) width = mobile ? 215 : 300; if (sp.className?.includes('map-drop')) width = Math.min(world.clientWidth - 60, 420); element.style.width = width + 'px';
     if (sp.kind === 'range') { element.setAttribute('role', 'slider'); element.setAttribute('aria-label', sp.kicker); element.setAttribute('aria-valuemin', sp.min); element.setAttribute('aria-valuemax', sp.max); element.setAttribute('aria-valuenow', sp.number); element.setAttribute('aria-valuetext', sp.value); const input = element.querySelector('input'); input.tabIndex = -1; input.setAttribute('aria-hidden', 'true'); if (!sp.note) { const note = element.querySelector('.drop-note'); note.hidden = false; note.textContent = sp.id === 'time-current' ? 'pull sideways through time' : `pull up · ${sp.min} to ${sp.max}`; } }
     descriptors.push({ id: sp.id, element, anchorX, anchorY, viscosity: sp.viscosity || 1.5, role: sp.kind === 'button' ? 'action' : sp.kind, critical, label: [sp.kicker, sp.value || sp.label || sp.note].filter(Boolean).join(' · '), adjust: sp.kind === 'range' || !!sp.cycle || !!sp.flow });
   }
@@ -414,7 +416,7 @@ function inkTick(now, dt) {
     el.style.setProperty('--ink', el._ink.toFixed(3)); el.style.setProperty('--ink2', clamp((el._ink - .5) / .5, 0, 1).toFixed(3));
   };
   for (const [id, el] of refs) { const sp = el._spec || {}, cls = sp.className || '';
-    const base = /action-drop/.test(cls) || sp.critical ? .58 : sp.slot === 'title' ? .3 : .14;
+    const base = /map-drop/.test(cls) ? 1 : /action-drop/.test(cls) || sp.critical ? .58 : sp.slot === 'title' ? .3 : .14;
     one(el, id, base, clamp(1 - (now - (el._fresh || 0) - 2200) / 1200, 0, 1)); }
   const t = $('menu-toggle'); let near = 0; if (alive) { near = clamp(1 - (world.clientWidth - ptr.x - 30) / 110, 0, 1); }
   t._ink = (t._ink ?? .3) + (Math.max(.3, near, ui.menu ? 1 : 0) - (t._ink ?? .3)) * k; t.style.setProperty('--ink', t._ink.toFixed(3));
@@ -449,7 +451,7 @@ window.addEventListener('pointermove', wetAt, true); window.addEventListener('po
 function textTick(now, dt) {
   const W = world.clientWidth, H = world.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), cv = TF.cv, mk = TF.mask;
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); mk.width = Math.round(W / 3); mk.height = Math.round(H / 3); }
-  const g = cv.getContext('2d'); if (now - TF.wet > 7000 || !TF.ready || !S.ready) { if (TF.drawn) { g.clearRect(0, 0, cv.width, cv.height); TF.drawn = false; } return; }
+  const g = cv.getContext('2d'); if (now - TF.wet > 7000 || !TF.ready || !S.ready || ui.scene === 'map' || ui.menu) { if (TF.drawn) { g.clearRect(0, 0, cv.width, cv.height); TF.drawn = false; } return; }
   { const mg = mk.getContext('2d'); mg.globalCompositeOperation = 'destination-out'; mg.fillStyle = `rgba(0,0,0,${Math.min(.5, dt * (.1 + weather.erosion * .5))})`; mg.fillRect(0, 0, mk.width, mk.height); mg.globalCompositeOperation = 'source-over'; }
   if (!TF.at || now - TF.at > 700) { TF.at = now; const t = fieldText(); if (t !== TF.text) { TF.text = t; TF.prep = window.Pretext.prepareWithSegments(t, TF.font); } }
   if (!TF.prep) return;
