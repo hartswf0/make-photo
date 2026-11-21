@@ -20,10 +20,11 @@
     const text = document.createElement('div'); text.id = 'dew-text'; document.body.append(text);
     const st = document.createElement('style');
     st.textContent = `#dew-text{position:fixed;inset:0;pointer-events:none;z-index:63;font:15px/1.38 Georgia,'Iowan Old Style',serif;color:#fff}
-      #dew-text p{position:absolute;margin:0;text-shadow:0 1px 2px rgba(0,0,0,.95),0 0 10px rgba(0,10,16,.9),0 0 22px rgba(0,10,16,.7);transition:opacity .7s,filter .7s;opacity:0;filter:blur(3px)}
-      #dew-text p.on{opacity:1;filter:none}#dew-text p b{display:block;font:600 10.5px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#bfe9f2;margin-bottom:1px}
+      #dew-text p{position:absolute;margin:0;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}#dew-text p b{display:block;font:600 10.5px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#bfe9f2;margin-bottom:1px}
       #dew-text p.me{font-style:italic;color:#d8f6ff}`;
     document.head.append(st);
+    // the hand that writes on the glass: Dancing Script (SIL Open Font License), bundled so every device writes alike
+    try { const ff = new FontFace('Dancing Script', 'url(./fonts/dancing-script-latin-600-normal.woff2)', { weight: '600' }); ff.load().then(f => document.fonts.add(f)).catch(() => { }); } catch (e) { }
     const ctx = cv.getContext('2d'), snap = document.createElement('canvas'), sctx = snap.getContext('2d', { willReadFrequently: true });
     const CELL = 20, COLS = 16, ROWS = 10, atlas = document.createElement('canvas'), actx = atlas.getContext('2d'); atlas.width = CELL * COLS; atlas.height = CELL * ROWS;
     let cell = 0, W = 0, H = 0, dpr = 1, snapAge = 9, dirty = false;
@@ -90,25 +91,46 @@
     function say(o) {                                                   // o: { anchor: () => [x, y] | null, name, text, me }
       const p = document.createElement('p'); if (o.me) p.className = 'me';
       if (o.name) { const b = document.createElement('b'); b.textContent = o.name; p.append(b); }
-      const s = document.createElement('span'); p.append(s); text.append(p); requestAnimationFrame(() => p.classList.add('on'));
+      const s = document.createElement('span'); p.append(s); p.setAttribute('role', 'status'); text.append(p);
       const a0 = o.anchor && o.anchor() || [W / 2, H * .4];
       const d = drop({ x: a0[0], y: a0[1], r: o.me ? 9 : 15, grow: 0, held: true, tint: o.me ? 'rgba(56,232,255,.16)' : null });
       const M = { d, p, s, full: o.text || '', shown: 0, anchor: o.anchor, me: !!o.me, done: false };
       M.set = (t, frac) => { const n = Math.ceil(t.length * Math.min(1, frac)); if (n !== M.shown || t !== M.full) { M.full = t; M.shown = n; s.textContent = t.slice(0, n); } };
       M.end = (how = 'fall') => {                                       // 'fall': it was said, it runs down the glass; 'smoke': refused or only narrated
-        if (M.done) return; M.done = true; p.classList.remove('on'); setTimeout(() => p.remove(), 800);
+        if (M.done) return; M.done = true; M.how = how; setTimeout(() => p.remove(), 800);
         if (how === 'smoke') d.smoke(); else d.release();
+        if (M.box) for (let i = 0; i < (how === 'smoke' ? 7 : 5); i++) {                 // the writing lets go too: beads run from the letters, or it lifts as vapour
+          const x = M.box[0] + Math.random() * M.box[2], y = M.box[1] + Math.random() * M.box[3];
+          if (how === 'smoke') wisp(x, y); else drop({ x, y, r: 2.6 + Math.random() * 2.4, state: 'fall', vy: 10 + Math.random() * 30, grow: 1, forced: true });
+        }
       };
-      M.place = () => {
-        if (M.done) return; const a = M.anchor && M.anchor(); if (a) { d.x += (a[0] - d.x) * .25; d.y += (a[1] - d.y) * .25; }
-        // words sit on the side of the drop with room; with no room on either side, under it
-        const pw = Math.min(270, Math.round(W * .62)); p.style.width = pw + 'px'; const ph = p.offsetHeight || 40;
-        const roomR = W - 8 - (d.x + d.r + 10), roomL = d.x - d.r - 10 - 8;
-        if (roomR >= pw || roomL >= pw) { p.style.left = (roomR >= pw ? d.x + d.r + 10 : d.x - d.r - 10 - pw) + 'px'; p.style.textAlign = roomR >= pw ? 'left' : 'right';
-          p.style.top = Math.max(54, Math.min(H - ph - 150, d.y - Math.min(ph / 2, 22))) + 'px'; }
-        else { p.style.left = Math.max(8, Math.min(W - pw - 8, d.x - pw / 2)) + 'px'; p.style.textAlign = 'center'; p.style.top = Math.max(54, Math.min(H - ph - 150, d.y + d.r + 8)) + 'px'; }
-      };
+      M.name = o.name || ''; M.fade = 1; M.box = null;
+      M.place = () => { if (M.done) return; const a = M.anchor && M.anchor(); if (a) { d.x += (a[0] - d.x) * .25; d.y += (a[1] - d.y) * .25; } };
       msgs.push(M); return M;
+    }
+    const SCRIPT = `600 29px "Dancing Script","Snell Roundhand","Segoe Script","Apple Chancery","Bradley Hand",cursive`, NOTE = `italic 13.5px Georgia,"Iowan Old Style",serif`;
+    function wrap(str, font, maxW) { ctx.font = font; const out = []; let line = ''; for (const w of str.split(/\s+/)) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { out.push(line); line = w; } else line = t; } if (line) out.push(line); return out; }
+    function writing(M) {
+      const full = M.full || ''; if (!full) return;
+      const shown = full.slice(0, M.shown), quoted = t => (t.match(/“[^”]*”?/g) || []).map(q => q.replace(/[“”]/g, '').trim()).join(' ');
+      const spoken = M.me ? shown : quoted(shown), note = M.me ? '' : shown.replace(/“[^”]*”?/g, ' ').replace(/\s+/g, ' ').trim();
+      const maxW = Math.min(250, W * .58), d = M.d, a = Math.max(0, M.done ? M.fade : 1);
+      const sl = spoken ? wrap(spoken, M.me ? SCRIPT.replace('29px', '22px') : SCRIPT, maxW) : [], nl = note ? wrap(note, NOTE, maxW) : [];
+      const lh = M.me ? 26 : 33, hgt = (M.name ? 16 : 0) + sl.length * lh + nl.length * 18 + 4;
+      const roomR = W - 12 - (d.x + d.r + 12), roomL = d.x - d.r - 12 - 12; let x, y, al = 'left';
+      if (roomR >= maxW) { x = d.x + d.r + 12; y = d.y - Math.min(hgt / 2, 26); } else if (roomL >= maxW) { x = d.x - d.r - 12; al = 'right'; y = d.y - Math.min(hgt / 2, 26); }
+      else { x = Math.max(12, Math.min(W - maxW - 12, d.x - maxW / 2)); y = d.y + d.r + 10; }
+      y = Math.max(58, Math.min(H - hgt - 150, y)); M.box = [al === 'right' ? x - maxW : x, y, maxW, hgt];
+      ctx.save(); ctx.textAlign = al; ctx.textBaseline = 'top'; ctx.globalAlpha = a; ctx.shadowColor = 'rgba(0,8,14,.95)'; ctx.shadowBlur = 7;
+      if (M.name) { ctx.font = `italic 15px "Dancing Script","Snell Roundhand",cursive`; ctx.fillStyle = 'rgba(214,240,248,.86)'; ctx.fillText(M.name, x, y); y += 16; }
+      ctx.font = M.me ? SCRIPT.replace('29px', '22px') : SCRIPT; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      for (const l of sl) {
+        ctx.fillStyle = M.me ? 'rgba(200,244,255,.62)' : 'rgba(240,250,255,.58)'; ctx.fillText(l, x, y);            // the film of water the finger left
+        ctx.shadowBlur = 0; ctx.setLineDash([.1, 3.6]); ctx.lineWidth = 1.9; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.strokeText(l, x, y);   // beaded along every stroke
+        ctx.setLineDash([]); ctx.shadowBlur = 7; y += lh;
+      }
+      ctx.font = NOTE; ctx.fillStyle = 'rgba(226,240,246,.86)'; for (const l of nl) { ctx.fillText(l, x, y + 2); y += 18; }
+      ctx.restore();
     }
     D.bloom = () => { D.bloomT = 1; dirty = true; };
     /* ---------- per frame ---------- */
@@ -130,9 +152,10 @@
           d.x = (d.x * d.m + o.x * o.m) / (d.m + o.m); d.y = (d.y * d.m + o.y * o.m) / (d.m + o.m); d.m += o.m; d.r = rOf(d.m); o.state = 'gone'; }
       }
       for (const M of msgs) M.place();
-      for (let i = msgs.length - 1; i >= 0; i--) if (msgs[i].done) msgs.splice(i, 1);
-      const lit = D.flare > .02 || D.breath > .02 || D.bloomT > 0;
-      if (!drops.length && !beads.length && !wisps.length && !lit) { if (dirty) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); dirty = false; } return; }
+      for (let i = msgs.length - 1; i >= 0; i--) { const M = msgs[i]; if (M.done) { M.fade -= dt * 1.1; if (M.fade <= 0) msgs.splice(i, 1); } }
+      const lit = D.flare > .02 || D.breath > .02 || D.bloomT > 0 || D.rain > .2 || D.wet > .02;
+      D.wet = (D.wet || 0) + ((D.rain > .2 ? 1 : 0) - (D.wet || 0)) * Math.min(1, dt * .6);
+      if (!drops.length && !beads.length && !wisps.length && !msgs.length && !lit) { if (dirty) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); dirty = false; } return; }
       dirty = true; snapAge += dt; if (snapAge > .033 && (drops.length || wisps.length)) snapshot();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
       // BREATH: fog rising from the bottom edge, in the rhythm of breathing; it clears as you recover
@@ -153,6 +176,20 @@
           const x = lx + (cx - lx) * t, y = ly + (cy - ly) * t; ctx.strokeStyle = `rgba(${c},${.22 * a})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.stroke();
           ctx.fillStyle = `rgba(${c},${.07 * a})`; ctx.fill(); });
       }
+      // WATER DOWN THE FRAME: while it rains on you, the edges of the glass run
+      if (D.wet > .02) {
+        const t = performance.now() / 1000;
+        for (const side of [0, 1]) {
+          const bx = side ? W - 7 : 7, sg = side ? -1 : 1;
+          for (const [off, w, col] of [[1.6, 3.4, `rgba(0,10,16,${.22 * D.wet})`], [0, 2.6, `rgba(210,240,250,${.16 * D.wet})`], [-.9, .9, `rgba(255,255,255,${.5 * D.wet})`]]) {
+            ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath();
+            for (let y = -10; y <= H + 10; y += 14) { const x = bx + sg * (off + 3.2 * Math.sin(y * .021 + t * .5 + side * 2) + 1.8 * Math.sin(y * .067 - t * .9) + 2.4 * Math.sin(y * .009 + side)); if (y < 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+            ctx.stroke();
+          }
+        }
+      }
+      // WRITING ON THE GLASS: speech in beaded script beside the speaker's drop; what is only narrated, small beneath it
+      for (const M of msgs) writing(M);
       // WORMS: the track, each bead holding the moment it was left, thinning until the glass is dry
       for (let i = beads.length - 1; i >= 0; i--) {
         const b = beads[i]; b.t += dt; const a = 1 - b.t / b.life; if (a <= 0) { beads.splice(i, 1); continue; }

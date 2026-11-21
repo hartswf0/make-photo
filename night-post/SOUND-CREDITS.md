@@ -62,3 +62,8 @@ maps `person|spoken text` to a file and lists each person's voice). Casting: Sab
 Aunt Lemlem bf_emma, Yared am_puck, Abba Gebre bm_george, Memhir Solomon bm_fable, Daniel am_michael,
 Hanna af_nicole, Tesfaye am_fenrir, Abba Desta bm_lewis, Biruk am_echo (raised in playback).
 Kokoro has no Amharic or Tigrinya voice yet; the lines are in English.
+
+## Type
+
+The writing on the glass is set in Dancing Script (The Dancing Script Project Authors), SIL Open Font License 1.1;
+the font and its licence are in `fonts/`.

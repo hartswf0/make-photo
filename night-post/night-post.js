@@ -8155,7 +8155,39 @@ void main(){
         .dk-plate{left:50%;top:36%;width:min(46vw,230px);aspect-ratio:1;object-fit:cover;border-radius:50%;transform:translate(-50%,-50%) scale(.1);opacity:0;pointer-events:none;z-index:79;border:2px solid rgba(255,255,255,.6);box-shadow:inset 0 0 30px rgba(0,0,0,.5),0 10px 30px rgba(0,0,0,.5);transition:transform .5s cubic-bezier(.2,.9,.3,1.15),opacity .4s}
         .dk-plate.on{transform:translate(-50%,-50%) scale(1);opacity:1}.dk-plate.fall{transform:translate(-50%,130vh) scale(.8,1.3);opacity:.6;transition:transform 1s cubic-bezier(.6,0,.9,.4),opacity 1s}
         #dk-flash{border-radius:50%;aspect-ratio:1;object-fit:cover;border:2px solid rgba(255,255,255,.7)}
-        @media (prefers-reduced-motion:reduce){#dk-ctx .verb,#dk-chips button,.dk .bead{animation:none}}
+        /* ---- the vision: liquid shapes with drips; a teardrop to expose; honey for the menu; little else ---- */
+        #dk-jump,body.demo-mode #field-boost{display:none!important}
+        #dk-ctx .verb,#dk-pad button{position:relative}
+        #dk-status,#dk-menu-btn,#dk-ctx .verb,#dk-pad button,body.demo-mode.field-ui #field-stick{overflow:visible;
+          background:radial-gradient(90% 70% at 30% 20%,rgba(255,255,255,.55) 0,rgba(255,255,255,.10) 26%,rgba(255,255,255,0) 44%),radial-gradient(70% 55% at 70% 88%,rgba(255,255,255,.30) 0,rgba(255,255,255,0) 60%),radial-gradient(120% 120% at 50% 50%,rgba(255,255,255,.03) 40%,rgba(0,10,16,.32) 82%,rgba(0,8,12,.6) 100%)!important;
+          border:1px solid rgba(255,255,255,.55)!important;box-shadow:inset 0 0 0 1px rgba(0,10,16,.25),inset 0 -8px 14px rgba(255,255,255,.14),0 6px 16px rgba(0,0,0,.42)!important}
+        #dk-status::after,#dk-menu-btn::after,#dk-ctx .verb::after,#dk-pad #dk-veh::after{content:"";position:absolute;left:var(--dx,68%);top:calc(100% - 3px);width:7px;height:var(--dl,16px);border-radius:50% 50% 50% 50%/22% 22% 78% 78%;
+          background:linear-gradient(rgba(255,255,255,.10),rgba(255,255,255,.34) 60%,rgba(255,255,255,.7));border:1px solid rgba(255,255,255,.45);border-top:0;box-shadow:0 3px 6px rgba(0,0,0,.35);pointer-events:none;transform-origin:top;animation:dew-drip 5.5s ease-in-out infinite}
+        @keyframes dew-drip{0%,62%{transform:scaleY(.55)}82%{transform:scaleY(1.25)}90%{transform:scaleY(.35)}100%{transform:scaleY(.55)}}
+        @keyframes dew-morph{0%,100%{border-radius:58% 42% 55% 45%/56% 48% 52% 44%}33%{border-radius:46% 54% 44% 56%/50% 58% 42% 50%}66%{border-radius:54% 46% 60% 40%/44% 52% 48% 56%}}
+        #dk-ctx .verb{min-height:50px;padding:10px 22px;animation:dew-in .45s cubic-bezier(.2,.9,.3,1.2) both,dew-morph 9s ease-in-out infinite;font:500 16px system-ui,sans-serif;text-align:center}
+        #dk-ctx .verb:nth-child(2){--dx:30%;--dl:22px;animation-duration:.45s,11s}
+        #dk-ctx .verb:not(.alt){background:radial-gradient(90% 70% at 30% 20%,rgba(255,255,255,.6) 0,rgba(255,255,255,.10) 26%,rgba(255,255,255,0) 44%),radial-gradient(120% 120% at 50% 50%,rgba(56,232,255,.22) 30%,rgba(10,120,150,.36) 80%,rgba(0,40,56,.62) 100%)!important;border-color:rgba(190,248,255,.8)!important}
+        #dk-status{border-radius:46% 54% 60% 40%/62% 58% 42% 38%;padding:9px 20px 9px 14px;--dx:22%;--dl:12px;animation:dew-morph 12s ease-in-out infinite}
+        #dk-menu-btn{width:62px;min-width:62px;height:58px;border-radius:52% 48% 50% 50%/46% 46% 54% 54%;font:500 14px system-ui,sans-serif;--dx:56%;--dl:20px;
+          background:radial-gradient(80% 60% at 32% 20%,rgba(255,244,214,.75) 0,rgba(255,220,140,.14) 30%,rgba(255,255,255,0) 46%),radial-gradient(120% 120% at 50% 50%,rgba(240,160,30,.50) 20%,rgba(170,90,10,.62) 78%,rgba(70,30,0,.8) 100%)!important;border-color:rgba(255,226,160,.8)!important}
+        #dk-menu-btn::after{background:linear-gradient(rgba(240,170,40,.4),rgba(255,200,90,.75));border-color:rgba(255,226,160,.6)}
+        #dk-pad button{width:auto;height:auto;border-radius:0;display:block;padding:0}
+        #dk-pad #dk-expose{width:74px;height:74px;border-radius:4% 50% 50% 50%;transform:rotate(45deg);margin:22px 8px 14px;border:1px solid rgba(255,255,255,.7)!important}   /* a teardrop, point up */
+        #dk-pad #dk-expose b{display:block;transform:rotate(-45deg) translateY(6px);font:500 15px system-ui,sans-serif}
+        #dk-pad #dk-expose:active{transform:rotate(45deg) scale(.94)}
+        #dk-pad #dk-veh{width:66px;height:54px;border-radius:55% 45% 50% 50%/50% 56% 44% 50%;--dx:30%;font:500 14px system-ui,sans-serif;animation:dew-morph 10s ease-in-out infinite}
+        #dk-pad #dk-veh b,#dk-pad #dk-expose b{font-weight:500}
+        #dk-chips button{border-radius:48% 52% 55% 45%/60% 52% 48% 40%;padding:8px 15px;font:500 14.5px system-ui,sans-serif}
+        body.demo-mode.field-ui #field-move{left:max(12px,env(safe-area-inset-left,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));display:block}
+        body.demo-mode.field-ui #field-stick{width:112px;height:78px;border-radius:62% 38% 46% 54%/58% 52% 48% 42%;animation:dew-morph 11s ease-in-out infinite}
+        body.demo-mode.field-ui #field-stick::before,body.demo-mode.field-ui #field-stick::after,body.demo-mode #field-stick-up,body.demo-mode #field-stick-down{display:none!important}
+        body.demo-mode.field-ui #field-stick-name{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:500 16px system-ui,sans-serif;letter-spacing:0;text-transform:none;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.95),0 0 8px rgba(0,10,16,.85)}
+        body.demo-mode.field-ui #field-stick-dot{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.9),rgba(255,255,255,.18) 45%,rgba(0,10,16,.4));border:1px solid rgba(255,255,255,.7);box-shadow:0 2px 6px rgba(0,0,0,.4);opacity:.0;transition:opacity .2s}
+        body.demo-mode.field-ui #field-stick:active #field-stick-dot{opacity:1}
+        body.demo-mode.field-ui #field-stick:active #field-stick-name{opacity:.25}
+        @media (max-height:500px) and (orientation:landscape){#dk-pad #dk-expose{width:60px;height:60px;margin:16px 8px 10px}body.demo-mode.field-ui #field-stick{width:96px;height:66px}}
+        @media (prefers-reduced-motion:reduce){#dk-ctx .verb,#dk-chips button,.dk .bead,#dk-status,#dk-pad #dk-veh,body.demo-mode.field-ui #field-stick{animation:none}#dk-status::after,#dk-menu-btn::after,#dk-ctx .verb::after{animation:none}}
         body.demo-full #dk-pad,body.demo-full #dk-ctx,body.demo-full #dk-status{display:none!important}
         body.demo-mode #dialogue-card,body.demo-mode #immersive-corner,body.demo-mode #ctx-actions{display:none!important}
         body.demo-mode #demo-phone{display:none!important}
@@ -8221,8 +8253,8 @@ void main(){
         <div id="dk-ctx" class="dk"><div id="dk-chips" hidden></div><div id="dk-verbs"></div></div>
         <button type="button" id="dk-jump" class="dk" aria-label="Jump">Jump</button>
         <div id="dk-pad" class="dk" role="group" aria-label="Actions">
-          <button type="button" id="dk-veh" aria-label="Vehicle" hidden><span>⛟</span><em id="dk-veh-l" style="font-style:normal">Drive</em><kbd>C</kbd></button>
-          <button type="button" id="dk-expose" aria-label="Expose an 8 by 10 plate"><span>◉</span>Expose<kbd>⇧Space</kbd></button>
+          <button type="button" id="dk-veh" aria-label="Vehicle" hidden><b id="dk-veh-l">Drive</b></button>
+          <button type="button" id="dk-expose" aria-label="Expose an 8 by 10 plate"><b>Expose</b></button>
         </div>
         <nav id="dk-rail" class="dk" hidden aria-label="Menu groups"></nav>
         <div id="dk-row" class="dk" hidden role="toolbar" aria-label="Menu items"></div>
@@ -8278,6 +8310,7 @@ void main(){
           { id: "plates", cap: "plates", val: () => String(state.plates.length), img: () => state.plates.length ? state.plates.at(-1).dataUrl : "", act: () => demoShowPlate() }],
         Go: [
           { id: "map", cap: "map", val: () => "M", act: () => toggleBigMap(), closes: true },
+          { id: "jump", cap: "jump", val: () => "⤒", act: () => jumpPlayer() },
           { id: "ride", cap: "donkey", val: () => state.riding ? "down" : "ride", on: () => state.riding, act: () => toggleRide() },
           { id: "drive", cap: "wagon", val: () => state.drivingCart ? "park" : "drive", on: () => state.drivingCart, act: () => toggleCart() },
           { id: "glide", cap: "glide", val: () => state.gliding ? "land" : "jump", on: () => state.gliding, act: () => toggleGlide(), closes: true },
@@ -8463,6 +8496,7 @@ void main(){
       if (!busy && onFoot && (state.donkeyCollapsed || (state.donkeyWater < .5 && c.liters > 0)) && get("water-burro")) extra.push({ id: "water-burro", label: state.donkeyCollapsed ? "Water the donkey now" : "Water the donkey", urgent: state.donkeyCollapsed });
       if (!busy && onFoot && !verbs.length && dDonkey < 2.6 && !demo.withCh && get("ride")) extra.push({ id: "ride", label: "Ride the donkey" });
       if (!busy && state.riding && get("ride")) extra.push({ id: "ride", label: "Get down" });
+      if (!busy && onFoot && demo.withCh && c.liters > 0 && !verbs.length && get("share")) extra.push({ id: "share", label: "Share water" });
       const ch = !busy && onFoot ? demo.withCh : null;
       if (!ch || (demo.talkWith && demo.talkWith !== ch)) demo.talking = false;     // talking is with one person; walking to another asks again
       if (demo.talking) demo.talkWith = ch; else demo.talkWith = null;
@@ -8475,7 +8509,7 @@ void main(){
       const shown = verbs.slice(0, 2);
       let html = shown.map((o, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-verb="${o.id}">${i === 0 ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${csq(o)}</button>`).join("");
       html += extra.slice(0, Math.max(0, 2 - shown.length)).map(a => `<button type="button" class="verb alt${a.urgent ? " urgent" : ""}" data-ctx="${a.id}">${a.label}</button>`).join("");
-      if (ch && !demo.talking) html += `<button type="button" class="verb alt" data-talk="1">Talk to ${demoName(ch)}</button>`;
+      if (ch && !demo.talking) html += `<button type="button" class="verb alt" data-talk="1">Ask ${demoName(ch).split(" ").pop()}</button>`;
       ui.verbs.innerHTML = html;
       ui.chips.hidden = !(ch && demo.talking);
       ui.chips.innerHTML = ch && demo.talking ? `<button type="button" class="x" data-untalk="1" aria-label="Stop talking">×</button>` + qs.concat(["where"]).map(k => `<button type="button" data-ask="${k === "where" ? "Where next?" : DEMO_Q[k]}">${k === "where" ? "Where next?" : DEMO_Q[k]}</button>`).join("")
