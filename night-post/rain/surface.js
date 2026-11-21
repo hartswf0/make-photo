@@ -78,11 +78,29 @@ function buildRecall() {
   } else info('empty-recall', 'speech', 'No words yet', '', 'Walk up to someone and pull their voice.', { viscosity: 4 });
   button('memory-return', 'primary', 'Return', 'to the world', () => { ui.memory = false; render(); }, { critical: true, viscosity: 4 });
 }
+// AN ALERT IS AN ACT. When something needs you, the surface does not report it: it offers the one thing to do, on the thing,
+// with a line of droplets running from your can to it. One touch does it from wherever you stand.
+let auto = null;
+function alertNow() { if (!S.ready || ui.past) return null; const w = S.water, T = S.things || {}; if (!(w.donkeyDown || w.donkey < .3) || !T.donkey) return null;
+  return w.liters >= .5 ? { to: 'donkey', word: 'Water', t: T.donkey } : T.source ? { to: 'source', word: 'Fill', t: T.source } : null; }
+function doAlert() { const a = alertNow(); if (!a || auto || S.busy) return; const before = snapNow(); if (S.exit) B.act.exit();
+  if (a.t.dist > 4.5 && a.t.wx != null) { B.act.warp(a.t.wx + 1.7, a.t.wz + 1.9); S = B.state(); }
+  auto = { kind: a.to === 'donkey' ? 'donkey' : 'draw', left: a.to === 'donkey' ? 8 : 12, before, moved: 0, t: 0 }; cause = a.to === 'donkey' ? 'Watering the donkey.' : 'Filling the can.'; announce(cause); }
+function autoTick(dt) { if (!auto) return; auto.t += dt; if (auto.t < .35) return; const T = S.things || {}, W = world.clientWidth, H = world.clientHeight, tgt = auto.kind === 'donkey' ? T.donkey : T.source, can = T.can && T.can.front ? T.can : { x: W * .5, y: H * .62 };
+  const got = B.act.lean(auto.kind, Math.min(auto.left, 5 * dt)); auto.left -= got; auto.moved += got; S = B.state();
+  const tx = tgt && tgt.front ? clamp(tgt.x, 20, W - 20) : W * .5, ty = tgt && tgt.front ? clamp(tgt.y, 60, H - 60) : H * .45, a = auto.kind === 'donkey' ? [can.x, can.y] : [tx, ty], b = auto.kind === 'donkey' ? [tx, ty] : [can.x, can.y];
+  if (got > 0) for (let i = 0; i < 2; i++) SP.parts.push({ x: a[0], y: a[1], vx: (b[0] - a[0]) * 1.7 + (Math.random() - .5) * 40, vy: (b[1] - a[1]) * 1.7 - 240, r: 1.6 + Math.random() * 2, life: 0, ttl: .6, tone: '178,247,240' });
+  if (got <= 0 || auto.left <= .01 || auto.t > 6) { const m = auto; auto = null; seen.liters = S.water.liters; stable = snapNow(); splash(b[0], b[1], 1.9); if (m.moved > .05) addKeep('act', b[0], b[1] - 40, { before: m.before, label: `${n(m.before.liters)} → ${n(S.water.liters)} L` }); cause = m.kind === 'donkey' ? 'The donkey drank.' : 'The can is filled.'; announce(cause); render(); } }
+function alertCurrent() {                                             // droplets run from the can to the thing that needs it
+  if (ui.scene !== 'world' || ui.menu || !field || !alertNow()) return []; const bs = field.getBodies(), z = bs.find(b => b.id === 'alert'); if (!z) return []; const T = S.things || {}, W = world.clientWidth, H = world.clientHeight, a = T.can && T.can.front ? { x: T.can.x, y: T.can.y } : { x: W * .5, y: H * .7 };
+  const t = ui.reduced ? 0 : performance.now() / 1000, len = Math.hypot(z.x - a.x, z.y - a.y), count = Math.max(4, Math.round(len / 20));
+  return [{ id: 'alert-current', kind: 'menu', nodes: Array.from({ length: count + 1 }, (_, i) => { const f = i / count, ph = (f * 3 - t * .9) % 1, bead = Math.pow(Math.max(0, Math.sin((ph < 0 ? ph + 1 : ph) * Math.PI)), 6); return { x: a.x + (z.x - a.x) * f + Math.sin(f * 9 + t) * 2.5, y: a.y + (z.y - a.y) * f - Math.sin(f * Math.PI) * 26, r: 2.4 + bead * 6.5, alpha: .95 }; }) }];
+}
 const snapNow = () => ({ liters: S.water.liters, donkey: S.water.donkey, x: S.pos.x, z: S.pos.z, yaw: S.pos.yaw, place: S.place.name });
 let stable = null, worm = null;
 function watchGame() {
   const w = S.water, sp = S.speech;
-  const flowing = mix && mix.c && mix.c.flow;
+  const flowing = (mix && mix.c && mix.c.flow) || auto;
   if (S.live && S.live.x != null) ui.lastLive = [S.live.x, S.live.y];
   if (S.busy && !worm) worm = { root: ui.lastLive || [world.clientWidth * .5, world.clientHeight * .3], segs: [], t0: performance.now() };
   if (worm && !worm.end) { if (S.busy) { while (worm.segs.length < Math.min(7, Math.floor((performance.now() - worm.t0) / 700) + 1)) worm.segs.push({ l: w.liters }); worm.segs[worm.segs.length - 1].l = w.liters; } else worm.end = performance.now(); }
@@ -109,7 +127,7 @@ function liveDrop(slot = 'primary') {
   const L = S.live; if (!L || S.busy) return false;
   const home = L.x != null && ui.scene === 'world' ? [clamp(L.x / world.clientWidth, .16, .84), clamp(L.y / world.clientHeight, .2, .78)] : null;
   const note = L.kind === 'draw' ? 'from the source to your can' : L.kind === 'give' ? 'pour from your can' : 'pull their voice';
-  button('primary', slot, L.kind === 'draw' ? 'Draw' : L.kind === 'give' ? 'Pour' : 'Ask', note, live(() => B.act.live(false)), { className: 'action-drop', viscosity: 1.15, home, flow: true });
+  button('primary', slot, L.kind === 'draw' ? 'Draw' : L.id === 'share' ? 'Share' : L.kind === 'give' ? 'Water' : 'Ask', note, live(() => B.act.live(false)), { className: 'action-drop', viscosity: 1.15, home, flow: true });
   return true;
 }
 function exitDrop() { if (S.exit) button('exit', 'recovery', S.exit.label, 'back to your feet', live(() => B.act.exit()), { critical: true, className: 'amber', viscosity: 3, home: ui.scene === 'world' ? [.5, .86] : null }); }
@@ -136,10 +154,12 @@ const BUILD = {
     const open = ui.open, opener = id => () => { ui.open = ui.open === id ? null : id; ui.openAt = performance.now(); render(); };
     mixSpec();
     exitDrop();
-    if (!open || open === 'primary') liveDrop();
+    if ((!open || open === 'primary') && !auto && !(S.water.donkeyDown || S.water.donkey < .3)) liveDrop();   // while something needs you, its act is the only act
     if (!open || open === 'can') button('can', 'water', null, null, opener('can'), { fill: S.water.liters / 20, kicker: 'Can', value: `${n(S.water.liters)} L`, viscosity: 1.8, opens: true });
-    const d = T.donkey, thirsty = S.water.donkeyDown || S.water.donkey < .3;
-    if ((!open || open === 'donkey') && S.mode === 'walk' && d && d.dist < 28 && d.dist > 1.2 && onScr(d) && !(S.live && S.live.id === 'water-burro'))
+    const d = T.donkey, thirsty = S.water.donkeyDown || S.water.donkey < .3, al = !open && !auto && !S.busy ? alertNow() : null;
+    if (al) { const t = al.t, vis = onScr(t), hm = vis ? at(t, -.06) : [t.front ? clamp(t.x / W, .15, .82) : (t.x > W / 2 ? .15 : .82), .46];
+      button('alert', 'need', al.word, '', live(() => doAlert()), { className: 'action-drop alert', critical: true, viscosity: 1, home: hm }); }
+    if (al || auto) { /* the act stands in for the report */ } else if ((!open || open === 'donkey') && S.mode === 'walk' && d && d.dist < 28 && d.dist > 1.2 && onScr(d) && !(S.live && S.live.id === 'water-burro'))
       button('donkey', 'need', null, null, opener('donkey'), { kicker: 'Donkey', value: thirsty ? 'Thirsty' : `${Math.round(S.water.donkey * 100)}%`, className: thirsty ? 'amber' : '', viscosity: 3, home: at(d, -.03), opens: true });
     else if (!open && thirsty && S.mode === 'walk') button('donkey', 'need', null, null, opener('donkey'), { kicker: 'Donkey', value: 'Thirsty', className: 'amber', viscosity: 3, opens: true });
     const v = currentVoice(); if (v && (!open || open === 'voice-current')) voiceDrop(v, voiceHome());
@@ -154,7 +174,7 @@ const BUILD = {
     if (ui.touch && performance.now() - ui.touch.at > 7000) ui.touch = null;
     if (ui.touch && !open && !S.busy) { const t = ui.touch, L = S.live, mi = id => menuItems().find(x => x.id === id), list = [];
       const act = (id, word, run, cls = 'acts') => list.push([id, word, run, cls]), it = (id, word) => { const m = mi(id); if (m) act(id, word, () => m.run()); };
-      if (t.kind === 'donkey') { if (L && L.id === 'water-burro') act('pour', 'Pour', () => B.act.live(false), 'action-drop'); it('ride', S.mode === 'ride' ? 'Down' : 'Ride'); it('drive', 'Wagon'); }
+      if (t.kind === 'donkey') { const al2 = alertNow(); if (al2) act('water', al2.word, () => doAlert(), 'action-drop'); else if (S.water.liters >= .5 && S.water.donkey < .95) act('water', 'Water', () => { const T3 = S.things || {}; auto = { kind: 'donkey', left: 8, before: snapNow(), moved: 0, t: 0 }; if (T3.donkey && T3.donkey.dist > 4.5) { B.act.warp(T3.donkey.wx + 1.7, T3.donkey.wz + 1.9); } }, 'action-drop'); it('ride', S.mode === 'ride' ? 'Down' : 'Ride'); it('drive', 'Wagon'); }
       else if (t.kind === 'source') { if (L && L.kind === 'draw') act('draw', 'Draw', () => B.act.live(false), 'action-drop'); }
       else if (t.kind === 'person') { if (L && L.kind === 'talk') act('ask', 'Ask', () => B.act.live(false), 'action-drop'); if (L && L.id === 'share') act('share', 'Share', () => B.act.live(false), 'action-drop'); act('say', 'Say', () => { ui.scene = 'people'; ui.say = true; render(); $('say-text').focus(); }); }
       else if (t.kind === 'wagon') it('drive', S.mode === 'drive' ? 'Park' : 'Drive');
@@ -238,8 +258,8 @@ function combo(a, b) {
     return { slide: true, what: '', run: t => { const here = snapNow(), T2 = S.things || {}, at = T2.can && T2.can.front ? [T2.can.x, T2.can.y - 70] : [world.clientWidth * .5, world.clientHeight * .5]; B.act.warp(pa.x + (pb.x - pa.x) * t, pa.z + (pb.z - pa.z) * t, pa.yaw); S = B.state(); stable = snapNow(); addKeep('back', at[0], at[1], { before: here, label: 'back' }); cause = 'Standing between two kept moments.'; announce(cause); } }; }
   { const ka = kindOf(a), kb = kindOf(b), K = x => ka === x || kb === x;
     if (ka && kb && ka !== kb && K('can')) {
-      if (K('source')) return (L && L.kind === 'draw') || (T.source && T.source.dist < 5) ? { flow: 'draw', what: 'Full' } : { what: 'Closer', dry: true };
-      if (K('donkey')) return (L && L.id === 'water-burro') || (T.donkey && T.donkey.dist < 5) ? { flow: 'donkey', what: w.liters < .05 ? 'Empty' : 'Full' } : { what: 'Closer', dry: true };
+      if (K('source')) return (L && L.kind === 'draw') || (T.source && T.source.dist < 12) ? { flow: 'draw', what: 'Full' } : { what: 'Closer', dry: true };
+      if (K('donkey')) return (L && L.id === 'water-burro') || (T.donkey && T.donkey.dist < 14) ? { flow: 'donkey', what: w.liters < .05 ? 'Empty' : 'Full' } : { what: 'Closer', dry: true };
       if (K('person')) return L && L.id === 'share' ? { what: 'Shared', run: () => B.act.live(true) } : { what: w.liters < .05 ? 'Empty' : 'Closer', dry: true };
     }
     if (ka && kb && ka !== kb && K('source') && (K('donkey') || K('person'))) return { what: 'Use the can', dry: true }; }
@@ -400,7 +420,7 @@ function inkLabel(id) {
 function initializeField() {
   const proxy = {
     setBodies: bodies => { if (!S.ready) { glass.setBodies([]); return; } paintMenuWater(bodies); glass.setBodies([...bodies.map(b => { const sp = refs.get(b.id)?._spec, m = b.id.startsWith('menu-'); const warm = /amber|time-current/.test(sp?.className || '') || sp?.critical, k = sp?.kind === 'info' ? .84 : 1; return { ...b, fill: sp?.fill, kind: sp?.fluidKind || (warm ? 'amber' : b.kind),  rx: m ? b.rx * .38 : b.id === 'time-current' ? b.rx * 1.3 : b.id === 'voice-current' ? b.rx * 1.15 : b.rx * k, ry: m ? b.ry * .34 : b.id === 'time-current' ? b.ry * .5 : b.id === 'voice-current' ? b.ry * .62 : b.ry * k }; }), { id: 'menu-spring', x: world.clientWidth - 18, y: world.clientHeight * (ui.menu ? .237 : .222), rx: 15, ry: ui.menu ? 55 : 43, viscosity: 4, kind: 'menu', critical: true, opacity: 1 }]); },
-    setTrails: trails => { if (!S.ready) { glass.setTrails([]); return; } glass.setTrails([edgeCurrent(), ...routeCurrent(), ...menuWater, ...(ink.getTrails?.() || []), ...trails]); },
+    setTrails: trails => { if (!S.ready) { glass.setTrails([]); return; } glass.setTrails([edgeCurrent(), ...routeCurrent(), ...alertCurrent(), ...menuWater, ...(ink.getTrails?.() || []), ...trails]); },
     setPointer: p => glass.setPointer(p), captureFrame: () => glass.captureFrame()
   };
   field = createRainField({ host: world, glass: proxy, historyLabels: false,
@@ -562,7 +582,7 @@ function inkTick(now, dt) {
     el.style.setProperty('--ink', el._ink.toFixed(3)); el.style.setProperty('--ink2', clamp((el._ink - .5) / .5, 0, 1).toFixed(3));
   };
   for (const [id, el] of refs) { const sp = el._spec || {}, cls = sp.className || '';
-    const base = id === 'time-current' ? .16 : /quick/.test(cls) ? .42 : /stop-drop/.test(cls) ? .3 : /action-drop/.test(cls) || sp.critical ? .58 : sp.slot === 'title' ? .3 : .14;
+    const base = /alert/.test(cls) ? 1 : id === 'time-current' ? .16 : /quick/.test(cls) ? .42 : /stop-drop/.test(cls) ? .3 : /action-drop/.test(cls) || sp.critical ? .58 : sp.slot === 'title' ? .3 : .14;
     one(el, id, base, clamp(1 - (now - (el._fresh || 0) - 2200) / 1200, 0, 1)); }
   const t = $('menu-toggle'); let near = 0; if (alive) { near = clamp(1 - (world.clientWidth - ptr.x - 30) / 110, 0, 1); }
   t._ink = (t._ink ?? .3) + (Math.max(.3, near, ui.menu ? 1 : 0) - (t._ink ?? .3)) * k; t.style.setProperty('--ink', t._ink.toFixed(3));
@@ -726,7 +746,7 @@ function tick(now) {
   const dt = Math.min(.15, Math.max(0, (now - frameTime) / 1000)); frameTime = now;
   if (!document.hidden) {
     if (!ui.past) { memory.tick(dt); ui.recordClock += dt; if (ui.recordClock >= .25) { S = B.state(); if (S.ready) { watchGame(); captureWeather(); } ui.recordClock = 0; } }
-    field?.tick(dt); inkTick(now, dt); try { picTick(now); } catch (err) { if (!PIC.err) { PIC.err = true; console.error('[rain] pictures', err); } } splashTick(dt); try { msTick(now, dt); } catch (err) { if (!MS.err) { MS.err = true; console.error('[rain] membrane', err); } } try { textTick(now, dt); } catch (err) { if (!TF.err) { TF.err = true; console.error('[rain] text field', err); } } ink.tick(ui.past ? 0 : dt); ink.setTrails(field?.getTrails() || []);
+    autoTick(dt); field?.tick(dt); inkTick(now, dt); try { picTick(now); } catch (err) { if (!PIC.err) { PIC.err = true; console.error('[rain] pictures', err); } } splashTick(dt); try { msTick(now, dt); } catch (err) { if (!MS.err) { MS.err = true; console.error('[rain] membrane', err); } } try { textTick(now, dt); } catch (err) { if (!TF.err) { TF.err = true; console.error('[rain] text field', err); } } ink.tick(ui.past ? 0 : dt); ink.setTrails(field?.getTrails() || []);
     world.dataset.timeMode = ui.past ? 'past' : 'now'; world.dataset.timeAge = n(ui.timeAge);
     if (now - lastRender > 180) { render(); lastRender = now; }
   }
@@ -734,7 +754,7 @@ function tick(now) {
 }
 new ResizeObserver(() => syncField()).observe(world);
 initializeField(); render(); requestAnimationFrame(tick);
-window.__rainSurface = { get worm() { return worm; }, endMix, keeps, touchThing, thingsOnScreen, PIC, subjectOf, MS, sceneWaters, get held() { return held; }, get mix() { return mix; }, SP, splash, TF, stamp, fieldText, ui, weather, glass, memory, ink, render, get field() { return field; }, get specs() { return specs; }, get undo() { return undo; }, setTimeAge, returnNow, go: s => go(s)() };
+window.__rainSurface = { alertNow, doAlert, get auto() { return auto; }, get worm() { return worm; }, endMix, keeps, touchThing, thingsOnScreen, PIC, subjectOf, MS, sceneWaters, get held() { return held; }, get mix() { return mix; }, SP, splash, TF, stamp, fieldText, ui, weather, glass, memory, ink, render, get field() { return field; }, get specs() { return specs; }, get undo() { return undo; }, setTimeAge, returnNow, go: s => go(s)() };
 }
 boot();
 })();

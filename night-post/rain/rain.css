@@ -487,3 +487,6 @@
 #rw #menu-stream .liquid{width:96px!important;min-height:44px!important;height:44px!important;padding:6px!important}
 #rw .keep .drop-value{font-size:15px!important;font-style:italic;opacity:.9}
 #rw .keep .drop-value{font-size:15px!important;font-style:italic;opacity:.9}
+/* the alert is the act: large, warm, unmistakable */
+#rw .liquid.alert{color:#ffe2b0!important}
+#rw .liquid.alert .drop-label{font-size:27px!important;opacity:1!important}
