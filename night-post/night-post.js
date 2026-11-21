@@ -6581,6 +6581,7 @@ void main(){
 
     function exposePlate() {
       if (contextLost) return;
+      if (DEMO && demo.dew) demo.dew.bloom();                                 // the exposure overfills the glass
       audio.shutter();
       if (useFieldLayout()) {
         exposedUntil = performance.now() + 450;
@@ -8648,7 +8649,19 @@ void main(){
       if (demo.youUntil && now > demo.youUntil) { ui.you.hidden = true; demo.youUntil = 0; }
       fieldTick(dt);
       demoHandoffTick(dt); demoDock(dt);
-      if (demo.dew) { demo.dew.rain = demo.rainIn || 0; demo.dew.frame(dt); }
+      if (demo.dew) {
+        const dw = demo.dew; dw.rain = demo.rainIn || 0;
+        // the beacon is the pane's one light; with line of sight and water aboard it flares, which is your signal, seen
+        demoV.set(-1617, driveSurfaceAt(-1617, 590) + 36, 590).project(camera);
+        const seen = demoV.z < 1 && Math.abs(demoV.x) < 1.05 && Math.abs(demoV.y) < 1.05;
+        dw.light = demoV.z < 1 ? [(demoV.x * .5 + .5) * innerWidth, (-demoV.y * .5 + .5) * innerHeight] : null;
+        dw.flare += ((seen && (demo.signal || 0) >= 3 ? .85 : 0) - dw.flare) * Math.min(1, dt * 2.5);
+        // breath: running and climbing wind you; it fogs the bottom of the lens until you recover
+        const sp = Math.hypot(state.vx || 0, state.vz || 0), onFoot = !state.drivingCart && !state.riding && !state.gliding;
+        demo.exert = clamp((demo.exert || 0) + dt * (onFoot && sp > 2.2 ? .16 + .1 * clamp((carrierPhys && carrierPhys.grade) || 0, 0, 1) + npCarrier().liters * .004 : -.07), 0, 1);
+        dw.breath += (clamp((demo.exert - .3) / .5, 0, 1) - dw.breath) * Math.min(1, dt * 1.5);
+        dw.frame(dt);
+      }
       if (!ui.brief.hidden && demo.startXZ && Math.hypot(state.x - demo.startXZ[0], state.z - demo.startXZ[1]) > 1.5) ui.brief.hidden = true;
       if (!demo.startXZ && demo.started) demo.startXZ = [state.x, state.z];
       ui.say.hidden = !ch; if (ch && document.activeElement !== ui.input) ui.input.placeholder = `Z · say something to ${demoName(ch)}`;
@@ -9816,7 +9829,7 @@ void main(){
       groundAt: (x, z) => driveSurfaceAt(x, z), ahiyaGround: () => AHIYA_GROUND_MODE,
       npOptions: () => { try { return npEngine.options(npState).map(o => ({ id: o.id, label: o.label, enabled: o.enabled, reason: o.reason })); } catch (e) { return String(e); } },
       handoffDbg: () => demo.handoff ? { u: +(demo.handoff.t / demo.handoff.dur).toFixed(2), can: demo.can.canRoot.position.clone(), gL: hoV.gL.clone(), gR: hoV.gR.clone() } : null,
-      dewDbg: () => demo.dew ? { drops: demo.dew.drops.length, beads: demo.dew.beads.length, wisps: demo.dew.wisps.length, rain: +(demo.dew.rain || 0).toFixed(2) } : null,
+      dewDbg: () => demo.dew ? { drops: demo.dew.drops.length, beads: demo.dew.beads.length, wisps: demo.dew.wisps.length, rain: +(demo.dew.rain || 0).toFixed(2), flare: +demo.dew.flare.toFixed(2), breath: +demo.dew.breath.toFixed(2), running: demo.dew.drops.filter(d => d.state === 'fall').length, big: +Math.max(0, ...demo.dew.drops.map(d => d.r)).toFixed(1) } : null,
       voiceDbg: () => ({ last: demo.lastVoice, man: !!demo.voiceMan, voices: field ? field.voices.length : -1, env: field ? field.voiceEnv : 0, hits: field ? field.hits.filter(h => h.bus === 'voice').length : 0 }),
       demo: () => ({ on: DEMO, solids: demo.solids ? demo.solids.length : (DEMO ? (demoBuildSolids(), demo.solids.length) : 0), withCh: demo.withCh ? demo.withCh.state.id : null, line: demo.line ? demo.line.text : "", pose: demo.withCh ? demo.withCh.state.pose : "",
         speaking: demo.withCh ? Boolean(demo.withCh.state.poseOpts && demo.withCh.state.poseOpts.speaking) : false, signal: demo.signal, thread: demo.thread || [] }),
