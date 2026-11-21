@@ -34,7 +34,7 @@
     size(); addEventListener('resize', size);
     const drops = [], beads = [], wisps = [], msgs = [], streaks = [], wetPts = [], skins = new Map(), memory = [];
     const D = { drops, beads, wisps, msgs, streaks, skins, rain: 0, enabled: true, light: null, flare: 0, breath: 0, bloomT: 0, mark: null, wet: 0,
-      select: '#dk-status,#dk-menu-btn,#dk-rail .bead,#dk-row .bead,#dk-verbs .verb,#dk-chips button,#dk-expose,#dk-veh', pool: null, hint: '', drag: null, onMerge: null, ways: [], wind: 0, mist: 0, smoke: 0, titleT: 0, titleText: '' };
+      select: '#dk-status,#dk-menu-btn,#dk-rail .bead,#dk-row .bead,#dk-verbs .verb,#dk-offers .verb,#dk-chips button,#dk-expose,#dk-veh', pool: null, hint: '', drag: null, onMerge: null, ways: [], wind: 0, mist: 0, smoke: 0, titleT: 0, titleText: '' };
     const RK = 2.1, rOf = m => RK * Math.cbrt(m), mOf = r => Math.pow(r / RK, 3), R_RUN = 7.6, R_STOP = 3.0;
     const SERIF = 'Georgia,"Iowan Old Style","Times New Roman",serif';
 
@@ -237,7 +237,7 @@
       const k = Math.min(1, dt * (U.land ? 5 : 7)); U.x += (U.hx + U.ox - U.x) * k; U.y += (U.hy + U.oy - U.y) * k;       // stubborn: it comes back to its place
       if (U.land && Math.abs(U.y - U.hy) < 4) { U.land = false; U.swell = 1; for (let i = 0; i < 4; i++) drop({ x: U.x + (Math.random() - .5) * U.trx * 1.6, y: U.y + U.try * .6, r: 2 + Math.random() * 2, state: 'fall', vy: 20 + Math.random() * 40, vx: (Math.random() - .5) * 120, grow: 1, forced: true }); }   // it lands, and splashes
       const g = U.a * (2 - U.a) * (U.press ? .93 : 1) * (1 + U.swell * .1); U.rx += (U.trx * g - U.rx) * k; U.ry += (U.try * g - U.ry) * k;
-      U.age = (U.age || 0) + dt; const sag = U.kind === 'urgent' ? .1 + .05 * Math.sin(T * 9) : U.el.classList.contains('verb') ? Math.min(.18, U.age * .012) : 0;   // what waits, sags
+      U.age = (U.age || 0) + dt; const sag = U.kind === 'urgent' ? .1 + .05 * Math.sin(T * 9) : U.el.dataset.dewLife ? Math.min(.42, Math.pow(U.age / +U.el.dataset.dewLife, 2) * .42) : U.el.classList.contains('verb') ? Math.min(.18, U.age * .012) : 0;   // what waits, sags; what is about to go, hangs
       const x = U.x + (U.kind === 'urgent' ? Math.sin(T * 23) * 1.2 : 0), y = U.y + Math.sin(T * .8 + U.seed) * 1.2 + U.ry * sag * .5, rx = U.rx * (1 - sag * .25), ry = U.ry * (1 + sag), tear = U.kind === 'tear', amp = U.kind === 'pool' ? .05 : rx > 30 ? .075 : .05;
       water(x, y, rx, ry, Math.min(1, U.a * 1.2), TINT[U.kind], () => blob(x, y, rx, ry, U.seed, amp, tear));
       if (U.kind === 'pool') { ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 1; for (let i = 0; i < 2; i++) { const u = ((T * .35 + i * .5) % 1); ctx.globalAlpha = (1 - u) * .8; ctx.beginPath(); ctx.ellipse(x, y, rx * (.35 + u * .6), ry * (.35 + u * .6), 0, 0, 6.2832); ctx.stroke(); } ctx.restore(); }

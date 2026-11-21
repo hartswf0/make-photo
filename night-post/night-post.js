@@ -8201,6 +8201,8 @@ void main(){
         body.dew-skin #dk-ctx .verb{min-width:118px;min-height:54px}
         body.dew-skin #dk-chips{gap:10px}body.dew-skin #dk-chips button{min-height:44px;padding:8px 16px}
         body.dew-skin #dk-verbs .verb,body.dew-skin #dk-chips button{position:fixed;left:50%;top:70%;transform:translate(-50%,-50%);margin:0;touch-action:none;white-space:nowrap}
+        body.dew-skin #dk-offers .verb{position:fixed;transform:translate(-50%,-50%);margin:0;touch-action:none;white-space:nowrap;min-width:0;min-height:42px;padding:8px 16px;font-size:14px;pointer-events:auto;background:none!important;border-color:transparent!important;box-shadow:none!important;color:transparent!important;text-shadow:none!important;animation:none!important}
+        body.dew-skin #dk-offers .verb::after{display:none}
         body.dew-skin #dk-chips{overflow:visible;pointer-events:none}body.dew-skin #dk-chips button{pointer-events:auto}
         body.dew-skin #dk-status,body.dew-skin #dk-pad button{touch-action:none}
         body.dew-skin.demo-mode #field-move{display:none!important}
@@ -8267,7 +8269,7 @@ void main(){
         <div id="demo-bub" class="dm" hidden><b></b><span></span></div>
         <div id="dk-status" class="dk" role="status"><span class="can"><i></i><u></u></span><b id="dk-l">0 L</b><span id="dk-sig" aria-label="Beacon signal"><i></i><i></i><i></i><i></i></span><small id="dk-place"></small></div>
         <button id="dk-menu-btn" class="dk" type="button" aria-label="Menu" aria-expanded="false">Menu</button>
-        <div id="dk-ctx" class="dk"><div id="dk-chips" hidden></div><div id="dk-verbs"></div></div>
+        <div id="dk-ctx" class="dk"><div id="dk-chips" hidden></div><div id="dk-verbs"></div><div id="dk-offers"></div></div>
         <button type="button" id="dk-jump" class="dk" aria-label="Jump">Jump</button>
         <div id="dk-pad" class="dk" role="group" aria-label="Actions">
           <button type="button" id="dk-veh" aria-label="Vehicle" hidden><b id="dk-veh-l">Drive</b></button>
@@ -8319,6 +8321,8 @@ void main(){
         const b = e.target.closest("button"); if (!b) return; e.stopPropagation();
         if (b.dataset.verb) demoDo(b.dataset.verb);
         else if (b.dataset.ctx) { const a = (state.ctxActs || []).find(a => a.id === b.dataset.ctx); if (a) a.fn(); demo.dockSig = ""; }
+        else if (b.dataset.do) { ({ land: () => toggleGlide(), down: () => toggleRide(), park: () => toggleCart(), fly: () => toggleGlide() })[b.dataset.do](); demo.dockSig = ""; }
+        else if (b.dataset.offer) demoOfferTake(b);
         else if (b.dataset.talk) { demo.talking = true; demo.dockSig = ""; demoDock(1); }
         else if (b.dataset.untalk) { demo.talking = false; demo.dockSig = ""; demoDock(1); }
         else if (b.dataset.type) { document.body.classList.add("demo-typing"); ui.say.hidden = false; setTimeout(() => ui.input.focus(), 30); }
@@ -8522,7 +8526,7 @@ void main(){
       demoBeads();
       // vehicle: only where it is real
       const dWagon = Math.hypot(wagon.x - state.x, wagon.z - state.z), dDonkey = Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z);
-      const veh = state.drivingCart ? "Park" : state.riding ? "Get down" : onFoot && dWagon < 7.5 ? "Drive" : "";
+      const veh = onFoot && dWagon < 7.5 ? "Drive" : "";
       q("dk-veh").hidden = !veh; if (veh && q("dk-veh-l").textContent !== veh) q("dk-veh-l").textContent = veh;
       q("dk-jump").hidden = !onFoot;
       // ACT: verbs the water law allows here, now
@@ -8534,20 +8538,22 @@ void main(){
       const extra = [];
       if (!busy && onFoot && (state.donkeyCollapsed || (state.donkeyWater < .5 && c.liters > 0)) && get("water-burro")) extra.push({ id: "water-burro", label: state.donkeyCollapsed ? "Water the donkey now" : "Water the donkey", urgent: state.donkeyCollapsed });
       if (!busy && onFoot && !verbs.length && dDonkey < 2.6 && !demo.withCh && get("ride")) extra.push({ id: "ride", label: "Ride the donkey" });
-      if (!busy && state.riding && get("ride")) extra.push({ id: "ride", label: "Get down" });
+      // what your state needs is stubborn: in the air you can always come down, mounted you can always get off, driving you can always park
+      const must = busy ? [] : state.gliding ? [{ k: "land", label: state.donkeyOnRoof ? glideActionLabel() : "Come down" }] : state.riding ? [{ k: "down", label: "Get down" }] : state.drivingCart ? [{ k: "park", label: "Park the wagon" }, { k: "fly", label: "Take off" }] : [];
       if (!busy && onFoot && demo.withCh && c.liters > 0 && !verbs.length && get("share")) extra.push({ id: "share", label: "Share water" });
       const ch = !busy && onFoot ? demo.withCh : null;
       if (!ch || (demo.talkWith && demo.talkWith !== ch)) demo.talking = false;     // talking is with one person; walking to another asks again
       if (demo.talking) demo.talkWith = ch; else demo.talkWith = null;
       const kb = ch ? DEMO_KB[ch.state.id] || {} : {};
       const qs = ch && demo.talking ? ["who", ...Object.keys(kb).filter(k => k !== "who" && kb[k] && DEMO_Q[k])].slice(0, 4) : [];
-      const sig = verbs.map(o => o.id).join() + "|" + extra.map(a => a.id + a.label).join() + "|" + (ch ? ch.state.id : "") + (demo.talking ? "T" : "") + qs.join() + c.liters;
+      const sig = must.map(m => m.k + m.label).join() + verbs.map(o => o.id).join() + "|" + extra.map(a => a.id + a.label).join() + "|" + (ch ? ch.state.id : "") + (demo.talking ? "T" : "") + qs.join() + c.liters;
       if (sig === demo.dockSig) return; demo.dockSig = sig;
       const csq = o => { const m = /(\d+)\s*L/.exec(DEMO_VERB[o.id].label); const n = o.id === "pump" ? 20 - c.liters : m ? -(+m[1]) : 0;
         return n ? `<span class="csq">${c.liters} → ${clamp(c.liters + n, 0, 20)} L</span>` : ""; };     // the consequence, on the button
       const shown = verbs.slice(0, 2);
       let html = shown.map((o, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-verb="${o.id}" data-anchor="${o.id === "pump" ? "pump" : "ch:" + DEMO_VERB[o.id].who}">${i === 0 ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${csq(o)}</button>`).join("");
       html += extra.slice(0, Math.max(0, 2 - shown.length)).map(a => `<button type="button" class="verb alt${a.urgent ? " urgent" : ""}" data-ctx="${a.id}" data-anchor="${a.id === "share" && ch ? "ch:" + ch.state.id : "donkey"}">${a.label}</button>`).join("");
+      html += must.map((m, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-do="${m.k}" data-anchor="self">${m.label}</button>`).join("");
       if (ch && !demo.talking) html += `<button type="button" class="verb alt" data-talk="1" data-anchor="head:${ch.state.id}">Ask ${demoName(ch).split(" ").pop()}</button>`;
       ui.verbs.innerHTML = html;
       ui.chips.hidden = !(ch && demo.talking);
@@ -8572,6 +8578,7 @@ void main(){
         else if (a === "donkey") p = proj(donkey.state.x, donkey.group.position.y + 1.45, donkey.state.z);
         else if (a.startsWith("ch:")) p = chPos(a.slice(3), 1.15);
         else if (a.startsWith("head:")) { p = chPos(a.slice(5), 1.72); if (p) p[0] += hw + 26; }
+        else if (a === "self") p = [Wd / 2, Hd - 152];
         put(b, p, hw, hh);
       }
       const who = ui.chips.dataset.who, head = who ? chPos(who, 1.7) : null, list = [...ui.chips.children], n = list.length;
@@ -8579,6 +8586,38 @@ void main(){
         if (!head) return put(b, null, hw, hh);
         const ring = i < 4 ? 0 : 1, k = ring ? i - 4 : i, m = ring ? Math.max(1, n - 4) : Math.min(4, n), ang = (-158 + (m > 1 ? k / (m - 1) : .5) * 136) * Math.PI / 180, rad = ring ? 168 : 104;
         put(b, [head[0] + Math.cos(ang) * rad * 1.15, head[1] + Math.sin(ang) * rad * .8 + 30], hw, hh); });
+    }
+    // Commands fall as rain. Each one that fits your state drops in from above now and then, sticks for as long as it matters
+    // (stick, in seconds), sags as its time runs out, then lets go and runs down the glass. Touch it while it is there.
+    const DEMO_OFFERS = [
+      { id: "map", label: "Map", stick: 7, when: () => true, act: () => toggleBigMap() },
+      { id: "ride", label: "Ride the donkey", stick: 9, at: "donkey", when: () => !state.riding && !state.drivingCart && !state.gliding && !state.donkeyCollapsed && Math.hypot(donkey.state.x - state.x, donkey.state.z - state.z) < 9, act: () => toggleRide() },
+      { id: "glide", label: "Base jump", stick: 6, when: () => !state.gliding && !state.drivingCart && !state.riding, act: () => toggleGlide() },
+      { id: "lidar", label: "Lidar", stick: 5, when: () => true, act: () => toggleLidar() },
+      { id: "plates", label: "Your plates", stick: 6, when: () => state.plates.length > 0, act: () => demoShowPlate() },
+      { id: "listen", label: "Listen", stick: 6, when: () => true, act: () => { startField(); if (field) field.panel(!field.panelOpen); } },
+      { id: "view", label: "Through her eyes", stick: 5, when: () => !state.drivingCart && !state.gliding && state.cameraMode === "third", act: () => toggleCameraMode() },
+      { id: "view3", label: "Step back", stick: 8, when: () => !state.drivingCart && !state.gliding && state.cameraMode !== "third", act: () => toggleCameraMode() },
+      { id: "squirt", label: "Squirt water", stick: 4, when: () => npCarrier().liters > 0 && !state.drivingCart && !state.gliding, act: () => triggerSquirtBurst(1.4) },
+      { id: "throw", label: "Throw the can", stick: 4, when: () => npCarrier().liters > 0 && !state.drivingCart && !state.gliding && !state.riding, act: () => throwObject() },
+      { id: "dance", label: "Dance", stick: 4, when: () => !state.drivingCart && !state.gliding, act: () => triggerDance() },
+      { id: "radio", label: "Tune the radio", stick: 8, when: () => state.drivingCart && field && field.radio, act: () => field.radio.tune() },
+      { id: "jump", label: "Jump", stick: 4, when: () => !state.drivingCart && !state.gliding && !state.riding, act: () => jumpPlayer() }
+    ];
+    function demoOfferTake(b) { const o = DEMO_OFFERS.find(x => x.id === b.dataset.offer); b.remove(); if (o) o.act(); demo.dockSig = ""; }
+    function demoOffers(dt) {
+      const ui = demo.ui, box = document.getElementById("dk-offers"); if (!ui || !box || !demo.dew) return;
+      const now = demo.clock || 0, quiet = demo.handoff || demo.menuOpen || document.body.classList.contains("demo-typing") || !ui.brief.hidden;
+      for (const b of [...box.children]) { const o = DEMO_OFFERS.find(x => x.id === b.dataset.offer), age = (now - +b.dataset.born) / 1000;
+        if (!o || !o.when() || age > o.stick || quiet) b.remove(); }                                  // its time is up, or it is no longer true: it lets go
+      demo.offerT = (demo.offerT || 2.5) - dt; if (quiet || demo.offerT > 0 || box.children.length >= 2) return;
+      demo.offerT = 3 + Math.random() * 3.5; demo.offered = demo.offered || {};
+      const pool = DEMO_OFFERS.filter(o => o.when() && now - (demo.offered[o.id] || -1e9) > 26000 && !box.querySelector(`[data-offer="${o.id}"]`)); if (!pool.length) return;
+      const o = pool[Math.floor(Math.random() * pool.length)]; demo.offered[o.id] = now;
+      const b = document.createElement("button"); b.type = "button"; b.className = "verb alt offer"; b.dataset.offer = o.id; b.dataset.born = now; b.dataset.dewLife = o.stick; b.textContent = o.label;
+      let x = Math.random() < .5 ? 64 + Math.random() * innerWidth * .2 : innerWidth - 64 - Math.random() * innerWidth * .2, y = innerHeight * (.2 + Math.random() * .3);
+      if (o.at === "donkey") { demoV.set(donkey.state.x, donkey.group.position.y + 1.5, donkey.state.z).project(camera); if (demoV.z < 1 && Math.abs(demoV.x) < .85) { x = clamp((demoV.x * .5 + .5) * innerWidth, 70, innerWidth - 70); y = clamp((-demoV.y * .5 + .5) * innerHeight, 120, innerHeight - 220); } }
+      b.style.left = x + "px"; b.style.top = y + "px"; box.append(b);
     }
     /* ---------- A can changing hands, with weight: step in, lift, both hold, the other takes it, sets it down or pours ---------- */
     const hoV = { a: new T.Vector3(), b: new T.Vector3(), c: new T.Vector3(), gL: new T.Vector3(), gR: new T.Vector3(), pL: new T.Vector3(), pR: new T.Vector3() };
@@ -8749,7 +8788,7 @@ void main(){
       }
       if (demo.youUntil && now > demo.youUntil) { ui.you.hidden = true; demo.youUntil = 0; }
       fieldTick(dt);
-      demoHandoffTick(dt); demoDock(dt); demoAnchors();
+      demoHandoffTick(dt); demoDock(dt); demoAnchors(); demoOffers(dt);
       if (demo.menuOpen && (demo.clock || 0) - (demo.menuTouch || 0) > 14000) demo.ui.openSheet(false);       // honey left alone drains away
       if (demo.dew) {
         const dw = demo.dew; dw.rain = demo.rainIn || 0;
