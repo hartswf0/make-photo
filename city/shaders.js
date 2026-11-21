@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 export const CITY_LOOKS = [
+  { id: 'weave', mode: 15, name: 'WEAVE Cel / Notan', desc: 'Painterly cobalt-ochre cel shading, crisp silhouettes, and live cyan/magenta reflections.' },
   { id: 'natural', mode: -1, name: 'Natural + Cyan', desc: 'True PBR masonry, wet sodium reflections, and live cyan network.' },
   { id: 'jerikan', mode: 13, name: 'Cyan Jerikan', desc: 'Silver-gelatin stone with selective electric-cyan water, relays, and conduits.' },
   { id: 'silver', mode: 5, name: 'Silver Gelatin', desc: 'Z-V selenium-toned 8x10 silver print.' },
@@ -182,6 +183,26 @@ const FS = `
       vec2 sq = (uv - vec2(0.90, 0.14)) * vec2(uRes.x / uRes.y, 1.0);
       float seal = step(max(abs(sq.x), abs(sq.y)), 0.032) * step(0.28, n2(px / 3.0));
       col = mix(mix(iw, vec3(0.72, 0.10, 0.08), seal), silverBase, 0.30);
+    } else if (mode == 15) {
+      // Mode 15: WEAVE Cel / Notan (8cb41f94.jpg visual standard: cobalt-cerulean sky, warm terracotta/ochre cel bands, crisp silhouettes, electric cyan/magenta accents)
+      float q = floor(l * 5.0 + 0.35) / 5.0;
+      vec3 celBase = mix(raw, raw * (0.65 + 0.55 * q), 0.55);
+      // Warm terracotta-ochre lift on midtones, deep nocturnal cobalt in shadows
+      vec3 shadowTint = vec3(0.08, 0.14, 0.24);
+      vec3 midTint = vec3(0.86, 0.58, 0.44);
+      vec3 hiTint = vec3(0.95, 0.88, 0.78);
+      vec3 grade = q < 0.35 ? mix(shadowTint, celBase, smoothstep(0.05, 0.35, l))
+                 : q < 0.72 ? mix(celBase, celBase * midTint * 1.25, 0.38)
+                 : mix(celBase, hiTint, 0.24);
+      // Crisp cel ink contour on architectural edges
+      float ink = smoothstep(0.06, 0.18, ed);
+      grade = mix(grade, vec3(0.06, 0.09, 0.15), ink * 0.52);
+      // Preserve electric cyan water/signal & magenta neon puddles cleanly
+      float cyanMask = smoothstep(0.08, 0.26, (raw.b + raw.g * 0.55) * 0.65 - raw.r) * smoothstep(0.15, 0.55, raw.b);
+      float magMask = smoothstep(0.12, 0.32, (raw.r + raw.b) * 0.5 - raw.g) * smoothstep(0.25, 0.6, raw.r);
+      grade = mix(grade, vec3(0.12, 0.82, 1.0) * (0.85 + 0.35 * l), clamp(cyanMask * 1.1, 0.0, 1.0));
+      grade = mix(grade, vec3(0.94, 0.36, 0.82) * (0.85 + 0.3 * l), clamp(magMask * 0.85, 0.0, 1.0));
+      col = grade * (0.93 + 0.07 * vg);
     } else if (mode == 14) {
       // Mode 14: wygwyl language/palettes.json 6-color District Tone LUT + selective cyan
       float t = clamp(l, 0.0, 1.0) * 5.0;

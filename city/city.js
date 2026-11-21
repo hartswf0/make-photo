@@ -212,6 +212,76 @@ lightwellSpot.position.set(0, 11.2, -0.5);
 lightwellSpot.target.position.set(0, 0, -0.5);
 scene.add(lightwellSpot, lightwellSpot.target);
 
+// --- GLSL CERULEAN-COBALT GRADIENT SKY DOME (8cb41f94.jpg Sky Language) ---
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide,
+  depthWrite: false,
+  uniforms: {
+    uTop: { value: new THREE.Color('#0c1f38') },
+    uMid: { value: new THREE.Color('#2c6294') },
+    uHorizon: { value: new THREE.Color('#6f93b0') },
+  },
+  vertexShader: `
+    varying vec3 vWorldPos;
+    void main() {
+      vec4 wp = modelMatrix * vec4(position, 1.0);
+      vWorldPos = wp.xyz;
+      gl_Position = projectionMatrix * viewMatrix * wp;
+    }
+  `,
+  fragmentShader: `
+    uniform vec3 uTop, uMid, uHorizon;
+    varying vec3 vWorldPos;
+    void main() {
+      float h = clamp(normalize(vWorldPos).y, 0.0, 1.0);
+      vec3 col = h < 0.28 ? mix(uHorizon, uMid, h / 0.28) : mix(uMid, uTop, (h - 0.28) / 0.72);
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `,
+});
+const skyDome = new THREE.Mesh(new THREE.SphereGeometry(210, 24, 16), skyMat);
+scene.add(skyDome);
+
+// --- MONUMENTAL ATLANTIS / AHIYA PARABOLIC RELAY DISH SILHOUETTE (8cb41f94.jpg) ---
+const dishGroup = new THREE.Group();
+dishGroup.position.set(6, 0, -32);
+const dishDarkMat = new THREE.MeshStandardMaterial({ color: '#1b2736', roughness: 0.78, metalness: 0.35 });
+const dishPedestal = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 4.4, 24, 10), dishDarkMat);
+dishPedestal.position.y = 12;
+dishGroup.add(dishPedestal);
+
+const dishTilt = new THREE.Group();
+dishTilt.position.set(0, 26.0, 0);
+dishTilt.rotation.set(0.55, -0.32, 0.18);
+// Parabolic dish bowl (LatheGeometry)
+const dishPts = [];
+for (let i = 0; i <= 12; i++) {
+  const t = i / 12;
+  dishPts.push(new THREE.Vector2(t * 14.5, t * t * 4.4));
+}
+const dishBowl = new THREE.Mesh(
+  new THREE.LatheGeometry(dishPts, 28),
+  new THREE.MeshStandardMaterial({ color: '#243547', roughness: 0.65, metalness: 0.42, side: THREE.DoubleSide })
+);
+dishTilt.add(dishBowl);
+// Central feed horn + glowing cyan tip
+const feedMast = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.45, 9.5, 8), dishDarkMat);
+feedMast.position.y = 4.8;
+dishTilt.add(feedMast);
+const feedTip = new THREE.Mesh(
+  new THREE.SphereGeometry(0.75, 14, 12),
+  new THREE.MeshStandardMaterial({ color: '#18b4ff', emissive: '#18b4ff', emissiveIntensity: 2.2 })
+);
+feedTip.position.y = 9.6;
+dishTilt.add(feedTip);
+dishGroup.add(dishTilt);
+scene.add(dishGroup);
+
+// Glowing Magenta-Rose + Amber Street Puddle Reflections in front of Severn Nolli Doorway
+const puddleMagLight = new THREE.PointLight('#e856c8', 24.0, 14, 1.6);
+puddleMagLight.position.set(-3.2, 1.4, 12.2);
+scene.add(puddleMagLight);
+
 // ---------------------------------------------------------------------------
 // Shared Materials (Updated dynamically on Cartridge / Time / X-Ray switch)
 // ---------------------------------------------------------------------------
@@ -422,17 +492,31 @@ conduitSegments.forEach(([a, b]) => {
   scene.add(cyl);
 });
 
-// --- GROUND FLOOR PROPS: Camera Shop Window Frames & Archive Light Table ---
+// --- GROUND FLOOR PROPS: Camera Shop Window Frames (Pre-loaded with Real wygwyl-world-arch WEAVE Plates) ---
+const WEAVE_ARCHIVE_URLS = [
+  'https://hartswf0.github.io/wygwyl-world-arch/shots/out/05a0677a-e3e8-49d1-a313-eb729b649cad_3/cartoon/cel.png',
+  'https://hartswf0.github.io/wygwyl-world-arch/shots/out/646ab0f0-8950-495f-9f61-f2db42db81ce_0/image.jpg',
+  'https://hartswf0.github.io/wygwyl-world-arch/shots/out/bdc7d6ec-1d4e-4f99-ad7e-9917394c542a_2/image.jpg',
+];
+const archiveTexLoader = new THREE.TextureLoader();
+archiveTexLoader.setCrossOrigin('anonymous');
+
 const windowFrames = [];
 const windowFrameX = [-5.8, -3.9, 5.4];
 windowFrameX.forEach((wx, idx) => {
   // Storefront backing frame
   addBox(1.65, 1.2, 0.14, wx, 1.9, 7.26, mats.trim, { collide: false });
   const printMat = new THREE.MeshStandardMaterial({
-    color: '#252a2e',
-    roughness: 0.4,
-    emissive: '#101418',
-    emissiveIntensity: 0.35,
+    color: '#ffffff',
+    roughness: 0.35,
+    emissive: '#3a4a58',
+    emissiveIntensity: 0.42,
+  });
+  archiveTexLoader.load(WEAVE_ARCHIVE_URLS[idx], (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    printMat.map = tex;
+    printMat.emissiveMap = tex;
+    printMat.needsUpdate = true;
   });
   const printMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 0.98), printMat);
   printMesh.position.set(wx, 1.9, 7.34);
@@ -912,9 +996,9 @@ function rebuildResidentsForCartridge(cart) {
 // Player Movement, Elevation (Continuous Stairs -> Upper Floor -> Rooftop)
 // ---------------------------------------------------------------------------
 const player = {
-  pos: new THREE.Vector3(-5.8, 0, 21.5),
+  pos: new THREE.Vector3(-6.2, 0, 24.5),
   yaw: -0.22,
-  pitch: 0.04,
+  pitch: 0.08,
   eyeHeight: 1.65,
   speed: 5.8,
   floorY: 0,
@@ -933,7 +1017,7 @@ const camState = {
   focalMm: 50,
   focusM: 12.0,
   exposureEv: 0.0,
-  stock: 'natural',
+  stock: 'weave',
   xray: false,
 };
 
@@ -1054,7 +1138,12 @@ function applyCartridgeAndTime() {
   const bgCol = new THREE.Color(cart.palette.submerged ? '#0b222c' : tp.skyTop);
   scene.background = bgCol;
   scene.fog.color.set(cart.palette.submerged ? '#0d2936' : tp.skyHorizon).lerp(bgCol, 0.55);
-  scene.fog.density = cart.palette.submerged ? 0.0145 : tp.fogDensity;
+  scene.fog.density = cart.palette.submerged ? 0.0115 : tp.fogDensity;
+
+  // Update GLSL Gradient Sky Dome
+  skyMat.uniforms.uTop.value.set(cart.palette.submerged ? '#071b26' : tp.skyTop);
+  skyMat.uniforms.uMid.value.set(cart.palette.submerged ? '#17546e' : '#2d6394');
+  skyMat.uniforms.uHorizon.value.set(cart.palette.submerged ? '#358da8' : tp.skyHorizon);
 
   mats.windowGlow.emissiveIntensity = tp.windowGlow;
   lampLights.forEach((l) => {
