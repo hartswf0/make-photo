@@ -99,6 +99,9 @@
         night: emitter('night', 'Night bed · Awassa, Ethiopia', 'amb_night', 'ambience', { gain: .36 }),
         crickets: emitter('crickets', 'Crickets and far voices', 'crickets_village', 'ambience', { gain: .24 }),
         wind: emitter('wind', 'Highland wind', 'wind_gusts', 'ambience', { gain: 0 }),
+        rain: emitter('rain', 'Rain inside the signal', 'rain_light', 'ambience', { gain: 0 }),
+        rainGround: emitter('rainGround', 'Rain on the ground', 'rain_ground', 'ambience', { gain: 0 }),
+        rainEdge: emitter('rainEdge', 'Rain at the edge of the signal', 'rain_light', 'ambience', { pos: V(0, 0, 0), ref: 9, roll: 1.1, gain: 0, rate: .94 }),
         mast: emitter('mast', 'Wind in the beacon mast', 'wind_antenna', 'ambience', { pos: A.beaconTop, ref: 6, roll: 1.1, gain: .6 }),
         chant: emitter('chant', 'Night chant · Cross-Beacon', 'amb_xmas_night', 'life', { pos: A.beacon, ref: 14, roll: 1.1, gain: 1 }),
         azmari: emitter('azmari', 'Azmari bet · Daylight Compound', 'music_outside_azmaribeit', 'life', { pos: A.compound, ref: 7, roll: 1.25, gain: 0, lowpass: 2600 }),
@@ -165,6 +168,11 @@
       if (W.wind) W.wind.set(clamp01(.08 + .55 * g.heightRel + .15 * Math.min(1, g.speed / 8)) * (1 - .6 * g.shelter));
       if (W.night) W.night.set(.34 * (1 - .55 * g.shelter)); if (W.crickets) W.crickets.set(.24 * (1 - .5 * g.shelter));   // the place you are in leads the mix
       if (W.azmari) W.azmari.set(g.compoundOpen ? .9 : 0);
+      // rain: you hear it exactly where you see it. Inside a signal dome it is all round you (hiss plus drops on the
+      // ground); outside, it comes from the nearest dome's edge and thins with distance, like a shower across a valley.
+      const rn = clamp01(g.rain || 0);
+      if (W.rain) W.rain.set(.42 * rn); if (W.rainGround) W.rainGround.set(.62 * rn * (1 - .5 * g.shelter));
+      if (W.rainEdge) { if (g.rainEdge) W.rainEdge.at(g.rainEdge); W.rainEdge.set(g.rainEdge ? .75 * (1 - rn) : 0); }
       // wagon: a big slow engine, pitched by speed and throttle; road noise and tyres take over as it moves
       const v = Math.abs(g.wagon.speed || 0), run = g.wagon.on;
       for (const k of ['engine', 'engineRoad', 'tyres']) W[k] && W[k].at(g.wagon.pos);
@@ -202,7 +210,7 @@
       if (!ui) {
         const el = document.createElement('div'); el.id = 'listen'; el.hidden = true;
         el.innerHTML = `<style>
-#listen{position:fixed;left:max(10px,env(safe-area-inset-left,0px));bottom:calc(150px + env(safe-area-inset-bottom,0px));width:min(380px,calc(100vw - 20px));max-height:min(70vh,640px);overflow:auto;z-index:70;
+#listen{position:fixed;left:max(10px,env(safe-area-inset-left,0px));top:calc(10px + env(safe-area-inset-top,0px));width:min(380px,calc(100vw - 20px));max-height:calc(100dvh - 20px);overflow:auto;overscroll-behavior:contain;z-index:75;
  background:rgba(6,16,22,.92);border:1px solid #38e8ff;border-radius:12px;padding:10px 12px;font:12px/1.35 system-ui,sans-serif;color:#dff4fa}
 #listen[hidden]{display:none!important}
 #listen h5{margin:6px 0 4px;font:600 10px system-ui,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#8fd0de;display:flex;justify-content:space-between}
@@ -217,8 +225,12 @@
 #listen .src small{grid-column:1/3;color:#86a9b3}
 #listen .src[aria-pressed="true"]{background:#0e3442}
 #listen .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-#listen .row button{padding:4px 8px}</style>
-<h5><span>Listening</span><span id="ls-lim"></span></h5><canvas id="ls-spec" width="356" height="78"></canvas>
+#listen .row button{padding:4px 8px}
+#listen h5 .x{font-size:15px;line-height:1;padding:2px 9px;letter-spacing:0}
+#listen .top{position:sticky;top:-10px;margin:-10px -12px 0;padding:10px 12px 0;background:rgba(6,16,22,.97);z-index:1}
+@media (orientation:portrait) and (max-width:700px){#listen{left:0;right:0;top:auto;bottom:0;width:auto;max-height:64dvh;border-radius:14px 14px 0 0;border-bottom:0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}}
+@media (max-height:500px) and (orientation:landscape){#listen{width:min(380px,48vw);bottom:calc(10px + env(safe-area-inset-bottom,0px))}#listen canvas{height:54px}}</style>
+<div class="top"><h5><span>Listening</span><span><span id="ls-lim"></span> <button class="x" id="ls-x" aria-label="Close">×</button></span></h5><canvas id="ls-spec" width="356" height="78"></canvas></div>
 <h5><span>Mix</span><span>dB · M · S</span></h5><div id="ls-buses"></div>
 <h5><span>Nearest sources</span><span>tap to solo</span></h5><div id="ls-srcs"></div>
 <div class="row"><button id="ls-rings" aria-pressed="true">Show sound in the world</button><button id="ls-reset">Reset mix</button><button id="ls-close">Close</button></div>`;
@@ -236,7 +248,7 @@
         }
         q('#ls-rings').onclick = e => { S.showRings = !S.showRings; e.target.setAttribute('aria-pressed', S.showRings); };
         q('#ls-reset').onclick = () => { S.mix = {}; saveMix(); S.soloBus = null; S.soloEmitter = null; for (const b of BUSES) { const r = S.buses[b.id].row; r.querySelector('input').value = b.db; r.querySelector('.db').textContent = b.db + ' dB'; r.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', 'false')); } applyMix(); };
-        q('#ls-close').onclick = () => panel(false);
+        q('#ls-close').onclick = q('#ls-x').onclick = () => panel(false);
         ui = { el, spec: q('#ls-spec'), srcs: q('#ls-srcs'), lim: q('#ls-lim'), freq: new Uint8Array(masterA.frequencyBinCount), t: 0 };
         S.showRings = true;
       }

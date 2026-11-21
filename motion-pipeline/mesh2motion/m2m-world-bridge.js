@@ -1601,6 +1601,8 @@
       loadScionClip(clipName);
     }
 
+    // metres per second each clip's planted foot travels at playback rate 1 (measured in highland-exposure/motion-lab)
+    const CLIP_GROUND_SPEED = { 'walk-happy': 1.14, walk: 0.76, 'walk-carry': 0.61, 'walk-relaxed': 0.85, jog: 3.9, 'walk-backwards': 0.85 };
     function setActorLocomotion(id, loco) {
       const actor = actors.get(id);
       if (!actor || !loco) return;
@@ -1627,15 +1629,18 @@
         nextClip = speedMps > 0.2 ? 'crouch-walk' : 'crouch-idle';
       } else if (working) {
         nextClip = typeof working === 'string' ? working : 'hammering';
-      } else if (speedMps >= 3.6) {
-        nextClip = 'sprint';
-        nextSpeed = clamp(speedMps / 4.2, 0.85, 1.35);
-      } else if (speedMps >= 2.1) {
+      } else if (loco.backwards && speedMps >= 0.16) {
+        nextClip = 'walk-backwards';
+        nextSpeed = clamp(speedMps / 0.85, 0.6, 1.5);
+      } else if (speedMps >= (actor.clipName === 'jog' ? 2.0 : 2.4)) {
+        // playback rate = speed / the ground speed each clip actually covers (measured from its planted foot), so feet do not
+        // skate; a floor on cadence, because a jog played in slow motion reads as floating, not as a slower run.
+        // Hysteresis on both gait changes stops the clip flickering when speed hovers at a threshold (slopes, turns).
         nextClip = 'jog';
-        nextSpeed = clamp(speedMps / 2.6, 0.8, 1.35);
-      } else if (speedMps >= 0.16) {
-        nextClip = carrying ? 'walk-carry' : 'walk';
-        nextSpeed = clamp(speedMps / 1.25, 0.65, 1.45);
+        nextSpeed = clamp(speedMps / CLIP_GROUND_SPEED.jog, 0.82, 1.4);
+      } else if (speedMps >= (/^walk/.test(actor.clipName || '') ? 0.12 : 0.22)) {
+        nextClip = carrying ? 'walk-carry' : 'walk-happy';
+        nextSpeed = clamp(speedMps / CLIP_GROUND_SPEED[nextClip], 0.55, 1.7);
       } else {
         nextClip = talking ? 'idle-talking' : 'idle';
       }

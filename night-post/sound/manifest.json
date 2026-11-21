@@ -180,6 +180,18 @@
   },
   "stone": {
    "file": "stone.mp3"
+  },
+  "rain_light": {
+   "file": "rain_light.mp3",
+   "loop": true,
+   "from_s": 20.0,
+   "len_s": 40
+  },
+  "rain_ground": {
+   "file": "rain_ground.mp3",
+   "loop": true,
+   "from_s": 51.0,
+   "len_s": 40
   }
  },
  "sprites": {

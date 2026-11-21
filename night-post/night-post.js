@@ -1742,7 +1742,7 @@ void main(){
   const initModeIdx = urlMode && MODES.some(m => m.id === urlMode) ? MODES.findIndex(m => m.id === urlMode) : 0;
   const rawCircuitParam = urlParams.get("circuit");
   const initCircuitParam = rawCircuitParam === "ahiya" ? "ahiya" : rawCircuitParam === "west" ? "west" : "";
-  const skipIntroParam = urlParams.get("skipIntro") === "1" || urlParams.get("trailer") === "1" || urlParams.get("musicvideo") === "1" || urlParams.get("machinima") === "1";
+  const skipIntroParam = urlParams.get("demo") === "ahiya" || urlParams.get("skipIntro") === "1" || urlParams.get("trailer") === "1" || urlParams.get("musicvideo") === "1" || urlParams.get("machinima") === "1";
 
   /* ---------- WebAudio: 3D Spatial Donkey Panner + Air Lowpass + Beat Detector ---------- */
   const audio = (() => {
@@ -3532,7 +3532,7 @@ void main(){
     const worldBridge = (window.Mesh2MotionWorldBridge && cast && Array.isArray(cast.list))
       ? window.Mesh2MotionWorldBridge.createWorldCastDriver(T, {
           clipsBaseUrl: "../motion-pipeline/mesh2motion/clips",
-          preload: ["idle", "idle-talking", "walk", "walk-carry", "jog", "dance-arm-pump", "greeting"],
+          preload: ["idle", "idle-talking", "walk-happy", "walk-carry", "walk-backwards", "jog", "dance-arm-pump", "greeting"],
           defaultBlend: 0.84,
           defaultFade: 0.25
         })
@@ -6382,7 +6382,7 @@ void main(){
         state.cartYawOffset = clamp(state.cartYawOffset - dx * .0045, -1.8, 1.8);
         state.cartPitchOffset = clamp(state.cartPitchOffset - dy * .0035, -.45, .45);
       } else {
-        state.yaw -= dx * .0045;
+        state.yaw -= dx * .0045; state.lookDragAt = performance.now();
         state.pitch = clamp(state.pitch - dy * .0038, -.82, .82);
       }
     });
@@ -6460,7 +6460,7 @@ void main(){
 
     /* ---------- Simulation Loop: Unified Open World + Spatial Audio + Flow Puzzle + Hydration + Pour & Eskista Dance ---------- */
     const donkeyHand = new T.Vector3(), halterOut = new T.Vector3(), roofWorldPos = new T.Vector3();
-    const tmpCamPos = new T.Vector3(), tmpCamLook = new T.Vector3(), tmpCamFwd = new T.Vector3();
+    const tmpCamPos = new T.Vector3(), tmpCamLook = new T.Vector3(), tmpCamFwd = new T.Vector3(); const plantV = new T.Vector3();
     let lastT = null, meterClock = 0;
 
     function worldBoundsClamp(x, z) {
@@ -6586,18 +6586,49 @@ void main(){
       m.material = mat; m.renderOrder = 20; m.visible = false; mw.world.add(m); return m;
     }
     const BUS_COLOR = { music: 0xffd27a, radio: 0xff9fd0, ambience: 0x6fb8ff, foley: 0x38e8ff, life: 0x9dff9a, synth: 0xbbbbbb };
+    let fieldEdge = null, feetOf = null, feetList = null;
+    const fieldV = new T.Vector3();
+    function avatarFeet() {
+      if (feetOf === activeAvatar) return feetList;
+      feetOf = activeAvatar; feetList = [];
+      activeAvatar.group.traverse(o => { if (o.isBone && /^foot_[LR]$/i.test(o.name)) feetList.push({ b: o, min: .1, up: false }); });
+      if (feetList.length !== 2) feetList = null;
+      return feetList;
+    }
     function fieldTick(dt) {
       if (!field || !field.ready) return;
       const onFoot = !state.drivingCart && !state.riding && !state.gliding;
       const here = { x: state.x, z: state.z }, moved = fieldLast ? Math.hypot(here.x - fieldLast.x, here.z - fieldLast.z) : 0; fieldLast = here;
-      const speed = dt > 0 ? moved / dt : 0, running = speed > 3.2;
-      if (onFoot && moved < 3) {                                   // a step each stride of real ground covered
-        stepAcc += moved; const stride = running ? 1.05 : .72;
+      const speed = dt > 0 ? moved / dt : 0, running = speed > 2.3;
+      // Footsteps come from the feet you see: each one sounds when the avatar's animated foot bone lands, at that foot.
+      // Without a loaded walk clip (or in first person) it falls back to one step per stride of ground covered.
+      const surfAt = (x, z) => nearSet(x, z) < 7 ? "stone" : "dirt";
+      const loadRate = npCarrier().liters > 12 ? .92 : 1;
+      const feet = onFoot && state.cameraMode === "third" && activeAvatar && activeAvatar.group.visible ? avatarFeet() : null;
+      if (feet && moved < 3 && speed > .15) {
+        for (const f of feet) {
+          f.b.getWorldPosition(fieldV); const h = fieldV.y - driveSurfaceAt(fieldV.x, fieldV.z);
+          f.min = Math.min(f.min + dt * .05, h);                                   // planted height, slowly re-learnt
+          if (h > f.min + .07) f.up = true;
+          else if (f.up && h < f.min + .025) { f.up = false; field.footstep({ x: fieldV.x, y: fieldV.y - h + .02, z: fieldV.z, yaw: state.yaw, load: loadRate }, speed, surfAt(fieldV.x, fieldV.z), running); }
+        }
+        stepAcc = 0;
+      } else if (onFoot && moved < 3) {
+        stepAcc += moved; const stride = running ? 2.2 : .6;          // the step length of the walk-happy and jog clips at their playback rates
         if (stepAcc > stride) { stepAcc %= stride; const gy = driveSurfaceAt(state.x, state.z); field.footstep({ x: state.x, y: gy + .02, z: state.z, yaw: state.yaw, load: npCarrier().liters > 12 ? .92 : 1 }, speed, nearSet(state.x, state.z) < 7 ? "stone" : "dirt", running); }
       } else stepAcc = 0;
       const gy = driveSurfaceAt(state.x, state.z), dHead = donkey.group.position.clone(); dHead.y += 1.35;
       const thr = (keys.KeyW || keys.ArrowUp) ? 1 : 0;
-      field.update(dt, { heightRel: Math.max(0, Math.min(1, (gy - field.lo) / Math.max(1, field.hi - field.lo))), shelter: Math.max(0, 1 - nearSet(state.x, state.z) / 14), speed,
+      // rain is heard by the same rule it is drawn by: it falls only inside the signal discs (sampleWifiEmitters)
+      const cp = camera.position; let rainIn = 0, edge = null, edgeD = 1e9;
+      for (const em of sampleWifiEmitters()) {
+        const R = em.r * .9, d = Math.hypot(cp.x - em.x, cp.z - em.z);
+        const dens = clamp(Math.pow(55 / Math.max(20, em.r), .7), .35, 1);      // the same 420 drops spread over a wider disc fall thinner
+        rainIn = Math.max(rainIn, dens * clamp(1 - (d - R * .8) / (R * .2 + 4), 0, 1));
+        if (d - R < edgeD) { edgeD = d - R; const k = d > 1e-3 ? R / d : 0; edge = (fieldEdge || (fieldEdge = new T.Vector3())).set(em.x + (cp.x - em.x) * k, 0, em.z + (cp.z - em.z) * k); }
+      }
+      if (edge) edge.y = driveSurfaceAt(edge.x, edge.z) + 2;
+      field.update(dt, { rain: rainIn, rainEdge: edgeD > 0 && edgeD < 260 ? edge : null, heightRel: Math.max(0, Math.min(1, (gy - field.lo) / Math.max(1, field.hi - field.lo))), shelter: Math.max(0, 1 - nearSet(state.x, state.z) / 14), speed,
         wagon: { on: state.drivingCart, speed: wagon.speed || 0, throttle: state.drivingCart ? thr : 0, pos: wagon.group.position },
         talking: !!demo.line, watch: npCarrier().watch || 0, compoundOpen: npCarrier().visited.includes("beacon"), donkeyHead: dHead });
       field.drawPanel(dt);
@@ -6667,7 +6698,7 @@ void main(){
           moved = hit = true;
         }
         if (cast) for (const ch of cast.list) {
-          if (!ch.group.visible) continue;
+          if (!ch.group.visible || ch === activeAvatar) continue;
           const dx = x - ch.state.x, dz = z - ch.state.z, d = Math.hypot(dx, dz), need = r + .38;
           if (d < need && d > 1e-4) { x = ch.state.x + dx / d * need; z = ch.state.z + dz / d * need; moved = hit = true; }
         }
@@ -6797,50 +6828,67 @@ void main(){
         #demo-say input{flex:1;min-width:0;font:14px system-ui,sans-serif;padding:8px 10px;background:rgba(8,20,30,.92);color:#e9f6fb;border:1px solid #38e8ff;border-radius:8px}
         #demo-say button,#demo-phone button,#demo-brief button{font:12px system-ui,sans-serif;padding:6px 10px;background:#0b2a38;color:#e9f6fb;border:1px solid #38e8ff;border-radius:8px;cursor:pointer}
         #demo-say button[aria-pressed="true"]{background:#38e8ff;color:#06222c}
-        #demo-phone{right:max(14px,env(safe-area-inset-right,0px));bottom:calc(88px + env(safe-area-inset-bottom,0px));width:196px;background:#0a1116;border:2px solid #26343c;border-radius:22px;padding:12px 12px 10px;box-shadow:0 0 24px rgba(56,232,255,.25)}
-        #demo-phone h4{margin:0 0 6px;font:600 11px system-ui,sans-serif;letter-spacing:.08em;color:#8fd0de;display:flex;justify-content:space-between}
-        #demo-can{position:relative;height:12px;background:#12232c;border-radius:6px;overflow:hidden}#demo-can i{position:absolute;inset:0 auto 0 0;background:#38e8ff}
+        #demo-phone{right:max(10px,env(safe-area-inset-right,0px));top:calc(10px + env(safe-area-inset-top,0px));width:min(250px,calc(100vw - 20px));background:rgba(10,17,22,.94);border:1px solid #26343c;border-radius:16px;padding:9px 12px;box-shadow:0 0 24px rgba(56,232,255,.18)}
+        #demo-phone.shut{width:auto;min-width:150px}
+        #demo-phone.shut #demo-los,#demo-phone.shut #demo-thread,#demo-phone.shut #demo-btns{display:none}
+        #demo-phone h4{margin:0 0 6px;font:600 11px system-ui,sans-serif;letter-spacing:.08em;color:#8fd0de;display:flex;justify-content:space-between;gap:10px;cursor:pointer}
+        #demo-phone h4 em{font-style:normal;color:#5e7f89;font-weight:400}
+        #demo-can{position:relative;height:10px;background:#12232c;border-radius:6px;overflow:hidden}#demo-can i{position:absolute;inset:0 auto 0 0;background:#38e8ff}
         #demo-can u{position:absolute;top:0;bottom:0;left:20%;width:2px;background:#fff}
-        #demo-phone p{margin:5px 0 0;font-size:12px;color:#b9d7df}#demo-thread{margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:118px;overflow:hidden;justify-content:flex-end}
+        #demo-phone p{margin:5px 0 0;font-size:12px;color:#b9d7df}#demo-thread{margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:140px;overflow:hidden;justify-content:flex-end}
         #demo-thread span{font-size:11.5px;line-height:1.3;padding:4px 7px;border-radius:8px;background:#12232c;align-self:flex-start;max-width:100%}
         #demo-thread span.me{background:#38e8ff;color:#06222c;align-self:flex-end}
-        #demo-brief{left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);width:min(520px,calc(100vw - 32px));background:rgba(8,20,30,.94);border:1px solid #38e8ff;border-radius:10px;padding:12px 16px}
-        #demo-brief ul{margin:6px 0 8px;padding-left:18px}
+        #demo-btns{display:grid;grid-template-columns:1fr 1fr;gap:6px}#demo-btns button{min-height:36px}
+        #demo-brief{left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;background:rgba(6,14,20,.95);border:1px solid #2c6b78;border-radius:14px;padding:18px 20px;z-index:70}
+        #demo-brief h3{margin:0 0 2px;font:600 18px/1.2 Georgia,serif;color:#fff}#demo-brief .sub{margin:0 0 10px;color:#8fd0de;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+        #demo-brief p{margin:0 0 10px}#demo-brief .keys{color:#b9d7df;font-size:13px;border-top:1px solid #1d3540;padding-top:10px}
+        #demo-brief button#demo-brief-ok{width:100%;min-height:44px;font-size:15px;background:#38e8ff;color:#06222c;border:0;font-weight:600}
+        body.demo-mode #play-bar,body.demo-mode #cinema-intro,body.demo-mode #field-intro,body.demo-mode .letterbox,body.demo-mode #cloth{display:none!important}
         body.demo-clean #top-left,body.demo-clean #reel-col,body.demo-clean #rack-tray,body.demo-clean #wedge-wrap,body.demo-clean #focus-dock,body.demo-clean #keys,
         body.demo-clean #ppc-hud,body.demo-clean #inworld-video-bar,body.demo-clean #field-status,body.demo-clean #field-tools,body.demo-clean #field-actions,body.demo-clean #np-radio-host,body.demo-clean .hs-radio-hud{display:none!important}
         #demo-sig{display:inline-flex;gap:2px;align-items:flex-end;height:12px}#demo-sig i{width:4px;background:#26343c;border-radius:1px}#demo-sig i.on{background:#38e8ff}
         #demo-sig i:nth-child(1){height:4px}#demo-sig i:nth-child(2){height:7px}#demo-sig i:nth-child(3){height:10px}#demo-sig i:nth-child(4){height:12px}
         #demo-phone h4{cursor:pointer}
-        @media (max-width:700px){
-          #demo-phone{top:calc(10px + env(safe-area-inset-top,0px));bottom:auto;right:max(10px,env(safe-area-inset-right,0px));width:auto;min-width:132px;max-width:60vw;padding:8px 10px;border-radius:14px}
-          #demo-phone.shut #demo-los,#demo-phone.shut #demo-thread,#demo-phone.shut #demo-btns{display:none}
-          #demo-phone.shut #demo-lit{margin-top:4px}
-          #demo-say{bottom:calc(150px + env(safe-area-inset-bottom,0px))}#demo-you{bottom:calc(196px + env(safe-area-inset-bottom,0px))}
-          #demo-brief{top:calc(64px + env(safe-area-inset-top,0px))}
+        #demo-phone h4{cursor:pointer}
+        @media (max-width:700px) and (orientation:portrait){
+          #demo-say{bottom:calc(122px + env(safe-area-inset-bottom,0px));left:auto;right:12px;transform:none;width:calc(100vw - 120px)}
+          #demo-you{bottom:calc(170px + env(safe-area-inset-bottom,0px))}
+        }
+        @media (max-height:500px) and (orientation:landscape){
+          #demo-say{bottom:calc(10px + env(safe-area-inset-bottom,0px));width:min(420px,calc(100vw - 340px))}
+          #demo-you{bottom:calc(56px + env(safe-area-inset-bottom,0px))}
+          #demo-phone:not(.shut) #demo-thread{max-height:70px}
+        }
         }</style>
-        <div id="demo-brief" class="dm"><b>Ahiya demo</b>
-          <ul><li>Walk up to anyone. They greet you. Tap the bar that appears (or press Z), then type or speak.</li>
-          <li>Ask for things in words: “draw” at the pump, “where is the archive”, “show me your phone”.</li>
-          <li>Your phone shows the water you carry and whether you can see the beacon.</li>
-          <li>Wear headphones. Every sound is a recording placed where it happens; open Listen on the phone (or press O) to see and mix it.</li></ul>
-          <button id="demo-brief-ok">Begin at the Basalt Pump</button></div>
+        <div id="demo-brief" class="dm"><h3>Ahiya · night shift</h3><p class="sub">Night Post · Abyssinian Highlands</p>
+          <p>You carry water from the Basalt Pump to the people on the ridge. Walk up to anyone and talk; say “draw” at the pump, “where is the archive”, “show me your phone”.</p>
+          <p>Every sound is a recording placed where it happens: rain where it falls, the chant at the beacon, the yard fire. Headphones help.</p>
+          <p class="keys" id="demo-keys"></p>
+          <button id="demo-brief-ok">Begin</button></div>
         <div id="demo-bub" class="dm" hidden><b></b><span></span></div>
         <div id="demo-you" class="dm" hidden></div>
         <form id="demo-say" class="dm" hidden autocomplete="off"><input id="demo-in" maxlength="140" aria-label="Say something" placeholder=""><button type="button" id="demo-mic" aria-pressed="false">Mic</button><button type="submit">Say</button></form>
-        <div id="demo-phone" class="dm shut"><h4><span>CARRIER</span><span id="demo-sig"><i></i><i></i><i></i><i></i></span></h4><div id="demo-can"><i></i><u></u></div>
-          <p id="demo-lit"></p><p id="demo-los"></p><div id="demo-thread"></div><p id="demo-btns"><button type="button" id="demo-voice" aria-pressed="true">Voice on</button> <button type="button" id="demo-hud" aria-pressed="false">Full HUD</button> <button type="button" id="demo-listen">Listen</button> <button type="button" id="demo-radio" hidden>Radio</button></p></div>`;
+        <div id="demo-phone" class="dm shut"><h4><span>PHONE <em>tap</em></span><span id="demo-sig"><i></i><i></i><i></i><i></i></span></h4><div id="demo-can"><i></i><u></u></div>
+          <p id="demo-lit"></p><p id="demo-los"></p><div id="demo-thread"></div><p id="demo-btns"><button type="button" id="demo-listen">Listen</button><button type="button" id="demo-voice" aria-pressed="true">Voice on</button><button type="button" id="demo-radio" hidden>Radio</button><button type="button" id="demo-map">Map</button><button type="button" id="demo-wagon">Wagon</button><button type="button" id="demo-cam">First person</button><button type="button" id="demo-help">How to play</button></p></div>`;
       document.body.append(el);
       const q = id => el.querySelector("#" + id);
       const ui = demo.ui = { brief: q("demo-brief"), bub: q("demo-bub"), you: q("demo-you"), say: q("demo-say"), input: q("demo-in"), mic: q("demo-mic"), sig: q("demo-sig"), can: q("demo-can").firstElementChild,
         lit: q("demo-lit"), los: q("demo-los"), thread: q("demo-thread"), voice: q("demo-voice"), radioBtn: q("demo-radio") };
-      q("demo-brief-ok").onclick = () => { ui.brief.hidden = true; startField(); };
+      q("demo-brief-ok").onclick = () => { ui.brief.hidden = true; startField(); if (state.introActive) finishIntro(true); };
       const kick = () => { startField(); removeEventListener("pointerdown", kick, true); removeEventListener("keydown", kick, true); };
       addEventListener("pointerdown", kick, true); addEventListener("keydown", kick, true);       // sound begins with the first touch, wherever it lands
-      q("demo-listen").onclick = () => { startField(); if (field) field.panel(!field.panelOpen); };
+      q("demo-listen").onclick = () => { startField(); if (field) field.panel(!field.panelOpen); phone.classList.add("shut"); };
       q("demo-radio").onclick = () => { if (field && field.radio) field.radio.tune(); };
       document.body.classList.add("demo-clean");
       const phone = q("demo-phone"); phone.firstElementChild.onclick = () => phone.classList.toggle("shut");
-      q("demo-hud").onclick = e => { const on = document.body.classList.toggle("demo-clean"); e.currentTarget.setAttribute("aria-pressed", !on); };
+      document.body.classList.add("demo-mode");
+      const touch = matchMedia("(pointer:coarse)").matches;
+      q("demo-keys").textContent = touch ? "Left stick walks; push it to the rim to run. Drag anywhere else to look. The phone (top right) has sound, map, wagon and help."
+        : "W A S D walk · Shift run · drag to look · Z talk · O listen · M map · C wagon · N radio in the wagon.";
+      q("demo-help").onclick = () => { ui.brief.hidden = false; phone.classList.add("shut"); };
+      const via = id => () => { const b = document.getElementById(id); if (b) b.click(); phone.classList.add("shut"); };   // the game's own controls, reached from the phone
+      q("demo-map").onclick = via("btn-big-map"); q("demo-wagon").onclick = via("btn-drive-pill");
+      q("demo-cam").onclick = e => { via("btn-cam-mode")(); e.currentTarget.textContent = state.cameraMode === "third" ? "First person" : "Third person"; };
       ui.say.addEventListener("submit", e => { e.preventDefault(); const v = ui.input.value.trim(); if (v) demoSay(v); ui.input.value = ""; ui.input.blur(); });
       ui.input.addEventListener("keydown", e => { if (e.code === "Escape") ui.input.blur(); });
       ui.voice.onclick = () => { demo.voice = !demo.voice; ui.voice.setAttribute("aria-pressed", demo.voice); ui.voice.textContent = demo.voice ? "Voice on" : "Voice off"; if (!demo.voice && window.speechSynthesis) speechSynthesis.cancel(); };
@@ -6882,7 +6930,7 @@ void main(){
     function demoSay(text) {
       const low = text.toLowerCase();
       if (cast) for (const o of cast.list) {                                // calling a name turns you to that person
-        if (o === demo.withCh || !o.group.visible || Math.hypot(o.state.x - state.x, o.state.z - state.z) > 6) continue;
+        if (o === demo.withCh || o === activeAvatar || !o.group.visible || Math.hypot(o.state.x - state.x, o.state.z - state.z) > 6) continue;
         const first = demoName(o).split(" ").pop().toLowerCase();
         if (first.length > 2 && low.includes(first)) { if (demo.line) demoRestore(); demo.withCh = o; demo.greeted = true; break; }
       }
@@ -6905,7 +6953,7 @@ void main(){
       // who you are with: nearest person within reach, held until you step well away
       let best = null, bd = 2.8;
       if (cast && !state.drivingCart && !state.riding) for (const ch of cast.list) {
-        if (!ch.group.visible) continue;
+        if (!ch.group.visible || ch === activeAvatar) continue;
         const d = Math.hypot(ch.state.x - state.x, ch.state.z - state.z); if (d < bd) { bd = d; best = ch; }
       }
       const cur = demo.withCh, curD = cur ? Math.hypot(cur.state.x - state.x, cur.state.z - state.z) : 99;
@@ -7130,10 +7178,25 @@ void main(){
         }
       } else {
         /* --- ON FOOT (GRAVITY, TERRAIN-SOLE GROUNDING & 0-40 kg WATER-LOAD WEIGHT) + LEADING MISTLETOE --- */
-        const baseSpeed = DEMO ? (turbo ? 4.6 : 1.7) : (turbo ? 13.5 : 6.8) * flowSpeedMult;
+        // Human pace on foot: 1.3 m/s walking, 3.4 m/s running (Shift, or the stick pushed to its rim).
+        // Input is camera-relative: the body turns to face where it walks (see avatarHeading) and, unless you are
+        // dragging to look, the camera swings in behind it slowly, so steering never fights the view.
+        const third = state.cameraMode === "third" && !state.introActive;
+        const backing = false;
+        const stickRun = stickPointer !== null && Math.hypot(stickX, stickY) > .93;
         const sx = Math.sin(state.yaw), cz = Math.cos(state.yaw);
         const moveDirX = -sx * fwdInput + cz * sideInput;
         const moveDirZ = -cz * fwdInput - sx * sideInput;
+        // A body has to come round before it can go: while it faces away from where you push, it slows into a pivot.
+        const faceErr = third && state.avatarHeading != null && Math.hypot(moveDirX, moveDirZ) > .1
+          ? Math.abs(Math.atan2(Math.sin(Math.atan2(moveDirX, moveDirZ) - state.avatarHeading), Math.cos(Math.atan2(moveDirX, moveDirZ) - state.avatarHeading))) : 0;
+        const baseSpeed = (turbo || stickRun ? 3.4 : 1.3) * Math.min(1.25, flowSpeedMult || 1) * (1 - .7 * clamp((faceErr - .45) / 1.5, 0, 1));
+        if (third && Math.hypot(moveDirX, moveDirZ) > .2 && performance.now() - (state.lookDragAt || 0) > 1400) {
+          const want = Math.atan2(-moveDirX, -moveDirZ), d = Math.atan2(Math.sin(want - state.yaw), Math.cos(want - state.yaw));
+          const w = Math.min(1, Math.abs(sideInput) * 1.3) * (fwdInput < -.3 ? .25 : 1);   // walking at the camera barely turns it
+          state.yaw += d * w * (1 - Math.exp(-dt * 1.6));
+        }
+        const footPrevX = state.x, footPrevZ = state.z;
         if (carrierPhys) {
           carrierPhys.stepFoot(state, dt, moveDirX, moveDirZ, baseSpeed, state.waterLiters, driveSurfaceAt, worldBoundsClamp, onCarrierPhysicsEvent);
           if (DEMO) {
@@ -7145,6 +7208,14 @@ void main(){
           let fnx = state.x + moveDirX * baseSpeed * dt, fnz = state.z + moveDirZ * baseSpeed * dt;
           [state.x, state.z] = worldBoundsClamp(fnx, fnz);
           state.y = driveSurfaceAt(state.x, state.z) + 1.68;
+        }
+        // The body's real velocity, from where it actually went (after weight, slope and collisions). The avatar's
+        // walk, facing and footsteps all read this, so they agree with what you see.
+        if (dt > 1e-4) {
+          const mvx = (state.x - footPrevX) / dt, mvz = (state.z - footPrevZ) / dt, k = 1 - Math.exp(-dt * 12);
+          state.vx = Math.hypot(mvx, mvz) > 12 ? 0 : (state.vx || 0) + (mvx - (state.vx || 0)) * k;
+          state.vz = Math.hypot(mvx, mvz) > 12 ? 0 : (state.vz || 0) + (mvz - (state.vz || 0)) * k;
+          state.backing = backing;
         }
         const dx = state.x - donkey.state.x, dz = state.z - donkey.state.z, dist = Math.hypot(dx, dz);
         const stepFn = (x, z) => driveSurfaceAt(x, z);
@@ -7534,7 +7605,8 @@ void main(){
             const isCarrier = cid === "imani" || st.role === "carrier";
             const distCam = Math.hypot((st.x || 0) - camera.position.x, (st.z || 0) - camera.position.z);
             if (distCam > 85) continue;
-            const speedMps = isCarrier ? playerSpeed : (st.speed || (pose === "walk" ? 1.25 : pose === "jog" ? 2.6 : 0));
+            const isPlayer = ch === activeAvatar;
+            const speedMps = isPlayer || isCarrier ? playerSpeed : (st.speed || (pose === "walk" ? 1.14 : pose === "jog" ? 3.4 : 0));
             const isDance = dancingGlobal || pose === "eskista" || pose === "dance";
             const isGreet = pose === "greeting" || pose === "wave" || (!isCarrier && !isDance && distCam < 5.5 && ((Math.floor(nowSec * 0.25) + ci) % 5 === 0));
             const isTalk = Boolean(st.speaking) || pose === "talk" || (!isCarrier && !isDance && !isGreet && distCam < 24);
@@ -7546,7 +7618,8 @@ void main(){
               talking: isTalk,
               sitting: pose === "sit" || pose === "seated",
               crouching: pose === "crouch",
-              blend: 0.84
+              backwards: isPlayer && state.backing,
+              blend: isPlayer ? 1 : 0.84
             });
           }
           worldBridge.update(dt);
@@ -7559,11 +7632,15 @@ void main(){
           const showThird = state.cameraMode === "third" && !state.introActive;
           activeAvatar.group.visible = showThird;
           if (showThird) {
-            const footY = state.y - 1.68;
+            const footY = driveSurfaceAt(state.x, state.z);                          // the soles on the real ground, not a smoothed eye height
             const tumbling = carrierPhys && carrierPhys.tumbleTimer > 0;
             activeAvatar.group.position.set(state.x, tumbling ? footY + 0.35 : footY, state.z);
             const spd = Math.hypot(state.vx || 0, state.vz || 0);
-            const targetHeading = spd > 0.35 ? Math.atan2(state.vx, state.vz) : (state.yaw + Math.PI);
+            // face where you are going, turning at a human rate; walking backwards keeps facing forward; standing keeps the last facing
+            const want = state.backing ? state.yaw + Math.PI : spd > 0.25 ? Math.atan2(state.vx, state.vz) : (state.avatarHeading ?? state.yaw + Math.PI);
+            const cur = state.avatarHeading ?? want, dh = Math.atan2(Math.sin(want - cur), Math.cos(want - cur));
+            state.avatarHeading = cur + clamp(dh, -5.2 * dt, 5.2 * dt);
+            const targetHeading = state.avatarHeading;
             activeAvatar.group.rotation.y = targetHeading;
             activeAvatar.group.rotation.x = tumbling ? carrierPhys.tumblePitch : (throwAnimTimer > 0 ? Math.sin(throwAnimTimer * Math.PI * 2) * 0.25 : 0);
             activeAvatar.group.rotation.z = tumbling ? carrierPhys.tumbleRoll : 0;
@@ -7575,6 +7652,23 @@ void main(){
               activeAvatar.state.speed = spd;
             }
           }
+        }
+        // Foot-plant grounding. A clip's hips decide how high its feet are (the jog runs 30 cm in the air on these
+        // bodies), so for each clip-driven person near the camera we track the lowest foot over the last gait cycle and
+        // move the body so that foot meets the ground. Bob and the run's flight phase stay; hovering and sinking go.
+        if (worldBridge) for (const ch of cast.list) {
+          if (!ch || !ch.group || !ch.group.visible) continue;
+          const pose = String((ch.state && ch.state.pose) || "");
+          if (pose === "ride" || pose === "driving" || pose === "glide" || pose === "sit" || pose === "seated") continue;
+          if (Math.hypot(ch.group.position.x - camera.position.x, ch.group.position.z - camera.position.z) > 60) continue;
+          const fp = ch.__feet || (ch.__feet = (() => { const f = []; ch.group.traverse(o => { if (o.isBone && /^foot_[LR]$/i.test(o.name)) f.push(o); }); return { b: f.length === 2 ? f : null, win: [], corr: 0 }; })());
+          if (!fp.b) continue;
+          ch.group.updateMatrixWorld(true);
+          let lo = 9; for (const b of fp.b) { b.getWorldPosition(plantV); lo = Math.min(lo, plantV.y - driveSurfaceAt(plantV.x, plantV.z)); }
+          fp.win.push(lo); if (fp.win.length > 22) fp.win.shift();          // ~0.7 s: one walk cycle, two jog strides
+          const want = clamp(.085 - Math.min(...fp.win), -.45, .12);
+          fp.corr += (want - fp.corr) * (1 - Math.exp(-dt * 6));
+          if (!(carrierPhys && ch === activeAvatar && carrierPhys.tumbleTimer > 0)) ch.group.position.y += fp.corr;
         }
       }
 
@@ -7886,7 +7980,7 @@ void main(){
       demo: () => ({ on: DEMO, solids: demo.solids ? demo.solids.length : (DEMO ? (demoBuildSolids(), demo.solids.length) : 0), withCh: demo.withCh ? demo.withCh.state.id : null, line: demo.line ? demo.line.text : "", pose: demo.withCh ? demo.withCh.state.pose : "",
         speaking: demo.withCh ? Boolean(demo.withCh.state.poseOpts && demo.withCh.state.poseOpts.speaking) : false, signal: demo.signal, thread: demo.thread || [] }),
       demoSay: t => demoSay(t), demoResolve: (x, z, r) => demoResolve(x, z, r || .35), wagonState: () => ({ x: wagon.x, z: wagon.z, speed: wagon.speed, heading: wagon.heading }),
-      setKey: (code, down) => { keys[code] = !!down; }, toggleCart: () => toggleCart(), field: () => field, startField: () => startField(), simOnce: dt => step(dt || .05),
+      setKey: (code, down) => { keys[code] = !!down; }, toggleCart: () => toggleCart(), field: () => field, startField: () => startField(), avatar: () => activeAvatar, mode3: () => state.cameraMode, simOnce: dt => step(dt || .05),
       repairWagon: () => repairWagonAtStation(),
       triggerImpact: (sev = 22, type = "rock") => { if (vehPhys) { vehPhys.applyImpact(sev, type, onVehicleImpact); applyWagonVisuals(); updateHUD(); } },
       setCameraMode: m => { setCameraMode(m); step(0.05); renderFrame(performance.now() * 0.001); },

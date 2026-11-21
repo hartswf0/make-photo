@@ -8,6 +8,8 @@ Used by `night-post/ahiya-sound.js` in the Ahiya demo (`night-post/ahiya-demo.ht
 | amb_fire_voices (200-260 s, looped) | [voices around an ethiopian fire.wav](https://freesound.org/people/bruno.auzet/sounds/527695) | bruno.auzet | CC0 1.0 |
 | amb_market (121-196 s, looped) | [addis abeba open air market.wav](https://freesound.org/people/bruno.auzet/sounds/527678) | bruno.auzet | CC0 1.0 |
 | amb_night (57-117 s, looped) | [Awassa night.wav](https://freesound.org/people/bruno.auzet/sounds/527688) | bruno.auzet | CC0 1.0 |
+| rain_light (20-60 s, looped) | [LIGHT RAIN](https://freesound.org/people/SamuelGremaud/sounds/544342) | SamuelGremaud | CC0 1.0 |
+| rain_ground (51-91 s, looped) | [Lluvia sobre tierra/Rain on the ground](https://freesound.org/people/jusebago/sounds/514565) | jusebago | CC0 1.0 |
 | amb_xmas_night (75-135 s, looped) | [chrismast night in ethiopia.wav](https://freesound.org/people/bruno.auzet/sounds/527684) | bruno.auzet | CC0 1.0 |
 | bajaj_gravel (0-10 s, looped) | [Auto Rickshaw - Wheels on Gravel.wav](https://freesound.org/people/kalhan/sounds/261159) | kalhan | CC BY 4.0 |
 | bajaj_onboard (118-142 s, looped) | [Thailand tuk tuk motorcycle taxi on board various speeds, slow down and accelerate.flac](https://freesound.org/people/kyles/sounds/177755) | kyles | CC0 1.0 |

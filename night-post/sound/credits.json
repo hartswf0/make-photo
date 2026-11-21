@@ -374,5 +374,21 @@
   "license": "CC0 1.0",
   "source": "https://freesound.org/people/Wdomino/sounds/517134",
   "excerpt": "whole"
+ },
+ {
+  "use": "rain_light",
+  "title": "LIGHT RAIN",
+  "author": "SamuelGremaud",
+  "license": "CC0 1.0",
+  "source": "https://freesound.org/people/SamuelGremaud/sounds/544342",
+  "excerpt": "20-60 s, looped"
+ },
+ {
+  "use": "rain_ground",
+  "title": "Lluvia sobre tierra/Rain on the ground",
+  "author": "jusebago",
+  "license": "CC0 1.0",
+  "source": "https://freesound.org/people/jusebago/sounds/514565",
+  "excerpt": "51-91 s, looped"
  }
 ]
