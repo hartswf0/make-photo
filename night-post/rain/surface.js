@@ -141,8 +141,8 @@ function drawMap() {
   const c = drawMap.c || (drawMap.c = document.createElement('canvas')); c.width = 360; c.height = 250; const g = c.getContext('2d'), P = (u, v) => [36 + u * 288, 34 + v * 176];
   g.fillStyle = '#04141a'; g.fillRect(0, 0, 360, 250); g.lineCap = 'round'; g.lineJoin = 'round';
   g.strokeStyle = 'rgba(150,230,225,.5)'; g.lineWidth = 2.5; g.setLineDash([2, 9]); g.beginPath(); S.map.stops.forEach((s, i) => { const [x, y] = P(s.u, s.v); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); g.setLineDash([]);
-  g.font = 'italic 17px Georgia,serif'; g.textAlign = 'center';
-  for (const s of S.map.stops) { const [x, y] = P(s.u, s.v); g.beginPath(); g.arc(x, y, s.next ? 11 : 7, 0, 7); g.fillStyle = s.next ? '#f8cd91' : s.seen ? 'rgba(150,230,225,.45)' : 'rgba(215,245,240,.9)'; g.fill(); g.fillStyle = s.next ? '#ffe9c4' : '#d9eeea'; g.fillText(s.name, clamp(x, 70, 290), y + (s.v > .6 ? -16 : 28)); }
+  g.font = 'italic 14px Georgia,serif'; g.textAlign = 'center';
+  for (const s of S.map.stops) { const [x, y] = P(s.u, s.v); g.beginPath(); g.arc(x, y, s.next ? 11 : 7, 0, 7); g.fillStyle = s.next ? '#f8cd91' : s.seen ? 'rgba(150,230,225,.45)' : 'rgba(215,245,240,.9)'; g.fill(); g.fillStyle = s.next ? '#ffe9c4' : '#d9eeea'; g.fillText(s.name.replace(/^the /, ''), clamp(x, 95, 265), y + (s.v > .6 ? -16 : 28)); }
   const [dx, dy] = P(S.map.donkey[0], S.map.donkey[1]); g.fillStyle = '#c9a36a'; g.beginPath(); g.ellipse(clamp(dx, 8, 352), clamp(dy, 8, 242), 7, 5, 0, 0, 7); g.fill();
   const [mx, my] = P(S.map.me[0], S.map.me[1]), h = S.map.heading; g.save(); g.translate(clamp(mx, 10, 350), clamp(my, 10, 240)); g.rotate(h); g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(0, -12); g.lineTo(8, 9); g.lineTo(0, 4); g.lineTo(-8, 9); g.closePath(); g.fill(); g.restore();
   return (mapImage = c.toDataURL('image/jpeg', .82));

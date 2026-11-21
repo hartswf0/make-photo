@@ -455,3 +455,7 @@
 #rw svg{pointer-events:none}
 #rw .plate-detail .plate-preview{mix-blend-mode:normal;opacity:.9;width:100%;object-fit:cover}
 #rw .map-drop .plate-preview{mix-blend-mode:screen;opacity:.95;height:150px;min-height:150px}
+/* the one thing you can do now, the way out of a state, and any drop under your finger say what they are */
+#rw:not(.read-water) .liquid.action-drop>.drop-label,#rw:not(.read-water) .liquid.critical>.drop-label,#rw:not(.read-water) .liquid.critical>.drop-value,
+#rw:not(.read-water) .liquid[data-rain-caught=true]>.drop-label,#rw:not(.read-water) .liquid[data-rain-caught=true]>.drop-value,#rw:not(.read-water) .liquid[data-rain-caught=true]>.drop-kicker{opacity:1!important}
+#rw #menu-toggle:focus-visible,#rw #menu-toggle:focus{outline:none!important}
