@@ -8307,7 +8307,7 @@ void main(){
       const RAIN2 = urlParams.get("rain") !== "1";                         // the vendored rain engine (night-post/rain/) instead of dew-ui
       demo.dew = window.makeDew && !RAIN2 ? window.makeDew(canvas) : null;
       document.body.classList.toggle("rain2", RAIN2);
-      if (RAIN2) { const V = "?v=14", lk = document.createElement("link"); lk.rel = "stylesheet"; lk.href = "./rain/rain.css" + V; document.head.append(lk);
+      if (RAIN2) { const V = "?v=15", lk = document.createElement("link"); lk.rel = "stylesheet"; lk.href = "./rain/rain.css" + V; document.head.append(lk);
         const en = document.createElement("script"); en.src = "./rain/engine.js" + V; en.onload = () => { const su = document.createElement("script"); su.src = "./rain/surface.js" + V; document.head.append(su); }; document.head.append(en); }
       document.body.classList.toggle("dew-skin", !!demo.dew);
       if (demo.dew) {
@@ -8490,6 +8490,13 @@ void main(){
           say: text => demoSay(text), ask: () => { demo.carryFromCan = false; return demoLiveDo(); },
           focus: m => { state.focusDist = clamp(m, 1.2, 900); state.focusPulse = 1; updateHUD(); },
           set: (what, i) => { if (what === "filter") state.filterIdx = clamp(i | 0, 0, FILTERS.length - 1); else if (what === "stop") state.stopIdx = clamp(i | 0, 0, STOPS.length - 1); else if (what === "mode") state.modeIdx = clamp(i | 0, 0, MODES.length - 1); else if (what === "tilt") state.tilt = clamp(+i, -.35, .35); updateHUD(); },
+          // water by the litre, for leaning: returns what actually moved. The carrier is plain state, so a change is checked by reading it back.
+          lean: (kind, litres) => { const c = npCarrier(), was = c.liters; let a = Math.max(0, litres);
+            if (kind === "draw") a = Math.min(a, 20 - was); else if (kind === "donkey") a = Math.min(a, was, (1 - state.donkeyWater) * 8); else a = Math.min(a, was);
+            if (a <= 0) return 0; c.liters = kind === "draw" ? was + a : was - a; if (Math.abs(npCarrier().liters - c.liters) > 1e-6) return 0;
+            if (kind === "donkey") { state.donkeyWater = clamp(state.donkeyWater + a / 8, 0, 1); if (state.donkeyWater > .3) state.donkeyCollapsed = false; } demo.dockSig = ""; return a; },
+          restore: sn => { if (!sn) return false; const c = npCarrier(); if (Number.isFinite(sn.liters)) c.liters = clamp(sn.liters, 0, 20); if (Number.isFinite(sn.donkey)) state.donkeyWater = clamp(sn.donkey, 0, 1);
+            if (Number.isFinite(sn.x)) { teleportToWorld(sn.x, sn.z, "a kept moment"); if (Number.isFinite(sn.yaw)) state.yaw = sn.yaw; } demo.dockSig = ""; return true; },
           warp: (x, z, yaw) => { teleportToWorld(x, z, "a kept moment"); if (Number.isFinite(yaw)) state.yaw = yaw; demo.dockSig = ""; return true; },
           travel: id => { const st = DEMO_SETS[id]; if (!st) return false; teleportToWorld(st[0] + 2.4, st[1] + 2.6, st[2]); demo.dockSig = ""; return true; },
           lang: code => demo.setLang && demo.setLang(code), jump: () => jumpPlayer(), begin: () => { ui.brief.hidden = true; startField(); if (state.introActive) finishIntro(true); }
