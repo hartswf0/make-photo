@@ -8200,6 +8200,10 @@ void main(){
         body.dew-skin #dk-pad #dk-expose:active{transform:none}
         body.dew-skin #dk-ctx .verb{min-width:118px;min-height:54px}
         body.dew-skin #dk-chips{gap:10px}body.dew-skin #dk-chips button{min-height:44px;padding:8px 16px}
+        body.dew-skin #dk-verbs .verb,body.dew-skin #dk-chips button{position:fixed;left:50%;top:70%;transform:translate(-50%,-50%);margin:0;touch-action:none;white-space:nowrap}
+        body.dew-skin #dk-chips{overflow:visible;pointer-events:none}body.dew-skin #dk-chips button{pointer-events:auto}
+        body.dew-skin #dk-status,body.dew-skin #dk-pad button{touch-action:none}
+        body.dew-skin.demo-mode #field-move{display:none!important}
         @media (prefers-reduced-motion:reduce){#dk-ctx .verb,#dk-chips button,.dk .bead,#dk-status,#dk-pad #dk-veh,body.demo-mode.field-ui #field-stick{animation:none}#dk-status::after,#dk-menu-btn::after,#dk-ctx .verb::after{animation:none}}
         body.demo-full #dk-pad,body.demo-full #dk-ctx,body.demo-full #dk-status{display:none!important}
         body.demo-mode #dialogue-card,body.demo-mode #immersive-corner,body.demo-mode #ctx-actions{display:none!important}
@@ -8289,6 +8293,25 @@ void main(){
       document.body.classList.add("demo-mode");
       demo.dew = window.makeDew ? window.makeDew(canvas) : null;
       document.body.classList.toggle("dew-skin", !!demo.dew);
+      if (demo.dew) {
+        // carrying water from one drop into another is the act: litres onto a person, the tap or the donkey; the pump's drop into your litres
+        demo.dew.onMerge = (a, b) => { const v = [a, b].find(el => el.dataset && (el.dataset.verb || el.dataset.ctx)), st = [a, b].find(el => el.id === "dk-status"); if (v && st) v.click(); };
+        // the pool: on a touch screen you walk from wherever your thumb comes down in the lower left; lift, and it is gone
+        if (matchMedia("(pointer:coarse)").matches) {
+          demo.dew.hint = "touch here to walk";
+          let pool = null;
+          addEventListener("pointerdown", e => {
+            if (pool || e.pointerType === "mouse" || state.introActive || demo.handoff) return; const t = e.target;
+            if (!(t === canvas || t.id === "viewfinder") || e.clientX > innerWidth * .55 || e.clientY < innerHeight * .4) return;
+            e.stopPropagation(); pool = { id: e.pointerId, x: e.clientX, y: e.clientY }; stickPointer = e.pointerId; demo.dew.pool = { x: pool.x, y: pool.y, kx: 0, ky: 0 }; demo.dew.hint = "";
+          }, true);
+          addEventListener("pointermove", e => { if (!pool || e.pointerId !== pool.id) return; e.stopPropagation();
+            let kx = (e.clientX - pool.x) / 54, ky = (e.clientY - pool.y) / 54; const n = Math.hypot(kx, ky); if (n > 1) { kx /= n; ky /= n; }
+            stickX = kx; stickY = ky; demo.dew.pool.kx = kx; demo.dew.pool.ky = ky; }, true);
+          const end = e => { if (!pool || e.pointerId !== pool.id) return; pool = null; stickX = stickY = 0; stickPointer = null; demo.dew.pool = null; };
+          addEventListener("pointerup", end, true); addEventListener("pointercancel", end, true);
+        }
+      }
       const touch = matchMedia("(pointer:coarse)").matches;
       document.body.classList.toggle("demo-touch", touch);
       ui.verbs = q("dk-verbs"); ui.chips = q("dk-chips"); ui.dk = q("dk-ctx");
@@ -8353,16 +8376,17 @@ void main(){
       const rail = q("dk-rail"), row = q("dk-row"), mbtn = q("dk-menu-btn");
       rail.innerHTML = Object.keys(MENU).map(k => `<button type="button" class="bead" data-group="${k}">${k}</button>`).join("");
       const openMenu = (on, group) => {
-        demo.menuOpen = on; demo.menuGroup = on ? (group || demo.menuGroup || "Lens") : demo.menuGroup;
+        demo.menuOpen = on; demo.menuTouch = demo.clock || 0; demo.menuGroup = on ? (group || demo.menuGroup || "Lens") : demo.menuGroup;
         rail.hidden = row.hidden = !on; mbtn.setAttribute("aria-expanded", on); mbtn.classList.toggle("on", on); document.body.classList.toggle("dk-menu-open", on);
         if (on) { row.dataset.group = ""; demoBeads(true); if (demo.dew) for (let i = 0; i < 3; i++) demo.dew.drop({ x: innerWidth - 30 + (Math.random() - .5) * 20, y: 70 + i * 30, r: 2.5 + Math.random() * 3, grow: 0, life: .3 + i * .25, amb: true }); }
         else if (demo.dew) { const r = mbtn.getBoundingClientRect(); for (let i = 0; i < 5; i++) demo.dew.wisp(r.left + r.width / 2 + (Math.random() - .5) * 30, r.bottom + 10 + Math.random() * 60); }   // the beads leave as vapour
       };
       ui.openSheet = openMenu;
       mbtn.onclick = () => openMenu(!demo.menuOpen);
-      rail.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; demo.menuGroup = b.dataset.group; row.dataset.group = ""; demoBeads(true); });
+      rail.addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; demo.menuTouch = demo.clock || 0; demo.menuGroup = b.dataset.group; row.dataset.group = ""; demoBeads(true); });
       row.addEventListener("click", e => {
         const b = e.target.closest("button"); if (!b) return; const it = (MENU[demo.menuGroup] || []).find(x => x.id === b.dataset.item); if (!it) return;
+        demo.menuTouch = demo.clock || 0;
         it.act(); if (demo.dew) { const r = b.getBoundingClientRect(); demo.dew.drop({ x: r.left + r.width / 2, y: r.bottom - 6, r: 4 + Math.random() * 2, state: "fall", vy: 30, grow: 1 }); }   // a touch shakes a drop loose
         if (it.closes) openMenu(false); else demoBeads(true);
       });
@@ -8522,13 +8546,39 @@ void main(){
       const csq = o => { const m = /(\d+)\s*L/.exec(DEMO_VERB[o.id].label); const n = o.id === "pump" ? 20 - c.liters : m ? -(+m[1]) : 0;
         return n ? `<span class="csq">${c.liters} → ${clamp(c.liters + n, 0, 20)} L</span>` : ""; };     // the consequence, on the button
       const shown = verbs.slice(0, 2);
-      let html = shown.map((o, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-verb="${o.id}">${i === 0 ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${csq(o)}</button>`).join("");
-      html += extra.slice(0, Math.max(0, 2 - shown.length)).map(a => `<button type="button" class="verb alt${a.urgent ? " urgent" : ""}" data-ctx="${a.id}">${a.label}</button>`).join("");
-      if (ch && !demo.talking) html += `<button type="button" class="verb alt" data-talk="1">Ask ${demoName(ch).split(" ").pop()}</button>`;
+      let html = shown.map((o, i) => `<button type="button" class="verb${i ? " alt" : ""}" data-verb="${o.id}" data-anchor="${o.id === "pump" ? "pump" : "ch:" + DEMO_VERB[o.id].who}">${i === 0 ? "<kbd>E</kbd>" : ""}${DEMO_VERB[o.id].label}${csq(o)}</button>`).join("");
+      html += extra.slice(0, Math.max(0, 2 - shown.length)).map(a => `<button type="button" class="verb alt${a.urgent ? " urgent" : ""}" data-ctx="${a.id}" data-anchor="${a.id === "share" && ch ? "ch:" + ch.state.id : "donkey"}">${a.label}</button>`).join("");
+      if (ch && !demo.talking) html += `<button type="button" class="verb alt" data-talk="1" data-anchor="head:${ch.state.id}">Ask ${demoName(ch).split(" ").pop()}</button>`;
       ui.verbs.innerHTML = html;
       ui.chips.hidden = !(ch && demo.talking);
+      ui.chips.dataset.who = ch ? ch.state.id : "";
       ui.chips.innerHTML = ch && demo.talking ? `<button type="button" class="x" data-untalk="1" aria-label="Stop talking">×</button>` + qs.concat(["where"]).map(k => `<button type="button" data-ask="${k === "where" ? "Where next?" : DEMO_Q[k]}">${k === "where" ? "Where next?" : DEMO_Q[k]}</button>`).join("")
         + `<button type="button" data-type="1" aria-label="Type or speak">⌨︎ Say…</button>` : "";
+    }
+    // Information condenses where its thing is: each action drop sits on the pump, the person or the donkey it belongs to,
+    // and a person's questions bead around their head. Off screen or behind you, a drop waits at the nearest edge.
+    function demoAnchors() {
+      const ui = demo.ui; if (!ui || !demo.dew) return; const Wd = innerWidth, Hd = innerHeight, placed = [];
+      const proj = (x, y, z) => { demoV.set(x, y, z).project(camera); return demoV.z < 1 ? [(demoV.x * .5 + .5) * Wd, (-demoV.y * .5 + .5) * Hd] : null; };
+      const chPos = (id, up) => { const c = cast.byId && cast.byId[id]; if (!c) return null; const w = c.group.getWorldPosition(hoV.pR); return proj(w.x, w.y + up, w.z); };
+      const put = (b, p, hw, hh) => {
+        let x = p ? p[0] : Wd * .5, y = p ? p[1] : Hd - 150; x = clamp(x, hw + 14, Wd - hw - 14); y = clamp(y, 96 + hh, Hd - 150);
+        for (let n = 0; n < 6; n++) { const hit = placed.find(q => Math.abs(q[0] - x) < q[2] + hw + 6 && Math.abs(q[1] - y) < q[3] + hh + 6); if (!hit) break; y = hit[1] + hit[3] + hh + 8; if (y > Hd - 150) { y = hit[1] - hit[3] - hh - 8; } }
+        placed.push([x, y, hw, hh]); b.style.left = x + "px"; b.style.top = y + "px";
+      };
+      for (const b of ui.verbs.children) {
+        const a = b.dataset.anchor || "", r = b.getBoundingClientRect(), hw = r.width / 2 || 60, hh = r.height / 2 || 27; let p = null;
+        if (a === "pump") p = proj(DEMO_SETS.basalt[0], driveSurfaceAt(DEMO_SETS.basalt[0], DEMO_SETS.basalt[1]) + 1.25, DEMO_SETS.basalt[1]);
+        else if (a === "donkey") p = proj(donkey.state.x, donkey.group.position.y + 1.45, donkey.state.z);
+        else if (a.startsWith("ch:")) p = chPos(a.slice(3), 1.15);
+        else if (a.startsWith("head:")) { p = chPos(a.slice(5), 1.72); if (p) p[0] += hw + 26; }
+        put(b, p, hw, hh);
+      }
+      const who = ui.chips.dataset.who, head = who ? chPos(who, 1.7) : null, list = [...ui.chips.children], n = list.length;
+      list.forEach((b, i) => { const r = b.getBoundingClientRect(), hw = r.width / 2 || 50, hh = r.height / 2 || 22;
+        if (!head) return put(b, null, hw, hh);
+        const ring = i < 4 ? 0 : 1, k = ring ? i - 4 : i, m = ring ? Math.max(1, n - 4) : Math.min(4, n), ang = (-158 + (m > 1 ? k / (m - 1) : .5) * 136) * Math.PI / 180, rad = ring ? 168 : 104;
+        put(b, [head[0] + Math.cos(ang) * rad * 1.15, head[1] + Math.sin(ang) * rad * .8 + 30], hw, hh); });
     }
     /* ---------- A can changing hands, with weight: step in, lift, both hold, the other takes it, sets it down or pours ---------- */
     const hoV = { a: new T.Vector3(), b: new T.Vector3(), c: new T.Vector3(), gL: new T.Vector3(), gR: new T.Vector3(), pL: new T.Vector3(), pR: new T.Vector3() };
@@ -8699,7 +8749,8 @@ void main(){
       }
       if (demo.youUntil && now > demo.youUntil) { ui.you.hidden = true; demo.youUntil = 0; }
       fieldTick(dt);
-      demoHandoffTick(dt); demoDock(dt);
+      demoHandoffTick(dt); demoDock(dt); demoAnchors();
+      if (demo.menuOpen && (demo.clock || 0) - (demo.menuTouch || 0) > 14000) demo.ui.openSheet(false);       // honey left alone drains away
       if (demo.dew) {
         const dw = demo.dew; dw.rain = demo.rainIn || 0;
         // the beacon is the pane's one light; with line of sight and water aboard it flares, which is your signal, seen

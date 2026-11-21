@@ -34,7 +34,7 @@
     size(); addEventListener('resize', size);
     const drops = [], beads = [], wisps = [], msgs = [], streaks = [], wetPts = [], skins = new Map(), memory = [];
     const D = { drops, beads, wisps, msgs, streaks, skins, rain: 0, enabled: true, light: null, flare: 0, breath: 0, bloomT: 0, mark: null, wet: 0,
-      select: '#dk-status,#dk-menu-btn,#dk-rail .bead,#dk-row .bead,#dk-verbs .verb,#dk-chips button,#dk-expose,#dk-veh,#field-stick' };
+      select: '#dk-status,#dk-menu-btn,#dk-rail .bead,#dk-row .bead,#dk-verbs .verb,#dk-chips button,#dk-expose,#dk-veh', pool: null, hint: '', drag: null, onMerge: null };
     const RK = 2.1, rOf = m => RK * Math.cbrt(m), mOf = r => Math.pow(r / RK, 3), R_RUN = 7.6, R_STOP = 3.0;
     const SERIF = 'Georgia,"Iowan Old Style","Times New Roman",serif';
 
@@ -105,7 +105,7 @@
       wisps.push(Object.assign({ x, y, vx: (Math.random() - .5) * 14, vy: -18 - Math.random() * 26, r: 5 + Math.random() * 7, t: 0, life: 1.6 + Math.random() * 1.2, rgb: [mix(c[0]), mix(c[1]), mix(c[2])] }, o)); dirty = true;
     }
     function streakPt(S, x, y) { S.pts.push({ x, y, t: 0 }); if (S.pts.length > 110) S.pts.shift(); wetPts.push(S.pts[S.pts.length - 1]); if (wetPts.length > 260) wetPts.shift(); }
-    function newStreak(w, life) { const S = { pts: [], w, life }; streaks.push(S); if (streaks.length > 26) streaks.shift(); return S; }
+    function newStreak(w, life, rgb) { const S = { pts: [], w, life, rgb: rgb || '214,238,248' }; streaks.push(S); if (streaks.length > 26) streaks.shift(); return S; }
     /* ---------- messages ---------- */
     function say(o) {
       const p = document.createElement('p'); if (o.name) { const b = document.createElement('b'); b.textContent = o.name + ': '; p.append(b); }
@@ -152,10 +152,13 @@
     D.bloom = () => { D.bloomT = 1; dirty = true; };
     /* ---------- touch: your finger is in the water ---------- */
     const finger = { down: false, x: 0, y: 0, vx: 0, vy: 0, S: null, acc: 0 };
-    addEventListener('pointerdown', e => { finger.down = true; finger.x = e.clientX; finger.y = e.clientY; finger.vx = finger.vy = 0; finger.S = null; finger.onUi = !!(e.target.closest && e.target.closest('button,select,input')); }, { capture: true, passive: true });
+    addEventListener('pointerdown', e => { finger.down = true; finger.x = e.clientX; finger.y = e.clientY; finger.vx = finger.vy = 0; finger.S = null; finger.onUi = !!(e.target.closest && e.target.closest('button,select,input'));
+      const el = e.target.closest && e.target.closest('button,#dk-status'), U = el && skins.get(el); D.drag = U ? { U, moved: false, x0: e.clientX, y0: e.clientY } : null; }, { capture: true, passive: true });
     addEventListener('pointermove', e => {
       if (!finger.down || !D.enabled) return; const dx = e.clientX - finger.x, dy = e.clientY - finger.y, n = Math.hypot(dx, dy); if (n < 1) return;
-      finger.vx = dx; finger.vy = dy; finger.x = e.clientX; finger.y = e.clientY; if (finger.onUi) return; dirty = true;
+      finger.vx = dx; finger.vy = dy; finger.x = e.clientX; finger.y = e.clientY;
+      if (D.drag && Math.hypot(finger.x - D.drag.x0, finger.y - D.drag.y0) > 26) D.drag.moved = true;
+      if (finger.onUi) return; dirty = true;
       if (!finger.S) finger.S = newStreak(7, 5.5); finger.acc += n;
       if (finger.acc > 6) { streakPt(finger.S, finger.x, finger.y);                                           // the wet path your finger leaves
         if (finger.acc > 18 && drops.length < 70 && Math.random() < .7) drop({ amb: true, x: finger.x + (Math.random() - .5) * 22, y: finger.y + (Math.random() - .5) * 22, r: 1.4 + Math.random() * 2.4, grow: .3, a: .9 });   // mist raised by the touch
@@ -164,7 +167,14 @@
         const k = 1 - q / (30 + d.r); d.x += dx * k * .9; d.y += dy * k * .9; d.vx += dx * k * 6; if (d.state === 'hold' && n > 2) { d.state = 'fall'; d.vy = Math.max(6, dy * 8); d.t = 0; } } }
       for (const U of skins.values()) { const q = Math.hypot(U.x - finger.x, U.y - finger.y); if (q < U.rx + 26) { U.ox += dx * .12; U.oy += dy * .12; } }   // even the stubborn ones lean
     }, { capture: true, passive: true });
-    const lift = () => { finger.down = false; finger.S = null; }; addEventListener('pointerup', lift, { capture: true, passive: true }); addEventListener('pointercancel', lift, { capture: true, passive: true });
+    const lift = () => {
+      finger.down = false; finger.S = null; const G = D.drag; D.drag = null;
+      if (G && G.moved) {                                                  // water carried from one drop into another: that is the act
+        let hit = null; for (const U of skins.values()) if (U !== G.U && Math.abs(finger.x - U.x) < U.rx + 14 && Math.abs(finger.y - U.y) < U.ry + 14) { hit = U; break; }
+        if (hit) { hit.swell = 1; G.U.swell = .6; if (D.onMerge) D.onMerge(G.U.el, hit.el); }
+        else drop({ x: finger.x, y: finger.y, r: 7, state: 'fall', vy: 20, grow: 1, forced: true });   // let go over nothing: it just falls
+      }
+    }; addEventListener('pointerup', lift, { capture: true, passive: true }); addEventListener('pointercancel', lift, { capture: true, passive: true });
     /* ---------- stubborn drops: the controls ---------- */
     function labelOf(el) {
       if (el.dataset.dewLabel) return [el.dataset.dewLabel, ''];
@@ -184,21 +194,25 @@
         if (!U) { U = { el, x: r.left + r.width / 2, y: r.top + r.height / 2 - 14, rx: 4, ry: 4, ox: 0, oy: 0, seed: Math.random() * 9, wetq: Math.random() * .6, swell: 0, a: 0, ui: true }; skins.set(el, U); dirty = true; }
         const sc = +(el.dataset.dewScale || 1); U.hx = r.left + r.width / 2; U.hy = r.top + r.height / 2; U.trx = r.width / 2 * sc; U.try = r.height / 2 * sc;
         U.kind = el.id === 'dk-expose' ? 'tear' : el.id === 'dk-menu-btn' ? 'amber' : el.id === 'field-stick' ? 'pool' : el.classList.contains('verb') && !el.classList.contains('alt') ? 'go' : el.classList.contains('urgent') ? 'urgent' : 'clear';
-        if (el.classList.contains('on') && U.kind === 'clear') U.kind = 'go';
+        const inMenu = el.parentElement && (el.parentElement.id === 'dk-rail' || el.parentElement.id === 'dk-row');
+        if (inMenu) U.kind = el.classList.contains('on') ? 'amber' : 'honey';
+        else if (el.classList.contains('on') && U.kind === 'clear') U.kind = 'go';
         [U.label, U.sub] = labelOf(el); U.pic = el.classList.contains('pic') ? el.style.backgroundImage : ''; U.cap = el.parentElement === row;
         U.press = el.matches(':active');
       }
       for (const [el, U] of skins) if (!seen.has(el)) {                    // its action is no longer true: it lets go, and falls like any other water
         skins.delete(el); const r = Math.min(16, Math.max(5, Math.min(U.rx, U.ry) * .55));
-        drop({ x: U.x, y: U.y, r, state: 'fall', vy: 8 + Math.random() * 20, grow: 1, forced: true, tint: U.kind === 'amber' ? 'rgba(230,150,30,.4)' : U.kind === 'go' ? 'rgba(56,232,255,.2)' : null });
+        const hon = U.kind === 'amber' || U.kind === 'honey';
+        drop({ x: U.x, y: U.y, r, state: 'fall', vy: hon ? 4 : 8 + Math.random() * 20, grow: 1, forced: true, visc: hon ? 5 : 0, tint: hon ? 'rgba(232,160,40,.42)' : U.kind === 'go' ? 'rgba(56,232,255,.2)' : null });
       }
     }
-    const TINT = { amber: 'rgba(232,150,28,.50)', go: 'rgba(56,232,255,.20)', urgent: 'rgba(255,90,70,.42)' };
+    const TINT = { amber: 'rgba(232,150,28,.50)', honey: 'rgba(236,176,70,.26)', go: 'rgba(56,232,255,.20)', urgent: 'rgba(255,90,70,.42)' };
     function drawSkin(U, dt) {
       U.a = Math.min(1, U.a + dt * 3.2); U.ox *= 1 - Math.min(1, dt * 3); U.oy *= 1 - Math.min(1, dt * 3); U.swell *= 1 - Math.min(1, dt * 1.2);
       const k = Math.min(1, dt * 7); U.x += (U.hx + U.ox - U.x) * k; U.y += (U.hy + U.oy - U.y) * k;       // stubborn: it comes back to its place
       const g = U.a * (2 - U.a) * (U.press ? .93 : 1) * (1 + U.swell * .1); U.rx += (U.trx * g - U.rx) * k; U.ry += (U.try * g - U.ry) * k;
-      const x = U.x, y = U.y + Math.sin(T * .8 + U.seed) * 1.2, rx = U.rx, ry = U.ry, tear = U.kind === 'tear', amp = U.kind === 'pool' ? .05 : rx > 30 ? .075 : .05;
+      U.age = (U.age || 0) + dt; const sag = U.kind === 'urgent' ? .1 + .05 * Math.sin(T * 9) : U.el.classList.contains('verb') ? Math.min(.18, U.age * .012) : 0;   // what waits, sags
+      const x = U.x + (U.kind === 'urgent' ? Math.sin(T * 23) * 1.2 : 0), y = U.y + Math.sin(T * .8 + U.seed) * 1.2 + U.ry * sag * .5, rx = U.rx * (1 - sag * .25), ry = U.ry * (1 + sag), tear = U.kind === 'tear', amp = U.kind === 'pool' ? .05 : rx > 30 ? .075 : .05;
       water(x, y, rx, ry, Math.min(1, U.a * 1.2), TINT[U.kind], () => blob(x, y, rx, ry, U.seed, amp, tear));
       if (U.kind === 'pool') { ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 1; for (let i = 0; i < 2; i++) { const u = ((T * .35 + i * .5) % 1); ctx.globalAlpha = (1 - u) * .8; ctx.beginPath(); ctx.ellipse(x, y, rx * (.35 + u * .6), ry * (.35 + u * .6), 0, 0, 6.2832); ctx.stroke(); } ctx.restore(); }
       // the rain feeds it; when it holds too much it sheds a drip that runs
@@ -276,7 +290,7 @@
           const a = S.pts[k - 1], b = S.pts[k], al = Math.max(0, 1 - b.t / S.life); if (al <= 0 || Math.hypot(a.x - b.x, a.y - b.y) > 60) continue;
           const w = S.w * (.45 + .55 * al) * (.8 + .3 * Math.sin(k * .9 + S.w));
           ctx.strokeStyle = `rgba(0,8,14,${.26 * al})`; ctx.lineWidth = w + 1.6; ctx.beginPath(); ctx.moveTo(a.x + .8, a.y); ctx.lineTo(b.x + .8, b.y); ctx.stroke();
-          ctx.strokeStyle = `rgba(214,238,248,${.16 * al})`; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+          ctx.strokeStyle = `rgba(${S.rgb},${(S.rgb[0] === '2' && S.rgb[1] === '4' ? .34 : .16) * al})`; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
           ctx.strokeStyle = `rgba(255,255,255,${.55 * al})`; ctx.lineWidth = .9; ctx.beginPath(); ctx.moveTo(a.x - w * .32, a.y); ctx.lineTo(b.x - w * .32, b.y); ctx.stroke();
         }
       }
@@ -288,9 +302,23 @@
       ctx.globalAlpha = 1;
       for (const M of msgs) writing(M);
       // the menu's beads hang on one thread of water
-      const rail = [...skins.values()].filter(U => U.el.parentElement && U.el.parentElement.id === 'dk-rail').sort((a, b) => a.y - b.y), menu = [...skins.values()].find(U => U.kind === 'amber');
-      if (rail.length && menu) { ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(menu.x, menu.y); let px = menu.x, py = menu.y;
-        for (const U of rail) { ctx.quadraticCurveTo(px + 9 * Math.sin(T + py * .05), (py + U.y) / 2, U.x, U.y); px = U.x; py = U.y; } ctx.stroke(); }
+      const rail = [...skins.values()].filter(U => U.el.parentElement && U.el.parentElement.id === 'dk-rail').sort((a, b) => a.y - b.y), menu = [...skins.values()].find(U => U.el.id === 'dk-menu-btn');
+      if (rail.length && menu) {                                          // the menu is honey: it pours slowly from the amber drop and carries its beads
+        const end = rail[rail.length - 1], path = () => { ctx.beginPath(); ctx.moveTo(menu.x, menu.y); let px = menu.x, py = menu.y; for (const U of rail) { ctx.quadraticCurveTo(px + 7 * Math.sin(T * .4 + py * .05), (py + U.y) / 2, U.x, U.y); px = U.x; py = U.y; } ctx.lineTo(end.x + 2 * Math.sin(T * .5), end.y + end.ry + 14 + 6 * Math.sin(T * .7)); };
+        ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(60,24,0,.45)'; ctx.lineWidth = 15; path(); ctx.stroke();
+        ctx.strokeStyle = 'rgba(232,160,40,.55)'; ctx.lineWidth = 12; path(); ctx.stroke(); ctx.strokeStyle = 'rgba(255,236,180,.7)'; ctx.lineWidth = 1.6; ctx.save(); ctx.translate(-3.5, 0); path(); ctx.stroke(); ctx.restore();
+      }
+      // THE POOL: where your thumb rests, the ground you walk from
+      if (D.pool) { const P = D.pool, a = Math.min(1, (P.a = (P.a || 0) + dt * 6));
+        water(P.x, P.y, 58 * a, 46 * a, a, null, () => blob(P.x, P.y, 58 * a, 46 * a, 1.7, .06));
+        ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = 1; for (let i = 0; i < 2; i++) { const u = (T * .5 + i * .5) % 1; ctx.globalAlpha = (1 - u) * .8; ctx.beginPath(); ctx.ellipse(P.x, P.y, 58 * (.3 + u * .75), 46 * (.3 + u * .75), 0, 0, 6.2832); ctx.stroke(); } ctx.restore();
+        lens(P.x + P.kx * 40, P.y + P.ky * 32, 15, 15, 1, Math.hypot(P.kx, P.ky) > .93 ? 'rgba(56,232,255,.3)' : null); }
+      else if (D.hint) { ctx.save(); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; beaded(D.hint, 22, H - 96, 21, .8 + .2 * Math.sin(T * 1.4)); ctx.restore(); }
+      // WATER IN YOUR HAND: a strand drawn from one drop toward another
+      if (D.drag && D.drag.moved) { const G = D.drag, U = G.U, mx = (U.x + finger.x) / 2 + (finger.y - U.y) * .12, my = (U.y + finger.y) / 2 + 14;
+        ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(0,8,14,.3)'; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(U.x, U.y); ctx.quadraticCurveTo(mx, my, finger.x, finger.y); ctx.stroke();
+        ctx.strokeStyle = 'rgba(190,240,255,.34)'; ctx.lineWidth = 7; ctx.stroke(); ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(U.x - 2, U.y); ctx.quadraticCurveTo(mx - 2, my, finger.x - 2, finger.y); ctx.stroke();
+        lens(finger.x, finger.y, 13, 15, 1, 'rgba(56,232,255,.18)'); }
       // THE PANE: loose water
       for (let i = drops.length - 1; i >= 0; i--) {
         const d = drops[i]; d.t += dt;
@@ -300,14 +328,15 @@
           else if (d.amb && D.rain < .15) { d.m *= 1 - dt * .12; d.r = rOf(d.m); if (d.r < 1.1) d.state = 'gone'; }
         }
         if (d.state === 'fall') {
-          d.vy = Math.min(d.slow ? 150 : 560, d.vy + (d.slow ? 60 : 150 + d.r * 22) * dt);
+          const vis = d.visc || (d.slow ? 4 : 1);                                               // honey is slow and does not wander; water is quick
+          d.vy = Math.min(560 / vis, d.vy + (150 + d.r * 22) / vis * dt);
           let pull = 0, wet = 0;
           for (let k = wetPts.length - 1, n = 0; k >= 0 && n < 90; k--, n++) { const b = wetPts[k], dy = b.y - d.y; if (b.t < 6 && dy > 0 && dy < 30 && Math.abs(b.x - d.x) < 20) { pull += (b.x - d.x); wet++; } }
-          d.vx += ((wet ? pull / wet * 7 : Math.sin(d.t * 5 + d.wob) * (d.slow ? 34 : 24)) - d.vx) * dt * 4; if (wet) d.vy += 120 * dt;
+          d.vx += ((wet ? pull / wet * 7 : Math.sin(d.t * 5 / (d.visc || 1) + d.wob) * (d.slow ? 34 : 24 / (d.visc || 1))) - d.vx) * dt * 4; if (wet) d.vy += 120 * dt;
           d.x += d.vx * dt; d.y += d.vy * dt;
           for (const o of drops) if (o !== d && o.state === 'hold' && !o.held && Math.hypot(o.x - d.x, o.y - d.y) < o.r + d.r) { d.m += o.m; d.r = rOf(d.m); d.x += (o.x - d.x) * .25; o.state = 'gone'; }
           for (const U of skins.values()) if (!d.forced && Math.abs(d.x - U.x) < U.rx * .9 && Math.abs(d.y - U.y) < U.ry * .9) { U.swell = Math.min(1, U.swell + .7); U.wetq += .3; d.state = 'gone'; }   // a stubborn drop swallows it
-          if (!d.trail) d.trail = newStreak(Math.max(2.2, d.r * (d.cells ? 1.5 : .9)), d.cells ? 16 : 6 + Math.random() * 4);
+          if (!d.trail) d.trail = newStreak(Math.max(2.2, d.r * (d.cells ? 1.5 : d.visc ? 1.25 : .9)), d.cells ? 16 : d.visc ? 14 : 6 + Math.random() * 4, d.visc ? '240,180,70' : null);
           if (Math.hypot(d.x - (d.lpx ?? -1e9), d.y - (d.lpy ?? -1e9)) > 5) {
             d.lpx = d.x; d.lpy = d.y; streakPt(d.trail, d.x, d.y - d.r * .6); d.steps = (d.steps || 0) + 1;
             if (d.cells) { if (d.steps % 5 === 2 && d.cells.length) bead(d.x, d.y - d.r, 12, 15 + Math.random() * 4, d.cells.shift()); if (!d.cells.length && d.steps > 60) d.cells = null; }   // the action, frame by frame
