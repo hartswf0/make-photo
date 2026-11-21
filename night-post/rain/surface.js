@@ -24,7 +24,7 @@ document.body.append(world);
 const $ = id => world.querySelector('#' + id);
 const n = v => String(Number((+v || 0).toFixed(2))), clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const announce = text => { $('announcement').textContent = text; };
-const ui = { menu: false, scene: 'world', past: false, timeAge: 0, words: false, details: false, reduced: matchMedia('(prefers-reduced-motion: reduce)').matches, memory: false, rest: false, say: false, recallIndex: 0, recordClock: 0, voiceId: null, voiceUntil: 0, flowHeld: false };
+const ui = { menu: false, scene: 'world', past: false, timeAge: 0, words: true, page: 0, details: false, reduced: matchMedia('(prefers-reduced-motion: reduce)').matches, memory: false, rest: false, say: false, recallIndex: 0, recordClock: 0, voiceId: null, voiceUntil: 0, flowHeld: false };
 const weather = { material: 'worms', erosion: .32, rain: .55 };
 const memory = createWeatherMemory({ windowSeconds: 12, maxEvents: 160, maxUtterances: 20, erosion: weather.erosion });
 const ink = createTraceInk({ host: world });
@@ -89,7 +89,7 @@ function currentVoice() { if (!ui.voiceId) return null; const held = caughtVoice
 function voiceHome() { const sp = S.speech; if (!sp || sp.x == null) return null; return [clamp(sp.x / world.clientWidth, .2, .78), clamp(sp.y / world.clientHeight - .07, .16, .6)]; }
 
 // ---- what is true now, as drops ------------------------------------------------------------------------------------
-const TITLES = { world: null, lens: 'The lens', donkey: 'The donkey', water: 'Shared water', people: 'A voice beside you', rig: 'The camera', map: 'The way', sound: 'Listen here', weather: 'Living world' };
+const TITLES = { all: 'Every control', world: null, lens: 'The lens', donkey: 'The donkey', water: 'Shared water', people: 'A voice beside you', rig: 'The camera', map: 'The way', sound: 'Listen here', weather: 'Living world' };
 const MODE = { walk: 'On foot', ride: 'Riding', drive: 'Driving', glide: 'In the air' };
 function pushUndo(label, restore) { undo.push({ label, restore }); if (undo.length > 12) undo.shift(); }
 function doUndo() { if (ui.past) return; const u = undo.pop(); if (!u) return; u.restore(); S = B.state(); cause = `Restored ${u.label}.`; announce(cause); glass.burst(world.clientWidth * .5, world.clientHeight * .6, 'amber'); render(); }
@@ -127,6 +127,13 @@ const BUILD = {
   people() { const v = currentVoice(); if (!ui.say) { if (v) voiceDrop(v, voiceHome()); else info('no-voice', 'speech', 'No one near', '', 'Walk up to someone. Their voice arrives as water.', { viscosity: 4 }); } if (S.live && S.live.kind === 'talk') liveDrop('topic1'); button('say', 'c', ui.say ? 'Cancel' : 'Say', ui.say ? 'keep listening' : 'write into the water', () => { ui.say = !ui.say; render(); if (ui.say) $('say-text').focus(); }, { viscosity: 4 }); item('voice', 'd', 2); },
   rig() { item('rig', 'a', 2.4); item('sync', 'b', 1.8); item('plates', 'c', 2.6); item('cam', 'd', 1.4); if (ui.details) item('playas', 'e', 2); const p = B.act.lastPlate(); if (p) info('plate-view', 'speech', 'Last plate', '', `${n(Math.min(100, S.lens.focus))} m · ${S.lens.stopName}`, { className: 'plate-detail', image: p, viscosity: 3 }); button('primary', 'primary', 'Expose', 'capture one plate', live(() => B.act.expose()), { className: 'action-drop', viscosity: 2.2 }); },
   map() { info('map-view', 'speech', 'The way', '', S.place.next ? `Next: ${(S.map.stops.find(x => x.next) || {}).name}` : 'Every stop reached.', { className: 'plate-detail map-drop', image: drawMap(), viscosity: 3, home: [world.clientWidth < 701 ? .36 : .24, .4] }); item('route', 'c', 1.4); item('region', 'd', 2); if (ui.details) item('map', 'e', 2); },
+  all() {                                                             // every operational control the game has, eight to a page, nothing left out
+    const items = menuItems(), per = 8, pages = Math.max(1, Math.ceil(items.length / per)); ui.page = ((ui.page % pages) + pages) % pages;
+    const small = world.clientWidth < 701, lx = small ? .22 : .16, rx = small ? .74 : .84;
+    items.slice(ui.page * per, ui.page * per + per).forEach((it, i) => button('all-' + it.id, 'a', null, null, live(() => it.run()), { kicker: it.label, value: it.value || (it.on ? 'on' : 'off'), viscosity: 1.6 + (i % 3) * .4, home: [i % 2 ? rx : lx, .26 + Math.floor(i / 2) * .135] }));
+    button('primary', 'primary', 'More', `${ui.page + 1} of ${pages}`, () => { ui.page++; render(); }, { className: 'action-drop', viscosity: 2, home: [rx, .82] });
+    exitDrop();
+  },
   sound() { item('voice', 'a', 1.2); item('tape', 'b', 1); item('radio', 'c', 1.6); item('listen', 'd', 2); if (ui.details) item('dance', 'e', .8); },
   weather() {
     const modes = ['worms', 'pane', 'fall', 'dew', 'breath'];
@@ -196,6 +203,7 @@ const ENTRIES = [
   { id: 'memory', label: 'Voices', run: () => { stopSteer(); returnNow(false); ui.memory = !ui.memory; ui.recallIndex = 0; ui.menu = false; render(); } },
   { id: 'rest', label: 'Rest here', run: () => { returnNow(false); stopSteer(); ui.rest = true; ui.menu = false; render(); } },
   { id: 'jump', label: 'Jump', run: () => { ui.menu = false; menuItems().find(x => x.id === 'jump')?.run(); render(); } },
+  { id: 'all', label: 'All controls', run: go('all') },
   { id: 'here', label: 'Here', run: go('world') }
 ];
 function renderMenu() {
@@ -268,6 +276,7 @@ function homeFor(sp) {
   const small = world.clientWidth < 701, left = small ? .205 : .14, right = small ? .765 : .86;
   const homes = { title: [small ? .27 : .15, .09], water: [left, .235], need: [small ? .49 : .29, .22], a: [left, .405], b: [left, .575], c: [right, .255], d: [right, .425], e: [right, .605], primary: [right, .81], time: [small ? .43 : .2, .945], erosion: [right, .64], recovery: [small ? .51 : .72, .71], topic1: [left, .72], memory1: [small ? .3 : .2, .38], speech: [small ? .32 : .22, .42] };
   let home = homes[sp.slot] || [left, .42]; if (ui.menu && sp.slot === 'recovery') home = [.47, .83];
+  if (ui.scene === 'all' && sp.slot === 'water') home = [small ? .62 : .4, .09];
   if (['lens', 'weather', 'sound', 'rig'].includes(ui.scene)) { if (sp.slot === 'a') home = [left, .27]; if (sp.slot === 'b') home = [left, .465]; if (sp.slot === 'water') home = [left, .685]; }
   if (ui.scene === 'rig' && sp.slot === 'speech') home = [small ? .5 : .5, .5];
   return home;

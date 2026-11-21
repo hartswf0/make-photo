@@ -459,3 +459,6 @@
 #rw:not(.read-water) .liquid.action-drop>.drop-label,#rw:not(.read-water) .liquid.critical>.drop-label,#rw:not(.read-water) .liquid.critical>.drop-value,
 #rw:not(.read-water) .liquid[data-rain-caught=true]>.drop-label,#rw:not(.read-water) .liquid[data-rain-caught=true]>.drop-value,#rw:not(.read-water) .liquid[data-rain-caught=true]>.drop-kicker{opacity:1!important}
 #rw #menu-toggle:focus-visible,#rw #menu-toggle:focus{outline:none!important}
+/* the menu says it is the menu: the word runs down the edge current, always */
+#rw #menu-toggle .drop-label{opacity:1!important;writing-mode:vertical-rl;font:italic 19px Georgia,serif;letter-spacing:.06em;margin-top:26svh;color:#ffe9c4;text-shadow:0 1px 4px #04171e,0 0 12px #04171e}
+#rw.read-water .liquid>.drop-kicker{opacity:1!important}
