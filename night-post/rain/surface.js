@@ -206,7 +206,7 @@ function describe(id) {
   const way = t => !t.front ? 'behind you' : t.x < W * .33 ? 'to your left' : t.x > W * .67 ? 'to your right' : 'ahead';
   if (id === 'can') return w.liters < .05 ? 'The can is empty. Twenty litres fit. The donkey drinks before the climb.' : `${n(w.liters)} litres in the can, room for ${n(20 - w.liters)}. Keep ${n(w.reserve)} back for the way home.`;
   if (id === 'donkey' && T.donkey) return `The donkey stands ${m(T.donkey.dist)} m ${way(T.donkey)}, ${w.donkeyDown ? 'down and needing water now' : w.donkey < .3 ? 'thirsty and waiting' : 'watered and ready'}. Open it to ride or hitch the wagon.`;
-  if (id === 'next' && T.next) return `${T.next.name}, ${m(T.next.dist)} m ${way(T.next)}. ${S.place.visited.length} of 4 stops reached. Open it for the way.`;
+  if (id === 'next' && T.next) return `${T.next.name[0].toUpperCase() + T.next.name.slice(1)}, ${m(T.next.dist)} m ${way(T.next)}. ${S.place.visited.length} of 4 stops reached. Open it for the way.`;
   if (id === 'place') return `${S.place.name}. ${MODE[S.mode]}. ${T.next ? 'Next is ' + T.next.name + '.' : 'Every stop is reached.'}`;
   if (id === 'primary' && L && ui.scene === 'world') return L.kind === 'draw' ? `The source. Pull to draw ${n(Math.abs(L.delta) || 0)} litres into your can. Nothing is lost.` : L.kind === 'give' ? `Pour from your can here${L.person ? ', for ' + L.person : ''}. ${n(w.liters)} litres in hand.` : `${L.person || 'Someone'} is beside you. Pull to ask.`;
   if (id === 'exit' && S.exit) return `${MODE[S.mode]}. ${S.exit.label}.`;
@@ -420,11 +420,56 @@ function inkTick(now, dt) {
   t._ink = (t._ink ?? .3) + (Math.max(.3, near, ui.menu ? 1 : 0) - (t._ink ?? .3)) * k; t.style.setProperty('--ink', t._ink.toFixed(3));
   const st = $('steer'); if (!st.hidden) one(st, 'steer', .14, 0);
 }
+// ---- the text field ----------------------------------------------------------------------------------------------------
+// One paragraph of thick description for where you are, typeset by Pretext line by line so it flows around every drop on
+// the glass. It is never simply shown: it lies dry and invisible, and is read only where a finger or a pulled trail has
+// wetted the glass, drying again behind it (the lantern/spotlight idea from pretext-field, with water for light).
+const TF = { cv: document.createElement('canvas'), mask: document.createElement('canvas'), wet: 0, text: '', prep: null, font: "italic 17px 'Iowan Old Style','Palatino Linotype',Georgia,serif", lh: 25, ready: false, lx: null, ly: null };
+TF.cv.id = 'rw-text'; TF.cv.setAttribute('aria-hidden', 'true'); Object.assign(TF.cv.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', zIndex: '4', pointerEvents: 'none' }); world.append(TF.cv);
+{ const sc = document.createElement('script'); sc.src = './rain/pretext.js?v=1'; sc.onload = () => { TF.ready = !!window.Pretext; }; document.head.append(sc); }
+function fieldText() {
+  if (ui.past) { const v = memory.view(), sn = v.snapshot || {}; return `Earlier, ${n(ui.timeAge)} seconds ago. ${sn.place || S.place.name}. ${n(sn.can ?? S.water.liters)} litres in the can. ${v.event?.label || 'The surface was still.'} Looking back changes nothing.`; }
+  const T = S.things || {}, W = world.clientWidth, parts = [describe('place'), describe('can')], m = v => Math.round(v);
+  const way = t => !t.front ? 'behind you' : t.x < W * .33 ? 'to your left' : t.x > W * .67 ? 'to your right' : 'ahead';
+  if (S.live) parts.push(describe('primary')); if (T.donkey && S.mode === 'walk') parts.push(describe('donkey')); if (T.next) parts.push(describe('next'));
+  for (const p of T.people || []) parts.push(`${p.name} is ${m(p.dist)} m ${way(p)}.`);
+  if (S.exit) parts.push(describe('exit')); parts.push(cause);
+  for (const l of memory.transcript().slice(-2)) parts.push(`${l.speaker}: “${l.text}”`);
+  if (undo.length) parts.push(`Undo holds ${undo.at(-1).label}.`);
+  parts.push('Pull a drop to open it. Carry one drop into another and they mix.');
+  return parts.filter(Boolean).join(' ').replace(/\b(\d+) m\b/g, (_, d) => `${Math.round(d / 5) * 5 || d} m`);   // coarse distances keep the paragraph from re-setting every step
+}
+function stamp(x, y, r, a) { const g = TF.mask.getContext('2d'), k = TF.mask.width / world.clientWidth, gr = g.createRadialGradient(x * k, y * k, 0, x * k, y * k, r * k); gr.addColorStop(0, `rgba(255,255,255,${a})`); gr.addColorStop(.62, `rgba(255,255,255,${a * .85})`); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x * k, y * k, r * k, 0, 7); g.fill(); TF.wet = performance.now(); }
+function wetAt(e) {                                                   // every pointer move wets the glass under it; a held drop wets wider
+  if (ui.menu || !S.ready || !TF.mask.width) return; const x = e.clientX, y = e.clientY, now = performance.now();
+  if (TF.lx != null && now - TF.lt < 500 && Math.hypot(x - TF.lx, y - TF.ly) < 260) { const steps = Math.max(1, Math.ceil(Math.hypot(x - TF.lx, y - TF.ly) / 28)); for (let i = 1; i <= steps; i++) stamp(TF.lx + (x - TF.lx) * i / steps, TF.ly + (y - TF.ly) * i / steps, held ? 125 : 96, 1); } else stamp(x, y, 96, 1);
+  TF.lx = x; TF.ly = y; TF.lt = now;
+}
+window.addEventListener('pointermove', wetAt, true); window.addEventListener('pointerdown', wetAt, true);
+function textTick(now, dt) {
+  const W = world.clientWidth, H = world.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), cv = TF.cv, mk = TF.mask;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); mk.width = Math.round(W / 3); mk.height = Math.round(H / 3); }
+  const g = cv.getContext('2d'); if (now - TF.wet > 7000 || !TF.ready || !S.ready) { if (TF.drawn) { g.clearRect(0, 0, cv.width, cv.height); TF.drawn = false; } return; }
+  { const mg = mk.getContext('2d'); mg.globalCompositeOperation = 'destination-out'; mg.fillStyle = `rgba(0,0,0,${Math.min(.5, dt * (.1 + weather.erosion * .5))})`; mg.fillRect(0, 0, mk.width, mk.height); mg.globalCompositeOperation = 'source-over'; }
+  if (!TF.at || now - TF.at > 700) { TF.at = now; const t = fieldText(); if (t !== TF.text) { TF.text = t; TF.prep = window.Pretext.prepareWithSegments(t, TF.font); } }
+  if (!TF.prep) return;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, W, H); g.font = TF.font; g.textBaseline = 'alphabetic'; g.fillStyle = ui.past ? '#ffdfa8' : '#e6f1ec'; g.shadowColor = 'rgba(2,14,20,.95)'; g.shadowBlur = 6; g.lineWidth = 3; g.strokeStyle = 'rgba(2,14,20,.55)';
+  const obs = (field?.getBodies() || []).filter(b => !/^menu-/.test(b.id)).map(b => ({ x: b.x, y: b.y, rx: (b.rx || 40) + 14, ry: (b.ry || 30) + 12 }));
+  obs.push({ x: W / 2, y: H * .62, rx: W * .11, ry: H * .15 });                                     // the traveller keeps a clear body
+  let cur = { segmentIndex: 0, graphemeIndex: 0 }, done = false; const x0 = 20, x1 = W - 54;
+  for (let y = H * .14; y < H * .9 && !done; y += TF.lh) {
+    let spans = [[x0, x1]];
+    for (const o of obs) { const dy = (y - TF.lh * .35 - o.y) / o.ry; if (Math.abs(dy) >= 1) continue; const hw = o.rx * Math.sqrt(1 - dy * dy), a = o.x - hw, b = o.x + hw; spans = spans.flatMap(([s, e]) => b <= s || a >= e ? [[s, e]] : [[s, Math.min(e, a)], [Math.max(s, b), e]].filter(([p, q]) => q - p > 0)); }
+    spans.sort((p, q) => (q[1] - q[0]) - (p[1] - p[0])); spans.length = Math.min(1, spans.length);   // one run of words per line: the widest dry gap, so a sentence is never read across a drop
+    for (const [s, e] of spans) { if (e - s < 84) continue; const line = window.Pretext.layoutNextLine(TF.prep, cur, e - s); if (!line) { done = true; break; } g.strokeText(line.text, s, y); g.fillText(line.text, s, y); cur = line.end; }
+  }
+  g.shadowBlur = 0; g.globalCompositeOperation = 'destination-in'; g.imageSmoothingEnabled = true; g.drawImage(mk, 0, 0, W, H); g.globalCompositeOperation = 'source-over'; TF.drawn = true;
+}
 function tick(now) {
   const dt = Math.min(.15, Math.max(0, (now - frameTime) / 1000)); frameTime = now;
   if (!document.hidden) {
     if (!ui.past) { memory.tick(dt); ui.recordClock += dt; if (ui.recordClock >= .25) { S = B.state(); if (S.ready) { watchGame(); captureWeather(); } ui.recordClock = 0; } }
-    field?.tick(dt); inkTick(now, dt); ink.tick(ui.past ? 0 : dt); ink.setTrails(field?.getTrails() || []);
+    field?.tick(dt); inkTick(now, dt); try { textTick(now, dt); } catch (err) { if (!TF.err) { TF.err = true; console.error('[rain] text field', err); } } ink.tick(ui.past ? 0 : dt); ink.setTrails(field?.getTrails() || []);
     world.dataset.timeMode = ui.past ? 'past' : 'now'; world.dataset.timeAge = n(ui.timeAge);
     if (now - lastRender > 180) { render(); lastRender = now; }
   }
@@ -432,7 +477,7 @@ function tick(now) {
 }
 new ResizeObserver(() => syncField()).observe(world);
 initializeField(); render(); requestAnimationFrame(tick);
-window.__rainSurface = { ui, weather, glass, memory, ink, render, get field() { return field; }, get specs() { return specs; }, get undo() { return undo; }, setTimeAge, returnNow, go: s => go(s)() };
+window.__rainSurface = { TF, stamp, fieldText, ui, weather, glass, memory, ink, render, get field() { return field; }, get specs() { return specs; }, get undo() { return undo; }, setTimeAge, returnNow, go: s => go(s)() };
 }
 boot();
 })();
