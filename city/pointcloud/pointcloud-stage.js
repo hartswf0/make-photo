@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { mountWebGLShaderSuite } from '../shader-suite-bar.js';
+import { mountWebGLShaderSuite, projectWorldLabel } from '../shader-suite-bar.js';
 
 // Zero-dependency damped spherical Orbit + Pan + Dolly controller
 class StageOrbitControls {
@@ -90,6 +90,7 @@ import {
   savePilotState,
   subscribePilotState,
   applyPilotUrlHash,
+  formatPilotHash,
 } from '../design-room/pilot-state.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -687,14 +688,16 @@ function rebuildGeometryFromCache() {
   const [imgW, imgH] = shot.size || [1456, 816];
   const aspect = imgW / Math.max(1, imgH);
   const focalPx = shot.camera?.focal_px || 1200;
-  const vFovRad = 2 * Math.atan((imgH * 0.5) / focalPx);
+  const rawVFovRad = 2 * Math.atan((imgH * 0.5) / focalPx);
+  sourceCam.vFovDeg = THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(rawVFovRad), 30, 68);
+  const vFovRad = THREE.MathUtils.degToRad(sourceCam.vFovDeg);
   const tanHalfV = Math.tan(vFovRad * 0.5);
-  const tanHalfH = tanHalfV * aspect;
+  const viewAspect = Math.max(aspect, window.innerWidth / Math.max(1, window.innerHeight));
+  const tanHalfH = tanHalfV * viewAspect;
 
   const camH = Math.max(1.2, Math.min(3.2, shot.camera?.height_m ?? 1.65));
   const pitchRad = THREE.MathUtils.degToRad(Math.max(-10, Math.min(10, shot.camera?.pitch_deg ?? -1.5)));
 
-  sourceCam.vFovDeg = THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(vFovRad), 30, 68);
   sourceCam.aspect = aspect;
   sourceCam.heightM = camH;
   sourceCam.pitchRad = pitchRad;
@@ -983,6 +986,7 @@ async function selectShot(shot) {
     cachedGrid = { photoRgba, celRgba, dispRaw, shot };
     rebuildGeometryFromCache();
     recoverSourceCamera();
+    refreshAdjacentShotPortals();
   } catch (err) {
     console.warn('Shot load error:', err);
   }
@@ -1263,32 +1267,550 @@ function renderCatalogList() {
 }
 
 // ---------------------------------------------------------------------------
+// Diegetic In-World UI:
+// 1. 6 Glowing 3D Portal Frames Around the Viewing Cone Perimeter (Walk Up via WASD or Click!)
+// 2. 3D Optical Lens & Tri-Faceted Prism Marker (Recover Source Camera + Cycle 3 Recon Modes + 23 Shaders)
+// 3. 3D Severn Doorway & 1.70m Anny V8 Explorer Interactions + 1-Line World-Projected Hover Whisper
+// ---------------------------------------------------------------------------
+const splatPickables = [];
+const portalSlots = [];
+const portalFramesGroup = new THREE.Group();
+scene.add(portalFramesGroup);
+
+const portalTexLoader = new THREE.TextureLoader();
+portalTexLoader.setCrossOrigin('anonymous');
+const portalTexCache = new Map();
+
+function registerSplatPick(mesh, meta) {
+  mesh.userData.splatPick = meta;
+  splatPickables.push(mesh);
+  return mesh;
+}
+
+function getPortalThumbTexture(url) {
+  if (portalTexCache.has(url)) return Promise.resolve(portalTexCache.get(url));
+  return new Promise((resolve) => {
+    portalTexLoader.load(
+      url,
+      (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        portalTexCache.set(url, tex);
+        resolve(tex);
+      },
+      undefined,
+      () => resolve(null)
+    );
+  });
+}
+
+function buildPerimeterPortalFrames() {
+  while (portalFramesGroup.children.length > 0) {
+    portalFramesGroup.remove(portalFramesGroup.children[0]);
+  }
+  portalSlots.length = 0;
+
+  // 6 perimeter threshold coords flanking the left & right boundaries of the viewing cone
+  const layout = [
+    { x: -3.28, z: -5.85, rotY: 0.72, deltaIdx: -1 },
+    { x: -4.18, z: -8.45, rotY: 0.62, deltaIdx: -2 },
+    { x: -5.05, z: -11.2, rotY: 0.52, deltaIdx: -3 },
+    { x: 3.28, z: -5.85, rotY: -0.72, deltaIdx: 1 },
+    { x: 4.18, z: -8.45, rotY: -0.62, deltaIdx: 2 },
+    { x: 5.05, z: -11.2, rotY: -0.52, deltaIdx: 3 },
+  ];
+
+  const cyanGlowMat = new THREE.MeshBasicMaterial({ color: '#18b4ff', transparent: true, opacity: 0.85 });
+
+  layout.forEach((cfg, slotIndex) => {
+    const root = new THREE.Group();
+    root.position.set(cfg.x, 0, cfg.z);
+    root.rotation.y = cfg.rotY;
+
+    // Grounded stone plinth + glowing cyan walk-in threshold ring
+    const plinth = new THREE.Mesh(new THREE.BoxGeometry(1.42, 0.12, 0.34), stoneMat);
+    plinth.position.y = 0.06;
+    plinth.receiveShadow = true;
+    root.add(plinth);
+
+    const floorRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.56, 0.64, 28),
+      new THREE.MeshBasicMaterial({ color: '#18b4ff', transparent: true, opacity: 0.55, side: THREE.DoubleSide })
+    );
+    floorRing.rotation.x = -Math.PI / 2;
+    floorRing.position.set(0, 0.018, 0.22);
+    root.add(floorRing);
+
+    // Slender Brass & Cyan Glowing Portal Uprights + Lintel
+    const postL = new THREE.Mesh(new THREE.BoxGeometry(0.065, 1.92, 0.08), brassMat);
+    postL.position.set(-0.66, 1.02, 0);
+    const postR = new THREE.Mesh(new THREE.BoxGeometry(0.065, 1.92, 0.08), brassMat);
+    postR.position.set(0.66, 1.02, 0);
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(1.44, 0.08, 0.11), brassMat);
+    lintel.position.set(0, 1.98, 0);
+    root.add(postL, postR, lintel);
+
+    const rimEdges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(1.36, 1.84, 0.04)),
+      new THREE.LineBasicMaterial({ color: '#18b4ff', transparent: true, opacity: 0.88 })
+    );
+    rimEdges.position.set(0, 1.02, 0.02);
+    root.add(rimEdges);
+
+    const crownBeacon = new THREE.Mesh(new THREE.OctahedronGeometry(0.055, 0), cyanGlowMat);
+    crownBeacon.position.set(0, 2.11, 0);
+    root.add(crownBeacon);
+
+    // Luminous Thumbnail Window showing the adjacent shot
+    const thumbMat = new THREE.MeshBasicMaterial({
+      color: '#dceeff',
+      side: THREE.DoubleSide,
+    });
+    const thumbMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.22, 0.80), thumbMat);
+    thumbMesh.position.set(0, 1.24, 0.015);
+    root.add(thumbMesh);
+
+    // Subtle translucent lower glass veil below thumbnail so it reads as a walkable portal doorway
+    const lowerVeil = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.22, 0.68),
+      new THREE.MeshBasicMaterial({
+        color: '#0e3c5c',
+        transparent: true,
+        opacity: 0.26,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      })
+    );
+    lowerVeil.position.set(0, 0.48, 0.01);
+    root.add(lowerVeil);
+
+    const hitBox = new THREE.Mesh(
+      new THREE.BoxGeometry(1.48, 2.08, 0.36),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    hitBox.position.set(0, 1.04, 0);
+    root.add(hitBox);
+
+    const slot = {
+      slotIndex,
+      deltaIdx: cfg.deltaIdx,
+      root,
+      worldPos: new THREE.Vector3(cfg.x, 0, cfg.z),
+      thumbMat,
+      rimEdges,
+      crownBeacon,
+      shot: null,
+    };
+    portalSlots.push(slot);
+
+    registerSplatPick(hitBox, {
+      kind: 'shot-portal',
+      slot,
+      anchorObj: root,
+      anchorOffset: new THREE.Vector3(0, 2.16, 0),
+      getWhisper: () =>
+        slot.shot
+          ? `Portal · ${slot.shot.district.toUpperCase()} · ${slot.shot.title.slice(0, 34)} — Click or Walk In`
+          : 'Adjacent Shot Portal',
+    });
+
+    portalFramesGroup.add(root);
+  });
+}
+
+function refreshAdjacentShotPortals() {
+  if (!catalogData.shots.length || !portalSlots.length) return;
+  const total = catalogData.shots.length;
+  const curIdx = Math.max(0, catalogData.shots.findIndex((s) => s.id === activeShot?.id));
+
+  portalSlots.forEach((slot) => {
+    const targetIdx = ((curIdx + slot.deltaIdx) % total + total) % total;
+    const shot = catalogData.shots[targetIdx];
+    slot.shot = shot;
+    if (shot?.urls?.image) {
+      getPortalThumbTexture(shot.urls.image).then((tex) => {
+        if (tex && slot.shot === shot) {
+          slot.thumbMat.map = tex;
+          slot.thumbMat.color.set('#ffffff');
+          slot.thumbMat.needsUpdate = true;
+        }
+      });
+    }
+  });
+}
+
+let portalCooldownUntil = 0;
+async function transitionThroughPortal(nextShot, viaWalk = false) {
+  if (!nextShot || nextShot.id === activeShot?.id) return;
+  const now = performance.now();
+  if (now < portalCooldownUntil) return;
+  portalCooldownUntil = now + 1800;
+
+  // Step 1.70m human explorer cleanly back onto center stage for the newly entered shot
+  humanActor.pos.set(-0.35, 0, -6.4);
+  humanActor.yaw = 0.35;
+  humanActor.root.position.copy(humanActor.pos);
+  humanActor.root.rotation.y = humanActor.yaw;
+
+  await selectShot(nextShot);
+  showToast(
+    `${viaWalk ? 'Walked through portal' : 'Entered portal'} -> ${nextShot.district.toUpperCase()} · ${nextShot.title.slice(0, 36)}`
+  );
+}
+
+// Build 3D Optical Lens & Tri-Faceted Crystal Prism Markers (Foreground + Source Camera Origin)
+const foregroundLensPrism = new THREE.Group();
+const originLensPrism = new THREE.Group();
+const rotatingPrismMeshes = [];
+
+function getReconModeLabel(m = reconState.mode) {
+  if (m === 'splats') return 'Gaussian Soft Splats (82,944)';
+  if (m === 'mesh') return 'Tear-Guard Micro-Mesh';
+  return 'Inverse Interior Diorama';
+}
+
+function syncPrismColors() {
+  const hex =
+    reconState.mode === 'splats' ? '#18b4ff' : reconState.mode === 'mesh' ? '#5fd4c0' : '#f2a541';
+  for (const pm of rotatingPrismMeshes) {
+    pm.material.color.set(hex);
+    pm.material.emissive.set(hex);
+  }
+}
+
+function cycleReconModeInWorld() {
+  const order = ['splats', 'mesh', 'diorama'];
+  const nextMode = order[(order.indexOf(reconState.mode) + 1) % order.length];
+  reconState.mode = nextMode;
+  $$('#recon-mode-btns .btn').forEach((b) => b.classList.toggle('on', b.dataset.rmode === nextMode));
+  rebuildGeometryFromCache();
+  syncPrismColors();
+  if (nextMode === 'diorama') {
+    camera.position.set(-1.35, 2.05, -1.8);
+    controls.target.set(0.35, 1.35, -7.2);
+    controls.syncImmediate();
+  }
+  showToast(`3D Reconstruction Mode -> ${getReconModeLabel(nextMode)}`);
+}
+
+function assembleLensPrismPedestal(root, { isOrigin = false } = {}) {
+  // Grounded brass survey ring + slender optical column
+  const baseRing = new THREE.Mesh(new THREE.RingGeometry(0.24, 0.31, 28), brassMat);
+  baseRing.rotation.x = -Math.PI / 2;
+  baseRing.position.y = 0.015;
+  root.add(baseRing);
+
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.036, 1.18, 12), brassMat);
+  stem.position.y = 0.59;
+  stem.castShadow = true;
+  root.add(stem);
+
+  // Calibrated 35mm Optical Brass Lens Ring & Glass Element -> Recover Source Camera
+  const lensTorus = new THREE.Mesh(new THREE.TorusGeometry(0.145, 0.024, 12, 28), brassMat);
+  lensTorus.position.y = 1.28;
+  root.add(lensTorus);
+
+  const lensGlass = new THREE.Mesh(
+    new THREE.CircleGeometry(0.125, 24),
+    new THREE.MeshStandardMaterial({
+      color: '#bfe8ff',
+      emissive: '#0d4e78',
+      emissiveIntensity: 0.85,
+      transparent: true,
+      opacity: 0.65,
+      roughness: 0.08,
+      side: THREE.DoubleSide,
+    })
+  );
+  lensGlass.position.y = 1.28;
+  root.add(lensGlass);
+
+  const lensHit = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.24, 0.28, 1.38, 12),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  lensHit.position.y = 0.69;
+  root.add(lensHit);
+
+  // Floating Tri-Faceted Crystal Prism above Lens -> Cycle Splats -> Tear-Guard Mesh -> Diorama
+  const prismMat = new THREE.MeshStandardMaterial({
+    color: '#18b4ff',
+    emissive: '#18b4ff',
+    emissiveIntensity: 1.25,
+    roughness: 0.14,
+    metalness: 0.35,
+  });
+  const prismMesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.115, 0), prismMat);
+  prismMesh.position.y = 1.62;
+  root.add(prismMesh);
+  rotatingPrismMeshes.push(prismMesh);
+
+  const prismHit = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 12, 10),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  prismHit.position.y = 1.62;
+  root.add(prismHit);
+
+  // Brass Shader Collar Ring at waist of column -> Cycle 23 GPU Shaders / Shift+Click Expose Plate
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.018, 10, 20), brassMat);
+  collar.rotation.x = Math.PI / 2;
+  collar.position.y = 0.96;
+  root.add(collar);
+
+  const collarHit = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.16, 0.16, 0.18, 12),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  collarHit.position.y = 0.96;
+  root.add(collarHit);
+
+  registerSplatPick(lensHit, {
+    kind: isOrigin ? 'lens-recover' : 'lens-recover',
+    anchorObj: root,
+    anchorOffset: new THREE.Vector3(0, 1.36, 0),
+    getWhisper: () =>
+      isOrigin
+        ? 'Source Camera Optical Origin — Click Lens to Recover Exact Source Camera'
+        : 'Calibrated Optical Lens — Click to Recover Source Camera · Click Crystal Prism Above to Cycle 3D Mode',
+  });
+
+  registerSplatPick(prismHit, {
+    kind: 'prism-mode',
+    anchorObj: root,
+    anchorOffset: new THREE.Vector3(0, 1.82, 0),
+    getWhisper: () =>
+      `Tri-Faceted Depth Prism (${getReconModeLabel()}) — Click to Cycle Splats / Tear-Guard Mesh / Diorama`,
+  });
+
+  registerSplatPick(collarHit, {
+    kind: 'collar-shader',
+    anchorObj: root,
+    anchorOffset: new THREE.Vector3(0, 1.08, 0),
+    getWhisper: () => 'Brass Aperture Collar — Click to Cycle 23 GPU Shaders ([ / ]) · Shift+Click Expose Plate',
+  });
+}
+
+foregroundLensPrism.position.set(1.48, 0, -4.15);
+foregroundLensPrism.rotation.y = 0.32;
+assembleLensPrismPedestal(foregroundLensPrism, { isOrigin: false });
+scene.add(foregroundLensPrism);
+
+originLensPrism.position.set(0, 0, 0);
+assembleLensPrismPedestal(originLensPrism, { isOrigin: true });
+scene.add(originLensPrism);
+buildPerimeterPortalFrames();
+
+// Register 3D Hit Volumes on 1.70m Anny V8 Human & Severn Threshold Doorway
+const humanHit = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.36, 0.38, 1.78, 10),
+  new THREE.MeshBasicMaterial({ visible: false })
+);
+humanHit.position.y = 0.89;
+humanActor.root.add(humanHit);
+registerSplatPick(humanHit, {
+  kind: 'human-eye',
+  anchorObj: humanActor.root,
+  anchorOffset: new THREE.Vector3(0, 1.86, 0),
+  getWhisper: () => '1.70m Anny V8 Scale Explorer — WASD Walk to Portals · Click for 1.70m Eye View',
+});
+
+const severnDoorHit = new THREE.Mesh(
+  new THREE.BoxGeometry(1.6, 2.55, 0.52),
+  new THREE.MeshBasicMaterial({ visible: false })
+);
+severnDoorHit.position.set(0, 1.38, -0.1);
+severnSet.add(severnDoorHit);
+registerSplatPick(severnDoorHit, {
+  kind: 'severn-door',
+  anchorObj: severnSet,
+  anchorOffset: new THREE.Vector3(0, 2.42, 0),
+  getWhisper: () =>
+    pilot.doorOpen
+      ? 'Severn Threshold Door (Open) — Click to Close · Shift+Click Enter Nolli Block'
+      : 'Severn Threshold Door (Closed) — Click to Open',
+});
+
+// Raycasting & World-Projected 1-Line Whisper
+const splatRaycaster = new THREE.Raycaster();
+const splatPtrNdc = new THREE.Vector2();
+const whisperEl = $('#world-whisper');
+const projTmpVec = new THREE.Vector3();
+let ptrDownPos = null;
+let hoveredSplatMeta = null;
+
+function pickSplatInteractive(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  if (rect.width < 2 || rect.height < 2) return null;
+  splatPtrNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  splatPtrNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  splatRaycaster.setFromCamera(splatPtrNdc, camera);
+  const hits = splatRaycaster.intersectObjects(splatPickables, false);
+  for (const h of hits) {
+    let cur = h.object;
+    let vis = true;
+    while (cur) {
+      if (cur.visible === false && cur !== h.object) {
+        vis = false;
+        break;
+      }
+      cur = cur.parent;
+    }
+    if (!vis) continue;
+    if (h.object.userData?.splatPick) return h.object.userData.splatPick;
+  }
+  return null;
+}
+
+function syncSplatWhisper() {
+  if (!whisperEl) return;
+  if (!hoveredSplatMeta || document.body.classList.contains('mp-tab-open')) {
+    whisperEl.classList.remove('visible');
+    return;
+  }
+  hoveredSplatMeta.anchorObj.updateMatrixWorld();
+  projTmpVec.copy(hoveredSplatMeta.anchorOffset || new THREE.Vector3());
+  hoveredSplatMeta.anchorObj.localToWorld(projTmpVec);
+  const p = projectWorldLabel(camera, projTmpVec, renderer.domElement);
+  if (!p.inFront) {
+    whisperEl.classList.remove('visible');
+    return;
+  }
+  whisperEl.textContent = hoveredSplatMeta.getWhisper();
+  whisperEl.classList.add('visible');
+  const halfW = Math.ceil((whisperEl.offsetWidth || 260) * 0.5) + 16;
+  const cx = THREE.MathUtils.clamp(p.x, halfW, Math.max(halfW, window.innerWidth - halfW));
+  const cy = THREE.MathUtils.clamp(p.y, 38, window.innerHeight - 28);
+  whisperEl.style.left = `${Math.round(cx)}px`;
+  whisperEl.style.top = `${Math.round(cy)}px`;
+}
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  if (e.button === 0) ptrDownPos = { x: e.clientX, y: e.clientY };
+});
+
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (e.buttons !== 0) {
+    hoveredSplatMeta = null;
+    if (whisperEl) whisperEl.classList.remove('visible');
+    return;
+  }
+  hoveredSplatMeta = pickSplatInteractive(e);
+  renderer.domElement.style.cursor = hoveredSplatMeta ? 'pointer' : 'grab';
+  syncSplatWhisper();
+});
+
+renderer.domElement.addEventListener('pointerleave', () => {
+  hoveredSplatMeta = null;
+  renderer.domElement.style.cursor = '';
+  if (whisperEl) whisperEl.classList.remove('visible');
+});
+
+renderer.domElement.addEventListener('pointerup', async (e) => {
+  if (e.button !== 0 || !ptrDownPos) return;
+  const movedPx = Math.hypot(e.clientX - ptrDownPos.x, e.clientY - ptrDownPos.y);
+  ptrDownPos = null;
+  if (movedPx > 6) return;
+
+  const picked = pickSplatInteractive(e);
+  if (!picked) return;
+
+  switch (picked.kind) {
+    case 'shot-portal': {
+      if (picked.slot?.shot) {
+        await transitionThroughPortal(picked.slot.shot, false);
+      }
+      break;
+    }
+    case 'prism-mode': {
+      if (e.shiftKey) {
+        recoverSourceCamera();
+        showToast('Exact calibrated source camera restored');
+      } else {
+        cycleReconModeInWorld();
+      }
+      break;
+    }
+    case 'lens-recover': {
+      recoverSourceCamera();
+      showToast('Exact calibrated source camera restored');
+      break;
+    }
+    case 'collar-shader': {
+      if (e.shiftKey) {
+        suite.exposePlate({ locationName: activeShot ? `${activeShot.district} · ${activeShot.title}` : '3D Splat Space' });
+      } else {
+        suite.nextLook(true);
+      }
+      break;
+    }
+    case 'human-eye': {
+      stepToHumanEye();
+      break;
+    }
+    case 'severn-door': {
+      if (e.shiftKey) {
+        window.location.assign(`../${formatPilotHash(loadPilotState())}`);
+        return;
+      }
+      const nextOpen = !pilot.doorOpen;
+      savePilotState({ doorOpen: nextOpen });
+      showToast(nextOpen ? 'Severn threshold door opened' : 'Severn threshold door closed');
+      break;
+    }
+  }
+  syncSplatWhisper();
+});
+
+// ---------------------------------------------------------------------------
 // Main Animation Loop
 // ---------------------------------------------------------------------------
 let prevSec = performance.now() * 0.001;
+const camForwardXZ = new THREE.Vector3();
+const camRightXZ = new THREE.Vector3();
 
 function renderTick(nowSec) {
   const dt = Math.min(0.05, Math.max(0.001, nowSec - prevSec));
   prevSec = nowSec;
 
-  // WASD Human Movement on y = 0 Nolli Ground
-  let mx = 0;
-  let mz = 0;
-  if (keys.KeyW) mz -= 1;
-  if (keys.KeyS) mz += 1;
-  if (keys.KeyA) mx -= 1;
-  if (keys.KeyD) mx += 1;
-  const moving = mx !== 0 || mz !== 0;
+  // Camera-relative WASD Walkable 1.70m Human + gentle camera follow through Splat Space
+  const fIn = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+  const rIn = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+  const moving = fIn !== 0 || rIn !== 0;
 
   if (moving) {
-    const len = Math.hypot(mx, mz);
-    humanActor.pos.x = THREE.MathUtils.clamp(humanActor.pos.x + (mx / len) * 2.8 * dt, -8.5, 8.5);
-    humanActor.pos.z = THREE.MathUtils.clamp(humanActor.pos.z + (mz / len) * 2.8 * dt, -22.0, -2.2);
-    humanActor.yaw = Math.atan2(mx, mz);
+    camera.getWorldDirection(camForwardXZ);
+    camForwardXZ.y = 0;
+    if (camForwardXZ.lengthSq() < 1e-5) camForwardXZ.set(0, 0, -1);
+    camForwardXZ.normalize();
+    camRightXZ.set(-camForwardXZ.z, 0, camForwardXZ.x);
+
+    const moveVec = new THREE.Vector3()
+      .addScaledVector(camForwardXZ, fIn)
+      .addScaledVector(camRightXZ, rIn);
+    if (moveVec.lengthSq() > 1e-5) moveVec.normalize();
+
+    const stepX = moveVec.x * 3.1 * dt;
+    const stepZ = moveVec.z * 3.1 * dt;
+    humanActor.pos.x = THREE.MathUtils.clamp(humanActor.pos.x + stepX, -8.5, 8.5);
+    humanActor.pos.z = THREE.MathUtils.clamp(humanActor.pos.z + stepZ, -22.0, -2.2);
+    humanActor.yaw = Math.atan2(moveVec.x, moveVec.z);
     humanActor.root.position.copy(humanActor.pos);
     humanActor.root.rotation.y = humanActor.yaw;
+
+    // Gently carry camera & look target along with the walking explorer
+    controls.target.x = THREE.MathUtils.lerp(controls.target.x, humanActor.pos.x, 0.045);
+    controls.target.z = THREE.MathUtils.lerp(controls.target.z, humanActor.pos.z - 2.4, 0.045);
+
     if (pilot.parcelHolder === 'player') {
       parcelProp.position.set(humanActor.pos.x + 0.24, 1.02, humanActor.pos.z + 0.16);
+    }
+
+    // Check walk-in proximity to any of the 6 glowing 3D Portal Frames
+    for (const slot of portalSlots) {
+      if (slot.shot && humanActor.pos.distanceTo(slot.worldPos) < 1.32) {
+        transitionThroughPortal(slot.shot, true);
+        break;
+      }
     }
   }
   if (moving !== humanActor.walking) {
@@ -1304,6 +1826,24 @@ function renderTick(nowSec) {
   }
 
   controls.update();
+
+  // Animate rotating Tri-Faceted Prisms & Origin Lens visibility
+  for (const pm of rotatingPrismMeshes) {
+    pm.rotation.y = nowSec * 1.15;
+    pm.position.y = 1.62 + Math.sin(nowSec * 2.1) * 0.03;
+  }
+  originLensPrism.position.set(sourceCam.pos.x, 0, sourceCam.pos.z);
+  originLensPrism.visible = camera.position.distanceTo(sourceCam.pos) > 1.05;
+
+  // Pulse perimeter portal crown beacons
+  for (let i = 0; i < portalSlots.length; i++) {
+    const slot = portalSlots[i];
+    slot.crownBeacon.rotation.y = nowSec * 1.4 + i;
+    const isHovered = hoveredSplatMeta?.slot === slot;
+    slot.rimEdges.material.opacity = isHovered ? 1.0 : 0.72;
+  }
+
+  if (hoveredSplatMeta) syncSplatWhisper();
 
   if (reconState.lockFocusHuman) {
     const dToHuman = camera.position.distanceTo(humanActor.pos);
@@ -1374,6 +1914,7 @@ function animate() {
     reconState.mode = q.get('mode');
     $$('#recon-mode-btns .btn').forEach((b) => b.classList.toggle('on', b.dataset.rmode === reconState.mode));
   }
+  syncPrismColors();
 
   syncToPilotState(pilot);
   const heroShot =

@@ -6,7 +6,7 @@
   <script type="importmap">{"imports":{"three":"../../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
   <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
   <link rel="stylesheet" href="../suite-nav.css">
-  <title>MAKE-PHOTO CITY · Foundry, Calvino Evolution &amp; Inverse Tomology</title>
+  <title>MAKE-PHOTO CITY - Foundry, Calvino Evolution &amp; Inverse Tomology</title>
   <style>
     :root {
       --bg: #0c1f38;
@@ -25,6 +25,7 @@
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
+      width: 100%;
       height: 100%;
       overflow: hidden;
       background: var(--bg);
@@ -47,10 +48,31 @@
       height: 100%;
     }
 
-    /* Top Mode & Action Header (leaves center sky & street clean) */
+    /* Pure unboxed 1-line world-projected diegetic whisper (shown ONLY on 3D hover/action) */
+    #world-whisper {
+      position: fixed;
+      z-index: 14;
+      pointer-events: none;
+      display: none;
+      transform: translate(-50%, -135%);
+      color: #f7f2e7;
+      font: 500 13px/1.35 Georgia, "Times New Roman", serif;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      text-shadow: 0 1px 4px rgba(4, 10, 18, 0.98), 0 0 14px rgba(4, 10, 18, 0.9);
+    }
+
+    /* Pure Diegetic Default: ALL overlaid HUD panels, sliders, blueprints & button bars hidden on load (Tab toggles body.mp-tab-open) */
+    body:not(.mp-tab-open) #foundry-top,
+    body:not(.mp-tab-open) #left-drawer,
+    body:not(.mp-tab-open) #right-drawer,
+    body:not(.mp-tab-open) #threshold-banner {
+      display: none !important;
+    }
+
     #foundry-top {
       position: fixed;
-      top: 74px;
+      top: 58px;
       left: 12px;
       right: 12px;
       z-index: 18;
@@ -122,22 +144,19 @@
       color: #dff6ff;
     }
 
-    /* Left Collapsible Calvino & Tomology Drawer */
     #left-drawer {
       position: fixed;
-      top: 172px;
+      top: 156px;
       left: 12px;
       z-index: 17;
       width: 274px;
-      max-height: calc(100vh - 298px);
+      max-height: calc(100vh - 280px);
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
-    #left-drawer.collapsed .drawer-body {
-      display: none;
-    }
+    #left-drawer.collapsed .drawer-body { display: none; }
     .sec-head {
       display: flex;
       align-items: center;
@@ -160,21 +179,9 @@
       margin: 3px 0;
       font-size: 11px;
     }
-    .axis-row label {
-      color: var(--paper);
-      font-weight: 500;
-    }
-    .axis-row input[type="range"] {
-      width: 100%;
-      accent-color: var(--cyan);
-      cursor: pointer;
-    }
-    .axis-val {
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-      color: var(--cyan);
-      font-size: 10.5px;
-    }
+    .axis-row label { color: var(--paper); font-weight: 500; }
+    .axis-row input[type="range"] { width: 100%; accent-color: var(--cyan); cursor: pointer; }
+    .axis-val { text-align: right; font-variant-numeric: tabular-nums; color: var(--cyan); font-size: 10.5px; }
     .lineage-box {
       background: rgba(6, 12, 22, 0.68);
       border: 1px solid var(--rule);
@@ -185,22 +192,19 @@
     }
     .lineage-box b { color: var(--cyan); }
 
-    /* Right Collapsible Tomology Plan, Pilot State & Stage Inspector */
     #right-drawer {
       position: fixed;
-      top: 172px;
+      top: 156px;
       right: 12px;
       z-index: 17;
       width: 292px;
-      max-height: calc(100vh - 298px);
+      max-height: calc(100vh - 280px);
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
-    #right-drawer.collapsed .drawer-body {
-      display: none;
-    }
+    #right-drawer.collapsed .drawer-body { display: none; }
     #plan-canvas {
       width: 100%;
       height: 152px;
@@ -237,7 +241,6 @@
     .prov-inferred { background: rgba(240, 192, 96, 0.18); color: #ffd984; border: 1px solid rgba(240, 192, 96, 0.4); }
     .prov-invented { background: rgba(208, 132, 255, 0.18); color: #e2b8ff; border: 1px solid rgba(208, 132, 255, 0.4); }
 
-    /* Stage Set Triple Strip (visible in LIVE STAGE SET mode) */
     #stage-triple {
       display: none;
       margin-top: 6px;
@@ -256,10 +259,9 @@
     }
     .triple-card b { color: var(--brass); display: block; }
 
-    /* Context Prompt at Bottom Center (above Shader Suite dock) */
     #threshold-banner {
       position: fixed;
-      bottom: 118px;
+      bottom: 92px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 19;
@@ -276,7 +278,6 @@
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
     }
 
-    /* Full Archive, Niche Matrix & Reference Classifier Modal */
     #archive-modal {
       position: fixed;
       inset: 48px 16px 56px 16px;
@@ -307,11 +308,7 @@
       grid-template-columns: 1.05fr 1fr;
       gap: 16px;
     }
-    #niche-grid {
-      display: grid;
-      gap: 3px;
-      margin-top: 6px;
-    }
+    #niche-grid { display: grid; gap: 3px; margin-top: 6px; }
     .niche-cell {
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--rule);
@@ -324,10 +321,7 @@
       flex-direction: column;
       justify-content: space-between;
     }
-    .niche-cell.filled {
-      background: rgba(24, 180, 255, 0.12);
-      border-color: rgba(24, 180, 255, 0.45);
-    }
+    .niche-cell.filled { background: rgba(24, 180, 255, 0.12); border-color: rgba(24, 180, 255, 0.45); }
     .niche-cell.empty { opacity: 0.35; cursor: default; }
     #scatter-canvas {
       width: 100%;
@@ -362,37 +356,34 @@
       }
       .modal-body { grid-template-columns: 1fr; }
     }
-    @media (max-width: 680px) {
-      #left-drawer { left: 8px; width: calc(100vw - 16px); bottom: 96px; max-height: 28vh; }
-      #right-drawer { display: none; }
-    }
   </style>
 </head>
 <body>
   <div id="canvas-wrap" aria-label="Foundry 3D Inverse Tomology Viewport"></div>
+  <div id="world-whisper" aria-live="polite"></div>
 
+  <!-- Raw Audit Drawers (hidden on load; toggled only via Tab) -->
   <header id="foundry-top">
     <div class="hud-card">
-      <div class="kicker">Make-Photo City · Briefs 2 &amp; 3 · The Severn Pilot (20 x 12 m)</div>
+      <div class="kicker">Make-Photo City - Briefs 2 &amp; 3 - The Severn Pilot (20 x 12 m)</div>
       <div class="headline">Foundry, Calvino Evolution &amp; Inverse Tomology</div>
-      <div class="subline" id="mode-subtitle">Walk exterior street &amp; co-evolved Severn rooms; toggle door for route &amp; sound transmission.</div>
+      <div class="subline" id="mode-subtitle">All controls live in the 3D street: click the Maquette Table, Glass Prism, Severn Door, Cast, Rooms, or Camera Tripod.</div>
       <div class="mode-bar" id="view-modes" role="tablist" aria-label="Foundry View Modes">
-        <button class="pill active" data-mode="walk" type="button">1. Street &amp; Interior Walk (WASD)</button>
+        <button class="pill active" data-mode="walk" type="button">1. Street &amp; Interior Walk</button>
         <button class="pill cyan" data-mode="xray" type="button">2. Inverse Tomology X-Ray</button>
-        <button class="pill" data-mode="grid" type="button">3. Foundry Evolution Grid (6 Gen)</button>
-        <button class="pill cyan" data-mode="stage" type="button">4. Live Stage Set (Anny V8)</button>
+        <button class="pill cyan" data-mode="stage" type="button">3. Stage Angle</button>
       </div>
     </div>
 
     <div class="hud-card" style="display:flex;flex-direction:column;gap:5px;min-width:255px;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
         <span class="kicker">Room &amp; Pilot Sync</span>
-        <button class="pill cyan-act" id="btn-open-archive" type="button">72 Worlds &amp; Classified Refs (B)</button>
+        <button class="pill cyan-act" id="btn-open-archive" type="button">72 Worlds &amp; Refs (B)</button>
       </div>
       <div class="mode-bar" id="room-jumps" style="margin-top:2px;">
         <button class="pill active" data-jump="street" type="button">Street</button>
         <button class="pill" data-jump="vestibule" type="button">Vestibule</button>
-        <button class="pill" data-jump="flat-2a" type="button">Flat 2A Win</button>
+        <button class="pill" data-jump="flat-2a" type="button">Flat 2A</button>
         <button class="pill" data-jump="darkroom" type="button">Darkroom</button>
         <button class="pill" data-jump="screening" type="button">Screening</button>
         <button class="pill" data-jump="roof" type="button">Roof</button>
@@ -408,7 +399,7 @@
     <div class="drawer-body">
       <div id="calvino-sliders"></div>
       <div class="mode-bar" style="margin-top:8px;">
-        <button class="pill cyan-act" id="btn-mutate" type="button">Mutate Candidate (M)</button>
+        <button class="pill cyan-act" id="btn-mutate" type="button">Mutate Candidate</button>
         <button class="pill" id="btn-revert" type="button">Revert Parent</button>
       </div>
       <div class="lineage-box" id="lineage-readout"></div>
@@ -442,12 +433,12 @@
       </div>
       <div id="stage-triple">
         <div class="triple-card">
-          <b>1. Found Reference (Shot w1623-01-00 · 29mm)</b>
-          Poem 01 "Out of Life" · Dusk-to-night street front; tower at x=0.41, horizon 0.36.
+          <b>1. Found Reference (Shot w1623-01-00 - 29mm)</b>
+          Poem 01 "Out of Life" - Dusk-to-night street front; tower at x=0.41, horizon 0.36.
         </div>
         <div class="triple-card">
           <b>2. Multiplane Layer &amp; Cutout Manifest</b>
-          FG curb cruiser (tire contact y=0) + Anny V8 courier &amp; keeper + mid-ground Severn brick + sky dish cutout (cone +/-38 deg).
+          FG curb cruiser + Anny V8 courier &amp; keeper + mid-ground Severn brick + sky dish cutout.
         </div>
         <div class="triple-card">
           <b>3. Traversable Consequence &amp; Reverse Cut</b>
@@ -458,7 +449,7 @@
   </aside>
 
   <div id="threshold-banner" role="region" aria-label="Threshold Door and Resident Encounter Controls">
-    <span id="space-status" style="font-weight:600;color:var(--cyan);">EXTERIOR STREET · 13.5 kHz</span>
+    <span id="space-status" style="font-weight:600;color:var(--cyan);">EXTERIOR STREET - 13.5 kHz</span>
     <button class="pill cyan-act" id="btn-door" type="button">Door: Open (E)</button>
     <button class="pill" id="btn-parcel" type="button">Hand Parcel to Bekele (H)</button>
     <button class="pill" id="btn-reverse-cam" type="button">Angle: Forward (R)</button>
@@ -467,8 +458,8 @@
   <section id="archive-modal" aria-label="Foundry 72 Worlds Archive and Reference Classification">
     <div class="modal-bar">
       <div>
-        <span class="kicker">Upstream Archive · archive.json + inverse.json + sets.json + shots.json</span>
-        <div class="headline" id="archive-stats-line">72 Evolved Worlds · Classified Spatial Evidence</div>
+        <span class="kicker">Upstream Archive - archive.json + inverse.json + sets.json + shots.json</span>
+        <div class="headline" id="archive-stats-line">72 Evolved Worlds - Classified Spatial Evidence</div>
       </div>
       <div class="mode-bar" style="margin-top:0;">
         <button class="pill active" data-rclass="all" type="button">All Refs</button>
@@ -482,9 +473,9 @@
     </div>
     <div class="modal-body">
       <div>
-        <div class="sec-head"><span>Foundry Niche Matrix (Lattice -> Maze / Dry -> Drowned)</span></div>
+        <div class="sec-head"><span>Foundry Niche Matrix (Lattice -&gt; Maze / Dry -&gt; Drowned)</span></div>
         <div id="niche-grid"></div>
-        <div class="sec-head" style="margin-top:12px;"><span>All Worlds Scatter (Gold Ring = Kept Elite)</span></div>
+        <div class="sec-head" style="margin-top:12px;"><span>All Worlds Scatter (Cyan = Kept Elite)</span></div>
         <canvas id="scatter-canvas" width="520" height="180"></canvas>
         <div id="world-inspector" class="lineage-box" style="margin-top:8px;"></div>
       </div>

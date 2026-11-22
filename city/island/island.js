@@ -3,7 +3,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ALL_CITY_LOOKS } from '../shaders.js';
-import { mountWebGLShaderSuite } from '../shader-suite-bar.js';
+import {
+  mountWebGLShaderSuite,
+  createWorldPortalAndTripod,
+  projectWorldLabel,
+} from '../shader-suite-bar.js';
 import {
   savePilotState,
   subscribePilotState,
@@ -84,7 +88,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color('#0c1f38');
 scene.fog = new THREE.FogExp2('#102644', 0.00058);
 
-const camera = new THREE.PerspectiveCamera(54, window.innerWidth / window.innerHeight, 0.35, 6500);
+const camera = new THREE.PerspectiveCamera(54, window.innerWidth / window.innerHeight, 0.35, 9200);
 
 // Cobalt-Cerulean Sky Dome with Stars & Warm Horizon Rim
 const skyUniforms = {
@@ -98,7 +102,7 @@ const skyUniforms = {
 };
 
 const skyDome = new THREE.Mesh(
-  new THREE.SphereGeometry(5800, 40, 24),
+  new THREE.SphereGeometry(8400, 40, 24),
   new THREE.ShaderMaterial({
     side: THREE.BackSide,
     depthWrite: false,
@@ -878,6 +882,18 @@ function hitsBuilding(x, z) {
 const wallColliders = []; // { x0, z0, x1, z1, y, activeFn }
 const interactiveNodes = []; // { id, kind, label, x, y, z, radius, provenance, onAct }
 const provenanceBadges3D = [];
+const diegeticPickables = [];
+const matHitProxy = new THREE.MeshBasicMaterial({
+  transparent: true,
+  opacity: 0,
+  depthWrite: false,
+  side: THREE.DoubleSide,
+});
+function addDiegeticTarget(mesh, info) {
+  mesh.userData.diegetic = info;
+  diegeticPickables.push(mesh);
+  return mesh;
+}
 
 function makePart(geo, mat, x, y, z, ry = 0) {
   const m = new THREE.Mesh(geo, mat);
@@ -965,8 +981,8 @@ function createParcelBundle() {
   const [plazaX, plazaZ] = toW(3.5, 0);
   g.add(makePart(new THREE.BoxGeometry(24, 0.16, 19), matLimestone, plazaX, y0 + 0.04, plazaZ, rotY));
 
-  // Usable Curb Loading Bay at f = +10.5m, s = -6.8m (parked cleanly in 3/4 street view)
-  const [curbX, curbZ] = toW(10.5, -6.8);
+  // Usable Curb Loading Bay at f = +7.8m, s = -4.4m (parked cleanly in 3/4 street view)
+  const [curbX, curbZ] = toW(7.8, -4.4);
   severnState.curbX = curbX;
   severnState.curbZ = curbZ;
   severnState.curbHd = Math.atan2(vx, -vz);
@@ -974,6 +990,8 @@ function createParcelBundle() {
   severnState.uz = uz;
   severnState.vx = vx;
   severnState.vz = vz;
+  severnState.rotY = rotY;
+  severnState.toW = toW;
 
   const curbBay = new THREE.Group();
   curbBay.position.set(curbX, y0 + 0.08, curbZ);
@@ -1046,7 +1064,17 @@ function createParcelBundle() {
   handle.position.set(2.32, 1.38, 0);
   const glassPane = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.1, 0.14), matWarmGlow);
   glassPane.position.set(1.28, 1.95, 0);
-  doorPivot.add(leaf, handle, glassPane);
+  const doorHit = new THREE.Mesh(new THREE.BoxGeometry(3.2, 3.4, 1.2), matHitProxy);
+  doorHit.position.set(1.28, 1.65, 0);
+  addDiegeticTarget(doorHit, {
+    kind: 'severn-door',
+    getAnchor: () => new THREE.Vector3(severnState.thresholdX, y0 + 3.25, severnState.thresholdZ),
+    getWhisper: () =>
+      pilot.doorOpen
+        ? 'The Severn 3D Door · Open (13.5 kHz) — Click to Close Lobby'
+        : 'The Severn 3D Door · Closed (580 Hz) — Click to Open & Enter Nolli Depot',
+  });
+  doorPivot.add(leaf, handle, glassPane, doorHit);
   g.add(doorPivot);
   severnState.doorPivot = doorPivot;
 
@@ -1067,15 +1095,23 @@ function createParcelBundle() {
   severnState.thresholdZ = thZ;
 
   // Interior Nolli Water Relay + Reception Table + Warm Interior Lamp
-  const [relX, relZ] = toW(-8.2, -5.2);
+  const [relX, relZ] = toW(-6.8, -4.4);
   g.add(makePart(new THREE.CylinderGeometry(0.95, 1.08, 0.55, 16), matLimestone, relX, y0 + 0.35, relZ));
   g.add(makePart(new THREE.CylinderGeometry(0.24, 0.28, 2.1, 12), matCyanRelay, relX, y0 + 1.4, relZ));
   g.add(makePart(new THREE.TorusGeometry(0.68, 0.08, 8, 24), matCyanRelay, relX, y0 + 0.68, relZ)).rotation.x = Math.PI / 2;
+  const relHit = makePart(new THREE.CylinderGeometry(1.35, 1.35, 2.8, 12), matHitProxy, relX, y0 + 1.4, relZ);
+  addDiegeticTarget(relHit, {
+    kind: 'water-relay',
+    nodeId: 'severn-relay',
+    getAnchor: () => new THREE.Vector3(relX, y0 + 2.85, relZ),
+    getWhisper: () => `Severn Nolli Standpipe (${(pilot.waterLiters || 5).toFixed(1)}L) — Click to Draw +5L Cyan`,
+  });
+  g.add(relHit);
 
   const [tblX, tblZ] = toW(-4.4, 2.4);
   g.add(makePart(new THREE.BoxGeometry(2.1, 0.86, 1.05), matTimberDoor, tblX, y0 + 0.5, tblZ, rotY));
 
-  const [bekX, bekZ] = toW(-2.7, 0.6);
+  const [bekX, bekZ] = toW(-1.15, 0.65);
   severnState.bekelePos.set(bekX, y0 + 0.15, bekZ);
 
   // Warm interior lamp casting light through open threshold onto pavement
@@ -1145,7 +1181,13 @@ for (const s of SETS) {
     const frameR = makePart(new THREE.BoxGeometry(0.28, 2.9, 0.28), matTimberDoor, 1.1, 1.45, 0);
     const frameT = makePart(new THREE.BoxGeometry(2.5, 0.28, 0.32), matBrass, 0, 2.95, 0);
     const ajarDoor = makePart(new THREE.BoxGeometry(1.95, 2.75, 0.1), matTimberDoor, -0.3, 1.4, 0.5, 0.65);
-    g.add(voidDisc, dashedRing, frameL, frameR, frameT, ajarDoor);
+    const blackHit = makePart(new THREE.CylinderGeometry(2.4, 2.4, 3.6, 12), matHitProxy, 0, 1.8, 0);
+    addDiegeticTarget(blackHit, {
+      kind: 'black-door',
+      getAnchor: () => new THREE.Vector3(s.x, y0 + 3.4, s.y),
+      getWhisper: () => 'Poem 14 · The Old Door in The Black — Click Nongeographic Cut to Severn',
+    });
+    g.add(voidDisc, dashedRing, frameL, frameR, frameT, ajarDoor, blackHit);
     scene.add(g);
     interactiveNodes.push({
       id: 'set-14',
@@ -1196,6 +1238,16 @@ for (const s of SETS) {
   g.add(makePart(new THREE.CylinderGeometry(0.75, 0.9, 0.48, 14), matLimestone, 0, 0.32, 0.5));
   g.add(makePart(new THREE.CylinderGeometry(0.18, 0.22, 1.85, 12), matCyanRelay, 0, 1.25, 0.5));
   g.add(makePart(new THREE.SphereGeometry(0.24, 10, 8), matWarmGlow, 0, 4.8, -4.2));
+  const depHit = makePart(new THREE.CylinderGeometry(2.2, 2.2, 3.2, 12), matHitProxy, 0, 1.5, 0.5);
+  addDiegeticTarget(depHit, {
+    kind: 'depot-relay',
+    poemNum: s.num,
+    title: s.title,
+    place: s.place,
+    getAnchor: () => new THREE.Vector3(s.x, y0 + 2.9, s.y + 0.5),
+    getWhisper: () => `Poem ${s.num} · ${s.title} Nolli Standpipe — Click to Draw +2.5L Cyan`,
+  });
+  g.add(depHit);
 
   scene.add(g);
   interactiveNodes.push({
@@ -1387,35 +1439,165 @@ function chooseRegionalSpecies(x, z, idx) {
   return idx % 4 === 0 ? 2 : 0; // Chesapeake Oak / Pine
 }
 
+const SPECIES_NAMES = [
+  'Chesapeake Broadleaf Oak',
+  'Condesa Jacaranda',
+  'Harbor Tiered Pine',
+  'Atlantis Columnar Cypress',
+  'Coastal Wind-Curved Palm',
+];
+const CURB_PITS_STORAGE_KEY = 'make_photo_island_pits_v1';
+let savedPitSpecies = {};
+try {
+  savedPitSpecies = JSON.parse(localStorage.getItem(CURB_PITS_STORAGE_KEY) || '{}') || {};
+} catch {
+  savedPitSpecies = {};
+}
+function persistPitSpecies() {
+  try {
+    localStorage.setItem(CURB_PITS_STORAGE_KEY, JSON.stringify(savedPitSpecies));
+  } catch {
+    // Ignore storage quota
+  }
+}
+
+const treePitsGroup = new THREE.Group();
+scene.add(treePitsGroup);
+const interactiveTreePits = [];
+
+function createInteractiveCurbPit({ id, x, z, initialSpecies = 0, heightM = 9.4, isSoilPatch = false }) {
+  const y = Math.max(hAt(x, z), 0.32);
+  const g = new THREE.Group();
+  g.position.set(x, y, z);
+
+  // Carved stone curb rim (or raw soil border) + recessed rich dark loam soil bed
+  const rimMat = new THREE.MeshStandardMaterial({
+    color: isSoilPatch ? '#8f8270' : '#c8bfb0',
+    roughness: 0.72,
+  });
+  const soilMat = new THREE.MeshStandardMaterial({
+    color: '#2e2218',
+    roughness: 0.94,
+  });
+  const rim = new THREE.Mesh(new THREE.BoxGeometry(2.36, 0.24, 2.36), rimMat);
+  rim.position.y = 0.12;
+  const soil = new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.27, 1.88), soilMat);
+  soil.position.y = 0.135;
+  const cyanCollar = new THREE.Mesh(
+    new THREE.RingGeometry(0.82, 0.90, 24),
+    new THREE.MeshBasicMaterial({ color: '#18b4ff', side: THREE.DoubleSide, transparent: true, opacity: 0.42 })
+  );
+  cyanCollar.rotation.x = -Math.PI / 2;
+  cyanCollar.position.y = 0.28;
+  g.add(rim, soil, cyanCollar);
+
+  const treeHolder = new THREE.Group();
+  treeHolder.position.y = -0.06;
+  g.add(treeHolder);
+
+  const spMeshes = treeGeos.map((geo, idx) => {
+    const m = new THREE.Mesh(geo, treeMat);
+    m.scale.setScalar(heightM);
+    m.rotation.y = ((idx * 1.3 + x * 0.1) % (Math.PI * 2));
+    m.visible = false;
+    treeHolder.add(m);
+    return m;
+  });
+
+  const savedVal = savedPitSpecies[id];
+  const curSp = typeof savedVal === 'number' ? savedVal : initialSpecies;
+
+  const pitRec = {
+    id,
+    x,
+    y,
+    z,
+    heightM,
+    species: curSp, // -1 = bare soil patch, 0..4 = 5 layered 3D tree species
+    group: g,
+    treeHolder,
+    spMeshes,
+    cyanCollar,
+    growScale: 1.0,
+  };
+
+  function syncPitMeshes() {
+    pitRec.spMeshes.forEach((m, idx) => {
+      m.visible = idx === pitRec.species;
+    });
+    pitRec.cyanCollar.material.opacity = pitRec.species < 0 ? 0.68 : 0.34;
+  }
+  syncPitMeshes();
+  pitRec.sync = syncPitMeshes;
+
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(2.9, 4.2, 2.9), matHitProxy);
+  hit.position.y = 1.9;
+  addDiegeticTarget(hit, {
+    kind: 'tree-pit',
+    pit: pitRec,
+    getAnchor: () => new THREE.Vector3(x, y + (pitRec.species >= 0 ? Math.min(5.2, heightM * 0.58) : 1.15), z),
+    getWhisper: () =>
+      pitRec.species < 0
+        ? 'Curb Soil Patch · Unplanted — Click to Plant 3D Tree Species (1/5)'
+        : `Stone Curb Tree-Pit · ${SPECIES_NAMES[pitRec.species]} (${pitRec.species + 1}/5) — Click to Cycle Species`,
+  });
+  g.add(hit);
+  treePitsGroup.add(g);
+  interactiveTreePits.push(pitRec);
+  return pitRec;
+}
+
 const baseTrees = [];
 const baseLamps = [];
 
 {
-  // Place curated avenue curb-planter trees flanking Cathedral St outside The Severn
-  for (const [fOff, sOff, spIdx] of [
-    [4.2, -6.2, 0],
-    [4.2, 5.8, 1],
-    [8.4, -11.5, 0],
-    [8.4, 10.5, 1],
-    [13.0, -7.5, 2],
-    [13.0, 8.2, 0],
-  ]) {
+  // Interactive Stone Curb Tree-Pits & Soil Patches along Cathedral St outside The Severn
+  const severnPitSpecs = [
+    [4.4, 4.3, 1, 9.2, false],   // Condesa Jacaranda in foreground-left curb pit
+    [6.9, 4.5, -1, 9.0, true],   // Open curb soil patch ready to plant right beside camera!
+    [4.4, -7.8, 0, 9.6, false],  // Chesapeake Broadleaf Oak in foreground-right curb pit
+    [10.8, 5.2, 2, 9.4, false],  // Harbor Tiered Pine
+    [11.4, -8.2, 3, 9.2, false], // Atlantis Columnar Cypress
+    [15.2, 4.8, 4, 9.0, false],  // Coastal Wind-Curved Palm
+  ];
+  severnPitSpecs.forEach(([fOff, sOff, spIdx, hM, isSoil], idx) => {
     const tx = severnState.cx + severnState.ux * fOff + severnState.vx * sOff;
     const tz = severnState.cz + severnState.uz * fOff + severnState.vz * sOff;
-    const ty = Math.max(hAt(tx, tz), severnState.y0);
-    baseTrees.push({
+    createInteractiveCurbPit({
+      id: `severn-pit-${idx}`,
       x: tx,
-      y: ty,
       z: tz,
-      h: 9.5,
-      sp: spIdx,
-      planter: true,
-      rot: Math.abs(sOff),
+      initialSpecies: spIdx,
+      heightM: hM,
+      isSoilPatch: isSoil,
     });
+  });
+
+  // Regional Stone Curb Tree-Pits & Soil Patches across the 5 Harbor & Highland Districts
+  const regionalPits = [
+    ['ih-0', 2398, 3404, 0, false],
+    ['ih-1', 2407, 3402, -1, true],
+    ['ih-2', 2405, 3391, 4, false],
+    ['fp-0', 3201, 3324, 0, false],
+    ['fp-1', 3211, 3316, -1, true],
+    ['fp-2', 3214, 3325, 2, false],
+    ['ac-0', 6711, 2283, 3, false],
+    ['ac-1', 6721, 2274, -1, true],
+    ['ac-2', 6719, 2285, 1, false],
+    ['co-0', 6553, 3656, 1, false],
+    ['co-1', 6563, 3648, -1, true],
+    ['co-2', 6562, 3658, 3, false],
+    ['ch-0', 3885, 5065, 4, false],
+    ['ch-1', 3895, 5056, -1, true],
+    ['ch-2', 3896, 5066, 2, false],
+  ];
+  for (const [id, rx, rz, spIdx, isSoil] of regionalPits) {
+    createInteractiveCurbPit({ id, x: rx, z: rz, initialSpecies: spIdx, heightM: 9.2, isSoilPatch: isSoil });
   }
 
   for (let i = 0; i < treesRaw.length; i++) {
     const [x, z, h] = treesRaw[i];
+    if (interactiveTreePits.some((p) => Math.hypot(p.x - x, p.z - z) < 4.5)) continue;
     const check = canPlantTreeAt(x, z);
     if (!check) continue;
     const sp = chooseRegionalSpecies(x, z, i);
@@ -1590,11 +1772,24 @@ function buildExpeditionCruiser(bodyHex = '#1f3652') {
   parcelCargo.position.set(0, 1.98, 0.52);
   g.add(parcelCargo);
 
-  g.userData = { wheels, parcelCargo };
+  const cruiserHit = new THREE.Mesh(new THREE.BoxGeometry(2.85, 2.35, 5.25), matHitProxy);
+  cruiserHit.position.set(0, 1.15, 0);
+  g.add(cruiserHit);
+
+  g.userData = { wheels, parcelCargo, cruiserHit };
   return g;
 }
 
 const cruiser = buildExpeditionCruiser('#1b3858');
+addDiegeticTarget(cruiser.userData.cruiserHit, {
+  kind: 'cruiser',
+  isPlayerCruiser: true,
+  getAnchor: () => new THREE.Vector3(cruiser.position.x, cruiser.position.y + 2.45, cruiser.position.z),
+  getWhisper: () =>
+    state.mode === 'drive'
+      ? 'Expedition Cruiser · Driving (WASD) — Click Street Curb or Press F to Step Out'
+      : 'Curb Expedition Cruiser — Click to Board & Drive (WASD)',
+});
 scene.add(cruiser);
 
 // Place a couple of curb-waiting regional delivery cruisers with real destinations
@@ -1611,6 +1806,13 @@ for (let i = 1; i < 4; i++) {
   npcVan.position.set(cd.x, Math.max(hAt(cd.x, cd.z), 0.3), cd.z);
   npcVan.rotation.y = -cd.hd;
   npcVan.userData.parcelCargo.visible = true;
+  addDiegeticTarget(npcVan.userData.cruiserHit, {
+    kind: 'service-cruiser',
+    dest: cd,
+    van: npcVan,
+    getAnchor: () => new THREE.Vector3(npcVan.position.x, npcVan.position.y + 2.45, npcVan.position.z),
+    getWhisper: () => `${cd.name} Cruiser — Click to Board & Drive`,
+  });
   scene.add(npcVan);
 }
 
@@ -1731,6 +1933,21 @@ const castDefs = [
 
 const residents = castDefs.map((d) => {
   const actor = spawnAnnyActor(d);
+  const resRec = { ...d, actor };
+  const npcHit = makePart(new THREE.CylinderGeometry(0.78, 0.78, 2.1, 10), matHitProxy, 0, 1.05, 0);
+  addDiegeticTarget(npcHit, {
+    kind: 'resident',
+    resident: resRec,
+    getAnchor: () => new THREE.Vector3(actor.root.position.x, actor.root.position.y + 1.98, actor.root.position.z),
+    getWhisper: () => {
+      const holder = pilot.parcelHolder || 'player';
+      const hasIt = holder === d.id;
+      return hasIt
+        ? `${d.name} (Holding Parcel + 5L Cyan) — Click to Retrieve`
+        : `${d.name} — Click to Hand Off Parcel & 5L Cyan Jerrycan`;
+    },
+  });
+  actor.root.add(npcHit);
   if (d.id !== 'bekele') {
     interactiveNodes.push({
       id: `npc-${d.id}`,
@@ -1741,10 +1958,10 @@ const residents = castDefs.map((d) => {
       z: d.z,
       radius: 5.2,
       provenance: 'checked',
-      onAct: () => showSpeech(d.name, d.line),
+      onAct: () => handoffWithResident(resRec),
     });
   }
-  return { ...d, actor };
+  return resRec;
 });
 
 const bekeleResident = residents[0];
@@ -1757,33 +1974,61 @@ const state = {
   brushOpen: false,
   brushKind: 'grove',
   reverseAngle: false,
-  px: severnState.cx + severnState.ux * 8.6 + severnState.vx * 1.4,
-  pz: severnState.cz + severnState.uz * 8.6 + severnState.vz * 1.4,
+  px: severnState.cx + severnState.ux * 7.6 - severnState.vx * 1.4,
+  pz: severnState.cz + severnState.uz * 7.6 - severnState.vz * 1.4,
   py: severnState.y0,
-  phd: Math.atan2(-severnState.ux, severnState.uz),
+  phd: Math.atan2(-severnState.ux - severnState.vx * 0.56, severnState.uz + severnState.vz * 0.56),
   cx: severnState.curbX,
   cz: severnState.curbZ,
   cy: severnState.y0,
   chd: severnState.curbHd,
   cv: 0,
-  camYaw: Math.atan2(-severnState.ux - severnState.vx * 0.28, severnState.uz + severnState.vz * 0.28),
-  camPitch: 0.14,
+  camYaw: Math.atan2(-severnState.ux - severnState.vx * 0.56, severnState.uz + severnState.vz * 0.56),
+  camPitch: -0.04,
   camDist: 9.2,
   curbDestIdx: 0,
+  glideAnim: null,
 };
 
-function showSpeech(speaker, text) {
+// Warm curb streetlamp illuminating player, Cruiser, Tripod & Severn stoop
+const curbHeroLight = new THREE.PointLight('#ffca88', 2.4, 28, 1.4);
+curbHeroLight.position.set(
+  severnState.cx + severnState.ux * 8.2,
+  severnState.y0 + 5.2,
+  severnState.cz + severnState.uz * 8.2
+);
+scene.add(curbHeroLight);
+
+let worldSpeechState = null; // { anchorVec3, speaker, text, until }
+function setWorldSpeech(anchorVec3, speaker, text, durMs = 4600) {
+  worldSpeechState = {
+    anchorVec3: anchorVec3 ? anchorVec3.clone() : new THREE.Vector3(state.px, state.py + 2.1, state.pz),
+    speaker,
+    text,
+    until: performance.now() + durMs,
+  };
+}
+
+function showSpeech(speaker, text, anchorVec3 = null) {
   $('speech-speaker').textContent = speaker;
   $('speech-line').textContent = text;
   $('speech-toast').classList.add('visible');
   clearTimeout(showSpeech._t);
   showSpeech._t = setTimeout(() => $('speech-toast').classList.remove('visible'), 4600);
+  setWorldSpeech(
+    anchorVec3 || new THREE.Vector3(severnState.thresholdX, severnState.y0 + 2.4, severnState.thresholdZ),
+    speaker,
+    text,
+    4600
+  );
 }
 
 function syncPilotVisuals() {
   const holder = pilot.parcelHolder || 'player';
   playerActor.carried.visible = holder === 'player' && state.mode === 'walk';
-  bekeleResident.actor.carried.visible = holder === 'bekele';
+  for (const r of residents) {
+    r.actor.carried.visible = holder === r.id;
+  }
   cruiser.userData.parcelCargo.visible = holder === 'cruiser' || (holder === 'player' && state.mode === 'drive');
 
   $('val-door-state').textContent = pilot.doorOpen ? 'OPEN (Street + Lobby)' : 'CLOSED (Muffled)';
@@ -1801,45 +2046,88 @@ function syncPilotVisuals() {
   }
 }
 
-function toggleSevernDoor() {
+function toggleSevernDoor(stepInside = false) {
   const next = !pilot.doorOpen;
   savePilotState({ doorOpen: next, building: 'severn' });
   pilot = { ...pilot, doorOpen: next };
-  if (shaderSuite?.audio) shaderSuite.audio.playDoorTransition(next);
+  if (shaderSuite?.audio) {
+    shaderSuite.audio.setDoorOpen?.(next, true);
+    shaderSuite.audio.playDoorTransition?.(next);
+  }
   syncPilotVisuals();
+  if (next && stepInside && state.mode === 'walk') {
+    const [inStepX, inStepZ] = severnState.toW(-2.2, -0.4);
+    const d = Math.hypot(state.px - severnState.thresholdX, state.pz - severnState.thresholdZ);
+    if (d < 24) {
+      state.glideAnim = {
+        elapsed: 0,
+        dur: 0.72,
+        x0: state.px,
+        z0: state.pz,
+        x1: inStepX,
+        z1: inStepZ,
+        cx0: state.cx,
+        cz0: state.cz,
+        cx1: state.cx,
+        cz1: state.cz,
+        yaw0: state.camYaw,
+        yaw1: Math.atan2(-severnState.ux, severnState.uz),
+        arcH: 0,
+        keepMode: true,
+      };
+    }
+  }
   showSpeech(
     'SEVERN THRESHOLD DOOR',
     next
-      ? 'Threshold door opened: vestibule walkable and street ambience unmuffled.'
-      : 'Threshold door closed: lobby sealed and exterior street sound muffled.'
+      ? 'Door opened (13.5 kHz): step inside the Nolli water depot.'
+      : 'Door closed (580 Hz): vestibule sealed and street bed muffled.',
+    new THREE.Vector3(severnState.thresholdX, severnState.y0 + 3.1, severnState.thresholdZ)
+  );
+}
+
+function handoffWithResident(res) {
+  const targetId = res?.id || 'bekele';
+  const cur = pilot.parcelHolder || 'player';
+  const next = cur === targetId ? 'player' : targetId;
+  savePilotState({ parcelHolder: next, building: 'severn' });
+  pilot = { ...pilot, parcelHolder: next };
+  syncPilotVisuals();
+
+  if (res?.actor?.v8 && typeof res.actor.v8.playClip === 'function') {
+    res.actor.v8.playClip('idle-talking', 0.2);
+    setTimeout(() => {
+      if (res.actor.v8 && typeof res.actor.v8.playClip === 'function') {
+        res.actor.v8.playClip('idle', 0.3);
+      }
+    }, 3600);
+  }
+  if (shaderSuite?.audio) shaderSuite.audio.playPour?.();
+  const spoken =
+    next === targetId
+      ? `${res.line} Parcel and 5L cyan jerrycan received.`
+      : 'Parcel and 5L cyan jerrycan handed back to you for the road.';
+  if (shaderSuite?.speakLine) {
+    shaderSuite.speakLine(res.name, spoken, targetId === 'bekele' ? 0.94 : 1.04);
+  }
+  showSpeech(
+    res.name.toUpperCase(),
+    spoken,
+    new THREE.Vector3(res.actor.root.position.x, res.actor.root.position.y + 1.98, res.actor.root.position.z)
   );
 }
 
 function cycleParcelHandoff() {
-  const cur = pilot.parcelHolder || 'player';
-  const dBekele = Math.hypot(state.px - bekeleResident.x, state.pz - bekeleResident.z);
-  const dCruiser = Math.hypot(state.px - state.cx, state.pz - state.cz);
-
-  let next = 'bekele';
-  if (cur === 'player') {
-    next = dCruiser < 4.5 && dBekele > 7 ? 'cruiser' : 'bekele';
-  } else if (cur === 'bekele') {
-    next = 'player';
-  } else {
-    next = 'player';
+  let nearestRes = bekeleResident;
+  let bestD = Infinity;
+  for (const r of residents) {
+    const d = Math.hypot(state.px - r.actor.root.position.x, state.pz - r.actor.root.position.z);
+    if (d < bestD) {
+      bestD = d;
+      nearestRes = r;
+    }
   }
-
-  savePilotState({ parcelHolder: next, building: 'severn' });
-  pilot = { ...pilot, parcelHolder: next };
-  syncPilotVisuals();
-  showSpeech(
-    next === 'bekele' ? 'BEKELE · SEVERN VESTIBULE' : 'PARCEL LEDGER',
-    next === 'bekele'
-      ? 'Parcel and 5L cyan canister received across threshold. Ownership saved across all city tools.'
-      : next === 'cruiser'
-        ? 'Parcel stowed on Expedition Cruiser roof rack at Mount Vernon curb bay.'
-        : 'Parcel and 5L cyan canister retrieved by player.'
-  );
+  handoffWithResident(nearestRes);
 }
 
 subscribePilotState((next) => {
@@ -1965,37 +2253,248 @@ const JUMP_PRESETS = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// 12b. Sky-High District Light Beacons & Harbor Buoys (Click Horizon to Glide)
+// ---------------------------------------------------------------------------
+const beaconsGroup = new THREE.Group();
+scene.add(beaconsGroup);
+const districtBeacons = [];
+
+function createBeaconBeamMaterial(hexColor) {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    fog: false,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending,
+    uniforms: {
+      uColor: { value: new THREE.Color(hexColor) },
+      uTime: { value: 0 },
+      uOpacity: { value: 0.72 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      uniform float uTime;
+      uniform float uOpacity;
+      varying vec2 vUv;
+      void main() {
+        float edge = sin(vUv.x * 3.14159265);
+        float core = pow(max(edge, 0.0), 1.45);
+        float vFade = smoothstep(0.0, 0.06, vUv.y) * pow(1.0 - vUv.y, 1.35);
+        float pulse = 0.86 + 0.14 * sin(uTime * 2.1 + vUv.y * 9.0);
+        float alpha = core * vFade * pulse * uOpacity;
+        gl_FragColor = vec4(uColor * (1.15 + core * 0.65), alpha);
+      }
+    `,
+  });
+}
+
+const BEACON_DEFS = [
+  { key: 'inner-harbor', name: 'Inner Harbor', sub: 'Harbor Lighthouse Buoy · Poem 11', color: '#38d6ff', buoy: true, beamH: 920 },
+  { key: 'fells-point', name: 'Fells Point', sub: 'Cobble Wharf Bell-Buoy · Poem 13', color: '#ffb457', buoy: true, beamH: 980 },
+  { key: 'centro', name: 'Atlantis Centro', sub: 'Light Gates Beacon · Poem 06', color: '#18b4ff', buoy: false, beamH: 1350 },
+  { key: 'condesa', name: 'Condesa', sub: 'Jacaranda Terrace Beacon · Poem 07', color: '#a88cff', buoy: false, beamH: 1350 },
+  { key: 'chapel', name: 'Chapel Shore', sub: 'Holland Island Channel Buoy · Poem 03', color: '#64e8c4', buoy: true, beamH: 1120 },
+  { key: 'severn', name: 'Severn Pilot', sub: '701 Cathedral St · Mount Vernon', color: '#f2a541', buoy: false, beamH: 820 },
+];
+
+for (const bd of BEACON_DEFS) {
+  const preset = JUMP_PRESETS[bd.key];
+  if (!preset) continue;
+  // Offset beacon base slightly from player landing spot so player lands facing it cleanly
+  const bx = preset.x + (bd.buoy ? 18 : -14);
+  const bz = preset.z + (bd.buoy ? 22 : -14);
+  const by = Math.max(hAt(bx, bz), 0.15);
+
+  const g = new THREE.Group();
+  g.position.set(bx, by, bz);
+
+  const lanternMat = new THREE.MeshStandardMaterial({
+    color: bd.color,
+    emissive: bd.color,
+    emissiveIntensity: 2.1,
+    roughness: 0.16,
+  });
+
+  if (bd.buoy) {
+    // Sculptural Harbor Bell-Buoy / Quay Beacon Plinth
+    const floatBase = makePart(new THREE.CylinderGeometry(2.1, 2.6, 1.5, 16), matDarkIron, 0, 0.75, 0);
+    const brassRing = makePart(new THREE.TorusGeometry(2.35, 0.16, 8, 24), matBrass, 0, 1.45, 0);
+    brassRing.rotation.x = Math.PI / 2;
+    const cage = makePart(new THREE.CylinderGeometry(0.95, 1.55, 5.4, 8, 1, true), matBrass, 0, 4.1, 0);
+    const globe = makePart(new THREE.OctahedronGeometry(1.15, 1), lanternMat, 0, 7.2, 0);
+    g.add(floatBase, brassRing, cage, globe);
+  } else {
+    // Architectural Stone & Brass District Beacon Obelisk
+    const plinth = makePart(new THREE.BoxGeometry(3.8, 1.4, 3.8), matLimestone, 0, 0.7, 0);
+    const shaft = makePart(new THREE.CylinderGeometry(0.95, 1.35, 7.6, 8), matWarmPlaster, 0, 5.1, 0);
+    const crown = makePart(new THREE.OctahedronGeometry(1.25, 1), lanternMat, 0, 9.5, 0);
+    g.add(plinth, shaft, crown);
+  }
+
+  // Sky-High Horizon Light Shaft + High Star Lantern
+  const beamMat = createBeaconBeamMaterial(bd.color);
+  beamMat.uniforms.uOpacity.value = 0.92;
+  const beam = new THREE.Mesh(
+    new THREE.CylinderGeometry(5.5, 11.5, bd.beamH, 16, 1, true),
+    beamMat
+  );
+  beam.position.y = bd.beamH * 0.5 + 6.0;
+  beam.frustumCulled = false;
+  g.add(beam);
+
+  const skyStar = new THREE.Mesh(
+    new THREE.OctahedronGeometry(11.5, 0),
+    new THREE.MeshBasicMaterial({ color: bd.color, fog: false })
+  );
+  skyStar.position.y = Math.min(340, bd.beamH * 0.34);
+  skyStar.frustumCulled = false;
+  g.add(skyStar);
+
+  // Generous invisible raycast cylinder so horizon beacons click effortlessly from 4.6 km away
+  const hitCyl = new THREE.Mesh(
+    new THREE.CylinderGeometry(48, 48, bd.beamH, 10),
+    matHitProxy
+  );
+  hitCyl.position.y = bd.beamH * 0.5;
+  hitCyl.frustumCulled = false;
+  const beaconRec = { ...bd, bx, by, bz, group: g, beamMat, skyStar, hitCyl };
+  addDiegeticTarget(hitCyl, {
+    kind: 'beacon',
+    beacon: beaconRec,
+    getAnchor: () => {
+      const dist = Math.hypot(camera.position.x - bx, camera.position.z - bz);
+      const labelY = by + THREE.MathUtils.clamp(dist * 0.055, 13, 185);
+      return new THREE.Vector3(bx, labelY, bz);
+    },
+    getWhisper: () => {
+      const distKm = (Math.hypot(state.px - preset.x, state.pz - preset.z) / 1000).toFixed(1);
+      return `${bd.name} Beacon (${distKm} km) · ${bd.sub} — Click to Glide There`;
+    },
+  });
+  g.add(hitCyl);
+
+  beaconsGroup.add(g);
+  districtBeacons.push(beaconRec);
+}
+
+let worldRig = null;
+function placeCurbTripodForPreset(key) {
+  if (!worldRig || !worldRig.tripodGroup) return;
+  if (key === 'severn') {
+    const [tx, tz] = severnState.toW(5.6, 2.7);
+    const ty = Math.max(hAt(tx, tz), severnState.y0);
+    worldRig.tripodGroup.position.set(tx, ty + 0.06, tz);
+    worldRig.tripodGroup.rotation.y = severnState.rotY + Math.PI;
+    return;
+  }
+  const p = JUMP_PRESETS[key];
+  if (!p) return;
+  const tx = p.x + Math.cos(p.yaw) * 3.1 - Math.sin(p.yaw) * 1.8;
+  const tz = p.z + Math.sin(p.yaw) * 3.1 + Math.cos(p.yaw) * 1.8;
+  const ty = Math.max(hAt(tx, tz), 0.35);
+  worldRig.tripodGroup.position.set(tx, ty, tz);
+  worldRig.tripodGroup.rotation.y = -p.yaw + Math.PI;
+}
+
 function updateProvenanceBadge(prov) {
   const b = $('active-prov-badge');
   b.className = `prov-badge prov-${prov}`;
   b.textContent = prov.toUpperCase();
 }
 
-function jumpToPreset(key) {
+function glideToPreset(key, instant = false) {
   const p = JUMP_PRESETS[key];
   if (!p) return;
   state.reverseAngle = false;
-  state.mode = 'walk';
-  state.px = p.x;
-  state.pz = p.z;
-  state.py = Math.max(hAt(p.x, p.z), 0.35);
-  state.cx = p.cx;
-  state.cz = p.cz;
-  state.cy = Math.max(hAt(p.cx, p.cz), 0.35);
   state.cv = 0;
-  state.camYaw = p.yaw;
-  state.phd = p.yaw;
+
+  if (key === 'black') {
+    state.mode = 'walk';
+  }
 
   $('hud-region').textContent = p.region;
   $('hud-place').textContent = p.label;
   $('set-select').value = p.poem;
   updateProvenanceBadge(p.prov);
-
   document.querySelectorAll('#region-pills .pill').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.jump === key);
   });
-  syncModeButtons();
   savePilotState({ poem: p.poem, district: p.district });
+
+  const dist = Math.hypot(p.x - state.px, p.z - state.pz);
+  if (instant || dist < 18) {
+    state.px = p.x;
+    state.pz = p.z;
+    state.py = Math.max(hAt(p.x, p.z), 0.35);
+    state.cx = p.cx;
+    state.cz = p.cz;
+    state.cy = Math.max(hAt(p.cx, p.cz), 0.35);
+    state.camYaw = p.yaw;
+    state.phd = p.yaw;
+    state.chd = p.yaw;
+    state.glideAnim = null;
+    placeCurbTripodForPreset(key);
+    syncModeButtons();
+    return;
+  }
+
+  state.glideAnim = {
+    key,
+    elapsed: 0,
+    dur: THREE.MathUtils.clamp(0.95 + dist / 4200, 1.0, 1.75),
+    x0: state.px,
+    z0: state.pz,
+    x1: p.x,
+    z1: p.z,
+    cx0: state.cx,
+    cz0: state.cz,
+    cx1: p.cx,
+    cz1: p.cz,
+    yaw0: state.camYaw,
+    yaw1: p.yaw,
+    arcH: THREE.MathUtils.clamp(dist * 0.045, 14, 145),
+    keepMode: key !== 'black',
+  };
+  placeCurbTripodForPreset(key);
+  syncModeButtons();
+  showSpeech(
+    p.region,
+    `Gliding across harbor to ${p.label}.`,
+    new THREE.Vector3(p.x, Math.max(hAt(p.x, p.z), 0.5) + 2.4, p.z)
+  );
+}
+
+function cycleTreePitSpecies(pit) {
+  if (!pit) return;
+  // Cycle 0 -> 1 -> 2 -> 3 -> 4 -> -1 (Open Soil Patch) -> 0
+  pit.species = pit.species >= 4 ? -1 : pit.species + 1;
+  savedPitSpecies[pit.id] = pit.species;
+  persistPitSpecies();
+  pit.sync();
+  pit.growScale = 0.16;
+  if (shaderSuite?.audio) shaderSuite.audio.playPour?.();
+  const label =
+    pit.species < 0
+      ? 'Cleared back to open curb soil bed — click again to plant Chesapeake Broadleaf Oak.'
+      : `Planted ${SPECIES_NAMES[pit.species]} (${pit.species + 1}/5) in stone curb pit.`;
+  setWorldSpeech(
+    new THREE.Vector3(pit.x, pit.y + (pit.species >= 0 ? 4.2 : 1.3), pit.z),
+    'STONE CURB TREE-PIT',
+    label,
+    2800
+  );
+}
+
+function jumpToPreset(key) {
+  glideToPreset(key, false);
 }
 
 function jumpToSetNum(num) {
@@ -2228,6 +2727,35 @@ function applyBrushAtWorldPoint(wx, wz) {
   }
 }
 
+const worldWhisperEl = $('world-whisper');
+const worldSpeechEl = $('world-speech');
+let hoveredDiegetic = null;
+
+function pickDiegeticAtClient(clientX, clientY) {
+  pointerNDC.set((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+  raycaster.setFromCamera(pointerNDC, camera);
+
+  // Avoid hitting worldRig's own tripod/portal meshes twice
+  if (worldRig && worldRig.hitMeshes && worldRig.hitMeshes.length > 0) {
+    const rigHits = raycaster.intersectObjects(worldRig.hitMeshes, false);
+    if (rigHits.length > 0 && rigHits[0].distance < 58) {
+      return { kind: 'world-rig', hit: rigHits[0] };
+    }
+  }
+
+  const hits = raycaster.intersectObjects(diegeticPickables, false);
+  for (let i = 0; i < hits.length; i++) {
+    const info = hits[i].object.userData.diegetic;
+    if (!info) continue;
+    // Hide Severn horizon beacon hit when already standing right at Severn (< 85m)
+    if (info.kind === 'beacon' && info.beacon.key === 'severn') {
+      if (Math.hypot(state.px - severnState.cx, state.pz - severnState.cz) < 85) continue;
+    }
+    return { ...info, hit: hits[i] };
+  }
+  return null;
+}
+
 canvas.addEventListener('pointerdown', (e) => {
   dragState = { x: e.clientX, y: e.clientY, moved: 0 };
 });
@@ -2236,7 +2764,6 @@ window.addEventListener('pointermove', (e) => {
   if (state.brushOpen) {
     pointerNDC.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
     raycaster.setFromCamera(pointerNDC, camera);
-    // Intersect horizontal plane near player ground
     const planeY = state.mode === 'walk' ? state.py : state.cy;
     const t = (planeY - raycaster.ray.origin.y) / (raycaster.ray.direction.y || -0.001);
     if (t > 0 && t < 800) {
@@ -2248,10 +2775,22 @@ window.addEventListener('pointermove', (e) => {
       brushCursor.visible = true;
     }
   }
-  if (!dragState) return;
+  if (!dragState) {
+    if (e.target === canvas) {
+      const picked = pickDiegeticAtClient(e.clientX, e.clientY);
+      hoveredDiegetic = picked && picked.kind !== 'world-rig' ? picked : null;
+      if (!picked || picked.kind !== 'world-rig') {
+        canvas.style.cursor = hoveredDiegetic ? 'pointer' : state.mode === 'drive' ? 'crosshair' : 'grab';
+      }
+    } else {
+      hoveredDiegetic = null;
+    }
+    return;
+  }
   const dx = e.clientX - dragState.x;
   const dy = e.clientY - dragState.y;
   dragState.moved += Math.abs(dx) + Math.abs(dy);
+  if (dragState.moved > 4) hoveredDiegetic = null;
   state.camYaw -= dx * 0.0052;
   state.camPitch = Math.max(-0.25, Math.min(0.85, state.camPitch + dy * 0.0042));
   dragState.x = e.clientX;
@@ -2259,12 +2798,139 @@ window.addEventListener('pointermove', (e) => {
 });
 
 window.addEventListener('pointerup', (e) => {
-  if (dragState && dragState.moved < 6 && state.brushOpen && e.target === canvas) {
-    if (brushCursor.visible) {
-      applyBrushAtWorldPoint(brushCursor.position.x, brushCursor.position.z);
+  const wasCleanClick = dragState && dragState.moved < 7 && e.button === 0 && e.target === canvas;
+  dragState = null;
+  if (!wasCleanClick) return;
+
+  if (state.brushOpen && brushCursor.visible) {
+    applyBrushAtWorldPoint(brushCursor.position.x, brushCursor.position.z);
+    return;
+  }
+
+  const picked = pickDiegeticAtClient(e.clientX, e.clientY);
+  if (picked) {
+    if (picked.kind === 'world-rig') {
+      // Handled directly by createWorldPortalAndTripod
+      return;
+    }
+    if (picked.kind === 'cruiser') {
+      toggleDriveWalk();
+      setWorldSpeech(
+        new THREE.Vector3(state.cx, state.cy + 2.4, state.cz),
+        'EXPEDITION CRUISER',
+        state.mode === 'drive'
+          ? 'Driving Cruiser (WASD). Click outside on the curb or press F to step out.'
+          : 'Stepped out onto the street curb.',
+        3000
+      );
+      return;
+    }
+    if (picked.kind === 'service-cruiser') {
+      state.cx = picked.van.position.x;
+      state.cz = picked.van.position.z;
+      state.cy = picked.van.position.y;
+      state.chd = -picked.van.rotation.y;
+      state.mode = 'drive';
+      syncModeButtons();
+      setWorldSpeech(
+        new THREE.Vector3(state.cx, state.cy + 2.4, state.cz),
+        picked.dest.name.toUpperCase(),
+        'Boarded regional Cruiser (WASD). Click outside on the curb or press F to step out.',
+        3000
+      );
+      return;
+    }
+    if (picked.kind === 'severn-door') {
+      toggleSevernDoor(true);
+      return;
+    }
+    if (picked.kind === 'resident') {
+      handoffWithResident(picked.resident);
+      return;
+    }
+    if (picked.kind === 'water-relay') {
+      const nextL = Math.min(20, (pilot.waterLiters || 5) + 5);
+      savePilotState({ waterLiters: nextL, coolingWet: true });
+      pilot = { ...pilot, waterLiters: nextL, coolingWet: true };
+      if (shaderSuite?.audio) shaderSuite.audio.playPour?.();
+      showSpeech(
+        'SEVERN NOLLI CISTERN',
+        `Standpipe replenished: ${nextL.toFixed(1)}L electric-cyan reserve active.`,
+        picked.getAnchor()
+      );
+      return;
+    }
+    if (picked.kind === 'depot-relay') {
+      const nextL = Math.min(20, (pilot.waterLiters || 5) + 2.5);
+      savePilotState({ poem: picked.poemNum, waterLiters: nextL, coolingWet: true });
+      pilot = { ...pilot, poem: picked.poemNum, waterLiters: nextL, coolingWet: true };
+      if (shaderSuite?.audio) shaderSuite.audio.playPour?.();
+      showSpeech(
+        `POEM ${picked.poemNum} · ${picked.title.toUpperCase()}`,
+        `${picked.place} — +2.5L cyan reserve synced (${nextL.toFixed(1)}L).`,
+        picked.getAnchor()
+      );
+      return;
+    }
+    if (picked.kind === 'black-door') {
+      savePilotState({ poem: '14', district: 'the-black' });
+      glideToPreset('severn', false);
+      showSpeech(
+        'NONGEOGRAPHIC THRESHOLD',
+        'Account cut from The Black back to Poem 01 (The Severn) outside street network.'
+      );
+      return;
+    }
+    if (picked.kind === 'tree-pit') {
+      cycleTreePitSpecies(picked.pit);
+      return;
+    }
+    if (picked.kind === 'beacon') {
+      glideToPreset(picked.beacon.key, false);
+      return;
     }
   }
-  dragState = null;
+
+  // Clicking outside on street / sidewalk / soil:
+  // 1) In Drive mode -> step back out onto the curb!
+  // 2) In Walk mode on valid soil/curb patch with Shift+click -> plant a new curb tree-pit!
+  pointerNDC.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+  raycaster.setFromCamera(pointerNDC, camera);
+  const planeY = state.mode === 'walk' ? state.py : state.cy;
+  const tGround = (planeY - raycaster.ray.origin.y) / (raycaster.ray.direction.y || -0.001);
+  if (state.mode === 'drive') {
+    toggleDriveWalk();
+    setWorldSpeech(
+      new THREE.Vector3(state.px, state.py + 2.05, state.pz),
+      'CURB DISEMBARK',
+      'Stepped out onto the street curb beside the Cruiser.',
+      2400
+    );
+    return;
+  }
+  if (tGround > 0 && tGround < 120 && e.shiftKey) {
+    const gx = raycaster.ray.origin.x + raycaster.ray.direction.x * tGround;
+    const gz = raycaster.ray.origin.z + raycaster.ray.direction.z * tGround;
+    const check = canPlantTreeAt(gx, gz);
+    if (check) {
+      const sp = chooseRegionalSpecies(gx, gz, interactiveTreePits.length);
+      const newPit = createInteractiveCurbPit({
+        id: `user-pit-${Date.now()}`,
+        x: gx,
+        z: gz,
+        initialSpecies: sp,
+        heightM: 9.2,
+        isSoilPatch: !check.needsPlanter,
+      });
+      newPit.growScale = 0.16;
+      setWorldSpeech(
+        new THREE.Vector3(gx, check.y + 3.8, gz),
+        'NEW CURB TREE-PIT',
+        `Planted ${SPECIES_NAMES[sp]} — click pit anytime to cycle all 5 species.`,
+        2800
+      );
+    }
+  }
 });
 
 // Fullscreen Click-to-Travel Map + Radar
@@ -2428,16 +3094,65 @@ function updateSimulation(dt, elapsed) {
   const targetDoorAng = pilot.doorOpen ? -Math.PI * 0.58 : 0;
   severnState.doorAngle += (targetDoorAng - severnState.doorAngle) * Math.min(1, dt * 8.5);
   if (severnState.doorPivot) {
-    const nr = nearestRoad(severnState.cx, severnState.cz, 180);
-    const fx = nr ? (nr.x - severnState.cx) : 1;
-    const fz = nr ? (nr.z - severnState.cz) : 0;
-    const rotY = Math.atan2(fx, fz);
-    severnState.doorPivot.rotation.y = rotY + severnState.doorAngle;
+    severnState.doorPivot.rotation.y = severnState.rotY + severnState.doorAngle;
+  }
+
+  // Smooth organic growth spring on Curb Tree-Pits & Sky-High Beacon shimmer
+  for (let i = 0; i < interactiveTreePits.length; i++) {
+    const pit = interactiveTreePits[i];
+    if (pit.growScale < 0.999) {
+      pit.growScale += (1.0 - pit.growScale) * Math.min(1, dt * 8.5);
+      pit.treeHolder.scale.setScalar(pit.growScale);
+    }
+  }
+  for (let i = 0; i < districtBeacons.length; i++) {
+    const bc = districtBeacons[i];
+    bc.beamMat.uniforms.uTime.value = elapsed;
+    bc.skyStar.rotation.y = elapsed * 0.9 + i;
+    if (bc.key === 'severn') {
+      const dSev = Math.hypot(state.px - severnState.cx, state.pz - severnState.cz);
+      const vis = THREE.MathUtils.clamp((dSev - 65) / 70, 0, 1);
+      bc.group.visible = vis > 0.02;
+      bc.beamMat.uniforms.uOpacity.value = 0.72 * vis;
+    }
   }
 
   let moving = false;
+  let glideArcLift = 0;
 
-  if (state.mode === 'walk') {
+  if (state.glideAnim) {
+    const ga = state.glideAnim;
+    ga.elapsed += dt;
+    const u = Math.min(1, ga.elapsed / ga.dur);
+    const k = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) * 0.5;
+    state.px = THREE.MathUtils.lerp(ga.x0, ga.x1, k);
+    state.pz = THREE.MathUtils.lerp(ga.z0, ga.z1, k);
+    const brY = onBridgeDeck(state.px, state.pz);
+    state.py = Math.max(brY != null ? brY : hAt(state.px, state.pz), 0.32);
+
+    state.cx = THREE.MathUtils.lerp(ga.cx0, ga.cx1, k);
+    state.cz = THREE.MathUtils.lerp(ga.cz0, ga.cz1, k);
+    const brCY = onBridgeDeck(state.cx, state.cz);
+    state.cy = Math.max(brCY != null ? brCY : hAt(state.cx, state.cz), 0.32);
+
+    let dYaw = ga.yaw1 - ga.yaw0;
+    while (dYaw > Math.PI) dYaw -= Math.PI * 2;
+    while (dYaw < -Math.PI) dYaw += Math.PI * 2;
+    state.camYaw = ga.yaw0 + dYaw * k;
+    state.phd = state.camYaw;
+    state.chd = state.camYaw;
+    glideArcLift = Math.sin(u * Math.PI) * (ga.arcH || 0);
+    moving = true;
+    if (u >= 1) {
+      state.glideAnim = null;
+    }
+    playerActor.root.position.set(state.px, state.py, state.pz);
+    playerActor.root.rotation.y = -state.phd + Math.PI;
+    if (playerActor.v8 && typeof playerActor.v8.update === 'function') {
+      playerActor.v8.setGroundY(state.py);
+      playerActor.v8.update(dt);
+    }
+  } else if (state.mode === 'walk') {
     const fwd = (keys['w'] || keys['arrowup'] ? 1 : 0) - (keys['s'] || keys['arrowdown'] ? 1 : 0);
     const str = (keys['d'] || keys['arrowright'] ? 1 : 0) - (keys['a'] || keys['arrowleft'] ? 1 : 0);
     const len = Math.hypot(fwd, str);
@@ -2533,13 +3248,13 @@ function updateSimulation(dt, elapsed) {
     );
     camera.lookAt(severnState.curbX, severnState.y0 + 1.35, severnState.curbZ);
   } else if (state.mode === 'walk') {
-    const dist = 9.4;
+    const dist = 9.2;
     const tx = state.px;
-    const ty = state.py + 1.65;
+    const ty = state.py + 1.65 + glideArcLift * 0.35;
     const tz = state.pz;
     camera.position.set(
       tx - Math.sin(state.camYaw) * Math.cos(state.camPitch) * dist,
-      Math.max(hAt(tx, tz) + 0.65, ty + Math.sin(state.camPitch) * dist),
+      Math.max(hAt(tx, tz) + 0.65, ty + Math.sin(state.camPitch) * dist + glideArcLift),
       tz + Math.cos(state.camYaw) * Math.cos(state.camPitch) * dist
     );
     camera.lookAt(tx, ty, tz);
@@ -2547,11 +3262,11 @@ function updateSimulation(dt, elapsed) {
     const dist = 11.5;
     const yaw = state.chd;
     const tx = state.cx;
-    const ty = state.cy + 1.6;
+    const ty = state.cy + 1.6 + glideArcLift * 0.35;
     const tz = state.cz;
     camera.position.set(
       tx - Math.sin(yaw) * dist,
-      ty + 3.6,
+      ty + 3.6 + glideArcLift,
       tz + Math.cos(yaw) * dist
     );
     camera.lookAt(tx + Math.sin(yaw) * 4, ty, tz - Math.cos(yaw) * 4);
@@ -2584,6 +3299,46 @@ function updateSimulation(dt, elapsed) {
     promptEl.classList.remove('visible');
   }
 
+  // Project unboxed 1-line hover whisper & resident speech in 3D world space (never overlapping)
+  const speechActive = Boolean(worldSpeechState && performance.now() < worldSpeechState.until);
+  if (!speechActive && hoveredDiegetic && typeof hoveredDiegetic.getAnchor === 'function') {
+    const prj = projectWorldLabel(camera, hoveredDiegetic.getAnchor(), canvas);
+    if (prj.visible) {
+      worldWhisperEl.textContent = hoveredDiegetic.getWhisper();
+      worldWhisperEl.style.left = `${Math.round(prj.x)}px`;
+      worldWhisperEl.style.top = `${Math.round(Math.max(22, prj.y - 8))}px`;
+      worldWhisperEl.style.display = 'block';
+    } else {
+      worldWhisperEl.style.display = 'none';
+    }
+  } else {
+    worldWhisperEl.style.display = 'none';
+  }
+
+  if (speechActive) {
+    const prj = projectWorldLabel(camera, worldSpeechState.anchorVec3, canvas);
+    if (prj.visible) {
+      worldSpeechEl.innerHTML = '';
+      const bEl = document.createElement('b');
+      bEl.textContent = worldSpeechState.speaker;
+      const sEl = document.createElement('span');
+      sEl.textContent = worldSpeechState.text;
+      worldSpeechEl.append(bEl, sEl);
+      worldSpeechEl.style.left = `${Math.round(THREE.MathUtils.clamp(prj.x, 220, window.innerWidth - 220))}px`;
+      worldSpeechEl.style.top = `${Math.round(THREE.MathUtils.clamp(prj.y - 12, 36, window.innerHeight - 36))}px`;
+      worldSpeechEl.style.display = 'block';
+    } else {
+      worldSpeechEl.style.display = 'none';
+    }
+  } else {
+    worldSpeechState = null;
+    worldSpeechEl.style.display = 'none';
+  }
+
+  if (worldRig) {
+    worldRig.update({ x: ax, y: state.py, z: az });
+  }
+
   const insideSealedRoom = isInsideSevernVestibule(ax, az) && !pilot.doorOpen;
   if (shaderSuite) {
     shaderSuite.updateAudio(dt, {
@@ -2596,24 +3351,26 @@ function updateSimulation(dt, elapsed) {
     });
   }
 
-  // Telemetry & Radar update
-  const nr = nearestRoad(ax, az, 90);
-  const curbInfo = inBlackNonRoadZone(ax, az)
-    ? 'Outside Street Network'
-    : nr
-      ? `On Curb / Street (${nr.d.toFixed(0)}m)`
-      : 'Off-Street Terrain';
-  $('hud-telemetry').textContent = `${state.mode === 'walk' ? 'Walk Mode' : `Cruiser ${Math.abs(Math.round(state.cv * 2.2))} mph`} · ${curbInfo} · +${state.py.toFixed(1)}m`;
+  // Telemetry & Radar update (only redraw 2D radar if Tab drawer is open)
+  if (document.body.classList.contains('mp-tab-open')) {
+    const nr = nearestRoad(ax, az, 90);
+    const curbInfo = inBlackNonRoadZone(ax, az)
+      ? 'Outside Street Network'
+      : nr
+        ? `On Curb / Street (${nr.d.toFixed(0)}m)`
+        : 'Off-Street Terrain';
+    $('hud-telemetry').textContent = `${state.mode === 'walk' ? 'Walk Mode' : `Cruiser ${Math.abs(Math.round(state.cv * 2.2))} mph`} · ${curbInfo} · +${state.py.toFixed(1)}m`;
 
-  radarTimer += dt;
-  if (radarTimer > 0.25) {
-    radarTimer = 0;
-    drawIslandCartography(radarCtx, radarCanvas.width, radarCanvas.height, false);
+    radarTimer += dt;
+    if (radarTimer > 0.25) {
+      radarTimer = 0;
+      drawIslandCartography(radarCtx, radarCanvas.width, radarCanvas.height, false);
+    }
   }
 }
 
 // ---------------------------------------------------------------------------
-// 14. Mount Universal 23-Look GPU Shader Suite Bar
+// 14. Mount Universal 23-Look GPU Shader Suite + Curb Brass Camera Tripod
 // ---------------------------------------------------------------------------
 shaderSuite = mountWebGLShaderSuite({
   THREE,
@@ -2629,6 +3386,46 @@ shaderSuite = mountWebGLShaderSuite({
     applyHourToSky(h);
   },
 });
+
+{
+  const [tripX, tripZ] = severnState.toW(5.6, 3.1);
+  const tripY = Math.max(hAt(tripX, tripZ), severnState.y0) + 0.06;
+  const [portMapsX, portMapsZ] = severnState.toW(14.0, 9.6);
+  const [portNolliX, portNolliZ] = severnState.toW(14.0, -9.8);
+  worldRig = createWorldPortalAndTripod({
+    THREE,
+    scene,
+    camera,
+    domElement: canvas,
+    suite: shaderSuite,
+    tripodPos: {
+      x: tripX,
+      y: tripY,
+      z: tripZ,
+      rotY: severnState.rotY + Math.PI,
+    },
+    portals: [
+      {
+        id: 'maps',
+        label: 'Living Cartography & MovieMap',
+        href: '../maps/',
+        pos: [portMapsX, Math.max(hAt(portMapsX, portMapsZ), severnState.y0), portMapsZ],
+        rotY: severnState.rotY + Math.PI * 0.5,
+        color: '#18b4ff',
+      },
+      {
+        id: 'nolli',
+        label: 'Nolli Block & Camera Shop',
+        href: '../',
+        pos: [portNolliX, Math.max(hAt(portNolliX, portNolliZ), severnState.y0), portNolliZ],
+        rotY: severnState.rotY - Math.PI * 0.5,
+        color: '#e0b46a',
+      },
+    ],
+  });
+  // Seed initial observer immediately so zero proximity whisper shows before user moves
+  worldRig.update({ x: state.px, y: state.py, z: state.pz });
+}
 
 window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight, false);

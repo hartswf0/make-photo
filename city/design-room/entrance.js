@@ -3,7 +3,7 @@
 // Strict zero-emoji policy across code and UI.
 
 import * as THREE from 'three';
-import { ALL_CITY_LOOKS, CityShaderPipeline } from '../shader-suite-bar.js';
+import { ALL_CITY_LOOKS, CityShaderPipeline, projectWorldLabel } from '../shader-suite-bar.js';
 import {
   loadPilotState,
   savePilotState,
@@ -686,27 +686,14 @@ class HeroMultiplaneStage {
     this._buildRelayDishSilhouette();
     this._buildSevernThresholdAndCast();
     this._buildWetStreetReflection();
+    this._buildDiegeticStreetRoutes();
 
     this.applyPilot(this.pilot);
     this.ready = true;
     this.canvas.classList.add('is-ready');
 
     window.addEventListener('resize', () => this.resize());
-    const stageEl = this.canvas.parentElement;
-    stageEl.addEventListener(
-      'pointermove',
-      (e) => {
-        if (this.reducedMotion) return;
-        const r = stageEl.getBoundingClientRect();
-        this.pointerX = ((e.clientX - r.left) / Math.max(1, r.width) - 0.5) * 2;
-        this.pointerY = ((e.clientY - r.top) / Math.max(1, r.height) - 0.5) * 2;
-      },
-      { passive: true }
-    );
-    stageEl.addEventListener('pointerleave', () => {
-      this.pointerX = 0;
-      this.pointerY = 0;
-    });
+    this._bindRouteRaycaster();
 
     this._animate();
   }
@@ -1036,7 +1023,308 @@ class HeroMultiplaneStage {
     apron.rotation.x = -Math.PI / 2;
     apron.position.set(0, -2.14, 1.8);
     apron.renderOrder = 30;
+    this.waterApronMesh = apron;
     this.scene.add(apron);
+  }
+
+  _buildFolioPageTexture() {
+    const cv = document.createElement('canvas');
+    cv.width = 512;
+    cv.height = 320;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#e7dcc4';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    // Center spine crease
+    ctx.fillStyle = 'rgba(42, 31, 20, 0.32)';
+    ctx.fillRect(cv.width * 0.5 - 3, 0, 6, cv.height);
+    // Left page: Concentric Plato Atlantis Canal Rings
+    const cx = cv.width * 0.26;
+    const cy = cv.height * 0.52;
+    for (const [r, col] of [[96, '#137aa8'], [72, '#8a5d2e'], [48, '#18b4ff'], [24, '#c78834']]) {
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // Right page: Ruled Oulipo stanza bars
+    ctx.fillStyle = '#33281e';
+    for (let row = 0; row < 8; row++) {
+      const w = 130 + ((row * 37) % 64);
+      ctx.fillRect(cv.width * 0.56, 48 + row * 28, w, 6);
+    }
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  _buildDiegeticStreetRoutes() {
+    this.routePickables = [];
+    this.hoveredRouteMeta = null;
+
+    const addPick = (mesh, meta) => {
+      mesh.userData.streetRoute = meta;
+      this.routePickables.push(mesh);
+      return mesh;
+    };
+
+    // 1. LIT SEVERN DOORWAY -> ../ (The Nolli Block)
+    const severnHit = new THREE.Mesh(
+      new THREE.BoxGeometry(2.35, 2.75, 1.45),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    severnHit.position.set(0, 1.35, 0.25);
+    this.severnRoot.add(severnHit);
+    addPick(severnHit, {
+      id: 'severn-doorway',
+      href: '../',
+      anchorObj: this.severnRoot,
+      anchorOffset: new THREE.Vector3(0, 2.68, 0.1),
+      whisper: 'Lit Severn Doorway — Enter the Nolli Block',
+    });
+
+    // 2. RUNNING FIGURES (P2 WEAVE Street Cast) & MONUMENTAL RELAY DISH -> ../weave/ (WEAVE Stage)
+    const runRoot = new THREE.Group();
+    runRoot.position.set(-1.35, -0.35, -1.72);
+    this.runningFiguresGroup = runRoot;
+    this.scene.add(runRoot);
+
+    const runnersHit = new THREE.Mesh(
+      new THREE.BoxGeometry(4.2, 3.3, 0.65),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    runnersHit.position.set(0, 0, 0);
+    runRoot.add(runnersHit);
+    addPick(runnersHit, {
+      id: 'running-figures',
+      href: '../weave/',
+      anchorObj: runRoot,
+      anchorOffset: new THREE.Vector3(0.15, 1.55, 0),
+      whisper: 'Running Street Figures — Enter WEAVE Stage',
+    });
+
+    const dishHit = new THREE.Mesh(
+      new THREE.SphereGeometry(2.35, 12, 10),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    dishHit.position.set(0, 0, 0);
+    this.relayGroup.add(dishHit);
+    addPick(dishHit, {
+      id: 'relay-dish',
+      href: '../weave/',
+      anchorObj: this.relayGroup,
+      anchorOffset: new THREE.Vector3(-0.2, 1.85, 0.4),
+      whisper: 'Suspended Relay Dish — Enter WEAVE Stage',
+    });
+
+    // 3. WET FOREGROUND CANAL & STOOP FOLIO -> ../atlantis/ (Atlantis Rings)
+    const folioRoot = new THREE.Group();
+    folioRoot.position.set(-2.05, -2.13, 2.55);
+    folioRoot.rotation.y = 0.28;
+
+    const canalQuoin = new THREE.Mesh(
+      new THREE.BoxGeometry(1.18, 0.22, 0.74),
+      new THREE.MeshStandardMaterial({ color: 0x262e3a, roughness: 0.84 })
+    );
+    canalQuoin.position.y = 0.11;
+    folioRoot.add(canalQuoin);
+
+    const brassCover = new THREE.Mesh(
+      new THREE.BoxGeometry(0.76, 0.035, 0.50),
+      new THREE.MeshStandardMaterial({ color: 0xc99c58, roughness: 0.36, metalness: 0.68 })
+    );
+    brassCover.position.set(0, 0.24, 0);
+    brassCover.rotation.x = 0.24;
+    folioRoot.add(brassCover);
+
+    const folioTex = this._buildFolioPageTexture();
+    this.folioPagesMat = new THREE.MeshStandardMaterial({
+      map: folioTex,
+      emissive: new THREE.Color('#146a96'),
+      emissiveIntensity: 0.42,
+      roughness: 0.65,
+    });
+    const folioPages = new THREE.Mesh(new THREE.PlaneGeometry(0.70, 0.44), this.folioPagesMat);
+    folioPages.position.set(0, 0.265, 0.008);
+    folioPages.rotation.x = -Math.PI / 2 + 0.24;
+    folioRoot.add(folioPages);
+
+    this.folioLight = new THREE.PointLight(0x18b4ff, 1.35, 3.6);
+    this.folioLight.position.set(0, 0.58, 0.15);
+    folioRoot.add(this.folioLight);
+    this.folioRoot = folioRoot;
+    this.scene.add(folioRoot);
+
+    const folioHit = new THREE.Mesh(
+      new THREE.BoxGeometry(1.45, 0.85, 1.05),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    folioHit.position.set(0, 0.35, 0);
+    folioRoot.add(folioHit);
+    addPick(folioHit, {
+      id: 'stoop-folio',
+      href: '../atlantis/',
+      anchorObj: folioRoot,
+      anchorOffset: new THREE.Vector3(0, 0.68, 0),
+      whisper: 'Stoop Folio & Wet Canal — Enter Atlantis Rings',
+    });
+
+    const canalHit = new THREE.Mesh(
+      new THREE.PlaneGeometry(11.5, 4.4),
+      new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+    );
+    canalHit.rotation.x = -Math.PI / 2;
+    canalHit.position.set(-0.3, -2.11, 3.25);
+    this.scene.add(canalHit);
+    addPick(canalHit, {
+      id: 'wet-canal',
+      href: '../atlantis/',
+      anchorObj: folioRoot,
+      anchorOffset: new THREE.Vector3(1.65, 0.45, 0.55),
+      whisper: 'Wet Foreground Canal — Dive to Atlantis Rings',
+    });
+
+    // 4. DISTANT STREET SKYLINE -> ../island/ (Island City)
+    const skylineRoot = new THREE.Group();
+    skylineRoot.position.set(-0.65, 0.55, -9.65);
+    const towerMat = new THREE.MeshStandardMaterial({
+      color: 0x16283e,
+      emissive: 0x0b1f33,
+      roughness: 0.78,
+    });
+    const towerSpecs = [
+      [-2.1, 0.25, 0.72, 2.2],
+      [-1.15, 0.52, 0.64, 2.75],
+      [-0.25, 0.38, 0.58, 2.45],
+      [0.68, 0.62, 0.66, 2.95],
+      [1.55, 0.20, 0.62, 2.1],
+    ];
+    for (const [tx, ty, tw, th] of towerSpecs) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(tw, th, 0.45), towerMat);
+      m.position.set(tx, ty, 0);
+      skylineRoot.add(m);
+    }
+    this.skylineBeacon = new THREE.Mesh(
+      new THREE.SphereGeometry(0.08, 10, 10),
+      new THREE.MeshBasicMaterial({ color: 0xf2a541 })
+    );
+    this.skylineBeacon.position.set(0.68, 2.18, 0.15);
+    skylineRoot.add(this.skylineBeacon);
+    this.skylineMat = towerMat;
+    this.skylineRoot = skylineRoot;
+    this.scene.add(skylineRoot);
+
+    const skylineHit = new THREE.Mesh(
+      new THREE.PlaneGeometry(6.8, 3.1),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    skylineHit.position.set(0, 0.65, 0.3);
+    skylineRoot.add(skylineHit);
+    addPick(skylineHit, {
+      id: 'distant-skyline',
+      href: '../island/',
+      anchorObj: skylineRoot,
+      anchorOffset: new THREE.Vector3(0, 1.85, 0.2),
+      whisper: 'Distant Street Skyline — Enter Island City',
+    });
+  }
+
+  _bindRouteRaycaster() {
+    const raycaster = new THREE.Raycaster();
+    const ptrNdc = new THREE.Vector2();
+    const whisperEl = document.getElementById('world-whisper');
+    const worldTmp = new THREE.Vector3();
+    let downPos = null;
+
+    const pickAt = (e) => {
+      if (
+        document.body.classList.contains('sheet-open') ||
+        document.body.classList.contains('mp-tab-open')
+      ) {
+        return null;
+      }
+      const r = this.canvas.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return null;
+      ptrNdc.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+      ptrNdc.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+      raycaster.setFromCamera(ptrNdc, this.camera);
+      const hits = raycaster.intersectObjects(this.routePickables, false);
+      return hits.length ? hits[0].object.userData.streetRoute : null;
+    };
+
+    this._syncRouteWhisper = () => {
+      if (!whisperEl) return;
+      const meta = this.hoveredRouteMeta;
+      if (
+        !meta ||
+        document.body.classList.contains('sheet-open') ||
+        document.body.classList.contains('mp-tab-open')
+      ) {
+        whisperEl.classList.remove('visible');
+        return;
+      }
+      meta.anchorObj.updateMatrixWorld();
+      worldTmp.copy(meta.anchorOffset);
+      meta.anchorObj.localToWorld(worldTmp);
+      const p = projectWorldLabel(this.camera, worldTmp, this.canvas);
+      if (!p.inFront) {
+        whisperEl.classList.remove('visible');
+        return;
+      }
+      whisperEl.textContent = meta.whisper;
+      whisperEl.classList.add('visible');
+      const halfW = Math.ceil((whisperEl.offsetWidth || 240) * 0.5) + 16;
+      const cx = THREE.MathUtils.clamp(p.x, halfW, Math.max(halfW, window.innerWidth - halfW));
+      const cy = THREE.MathUtils.clamp(p.y, 36, window.innerHeight - 28);
+      whisperEl.style.left = `${Math.round(cx)}px`;
+      whisperEl.style.top = `${Math.round(cy)}px`;
+    };
+
+    const stageEl = this.canvas.parentElement;
+    stageEl.addEventListener(
+      'pointermove',
+      (e) => {
+        if (!this.reducedMotion) {
+          const r = stageEl.getBoundingClientRect();
+          this.pointerX = ((e.clientX - r.left) / Math.max(1, r.width) - 0.5) * 2;
+          this.pointerY = ((e.clientY - r.top) / Math.max(1, r.height) - 0.5) * 2;
+        }
+        this.hoveredRouteMeta = pickAt(e);
+        this.canvas.style.cursor = this.hoveredRouteMeta ? 'pointer' : 'default';
+        this._syncRouteWhisper();
+      },
+      { passive: true }
+    );
+
+    stageEl.addEventListener('pointerleave', () => {
+      this.pointerX = 0;
+      this.pointerY = 0;
+      this.hoveredRouteMeta = null;
+      this.canvas.style.cursor = 'default';
+      if (whisperEl) whisperEl.classList.remove('visible');
+    });
+
+    this.canvas.addEventListener('pointerdown', (e) => {
+      if (e.button === 0) downPos = { x: e.clientX, y: e.clientY };
+    });
+
+    this.canvas.addEventListener('pointerup', (e) => {
+      if (e.button !== 0 || !downPos) return;
+      const moved = Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y);
+      downPos = null;
+      if (moved > 8) return;
+
+      const picked = pickAt(e);
+      if (!picked) return;
+
+      // Shift+Click on Severn Doorway toggles doorOpen in-place; normal Click enters ../
+      if (picked.id === 'severn-doorway' && e.shiftKey) {
+        const cur = loadPilotState();
+        savePilotState({ doorOpen: !cur.doorOpen });
+        return;
+      }
+      window.location.assign(destinationWithHash(picked.href, loadPilotState()));
+    });
   }
 
   setExplode(amount01) {
@@ -1158,11 +1446,35 @@ class HeroMultiplaneStage {
       }
 
       if (this.relayBeacon) {
-        const pulse = 0.55 + 0.45 * Math.sin(t * 2.4);
-        this.relayBeacon.scale.setScalar(0.85 + pulse * 0.35);
+        const isDishHover =
+          this.hoveredRouteMeta?.id === 'relay-dish' || this.hoveredRouteMeta?.id === 'running-figures';
+        const pulse = 0.55 + 0.45 * Math.sin(t * (isDishHover ? 5.2 : 2.4));
+        this.relayBeacon.scale.setScalar((isDishHover ? 1.25 : 0.85) + pulse * 0.35);
+      }
+      if (this.runningFiguresMat) {
+        const hRun =
+          this.hoveredRouteMeta?.id === 'running-figures' || this.hoveredRouteMeta?.id === 'relay-dish';
+        this.runningFiguresMat.emissive.setHex(hRun ? 0x185888 : 0x091d30);
+      }
+      if (this.doorWarmLight) {
+        const hDoor = this.hoveredRouteMeta?.id === 'severn-doorway';
+        const baseI = this.pilot.doorOpen ? 2.4 : 0.35;
+        this.doorWarmLight.intensity = hDoor ? baseI + 1.45 : baseI;
+      }
+      if (this.folioPagesMat) {
+        const hAtlantis =
+          this.hoveredRouteMeta?.id === 'stoop-folio' || this.hoveredRouteMeta?.id === 'wet-canal';
+        this.folioPagesMat.emissiveIntensity = hAtlantis ? 1.05 : 0.42;
+      }
+      if (this.skylineMat) {
+        const hIsland = this.hoveredRouteMeta?.id === 'distant-skyline';
+        this.skylineMat.emissive.setHex(hIsland ? 0x224b73 : 0x0b1f33);
       }
       if (this.waterApronMat) {
         this.waterApronMat.uniforms.uTime.value = t;
+      }
+      if (this._syncRouteWhisper && this.hoveredRouteMeta) {
+        this._syncRouteWhisper();
       }
 
       const lookObj = ALL_CITY_LOOKS.find((l) => l.id === this.pilot.shader) || ALL_CITY_LOOKS[0];
@@ -1213,8 +1525,38 @@ async function boot() {
   }
   savePilotState({ ...initialPilot, ...qPatch }, { syncHash: false });
 
-  window.addEventListener('keydown', (e) => {
+  const sound = new DesignRoomSoundEngine();
+  sound.loadLedger().then((ledger) => renderFreesoundLedgerTable(ledger)).catch(() => {});
+
+  const closeSheetBtn = document.getElementById('close-sheet-btn');
+  if (closeSheetBtn) {
+    closeSheetBtn.addEventListener('click', () => {
+      document.body.classList.remove('sheet-open');
+    });
+  }
+
+  window.addEventListener('keydown', async (e) => {
     const tag = (e.target?.tagName || '').toUpperCase();
+    if (e.key === 'Tab' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      // Summon searchable directory/briefs sheet on Tab; when already open, allow normal Tab focus traversal unless Shift+Tab at top or Escape
+      if (!document.body.classList.contains('sheet-open')) {
+        e.preventDefault();
+        document.body.classList.add('sheet-open');
+        const whisperEl = document.getElementById('world-whisper');
+        if (whisperEl) whisperEl.classList.remove('visible');
+        return;
+      }
+      if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA' && tag !== 'A' && tag !== 'BUTTON') {
+        e.preventDefault();
+        document.body.classList.remove('sheet-open');
+        return;
+      }
+    }
+    if (e.key === 'Escape' && document.body.classList.contains('sheet-open')) {
+      e.preventDefault();
+      document.body.classList.remove('sheet-open');
+      return;
+    }
     if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === '[' || e.key === ']') {
       e.preventDefault();
@@ -1223,11 +1565,22 @@ async function boot() {
       const delta = e.key === ']' ? 1 : -1;
       const nextLook = ALL_CITY_LOOKS[(idx + delta + ALL_CITY_LOOKS.length) % ALL_CITY_LOOKS.length];
       savePilotState({ shader: nextLook.id });
+    } else if (e.key >= '1' && e.key <= '4') {
+      const hrs = { '1': 6.5, '2': 13.0, '3': 18.5, '4': 22.5 };
+      savePilotState({ worldTime: hrs[e.key], rawDaylight: false });
+    } else if (e.key === 'm' || e.key === 'M') {
+      const cur = loadPilotState();
+      if (!sound.started) {
+        await sound.ensureStarted(cur);
+      } else {
+        sound.setMuted(!sound.muted, cur);
+      }
+    } else if (e.key === 'e' || e.key === 'E') {
+      if (stage) {
+        stage.setExplode(stage.explodeAmount > 0.2 ? 0 : 0.85);
+      }
     }
   });
-
-  const sound = new DesignRoomSoundEngine();
-  sound.loadLedger().then((ledger) => renderFreesoundLedgerTable(ledger)).catch(() => {});
 
   // Populate 23 GPU Shader selectors
   const heroShaderSelect = document.getElementById('hero-shader-select');

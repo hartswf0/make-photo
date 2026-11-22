@@ -1,8 +1,18 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { CARTRIDGES, TIME_PRESETS, MOVIE_SHOTS } from './cartridges.js';
-import { CityAudioEngine } from './audio.js';
-import { CITY_LOOKS, ALL_CITY_LOOKS, CityShaderPipeline } from './shaders.js';
+import { CARTRIDGES, TIME_PRESETS } from './cartridges.js';
+import {
+  ALL_CITY_LOOKS,
+  SUITE_TIME_PRESETS,
+  hourToTimeKey,
+  mountWebGLShaderSuite,
+  createWorldPortalAndTripod,
+  projectWorldLabel,
+  loadPilotState,
+  savePilotState,
+  subscribePilotState,
+  applyPilotUrlHash,
+} from './shader-suite-bar.js';
 
 const gltfLoader = new GLTFLoader();
 const wygwylAssets = {
@@ -15,15 +25,17 @@ const wygwylAssets = {
 const STORAGE_KEY = 'make_photo_city_nolli_v1';
 
 // ---------------------------------------------------------------------------
-// Unified World Ledger (Single Source of Truth)
+// Unified World Ledger + Severn Pilot State (Single Source of Truth)
 // ---------------------------------------------------------------------------
+const pilotInit = applyPilotUrlHash();
+
 function loadLedger() {
   const fresh = {
     cartridge: 'ahiya',
-    timeOfDay: 'bluehour',
+    timeOfDay: hourToTimeKey(pilotInit.worldTime) || 'bluehour',
     carriedWaterL: 0,
     standpipeReserveL: 40,
-    projectorTankL: 0,
+    projectorTankL: pilotInit.coolingWet ? 5.0 : 0,
     plates: [],
     windowPlateIds: [null, null, null],
     screenPlateId: null,
@@ -32,7 +44,15 @@ function loadLedger() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return fresh;
     const parsed = JSON.parse(raw);
-    return { ...fresh, ...parsed };
+    return {
+      ...fresh,
+      ...parsed,
+      plates: Array.isArray(parsed?.plates) ? parsed.plates : [],
+      windowPlateIds:
+        Array.isArray(parsed?.windowPlateIds) && parsed.windowPlateIds.length === 3
+          ? parsed.windowPlateIds
+          : [null, null, null],
+    };
   } catch {
     return fresh;
   }
@@ -40,21 +60,19 @@ function loadLedger() {
 
 function saveLedger() {
   try {
-    // Keep last 9 plates to stay comfortably inside localStorage quota
     if (ledger.plates.length > 9) {
       ledger.plates = ledger.plates.slice(-9);
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ledger));
   } catch {
-    // Ignore quota errors
+    // Ignore storage quota errors
   }
 }
 
 const ledger = loadLedger();
-const audio = new CityAudioEngine();
 
 // ---------------------------------------------------------------------------
-// Procedural PBR Textures (Wet Asphalt, Masonry, Sidewalk, Cutout Skyline)
+// Procedural PBR Textures (Wet Asphalt, Masonry, Chalk Datum, Glow Sprites)
 // ---------------------------------------------------------------------------
 function makeWetGroundTextures() {
   const size = 512;
@@ -70,7 +88,6 @@ function makeWetGroundTextures() {
     c.fillStyle = `rgb(${v},${v + 1},${v + 2})`;
     c.fillRect(x, y, 2, 2);
   }
-  // Subtle paving joints
   c.strokeStyle = 'rgba(12,14,16,0.35)';
   c.lineWidth = 1;
   for (let g = 0; g < size; g += 64) {
@@ -83,7 +100,6 @@ function makeWetGroundTextures() {
   const r = roughC.getContext('2d');
   r.fillStyle = '#c8c8c8';
   r.fillRect(0, 0, size, size);
-  // Wet puddle patches (low roughness = bright sky & sodium reflections)
   for (let i = 0; i < 24; i++) {
     const px = Math.random() * size;
     const py = Math.random() * size;
@@ -128,7 +144,6 @@ function makeMasonryTexture() {
       ctx.fillRect(col * cw + offset + 2, row * rh + 2, cw - 4, rh - 4);
     }
   }
-  // Weathering streaks
   for (let i = 0; i < 40; i++) {
     ctx.fillStyle = 'rgba(24,22,20,0.08)';
     ctx.fillRect(Math.random() * 512, 0, 2 + Math.random() * 5, 512);
@@ -155,8 +170,30 @@ function makeGlowSpriteTexture(colorHex) {
   return tex;
 }
 
+function makeChalkDatumTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 96;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 256, 96);
+  ctx.strokeStyle = 'rgba(216, 243, 255, 0.85)';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([10, 6]);
+  ctx.beginPath();
+  ctx.moveTo(8, 56);
+  ctx.lineTo(248, 56);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(235, 244, 248, 0.88)';
+  ctx.font = '600 18px Inter, system-ui, sans-serif';
+  ctx.fillText('+4.00 m SALT DATUM', 20, 42);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 // ---------------------------------------------------------------------------
-// Scene, Renderer, Camera
+// Scene, Renderer, Camera & 23-Shader Diegetic Suite
 // ---------------------------------------------------------------------------
 const wrap = document.getElementById('canvas-wrap');
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -168,17 +205,33 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.28;
 wrap.appendChild(renderer.domElement);
 
-const shaderPipeline = new CityShaderPipeline(
-  renderer,
-  Math.floor(window.innerWidth * renderer.getPixelRatio()),
-  Math.floor(window.innerHeight * renderer.getPixelRatio())
-);
-
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#233447');
 scene.fog = new THREE.FogExp2('#35485c', 0.0068);
 
 const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.12, 260);
+scene.add(camera);
+
+const suite = mountWebGLShaderSuite({
+  THREE,
+  renderer,
+  scene,
+  camera,
+  defaultLook: pilotInit.shader || 'weave',
+  defaultTime: ledger.timeOfDay,
+  locationName: 'Severn Nolli Block',
+  cartridgeName: 'Ahiya',
+  autoIntercept: false,
+  captureOnSpace: false,
+  onTimeChange: (timeKey) => {
+    if (TIME_PRESETS[timeKey] && ledger.timeOfDay !== timeKey) {
+      ledger.timeOfDay = timeKey;
+      applyCartridgeAndTime();
+    }
+  },
+});
+
+const audio = suite.audio;
 
 // Lights (Physical Three.js r155+ intensities)
 const hemiLight = new THREE.HemisphereLight('#c4dcf0', '#3d3934', 1.25);
@@ -190,15 +243,14 @@ sunLight.castShadow = true;
 sunLight.shadow.mapSize.set(2048, 2048);
 sunLight.shadow.camera.near = 2;
 sunLight.shadow.camera.far = 130;
-const d = 48;
-sunLight.shadow.camera.left = -d;
-sunLight.shadow.camera.right = d;
-sunLight.shadow.camera.top = d;
-sunLight.shadow.camera.bottom = -d;
+const dShadow = 48;
+sunLight.shadow.camera.left = -dShadow;
+sunLight.shadow.camera.right = dShadow;
+sunLight.shadow.camera.top = dShadow;
+sunLight.shadow.camera.bottom = -dShadow;
 sunLight.shadow.bias = -0.0005;
 scene.add(sunLight);
 
-// Interior warm sconces
 const shopLight = new THREE.PointLight('#ffcf91', 38.0, 22, 1.5);
 shopLight.position.set(0, 3.6, 1.2);
 scene.add(shopLight);
@@ -212,7 +264,7 @@ lightwellSpot.position.set(0, 11.2, -0.5);
 lightwellSpot.target.position.set(0, 0, -0.5);
 scene.add(lightwellSpot, lightwellSpot.target);
 
-// --- GLSL CERULEAN-COBALT GRADIENT SKY DOME (8cb41f94.jpg Sky Language) ---
+// --- GLSL CERULEAN-COBALT GRADIENT SKY DOME ---
 const skyMat = new THREE.ShaderMaterial({
   side: THREE.BackSide,
   depthWrite: false,
@@ -242,7 +294,7 @@ const skyMat = new THREE.ShaderMaterial({
 const skyDome = new THREE.Mesh(new THREE.SphereGeometry(210, 24, 16), skyMat);
 scene.add(skyDome);
 
-// --- MONUMENTAL ATLANTIS / AHIYA PARABOLIC RELAY DISH SILHOUETTE (8cb41f94.jpg) ---
+// --- MONUMENTAL ATLANTIS / AHIYA PARABOLIC RELAY DISH SILHOUETTE ---
 const dishGroup = new THREE.Group();
 dishGroup.position.set(6, 0, -32);
 const dishDarkMat = new THREE.MeshStandardMaterial({ color: '#1b2736', roughness: 0.78, metalness: 0.35 });
@@ -253,7 +305,6 @@ dishGroup.add(dishPedestal);
 const dishTilt = new THREE.Group();
 dishTilt.position.set(0, 26.0, 0);
 dishTilt.rotation.set(0.55, -0.32, 0.18);
-// Parabolic dish bowl (LatheGeometry)
 const dishPts = [];
 for (let i = 0; i <= 12; i++) {
   const t = i / 12;
@@ -264,7 +315,6 @@ const dishBowl = new THREE.Mesh(
   new THREE.MeshStandardMaterial({ color: '#243547', roughness: 0.65, metalness: 0.42, side: THREE.DoubleSide })
 );
 dishTilt.add(dishBowl);
-// Central feed horn + glowing cyan tip
 const feedMast = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.45, 9.5, 8), dishDarkMat);
 feedMast.position.y = 4.8;
 dishTilt.add(feedMast);
@@ -277,13 +327,12 @@ dishTilt.add(feedTip);
 dishGroup.add(dishTilt);
 scene.add(dishGroup);
 
-// Glowing Magenta-Rose + Amber Street Puddle Reflections in front of Severn Nolli Doorway
 const puddleMagLight = new THREE.PointLight('#e856c8', 24.0, 14, 1.6);
 puddleMagLight.position.set(-3.2, 1.4, 12.2);
 scene.add(puddleMagLight);
 
 // ---------------------------------------------------------------------------
-// Shared Materials (Updated dynamically on Cartridge / Time / X-Ray switch)
+// Shared Materials
 // ---------------------------------------------------------------------------
 const groundTex = makeWetGroundTextures();
 const masonryTex = makeMasonryTexture();
@@ -318,6 +367,18 @@ const mats = {
     color: '#8f8472',
     roughness: 0.65,
     metalness: 0.15,
+  }),
+  brass: new THREE.MeshStandardMaterial({
+    color: '#d8ab61',
+    roughness: 0.28,
+    metalness: 0.84,
+    emissive: '#3a280e',
+    emissiveIntensity: 0.16,
+  }),
+  oakDoor: new THREE.MeshStandardMaterial({
+    color: '#462c1b',
+    roughness: 0.58,
+    metalness: 0.12,
   }),
   floorInt: new THREE.MeshStandardMaterial({
     color: '#4f4c46',
@@ -372,12 +433,48 @@ const mats = {
     transparent: true,
     opacity: 0.0,
   }),
+  hitInvisible: new THREE.MeshBasicMaterial({ visible: false }),
 };
 
 // ---------------------------------------------------------------------------
-// World Geometry: Ground, Streets, Hero Nolli Building, Threshold Gate, Depot
+// Physical 3D Cyan Jerrycan in Hand / at Hip (First-Person Diegetic Carrier)
 // ---------------------------------------------------------------------------
-const colliders = []; // { minX, maxX, minZ, maxZ, minY, maxY, tag }
+const playerJerrycan = new THREE.Group();
+playerJerrycan.position.set(0.36, -0.35, -0.62);
+playerJerrycan.rotation.set(0.12, -0.38, 0.05);
+playerJerrycan.visible = ledger.carriedWaterL > 0.05;
+
+const jerryShellMat = new THREE.MeshPhysicalMaterial({
+  color: '#67d4ff',
+  emissive: '#0c5278',
+  emissiveIntensity: 0.35,
+  roughness: 0.22,
+  metalness: 0.05,
+  transparent: true,
+  opacity: 0.52,
+});
+const jerryBody = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.25, 0.13), jerryShellMat);
+playerJerrycan.add(jerryBody);
+
+const jerryLiquid = new THREE.Mesh(new THREE.BoxGeometry(0.155, 0.22, 0.105), mats.cyanActive);
+jerryLiquid.position.set(0, -0.01, 0);
+playerJerrycan.add(jerryLiquid);
+
+const jerryHandle = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.025, 0.03), mats.brass);
+jerryHandle.position.set(-0.015, 0.145, 0);
+playerJerrycan.add(jerryHandle);
+
+const jerryCap = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.024, 0.035, 10), mats.brass);
+jerryCap.position.set(0.052, 0.142, 0);
+jerryCap.rotation.z = -0.22;
+playerJerrycan.add(jerryCap);
+
+camera.add(playerJerrycan);
+
+// ---------------------------------------------------------------------------
+// World Geometry: Ground, Streets, Hero Severn Nolli Building, Props
+// ---------------------------------------------------------------------------
+const colliders = [];
 function addBox(w, h, d, x, y, z, mat, opts = {}) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
   m.position.set(x, y, z);
@@ -393,12 +490,12 @@ function addBox(w, h, d, x, y, z, mat, opts = {}) {
       minY: y - h / 2,
       maxY: y + h / 2,
       tag: opts.tag || 'wall',
+      active: true,
     });
   }
   return m;
 }
 
-// 180x180 wet asphalt base
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(180, 180), mats.asphalt);
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
@@ -408,7 +505,7 @@ scene.add(ground);
 addBox(26, 0.16, 22, 0, 0.08, 2, mats.sidewalk, { collide: false, cast: false });
 addBox(12, 0.16, 20, -14, 0.08, -14, mats.sidewalk, { collide: false, cast: false });
 
-// --- HERO BUILDING: "Severn Nolli House" (Enterable 2-Floor + Rooftop) ---
+// --- HERO BUILDING: "Severn Nolli House" ---
 const exteriorShellMeshes = [];
 function addExtWall(w, h, d, x, y, z, collide = true) {
   const m = addBox(w, h, d, x, y, z, mats.masonryExt, { collide, tag: 'hero-wall' });
@@ -416,50 +513,112 @@ function addExtWall(w, h, d, x, y, z, collide = true) {
   return m;
 }
 
-// Interior Ground Floor slab (continuous Nolli stone floor)
 addBox(18, 0.18, 14, 0, 0.09, 0, mats.floorInt, { collide: false, cast: false });
 
-// South Facade (z = +7) with open central arched doorway (x: -2.4..2.4, y: 0..3.8)
+// South Facade (z = +7) with central arched doorway (x: -2.4..2.4, y: 0..3.8)
 addExtWall(6.6, 9.2, 0.45, -5.7, 4.6, 7.0, true);
 addExtWall(6.6, 9.2, 0.45, 5.7, 4.6, 7.0, true);
-addExtWall(4.8, 5.4, 0.45, 0, 6.5, 7.0, false); // Lintel above open doorway
-// Brass lintel trim
+addExtWall(4.8, 5.4, 0.45, 0, 6.5, 7.0, false);
 addBox(5.2, 0.22, 0.62, 0, 3.85, 7.0, mats.trim, { collide: false });
+
+// Chalked +4.00m Salt Flood Datum etched on South Facade beside Severn Doorway
+const datumPlaque = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.75, 0.65),
+  new THREE.MeshBasicMaterial({ map: makeChalkDatumTexture(), transparent: true, depthWrite: false })
+);
+datumPlaque.position.set(3.35, 3.95, 7.25);
+scene.add(datumPlaque);
+
+// --- PHYSICAL 3D HINGED SEVERN DOUBLE DOORS (Click in 3D to Open/Close) ---
+let doorOpen = pilotInit.doorOpen !== false;
+const severnDoorCollider = {
+  minX: -2.4,
+  maxX: 2.4,
+  minZ: 6.72,
+  maxZ: 7.36,
+  minY: 0,
+  maxY: 3.8,
+  tag: 'severn-door',
+  active: !doorOpen,
+};
+colliders.push(severnDoorCollider);
+
+// Stone doorway jambs & brass threshold bar
+addBox(0.22, 3.8, 0.56, -2.36, 1.9, 7.02, mats.trim, { collide: false });
+addBox(0.22, 3.8, 0.56, 2.36, 1.9, 7.02, mats.trim, { collide: false });
+addBox(4.6, 0.05, 0.34, 0, 0.19, 7.04, mats.brass, { collide: false });
+
+function buildSevernDoorLeaf(sideSign) {
+  const pivot = new THREE.Group();
+  pivot.position.set(sideSign * 2.26, 0.18, 7.04);
+
+  const leafW = 2.24;
+  const leafH = 3.58;
+  const cx = -sideSign * (leafW * 0.5);
+
+  const stiles = new THREE.Mesh(new THREE.BoxGeometry(leafW, leafH, 0.09), mats.oakDoor);
+  stiles.position.set(cx, leafH * 0.5, 0);
+  stiles.castShadow = true;
+  pivot.add(stiles);
+
+  // Glazed upper transom window inset in door leaf
+  const upperPane = new THREE.Mesh(new THREE.BoxGeometry(leafW * 0.72, 1.32, 0.11), mats.glass);
+  upperPane.position.set(cx, 2.58, 0);
+  pivot.add(upperPane);
+
+  // Brass kickplate & vertical pull handle
+  const kick = new THREE.Mesh(new THREE.BoxGeometry(leafW * 0.88, 0.28, 0.11), mats.brass);
+  kick.position.set(cx, 0.22, 0);
+  pivot.add(kick);
+
+  const pull = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.48, 10), mats.brass);
+  pull.position.set(-sideSign * (leafW - 0.18), 1.18, 0.09);
+  pivot.add(pull);
+
+  const pullBack = pull.clone();
+  pullBack.position.z = -0.09;
+  pivot.add(pullBack);
+
+  scene.add(pivot);
+  return { pivot, leafMesh: stiles };
+}
+
+const doorLeafL = buildSevernDoorLeaf(-1);
+const doorLeafR = buildSevernDoorLeaf(1);
+doorLeafL.pivot.rotation.y = doorOpen ? 1.34 : 0.0;
+doorLeafR.pivot.rotation.y = doorOpen ? -1.34 : 0.0;
 
 // North, West, East exterior walls
 addExtWall(18.0, 9.2, 0.45, 0, 4.6, -7.0, true);
 addExtWall(0.45, 9.2, 14.0, -9.0, 4.6, 0, true);
 addExtWall(0.45, 9.2, 14.0, 9.0, 4.6, 0, true);
 
-// Upper Floor Slab (y = 4.6) with Lightwell opening (x: -2.4..2.4, z: -2.2..2.2) & Stair cutouts
-addBox(18.0, 0.24, 4.8, 0, 4.5, -4.6, mats.floorInt, { collide: false }); // North bay
-addBox(18.0, 0.24, 4.8, 0, 4.5, 4.6, mats.floorInt, { collide: false });  // South bay
-addBox(6.6, 0.24, 4.4, -5.7, 4.5, 0, mats.floorInt, { collide: false }); // West bridge
-addBox(3.6, 0.24, 4.4, 4.2, 4.5, 0, mats.floorInt, { collide: false });  // East bridge (leaves stair slot x: 6..8.8)
+// Upper Floor Slab (y = 4.6) with Lightwell opening & Stair cutouts
+addBox(18.0, 0.24, 4.8, 0, 4.5, -4.6, mats.floorInt, { collide: false });
+addBox(18.0, 0.24, 4.8, 0, 4.5, 4.6, mats.floorInt, { collide: false });
+addBox(6.6, 0.24, 4.4, -5.7, 4.5, 0, mats.floorInt, { collide: false });
+addBox(3.6, 0.24, 4.4, 4.2, 4.5, 0, mats.floorInt, { collide: false });
 
-// Rooftop Overlook Slab (y = 9.2) with Glass Skylight Dome over Lightwell
+// Rooftop Overlook Slab (y = 9.2) with Glass Skylight Dome
 addBox(18.2, 0.28, 4.9, 0, 9.1, -4.6, mats.sidewalk, { collide: false });
 addBox(18.2, 0.28, 4.9, 0, 9.1, 4.6, mats.sidewalk, { collide: false });
 addBox(6.7, 0.28, 4.4, -5.75, 9.1, 0, mats.sidewalk, { collide: false });
 addBox(6.7, 0.28, 4.4, 5.75, 9.1, 0, mats.sidewalk, { collide: false });
-// Glass skylight over lightwell
 const skylight = new THREE.Mesh(new THREE.BoxGeometry(5.0, 0.45, 4.6), mats.glass);
 skylight.position.set(0, 9.45, 0);
 scene.add(skylight);
-// Rooftop low parapet walls
 addBox(18.2, 1.0, 0.35, 0, 9.7, -7.0, mats.trim, { collide: false });
 addBox(18.2, 1.0, 0.35, 0, 9.7, 7.0, mats.trim, { collide: false });
 addBox(0.35, 1.0, 14.0, -9.0, 9.7, 0, mats.trim, { collide: false });
 addBox(0.35, 1.0, 14.0, 9.0, 9.7, 0, mats.trim, { collide: false });
 
-// Walkable Ramp / Stairway 1 (Ground y=0 -> Upper Screening Hall y=4.6 along East wall x=6.2..8.6)
+// Walkable Ramps / Stairways
 const stair1 = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.2, 11.2), mats.trim);
 stair1.position.set(7.4, 2.3, -0.5);
 stair1.rotation.x = Math.atan2(4.6, 10.0);
 stair1.receiveShadow = true;
 scene.add(stair1);
 
-// Walkable Ramp / Stairway 2 (Upper y=4.6 -> Rooftop Overlook y=9.2 along West wall x=-8.6..-6.2)
 const stair2 = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.2, 11.2), mats.trim);
 stair2.position.set(-7.4, 6.9, -0.5);
 stair2.rotation.x = -Math.atan2(4.6, 10.0);
@@ -473,7 +632,6 @@ xrayBox.position.set(0, 4.65, 0);
 xrayGroup.add(xrayBox);
 scene.add(xrayGroup);
 
-// Cyan Water & Signal Conduit Network (Standpipe -> Underground -> Hero Building -> Projector -> Rooftop Relay)
 const conduitMat = mats.cyanIdle.clone();
 const conduitSegments = [
   [[-16, 0.25, 14], [-16, 0.25, 8]],
@@ -492,46 +650,50 @@ conduitSegments.forEach(([a, b]) => {
   scene.add(cyl);
 });
 
-// --- GROUND FLOOR PROPS: Camera Shop Window Frames (Pre-loaded with Real wygwyl-world-arch WEAVE Plates) ---
+// --- GROUND FLOOR PROPS: 3 Storefront Window Frames (Clickable in 3D) ---
 const WEAVE_ARCHIVE_URLS = [
   'https://hartswf0.github.io/wygwyl-world-arch/shots/out/05a0677a-e3e8-49d1-a313-eb729b649cad_3/cartoon/cel.png',
   'https://hartswf0.github.io/wygwyl-world-arch/shots/out/646ab0f0-8950-495f-9f61-f2db42db81ce_0/image.jpg',
   'https://hartswf0.github.io/wygwyl-world-arch/shots/out/bdc7d6ec-1d4e-4f99-ad7e-9917394c542a_2/image.jpg',
 ];
+const archiveTextures = [null, null, null];
 const archiveTexLoader = new THREE.TextureLoader();
 archiveTexLoader.setCrossOrigin('anonymous');
 
 const windowFrames = [];
 const windowFrameX = [-5.8, -3.9, 5.4];
 windowFrameX.forEach((wx, idx) => {
-  // Storefront backing frame
   addBox(1.65, 1.2, 0.14, wx, 1.9, 7.26, mats.trim, { collide: false });
   const printMat = new THREE.MeshStandardMaterial({
     color: '#ffffff',
     roughness: 0.35,
     emissive: '#3a4a58',
     emissiveIntensity: 0.42,
+    side: THREE.DoubleSide,
   });
   archiveTexLoader.load(WEAVE_ARCHIVE_URLS[idx], (tex) => {
     tex.colorSpace = THREE.SRGBColorSpace;
-    printMat.map = tex;
-    printMat.emissiveMap = tex;
-    printMat.needsUpdate = true;
+    archiveTextures[idx] = tex;
+    if (!windowFrames[idx].loadedId) {
+      printMat.map = tex;
+      printMat.emissiveMap = tex;
+      printMat.needsUpdate = true;
+    }
   });
   const printMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.45, 0.98), printMat);
   printMesh.position.set(wx, 1.9, 7.34);
   scene.add(printMesh);
-  windowFrames.push({ index: idx, mesh: printMesh, mat: printMat });
+  windowFrames.push({ index: idx, wx, mesh: printMesh, mat: printMat, archiveCycle: idx, loadedId: null });
 });
 
-// Archive Light Table (inside ground floor at x=4.0, z=-1.8)
+// --- GROUND FLOOR: 3D Archive Light Table with Physical Contact-Sheet Prints ---
 addBox(2.4, 0.92, 1.4, 4.0, 0.46, -1.8, mats.trim, { collide: true, tag: 'prop' });
 const lightTableGlass = new THREE.Mesh(
   new THREE.PlaneGeometry(2.1, 1.15),
   new THREE.MeshStandardMaterial({
     color: '#d8f3ff',
     emissive: '#8ad8ff',
-    emissiveIntensity: 0.9,
+    emissiveIntensity: 0.92,
     roughness: 0.2,
   })
 );
@@ -539,24 +701,45 @@ lightTableGlass.rotation.x = -Math.PI / 2;
 lightTableGlass.position.set(4.0, 0.94, -1.8);
 scene.add(lightTableGlass);
 
+// 6 physical miniature 8x10 contact prints resting directly on the 3D Light Table
+const lightTableSlots = [];
+for (let sIdx = 0; sIdx < 6; sIdx++) {
+  const col = sIdx % 3;
+  const row = Math.floor(sIdx / 3);
+  const slotMat = new THREE.MeshStandardMaterial({
+    color: '#ffffff',
+    emissive: '#4b687a',
+    emissiveIntensity: 0.55,
+    roughness: 0.28,
+  });
+  const slotMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.38), slotMat);
+  slotMesh.rotation.x = -Math.PI / 2;
+  slotMesh.position.set(4.0 + (col - 1) * 0.66, 0.952, -1.8 + (row - 0.5) * 0.48);
+  scene.add(slotMesh);
+  lightTableSlots.push({ mesh: slotMesh, mat: slotMat, loadedKey: null, plateId: null });
+}
+
 // --- UPPER FLOOR PROPS: 35mm Projector, Cyan Cooling Sight-Glass & Linen Sheet ---
 addBox(1.1, 1.1, 1.1, -1.8, 5.15, 1.2, mats.trim, { collide: false });
-const projectorLens = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.55, 12), mats.masonryDark || mats.trim);
+const projectorLens = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.55, 12), mats.brass);
 projectorLens.rotation.x = Math.PI / 2;
 projectorLens.position.set(-1.8, 5.65, 0.55);
 scene.add(projectorLens);
 
-// Visible Cyan Cooling Sight-Glass Cylinder
 const sightGlassShell = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 1.35, 14), mats.glass);
 sightGlassShell.position.set(-0.9, 5.3, 1.2);
 scene.add(sightGlassShell);
+
+// Brass sight-glass top & bottom collars
+addBox(0.56, 0.08, 0.56, -0.9, 6.0, 1.2, mats.brass, { collide: false });
+addBox(0.56, 0.08, 0.56, -0.9, 4.62, 1.2, mats.brass, { collide: false });
 
 const sightGlassLiquid = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 1.25, 14), mats.cyanActive);
 sightGlassLiquid.position.set(-0.9, 4.7, 1.2);
 sightGlassLiquid.scale.y = 0.02;
 scene.add(sightGlassLiquid);
 
-// Stretched Linen Screening Sheet (North wall of upper floor, z = -6.4)
+// Stretched Linen Screening Sheet (North wall of upper floor, z = -6.42)
 addBox(7.2, 4.1, 0.12, 0, 6.85, -6.5, mats.trim, { collide: false });
 const screenMat = new THREE.MeshStandardMaterial({
   color: '#e8e4da',
@@ -585,7 +768,7 @@ const relayPointLight = new THREE.PointLight('#18b4ff', 0.2, 18, 1.5);
 relayPointLight.position.set(-6.5, 13.0, 4.5);
 scene.add(relayPointLight);
 
-// --- STANDPIPE DEPOT (x = -16, z = 14) ---
+// --- 3D STANDPIPE SIGHT-GLASS DEPOT (x = -16, z = 14) ---
 addBox(2.2, 0.25, 2.2, -16, 0.12, 14, mats.trim, { collide: false });
 const depotTank = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 2.2, 16), mats.glass);
 depotTank.position.set(-16, 1.35, 14);
@@ -593,6 +776,26 @@ scene.add(depotTank);
 const depotWater = new THREE.Mesh(new THREE.CylinderGeometry(0.54, 0.54, 2.0, 16), mats.cyanActive);
 depotWater.position.set(-16, 1.25, 14);
 scene.add(depotWater);
+
+// Brass gauge rings + handwheel + spigot on Standpipe Sight-Glass
+[0.55, 1.05, 1.55, 2.05].forEach((ry) => {
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.635, 0.022, 8, 20), mats.brass);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.set(-16, ry, 14);
+  scene.add(ring);
+});
+const standpipeCap = new THREE.Mesh(new THREE.CylinderGeometry(0.66, 0.66, 0.12, 16), mats.brass);
+standpipeCap.position.set(-16, 2.48, 14);
+scene.add(standpipeCap);
+const standpipeWheel = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.032, 8, 16), mats.brass);
+standpipeWheel.rotation.x = Math.PI / 2;
+standpipeWheel.position.set(-16, 2.68, 14);
+scene.add(standpipeWheel);
+const standpipeSpout = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.42, 10), mats.brass);
+standpipeSpout.rotation.x = Math.PI / 2.4;
+standpipeSpout.position.set(-16, 0.95, 14.72);
+scene.add(standpipeSpout);
+
 const depotLight = new THREE.PointLight('#18b4ff', 28.0, 16, 1.5);
 depotLight.position.set(-16, 2.6, 14);
 scene.add(depotLight);
@@ -650,16 +853,15 @@ canalWest.position.set(-64, -0.35, 0);
 canalWest.receiveShadow = true;
 scene.add(canalWest);
 
-// Stone Quay Seawall & Mooring Bollards along z = +28
 addBox(88, 0.85, 1.2, 4, 0.18, 28.0, mats.trim, { collide: true, tag: 'quay' });
 for (let bx = -32; bx <= 36; bx += 11) {
-  const bollard = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.72, 10), mats.masonryDark || mats.trim);
+  const bollard = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.72, 10), mats.trim);
   bollard.position.set(bx, 0.82, 28.0);
   bollard.castShadow = true;
   scene.add(bollard);
 }
 
-// --- SURROUNDING NEIGHBORHOOD BLOCKS (Cornices, Awnings, Rooftop Water Towers) ---
+// --- SURROUNDING NEIGHBORHOOD BLOCKS ---
 const neighborSpecs = [
   [-26, 7.5, -10, 14, 15, 18],
   [24, 8.5, -8, 14, 17, 16],
@@ -671,11 +873,8 @@ const neighborSpecs = [
 const neighborMat = mats.masonryExt.clone();
 neighborSpecs.forEach(([x, y, z, w, h, d], bIdx) => {
   addBox(w, h, d, x, y, z, neighborMat, { collide: true, tag: 'neighbor' });
-  // Architectural stone cornice band at roofline
   addBox(w + 0.7, 0.55, d + 0.7, x, h + 0.25, z, mats.trim, { collide: false });
-  // Ground-floor shopfront awning facing the street
   addBox(w * 0.72, 0.18, 1.6, x, 3.3, z + d / 2 + 0.75, mats.trim, { collide: false });
-  // Rooftop wooden/iron water tower on alternate mid-rise blocks
   if (bIdx % 2 === 0) {
     const wtLegs = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.25, 2.2, 6, 1, true), mats.trim);
     wtLegs.position.set(x - w * 0.2, h + 1.2, z);
@@ -688,7 +887,6 @@ neighborSpecs.forEach(([x, y, z, w, h, d], bIdx) => {
     wtRoof.position.set(x - w * 0.2, h + 5.2, z);
     scene.add(wtRoof);
   }
-  // Warm lit apartment windows on facing sides
   for (let wy = 4.6; wy < h - 1.5; wy += 3.1) {
     for (let wx = -w * 0.32; wx <= w * 0.32; wx += 3.2) {
       if ((Math.abs(Math.floor(wx + wy + bIdx)) % 3) !== 0) {
@@ -700,7 +898,7 @@ neighborSpecs.forEach(([x, y, z, w, h, d], bIdx) => {
   }
 });
 
-// --- REAL WYGWYL ISLAND EXTRUDED BUILDINGS & SURVEYED ROADS (wygwyl-data/island_slice.json) ---
+// --- REAL WYGWYL ISLAND EXTRUDED BUILDINGS & SURVEYED ROADS ---
 const wygwylCityGroup = new THREE.Group();
 scene.add(wygwylCityGroup);
 
@@ -720,14 +918,12 @@ async function loadWygwylAssets() {
     console.warn('wygwyl-data load warning:', err);
   }
 
-  // Build real extruded polygon buildings from island/buildings.json
   if (wygwylAssets.island && wygwylAssets.island.buildings) {
     const bMat = neighborMat;
     const roofMat = mats.trim;
     wygwylAssets.island.buildings.forEach((b) => {
       if (!b.pts || b.pts.length < 3) return;
-      // Keep the Hero Nolli Building & front doorway/plaza 100% clear of overlapping footprint corners
-      if (b.pts.some(([px, pz]) => px > -20 && px < 16 && pz > -18 && pz < 22)) return;
+      if (b.pts.some(([px, pz]) => px > -20 && px < 18 && pz > -18 && pz < 22)) return;
       const shape = new THREE.Shape();
       shape.moveTo(b.pts[0][0], -b.pts[0][1]);
       for (let i = 1; i < b.pts.length; i++) {
@@ -743,7 +939,6 @@ async function loadWygwylAssets() {
     });
   }
 
-  // Render real surveyed road polylines from island/roads.json as subtle wet street curb lines
   if (wygwylAssets.island && wygwylAssets.island.roads) {
     const roadLineMat = new THREE.LineBasicMaterial({ color: '#586875', transparent: true, opacity: 0.45 });
     wygwylAssets.island.roads.forEach((pts) => {
@@ -753,11 +948,9 @@ async function loadWygwylAssets() {
       wygwylCityGroup.add(new THREE.Line(geo, roadLineMat));
     });
   }
-
-  if (nolliOpen) drawNolliMap();
-  if (worldtextOpen) renderWorldtext();
 }
 loadWygwylAssets();
+
 const cutoutMat = new THREE.MeshBasicMaterial({ color: '#1b2228', side: THREE.DoubleSide, transparent: true, opacity: 0.82 });
 for (let i = 0; i < 8; i++) {
   const ang = (i / 8) * Math.PI * 2;
@@ -805,26 +998,22 @@ lampCoords.forEach(([lx, lz]) => {
 
 // Multi-Branch Layered Urban Trees with Stone Planters
 const treeCoords = [
-  [-12, 22], [12, 22], [15, 6], [15, -4], [-21, 8], [-11, -12], [-17, -20], [10, -16], [2, 25.5], [-19, 25.5],
+  [-12, 22], [12, 22], [15, 6], [15, -4], [-21, 8], [-11, -12], [-17, -20], [10, -16], [11, 25.5], [-19, 25.5],
 ];
 const foliageDarkMat = mats.foliage.clone();
 treeCoords.forEach(([tx, tz], tIdx) => {
   const g = new THREE.Group();
   g.position.set(tx, 0, tz);
   const scale = 0.85 + (tIdx % 3) * 0.16;
-
-  // Stone tree curb planter
   const curb = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.22, 1.4), mats.trim);
   curb.position.y = 0.11;
   g.add(curb);
 
-  // Tapered main trunk
   const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.14 * scale, 0.26 * scale, 3.2 * scale, 8), mats.trunk);
   trunk.position.y = 1.6 * scale;
   trunk.castShadow = true;
   g.add(trunk);
 
-  // 3 forked structural branches + 5 staggered foliage clusters
   const branchAngles = [0.4, 2.5, 4.6];
   branchAngles.forEach((ba, bi) => {
     const bLen = (1.35 + bi * 0.15) * scale;
@@ -869,11 +1058,50 @@ const particles = new THREE.Points(partGeo, partMat);
 scene.add(particles);
 
 // ---------------------------------------------------------------------------
-// Persistent Anny V8 Cast (Real 104-bone Skinned Humans + FACS Lip-Sync + Jobs)
+// 3D Brass Camera Tripod + 3D Portal Thresholds (Canal Quay, East, West, Cinema)
+// ---------------------------------------------------------------------------
+const worldRig = createWorldPortalAndTripod({
+  THREE,
+  scene,
+  camera,
+  domElement: renderer.domElement,
+  suite,
+  tripodPos: { x: 2.2, y: 0.16, z: 12.6, rotY: -2.75 },
+  portals: [
+    { id: 'atlantis', whisper: 'Canal Quay -> Atlantis', href: './atlantis/', pos: [4.5, 0, 26.6], rotY: Math.PI },
+    { id: 'island', whisper: 'East Street -> Island', href: './island/', pos: [16.5, 0, 12.5], rotY: -Math.PI / 2 },
+    { id: 'foundry', whisper: 'West Alley -> Foundry', href: './foundry/', pos: [-16.2, 0, 5.8], rotY: Math.PI / 2 },
+    { id: 'heroes', whisper: 'West Alley -> Heroes', href: './heroes/', pos: [-16.2, 0, 1.0], rotY: Math.PI / 2 },
+    { id: 'weave', whisper: 'Cinema -> WEAVE Stage', href: './weave/', pos: [-5.4, 4.6, -4.8], rotY: 0.35 },
+    { id: 'pointcloud', whisper: 'Cinema -> 3D Splats', href: './pointcloud/', pos: [5.4, 4.6, -4.8], rotY: -0.35 },
+  ],
+  onTripodClick: ({ isShutter, entry }) => {
+    if (isShutter) {
+      const pl = capturePlate();
+      worldRig.setWhisper(`Exposed ${pl.id} (${pl.stock}) -> Shop Window & Light Table`, 2200, entry);
+      return true;
+    }
+    suite.nextLook(false);
+    const nextLookId = suite.getState().lookId;
+    camState.stock = nextLookId;
+    camState.active = !camState.active;
+    updateCameraLensState();
+    const lookObj = ALL_CITY_LOOKS.find((l) => l.id === nextLookId) || ALL_CITY_LOOKS[0];
+    worldRig.setWhisper(
+      `8x10 Ground Glass · ${lookObj.name} — click look · shift+click / Space expose`,
+      2200,
+      entry
+    );
+    return true;
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Persistent Anny V8 Cast (Makeda, Bekele, June)
 // ---------------------------------------------------------------------------
 const residents = [];
 const residentHitMeshes = [];
-const v8Cache = new Map(); // archetype -> Promise<AnnyHumanV7 instance>
+const v8Cache = new Map();
 
 function createArticulatedResident(def) {
   const root = new THREE.Group();
@@ -882,7 +1110,6 @@ function createArticulatedResident(def) {
   const coatMat = new THREE.MeshStandardMaterial({ color: def.coat, roughness: 0.8 });
   const darkMat = new THREE.MeshStandardMaterial({ color: '#1b1d20', roughness: 0.85 });
 
-  // Lightweight instant proxy shown only while Anny V8 GLB streams (~250ms)
   const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.28, 0.86, 10), coatMat);
   torso.position.y = 1.08;
   fallbackGroup.add(torso);
@@ -908,13 +1135,10 @@ function createArticulatedResident(def) {
   });
   root.add(fallbackGroup);
 
-  // Invisible raycast hit cylinder for effortless click-to-talk
-  const hitMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.48, 0.48, 1.95, 8),
-    new THREE.MeshBasicMaterial({ visible: false })
-  );
-  hitMesh.position.y = 0.96;
-  hitMesh.userData.residentId = def.id;
+  root.userData = { propKind: 'resident', residentId: def.id };
+  const hitMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.68, 2.02, 10), mats.hitInvisible);
+  hitMesh.position.y = 1.0;
+  hitMesh.userData = { propKind: 'resident', residentId: def.id };
   root.add(hitMesh);
   residentHitMeshes.push(hitMesh);
 
@@ -941,7 +1165,6 @@ function createArticulatedResident(def) {
     walkPhase: Math.random() * 6,
   };
 
-  // Load real Anny V8 human (104-bone skinned mesh, garments, hair, sandals, 12-target FACS)
   const arch = def.archetype || 'adult_f';
   if (typeof window !== 'undefined' && window.AnnyHumanV7 && window.AnnyHumanV7.createCharacter) {
     let prom = v8Cache.get(arch);
@@ -964,7 +1187,6 @@ function createArticulatedResident(def) {
     }
     prom.then((v8Inst) => {
       if (!v8Inst) return;
-      // Reparent cached V8 character cleanly into this resident's root
       if (v8Inst.root.parent) v8Inst.root.parent.remove(v8Inst.root);
       v8Inst.root.position.set(0, 0, 0);
       v8Inst.root.rotation.set(0, 0, 0);
@@ -993,16 +1215,17 @@ function rebuildResidentsForCartridge(cart) {
 }
 
 // ---------------------------------------------------------------------------
-// Player Movement, Elevation (Continuous Stairs -> Upper Floor -> Rooftop)
+// Player Movement, Lens State & Optical Threshold Rule
 // ---------------------------------------------------------------------------
 const player = {
-  pos: new THREE.Vector3(-6.2, 0, 24.5),
-  yaw: -0.22,
-  pitch: 0.08,
+  pos: new THREE.Vector3(-5.2, 0, 25.5),
+  yaw: -0.15,
+  pitch: 0.06,
   eyeHeight: 1.65,
   speed: 5.8,
   floorY: 0,
   isInside: false,
+  walkBob: 0,
 };
 
 const keys = {};
@@ -1010,40 +1233,33 @@ let dragging = false;
 let lastMouse = { x: 0, y: 0 };
 let pointerDownPos = { x: 0, y: 0 };
 
-// Camera Mode State
 const camState = {
   active: false,
-  tripodLocked: false,
   focalMm: 50,
   focusM: 12.0,
   exposureEv: 0.0,
-  stock: 'weave',
+  stock: suite.getState().lookId || 'weave',
   xray: false,
 };
 
 let activeDialogueResident = null;
-let nolliOpen = false;
-let lightTableOpen = false;
-let currentContextAction = null;
+let screenArchiveIdx = 0;
+let lightTableCursor = 0;
 
 function computeFloorHeight(x, z, currentY) {
   const inHeroX = x > -8.8 && x < 8.8;
   const inHeroZ = z > -6.8 && z < 6.8;
   if (!inHeroX || !inHeroZ) return 0;
 
-  // East Stairway 1: Ground (y=0 at z=+4.5) -> Upper Hall (y=4.6 at z=-5.5)
   if (x >= 5.9 && x <= 8.7 && z >= -6.2 && z <= 5.2 && currentY < 6.8) {
     const t = THREE.MathUtils.clamp((4.5 - z) / 10.0, 0, 1);
     return t * 4.6;
   }
-  // West Stairway 2: Upper Hall (y=4.6 at z=-5.5) -> Rooftop (y=9.2 at z=+4.5)
   if (x >= -8.7 && x <= -5.9 && z >= -6.2 && z <= 5.2 && currentY >= 3.2) {
     const t = THREE.MathUtils.clamp((z + 5.5) / 10.0, 0, 1);
     return 4.6 + t * 4.6;
   }
-  // Rooftop slab
   if (currentY >= 7.6) return 9.2;
-  // Upper Screening Hall slab (avoid lightwell center cutout x:-2.2..2.2, z:-2.0..2.0)
   if (currentY >= 3.0) {
     const inLightwell = Math.abs(x) < 2.2 && Math.abs(z) < 2.0;
     return inLightwell ? 0 : 4.6;
@@ -1054,8 +1270,7 @@ function computeFloorHeight(x, z, currentY) {
 function collidesAt(nx, ny, nz) {
   const rad = 0.42;
   for (const c of colliders) {
-    if (c.tag === 'threshold-gate' && !c.active) continue;
-    // Allow walking onto rooftop above hero walls
+    if (c.active === false) continue;
     if (ny >= 8.8 && c.tag === 'hero-wall') continue;
     if (ny + 1.5 < c.minY || ny > c.maxY - 0.1) continue;
     if (nx + rad > c.minX && nx - rad < c.maxX && nz + rad > c.minZ && nz - rad < c.maxZ) {
@@ -1065,11 +1280,7 @@ function collidesAt(nx, ny, nz) {
   return false;
 }
 
-// ---------------------------------------------------------------------------
-// Optical Threshold Rule (MONOLITH III)
-// ---------------------------------------------------------------------------
 function updateThresholdGate() {
-  // Gate opens when in Camera Mode and either out of focus (<4m or >18m) OR shadow exposed into Zone II (EV <= -1.2)
   const opticalOpen = camState.active && (camState.focusM < 4.0 || camState.focusM > 18.0 || camState.exposureEv <= -1.2);
   gateCollider.active = !opticalOpen;
 
@@ -1085,30 +1296,45 @@ function updateThresholdGate() {
     mats.gateSolid.opacity = 0.96;
   }
 
-  const gateTxt = opticalOpen ? 'OPEN (OPTICAL PASSAGE)' : 'SOLID (IN FOCUS)';
-  document.getElementById('val-gate').textContent = gateTxt;
-  document.getElementById('vf-threshold').textContent = opticalOpen ? 'THRESHOLD GATE: OPEN' : 'THRESHOLD GATE: SOLID';
+  const gateEl = document.getElementById('val-gate');
+  if (gateEl) gateEl.textContent = opticalOpen ? 'OPEN (OPTICAL PASSAGE)' : 'SOLID (IN FOCUS)';
+}
+
+function updateCameraLensState() {
+  const fov = THREE.MathUtils.radToDeg(2 * Math.atan(24 / (2 * camState.focalMm)));
+  camera.fov = camState.active ? fov : 52;
+  camera.updateProjectionMatrix();
+  updateThresholdGate();
 }
 
 // ---------------------------------------------------------------------------
-// Cartridge & Time-of-Day Switching
+// Severn Door Control (Coupled to 5-Bus Audio & Shared Pilot Record)
+// ---------------------------------------------------------------------------
+function setSevernDoor(nextOpen, fromUserAction = false) {
+  doorOpen = Boolean(nextOpen);
+  severnDoorCollider.active = !doorOpen;
+  audio.setDoorOpen(doorOpen, fromUserAction);
+  const doorValEl = document.getElementById('val-door');
+  if (doorValEl) {
+    doorValEl.textContent = doorOpen ? 'OPEN (13.5 KHZ)' : 'CLOSED (580 HZ)';
+  }
+  if (fromUserAction) {
+    savePilotState({ doorOpen });
+    setPropWhisper(
+      new THREE.Vector3(0, 3.65, 7.2),
+      doorOpen ? 'Severn Door · Open (13.5 kHz street clear)' : 'Severn Door · Closed (580 Hz stone muffled)',
+      2200
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cartridge & Time-of-Day Atmosphere
 // ---------------------------------------------------------------------------
 function applyCartridgeAndTime() {
   const cart = CARTRIDGES[ledger.cartridge] || CARTRIDGES.ahiya;
   const tp = TIME_PRESETS[ledger.timeOfDay] || TIME_PRESETS.bluehour;
 
-  document.getElementById('city-title').textContent = cart.name;
-  document.getElementById('city-district').textContent = cart.district;
-  document.getElementById('city-sub').textContent = cart.subtitle;
-
-  document.querySelectorAll('#cartridge-pills .pill').forEach((b) => {
-    b.classList.toggle('active', b.dataset.cart === cart.id);
-  });
-  document.querySelectorAll('#time-pills .pill').forEach((b) => {
-    b.classList.toggle('active', b.dataset.time === ledger.timeOfDay);
-  });
-
-  // Palette
   mats.masonryExt.color.set(cart.palette.masonry);
   neighborMat.color.set(cart.palette.masonryDark);
   mats.trim.color.set(cart.palette.trim);
@@ -1120,7 +1346,6 @@ function applyCartridgeAndTime() {
   mats.cyanActive.color.set(cart.palette.cyan);
   mats.cyanActive.emissive.set(cart.palette.cyan);
 
-  // Sun & Atmosphere
   const elevRad = THREE.MathUtils.degToRad(tp.sunElevation);
   const azRad = THREE.MathUtils.degToRad(tp.sunAzimuth);
   sunLight.position.set(
@@ -1140,7 +1365,6 @@ function applyCartridgeAndTime() {
   scene.fog.color.set(cart.palette.submerged ? '#0d2936' : tp.skyHorizon).lerp(bgCol, 0.55);
   scene.fog.density = cart.palette.submerged ? 0.0115 : tp.fogDensity;
 
-  // Update GLSL Gradient Sky Dome
   skyMat.uniforms.uTop.value.set(cart.palette.submerged ? '#071b26' : tp.skyTop);
   skyMat.uniforms.uMid.value.set(cart.palette.submerged ? '#17546e' : '#2d6394');
   skyMat.uniforms.uHorizon.value.set(cart.palette.submerged ? '#358da8' : tp.skyHorizon);
@@ -1162,36 +1386,46 @@ function applyCartridgeAndTime() {
 }
 
 // ---------------------------------------------------------------------------
-// Unified Water, Relay, Window Print & Screening Sheet Sync
+// Unified Water, Jerrycan, Relay, Storefront Window, Light Table & Linen Screen
 // ---------------------------------------------------------------------------
+const runtimeTexLoader = new THREE.TextureLoader();
+
 function syncWorldVisualsFromLedger() {
-  document.getElementById('val-water').textContent = `${ledger.carriedWaterL.toFixed(1)} / 20 L`;
-  document.getElementById('bar-water').style.width = `${(ledger.carriedWaterL / 20) * 100}%`;
+  const wEl = document.getElementById('val-water');
+  if (wEl) wEl.textContent = `${ledger.carriedWaterL.toFixed(1)} / 20 L`;
+  const spEl = document.getElementById('val-standpipe');
+  if (spEl) spEl.textContent = `${ledger.standpipeReserveL.toFixed(1)} L`;
 
   const wet = ledger.projectorTankL >= 5.0;
-  document.getElementById('val-tank').textContent = `${ledger.projectorTankL.toFixed(1)} / 5.0 L (${wet ? 'COOLED' : 'DRY'})`;
+  const tEl = document.getElementById('val-tank');
+  if (tEl) tEl.textContent = `${ledger.projectorTankL.toFixed(1)} / 5.0 L (${wet ? 'COOLED' : 'DRY'})`;
 
-  // Sight-glass liquid level
+  // Physical Cyan Jerrycan in hand / at hip
+  playerJerrycan.visible = ledger.carriedWaterL > 0.05;
+  const jerryFrac = THREE.MathUtils.clamp(ledger.carriedWaterL / 20.0, 0.08, 1.0);
+  jerryLiquid.scale.y = jerryFrac;
+  jerryLiquid.position.y = -0.11 + jerryFrac * 0.11;
+
+  // Upper Projector Sight-glass liquid level
   const fillFrac = THREE.MathUtils.clamp(ledger.projectorTankL / 5.0, 0.02, 1.0);
   sightGlassLiquid.scale.y = fillFrac;
   sightGlassLiquid.position.y = 4.68 + fillFrac * 0.62;
 
-  // Cyan conduits & Rooftop Relay Mast respond directly to projectorTankL >= 5
+  // Cyan conduits & Rooftop Relay Mast
   conduitMat.emissiveIntensity = wet ? 1.8 : 0.14;
   relayBeaconMat.emissiveIntensity = wet ? 2.6 : 0.12;
   relayPointLight.intensity = wet ? 45.0 : 1.5;
 
-  // Standpipe water level
+  // Street Standpipe Sight-Glass water column height
   const depotFrac = THREE.MathUtils.clamp(ledger.standpipeReserveL / 40.0, 0.05, 1.0);
   depotWater.scale.y = depotFrac;
   depotWater.position.y = 0.28 + depotFrac * 1.0;
 
-  // Plates count
   const pubCount = ledger.plates.filter((p) => p.permission === 'public').length;
-  document.getElementById('val-plates').textContent = `${ledger.plates.length} (${pubCount} PUBLIC)`;
+  const pEl = document.getElementById('val-plates');
+  if (pEl) pEl.textContent = `${ledger.plates.length} (${pubCount} PUBLIC)`;
 
   // Apply mounted textures to 3 Storefront Window Frames
-  const loader = new THREE.TextureLoader();
   ledger.windowPlateIds.forEach((pid, idx) => {
     const wf = windowFrames[idx];
     if (!wf) return;
@@ -1199,32 +1433,76 @@ function syncWorldVisualsFromLedger() {
     if (plate && plate.dataUrl) {
       if (wf.loadedId !== pid) {
         wf.loadedId = pid;
-        loader.load(plate.dataUrl, (tex) => {
+        runtimeTexLoader.load(plate.dataUrl, (tex) => {
           tex.colorSpace = THREE.SRGBColorSpace;
           wf.mat.map = tex;
+          wf.mat.emissiveMap = tex;
           wf.mat.color.set('#ffffff');
-          wf.mat.emissive.set('#222830');
+          wf.mat.emissive.set('#2b3642');
           wf.mat.needsUpdate = true;
         });
       }
     }
   });
 
-  // Apply projected texture to Upper Screening Sheet (only if cooling tank >= 5L!)
-  const screenPlate = ledger.plates.find((p) => p.id === ledger.screenPlateId);
+  // Update 6 physical contact-sheet prints resting on 3D Archive Light Table
+  const recentPlates = [...ledger.plates].reverse();
+  lightTableSlots.forEach((slot, idx) => {
+    const pl = recentPlates[idx];
+    if (pl && pl.dataUrl) {
+      slot.plateId = pl.id;
+      if (slot.loadedKey !== pl.id) {
+        slot.loadedKey = pl.id;
+        runtimeTexLoader.load(pl.dataUrl, (tex) => {
+          tex.colorSpace = THREE.SRGBColorSpace;
+          slot.mat.map = tex;
+          slot.mat.emissiveMap = tex;
+          slot.mat.emissive.set('#6a9bb8');
+          slot.mat.needsUpdate = true;
+        });
+      }
+    } else {
+      slot.plateId = null;
+      const archIdx = idx % WEAVE_ARCHIVE_URLS.length;
+      const archKey = `arch-${archIdx}`;
+      if (slot.loadedKey !== archKey && archiveTextures[archIdx]) {
+        slot.loadedKey = archKey;
+        slot.mat.map = archiveTextures[archIdx];
+        slot.mat.emissiveMap = archiveTextures[archIdx];
+        slot.mat.emissive.set('#446073');
+        slot.mat.needsUpdate = true;
+      }
+    }
+  });
+
+  // Apply projected texture to Upper Stretched Linen Sheet when cooled (>= 5L)
+  const screenPlate = ledger.plates.find((p) => p.id === ledger.screenPlateId && p.permission === 'public');
   if (wet && screenPlate && screenPlate.dataUrl) {
-    projectorBeamLight.intensity = 4.2;
+    projectorBeamLight.intensity = 4.5;
     if (screenMesh.userData.loadedId !== screenPlate.id) {
       screenMesh.userData.loadedId = screenPlate.id;
-      loader.load(screenPlate.dataUrl, (tex) => {
+      runtimeTexLoader.load(screenPlate.dataUrl, (tex) => {
         tex.colorSpace = THREE.SRGBColorSpace;
         screenMat.map = tex;
         screenMat.color.set('#ffffff');
         screenMat.emissive.set('#ffffff');
         screenMat.emissiveMap = tex;
-        screenMat.emissiveIntensity = 0.72;
+        screenMat.emissiveIntensity = 0.74;
         screenMat.needsUpdate = true;
       });
+    }
+  } else if (wet && archiveTextures[screenArchiveIdx % archiveTextures.length]) {
+    projectorBeamLight.intensity = 4.2;
+    const archKey = `weave-${screenArchiveIdx % archiveTextures.length}`;
+    if (screenMesh.userData.loadedId !== archKey) {
+      screenMesh.userData.loadedId = archKey;
+      const tex = archiveTextures[screenArchiveIdx % archiveTextures.length];
+      screenMat.map = tex;
+      screenMat.color.set('#ffffff');
+      screenMat.emissive.set('#ffffff');
+      screenMat.emissiveMap = tex;
+      screenMat.emissiveIntensity = 0.72;
+      screenMat.needsUpdate = true;
     }
   } else {
     projectorBeamLight.intensity = 0.0;
@@ -1241,38 +1519,28 @@ function syncWorldVisualsFromLedger() {
 }
 
 // ---------------------------------------------------------------------------
-// Toast Helper
-// ---------------------------------------------------------------------------
-let toastTimer = null;
-function showToast(msg, ms = 3200) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
-}
-
-// ---------------------------------------------------------------------------
-// Photo Capture (Real Canvas Frame + Subject Detection + Permission Rule)
+// Photo Capture (8x10 Plate + Resident Framing Credit Rule)
 // ---------------------------------------------------------------------------
 function capturePlate() {
   audio.playShutter();
   const flash = document.getElementById('shutter-flash');
-  flash.style.opacity = '0.85';
-  setTimeout(() => { flash.style.opacity = '0'; }, 140);
+  if (flash) {
+    flash.style.opacity = '0.84';
+    setTimeout(() => { flash.style.opacity = '0'; }, 140);
+  }
 
-  // Render clean GPU-shaded frame right before capture
-  const lookObj = ALL_CITY_LOOKS.find((l) => l.id === camState.stock) || ALL_CITY_LOOKS[0];
-  shaderPipeline.render(scene, camera, {
+  const currentLookId = suite.getState().lookId || camState.stock;
+  camState.stock = currentLookId;
+  const lookObj = ALL_CITY_LOOKS.find((l) => l.id === currentLookId) || ALL_CITY_LOOKS[0];
+  suite.pipeline.render(scene, camera, {
     time: performance.now() * 0.001,
     focusM: camState.focusM,
-    dofAmount: camState.active ? 0.65 : 0.0,
+    dofAmount: camState.active ? 0.62 : 0.0,
     ev: camState.exposureEv,
     mode: lookObj.mode,
     paletteColors: lookObj.colors,
   });
 
-  // Downscale to 480x300 JPEG dataUrl preserving the exact GLSL GPU Zone shader output
   const off = document.createElement('canvas');
   off.width = 480;
   off.height = 300;
@@ -1280,7 +1548,6 @@ function capturePlate() {
   ctx.drawImage(renderer.domElement, 0, 0, off.width, off.height);
   const dataUrl = off.toDataURL('image/jpeg', 0.86);
 
-  // Detect if any persistent resident is framed in the center of the camera frustum
   let framedResident = null;
   const camDir = new THREE.Vector3();
   camera.getWorldDirection(camDir);
@@ -1308,31 +1575,33 @@ function capturePlate() {
     focalMm: camState.focalMm,
     focusM: camState.focusM,
     exposureEv: camState.exposureEv,
-    stock: camState.stock.toUpperCase(),
+    stock: currentLookId.toUpperCase(),
     subjectId: framedResident ? framedResident.id : null,
     subjectName: framedResident ? framedResident.def.name : 'Architecture / Street',
     permission: framedResident ? 'pending' : 'public',
     caption: framedResident
-      ? `Portrait of ${framedResident.def.name} (${framedResident.def.role}) — awaiting subject credit`
-      : `${cart.name} · ${locLabel} (${camState.focalMm}mm, ${camState.stock.toUpperCase()})`,
+      ? `Portrait of ${framedResident.def.name} (${framedResident.def.role}) - awaiting subject credit`
+      : `${cart.name} - ${locLabel} (${camState.focalMm}mm, ${currentLookId.toUpperCase()})`,
     viewpoint: { x: player.pos.x, y: player.floorY, z: player.pos.z, yaw: player.yaw, pitch: player.pitch },
   };
 
   ledger.plates.push(plate);
+  if (plate.permission === 'public') {
+    ledger.windowPlateIds = [plate.id, ledger.windowPlateIds[0], ledger.windowPlateIds[1]];
+    ledger.screenPlateId = plate.id;
+  }
   saveLedger();
   syncWorldVisualsFromLedger();
-  renderLightTable();
-
-  if (framedResident) {
-    showToast(`Exposed ${plate.id} with ${framedResident.def.name}. Talk to ${framedResident.def.name} (E) to credit & unlock public display.`, 4500);
-  } else {
-    showToast(`Exposed public plate ${plate.id} (${locLabel}). Hang it in the Camera Shop Window or Screening Hall!`, 3600);
-  }
+  return plate;
 }
 
 // ---------------------------------------------------------------------------
-// Resident Duet Dialogue
+// 3D Resident Overhead World-Projected Speech & Inline Choices (Zero Modal Box)
 // ---------------------------------------------------------------------------
+const rwsEl = document.getElementById('resident-world-speech');
+const rwsSpeakerEl = document.getElementById('rws-speaker');
+const rwsLineEl = document.getElementById('rws-line');
+
 function triggerResidentSpeech(res, text, expr = 'warm') {
   res.speechText = text;
   res.speechDur = Math.max(2.6, Math.min(7.5, text.length * 0.055));
@@ -1347,777 +1616,475 @@ function triggerResidentSpeech(res, text, expr = 'warm') {
   audio.speakDuet(res.def.name, text, res.def.id === 'bekele' ? 0.88 : 1.05);
 }
 
-function openDialogue(res) {
+function openDialogue(res, customLine = null, expr = 'warm') {
   activeDialogueResident = res;
   const d = res.def;
-  const card = document.getElementById('dialogue-card');
-  document.getElementById('dlg-name').textContent = d.name;
-  document.getElementById('dlg-role').textContent = `${d.role} · ${d.stations[res.stationIdx].task}`;
-  document.getElementById('dlg-body').textContent = d.duet.greeting;
-  document.getElementById('dlg-reply').textContent = `You: "${d.duet.reply}"`;
-
-  triggerResidentSpeech(res, d.duet.greeting, 'warm');
-
-  const actions = document.getElementById('dlg-actions');
-  actions.innerHTML = '';
-
-  const addBtn = (label, fn) => {
-    const b = document.createElement('button');
-    b.className = 'ctx-btn';
-    b.textContent = label;
-    b.addEventListener('click', fn);
-    actions.appendChild(b);
-  };
-
-  addBtn('Ask About Job', () => {
-    document.getElementById('dlg-body').textContent = d.duet.job;
-    triggerResidentSpeech(res, d.duet.job, 'focus');
-  });
-
-  // Check for pending portrait permission of this resident
-  const pendingPlate = ledger.plates.find((p) => p.subjectId === res.id && p.permission === 'pending');
-  if (pendingPlate) {
-    addBtn(`Approve & Credit ${pendingPlate.id}`, () => {
-      pendingPlate.permission = 'public';
-      pendingPlate.caption = `${d.name} (${d.role}) — credited & approved for public screening`;
-      saveLedger();
-      syncWorldVisualsFromLedger();
-      renderLightTable();
-      document.getElementById('dlg-body').textContent = d.duet.creditApprove;
-      triggerResidentSpeech(res, d.duet.creditApprove, 'smile');
-      showToast(`${pendingPlate.id} approved for Camera Shop Window & Screening Hall.`);
-      openDialogue(res);
-    });
-  }
-
-  if (ledger.carriedWaterL >= 5.0) {
-    addBtn('Pour 5 L Water', () => {
-      ledger.carriedWaterL = Math.max(0, ledger.carriedWaterL - 5.0);
-      if (res.id === 'june') {
-        ledger.projectorTankL = Math.min(10.0, ledger.projectorTankL + 5.0);
-      }
-      saveLedger();
-      syncWorldVisualsFromLedger();
-      audio.playPour();
-      document.getElementById('dlg-body').textContent = d.duet.waterThanks;
-      triggerResidentSpeech(res, d.duet.waterThanks, 'smile');
-      openDialogue(res);
-    });
-  }
-
-  addBtn('Close (Esc)', closeDialogue);
-  card.classList.add('open');
+  const spoken = customLine || d.duet.greeting;
+  if (rwsSpeakerEl) rwsSpeakerEl.textContent = `${d.name} · ${d.role}`;
+  if (rwsLineEl) rwsLineEl.textContent = `"${spoken}"`;
+  triggerResidentSpeech(res, spoken, expr);
 }
 
 function closeDialogue() {
   activeDialogueResident = null;
-  document.getElementById('dialogue-card').classList.remove('open');
+  if (rwsEl) rwsEl.classList.remove('visible');
 }
 
-// ---------------------------------------------------------------------------
-// Contextual Proximity Actions (Standpipe, Cooling Tank, Shop Window, Screen, NPC)
-// ---------------------------------------------------------------------------
-function evaluateContextPrompt() {
-  if (activeDialogueResident || nolliOpen || lightTableOpen) {
-    document.getElementById('context-prompt').classList.remove('visible');
-    currentContextAction = null;
-    return;
-  }
+document.querySelectorAll('[data-rws]').forEach((btn) => {
+  btn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  btn.addEventListener('pointerup', (e) => e.stopPropagation());
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const res = activeDialogueResident;
+    if (!res) return;
+    const d = res.def;
+    const action = btn.getAttribute('data-rws');
 
-  const p = player.pos;
-  let best = null;
-
-  // 1. Nearby Resident (within 4.8 m)
-  for (const r of residents) {
-    const dist = p.distanceTo(r.root.position);
-    if (dist < 4.8 && Math.abs(player.floorY - r.root.position.y) < 2.2) {
-      best = {
-        key: 'E',
-        text: `[E] Talk to ${r.def.name} (${r.def.role})`,
-        btn: `Talk to ${r.def.name}`,
-        fn: () => openDialogue(r),
-      };
-      break;
-    }
-  }
-
-  // 2. Standpipe Depot (-16, 0, 14)
-  if (!best && p.distanceTo(new THREE.Vector3(-16, 0, 14)) < 4.2 && player.floorY < 1.5) {
-    best = {
-      key: 'F',
-      text: `[F] Draw 5 L from ${CARTRIDGES[ledger.cartridge].depotName} (${ledger.standpipeReserveL.toFixed(0)} L left)`,
-      btn: 'Draw 5 L',
-      fn: () => {
-        if (ledger.carriedWaterL >= 20) return showToast('Jerrycan is full (20 L).');
-        if (ledger.standpipeReserveL < 5) return showToast('Standpipe reserve is low.');
-        ledger.carriedWaterL = Math.min(20, ledger.carriedWaterL + 5);
-        ledger.standpipeReserveL = Math.max(0, ledger.standpipeReserveL - 5);
-        audio.playPour();
+    if (action === 'job') {
+      openDialogue(res, d.duet.job, 'focus');
+    } else if (action === 'credit') {
+      const pending =
+        ledger.plates.find((p) => p.subjectId === res.id && p.permission === 'pending') ||
+        ledger.plates.find((p) => p.permission === 'pending');
+      if (pending) {
+        pending.permission = 'public';
+        pending.caption = `${d.name} (${d.role}) - credited & approved for public screening`;
+        ledger.windowPlateIds[0] = pending.id;
+        ledger.screenPlateId = pending.id;
         saveLedger();
         syncWorldVisualsFromLedger();
-        showToast('Drew 5 L of living water. Carry it up the interior stairwell to the Projector Tank.');
-      },
-    };
-  }
-
-  // 3. Hidden Courtyard Cistern (-14, 0, -16)
-  if (!best && p.distanceTo(new THREE.Vector3(-14, 0, -16)) < 4.5 && player.floorY < 1.5) {
-    best = {
-      key: 'F',
-      text: '[F] Refill 10 L from Hidden Courtyard Cistern',
-      btn: 'Refill 10 L',
-      fn: () => {
-        ledger.carriedWaterL = Math.min(20, ledger.carriedWaterL + 10);
-        audio.playPour();
+        openDialogue(res, d.duet.creditApprove, 'smile');
+      } else if (ledger.plates.length > 0) {
+        const latest = ledger.plates[ledger.plates.length - 1];
+        latest.permission = 'public';
+        ledger.windowPlateIds[0] = latest.id;
+        ledger.screenPlateId = latest.id;
         saveLedger();
         syncWorldVisualsFromLedger();
-        showToast('Refilled from the Threshold Courtyard Cistern.');
-      },
-    };
-  }
-
-  // 4. Upper Screening Hall Projector Cooling Tank (-1.4, 4.6, 1.2)
-  if (!best && p.distanceTo(new THREE.Vector3(-1.4, 4.6, 1.2)) < 4.4 && Math.abs(player.floorY - 4.6) < 1.8) {
-    if (ledger.projectorTankL < 5.0) {
-      best = {
-        key: 'F',
-        text: ledger.carriedWaterL >= 5.0
-          ? '[F] Pour 5 L into Projector Cooling Sight-Glass'
-          : 'Projector Cooling Tank is DRY — draw 5 L at the street Standpipe first',
-        btn: ledger.carriedWaterL >= 5.0 ? 'Pour 5 L' : 'Need 5 L',
-        fn: () => {
-          if (ledger.carriedWaterL < 5.0) return showToast('Carry at least 5 L from the street Standpipe first.');
-          ledger.carriedWaterL -= 5.0;
-          ledger.projectorTankL = Math.min(10.0, ledger.projectorTankL + 5.0);
-          audio.playPour();
-          saveLedger();
-          syncWorldVisualsFromLedger();
-          showToast('Projector cooling loop filled! Cyan rooftop relay is LIVE — you can now project a public plate.');
-        },
-      };
-    } else {
-      const pubPlate = [...ledger.plates].reverse().find((pl) => pl.permission === 'public');
-      best = {
-        key: 'F',
-        text: pubPlate
-          ? `[F] Project ${pubPlate.id} onto Linen Sheet`
-          : 'Cooling loop ready — expose a public photograph (C + Space) to project',
-        btn: pubPlate ? 'Project Plate' : 'Open Camera',
-        fn: () => {
-          if (!pubPlate) return toggleCameraMode(true);
-          ledger.screenPlateId = pubPlate.id;
-          saveLedger();
-          syncWorldVisualsFromLedger();
-          showToast(`Now screening ${pubPlate.id} on the Upper Hall linen sheet.`);
-        },
-      };
-    }
-  }
-
-  // 5. Camera Shop Storefront Window / Light Table (ground floor inside/outside near z=7 or x=4,z=-1.8)
-  if (!best && player.floorY < 1.5 && (p.distanceTo(new THREE.Vector3(4.0, 0, -1.8)) < 4.2 || p.distanceTo(new THREE.Vector3(-4.8, 0, 8.2)) < 3.6)) {
-    const pubPlate = [...ledger.plates].reverse().find((pl) => pl.permission === 'public');
-    best = {
-      key: 'F',
-      text: pubPlate
-        ? `[F] Hang ${pubPlate.id} in Camera Shop Storefront Window`
-        : 'Camera Shop Window — expose an approved photograph (C + Space) to hang here',
-      btn: pubPlate ? 'Hang Print' : 'Light Table',
-      fn: () => {
-        if (!pubPlate) return toggleLightTable(true);
-        const slot = ledger.windowPlateIds.indexOf(null);
-        const idx = slot >= 0 ? slot : 0;
-        ledger.windowPlateIds[idx] = pubPlate.id;
-        saveLedger();
-        syncWorldVisualsFromLedger();
-        showToast(`Mounted ${pubPlate.id} in Storefront Window #${idx + 1}. Step outside to see it from the street.`);
-      },
-    };
-  }
-
-  const promptEl = document.getElementById('context-prompt');
-  if (best) {
-    currentContextAction = best;
-    document.getElementById('context-text').textContent = best.text;
-    document.getElementById('context-btn').textContent = best.btn;
-    promptEl.classList.add('visible');
-  } else {
-    currentContextAction = null;
-    promptEl.classList.remove('visible');
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 3-Layer City Map (NOLLI | MOVIEMAP SHOTS | MOOD & SIGNAL) + WORLDTEXT BIBLE
-// ---------------------------------------------------------------------------
-let mapMode = 'nolli';
-let worldtextOpen = false;
-let wtTab = 'gazetteer';
-
-function jumpToMovieShot(shot) {
-  player.pos.set(shot.pos[0], shot.pos[1], shot.pos[2]);
-  player.floorY = shot.pos[1];
-  player.yaw = shot.yaw;
-  player.pitch = shot.pitch;
-  camState.focalMm = shot.focalMm;
-  document.getElementById('sl-focal').value = String(shot.focalMm);
-  setLook(shot.look, false);
-  toggleNolliMap(false);
-  showToast(`MovieMap Shot ${shot.name} (${shot.focalMm}mm · ${shot.look.toUpperCase()})`, 3600);
-}
-
-function drawNolliMap() {
-  const canvas = document.getElementById('nolli-canvas');
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width;
-  const H = canvas.height;
-  const scale = 6.2; // pixels per meter
-  const toX = (wx) => W / 2 + wx * scale;
-  const toY = (wz) => H / 2 + wz * scale;
-
-  // Base background by mode
-  ctx.fillStyle = mapMode === 'mood' ? '#13191f' : '#ece8de';
-  ctx.fillRect(0, 0, W, H);
-
-  // Island Canal Waterfront along South (z > 28) & West (x < -34)
-  ctx.fillStyle = mapMode === 'mood' ? '#091f2b' : '#c6dce6';
-  ctx.fillRect(0, toY(28), W, H - toY(28));
-  ctx.fillRect(0, 0, toX(-34), H);
-
-  // Subtle Atlantis concentric rings when Atlantis cartridge is active
-  if (ledger.cartridge === 'atlantis') {
-    ctx.strokeStyle = 'rgba(24, 180, 255, 0.28)';
-    ctx.lineWidth = 1.5;
-    [16, 28, 40].forEach((r) => {
-      ctx.beginPath();
-      ctx.arc(toX(0), toY(0), r * scale, 0, Math.PI * 2);
-      ctx.stroke();
-    });
-  }
-
-  // MOOD LAYER: Acoustic Sanctuary + Warm Sodium Street + Cyan Water/Signal Auras
-  if (mapMode === 'mood') {
-    const drawGlow = (wx, wz, radM, colorRgba) => {
-      const gx = toX(wx), gy = toY(wz), gr = radM * scale;
-      const grad = ctx.createRadialGradient(gx, gy, 2, gx, gy, gr);
-      grad.addColorStop(0, colorRgba);
-      grad.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(gx, gy, gr, 0, Math.PI * 2);
-      ctx.fill();
-    };
-    // Warm sodium streetlamps
-    lampCoords.forEach(([lx, lz]) => drawGlow(lx, lz, 9, 'rgba(255, 190, 110, 0.32)'));
-    // Acoustic quiet interior sanctuary
-    drawGlow(0, 0, 10, 'rgba(203, 177, 130, 0.28)');
-    // Active Cyan water & signal fields
-    drawGlow(-16, 14, 11, 'rgba(24, 180, 255, 0.45)');
-    drawGlow(-14, -16, 9, 'rgba(24, 180, 255, 0.38)');
-    if (ledger.projectorTankL >= 5.0) {
-      drawGlow(-4, 2, 16, 'rgba(24, 180, 255, 0.52)');
-    }
-  }
-
-  // Solid Poche (dark charcoal) for REAL wygwyl island/buildings.json footprints + local blocks
-  ctx.fillStyle = mapMode === 'mood' ? '#1f262e' : '#1b1d20';
-  if (wygwylAssets.island && wygwylAssets.island.buildings) {
-    wygwylAssets.island.buildings.forEach((b) => {
-      if (!b.pts || b.pts.length < 3) return;
-      ctx.beginPath();
-      ctx.moveTo(toX(b.pts[0][0]), toY(b.pts[0][1]));
-      for (let i = 1; i < b.pts.length; i++) ctx.lineTo(toX(b.pts[i][0]), toY(b.pts[i][1]));
-      ctx.closePath();
-      ctx.fill();
-    });
-  }
-  if (wygwylAssets.island && wygwylAssets.island.roads) {
-    ctx.strokeStyle = mapMode === 'mood' ? 'rgba(130, 170, 200, 0.25)' : 'rgba(60, 58, 52, 0.22)';
-    ctx.lineWidth = 1;
-    wygwylAssets.island.roads.forEach((pts) => {
-      ctx.beginPath();
-      pts.forEach(([rx, rz], idx) => (idx === 0 ? ctx.moveTo(toX(rx), toY(rz)) : ctx.lineTo(toX(rx), toY(rz))));
-      ctx.stroke();
-    });
-  }
-  neighborSpecs.forEach(([x, , z, w, , d]) => {
-    ctx.fillRect(toX(x - w / 2), toY(z - d / 2), w * scale, d * scale);
-  });
-
-  // Hero Nolli Building: Solid exterior poche walls ONLY, leaving public interior carved open!
-  ctx.strokeStyle = mapMode === 'mood' ? '#95b2c4' : '#141618';
-  ctx.lineWidth = 6;
-  ctx.strokeRect(toX(-9), toY(-7), 18 * scale, 14 * scale);
-  // Open front doorway gap
-  ctx.fillStyle = mapMode === 'mood' ? '#13191f' : '#ece8de';
-  ctx.fillRect(toX(-2.4), toY(6.4), 4.8 * scale, 1.4 * scale);
-
-  // Lightwell dashed square
-  ctx.strokeStyle = 'rgba(24, 180, 255, 0.72)';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([4, 4]);
-  ctx.strokeRect(toX(-2.4), toY(-2.2), 4.8 * scale, 4.4 * scale);
-  ctx.setLineDash([]);
-
-  // Threshold Gate bar
-  ctx.strokeStyle = gateCollider.active ? '#c45241' : '#18b4ff';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(toX(-19), toY(-7));
-  ctx.lineTo(toX(-9), toY(-7));
-  ctx.stroke();
-
-  const labelInk = mapMode === 'mood' ? '#e8e4da' : '#141618';
-  ctx.font = '600 10px Inter, sans-serif';
-
-  // Cyan Network Points
-  const cyanPoints = [
-    [-16, 14, 'Standpipe Depot'],
-    [-14, -16, 'Courtyard Cistern'],
-    [-1.8, 1.2, 'Upper Projector'],
-    [-6.5, 4.5, 'Rooftop Relay'],
-  ];
-  cyanPoints.forEach(([x, z, label]) => {
-    ctx.fillStyle = '#18b4ff';
-    ctx.beginPath();
-    ctx.arc(toX(x), toY(z), 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = labelInk;
-    ctx.fillText(label, toX(x) + 8, toY(z) + 3);
-  });
-
-  // Labels for Public Nolli Interior
-  ctx.fillStyle = mapMode === 'mood' ? '#cbb182' : '#4c4942';
-  ctx.fillText('CAMERA SHOP & ARCHIVE (Y=0)', toX(-7.5), toY(4.5));
-  ctx.fillText('SCREENING HALL (Y=4.6)', toX(-7.5), toY(-4.5));
-  ctx.fillText('CANAL QUAY WATERFRONT', toX(-8), toY(32));
-
-  // MOVIEMAP LAYER: Draw 5 composed 35mm Director Shot Pins & View Cones
-  const mmList = document.getElementById('moviemap-list');
-  if (mapMode === 'moviemap') {
-    mmList.style.display = 'flex';
-    mmList.innerHTML = '';
-    MOVIE_SHOTS.forEach((shot) => {
-      const sx = toX(shot.pos[0]);
-      const sy = toY(shot.pos[2]);
-      // View frustum wedge
-      const ang = -shot.yaw - Math.PI / 2;
-      ctx.fillStyle = 'rgba(24, 180, 255, 0.25)';
-      ctx.beginPath();
-      ctx.moveTo(sx, sy);
-      ctx.arc(sx, sy, 28, ang - 0.35, ang + 0.35);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = '#18b4ff';
-      ctx.beginPath();
-      ctx.arc(sx, sy, 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#141618';
-      ctx.fillText(shot.id, sx + 8, sy + 3);
-
-      const btn = document.createElement('button');
-      btn.className = 'pill cyan';
-      btn.textContent = `${shot.name} (${shot.look})`;
-      btn.addEventListener('click', () => jumpToMovieShot(shot));
-      mmList.appendChild(btn);
-    });
-  } else {
-    mmList.style.display = 'none';
-  }
-
-  // Persistent Anny V8 Residents
-  residents.forEach((r) => {
-    ctx.fillStyle = '#cbb182';
-    ctx.beginPath();
-    ctx.arc(toX(r.root.position.x), toY(r.root.position.z), 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = labelInk;
-    ctx.fillText(r.def.name, toX(r.root.position.x) + 7, toY(r.root.position.z) + 3);
-  });
-
-  // Player
-  ctx.fillStyle = '#e04838';
-  ctx.beginPath();
-  ctx.arc(toX(player.pos.x), toY(player.pos.z), 6, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-document.querySelectorAll('#map-mode-pills .pill').forEach((b) => {
-  b.addEventListener('click', () => {
-    mapMode = b.dataset.mapmode;
-    document.querySelectorAll('#map-mode-pills .pill').forEach((p) => p.classList.toggle('active', p === b));
-    drawNolliMap();
-  });
-});
-
-function renderWorldtext() {
-  const cart = CARTRIDGES[ledger.cartridge];
-  const wt = cart.worldtext;
-  document.getElementById('wt-title').textContent = `Worldtext Bible · ${cart.name} + wygwyl Archive`;
-  const body = document.getElementById('wt-body');
-
-  if (wtTab === 'gazetteer') {
-    const gw = wygwylAssets.world;
-    const cal = gw && gw.calendar && gw.calendar[0] ? gw.calendar[0] : null;
-    body.innerHTML = `
-      ${gw ? `
-      <div style="margin-bottom:14px;padding:10px 12px;background:rgba(24,180,255,0.08);border:1px solid rgba(24,180,255,0.28);border-radius:6px;">
-        <div style="color:var(--cyan);font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;">wygwyl / gazetteer / world.json</div>
-        <div style="margin-top:4px;">${gw.overview}</div>
-        ${cal ? `<div style="margin-top:8px;color:var(--brass);font-size:11.5px;"><strong>${cal.name}:</strong> ${cal.text}</div>` : ''}
-      </div>` : ''}
-      <div style="margin-bottom:12px;">
-        <div style="color:var(--brass);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;">Active Block · Founding &amp; Elevation</div>
-        <div style="margin-top:3px;">${wt.gazetteer.founded}</div>
-      </div>
-      <div style="margin-bottom:12px;">
-        <div style="color:var(--cyan);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;">Hydrological &amp; Archival Law</div>
-        <div style="margin-top:3px;">${wt.gazetteer.law}</div>
-      </div>
-      <div>
-        <div style="color:var(--brass);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;">Nolli &amp; Inverse-Tomology Grammar</div>
-        <div style="margin-top:3px;">${wt.gazetteer.architecture}</div>
-      </div>
-    `;
-  } else if (wtTab === 'language') {
-    body.innerHTML = '';
-    // District-Tone Shader Swatches from wygwyl/world/language/palettes.json
-    const palWrap = document.createElement('div');
-    palWrap.style.cssText = 'margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--rule);';
-    palWrap.innerHTML = `<div style="color:var(--cyan);font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">wygwyl / language / palettes.json — Click Any District Tone to Apply Live GPU Shader</div>`;
-    const swatchGrid = document.createElement('div');
-    swatchGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;';
-    ALL_CITY_LOOKS.filter((l) => l.mode === 14).forEach((dl) => {
-      const btn = document.createElement('button');
-      btn.style.cssText = 'text-align:left;background:#1a1e22;border:1px solid var(--rule);border-radius:5px;padding:7px 8px;color:var(--paper);cursor:pointer;';
-      const bars = dl.colors.map((c) => `<span style="flex:1;height:10px;background:${c};display:inline-block;"></span>`).join('');
-      btn.innerHTML = `<div style="font-size:11px;font-weight:600;margin-bottom:5px;">${dl.name}</div><div style="display:flex;border-radius:2px;overflow:hidden;">${bars}</div>`;
-      btn.addEventListener('click', () => {
-        setLook(dl.id, true);
-        toggleWorldtext(false);
-      });
-      swatchGrid.appendChild(btn);
-    });
-    palWrap.appendChild(swatchGrid);
-    body.appendChild(palWrap);
-
-    const lexDiv = document.createElement('div');
-    lexDiv.innerHTML = wt.lexicon.map((entry) => `
-      <div style="padding:8px 0;border-bottom:1px solid var(--rule);">
-        <strong style="color:var(--cyan);">${entry.term}</strong>
-        <span style="color:var(--brass);font-size:11px;margin-left:8px;">/${entry.pron}/</span>
-        <div style="color:var(--muted);margin-top:2px;">${entry.meaning}</div>
-      </div>
-    `).join('');
-    body.appendChild(lexDiv);
-  } else {
-    body.innerHTML = '';
-    const sc = wygwylAssets.scenes;
-    if (sc && sc.thesis) {
-      const th = document.createElement('div');
-      th.style.cssText = 'margin-bottom:12px;padding:10px 12px;background:rgba(203,177,130,0.08);border:1px solid rgba(203,177,130,0.26);border-radius:6px;font-size:12px;';
-      th.innerHTML = `<div style="color:var(--brass);font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">wygwyl / districts / scenes.json</div>${sc.thesis}`;
-      body.appendChild(th);
-    }
-    wt.districts.forEach((dist) => {
-      const row = document.createElement('div');
-      row.style.cssText = 'padding:10px 0;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;align-items:center;gap:12px;';
-      row.innerHTML = `
-        <div>
-          <strong style="color:var(--paper);">${dist.name}</strong>
-          <div style="font-size:11px;color:var(--brass);margin-top:2px;">Mood: ${dist.mood}</div>
-          <div style="font-size:11px;color:var(--muted);">Acoustic: ${dist.acoustic}</div>
-        </div>
-      `;
-      const goBtn = document.createElement('button');
-      goBtn.className = 'pill cyan';
-      goBtn.textContent = 'Visit District';
-      goBtn.addEventListener('click', () => {
-        player.pos.set(dist.pos[0], dist.pos[1], dist.pos[2]);
-        player.floorY = dist.pos[1];
-        toggleWorldtext(false);
-        showToast(`Arrived at ${dist.name} (${dist.mood}).`);
-      });
-      row.appendChild(goBtn);
-      body.appendChild(row);
-    });
-  }
-}
-
-function toggleWorldtext(force) {
-  worldtextOpen = typeof force === 'boolean' ? force : !worldtextOpen;
-  document.getElementById('worldtext-modal').classList.toggle('open', worldtextOpen);
-  document.getElementById('btn-worldtext').classList.toggle('active', worldtextOpen);
-  if (worldtextOpen) renderWorldtext();
-}
-
-document.querySelectorAll('#wt-tabs .pill').forEach((b) => {
-  b.addEventListener('click', () => {
-    wtTab = b.dataset.wttab;
-    document.querySelectorAll('#wt-tabs .pill').forEach((p) => p.classList.toggle('active', p === b));
-    renderWorldtext();
-  });
-});
-document.getElementById('btn-worldtext').addEventListener('click', () => toggleWorldtext());
-document.getElementById('close-worldtext').addEventListener('click', () => toggleWorldtext(false));
-
-document.getElementById('nolli-canvas').addEventListener('click', (e) => {
-  const rect = e.target.getBoundingClientRect();
-  const cx = ((e.clientX - rect.left) / rect.width) * 560;
-  const cy = ((e.clientY - rect.top) / rect.height) * 560;
-  const wx = (cx - 280) / 6.2;
-  const wz = (cy - 280) / 6.2;
-  if (!collidesAt(wx, 0, wz)) {
-    player.pos.set(wx, 0, wz);
-    player.floorY = 0;
-    toggleNolliMap(false);
-    showToast(`Dropped from Nolli Plan to (${wx.toFixed(1)}, ${wz.toFixed(1)}).`);
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Light Table & Contact Sheet Modal
-// ---------------------------------------------------------------------------
-function renderLightTable() {
-  const grid = document.getElementById('plate-grid');
-  const empty = document.getElementById('plate-empty');
-  grid.innerHTML = '';
-  if (!ledger.plates.length) {
-    empty.style.display = 'block';
-    return;
-  }
-  empty.style.display = 'none';
-
-  [...ledger.plates].reverse().forEach((pl) => {
-    const card = document.createElement('div');
-    card.className = 'plate-card';
-    const isPub = pl.permission === 'public';
-    card.innerHTML = `
-      <img src="${pl.dataUrl}" alt="${pl.id}">
-      <div class="plate-meta">
-        <strong>${pl.id} · ${pl.locationName}</strong>
-        <span style="color:var(--muted)">${pl.cartridge} · ${pl.timeOfDay} · ${pl.focalMm}mm · ${pl.stock}</span>
-        <span>${pl.caption}</span>
-        <span class="plate-badge ${isPub ? 'public' : 'pending'}">${isPub ? 'PUBLIC PERMITTED' : 'PENDING SUBJECT CREDIT'}</span>
-        <div class="plate-btns"></div>
-      </div>
-    `;
-    const btns = card.querySelector('.plate-btns');
-
-    const btnVisit = document.createElement('button');
-    btnVisit.className = 'pill';
-    btnVisit.textContent = 'Return to Viewpoint';
-    btnVisit.addEventListener('click', () => {
-      if (pl.viewpoint) {
-        player.pos.set(pl.viewpoint.x, pl.viewpoint.y, pl.viewpoint.z);
-        player.floorY = pl.viewpoint.y;
-        player.yaw = pl.viewpoint.yaw;
-        player.pitch = pl.viewpoint.pitch;
-        toggleLightTable(false);
-        showToast(`Returned to viewpoint of ${pl.id}.`);
+        openDialogue(res, d.duet.creditApprove, 'smile');
+      } else {
+        openDialogue(res, 'Expose a plate with the brass 8x10 camera first, and I will sign the margin.', 'warm');
       }
-    });
-    btns.appendChild(btnVisit);
-
-    if (isPub) {
-      const btnWin = document.createElement('button');
-      btnWin.className = 'pill cyan';
-      btnWin.textContent = 'Hang in Shop Window';
-      btnWin.addEventListener('click', () => {
-        const slot = ledger.windowPlateIds.indexOf(null);
-        ledger.windowPlateIds[slot >= 0 ? slot : 0] = pl.id;
-        saveLedger();
-        syncWorldVisualsFromLedger();
-        showToast(`Mounted ${pl.id} in the Camera Shop storefront window.`);
-      });
-      btns.appendChild(btnWin);
-
-      const btnProj = document.createElement('button');
-      btnProj.className = 'pill cyan';
-      btnProj.textContent = 'Project on Sheet';
-      btnProj.addEventListener('click', () => {
-        if (ledger.projectorTankL < 5.0) {
-          showToast('Projector cooling tank is dry! Carry 5 L up to the Screening Hall first.');
-          return;
+    } else if (action === 'water') {
+      if (ledger.carriedWaterL >= 5.0) {
+        ledger.carriedWaterL = Math.max(0, ledger.carriedWaterL - 5.0);
+        if (res.id === 'june' || res.id === 'makeda') {
+          ledger.projectorTankL = Math.min(10.0, ledger.projectorTankL + 5.0);
         }
-        ledger.screenPlateId = pl.id;
         saveLedger();
         syncWorldVisualsFromLedger();
-        showToast(`Projecting ${pl.id} onto the Upper Screening Hall linen sheet.`);
-      });
-      btns.appendChild(btnProj);
+        savePilotState({
+          waterLiters: ledger.carriedWaterL,
+          coolingWet: ledger.projectorTankL >= 5.0,
+          parcelHolder: res.id === 'bekele' ? 'bekele' : loadPilotState().parcelHolder,
+        });
+        audio.playPour();
+        openDialogue(res, d.duet.waterThanks, 'smile');
+      } else if (res.id === 'bekele' && loadPilotState().parcelHolder !== 'bekele') {
+        savePilotState({ parcelHolder: 'bekele' });
+        openDialogue(res, 'I have logged the Severn parcel at the vestibule desk. Draw 5 liters outside if June needs cooling water.', 'smile');
+      } else {
+        openDialogue(res, 'Click the cyan Standpipe Sight-Glass on the corner first to draw 5 liters into your jerrycan.', 'warm');
+      }
     }
-
-    grid.appendChild(card);
   });
-}
+});
 
 // ---------------------------------------------------------------------------
-// UI Toggles & Wiring
+// In-World 3D Architectural Prop Interactions & World-Projected 1-Line Whisper
 // ---------------------------------------------------------------------------
-function toggleCameraMode(force) {
-  camState.active = typeof force === 'boolean' ? force : !camState.active;
-  document.getElementById('camera-hud').classList.toggle('active', camState.active);
-  document.getElementById('btn-cam').classList.toggle('active', camState.active);
-  updateCameraLensUI();
-  updateThresholdGate();
+const propWhisperEl = document.getElementById('world-prop-whisper');
+const worldPropHitMeshes = [];
+const worldPropEntries = [];
+let hoveredPropEntry = null;
+let transientPropWhisper = null; // { anchorVec, text, until }
+
+function setPropWhisper(anchorVec, text, ms = 2200) {
+  transientPropWhisper = {
+    anchorVec: anchorVec.clone(),
+    text,
+    until: performance.now() + ms,
+  };
 }
 
+function registerWorldProp({ mesh, anchorPos, getWhisper, onActivate, interactRadius = 4.6 }) {
+  const entry = {
+    mesh,
+    anchorPos: anchorPos.clone(),
+    getWhisper,
+    onActivate,
+    interactRadius,
+  };
+  mesh.userData = { ...mesh.userData, propKind: 'world-prop', propEntry: entry };
+  worldPropHitMeshes.push(mesh);
+  worldPropEntries.push(entry);
+  return entry;
+}
+
+// 1. 3D Severn Door Hit Targets (both swinging leaves + doorway threshold frame)
+const severnDoorHitFrame = new THREE.Mesh(new THREE.BoxGeometry(4.9, 3.85, 0.55), mats.hitInvisible);
+severnDoorHitFrame.position.set(0, 1.92, 7.05);
+scene.add(severnDoorHitFrame);
+
+[severnDoorHitFrame, doorLeafL.leafMesh, doorLeafR.leafMesh].forEach((m) => {
+  registerWorldProp({
+    mesh: m,
+    anchorPos: new THREE.Vector3(0, 3.65, 7.2),
+    interactRadius: 4.5,
+    getWhisper: () =>
+      doorOpen
+        ? 'Severn Threshold Door · Open (13.5 kHz) — click to close'
+        : 'Severn Threshold Door · Closed (580 Hz) — click to open',
+    onActivate: () => setSevernDoor(!doorOpen, true),
+  });
+});
+
+// 2. 3D Standpipe Sight-Glass Hit Target (-16, 1.35, 14)
+const standpipeHit = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 2.85, 12), mats.hitInvisible);
+standpipeHit.position.set(-16, 1.4, 14);
+scene.add(standpipeHit);
+
+registerWorldProp({
+  mesh: standpipeHit,
+  anchorPos: new THREE.Vector3(-16, 2.95, 14),
+  interactRadius: 4.8,
+  getWhisper: () =>
+    `Standpipe Sight-Glass (${ledger.standpipeReserveL.toFixed(0)} L reserve) — click to draw 5 L`,
+  onActivate: () => {
+    if (ledger.carriedWaterL >= 20) {
+      setPropWhisper(new THREE.Vector3(-16, 2.95, 14), 'Cyan Jerrycan Full (20.0 L) — carry upstairs to Sight-Glass', 2200);
+      return;
+    }
+    if (ledger.standpipeReserveL < 5) {
+      ledger.standpipeReserveL = 40;
+    }
+    ledger.carriedWaterL = Math.min(20, ledger.carriedWaterL + 5);
+    ledger.standpipeReserveL = Math.max(0, ledger.standpipeReserveL - 5);
+    audio.playPour();
+    saveLedger();
+    syncWorldVisualsFromLedger();
+    savePilotState({ waterLiters: ledger.carriedWaterL });
+    setPropWhisper(
+      new THREE.Vector3(-16, 2.95, 14),
+      `Drew 5 L -> Cyan Jerrycan ${ledger.carriedWaterL.toFixed(0)} L (${ledger.standpipeReserveL.toFixed(0)} L left)`,
+      2400
+    );
+  },
+});
+
+// 3. 3D Storefront Window Frames (#1, #2, #3)
+windowFrames.forEach((wf, idx) => {
+  const hitFrame = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.28, 0.36), mats.hitInvisible);
+  hitFrame.position.set(wf.wx, 1.9, 7.3);
+  scene.add(hitFrame);
+
+  registerWorldProp({
+    mesh: hitFrame,
+    anchorPos: new THREE.Vector3(wf.wx, 2.68, 7.36),
+    interactRadius: 4.0,
+    getWhisper: () => {
+      const pid = ledger.windowPlateIds[idx];
+      return pid
+        ? `Storefront Frame #${idx + 1} (${pid}) — click to mount plate`
+        : `Storefront Frame #${idx + 1} — click to mount captured plate`;
+    },
+    onActivate: () => {
+      const pubPlates = [...ledger.plates].reverse().filter((p) => p.permission === 'public');
+      if (pubPlates.length > 0) {
+        const curIdx = pubPlates.findIndex((p) => p.id === ledger.windowPlateIds[idx]);
+        const chosen = pubPlates[(curIdx + 1) % pubPlates.length];
+        ledger.windowPlateIds[idx] = chosen.id;
+        saveLedger();
+        syncWorldVisualsFromLedger();
+        setPropWhisper(
+          new THREE.Vector3(wf.wx, 2.68, 7.36),
+          `Mounted ${chosen.id} in Storefront Frame #${idx + 1}`,
+          2200
+        );
+      } else {
+        wf.archiveCycle = (wf.archiveCycle + 1) % WEAVE_ARCHIVE_URLS.length;
+        const tex = archiveTextures[wf.archiveCycle];
+        if (tex) {
+          wf.mat.map = tex;
+          wf.mat.emissiveMap = tex;
+          wf.mat.needsUpdate = true;
+        }
+        setPropWhisper(
+          new THREE.Vector3(wf.wx, 2.68, 7.36),
+          `Storefront Frame #${idx + 1} · WEAVE Plate #${wf.archiveCycle + 1} (Space to expose yours)`,
+          2200
+        );
+      }
+    },
+  });
+});
+
+// 4. 3D Archive Light Table inside Severn Ground Floor (4.0, 0.94, -1.8)
+const lightTableHit = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.15, 1.55), mats.hitInvisible);
+lightTableHit.position.set(4.0, 0.62, -1.8);
+scene.add(lightTableHit);
+
+registerWorldProp({
+  mesh: lightTableHit,
+  anchorPos: new THREE.Vector3(4.0, 1.48, -1.8),
+  interactRadius: 4.2,
+  getWhisper: () =>
+    ledger.plates.length > 0
+      ? `Archive Light Table (${ledger.plates.length} plates) — click to mount & queue`
+      : 'Archive Light Table — expose a plate (Space / Tripod) to inspect & mount',
+  onActivate: () => {
+    const pubPlates = [...ledger.plates].reverse().filter((p) => p.permission === 'public');
+    if (pubPlates.length > 0) {
+      const chosen = pubPlates[lightTableCursor % pubPlates.length];
+      lightTableCursor += 1;
+      ledger.windowPlateIds[0] = chosen.id;
+      ledger.screenPlateId = chosen.id;
+      saveLedger();
+      syncWorldVisualsFromLedger();
+      setPropWhisper(
+        new THREE.Vector3(4.0, 1.48, -1.8),
+        `Light Table · Queued ${chosen.id} -> Window #1 & Upper Projector`,
+        2400
+      );
+    } else {
+      const freshPlate = capturePlate();
+      setPropWhisper(
+        new THREE.Vector3(4.0, 1.48, -1.8),
+        `Exposed & Mounted ${freshPlate.id} on Archive Light Table`,
+        2400
+      );
+    }
+  },
+});
+
+// 5. 3D Upper Projector & Cyan Cooling Sight-Glass (-1.35, 5.25, 1.2)
+const sightGlassHit = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.65, 1.35), mats.hitInvisible);
+sightGlassHit.position.set(-1.35, 5.32, 1.05);
+scene.add(sightGlassHit);
+
+registerWorldProp({
+  mesh: sightGlassHit,
+  anchorPos: new THREE.Vector3(-1.1, 6.25, 1.2),
+  interactRadius: 4.5,
+  getWhisper: () => {
+    if (ledger.projectorTankL < 5.0) {
+      return ledger.carriedWaterL >= 5.0
+        ? 'Projector Sight-Glass (Dry) — click to pour 5 L from Jerrycan'
+        : 'Projector Sight-Glass Dry (0/5 L) — draw 5 L at Street Standpipe';
+    }
+    return `Projector Sight-Glass Cooled (${ledger.projectorTankL.toFixed(1)} L) — click to advance reel`;
+  },
+  onActivate: () => {
+    if (ledger.carriedWaterL >= 5.0 && ledger.projectorTankL < 10.0) {
+      ledger.carriedWaterL = Math.max(0, ledger.carriedWaterL - 5.0);
+      ledger.projectorTankL = Math.min(10.0, ledger.projectorTankL + 5.0);
+      audio.playPour();
+      const pubPlate = [...ledger.plates].reverse().find((pl) => pl.permission === 'public');
+      if (pubPlate && !ledger.screenPlateId) ledger.screenPlateId = pubPlate.id;
+      saveLedger();
+      syncWorldVisualsFromLedger();
+      savePilotState({ waterLiters: ledger.carriedWaterL, coolingWet: true });
+      setPropWhisper(
+        new THREE.Vector3(-1.1, 6.25, 1.2),
+        'Poured 5 L -> Sight-Glass Cooled & Rooftop Cyan Relay Live',
+        2600
+      );
+    } else if (ledger.projectorTankL >= 5.0) {
+      screenArchiveIdx += 1;
+      const pubPlates = [...ledger.plates].reverse().filter((pl) => pl.permission === 'public');
+      if (pubPlates.length > 0) {
+        const nextP = pubPlates[screenArchiveIdx % pubPlates.length];
+        ledger.screenPlateId = nextP.id;
+        saveLedger();
+        syncWorldVisualsFromLedger();
+        setPropWhisper(new THREE.Vector3(-1.1, 6.25, 1.2), `35mm Projector · Screening ${nextP.id}`, 2200);
+      } else {
+        ledger.screenPlateId = null;
+        syncWorldVisualsFromLedger();
+        setPropWhisper(
+          new THREE.Vector3(-1.1, 6.25, 1.2),
+          `35mm Projector · Screening WEAVE Reel #${(screenArchiveIdx % WEAVE_ARCHIVE_URLS.length) + 1}`,
+          2200
+        );
+      }
+    } else {
+      setPropWhisper(
+        new THREE.Vector3(-1.1, 6.25, 1.2),
+        'Sight-Glass is Dry — click Street Standpipe (-16, 14) for 5 L first',
+        2400
+      );
+    }
+  },
+});
+
+// 6. 3D Stretched Linen Screening Sheet (0, 6.85, -6.42)
+const linenScreenHit = new THREE.Mesh(new THREE.BoxGeometry(6.9, 3.8, 0.35), mats.hitInvisible);
+linenScreenHit.position.set(0, 6.85, -6.42);
+scene.add(linenScreenHit);
+
+registerWorldProp({
+  mesh: linenScreenHit,
+  anchorPos: new THREE.Vector3(0, 8.85, -6.35),
+  interactRadius: 5.5,
+  getWhisper: () =>
+    ledger.projectorTankL >= 5.0
+      ? '35mm Linen Screen — click to project next plate'
+      : '35mm Linen Screen — pour 5 L into Sight-Glass to cool lamp',
+  onActivate: () => {
+    if (ledger.projectorTankL < 5.0 && ledger.carriedWaterL >= 5.0) {
+      ledger.carriedWaterL = Math.max(0, ledger.carriedWaterL - 5.0);
+      ledger.projectorTankL = 5.0;
+      audio.playPour();
+      savePilotState({ waterLiters: ledger.carriedWaterL, coolingWet: true });
+    }
+    if (ledger.projectorTankL < 5.0) {
+      setPropWhisper(
+        new THREE.Vector3(0, 8.85, -6.35),
+        'Linen Screen Dry — pour 5 L into the cyan Sight-Glass behind you first',
+        2400
+      );
+      return;
+    }
+    const pubPlates = [...ledger.plates].reverse().filter((pl) => pl.permission === 'public');
+    if (pubPlates.length > 0) {
+      const cur = pubPlates.findIndex((p) => p.id === ledger.screenPlateId);
+      const nextP = pubPlates[(cur + 1) % pubPlates.length];
+      ledger.screenPlateId = nextP.id;
+      saveLedger();
+      syncWorldVisualsFromLedger();
+      setPropWhisper(new THREE.Vector3(0, 8.85, -6.35), `Projecting ${nextP.id} onto Stretched Linen`, 2200);
+    } else {
+      screenArchiveIdx += 1;
+      syncWorldVisualsFromLedger();
+      setPropWhisper(
+        new THREE.Vector3(0, 8.85, -6.35),
+        `Projecting WEAVE Archive Reel #${(screenArchiveIdx % WEAVE_ARCHIVE_URLS.length) + 1}`,
+        2200
+      );
+    }
+  },
+});
+
+// 7. 3D Optical Threshold Gate (-14, 2.1, -7) & Hidden Courtyard Cistern (-14, 0.5, -16)
+const gateHit = new THREE.Mesh(new THREE.BoxGeometry(9.4, 4.1, 0.55), mats.hitInvisible);
+gateHit.position.set(-14, 2.05, -7);
+scene.add(gateHit);
+
+registerWorldProp({
+  mesh: gateHit,
+  anchorPos: new THREE.Vector3(-14, 4.15, -7),
+  interactRadius: 4.8,
+  getWhisper: () =>
+    gateCollider.active
+      ? 'Optical Threshold Gate (Solid) — click to defocus into Zone II passage'
+      : 'Optical Threshold Gate (Open Passage) — click to restore sharp focus',
+  onActivate: () => {
+    if (gateCollider.active) {
+      camState.active = true;
+      camState.focusM = 2.6;
+    } else {
+      camState.active = false;
+      camState.focusM = 12.0;
+    }
+    updateCameraLensState();
+    setPropWhisper(
+      new THREE.Vector3(-14, 4.15, -7),
+      gateCollider.active ? 'Optical Gate · Restored Focus (Solid)' : 'Optical Gate · Shifted Focus -> Passage Open',
+      2200
+    );
+  },
+});
+
+const cisternHit = new THREE.Mesh(new THREE.CylinderGeometry(2.45, 2.45, 0.9, 16), mats.hitInvisible);
+cisternHit.position.set(-14, 0.45, -16);
+scene.add(cisternHit);
+
+registerWorldProp({
+  mesh: cisternHit,
+  anchorPos: new THREE.Vector3(-14, 1.35, -16),
+  interactRadius: 4.8,
+  getWhisper: () => 'Courtyard Cistern — click to draw 10 L into Cyan Jerrycan',
+  onActivate: () => {
+    ledger.carriedWaterL = Math.min(20, ledger.carriedWaterL + 10);
+    audio.playPour();
+    saveLedger();
+    syncWorldVisualsFromLedger();
+    savePilotState({ waterLiters: ledger.carriedWaterL });
+    setPropWhisper(
+      new THREE.Vector3(-14, 1.35, -16),
+      `Courtyard Cistern -> Cyan Jerrycan ${ledger.carriedWaterL.toFixed(0)} L`,
+      2200
+    );
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Inverse Tomology X-Ray & Silent Background Keyboard Shortcuts
+// ---------------------------------------------------------------------------
 function toggleXray(force) {
   camState.xray = typeof force === 'boolean' ? force : !camState.xray;
-  document.getElementById('btn-xray').classList.toggle('active', camState.xray);
   mats.masonryExt.transparent = camState.xray;
   mats.masonryExt.opacity = camState.xray ? 0.16 : 1.0;
   mats.masonryExt.depthWrite = !camState.xray;
   mats.masonryExt.needsUpdate = true;
   mats.xrayWire.opacity = camState.xray ? 0.42 : 0.0;
-  showToast(camState.xray ? 'Inverse Tomology X-Ray ON — interior rooms & cyan conduits revealed.' : 'Inverse X-Ray OFF.');
 }
 
-function toggleNolliMap(force) {
-  nolliOpen = typeof force === 'boolean' ? force : !nolliOpen;
-  document.getElementById('nolli-modal').classList.toggle('open', nolliOpen);
-  document.getElementById('btn-nolli').classList.toggle('active', nolliOpen);
-  if (nolliOpen) drawNolliMap();
+function setLook(lookId) {
+  suite.setLook(lookId, false, true);
+  camState.stock = suite.getState().lookId;
 }
-
-function toggleLightTable(force) {
-  lightTableOpen = typeof force === 'boolean' ? force : !lightTableOpen;
-  document.getElementById('lighttable-modal').classList.toggle('open', lightTableOpen);
-  document.getElementById('btn-lighttable').classList.toggle('active', lightTableOpen);
-  if (lightTableOpen) renderLightTable();
-}
-
-const shaderSelect = document.getElementById('shader-select');
-ALL_CITY_LOOKS.forEach((look) => {
-  const opt = document.createElement('option');
-  opt.value = look.id;
-  opt.textContent = `Shader: ${look.name}`;
-  shaderSelect.appendChild(opt);
-});
-
-function setLook(lookId, announce = false) {
-  const found = ALL_CITY_LOOKS.find((l) => l.id === lookId) || ALL_CITY_LOOKS[0];
-  camState.stock = found.id;
-  shaderSelect.value = found.id;
-  document.querySelectorAll('#stock-pills .pill').forEach((p) => {
-    p.classList.toggle('active', p.dataset.stock === found.id);
-  });
-  updateCameraLensUI();
-  if (announce) showToast(`GPU Shader: ${found.name} — ${found.desc}`, 2600);
-}
-
-shaderSelect.addEventListener('change', (e) => setLook(e.target.value, true));
-document.getElementById('btn-prev-shader').addEventListener('click', () => {
-  const idx = ALL_CITY_LOOKS.findIndex((l) => l.id === camState.stock);
-  setLook(ALL_CITY_LOOKS[(idx - 1 + ALL_CITY_LOOKS.length) % ALL_CITY_LOOKS.length].id, true);
-});
-document.getElementById('btn-next-shader').addEventListener('click', () => {
-  const idx = ALL_CITY_LOOKS.findIndex((l) => l.id === camState.stock);
-  setLook(ALL_CITY_LOOKS[(idx + 1) % ALL_CITY_LOOKS.length].id, true);
-});
-
-function updateCameraLensUI() {
-  // Approximate 35mm vertical FOV from focal length
-  const fov = THREE.MathUtils.radToDeg(2 * Math.atan(24 / (2 * camState.focalMm)));
-  camera.fov = camState.active ? fov : 52;
-  camera.updateProjectionMatrix();
-
-  const lookObj = ALL_CITY_LOOKS.find((l) => l.id === camState.stock) || ALL_CITY_LOOKS[0];
-  document.getElementById('lbl-focal').textContent = `${camState.focalMm}mm`;
-  document.getElementById('lbl-focus').textContent = `${camState.focusM.toFixed(1)}m`;
-  document.getElementById('lbl-ev').textContent = `${camState.exposureEv >= 0 ? '+' : ''}${camState.exposureEv.toFixed(1)} EV`;
-  document.getElementById('vf-readout').textContent =
-    `${camState.focalMm}MM · FOCUS ${camState.focusM.toFixed(1)}M · EV ${camState.exposureEv.toFixed(1)} · ${lookObj.name.toUpperCase()}`;
-
-  updateThresholdGate();
-}
-
-// Event Listeners
-document.querySelectorAll('#cartridge-pills .pill').forEach((b) => {
-  b.addEventListener('click', () => {
-    ledger.cartridge = b.dataset.cart;
-    applyCartridgeAndTime();
-    showToast(`Switched Worldtext Cartridge to ${CARTRIDGES[ledger.cartridge].name}.`);
-  });
-});
-
-document.querySelectorAll('#time-pills .pill').forEach((b) => {
-  b.addEventListener('click', () => {
-    ledger.timeOfDay = b.dataset.time;
-    applyCartridgeAndTime();
-  });
-});
-
-document.querySelectorAll('#stock-pills .pill').forEach((b) => {
-  b.addEventListener('click', () => {
-    setLook(b.dataset.stock, true);
-  });
-});
-
-document.getElementById('sl-focal').addEventListener('input', (e) => {
-  camState.focalMm = Number(e.target.value);
-  updateCameraLensUI();
-});
-document.getElementById('sl-focus').addEventListener('input', (e) => {
-  camState.focusM = Number(e.target.value);
-  updateCameraLensUI();
-});
-document.getElementById('sl-ev').addEventListener('input', (e) => {
-  camState.exposureEv = Number(e.target.value);
-  updateCameraLensUI();
-});
-document.getElementById('btn-tripod').addEventListener('click', (e) => {
-  camState.tripodLocked = !camState.tripodLocked;
-  e.target.classList.toggle('active', camState.tripodLocked);
-  e.target.textContent = camState.tripodLocked ? 'Tripod: Locked' : 'Tripod: Off';
-  audio.playTripodLock();
-});
-document.getElementById('shutter-btn').addEventListener('click', capturePlate);
-
-document.getElementById('btn-cam').addEventListener('click', () => toggleCameraMode());
-document.getElementById('btn-xray').addEventListener('click', () => toggleXray());
-document.getElementById('btn-nolli').addEventListener('click', () => toggleNolliMap());
-document.getElementById('btn-lighttable').addEventListener('click', () => toggleLightTable());
-document.getElementById('close-nolli').addEventListener('click', () => toggleNolliMap(false));
-document.getElementById('close-lighttable').addEventListener('click', () => toggleLightTable(false));
-document.getElementById('context-btn').addEventListener('click', () => {
-  if (currentContextAction) currentContextAction.fn();
-});
-
-document.getElementById('btn-audio').addEventListener('click', async (e) => {
-  const on = await audio.toggle();
-  e.target.classList.toggle('active', on);
-  e.target.textContent = on ? 'Audio: On' : 'Audio: Off';
-});
 
 window.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const activeEl = document.activeElement;
+  const tag = activeEl ? activeEl.tagName : '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
   const k = e.key.toLowerCase();
   keys[k] = true;
+
   if (k === 'escape') {
     closeDialogue();
-    toggleNolliMap(false);
-    toggleLightTable(false);
-    toggleWorldtext(false);
-    if (camState.active) toggleCameraMode(false);
+    if (camState.active) {
+      camState.active = false;
+      updateCameraLensState();
+    }
     return;
   }
-  if (k === 'c') toggleCameraMode();
-  if (k === 'x') toggleXray();
-  if (k === 'm') toggleNolliMap();
-  if (k === 'l') toggleLightTable();
-  if (k === 'b') toggleWorldtext();
-  if (k === '[') document.getElementById('btn-prev-shader').click();
-  if (k === ']') document.getElementById('btn-next-shader').click();
-  if (k === ' ' && camState.active) {
+  if (k === 'c' && !e.repeat) {
+    camState.active = !camState.active;
+    updateCameraLensState();
+  }
+  if (k === 'x' && !e.repeat) {
+    toggleXray();
+  }
+  if (e.code === 'Space' && !e.repeat && tag !== 'BUTTON') {
     e.preventDefault();
-    capturePlate();
+    const pl = capturePlate();
+    setPropWhisper(
+      new THREE.Vector3(player.pos.x - Math.sin(player.yaw) * 3.2, player.floorY + 1.85, player.pos.z - Math.cos(player.yaw) * 3.2),
+      `Exposed ${pl.id} (${pl.stock}) -> Shop Window & Light Table`,
+      1900
+    );
   }
-  if (k === 'e' && currentContextAction && currentContextAction.key === 'E') {
-    currentContextAction.fn();
+  if (k === 'e' && !e.repeat) {
+    const nearRes = residents.find(
+      (r) => player.pos.distanceTo(r.root.position) < 5.2 && Math.abs(player.floorY - r.root.position.y) < 2.2
+    );
+    if (nearRes) openDialogue(nearRes);
   }
-  if (k === 'f' && currentContextAction && currentContextAction.key === 'F') {
-    currentContextAction.fn();
+  if (k === 'f' && !e.repeat) {
+    let bestProp = null;
+    let bestDist = Infinity;
+    for (const p of worldPropEntries) {
+      const d = player.pos.distanceTo(p.anchorPos);
+      if (d < p.interactRadius + 1.2 && d < bestDist) {
+        bestDist = d;
+        bestProp = p;
+      }
+    }
+    if (bestProp) bestProp.onActivate();
   }
 });
 
@@ -2125,8 +2092,21 @@ window.addEventListener('keyup', (e) => {
   keys[e.key.toLowerCase()] = false;
 });
 
-// Mouse drag look + Direct 3D Click-to-Talk Raycast
+// ---------------------------------------------------------------------------
+// Mouse Drag Look + Direct 3D Raycast (Residents + Architectural Props)
+// ---------------------------------------------------------------------------
 const raycaster = new THREE.Raycaster();
+const pointerNdc = new THREE.Vector2();
+let playerHasWalked = false;
+
+function updateNdc(clientX, clientY) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointerNdc.set(
+    ((clientX - rect.left) / Math.max(1, rect.width)) * 2 - 1,
+    -((clientY - rect.top) / Math.max(1, rect.height)) * 2 + 1
+  );
+}
+
 renderer.domElement.addEventListener('pointerdown', (e) => {
   dragging = true;
   lastMouse.x = e.clientX;
@@ -2134,31 +2114,101 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
   pointerDownPos.x = e.clientX;
   pointerDownPos.y = e.clientY;
 });
+
+function resolveResidentFromHitObject(obj) {
+  let cur = obj;
+  while (cur) {
+    if (cur.userData && cur.userData.residentId) {
+      return residents.find((r) => r.id === cur.userData.residentId) || null;
+    }
+    cur = cur.parent;
+  }
+  return null;
+}
+
 window.addEventListener('pointermove', (e) => {
-  if (!dragging) return;
-  const dx = e.clientX - lastMouse.x;
-  const dy = e.clientY - lastMouse.y;
-  lastMouse.x = e.clientX;
-  lastMouse.y = e.clientY;
-  player.yaw -= dx * 0.0042;
-  player.pitch = THREE.MathUtils.clamp(player.pitch - dy * 0.0036, -0.95, 0.95);
+  if (dragging) {
+    const dx = e.clientX - lastMouse.x;
+    const dy = e.clientY - lastMouse.y;
+    lastMouse.x = e.clientX;
+    lastMouse.y = e.clientY;
+    player.yaw -= dx * 0.0042;
+    player.pitch = THREE.MathUtils.clamp(player.pitch - dy * 0.0036, -0.95, 0.95);
+    return;
+  }
+
+  updateNdc(e.clientX, e.clientY);
+  raycaster.setFromCamera(pointerNdc, camera);
+
+  const resRoots = residents.map((r) => r.root);
+  const resHits = raycaster.intersectObjects(resRoots, true);
+  const propHits = raycaster.intersectObjects(worldPropHitMeshes, false);
+
+  const bestResHit = resHits.length > 0 && resHits[0].distance < 28 ? resHits[0] : null;
+  const bestProp = propHits.length > 0 && propHits[0].distance < 42 ? propHits[0] : null;
+  const hitOpenDoorAir = bestProp && bestProp.object === severnDoorHitFrame && doorOpen;
+
+  if (bestResHit && (hitOpenDoorAir || !bestProp || bestResHit.distance <= bestProp.distance)) {
+    const res = resolveResidentFromHitObject(bestResHit.object);
+    hoveredPropEntry = res
+      ? {
+          anchorPos: res.root.position.clone().add(new THREE.Vector3(0, 2.04, 0)),
+          getWhisper: () => `${res.def.name} · ${res.def.role} — click to speak`,
+        }
+      : null;
+  } else if (bestProp) {
+    hoveredPropEntry = bestProp.object.userData.propEntry || null;
+  } else {
+    hoveredPropEntry = null;
+  }
+
+  if (!renderer.domElement.dataset.mpPrevCursor) {
+    renderer.domElement.style.cursor = hoveredPropEntry ? 'pointer' : '';
+  }
 });
+
 window.addEventListener('pointerup', (e) => {
   if (!dragging) return;
   dragging = false;
+  if (e.button !== 0) return;
+
   const moved = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
-  if (moved < 6 && !nolliOpen && !lightTableOpen) {
-    const ndc = new THREE.Vector2(
-      (e.clientX / window.innerWidth) * 2 - 1,
-      -(e.clientY / window.innerHeight) * 2 + 1
-    );
-    raycaster.setFromCamera(ndc, camera);
-    const hits = raycaster.intersectObjects(residentHitMeshes, false);
-    if (hits.length > 0 && hits[0].distance < 22) {
-      const rid = hits[0].object.userData.residentId;
-      const res = residents.find((r) => r.id === rid);
-      if (res) openDialogue(res);
+  if (moved > 6) return;
+
+  updateNdc(e.clientX, e.clientY);
+  raycaster.setFromCamera(pointerNdc, camera);
+
+  const rigHits = raycaster.intersectObjects(worldRig.hitMeshes, false);
+  const resHits = raycaster.intersectObjects(residents.map((r) => r.root), true);
+  const propHits = raycaster.intersectObjects(worldPropHitMeshes, false);
+
+  const rigDist = rigHits.length > 0 ? rigHits[0].distance : Infinity;
+  const resDist = resHits.length > 0 && resHits[0].distance < 28 ? resHits[0].distance : Infinity;
+  const propDist = propHits.length > 0 && propHits[0].distance < 42 ? propHits[0].distance : Infinity;
+  const hitOpenDoorAir = propDist < Infinity && propHits[0].object === severnDoorHitFrame && doorOpen;
+
+  if (rigDist < resDist && rigDist < propDist && rigDist < 58) {
+    return;
+  }
+
+  if (resDist < 28 && (hitOpenDoorAir || resDist <= propDist)) {
+    const res = resolveResidentFromHitObject(resHits[0].object);
+    if (res) {
+      openDialogue(res);
+      return;
     }
+  }
+
+  if (propDist < 42) {
+    const propEntry = propHits[0].object.userData.propEntry;
+    if (propEntry && typeof propEntry.onActivate === 'function') {
+      propEntry.onActivate();
+      return;
+    }
+  }
+
+  if (activeDialogueResident) {
+    closeDialogue();
   }
 });
 
@@ -2166,11 +2216,28 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  shaderPipeline.setSize(window.innerWidth, window.innerHeight);
+  suite.pipeline.setSize(window.innerWidth, window.innerHeight);
 });
 
 // ---------------------------------------------------------------------------
-// Main Simulation Loop
+// Subscribe to Shared Severn Pilot State Updates
+// ---------------------------------------------------------------------------
+subscribePilotState((nextPilot) => {
+  if (typeof nextPilot.doorOpen === 'boolean' && nextPilot.doorOpen !== doorOpen) {
+    setSevernDoor(nextPilot.doorOpen, false);
+  }
+  if (nextPilot.shader && nextPilot.shader !== camState.stock && ALL_CITY_LOOKS.some((l) => l.id === nextPilot.shader)) {
+    camState.stock = nextPilot.shader;
+  }
+  const mappedTime = hourToTimeKey(nextPilot.worldTime);
+  if (mappedTime && TIME_PRESETS[mappedTime] && mappedTime !== ledger.timeOfDay) {
+    ledger.timeOfDay = mappedTime;
+    applyCartridgeAndTime();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Initial URL Query Overrides & Startup
 // ---------------------------------------------------------------------------
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('cart') && CARTRIDGES[urlParams.get('cart')]) {
@@ -2179,14 +2246,14 @@ if (urlParams.get('cart') && CARTRIDGES[urlParams.get('cart')]) {
 if (urlParams.get('time') && TIME_PRESETS[urlParams.get('time')]) {
   ledger.timeOfDay = urlParams.get('time');
 }
-if (urlParams.get('look')) {
-  setLook(urlParams.get('look'), false);
+if (urlParams.get('look') || urlParams.get('shader')) {
+  setLook(urlParams.get('look') || urlParams.get('shader'));
 }
 
 applyCartridgeAndTime();
+setSevernDoor(doorOpen, false);
 syncWorldVisualsFromLedger();
-updateCameraLensUI();
-showToast(CARTRIDGES[ledger.cartridge].assignment, 5200);
+updateCameraLensState();
 
 if (urlParams.get('xray') === '1') {
   ledger.projectorTankL = 5.0;
@@ -2203,72 +2270,153 @@ if (urlParams.get('xray') === '1') {
   player.yaw = 0.04;
   player.pitch = 0.06;
 } else if (urlParams.get('view') === 'cast') {
-  // Close-up of Bekele (real Anny V8 adult_m) inside Camera Shop
   player.pos.set(-4.2, 0, 6.2);
   player.floorY = 0;
   player.yaw = 0.0;
   player.pitch = -0.02;
-} else if (urlParams.get('map') === '1') {
-  if (urlParams.get('mapmode')) mapMode = urlParams.get('mapmode');
-  toggleNolliMap(true);
-} else if (urlParams.get('wt') === '1') {
-  toggleWorldtext(true);
 }
 
+// ---------------------------------------------------------------------------
+// Main Simulation Loop
+// ---------------------------------------------------------------------------
 const clock = new THREE.Clock();
+const headWorldScratch = new THREE.Vector3();
+
+function updateWorldOverlays() {
+  const now = performance.now();
+
+  // 1. Floating Overhead Resident Speech + Minimal Inline Choices
+  if (activeDialogueResident && rwsEl) {
+    const dist = player.pos.distanceTo(activeDialogueResident.root.position);
+    if (dist > 14.5) {
+      closeDialogue();
+    } else {
+      headWorldScratch.copy(activeDialogueResident.root.position).add(new THREE.Vector3(0, 2.08, 0));
+      const prj = projectWorldLabel(camera, headWorldScratch, renderer.domElement);
+      if (prj.visible) {
+        rwsEl.style.left = `${Math.round(prj.x)}px`;
+        rwsEl.style.top = `${Math.round(prj.y - 8)}px`;
+        rwsEl.classList.add('visible');
+      } else {
+        rwsEl.classList.remove('visible');
+      }
+    }
+  }
+
+  // 2. Plain 1-line World-Projected Prop Whisper (ONLY on hover, click, or < 4.5m after movement)
+  if (!propWhisperEl) return;
+  if (worldRig.whisperEl && worldRig.whisperEl.classList.contains('visible')) {
+    propWhisperEl.classList.remove('visible');
+    return;
+  }
+  let targetAnchor = null;
+  let targetText = '';
+
+  if (transientPropWhisper && now < transientPropWhisper.until) {
+    targetAnchor = transientPropWhisper.anchorVec;
+    targetText = transientPropWhisper.text;
+  } else {
+    transientPropWhisper = null;
+    if (hoveredPropEntry && !activeDialogueResident) {
+      targetAnchor = hoveredPropEntry.anchorPos;
+      targetText = hoveredPropEntry.getWhisper();
+    } else if (playerHasWalked && !activeDialogueResident) {
+      let bestDist = 4.6;
+      for (const p of worldPropEntries) {
+        const d = player.pos.distanceTo(p.anchorPos);
+        if (d < bestDist) {
+          const prj = projectWorldLabel(camera, p.anchorPos, renderer.domElement);
+          if (prj.visible) {
+            bestDist = d;
+            targetAnchor = p.anchorPos;
+            targetText = p.getWhisper();
+          }
+        }
+      }
+    }
+  }
+
+  if (targetAnchor && targetText) {
+    const prj = projectWorldLabel(camera, targetAnchor, renderer.domElement);
+    if (prj.visible) {
+      propWhisperEl.textContent = targetText;
+      propWhisperEl.style.left = `${Math.round(prj.x)}px`;
+      propWhisperEl.style.top = `${Math.round(prj.y - 6)}px`;
+      propWhisperEl.classList.add('visible');
+      return;
+    }
+  }
+  propWhisperEl.classList.remove('visible');
+}
 
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(0.05, clock.getDelta());
   const elapsed = clock.elapsedTime;
 
-  // Player Movement (locked when tripod is deployed or modal open)
+  // Smoothly animate double-leaf 3D Severn Threshold Doors
+  const targetDoorL = doorOpen ? 1.34 : 0.0;
+  const targetDoorR = doorOpen ? -1.34 : 0.0;
+  doorLeafL.pivot.rotation.y = THREE.MathUtils.lerp(doorLeafL.pivot.rotation.y, targetDoorL, Math.min(1, dt * 8.5));
+  doorLeafR.pivot.rotation.y = THREE.MathUtils.lerp(doorLeafR.pivot.rotation.y, targetDoorR, Math.min(1, dt * 8.5));
+
+  // Player Movement (WASD / Arrows)
   let moving = false;
-  if (!camState.tripodLocked && !nolliOpen && !lightTableOpen && !activeDialogueResident) {
-    let fwd = 0;
-    let strafe = 0;
-    if (keys['w'] || keys['arrowup']) fwd += 1;
-    if (keys['s'] || keys['arrowdown']) fwd -= 1;
-    if (keys['a'] || keys['arrowleft']) strafe -= 1;
-    if (keys['d'] || keys['arrowright']) strafe += 1;
+  let fwd = 0;
+  let strafe = 0;
+  if (keys['w'] || keys['arrowup']) fwd += 1;
+  if (keys['s'] || keys['arrowdown']) fwd -= 1;
+  if (keys['a'] || keys['arrowleft']) strafe -= 1;
+  if (keys['d'] || keys['arrowright']) strafe += 1;
 
-    if (fwd !== 0 || strafe !== 0) {
-      moving = true;
-      const spd = (keys['shift'] ? 8.8 : player.speed) * dt;
-      const sinY = Math.sin(player.yaw);
-      const cosY = Math.cos(player.yaw);
-      const vx = (-sinY * fwd + cosY * strafe) * spd;
-      const vz = (-cosY * fwd - sinY * strafe) * spd;
+  if (fwd !== 0 || strafe !== 0) {
+    moving = true;
+    playerHasWalked = true;
+    const spd = (keys['shift'] ? 8.8 : player.speed) * dt;
+    const sinY = Math.sin(player.yaw);
+    const cosY = Math.cos(player.yaw);
+    const vx = (-sinY * fwd + cosY * strafe) * spd;
+    const vz = (-cosY * fwd - sinY * strafe) * spd;
 
-      const nx = THREE.MathUtils.clamp(player.pos.x + vx, -44, 44);
-      const nz = THREE.MathUtils.clamp(player.pos.z + vz, -44, 44);
-      const nextFloor = computeFloorHeight(nx, nz, player.floorY);
+    const nx = THREE.MathUtils.clamp(player.pos.x + vx, -44, 44);
+    const nz = THREE.MathUtils.clamp(player.pos.z + vz, -44, 44);
+    const nextFloor = computeFloorHeight(nx, nz, player.floorY);
 
-      if (!collidesAt(nx, nextFloor, player.pos.z)) player.pos.x = nx;
-      if (!collidesAt(player.pos.x, nextFloor, nz)) player.pos.z = nz;
-      player.floorY = computeFloorHeight(player.pos.x, player.pos.z, player.floorY);
-    }
+    if (!collidesAt(nx, nextFloor, player.pos.z)) player.pos.x = nx;
+    if (!collidesAt(player.pos.x, nextFloor, nz)) player.pos.z = nz;
+    player.floorY = computeFloorHeight(player.pos.x, player.pos.z, player.floorY);
   }
 
   player.pos.y = THREE.MathUtils.lerp(player.pos.y, player.floorY, Math.min(1, dt * 12));
   player.isInside = Math.abs(player.pos.x) < 8.8 && Math.abs(player.pos.z) < 6.8 && player.floorY < 8.6;
 
+  // Subtle physical bob on carried 3D Cyan Jerrycan at hip
+  if (playerJerrycan.visible) {
+    player.walkBob += dt * (moving ? 9.5 : 1.8);
+    const bobAmt = moving ? 0.016 : 0.004;
+    playerJerrycan.position.y = -0.35 + Math.sin(player.walkBob) * bobAmt;
+    playerJerrycan.rotation.z = 0.05 + Math.cos(player.walkBob * 0.5) * (moving ? 0.04 : 0.01);
+  }
+
   const badge = document.getElementById('space-badge');
-  if (player.isInside) {
-    badge.textContent = player.floorY >= 3.8 ? 'INTERIOR · SCREENING HALL' : 'INTERIOR · CAMERA SHOP & ARCHIVE';
-    badge.classList.add('inside');
-  } else if (player.floorY >= 8.5) {
-    badge.textContent = 'EXTERIOR · ROOFTOP OVERLOOK';
-    badge.classList.remove('inside');
-  } else {
-    badge.textContent = 'EXTERIOR · STREET & COURTYARD';
-    badge.classList.remove('inside');
+  if (badge) {
+    if (player.isInside) {
+      badge.textContent = player.floorY >= 3.8 ? 'INTERIOR | SCREENING HALL' : 'INTERIOR | CAMERA SHOP';
+    } else if (player.floorY >= 8.5) {
+      badge.textContent = 'EXTERIOR | ROOFTOP OVERLOOK';
+    } else {
+      badge.textContent = 'EXTERIOR | STREET & QUAY';
+    }
   }
 
   // Camera transform
   camera.position.set(player.pos.x, player.pos.y + player.eyeHeight, player.pos.z);
   const euler = new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ');
   camera.quaternion.setFromEuler(euler);
+
+  // Update 3D Tripod & Portal Thresholds (walk-in travel + world whispers)
+  worldRig.update({ x: player.pos.x, y: player.floorY, z: player.pos.z });
+  updateWorldOverlays();
 
   // Persistent Anny V8 Resident Jobs, Clip Crossfades & FACS Lip-Sync
   for (const r of residents) {
@@ -2279,8 +2427,7 @@ function animate() {
     const distToPlayer = r.root.position.distanceTo(player.pos);
     let desiredClip = 'idle';
 
-    if (distToPlayer < 4.5 && Math.abs(r.root.position.y - player.floorY) < 2.0) {
-      // Turn to face player
+    if (activeDialogueResident === r || (distToPlayer < 4.5 && Math.abs(r.root.position.y - player.floorY) < 2.0)) {
       const ang = Math.atan2(player.pos.x - r.root.position.x, player.pos.z - r.root.position.z);
       r.root.rotation.y = THREE.MathUtils.lerp(r.root.rotation.y, ang, dt * 5);
       r.armL.rotation.x = THREE.MathUtils.lerp(r.armL.rotation.x, 0, dt * 6);
@@ -2325,7 +2472,6 @@ function animate() {
         r.v8.setJawOpenness(0);
       }
       r.v8.update(dt);
-      // Ensure relaxed natural downward-hanging arms if Mesh2Motion clip is still streaming
       if (!r.v8.hasClip(r.currentClip) && r.v8.bonesByNorm) {
         const uL = r.v8.bonesByNorm.get('upperarm01l') || r.v8.bonesByNorm.get('upperarm01.l');
         const uR = r.v8.bonesByNorm.get('upperarm01r') || r.v8.bonesByNorm.get('upperarm01.r');
@@ -2346,11 +2492,10 @@ function animate() {
   }
   partGeo.attributes.position.needsUpdate = true;
 
-  // Context prompt & Freesound Audio update
-  evaluateContextPrompt();
+  // 5-Bus Door-Coupled Freesound Audio update
   const projectorDist = player.pos.distanceTo(new THREE.Vector3(-1.8, 4.6, 1.2));
   audio.update(dt, {
-    isInside: player.isInside,
+    isInside: player.isInside || !doorOpen,
     nightMix: TIME_PRESETS[ledger.timeOfDay].audioNightMix,
     submerged: cart.palette.submerged,
     moving,
@@ -2358,12 +2503,14 @@ function animate() {
     projectorWet: ledger.projectorTankL >= 5.0,
   });
 
-  const lookObj = ALL_CITY_LOOKS.find((l) => l.id === camState.stock) || ALL_CITY_LOOKS[0];
-  shaderPipeline.render(scene, camera, {
+  const suiteSt = suite.getState();
+  camState.stock = suiteSt.lookId;
+  const lookObj = ALL_CITY_LOOKS.find((l) => l.id === suiteSt.lookId) || ALL_CITY_LOOKS[0];
+  suite.pipeline.render(scene, camera, {
     time: elapsed,
-    focusM: camState.focusM,
-    dofAmount: camState.active ? 0.65 : 0.0,
-    ev: camState.exposureEv,
+    focusM: camState.active ? camState.focusM : suiteSt.focusM,
+    dofAmount: camState.active ? 0.62 : (suiteSt.dofEnabled ? 0.58 : 0.0),
+    ev: camState.active ? camState.exposureEv : suiteSt.ev,
     mode: lookObj.mode,
     paletteColors: lookObj.colors,
   });
@@ -2371,15 +2518,17 @@ function animate() {
 
 animate();
 
-// Expose minimal debug/verification handle
+// Expose clean verification handle
 window.__CITY__ = {
   ledger,
   player,
+  residents,
   camState,
-  toggleCameraMode,
+  suite,
+  worldRig,
+  get doorOpen() { return doorOpen; },
+  setSevernDoor,
   toggleXray,
-  toggleNolliMap,
-  toggleLightTable,
   capturePlate,
   applyCartridgeAndTime,
   syncWorldVisualsFromLedger,
