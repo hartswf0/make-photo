@@ -3998,7 +3998,11 @@ void main(){
           label: state.donkeyCollapsed ? "[F] GIVE WATER (URGENT)" : "[F] GIVE WATER",
           urgent: state.donkeyCollapsed,
           fn: () => {
-            if (state.donkeyCollapsed) giveEmergencyWater();
+            if (state.donkeyCollapsed) {                                       // was a call to a function that never existed: the urgent pour threw and did nothing
+              const c = npCarrier(), a = Math.min(4, c.liters || 0); triggerSquirtBurst(1.4);
+              if (a > 0) { c.liters -= a; state.donkeyWater = clamp(state.donkeyWater + a / 8, 0, 1); } else pumpWell();
+              if (state.donkeyWater > .3) state.donkeyCollapsed = false;
+            }
             else { triggerSquirtBurst(1.1); pumpWell(); }
           }
         });

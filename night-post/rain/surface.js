@@ -359,7 +359,7 @@ function syncDrops() {
     const sig = [sp.kicker, sp.label].join('|'); if (el._sig !== sig) { el._sig = sig; el._fresh = performance.now(); }
     el._spec = sp; el.dataset.voice = sp.voiceId || ''; el.dataset.traceText = sp.voiceText || '';
     const held = el.classList.contains('pinned'), settling = el.classList.contains('settling'), sheared = el.classList.contains('sheared');
-    el.className = `liquid slot-${sp.slot} ${sp.kind === 'info' ? 'info' : ''} ${sp.kind === 'range' ? 'range-drop' : ''} ${sp.className || ''}${held ? ' pinned' : ''}${settling ? ' settling' : ''}${sheared ? ' sheared' : ''}`;
+    el.className = `liquid slot-${sp.slot} ${sp.kind === 'info' ? 'info' : ''} ${sp.kind === 'range' ? 'range-drop' : ''} ${sp.className || ''}${clipFor(sp.id) ? ' has-clip' : ''}${held ? ' pinned' : ''}${settling ? ' settling' : ''}${sheared ? ' sheared' : ''}`;
     el.dataset.viscosity = String(sp.viscosity || 1.5);
     for (const [cls, key] of [['drop-kicker', 'kicker'], ['drop-value', 'value'], ['drop-label', 'label'], ['drop-note', 'note']]) { const span = el.querySelector('.' + cls), txt = sp[key] || ''; if (span.textContent !== txt) span.textContent = txt; span.hidden = !txt; }
     el.setAttribute('aria-label', [sp.kicker, sp.value, sp.label, sp.note].filter(Boolean).join('. '));
@@ -619,10 +619,20 @@ function subjectOf(id) {                                              // -> { x,
   }
 }
 const PRE = ['menu-go', 'menu-water', 'menu-camera', 'menu-talk', 'menu-more', 'menu-go-ride', 'menu-go-drive', 'menu-go-jump', 'menu-go-run', 'menu-go-glide', 'menu-water-can', 'menu-water-donkey', 'menu-water-squirt', 'menu-water-throw', 'menu-talk-say', 'menu-talk-memory', 'menu-talk-people', 'menu-talk-lang', 'act-ride', 'act-jump', 'act-run', 'act-glide', 'can', 'next'];
+// THE ACT, SHOWN. Each act was recorded in the game doing exactly that (night-post/rain/clips/), graded for contrast.
+// A drop that does something plays its clip when your finger comes near, then rests on the last frame: the consequence.
+const CLIP = { idx: null, img: {} };
+fetch('./rain/clips/index.json?v=1').then(r => r.json()).then(j => { CLIP.idx = j; for (const k in j) { const im = new Image(); im.src = `./rain/clips/${k}.jpg?v=1`; CLIP.img[k] = im; } }).catch(() => { });
+function clipFor(id) {
+  const L = S.live, k = id.replace(/^menu-(go|water|talk|more|try)-/, '').replace(/^act-|^aff-|^it-/, '');
+  if (id === 'primary' && L) k2 = L.kind === 'draw' ? 'draw' : L.kind === 'talk' ? 'ask' : 'water'; else if (id === 'alert') { const a = alertNow(); k2 = a ? (a.to === 'donkey' ? 'water' : 'draw') : null; } else k2 = { draw: 'draw', water: 'water', pour: 'water', squirt: 'water', jump: 'jump', run: 'run', ride: 'ride', glide: 'glide', drive: 'drive', ask: 'ask', say: 'ask', focus: 'focus', filter: 'filter' }[k] || null;
+  return k2 && CLIP.idx && CLIP.idx[k2] && CLIP.img[k2] && CLIP.img[k2].complete ? k2 : null;
+}
+let k2 = null;
 const HAS_MORE = /^menu-(go|water|talk|more|try)$|^menu-[a-z]+-(map|can|donkey|lens|rig|people|sound|weather|all)$/;
 function picTick(now) {
   const W = world.clientWidth, H = world.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), cv = PIC.cv; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => /^menu-(?!spring|edge)|^keep-/.test(b.id));
+  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => /^menu-(?!spring|edge)|^keep-/.test(b.id) || clipFor(b.id));
   if (S.ready && !ui.past && now - (PIC.pre || 0) > 900) { PIC.pre = now;      // keep a view of every subject while it is in frame, so its drop can show it later
     const W2 = Math.round(W * .6), H2 = Math.round(H * .6); if (PIC.snap.width !== W2 || PIC.snap.height !== H2) { PIC.snap.width = W2; PIC.snap.height = H2; } let shot = false;
     for (const id of PRE) { if (bodies.some(b => b.id === id)) continue; const src = subjectOf(id); if (!src || src.img) continue; if (!shot) { try { PIC.snap.getContext('2d').drawImage(B.canvas, 0, 0, W2, H2); } catch { } shot = true; }
@@ -635,7 +645,12 @@ function picTick(now) {
       if (src.img === 'map') { const im = drawMap.c; if (im) tg.drawImage(im, 0, 0, im.width, im.height, 0, 0, PIC.TH, PIC.TH); th._ok = true; continue; }
       tg.drawImage(PIC.snap, (src.x - src.r) * k, (src.y - src.r) * k, src.r * 2 * k, src.r * 2 * k, 0, 0, PIC.TH, PIC.TH); th._ok = true; } }
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); PIC.dirty = true;
-  for (const b of bodies) { const th = PIC.thumbs.get(b.id), has = th && th._ok; if (!has && !b.id.startsWith('menu-')) continue; const menu = b.id.startsWith('menu-'), R = menu ? 27 : clamp(Math.min(b.rx || 30, b.ry || 26) * .62, 15, 26), x = menu ? b.x + 34 : b.x, y = b.y + (menu ? 0 : -1), wob = Math.sin(now / 900 + x) * 1.2;
+  for (const b of bodies) { const ck = clipFor(b.id); if (ck) { const c = CLIP.idx[ck], im = CLIP.img[ck], el = refs.get(b.id) || $(b.id), R = clamp(Math.min(b.rx || 34, b.ry || 30) * .78, 22, 44), menu = b.id.startsWith('menu-'), x = menu ? b.x + 38 : b.x, y = b.y - (menu ? 0 : 6);
+      if (el) { const near = Math.hypot(ptr.x - x, ptr.y - y) < R + 70 && now - ptr.at < (ptr.mouse ? 6e4 : 1500), born = el._clipBorn || (el._clipBorn = now); if (near && !el._clipNear) el._clipT0 = now; el._clipNear = near; const t0 = el._clipT0 || born, f = Math.floor((now - t0) / 95); el._clipF = f < c.n ? f : c.n - 1; }
+      g.save(); g.beginPath(); g.arc(x, y, R, 0, 7); g.clip(); g.drawImage(im, (el ? el._clipF : c.n - 1) * c.size, 0, c.size, c.size, x - R, y - R, R * 2, R * 2);
+      const sh = g.createRadialGradient(x - R * .35, y - R * .42, R * .1, x, y, R * 1.05); sh.addColorStop(0, 'rgba(255,255,255,.28)'); sh.addColorStop(.3, 'rgba(255,255,255,0)'); sh.addColorStop(.82, 'rgba(4,20,28,0)'); sh.addColorStop(1, 'rgba(4,20,28,.55)'); g.fillStyle = sh; g.fillRect(x - R, y - R, R * 2, R * 2); g.restore();
+      g.shadowColor = 'rgba(200,248,250,.55)'; g.shadowBlur = 9; g.lineWidth = 2; g.strokeStyle = 'rgba(214,250,250,.14)'; g.beginPath(); g.arc(x, y, R, 0, 7); g.stroke(); g.shadowBlur = 0; continue; }
+    const th = PIC.thumbs.get(b.id), has = th && th._ok; if (!has && !b.id.startsWith('menu-')) continue; const menu = b.id.startsWith('menu-'), R = menu ? 27 : clamp(Math.min(b.rx || 30, b.ry || 26) * .62, 15, 26), x = menu ? b.x + 34 : b.x, y = b.y + (menu ? 0 : -1), wob = Math.sin(now / 900 + x) * 1.2;
     g.save(); g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.clip(); g.globalAlpha = .94; if (has) g.drawImage(th, x - R * 1.12, y - R * 1.12, R * 2.24, R * 2.24); else { g.fillStyle = 'rgba(150,225,235,.10)'; g.fillRect(x - R * 1.2, y - R * 1.2, R * 2.4, R * 2.4); }
     const sh = g.createRadialGradient(x - R * .35, y - R * .42, R * .1, x, y, R * 1.1); sh.addColorStop(0, 'rgba(255,255,255,.34)'); sh.addColorStop(.28, 'rgba(255,255,255,0)'); sh.addColorStop(.78, 'rgba(4,20,28,0)'); sh.addColorStop(1, 'rgba(4,20,28,.62)'); g.globalAlpha = 1; g.fillStyle = sh; g.fillRect(x - R * 1.2, y - R * 1.2, R * 2.4, R * 2.4); g.restore();
     g.shadowColor = 'rgba(200,248,250,.5)'; g.shadowBlur = 8; g.lineWidth = 2; g.strokeStyle = 'rgba(214,250,250,.10)'; g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.stroke(); g.shadowBlur = 0;

@@ -493,3 +493,6 @@
 /* calmer numbers */
 #rw #can .drop-value{font-size:24px!important}
 #rw .keep .drop-value{font-size:14px!important}
+/* a drop that shows its act: the picture is the drop, the word sits under it */
+#rw .liquid.has-clip:not(#menu-stream *)>.drop-label,#rw .liquid.has-clip:not(#menu-stream *)>.drop-value{transform:translateY(44px);font-size:15px!important;opacity:.9!important}
+#rw .liquid.has-clip:not(#menu-stream *)>.drop-kicker{display:none!important}
