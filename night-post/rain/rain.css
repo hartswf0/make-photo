@@ -503,3 +503,7 @@
 #rw #menu-ink g{transition:opacity .25s}
 /* a gauge is small and still; it reads, it does not act */
 #rw #drops .liquid.gauge{width:58px!important;min-height:58px!important}
+/* THE GRAMMAR. An act (cyan) and an alert (amber) always carry one short verb. A gauge carries nothing. Doors live only in the edge menu, as words. */
+#rw #drops .liquid.action-drop>.drop-label,#rw #drops .liquid.alert>.drop-label{opacity:1!important;transform:none!important;font-size:21px!important;color:#b8fff4}
+#rw #drops .liquid.alert>.drop-label{color:#ffe2b0!important;font-size:24px!important}
+#rw #menu-ink text{font:italic 21px Georgia,'Iowan Old Style',serif!important;fill:#f2f8f2;stroke:#0b1c22;stroke-width:3px;paint-order:stroke}

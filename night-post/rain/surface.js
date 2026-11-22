@@ -84,7 +84,7 @@ function buildRecall() {
 // with a line of droplets running from your can to it. One touch does it from wherever you stand.
 let auto = null;
 function alertNow() { if (!S.ready || ui.past) return null; const w = S.water, T = S.things || {}; if (!(w.donkeyDown || w.donkey < .3) || !T.donkey) return null;
-  return w.liters >= .5 ? { to: 'donkey', word: 'Water', t: T.donkey } : T.source ? { to: 'source', word: 'Fill', t: T.source } : null; }
+  return w.liters >= .5 ? { to: 'donkey', word: 'Give', t: T.donkey } : T.source ? { to: 'source', word: 'Draw', t: T.source } : null; }
 function doAlert() { const a = alertNow(); if (!a || auto || S.busy) return; const before = snapNow(); if (S.exit) B.act.exit();
   if (a.t.dist > 4.5 && a.t.wx != null) { B.act.warp(a.t.wx + 1.7, a.t.wz + 1.9); S = B.state(); }
   auto = { kind: a.to === 'donkey' ? 'donkey' : 'draw', left: a.to === 'donkey' ? 8 : 12, before, moved: 0, t: 0 }; cause = a.to === 'donkey' ? 'Watering the donkey.' : 'Filling the can.'; announce(cause); }
@@ -111,7 +111,7 @@ function watchGame() {
   const w = S.water, sp = S.speech;
   const flowing = (mix && mix.c && mix.c.flow) || auto;
   if (S.live && S.live.x != null) ui.lastLive = [S.live.x, S.live.y];
-  if (S.busy && !worm) worm = { root: ui.lastLive || [world.clientWidth * .5, world.clientHeight * .3], segs: [], t0: performance.now() };
+  if (false && S.busy && !worm) worm = { root: ui.lastLive || [world.clientWidth * .5, world.clientHeight * .3], segs: [], t0: performance.now() };
   if (worm && !worm.end) { if (S.busy) { while (worm.segs.length < Math.min(7, Math.floor((performance.now() - worm.t0) / 700) + 1)) worm.segs.push({ l: w.liters }); worm.segs[worm.segs.length - 1].l = w.liters; } else worm.end = performance.now(); }
   if (worm && worm.end && performance.now() - worm.end > 700) worm = null;
   if (!flowing && seen.liters !== null && Math.abs(w.liters - seen.liters) > .05) { cause = w.liters > seen.liters ? `Water arrived. ${n(w.liters)} L in the can.` : `Water given. ${n(w.liters)} L left.`; const at = ui.lastLive || [world.clientWidth * .5, world.clientHeight * .6]; splash(at[0], at[1], 1.7); announce(cause);
@@ -136,7 +136,7 @@ function liveDrop(slot = 'primary') {
   const L = S.live; if (!L || S.busy) return false;
   const home = ui.scene === 'world' ? RAIL[0] : null;
   const note = L.kind === 'draw' ? 'from the source to your can' : L.kind === 'give' ? 'pour from your can' : 'pull their voice';
-  button('primary', slot, L.kind === 'draw' ? 'Draw' : L.id === 'share' ? 'Share' : L.kind === 'give' ? 'Water' : 'Ask', note, live(() => B.act.live(false)), { className: 'action-drop', viscosity: 1.15, home, flow: true });
+  button('primary', slot, L.kind === 'draw' ? 'Draw' : L.kind === 'give' ? 'Give' : 'Ask', note, live(() => B.act.live(false)), { className: 'action-drop', viscosity: 1.15, home, flow: true });
   return true;
 }
 function exitDrop() { if (S.exit) button('exit', 'recovery', S.exit.label, 'back to your feet', live(() => B.act.exit()), { critical: true, className: 'amber', viscosity: 3, home: ui.scene === 'world' ? [.5, .86] : null }); }
@@ -394,7 +394,7 @@ const GROUPS = {
 function menuList() {
   if (ui.menuGroup && GROUPS[ui.menuGroup]) return [['back', '‹ Back', () => { ui.menuGroup = null; ui.menuAt = 0; render(); }], ...GROUPS[ui.menuGroup]()].map(([id, label, run]) => ({ id: ui.menuGroup + '-' + id, label, run }));
   const open = g => () => { ui.menuGroup = g; ui.menuAt = 0; ui.menuTouch = performance.now(); render(); };
-  return [['go', 'Go'], ['water', 'Water'], ['camera', 'Camera'], ['talk', 'Talk'], ['more', 'More'], ['try', 'Try']].map(([id, label]) => ({ id, label, run: id === 'camera' ? go('lens') : open(id) })).concat(ui.scene !== 'world' ? [{ id: 'here', label: 'Close ' + (TITLES[ui.scene] || '').toLowerCase(), run: go('world') }] : []);
+  return [['go', 'Go ›'], ['water', 'Water ›'], ['camera', 'Camera'], ['talk', 'Talk ›'], ['more', 'More ›'], ['try', 'Try ›']].map(([id, label]) => ({ id, label, run: id === 'camera' ? go('lens') : open(id) })).concat(ui.scene !== 'world' ? [{ id: 'here', label: 'Close ' + (TITLES[ui.scene] || '').toLowerCase(), run: go('world') }] : []);
 }
 function renderMenu() {
   const t = $('menu-toggle'), menu = $('menu-stream');
@@ -410,13 +410,13 @@ function paintMenuWater(bodies) {
   if (!ui.menu) { menuInk.replaceChildren(); menuWater = []; return; }
   const liveIds = new Set(); menuWater = [];
   for (const b of bodies.filter(b => b.id.startsWith('menu-'))) {
-    const key = 'wet-' + b.id, half = world.clientWidth < 701 ? 46 : 60;
+    const key = 'wet-' + b.id, half = world.clientWidth < 701 ? 58 : 72;
     const nodes = [{ x: b.x - half, y: b.y + 5, r: 5.5, alpha: .75 }, { x: b.x, y: b.y - 1, r: 7.5, alpha: .8 }, { x: b.x + half, y: b.y + 3, r: 4, alpha: .6 }];
     menuWater.push({ id: key, kind: 'menu', nodes }); liveIds.add(key);
     let group = menuInk.querySelector(`[data-id="${key}"]`);
     if (!group) { group = document.createElementNS(svgNS, 'g'); group.dataset.id = key; const path = document.createElementNS(svgNS, 'path'); path.id = key; path.setAttribute('fill', 'none'); path.setAttribute('stroke', 'none'); group.append(path); const text = document.createElementNS(svgNS, 'text'); text.setAttribute('text-anchor', 'middle'); const flow = document.createElementNS(svgNS, 'textPath'); flow.setAttribute('href', '#' + key); flow.setAttribute('startOffset', '50%'); text.append(flow); group.append(text); menuInk.append(group); }
     group.firstChild.setAttribute('d', `M${nodes[0].x - 36},${nodes[0].y} Q${b.x - 36},${b.y - 7} ${nodes[2].x - 36},${nodes[2].y}`);
-    const native = $(b.id), label = native?.textContent.trim() || ''; group.querySelector('textPath').textContent = label; native?.setAttribute('aria-label', label); group.style.opacity = native && (native.dataset.rainCaught === 'true' || native.matches(':hover')) ? '1' : '0';
+    const native = $(b.id), label = native?.textContent.trim() || ''; group.querySelector('textPath').textContent = label; native?.setAttribute('aria-label', label); group.style.opacity = '1';
   }
   for (const g of [...menuInk.children]) if (!liveIds.has(g.dataset.id)) g.remove();
 }
@@ -545,17 +545,28 @@ function thingsOnScreen() { const T = S.things || {}, W = world.clientWidth, H =
   if (on(T.can)) out.push({ kind: 'me', x: T.can.x, y: T.can.y - T.can.s * .2, r: clamp(T.can.s * 1.0, 26, 170), dist: 0 });
   if (on(T.next)) out.push({ kind: 'next', x: T.next.x, y: T.next.y, r: 44, dist: T.next.dist });
   return out; }
-function touchThing(x, y) {
+function touchThing(x, y) {                                           // tap a thing and it does its obvious act; one verb floats up from your finger
   const hit = thingsOnScreen().map(t => ({ t, d: Math.hypot(x - t.x, y - t.y) - t.r })).filter(o => o.d < 18).sort((a, b) => (a.d + a.t.r) / a.t.r - (b.d + b.t.r) / b.t.r)[0];
-  const kind = hit ? hit.t.kind : y < world.clientHeight * .24 ? 'sky' : 'ground';
-  if (kind === 'ground') { for (let i = 0; i < 7; i++) SP.parts.push({ x: x + (Math.random() - .5) * 26, y, vx: (Math.random() - .5) * 30, vy: 40 + Math.random() * 60, r: 1.4 + Math.random() * 1.6, life: 0, ttl: .7 + Math.random() * .4, tone: '178,247,240' }); ui.touch = null; render(); return; }   // nothing to do here: the water runs off
-  if (hit && hit.t.dist > 5 && /source|donkey|person|wagon/.test(kind)) { const W = world.clientWidth, H = world.clientHeight; SP.falls = SP.falls || []; for (let i = 1; i <= 3; i++) SP.falls.push({ x: W * .5 + (hit.t.x - W * .5) * i / 4, y: -20 - i * 120, ty: H * .86 + (hit.t.y - H * .86) * i / 4, v: 520, tone: '255,223,168' }); }   // too far to use: the rain marks the way
-  ui.touch = { kind, x, y, at: performance.now() }; ui.open = null; splash(x, y, .7); render();
+  const kind = hit ? hit.t.kind : y < world.clientHeight * .24 ? 'sky' : 'ground', L = S.live, w = S.water, W = world.clientWidth, H = world.clientHeight;
+  if (kind === 'ground' || kind === 'sky') { for (let i = 0; i < 7; i++) SP.parts.push({ x: x + (Math.random() - .5) * 26, y, vx: (Math.random() - .5) * 30, vy: 40 + Math.random() * 60, r: 1.4 + Math.random() * 1.6, life: 0, ttl: .7 + Math.random() * .4, tone: '178,247,240' }); return; }   // nothing here: the water runs off
+  const far = hit && hit.t.dist > 12 && /source|donkey|person/.test(kind);
+  let verb = '', run = null;
+  if (kind === 'source') { if (w.liters >= 19.9) verb = 'Full'; else if (L && L.kind === 'draw') { verb = 'Draw'; run = () => B.act.live(false); } else if (!far) { verb = 'Draw'; run = () => { auto = { kind: 'draw', left: 20 - w.liters, before: snapNow(), moved: 0, t: 0 }; }; } }
+  else if (kind === 'donkey') { if (w.liters < .5) verb = 'Empty'; else if (w.donkey > .97) verb = 'Not thirsty'; else { verb = 'Give'; run = () => { if (hit.t.dist > 4.5 && hit.t.wx != null) B.act.warp(hit.t.wx + 1.7, hit.t.wz + 1.9); auto = { kind: 'donkey', left: 8, before: snapNow(), moved: 0, t: 0 }; }; } }
+  else if (kind === 'person') { if (L && L.id === 'share' && w.liters >= .5) { verb = 'Give'; run = () => B.act.live(true); } else if (L && L.kind === 'talk') { verb = 'Ask'; run = () => B.act.live(false); } else if (!far) { verb = 'Ask'; run = () => B.act.live(false); } }
+  else if (kind === 'me') { verb = 'Jump'; run = () => B.act.jump(); }
+  else if (kind === 'wagon') { const m = menuItems().find(x => x.id === 'drive'); if (m) { verb = S.mode === 'drive' ? 'Park' : 'Drive'; run = () => m.run(); } }
+  else if (kind === 'next') { verb = 'The way'; run = () => { ui.mapSel = null; ui.scene = 'map'; }; }
+  if (far) { SP.falls = SP.falls || []; for (let i = 1; i <= 3; i++) SP.falls.push({ x: W * .5 + (hit.t.x - W * .5) * i / 4, y: -20 - i * 120, ty: H * .86 + (hit.t.y - H * .86) * i / 4, v: 520, tone: '255,223,168' }); if (!verb) verb = 'Closer'; }
+  floatWord(verb, x, y, run ? '170,247,238' : '255,214,160'); splash(x, y, run ? 1.1 : .5, run ? '178,247,240' : '255,223,168');
+  if (run && !ui.past) { run(); S = B.state(); }
+  ui.touch = null; ui.open = null; render();
 }
+function floatWord(text, x, y, tone) { if (!text) return; SP.words = SP.words || []; SP.words.push({ text, x, y, t0: performance.now(), tone }); }
 // A moment can be kept. Drag "Now" up off its line, or carry a camera drop out onto the glass, and a bead stays where you
 // let go, holding that state: where you stood and how the lens was set. Touch the bead to be there again; carry it far to let it go.
 const keeps = []; let keepN = 0, catchAt = null;
-function addKeep(kind, x, y, extra = {}) {
+function addKeep(kind, x, y, extra = {}) { if (kind === 'act' || kind === 'back') return;
   if (kind === 'act' || kind === 'back') for (const k of keeps.filter(k => k.kind === kind)) dropKeep0(k.id);   // only the latest act, and the latest way back, stay on the glass
   if (keeps.length >= 5) { const old = keeps.shift(); PIC.thumbs.delete(old.id); }
   const id = 'keep-' + (++keepN), L = S.lens, W = world.clientWidth, H = world.clientHeight, th = document.createElement('canvas'); th.width = th.height = PIC.TH;
@@ -646,7 +657,7 @@ function toneOf(id) { const sp = refs.get(id)?._spec, c = (sp && sp.className) |
 const HAS_MORE = /^menu-(go|water|talk|more|try)$|^menu-[a-z]+-(map|can|donkey|lens|rig|people|sound|weather|all)$/;
 function picTick(now) {
   const W = world.clientWidth, H = world.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), cv = PIC.cv; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => b.id !== 'time-current' && b.id !== 'can' && b.id !== 'steer' && !/^menu-(spring|edge)/.test(b.id) && (/^menu-|^keep-|^alert$/.test(b.id) || clipFor(b.id) || subjectOf(b.id) || (PIC.thumbs.get(b.id) || {})._ok));
+  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => /^keep-/.test(b.id));   // a drop is a word and a colour; only a kept moment holds a picture
   if (S.ready && !ui.past && now - (PIC.pre || 0) > 900) { PIC.pre = now;      // keep a view of every subject while it is in frame, so its drop can show it later
     const W2 = Math.round(W * .6), H2 = Math.round(H * .6); if (PIC.snap.width !== W2 || PIC.snap.height !== H2) { PIC.snap.width = W2; PIC.snap.height = H2; } let shot = false;
     for (const id of PRE) { if (bodies.some(b => b.id === id)) continue; const src = subjectOf(id); if (!src || src.img) continue; if (!shot) { try { PIC.snap.getContext('2d').drawImage(B.canvas, 0, 0, W2, H2); } catch { } shot = true; }
@@ -689,6 +700,11 @@ function msTick(now, dt) {
     if (carrying) { src.push([ptr.x, ptr.y, 21, 21]); const last = MS.trail.at(-1); if (!last || Math.hypot(last[0] - ptr.x, last[1] - ptr.y) > 14) MS.trail.push([ptr.x, ptr.y, 1]); }
     for (const t of MS.trail) { t[2] -= dt * (carrying ? .55 : 1.6); if (t[2] > 0) src.push([t[0], t[1], 4 + t[2] * 9, 4 + t[2] * 9]); } MS.trail = MS.trail.filter(t => t[2] > 0).slice(-40);
     if (worm) { const pull = worm.end ? clamp((now - worm.end) / 600, 0, 1) : 0; src.push([worm.root[0], worm.root[1], 20, 20]); worm.segs.forEach((q, i) => src.push([worm.root[0] + Math.sin(now / 600 + i * .8) * 6 * (1 - pull), worm.root[1] + (i + 1) * 40 * (1 - pull), i === worm.segs.length - 1 && !worm.end ? 15 + Math.sin(now / 120) * 2 : 13, 13])); }
+    for (const r of SP.riv || []) src.push([r.x, r.y, 5, 6]);
+    { const st = $('steer'); if (st && !st.hidden && !ui.menu) { const sb = st.getBoundingClientRect(), sx = sb.x + sb.width / 2, sy = sb.y + sb.height / 2, breathe = 1 + Math.sin(now / 700) * .06;
+      if (drag) { const dx = ptr.x - sx, dy = ptr.y - sy, len = Math.hypot(dx, dy), n = Math.max(3, Math.round(len / 14)); src.push([sx, sy, 30 * breathe, 26 * breathe]); for (let i = 1; i <= n; i++) { const f = i / n, wob = Math.sin(now / 90 + i) * 2; src.push([sx + dx * f + wob, sy + dy * f - wob, 13 - f * 4, 13 - f * 4]); } src.push([ptr.x, ptr.y, 18, 18]);
+        if (Math.random() < .4) SP.parts.push({ x: ptr.x, y: ptr.y, vx: -dx * 1.4 + (Math.random() - .5) * 60, vy: -dy * 1.4 + (Math.random() - .5) * 60, r: 1.2 + Math.random() * 1.4, life: 0, ttl: .45, tone: '178,247,240' }); }
+      else src.push([sx + Math.sin(now / 1100) * 3, sy + Math.cos(now / 1300) * 3, 30 * breathe, 25 * breathe]); } }
     for (const p of SP.parts) { const a = 1 - p.life / p.ttl; if (a > 0) src.push([p.x, p.y, 3 + p.r * 2.2 * a, 3 + p.r * 2.2 * a]); }
   }
   if (!src.length) { if (MS.dirty) { g.clearRect(0, 0, cv.width, cv.height); MS.dirty = false; } return; }
@@ -724,16 +740,27 @@ function guideTick(now) {                                             // it rain
   SP.falls = SP.falls || []; const on = t.front && t.x > 20 && t.x < W - 20, count = 1;
   for (let i = 0; i < count; i++) { if (on) SP.falls.push({ x: t.x + (Math.random() - .5) * 40, y: -20 - i * 60, ty: clamp(t.y, 40, H - 40), v: 520, tone: '255,223,168' }); else { const left = !t.front ? t.x > W / 2 : t.x < W / 2; SP.falls.push({ x: left ? 12 + Math.random() * 60 : W - 12 - Math.random() * 60, y: H * .08 - i * 50, ty: H * (.5 + Math.random() * .25), v: 480, vx: left ? -140 : 140, tone: '255,223,168' }); } }
 }
+// water running on the glass: a few rivulets down the edges of the windshield, never across the middle
+function rivTick(g, dt) {
+  const W = world.clientWidth, H = world.clientHeight, now = performance.now(); SP.riv = SP.riv || [];
+  if (!ui.reduced && SP.riv.length < 4 && now - (SP.rivAt || 0) > 1600 + Math.random() * 2400) { SP.rivAt = now; const left = Math.random() < .5, x = left ? W * (.015 + Math.random() * .1) : W * (.885 + Math.random() * .1); SP.riv.push({ x, y: -10 - Math.random() * H * .2, v: 26 + Math.random() * 46, ph: Math.random() * 7, trail: [], born: now }); }
+  for (const r of SP.riv) { r.v *= Math.random() < .015 ? .35 : 1.004; r.v = clamp(r.v, 10, 120); r.y += r.v * dt; r.x += Math.sin(now / 900 + r.ph) * .18 + (Math.random() - .5) * .5; const last = r.trail.at(-1); if (!last || Math.hypot(last[0] - r.x, last[1] - r.y) > 5) r.trail.push([r.x, r.y, now]); }
+  for (const r of SP.riv) { r.trail = r.trail.filter(p => now - p[2] < 3600); if (r.trail.length > 1) { g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); r.trail.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.strokeStyle = 'rgba(190,238,246,.16)'; g.lineWidth = 3.4; g.stroke(); g.strokeStyle = 'rgba(235,252,255,.32)'; g.lineWidth = 1; g.stroke(); }
+    g.fillStyle = 'rgba(220,250,255,.55)'; g.beginPath(); g.ellipse(r.x, r.y, 3.2, 4.4, 0, 0, 7); g.fill(); g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.arc(r.x - 1, r.y - 1.4, 1, 0, 7); g.fill(); }
+  SP.riv = SP.riv.filter(r => r.y < H + 20);
+}
 function splashTick(dt) {
   guideTick(performance.now());
   if (SP.falls && SP.falls.length) { for (const f of SP.falls) { f.v += 1500 * dt; f.y += f.v * dt; f.x += (f.vx || 0) * dt; if (f.y >= f.ty && !f.done) { f.done = true; splash(f.x, f.ty, .45, f.tone || '178,247,240'); } } }
   const W = world.clientWidth, H = world.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), cv = SP.cv; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-  const g = cv.getContext('2d'); if (!SP.parts.length && !SP.rings.length && !(SP.falls && SP.falls.length) && !worm) { if (SP.dirty) { g.clearRect(0, 0, cv.width, cv.height); SP.dirty = false; } return; }
+  const g = cv.getContext('2d'); if (!SP.parts.length && !SP.rings.length && !(SP.falls && SP.falls.length) && !worm && !(SP.words && SP.words.length) && !(SP.riv && SP.riv.length) && ui.reduced) { if (SP.dirty) { g.clearRect(0, 0, cv.width, cv.height); SP.dirty = false; } return; }
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); g.lineCap = 'round'; SP.dirty = true;
   for (const r of SP.rings) { r.r += r.v * dt; r.v *= Math.pow(.05, dt); r.a -= dt * 1.25; if (r.a <= 0) continue; g.strokeStyle = `rgba(${r.tone},${r.a})`; g.lineWidth = r.w; g.beginPath(); g.ellipse(r.x, r.y, r.r, r.r * .42, 0, 0, 7); g.stroke(); }
   for (const p of SP.parts) { p.life += dt; p.vy += 1150 * dt; p.x += p.vx * dt; p.y += p.vy * dt; const a = 1 - p.life / p.ttl; if (a <= 0) continue; g.strokeStyle = `rgba(${p.tone},${a * .9})`; g.lineWidth = p.r * 2; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * .022, p.y - p.vy * .022); g.stroke(); g.fillStyle = `rgba(255,255,255,${a * .7})`; g.beginPath(); g.arc(p.x - p.r * .3, p.y - p.r * .3, p.r * .45, 0, 7); g.fill(); }
   if (worm) { const pull = worm.end ? clamp((performance.now() - worm.end) / 600, 0, 1) : 0; g.font = "italic 13px Georgia,serif"; g.textAlign = 'center'; worm.segs.forEach((q, i) => { const y = worm.root[1] + (i + 1) * 40 * (1 - pull); g.fillStyle = `rgba(238,246,242,${1 - pull})`; g.fillText(n(q.l), worm.root[0] + Math.sin(performance.now() / 600 + i * .8) * 6 * (1 - pull), y + 4); }); }
   if (SP.falls) { for (const f of SP.falls) if (!f.done) { g.strokeStyle = `rgba(${f.tone || '200,248,250'},.8)`; g.lineWidth = 2.2; g.beginPath(); g.moveTo(f.x, f.y); g.lineTo(f.x - (f.vx || 0) * .05, f.y - Math.min(46, f.v * .05)); g.stroke(); } SP.falls = SP.falls.filter(f => !f.done); }
+  if (SP.words && SP.words.length) { const now = performance.now(); g.textAlign = 'center'; g.font = "italic 21px Georgia,'Iowan Old Style',serif"; for (const w of SP.words) { const t = (now - w.t0) / 1400; if (t >= 1) continue; const a = t < .15 ? t / .15 : 1 - (t - .15) / .85; g.globalAlpha = a; g.lineWidth = 4; g.strokeStyle = 'rgba(3,16,22,.8)'; g.strokeText(w.text, w.x, w.y - 30 - t * 46); g.fillStyle = `rgb(${w.tone})`; g.fillText(w.text, w.x, w.y - 30 - t * 46); } g.globalAlpha = 1; SP.words = SP.words.filter(w => now - w.t0 < 1400); }
+  rivTick(g, dt);
   SP.rings = SP.rings.filter(r => r.a > 0); SP.parts = SP.parts.filter(p => p.life < p.ttl && p.y < H + 20);
 }
 // ---- the text field ----------------------------------------------------------------------------------------------------
