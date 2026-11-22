@@ -622,7 +622,7 @@ const PRE = ['menu-go', 'menu-water', 'menu-camera', 'menu-talk', 'menu-more', '
 // THE ACT, SHOWN. Each act was recorded in the game doing exactly that (night-post/rain/clips/), graded for contrast.
 // A drop that does something plays its clip when your finger comes near, then rests on the last frame: the consequence.
 const CLIP = { idx: null, img: {} };
-fetch('./rain/clips/index.json?v=1').then(r => r.json()).then(j => { CLIP.idx = j; for (const k in j) { const im = new Image(); im.src = `./rain/clips/${k}.jpg?v=1`; CLIP.img[k] = im; } }).catch(() => { });
+fetch('./rain/clips/index.json?v=2').then(r => r.json()).then(j => { CLIP.idx = j; for (const k in j) { const im = new Image(); im.src = `./rain/clips/${k}.jpg?v=2`; CLIP.img[k] = im; } }).catch(() => { });
 function clipFor(id) {
   const L = S.live, k = id.replace(/^menu-(go|water|talk|more|try)-/, '').replace(/^act-|^aff-|^it-/, '');
   if (id === 'primary' && L) k2 = L.kind === 'draw' ? 'draw' : L.kind === 'talk' ? 'ask' : 'water'; else if (id === 'alert') { const a = alertNow(); k2 = a ? (a.to === 'donkey' ? 'water' : 'draw') : null; } else k2 = { draw: 'draw', water: 'water', pour: 'water', squirt: 'water', jump: 'jump', run: 'run', ride: 'ride', glide: 'glide', drive: 'drive', ask: 'ask', say: 'ask', focus: 'focus', filter: 'filter' }[k] || null;
@@ -646,8 +646,8 @@ function picTick(now) {
       tg.drawImage(PIC.snap, (src.x - src.r) * k, (src.y - src.r) * k, src.r * 2 * k, src.r * 2 * k, 0, 0, PIC.TH, PIC.TH); th._ok = true; } }
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); PIC.dirty = true;
   for (const b of bodies) { const ck = clipFor(b.id); if (ck) { const c = CLIP.idx[ck], im = CLIP.img[ck], el = refs.get(b.id) || $(b.id), R = clamp(Math.min(b.rx || 34, b.ry || 30) * .78, 22, 44), menu = b.id.startsWith('menu-'), x = menu ? b.x + 38 : b.x, y = b.y - (menu ? 0 : 6);
-      if (el) { const near = Math.hypot(ptr.x - x, ptr.y - y) < R + 70 && now - ptr.at < (ptr.mouse ? 6e4 : 1500), born = el._clipBorn || (el._clipBorn = now); if (near && !el._clipNear) el._clipT0 = now; el._clipNear = near; const t0 = el._clipT0 || born, f = Math.floor((now - t0) / 95); el._clipF = f < c.n ? f : c.n - 1; }
-      g.save(); g.beginPath(); g.arc(x, y, R, 0, 7); g.clip(); g.drawImage(im, (el ? el._clipF : c.n - 1) * c.size, 0, c.size, c.size, x - R, y - R, R * 2, R * 2);
+      if (el) { const near = Math.hypot(ptr.x - x, ptr.y - y) < R + 70 && now - ptr.at < (ptr.mouse ? 6e4 : 1500), born = el._clipBorn || (el._clipBorn = now); if (near && !el._clipNear) el._clipT0 = now; el._clipNear = near; const t0 = el._clipT0 || born, f = Math.floor((now - t0) / 95); el._clipF = el._clipT0 && f < c.n ? f : (c.rest ?? c.n - 1); }
+      g.save(); g.beginPath(); g.arc(x, y, R, 0, 7); g.clip(); g.drawImage(im, (el ? el._clipF : (c.rest ?? c.n - 1)) * c.size, 0, c.size, c.size, x - R, y - R, R * 2, R * 2);
       const sh = g.createRadialGradient(x - R * .35, y - R * .42, R * .1, x, y, R * 1.05); sh.addColorStop(0, 'rgba(255,255,255,.28)'); sh.addColorStop(.3, 'rgba(255,255,255,0)'); sh.addColorStop(.82, 'rgba(4,20,28,0)'); sh.addColorStop(1, 'rgba(4,20,28,.55)'); g.fillStyle = sh; g.fillRect(x - R, y - R, R * 2, R * 2); g.restore();
       g.shadowColor = 'rgba(200,248,250,.55)'; g.shadowBlur = 9; g.lineWidth = 2; g.strokeStyle = 'rgba(214,250,250,.14)'; g.beginPath(); g.arc(x, y, R, 0, 7); g.stroke(); g.shadowBlur = 0; continue; }
     const th = PIC.thumbs.get(b.id), has = th && th._ok; if (!has && !b.id.startsWith('menu-')) continue; const menu = b.id.startsWith('menu-'), R = menu ? 27 : clamp(Math.min(b.rx || 30, b.ry || 26) * .62, 15, 26), x = menu ? b.x + 34 : b.x, y = b.y + (menu ? 0 : -1), wob = Math.sin(now / 900 + x) * 1.2;
