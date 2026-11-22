@@ -6,10 +6,10 @@
   <script type="importmap">{"imports":{"three":"../../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
   <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
   <link rel="stylesheet" href="../suite-nav.css">
-  <title>MAKE-PHOTO CITY · Metric Depth 2D-to-3D Splat, Tear-Guard Mesh &amp; Diorama Stage</title>
+  <title>MAKE-PHOTO CITY · Metric Depth 3D Splat &amp; Tear-Guard Space</title>
   <style>
     :root {
-      --bg: #070b12;
+      --bg: #070d17;
       --panel: rgba(12, 16, 23, 0.90);
       --panel2: rgba(18, 24, 34, 0.95);
       --ink: #f1ede3;
@@ -44,9 +44,12 @@
       outline-offset: 2px;
     }
 
+    /* 100% Full-Bleed WebGL Splat & Tear-Guard Space */
     #viewport-wrap {
       position: fixed;
       inset: 0;
+      width: 100vw;
+      height: 100vh;
       z-index: 1;
       background: #070d17;
     }
@@ -54,6 +57,56 @@
       display: block;
       width: 100%;
       height: 100%;
+    }
+
+    /* Pure Diegetic World-Projected 1-Line Whisper (Unboxed, hidden unless hovering 3D element) */
+    #world-whisper {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 40;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -140%);
+      font: 500 12px/1.3 var(--mono);
+      letter-spacing: 0.04em;
+      color: #fff8ea;
+      text-shadow: 0 2px 14px rgba(0, 0, 0, 0.96), 0 0 5px rgba(0, 0, 0, 0.9);
+      white-space: nowrap;
+      transition: opacity 120ms ease;
+    }
+    #world-whisper.visible {
+      opacity: 1;
+    }
+
+    /* Unboxed ephemeral feedback whisper */
+    #toast {
+      position: fixed;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 42;
+      pointer-events: none;
+      font: 500 12px/1.35 var(--mono);
+      letter-spacing: 0.04em;
+      color: #fff6e3;
+      text-shadow: 0 2px 16px rgba(0, 0, 0, 0.96), 0 0 6px rgba(0, 0, 0, 0.9);
+      opacity: 0;
+      transition: opacity 180ms ease;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    /* STRICT DIEGETIC DEFAULT: Hide ALL left/right sidebars, top mode bars & telemetry on load.
+       Summoned ONLY when user explicitly presses Tab (body.mp-tab-open / body.workbench-open). */
+    body:not(.mp-tab-open):not(.workbench-open) #left-catalog,
+    body:not(.mp-tab-open):not(.workbench-open) #btn-open-catalog,
+    body:not(.mp-tab-open):not(.workbench-open) #top-modes,
+    body:not(.mp-tab-open):not(.workbench-open) #right-inspector,
+    body:not(.mp-tab-open):not(.workbench-open) #btn-open-inspector,
+    body:not(.mp-tab-open):not(.workbench-open) #telemetry-bar,
+    body:not(.mp-tab-open):not(.workbench-open) #compare-3up {
+      display: none !important;
     }
 
     .btn {
@@ -68,22 +121,11 @@
       text-transform: uppercase;
       cursor: pointer;
       white-space: nowrap;
-      transition: border-color 140ms, background 140ms, color 140ms;
     }
     .btn:hover { border-color: var(--brass); color: #fff; }
-    .btn.on {
-      background: rgba(24, 180, 255, 0.22);
-      border-color: var(--cyan);
-      color: #e6f8ff;
-    }
-    .btn.pri {
-      background: var(--amber);
-      border-color: var(--amber);
-      color: #101215;
-    }
-    .btn.pri:hover { background: #ffc16b; }
+    .btn.on { background: rgba(24, 180, 255, 0.22); border-color: var(--cyan); color: #e6f8ff; }
+    .btn.pri { background: var(--amber); border-color: var(--amber); color: #101215; }
 
-    /* Left Collapsible Shot Catalog */
     #left-catalog {
       position: fixed;
       top: 64px;
@@ -98,102 +140,23 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      transition: transform 220ms ease;
     }
-    #left-catalog.collapsed {
-      transform: translateX(-310px);
-    }
-    #btn-open-catalog {
-      position: fixed;
-      top: 64px;
-      left: 12px;
-      z-index: 26;
-      display: none;
-    }
-    #left-catalog.collapsed ~ #btn-open-catalog {
-      display: inline-block;
-    }
-    .cat-head {
-      padding: 9px 11px;
-      background: var(--panel2);
-      border-bottom: 1px solid var(--rule);
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .kicker {
-      font: 600 10px/1.2 var(--mono);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--brass);
-    }
-    .search-in {
-      width: 100%;
-      background: rgba(8, 11, 16, 0.8);
-      border: 1px solid var(--rule);
-      border-radius: 4px;
-      padding: 5px 8px;
-      color: var(--ink);
-      font-size: 11.5px;
-    }
-    .dist-bar {
-      display: flex;
-      gap: 4px;
-      overflow-x: auto;
-      padding: 6px 10px;
-      border-bottom: 1px solid var(--rule);
-      scrollbar-width: none;
-    }
+    #left-catalog.collapsed { transform: translateX(-310px); }
+    #btn-open-catalog { position: fixed; top: 64px; left: 12px; z-index: 26; display: none; }
+    #left-catalog.collapsed ~ #btn-open-catalog { display: inline-block; }
+    .cat-head { padding: 9px 11px; background: var(--panel2); border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 6px; }
+    .kicker { font: 600 10px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--brass); }
+    .search-in { width: 100%; background: rgba(8, 11, 16, 0.8); border: 1px solid var(--rule); border-radius: 4px; padding: 5px 8px; color: var(--ink); font-size: 11.5px; }
+    .dist-bar { display: flex; gap: 4px; overflow-x: auto; padding: 6px 10px; border-bottom: 1px solid var(--rule); scrollbar-width: none; }
     .dist-bar::-webkit-scrollbar { display: none; }
-    .shot-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 6px 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-    .shot-item {
-      display: grid;
-      grid-template-columns: 64px 1fr;
-      gap: 8px;
-      padding: 6px;
-      border-radius: 6px;
-      border: 1px solid transparent;
-      background: rgba(255, 255, 255, 0.025);
-      cursor: pointer;
-    }
-    .shot-item:hover {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: var(--rule);
-    }
-    .shot-item.on {
-      background: rgba(242, 165, 65, 0.13);
-      border-color: var(--amber);
-    }
-    .shot-item img {
-      width: 64px;
-      height: 42px;
-      object-fit: cover;
-      border-radius: 4px;
-      display: block;
-      background: #05070b;
-    }
-    .shot-t {
-      font-weight: 600;
-      font-size: 11px;
-      color: var(--ink);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .shot-m {
-      font: 500 9.5px var(--mono);
-      color: var(--dim);
-      margin-top: 2px;
-    }
+    .shot-list { flex: 1; overflow-y: auto; padding: 6px 8px; display: flex; flex-direction: column; gap: 5px; }
+    .shot-item { display: grid; grid-template-columns: 64px 1fr; gap: 8px; padding: 6px; border-radius: 6px; border: 1px solid transparent; background: rgba(255, 255, 255, 0.025); cursor: pointer; }
+    .shot-item:hover { background: rgba(255, 255, 255, 0.06); border-color: var(--rule); }
+    .shot-item.on { background: rgba(242, 165, 65, 0.13); border-color: var(--amber); }
+    .shot-item img { width: 64px; height: 42px; object-fit: cover; border-radius: 4px; display: block; background: #05070b; }
+    .shot-t { font-weight: 600; font-size: 11px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .shot-m { font: 500 9.5px var(--mono); color: var(--dim); margin-top: 2px; }
 
-    /* Top-Center 3 Reconstruction Modes & Camera Bar */
     #top-modes {
       position: fixed;
       top: 64px;
@@ -226,13 +189,8 @@
       background: rgba(95, 212, 192, 0.14);
       color: var(--teal);
     }
-    .cone-pill.warn {
-      border-color: rgba(242, 165, 65, 0.75);
-      background: rgba(242, 165, 65, 0.2);
-      color: var(--amber);
-    }
+    .cone-pill.warn { border-color: rgba(242, 165, 65, 0.75); background: rgba(242, 165, 65, 0.2); color: var(--amber); }
 
-    /* Right Collapsible Reconstruction & Severn Pilot Inspector */
     #right-inspector {
       position: fixed;
       top: 64px;
@@ -247,107 +205,24 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      transition: transform 220ms ease;
     }
-    #right-inspector.collapsed {
-      transform: translateX(342px);
-    }
-    #btn-open-inspector {
-      position: fixed;
-      top: 64px;
-      right: 12px;
-      z-index: 26;
-      display: none;
-    }
-    #right-inspector.collapsed ~ #btn-open-inspector {
-      display: inline-block;
-    }
-    .insp-head {
-      padding: 8px 11px;
-      background: var(--panel2);
-      border-bottom: 1px solid var(--rule);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .insp-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 9px 11px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 9px;
-    }
-    .card {
-      background: rgba(20, 26, 37, 0.72);
-      border: 1px solid var(--rule);
-      border-radius: 6px;
-      padding: 8px 9px;
-    }
-    .card h3 {
-      margin: 0 0 6px;
-      font: 600 10px/1.2 var(--mono);
-      letter-spacing: 0.09em;
-      text-transform: uppercase;
-      color: var(--brass);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .sl-row {
-      display: grid;
-      grid-template-columns: 98px 1fr 44px;
-      gap: 6px;
-      align-items: center;
-      font: 500 10px/1.2 var(--mono);
-      color: var(--dim);
-      margin: 4px 0;
-    }
-    .sl-row input[type="range"] {
-      width: 100%;
-      accent-color: var(--cyan);
-      cursor: pointer;
-    }
-    .kv-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4px 8px;
-      font: 500 10px/1.35 var(--mono);
-    }
+    #right-inspector.collapsed { transform: translateX(342px); }
+    #btn-open-inspector { position: fixed; top: 64px; right: 12px; z-index: 26; display: none; }
+    #right-inspector.collapsed ~ #btn-open-inspector { display: inline-block; }
+    .insp-head { padding: 8px 11px; background: var(--panel2); border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; }
+    .insp-body { flex: 1; overflow-y: auto; padding: 9px 11px 14px; display: flex; flex-direction: column; gap: 9px; }
+    .card { background: rgba(20, 26, 37, 0.72); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 9px; }
+    .card h3 { margin: 0 0 6px; font: 600 10px/1.2 var(--mono); letter-spacing: 0.09em; text-transform: uppercase; color: var(--brass); display: flex; justify-content: space-between; align-items: center; }
+    .sl-row { display: grid; grid-template-columns: 98px 1fr 44px; gap: 6px; align-items: center; font: 500 10px/1.2 var(--mono); color: var(--dim); margin: 4px 0; }
+    .sl-row input[type="range"] { width: 100%; accent-color: var(--cyan); cursor: pointer; }
+    .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; font: 500 10px/1.35 var(--mono); }
     .kv-grid span:nth-child(odd) { color: var(--faint); }
     .kv-grid span:nth-child(even) { color: var(--ink); text-align: right; }
+    .pip-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .pip-box { position: relative; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; background: #05070b; }
+    .pip-box img, .pip-box canvas { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+    .pip-tag { position: absolute; left: 4px; bottom: 3px; font: 600 8.5px var(--mono); background: rgba(0, 0, 0, 0.74); padding: 1px 4px; border-radius: 3px; color: var(--ink); }
 
-    /* Picture-in-Picture Depth & Source Preview */
-    .pip-pair {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-    .pip-box {
-      position: relative;
-      border: 1px solid var(--rule);
-      border-radius: 4px;
-      overflow: hidden;
-      background: #05070b;
-    }
-    .pip-box img, .pip-box canvas {
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      object-fit: cover;
-      display: block;
-    }
-    .pip-tag {
-      position: absolute;
-      left: 4px;
-      bottom: 3px;
-      font: 600 8.5px var(--mono);
-      background: rgba(0, 0, 0, 0.74);
-      padding: 1px 4px;
-      border-radius: 3px;
-      color: var(--ink);
-    }
-
-    /* 3-Up Synchronized Comparison Modal (Original | WEAVE Cel | Spatial 3D) */
     #compare-3up {
       position: fixed;
       top: 136px;
@@ -358,37 +233,14 @@
       border: 1px solid var(--brass);
       border-radius: 8px;
       padding: 10px 12px;
-      box-shadow: 0 20px 54px rgba(0, 0, 0, 0.78);
       display: none;
     }
     #compare-3up.open { display: block; }
-    .cmp-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 8px;
-    }
-    .cmp-card {
-      background: #06090e;
-      border: 1px solid var(--rule);
-      border-radius: 5px;
-      overflow: hidden;
-    }
-    .cmp-card img {
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      object-fit: cover;
-      display: block;
-    }
-    .cmp-meta {
-      padding: 5px 7px;
-      font: 600 9.5px var(--mono);
-      color: var(--dim);
-      display: flex;
-      justify-content: space-between;
-    }
+    .cmp-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+    .cmp-card { background: #06090e; border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; }
+    .cmp-card img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+    .cmp-meta { padding: 5px 7px; font: 600 9.5px var(--mono); color: var(--dim); display: flex; justify-content: space-between; }
 
-    /* Bottom Telemetry Strip (above Shader Suite Dock) */
     #telemetry-bar {
       position: fixed;
       bottom: 104px;
@@ -408,42 +260,14 @@
       pointer-events: none;
     }
     #telemetry-bar b { color: var(--ink); }
-
-    #toast {
-      position: fixed;
-      top: 42px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9500;
-      background: rgba(12, 16, 23, 0.96);
-      border: 1px solid var(--brass);
-      border-radius: 5px;
-      padding: 6px 12px;
-      font: 600 11px var(--mono);
-      color: var(--ink);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 180ms ease;
-    }
-    #toast.show { opacity: 1; }
-
-    @media (max-width: 1080px) {
-      #top-modes { left: 12px; right: 12px; top: auto; bottom: 96px; }
-      #compare-3up { left: 12px; right: 12px; }
-    }
-    @media (max-width: 760px) {
-      #left-catalog { width: 250px; }
-      #right-inspector { width: 268px; }
-      .cmp-grid { grid-template-columns: 1fr; }
-      #telemetry-bar { display: none; }
-    }
   </style>
 </head>
 <body>
   <div id="viewport-wrap" aria-label="Metric Depth 2D-to-3D Reconstruction Stage"></div>
+  <div id="world-whisper" aria-hidden="true"></div>
   <div id="toast" role="status" aria-live="polite"></div>
 
-  <!-- Left Collapsible Shot Catalog -->
+  <!-- Optional Raw Workbench (Hidden on load; summoned only via Tab) -->
   <aside id="left-catalog" aria-label="Metric Depth Shot Catalog">
     <div class="cat-head">
       <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -457,7 +281,6 @@
   </aside>
   <button class="btn" id="btn-open-catalog">Shots</button>
 
-  <!-- Top-Center 3 Superior 2D-to-3D Modes & Camera Recovery -->
   <div id="top-modes" role="toolbar" aria-label="2D-to-3D Reconstruction Modes">
     <div class="mode-strip" id="recon-mode-btns">
       <button class="btn on" data-rmode="splats" title="Anisotropic edge-aware Gaussian soft discs with zero black gaps">1 · Gaussian Soft Splats</button>
@@ -475,7 +298,6 @@
     </div>
   </div>
 
-  <!-- 3-Up Synchronized Comparison Overlay -->
   <section id="compare-3up" aria-label="Aligned Source, Layered WEAVE, and Spatial 3D Comparison">
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <span class="kicker">SIDE-BY-SIDE SOURCE CAMERA CHECK · ORIGINAL / LAYERED WEAVE / SPATIAL 3D</span>
@@ -500,14 +322,12 @@
     </div>
   </section>
 
-  <!-- Right Collapsible Reconstruction & Severn Pilot Inspector -->
   <aside id="right-inspector" aria-label="Depth Reconstruction and Camera Controls">
     <div class="insp-head">
       <span class="kicker" id="insp-district">NARAKA · METRIC DEPTH</span>
       <button class="btn" id="btn-collapse-inspector">Hide</button>
     </div>
     <div class="insp-body">
-      <!-- Source & Refined Depth Preview -->
       <div class="pip-pair">
         <div class="pip-box">
           <img id="pip-photo" alt="Source frame">
@@ -519,7 +339,6 @@
         </div>
       </div>
 
-      <!-- Reconstruction Quality & Tear-Guard Controls -->
       <div class="card">
         <h3>Depth &amp; Surface Controls <span id="lbl-prim-count" style="color:var(--teal)">82,944</span></h3>
         <div class="sl-row">
@@ -548,7 +367,6 @@
         </div>
       </div>
 
-      <!-- Optical Camera & 1.7m Scale Anchor -->
       <div class="card">
         <h3>Camera &amp; 1.70m Scale Anchor</h3>
         <div class="sl-row">
@@ -567,7 +385,6 @@
         </div>
       </div>
 
-      <!-- Shared Severn Pilot State (Brief 9) -->
       <div class="card">
         <h3>Shared Severn Pilot <span style="color:var(--teal)">PILOT-V1</span></h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
@@ -583,7 +400,6 @@
         </div>
       </div>
 
-      <!-- Calibrated Camera Telemetry -->
       <div class="card">
         <h3>Calibrated Telemetry</h3>
         <div class="kv-grid">

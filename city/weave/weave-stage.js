@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ALL_CITY_LOOKS } from '../shaders.js';
-import { mountWebGLShaderSuite } from '../shader-suite-bar.js';
+import { mountWebGLShaderSuite, projectWorldLabel } from '../shader-suite-bar.js';
 
 // Zero-dependency damped spherical Orbit + Pan + Dolly controller (vendor/three/addons has no OrbitControls.js)
 class StageOrbitControls {
@@ -92,6 +92,7 @@ import {
   savePilotState,
   subscribePilotState,
   applyPilotUrlHash,
+  formatPilotHash,
   deriveClockMapping,
 } from '../design-room/pilot-state.js';
 
@@ -1062,6 +1063,7 @@ async function selectEntryByKey(key) {
 
   renderLedgerAndPlanesUI();
   renderSpineStripUI();
+  syncActiveWingPlates();
 }
 
 // ---------------------------------------------------------------------------
@@ -1594,18 +1596,713 @@ $$('[data-bus]').forEach((sl) => {
   });
 });
 
-// Spacebar Expose Plate & Bracket Shader Hotkeys fallback
+// ---------------------------------------------------------------------------
+// Diegetic In-World UI:
+// 1. 3D Hanging Darkroom Contact-Sheet & Spine-Cut Plates in Left/Right Wings
+// 2. 3D Brass Camera Tripod (Recover Source Cam, Reverse Angle Prism, 23 GPU Shaders, Expose Plate)
+// 3. 3D Courier, Bekele & Severn Threshold Door Encounter / Acoustic Door Coupling
+// 4. World-Projected 1-Line Hover Whisper (Zero Overlaid Boxes or Grids)
+// ---------------------------------------------------------------------------
+const interactivePickables = [];
+const wingPlateRecords = [];
+const wingGalleryGroup = new THREE.Group();
+scene.add(wingGalleryGroup);
+
+function registerPickable(mesh, meta) {
+  mesh.userData.weavePick = meta;
+  interactivePickables.push(mesh);
+  return mesh;
+}
+
+function createSprocketMatteTexture(tintHex = '#10141c', accentHex = '#d4b078') {
+  const cv = document.createElement('canvas');
+  cv.width = 512;
+  cv.height = 340;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = tintHex;
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.strokeStyle = accentHex;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(6, 6, cv.width - 12, cv.height - 12);
+
+  // Top & bottom 35mm darkroom filmstrip sprocket perforations
+  ctx.fillStyle = '#05070b';
+  for (let x = 22; x < cv.width - 22; x += 34) {
+    ctx.fillRect(x, 13, 18, 13);
+    ctx.fillRect(x, cv.height - 26, 18, 13);
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+const filmMatteTex = createSprocketMatteTexture('#111620', '#c8a974');
+const spineMatteTex = createSprocketMatteTexture('#101922', '#5fd4c0');
+
+function buildHangingDarkroomPlate({
+  x,
+  y,
+  z,
+  rotY,
+  wireY,
+  w = 1.48,
+  h = 0.96,
+  imageUrl,
+  entryKey,
+  shaderHint = null,
+  celMixHint = null,
+  whisperText,
+  isSpine = false,
+}) {
+  const holder = new THREE.Group();
+  holder.position.set(x, y, z);
+  holder.rotation.y = rotY;
+
+  // Vertical steel drop-wires up to overhead darkroom drying cable + 2 brass alligator clips
+  const dropLen = Math.max(0.18, wireY - (y + h * 0.5));
+  const wireMat = new THREE.MeshBasicMaterial({ color: '#7e8a9c' });
+  for (const cx of [-w * 0.34, w * 0.34]) {
+    const drop = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, dropLen, 6), wireMat);
+    drop.position.set(cx, h * 0.5 + dropLen * 0.5, 0);
+    holder.add(drop);
+
+    const clip = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.085, 0.035), brassRailMat);
+    clip.position.set(cx, h * 0.5 + 0.03, 0);
+    holder.add(clip);
+  }
+
+  // Perforated 35mm contact-sheet backing frame
+  const frameMat = new THREE.MeshStandardMaterial({
+    map: isSpine ? spineMatteTex : filmMatteTex,
+    roughness: 0.55,
+    metalness: 0.22,
+    emissive: new THREE.Color('#000000'),
+    emissiveIntensity: 0.0,
+    side: THREE.DoubleSide,
+  });
+  const frameMesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), frameMat);
+  holder.add(frameMesh);
+
+  // Glowing rim indicator when active or hovered
+  const rimMesh = new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.PlaneGeometry(w + 0.04, h + 0.04)),
+    new THREE.LineBasicMaterial({ color: isSpine ? '#5fd4c0' : '#f2a541', transparent: true, opacity: 0.32 })
+  );
+  rimMesh.position.z = 0.008;
+  holder.add(rimMesh);
+
+  // Backlit photograph / cel / spine emulsion plane
+  const photoMat = new THREE.MeshBasicMaterial({
+    map: blankColorTex,
+    color: '#ffffff',
+    side: THREE.DoubleSide,
+  });
+  const photoMesh = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.88, h * 0.72), photoMat);
+  photoMesh.position.z = 0.012;
+  holder.add(photoMesh);
+
+  loadTexCached(imageUrl, false).then((tex) => {
+    photoMat.map = tex;
+    photoMat.needsUpdate = true;
+  });
+
+  const rec = {
+    entryKey,
+    shaderHint,
+    celMixHint,
+    holder,
+    frameMat,
+    rimMesh,
+    photoMat,
+    isSpine,
+  };
+  wingPlateRecords.push(rec);
+
+  const pickMeta = {
+    kind: 'wing-plate',
+    rec,
+    anchorObj: holder,
+    anchorOffset: new THREE.Vector3(0, h * 0.55, 0),
+    getWhisper: () => whisperText,
+  };
+  registerPickable(frameMesh, pickMeta);
+  registerPickable(photoMesh, pickMeta);
+
+  wingGalleryGroup.add(holder);
+  return rec;
+}
+
+function buildDarkroomWingGalleries() {
+  while (wingGalleryGroup.children.length > 0) {
+    wingGalleryGroup.remove(wingGalleryGroup.children[0]);
+  }
+  wingPlateRecords.length = 0;
+
+  // Overhead taut darkroom steel drying cables & warm amber safelights in Left & Right Wings
+  const cableMat = new THREE.MeshStandardMaterial({ color: '#8c96a6', roughness: 0.38, metalness: 0.78 });
+  for (const side of [-1, 1]) {
+    for (const wy of [3.55, 2.15]) {
+      const pStart = new THREE.Vector3(side * 3.55, wy, -3.9);
+      const pEnd = new THREE.Vector3(side * 7.65, wy, -13.2);
+      const span = pStart.distanceTo(pEnd);
+      const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, span, 8), cableMat);
+      cable.position.copy(pStart).lerp(pEnd, 0.5);
+      cable.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), pEnd.clone().sub(pStart).normalize());
+      wingGalleryGroup.add(cable);
+
+      // Cast-iron proscenium post at front end of wire
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.042, wy + 0.15, 8), dishIronMat);
+      post.position.set(pStart.x, (wy + 0.15) * 0.5, pStart.z);
+      wingGalleryGroup.add(post);
+    }
+
+    // Warm darkroom safelight illuminating the hanging filmstrips
+    const safeBulb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.085, 10, 8),
+      new THREE.MeshBasicMaterial({ color: side < 0 ? '#ff9d47' : '#5fd4c0' })
+    );
+    safeBulb.position.set(side * 5.2, 3.72, -7.8);
+    wingGalleryGroup.add(safeBulb);
+
+    const safeLight = new THREE.PointLight(side < 0 ? '#ff9844' : '#4ec9ff', 10.5, 11.5, 1.5);
+    safeLight.position.copy(safeBulb.position);
+    wingGalleryGroup.add(safeLight);
+  }
+
+  // LEFT WING: Physical 3D Hanging WEAVE Passages & District Contact-Sheet Plates (2 tiers x 6 columns = 12 plates)
+  const leftItems = [
+    ...weaveCatalog.passages.map((p) => ({
+      entryKey: `passage:${p.id}`,
+      imageUrl: p.urls.plate,
+      label: `${p.tab} · ${p.title} — Click Plate to Stage`,
+    })),
+    ...weaveCatalog.shots.map((s) => ({
+      entryKey: s.id,
+      imageUrl: s.urls.image,
+      label: `${s.district.toUpperCase()} · ${s.title.slice(0, 34)} — Click Plate to Stage`,
+    })),
+  ].slice(0, 12);
+
+  leftItems.forEach((item, idx) => {
+    const row = Math.floor(idx / 6); // 0 = upper wire, 1 = lower wire
+    const col = idx % 6;
+    const t = col / 5;
+    const x = THREE.MathUtils.lerp(-3.78, -7.35, t);
+    const z = THREE.MathUtils.lerp(-4.35, -12.6, t);
+    const y = row === 0 ? 2.68 : 1.24;
+    const wireY = row === 0 ? 3.55 : 2.15;
+    buildHangingDarkroomPlate({
+      x,
+      y,
+      z,
+      rotY: 0.96,
+      wireY,
+      imageUrl: item.imageUrl,
+      entryKey: item.entryKey,
+      whisperText: item.label,
+      isSpine: false,
+    });
+  });
+
+  // RIGHT WING: Physical 3D Hanging Spine-Cut Filmstrips (Archive Source | WEAVE Blend | Cel/Notan | 3D Plane Map)
+  const spineRows = [
+    { name: 'Archive Source', urlKey: 'image', shaderHint: 'natural', celMix: 0.0 },
+    { name: 'WEAVE Blend', urlKey: 'exploded', shaderHint: 'weave', celMix: 0.55 },
+    { name: 'Cel / Notan', urlKey: 'cel', shaderHint: 'woodblock', celMix: 0.92 },
+    { name: '3D Plane Map', urlKey: 'planeMap', shaderHint: 'jerikan', celMix: 0.45 },
+  ];
+  const rightShots = weaveCatalog.shots.slice(0, 6);
+  let rIdx = 0;
+  for (let tier = 0; tier < 2; tier++) {
+    for (let col = 0; col < 6; col++) {
+      const shot = rightShots[col % Math.max(1, rightShots.length)];
+      if (!shot) continue;
+      const sRow = spineRows[(tier * 2 + (col % 2)) % spineRows.length];
+      const t = col / 5;
+      const x = THREE.MathUtils.lerp(3.78, 7.35, t);
+      const z = THREE.MathUtils.lerp(-4.35, -12.6, t);
+      const y = tier === 0 ? 2.68 : 1.24;
+      const wireY = tier === 0 ? 3.55 : 2.15;
+      buildHangingDarkroomPlate({
+        x,
+        y,
+        z,
+        rotY: -0.96,
+        wireY,
+        imageUrl: shot.urls[sRow.urlKey] || shot.urls.image,
+        entryKey: shot.id,
+        shaderHint: sRow.shaderHint,
+        celMixHint: sRow.celMix,
+        whisperText: `Spine · ${sRow.name} · ${shot.district.toUpperCase()} — Click Strip to Load`,
+        isSpine: true,
+      });
+      rIdx++;
+    }
+  }
+  syncActiveWingPlates();
+}
+
+function syncActiveWingPlates() {
+  const curKey = activeEntry?.key;
+  const curShotId = activeEntry?.shot?.id;
+  for (const rec of wingPlateRecords) {
+    const isMatch = rec.entryKey === curKey || rec.entryKey === curShotId;
+    rec.frameMat.emissive.set(isMatch ? (rec.isSpine ? '#124e48' : '#52340d') : '#000000');
+    rec.frameMat.emissiveIntensity = isMatch ? 0.9 : 0.0;
+    rec.rimMesh.material.opacity = isMatch ? 0.95 : 0.30;
+  }
+}
+
+// Build 3D Brass 8x10 Camera Tripod + Reverse-Angle Prism + Source Origin Witness Tripod
+const stageTripodGroup = new THREE.Group();
+const sourceWitnessTripod = new THREE.Group();
+let reversePrismMesh = null;
+
+function assembleBrassCameraTripod(root, { includeInteractive = true, isOriginMark = false } = {}) {
+  const woodLegMat = new THREE.MeshStandardMaterial({ color: '#4d311f', roughness: 0.62, metalness: 0.12 });
+  const darkBellowsMat = new THREE.MeshStandardMaterial({ color: '#171a22', roughness: 0.78, metalness: 0.18 });
+  const glassLensMat = new THREE.MeshStandardMaterial({
+    color: '#18b4ff',
+    emissive: '#0c5c8a',
+    emissiveIntensity: 1.15,
+    roughness: 0.12,
+    metalness: 0.45,
+  });
+
+  // Ground contact shadow + brass survey ring
+  const shadow = new THREE.Mesh(
+    new THREE.CircleGeometry(0.46, 22),
+    new THREE.MeshBasicMaterial({ color: '#05070b', transparent: true, opacity: 0.52, depthWrite: false })
+  );
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = 0.014;
+  root.add(shadow);
+
+  const surveyRing = new THREE.Mesh(new THREE.RingGeometry(0.30, 0.36, 28), brassRailMat);
+  surveyRing.rotation.x = -Math.PI / 2;
+  surveyRing.position.y = 0.018;
+  root.add(surveyRing);
+
+  // 3 splayed mahogany + brass survey legs + central plumb-bob
+  const legsHitGroup = new THREE.Group();
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + 0.35;
+    const topP = new THREE.Vector3(Math.cos(a) * 0.06, 1.24, Math.sin(a) * 0.06);
+    const botP = new THREE.Vector3(Math.cos(a) * 0.36, 0.0, Math.sin(a) * 0.36);
+    const len = topP.distanceTo(botP);
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.012, len, 8), woodLegMat);
+    leg.position.copy(topP).lerp(botP, 0.5);
+    leg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), topP.clone().sub(botP).normalize());
+    leg.castShadow = true;
+    legsHitGroup.add(leg);
+  }
+  const plumbBob = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.11, 10), brassRailMat);
+  plumbBob.rotation.x = Math.PI;
+  plumbBob.position.set(0, 0.72, 0);
+  legsHitGroup.add(plumbBob);
+
+  // Invisible generous hit cylinder around tripod base/legs -> Recover Source Camera
+  const recoverHit = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.34, 0.42, 1.12, 12),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  recoverHit.position.y = 0.56;
+  legsHitGroup.add(recoverHit);
+  root.add(legsHitGroup);
+
+  // Brass geared crown, mahogany 8x10 camera box, pleated bellows, and brass lens barrel -> Cycle 23 GPU Shaders
+  const headCrown = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.10, 0.08, 14), brassRailMat);
+  headCrown.position.y = 1.27;
+  root.add(headCrown);
+
+  const camBox = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.24, 0.20), woodLegMat);
+  camBox.position.set(0, 1.43, 0.02);
+  camBox.castShadow = true;
+  root.add(camBox);
+
+  const bellows = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.18, 0.18), darkBellowsMat);
+  bellows.position.set(0, 1.43, -0.16);
+  root.add(bellows);
+
+  const lensBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.062, 0.072, 0.14, 16), brassRailMat);
+  lensBarrel.rotation.x = Math.PI / 2;
+  lensBarrel.position.set(0, 1.43, -0.30);
+  root.add(lensBarrel);
+
+  const lensGlass = new THREE.Mesh(new THREE.CircleGeometry(0.056, 16), glassLensMat);
+  lensGlass.rotation.y = Math.PI;
+  lensGlass.position.set(0, 1.43, -0.372);
+  root.add(lensGlass);
+
+  const shaderHit = new THREE.Mesh(
+    new THREE.BoxGeometry(0.36, 0.34, 0.52),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  shaderHit.position.set(0, 1.43, -0.12);
+  root.add(shaderHit);
+
+  // Glowing Octahedral Reverse-Angle Prism mounted above viewfinder -> Toggle Reverse Angle
+  const prismMat = new THREE.MeshStandardMaterial({
+    color: '#f2a541',
+    emissive: '#f2a541',
+    emissiveIntensity: 1.35,
+    roughness: 0.18,
+    metalness: 0.35,
+  });
+  const prism = new THREE.Mesh(new THREE.OctahedronGeometry(0.085, 0), prismMat);
+  prism.position.set(0, 1.69, 0.02);
+  root.add(prism);
+  if (!isOriginMark) reversePrismMesh = prism;
+
+  const prismHit = new THREE.Mesh(
+    new THREE.SphereGeometry(0.16, 10, 8),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  prismHit.position.copy(prism.position);
+  root.add(prismHit);
+
+  // Brass Cable Shutter Bulb at right side -> Expose Plate to Nolli Light Table
+  const shutterBulb = new THREE.Mesh(
+    new THREE.SphereGeometry(0.052, 12, 10),
+    new THREE.MeshStandardMaterial({ color: '#c85a3b', emissive: '#591d0e', roughness: 0.45 })
+  );
+  shutterBulb.position.set(0.22, 1.24, 0.06);
+  root.add(shutterBulb);
+
+  if (includeInteractive) {
+    if (isOriginMark) {
+      const originMeta = {
+        kind: 'tripod-recover',
+        anchorObj: root,
+        anchorOffset: new THREE.Vector3(0, 1.65, 0),
+        getWhisper: () => 'Source Camera Origin Mark — Click to Recover Calibrated Source Camera',
+      };
+      registerPickable(recoverHit, originMeta);
+      registerPickable(shaderHit, originMeta);
+      registerPickable(prismHit, originMeta);
+    } else {
+      registerPickable(recoverHit, {
+        kind: 'tripod-recover',
+        anchorObj: root,
+        anchorOffset: new THREE.Vector3(0, 1.15, 0),
+        getWhisper: () => 'Brass Survey Tripod — Click to Recover Exact Source Camera',
+      });
+      registerPickable(shaderHit, {
+        kind: 'tripod-shader',
+        anchorObj: root,
+        anchorOffset: new THREE.Vector3(0, 1.62, -0.1),
+        getWhisper: () => `8x10 Brass Lens (${activeLook.name}) — Click to Cycle 23 GPU Shaders · Shift+Click Expose Plate`,
+      });
+      registerPickable(prismHit, {
+        kind: 'tripod-reverse',
+        anchorObj: root,
+        anchorOffset: new THREE.Vector3(0, 1.84, 0.02),
+        getWhisper: () =>
+          cameraMode === 'reverse'
+            ? 'Reverse-Angle Prism — Click to Return to Street Forward Camera'
+            : 'Reverse-Angle Prism — Click to Flip to Severn Vestibule Reverse Angle',
+      });
+      registerPickable(shutterBulb, {
+        kind: 'tripod-expose',
+        anchorObj: shutterBulb,
+        anchorOffset: new THREE.Vector3(0, 0.14, 0),
+        getWhisper: () => 'Pneumatic Shutter Bulb — Click to Expose 8x10 Plate to Nolli Light Table',
+      });
+    }
+  }
+}
+
+stageTripodGroup.position.set(-1.68, 0, -3.95);
+stageTripodGroup.rotation.y = -0.34;
+assembleBrassCameraTripod(stageTripodGroup, { includeInteractive: true, isOriginMark: false });
+scene.add(stageTripodGroup);
+
+sourceWitnessTripod.position.set(0, 0, 0.4);
+assembleBrassCameraTripod(sourceWitnessTripod, { includeInteractive: true, isOriginMark: true });
+scene.add(sourceWitnessTripod);
+
+// Register 3D Hit Volumes on Severn Doorway, Courier, Bekele, Parcel, Table & Relay Dish
+const doorHitMesh = new THREE.Mesh(
+  new THREE.BoxGeometry(1.65, 2.65, 0.55),
+  new THREE.MeshBasicMaterial({ visible: false })
+);
+doorHitMesh.position.set(0, 1.42, -0.10);
+hybridSet.add(doorHitMesh);
+registerPickable(doorHitMesh, {
+  kind: 'severn-door',
+  anchorObj: hybridSet,
+  anchorOffset: new THREE.Vector3(0, 2.45, 0),
+  getWhisper: () =>
+    pilot.doorOpen
+      ? 'Severn Threshold Door (Open) — Click to Close & Muffle Street (560 Hz) · Shift+Click Enter Nolli Block'
+      : 'Severn Threshold Door (Closed · 560 Hz) — Click to Swing Open & Spill Warm Lamp',
+});
+
+function attachActorHitCapsule(actor, labelFn) {
+  const hit = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.36, 0.38, 1.82, 10),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  hit.position.y = 0.91;
+  actor.root.add(hit);
+  registerPickable(hit, {
+    kind: 'actor-encounter',
+    anchorObj: actor.root,
+    anchorOffset: new THREE.Vector3(0, 1.88, 0),
+    getWhisper: labelFn,
+  });
+}
+
+attachActorHitCapsule(
+  cast.courier,
+  () => `Courier (Parcel: ${pilot.parcelHolder}) — Click to Play Arrival, Handoff & Door-Close Encounter`
+);
+attachActorHitCapsule(
+  cast.bekele,
+  () => `Bekele at Severn Stoop — Click to Play Handoff Encounter · Shift+Click Pass Parcel`
+);
+
+registerPickable(parcelBox, {
+  kind: 'parcel-cycle',
+  anchorObj: parcelMesh,
+  anchorOffset: new THREE.Vector3(0, 0.28, 0),
+  getWhisper: () => `Shared Severn Parcel (${pilot.parcelHolder}) — Click to Hand Off Across Threshold`,
+});
+
+const tableHit = new THREE.Mesh(
+  new THREE.BoxGeometry(0.86, 0.88, 0.62),
+  new THREE.MeshBasicMaterial({ visible: false })
+);
+tableHit.position.y = 0.44;
+courierTable.add(tableHit);
+registerPickable(tableHit, {
+  kind: 'parcel-cycle',
+  anchorObj: courierTable,
+  anchorOffset: new THREE.Vector3(0, 0.96, 0),
+  getWhisper: () => `Stoop Side Table — Click to Cycle Shared Parcel Holder (${pilot.parcelHolder})`,
+});
+
+const dishHit = new THREE.Mesh(
+  new THREE.SphereGeometry(3.35, 12, 10),
+  new THREE.MeshBasicMaterial({ visible: false })
+);
+dishHit.position.set(0, 6.5, 0);
+dishGroup.add(dishHit);
+registerPickable(dishHit, {
+  kind: 'relay-explode',
+  anchorObj: dishGroup,
+  anchorOffset: new THREE.Vector3(0, 8.6, 0),
+  getWhisper: () =>
+    cameraMode === 'exploded'
+      ? 'Parabolic Relay Dish — Click to Collapse Multiplane Stack to Source Frame'
+      : 'Parabolic Relay Dish — Click to Swing Into 3/4 Multiplane Depth Stack',
+});
+
+function runEncounterInWorld() {
+  encounterAnim.active = true;
+  encounterAnim.t = 0;
+  $('#btn-play-encounter')?.classList.add('on');
+  savePilotState({ doorOpen: true, parcelHolder: 'player', room: 'street-curb' });
+  if (cast.courier?.v8) cast.courier.v8.playClip('walk', 0.2);
+  showToast('Courier approaches Severn stoop -> hands parcel to Bekele -> closes threshold door');
+}
+
+function exposeCurrentWeavePlate() {
+  if (externalSuite && typeof externalSuite.exposePlate === 'function') {
+    externalSuite.exposePlate({ locationName: $('#scene-title')?.textContent || 'WEAVE Stage' });
+    return;
+  }
+  renderFrameOnce(performance.now() * 0.001);
+  savePlateToNolliLedger(
+    renderer.domElement.toDataURL('image/jpeg', 0.86),
+    $('#scene-title').textContent,
+    activeLook.id
+  );
+}
+
+// Raycaster & World-Projected 1-Line Whisper
+const raycaster = new THREE.Raycaster();
+const pointerNdc = new THREE.Vector2();
+const whisperEl = $('#world-whisper');
+const anchorWorldTmp = new THREE.Vector3();
+let pointerDownXY = null;
+let hoveredPickMeta = null;
+
+function pickMetaFromEvent(e) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  if (rect.width < 2 || rect.height < 2) return null;
+  pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  pointerNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointerNdc, camera);
+  const hits = raycaster.intersectObjects(interactivePickables, false);
+  for (const h of hits) {
+    let cur = h.object;
+    let vis = true;
+    while (cur) {
+      if (cur.visible === false && cur !== h.object) {
+        vis = false;
+        break;
+      }
+      cur = cur.parent;
+    }
+    if (!vis) continue;
+    if (h.object.userData?.weavePick) return h.object.userData.weavePick;
+  }
+  return null;
+}
+
+function updateWhisperProjection() {
+  if (!whisperEl) return;
+  if (!hoveredPickMeta || document.body.classList.contains('mp-tab-open')) {
+    whisperEl.classList.remove('visible');
+    return;
+  }
+  hoveredPickMeta.anchorObj.updateMatrixWorld();
+  anchorWorldTmp.copy(hoveredPickMeta.anchorOffset || new THREE.Vector3());
+  hoveredPickMeta.anchorObj.localToWorld(anchorWorldTmp);
+  const proj = projectWorldLabel(camera, anchorWorldTmp, renderer.domElement);
+  if (!proj.inFront) {
+    whisperEl.classList.remove('visible');
+    return;
+  }
+  whisperEl.textContent = hoveredPickMeta.getWhisper();
+  whisperEl.classList.add('visible');
+  const halfW = Math.ceil((whisperEl.offsetWidth || 260) * 0.5) + 16;
+  const cx = THREE.MathUtils.clamp(proj.x, halfW, Math.max(halfW, window.innerWidth - halfW));
+  const cy = THREE.MathUtils.clamp(proj.y, 38, window.innerHeight - 28);
+  whisperEl.style.left = `${Math.round(cx)}px`;
+  whisperEl.style.top = `${Math.round(cy)}px`;
+}
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  if (e.button === 0) pointerDownXY = { x: e.clientX, y: e.clientY };
+});
+
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (e.buttons !== 0) {
+    hoveredPickMeta = null;
+    if (whisperEl) whisperEl.classList.remove('visible');
+    return;
+  }
+  hoveredPickMeta = pickMetaFromEvent(e);
+  renderer.domElement.style.cursor = hoveredPickMeta ? 'pointer' : 'grab';
+  updateWhisperProjection();
+});
+
+renderer.domElement.addEventListener('pointerleave', () => {
+  hoveredPickMeta = null;
+  renderer.domElement.style.cursor = '';
+  if (whisperEl) whisperEl.classList.remove('visible');
+});
+
+renderer.domElement.addEventListener('pointerup', async (e) => {
+  if (e.button !== 0 || !pointerDownXY) return;
+  const distPx = Math.hypot(e.clientX - pointerDownXY.x, e.clientY - pointerDownXY.y);
+  pointerDownXY = null;
+  if (distPx > 6) return; // Dragged camera, not a click
+
+  const picked = pickMetaFromEvent(e);
+  if (!picked) return;
+
+  switch (picked.kind) {
+    case 'wing-plate': {
+      const rec = picked.rec;
+      if ($('#shot-select')) $('#shot-select').value = rec.entryKey;
+      await selectEntryByKey(rec.entryKey);
+      if (rec.shaderHint) applyShaderById(rec.shaderHint);
+      if (typeof rec.celMixHint === 'number') {
+        for (const m of [matBG, matMG, matFG]) m.uniforms.uCelMix.value = rec.celMixHint;
+        if ($('#sl-cel-mix')) $('#sl-cel-mix').value = String(rec.celMixHint);
+        if ($('#val-cel-mix')) $('#val-cel-mix').textContent = Math.round(rec.celMixHint * 100) + '%';
+      }
+      showToast(`Loaded onto WEAVE stage: ${$('#scene-title').textContent}`);
+      break;
+    }
+    case 'severn-door': {
+      if (e.shiftKey) {
+        window.location.assign(`../${formatPilotHash(loadPilotState())}`);
+        return;
+      }
+      const nextOpen = !pilot.doorOpen;
+      savePilotState({ doorOpen: nextOpen });
+      showToast(
+        nextOpen
+          ? 'Severn threshold door opened · warm lamp & clear street sound'
+          : 'Severn threshold door closed · 560 Hz stone muffling'
+      );
+      break;
+    }
+    case 'actor-encounter': {
+      if (e.shiftKey) {
+        const order = ['player', 'bekele', 'table'];
+        const next = order[(order.indexOf(pilot.parcelHolder || 'player') + 1) % order.length];
+        savePilotState({ parcelHolder: next, room: next === 'bekele' ? 'vestibule' : 'street-curb' });
+        showToast(`Parcel handed to ${next}`);
+      } else {
+        runEncounterInWorld();
+      }
+      break;
+    }
+    case 'parcel-cycle': {
+      const order = ['player', 'bekele', 'table'];
+      const next = order[(order.indexOf(pilot.parcelHolder || 'player') + 1) % order.length];
+      savePilotState({ parcelHolder: next, room: next === 'bekele' ? 'vestibule' : 'street-curb' });
+      showToast(`Parcel ownership persisted: ${next}`);
+      break;
+    }
+    case 'tripod-recover': {
+      recoverSourceCamera();
+      showToast('Calibrated source camera recovered');
+      break;
+    }
+    case 'tripod-reverse': {
+      toggleReverseAngle();
+      break;
+    }
+    case 'tripod-shader': {
+      if (e.shiftKey) {
+        exposeCurrentWeavePlate();
+      } else if (externalSuite && typeof externalSuite.nextLook === 'function') {
+        externalSuite.nextLook(true);
+        const nextId = externalSuite.getState?.()?.lookId;
+        const found = ALL_CITY_LOOKS.find((l) => l.id === nextId);
+        if (found) activeLook = found;
+        showToast(`GPU Look: ${activeLook.name}`);
+      } else {
+        const idx = ALL_CITY_LOOKS.findIndex((l) => l.id === activeLook.id);
+        const nxt = ALL_CITY_LOOKS[(idx + 1) % ALL_CITY_LOOKS.length];
+        applyShaderById(nxt.id);
+        showToast(`GPU Look: ${nxt.name}`);
+      }
+      break;
+    }
+    case 'tripod-expose': {
+      exposeCurrentWeavePlate();
+      break;
+    }
+    case 'relay-explode': {
+      toggleExplodeStack();
+      break;
+    }
+  }
+  updateWhisperProjection();
+});
+
+// Keyboard Pan/Turn into Left & Right Darkroom Wings (WASD / Q-E / Arrows) + Space Expose
+const navKeys = {};
 window.addEventListener('keydown', (e) => {
   if (e.target.closest('input,select,textarea')) return;
+  navKeys[e.code] = true;
   if (e.code === 'Space' && !externalSuite) {
     e.preventDefault();
-    renderFrameOnce(performance.now() * 0.001);
-    savePlateToNolliLedger(
-      renderer.domElement.toDataURL('image/jpeg', 0.86),
-      $('#scene-title').textContent,
-      activeLook.id
-    );
+    exposeCurrentWeavePlate();
+  } else if (e.code === 'KeyR') {
+    recoverSourceCamera();
+    showToast('Calibrated source camera recovered');
   }
+});
+window.addEventListener('keyup', (e) => {
+  navKeys[e.code] = false;
 });
 
 window.addEventListener('resize', () => {
@@ -1678,7 +2375,7 @@ function updateEncounter(dt) {
     }
   } else {
     encounterAnim.active = false;
-    $('#btn-play-encounter').classList.remove('on');
+    $('#btn-play-encounter')?.classList.remove('on');
     if (cast.courier.v8) cast.courier.v8.playClip('idle', 0.25);
     if (cast.bekele.v8) cast.bekele.v8.playClip('idle', 0.25);
   }
@@ -1686,31 +2383,65 @@ function updateEncounter(dt) {
 
 function updateConeBadge() {
   const badge = $('#cone-badge');
-  if (!badge) return;
   const vSrc = sourceCamSpec.pos.clone().sub(sourceCamSpec.target).normalize();
   const vCur = camera.position.clone().sub(controls.target).normalize();
   const angDeg = THREE.MathUtils.radToDeg(Math.acos(THREE.MathUtils.clamp(vSrc.dot(vCur), -1, 1)));
 
-  if (cameraMode === 'reverse') {
-    badge.textContent = 'REVERSE THRESHOLD CAM';
-    badge.classList.remove('warn');
-  } else if (angDeg <= sourceCamSpec.maxLateralDeg) {
-    badge.textContent = `WITHIN CONE (${angDeg.toFixed(1)} DEG)`;
-    badge.classList.remove('warn');
-  } else {
-    badge.textContent = `OUTSIDE CONE (${angDeg.toFixed(1)} DEG) · REQUEST EVIDENCE`;
-    badge.classList.add('warn');
+  if (badge) {
+    if (cameraMode === 'reverse') {
+      badge.textContent = 'REVERSE THRESHOLD CAM';
+      badge.classList.remove('warn');
+    } else if (angDeg <= sourceCamSpec.maxLateralDeg) {
+      badge.textContent = `WITHIN CONE (${angDeg.toFixed(1)} DEG)`;
+      badge.classList.remove('warn');
+    } else {
+      badge.textContent = `OUTSIDE CONE (${angDeg.toFixed(1)} DEG) · REQUEST EVIDENCE`;
+      badge.classList.add('warn');
+    }
   }
-  coneHelperGroup.visible = cameraMode === 'exploded' || angDeg > sourceCamSpec.maxLateralDeg;
+  coneHelperGroup.visible = cameraMode === 'exploded';
 }
 
 function renderFrameOnce(nowSec) {
   const dt = Math.min(0.05, Math.max(0.001, nowSec - lastTime));
   lastTime = nowSec;
 
+  // Smooth keyboard turn/dolly to glance into Left & Right Darkroom Hanging Plate Wings
+  const turnInput =
+    (navKeys.KeyD || navKeys.ArrowRight || navKeys.KeyE ? 1 : 0) -
+    (navKeys.KeyA || navKeys.ArrowLeft || navKeys.KeyQ ? 1 : 0);
+  const dollyInput =
+    (navKeys.KeyS || navKeys.ArrowDown ? 1 : 0) -
+    (navKeys.KeyW || navKeys.ArrowUp ? 1 : 0);
+  if (turnInput !== 0) {
+    controls._sphTarget.theta -= turnInput * 0.95 * dt;
+  }
+  if (dollyInput !== 0) {
+    controls._sphTarget.radius = THREE.MathUtils.clamp(
+      controls._sphTarget.radius * (1 + dollyInput * 0.85 * dt),
+      controls.minDistance,
+      controls.maxDistance
+    );
+  }
+
   controls.update();
   updateEncounter(dt);
   updateConeBadge();
+
+  // Show Source Camera Origin Tripod whenever camera moves away from sourceCamSpec.pos
+  sourceWitnessTripod.position.set(sourceCamSpec.pos.x, 0, sourceCamSpec.pos.z);
+  sourceWitnessTripod.visible = camera.position.distanceTo(sourceCamSpec.pos) > 1.05;
+
+  // Gentle darkroom air sway on hanging filmstrip plates + spinning reverse prism
+  if (reversePrismMesh) {
+    reversePrismMesh.rotation.y = nowSec * 1.1;
+  }
+  for (let i = 0; i < wingPlateRecords.length; i++) {
+    const rec = wingPlateRecords[i];
+    rec.holder.rotation.z = Math.sin(nowSec * 0.9 + i * 0.65) * 0.012;
+  }
+
+  if (hoveredPickMeta) updateWhisperProjection();
 
   if (cast.courier?.v8) cast.courier.v8.update(dt);
   if (cast.bekele?.v8) cast.bekele.v8.update(dt);
@@ -1725,7 +2456,6 @@ function renderFrameOnce(nowSec) {
   }
 
   if (pilot.rawDaylight && externalSuite) {
-    // Bypass shader grade when inspecting raw ungraded daylight pass
     externalSuite.pipeline.render(scene, camera, {
       time: nowSec,
       focusM: 6.4,
@@ -1757,7 +2487,7 @@ function animate() {
   weaveCatalog = catRes;
   worldScoreData = wsRes;
 
-  // Populate Shot & Passage Selector
+  // Populate Shot & Passage Selector (used if Tab workbench is summoned)
   const sel = $('#shot-select');
   const pGroup = weaveCatalog.passages
     .map((p) => `<option value="passage:${p.id}">${p.tab} · ${p.title}</option>`)
@@ -1769,13 +2499,13 @@ function animate() {
 
   sel.addEventListener('change', (e) => selectEntryByKey(e.target.value));
 
-  // Respect URL hash shortcuts (#spine, #worldscore, #Dr-OUT)
   const rawHash = window.location.hash.replace(/^#/, '');
   if (rawHash === 'worldscore') setDrawerTab('worldscore');
   else if (rawHash === 'Dr-OUT' || rawHash === 'foley') setDrawerTab('foley');
   else if (rawHash === 'spine') setDrawerTab('spine');
 
   initShaderSuite();
+  buildDarkroomWingGalleries();
   renderFoleyPadsUI();
   syncSceneToPilot(pilot);
   const heroDefault =

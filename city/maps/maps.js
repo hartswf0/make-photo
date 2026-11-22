@@ -2,7 +2,11 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { mountWebGLShaderSuite } from '../shader-suite-bar.js';
+import {
+  mountWebGLShaderSuite,
+  createWorldPortalAndTripod,
+  projectWorldLabel,
+} from '../shader-suite-bar.js';
 import {
   savePilotState,
   subscribePilotState,
@@ -438,20 +442,71 @@ seaMesh.rotation.x = -Math.PI / 2;
 seaMesh.position.set(W * 0.5, -0.1, H * 0.5);
 scene.add(seaMesh);
 
-// +4m Flood Datum Salt Line Band (Brief 5 & 6: explicit +4m datum)
+// +4m Flood Datum Salt Line Band + Physical Translucent +4.00m Flood Water Plane
+const floodUniforms = {
+  uTime: { value: 0 },
+  uOpacity: { value: 0.44 },
+};
+const floodWaterMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(W * 1.35, H * 1.35),
+  new THREE.ShaderMaterial({
+    uniforms: floodUniforms,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    vertexShader: `
+      varying vec3 vWP;
+      void main() {
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWP = wp.xyz;
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform float uOpacity;
+      varying vec3 vWP;
+      void main() {
+        float r1 = sin(vWP.x * 0.055 + uTime * 1.4) * 0.5 + 0.5;
+        float r2 = cos(vWP.z * 0.062 - uTime * 1.1) * 0.5 + 0.5;
+        vec3 col = mix(vec3(0.06, 0.30, 0.48), vec3(0.11, 0.70, 0.98), clamp(r1 * 0.6 + r2 * 0.4, 0.0, 1.0));
+        float glint = smoothstep(0.82, 0.98, r1 * r2);
+        col += vec3(0.75, 0.93, 1.0) * glint * 0.35;
+        gl_FragColor = vec4(col, uOpacity);
+      }
+    `,
+  })
+);
+floodWaterMesh.rotation.x = -Math.PI / 2;
+floodWaterMesh.position.set(W * 0.5, 4.0, H * 0.5);
+cityWorldGroup.add(floodWaterMesh);
+
 const saltDatumPlane = new THREE.Mesh(
   new THREE.PlaneGeometry(W, H),
   new THREE.MeshBasicMaterial({
     color: '#efeadd',
     transparent: true,
-    opacity: 0.13,
+    opacity: 0.14,
     depthWrite: false,
     side: THREE.DoubleSide,
   })
 );
 saltDatumPlane.rotation.x = -Math.PI / 2;
-saltDatumPlane.position.set(W * 0.5, 4.0, H * 0.5);
+saltDatumPlane.position.set(W * 0.5, 4.02, H * 0.5);
 cityWorldGroup.add(saltDatumPlane);
+
+const mapsPickables = [];
+const matInvisibleHit = new THREE.MeshBasicMaterial({
+  transparent: true,
+  opacity: 0,
+  depthWrite: false,
+  side: THREE.DoubleSide,
+});
+function addMapsTarget(mesh, info) {
+  mesh.userData.mapsDiegetic = info;
+  mapsPickables.push(mesh);
+  return mesh;
+}
 
 // Crisp Curbed Roads (excluding nongeographic Black zone)
 {
@@ -541,12 +596,19 @@ function updateBuildingsForEra(era, extraClearFootprints = []) {
   for (let i = 0; i < bldRaw.length; i++) {
     const [x, z, w, d, rot, rawH, st, born, ruin, reuse, , gz] = bldRaw[i];
     if (born > era) continue;
-    // Clear around The Severn hero & terraced structure footprints
-    if (Math.hypot(x - SEVERN_POS.x, z - SEVERN_POS.z) < 26) continue;
+    // Clear around The Severn hero, Harbor Quay Tide Gates, & terraced structure footprints
+    if (Math.hypot(x - SEVERN_POS.x, z - SEVERN_POS.z) < 28) continue;
+    if (Math.hypot(x - (SEVERN_POS.x - 24), z - (SEVERN_POS.z + 18)) < 18) continue;
+    if (x > 2685 && x < 2785 && z > 2135 && z < 2480) continue;
     if (extraClearFootprints.some(([cx, cz, r]) => Math.hypot(x - cx, z - cz) < r)) continue;
 
-    // Rescale excessive generic tower heights into believable urban fabric
+    // Rescale excessive generic tower heights into believable terraced harbor fabric
     let h = st === 3 ? Math.min(rawH, 18 + rawH * 0.42) : Math.min(rawH, 32);
+    // Step down waterfront terraces toward the Harbor Quay (x = 2728, z = 2135..2480) so all 6 Tide Gates & sea stay unobstructed
+    if (x > 2240 && x < 2700 && z > 2135 && z < 2480) {
+      const quayCap = Math.max(5.5, ((2700 - x) / 460) * 14.5);
+      h = Math.min(h, quayCap);
+    }
     if (ruin <= era && !(era >= 5 && reuse)) h *= 0.48;
 
     q.setFromAxisAngle(upY, -rot);
@@ -792,12 +854,44 @@ function spawnAtlasAnny(archetype, coatHex, x, y, z, ry = 0) {
   relay.position.set(-6.5, 1.4, -3.2);
   g.add(upper, roofCap, relay);
 
+  // Glowing Warm Lit Doorway Portal inside The Severn's 2.6m Threshold (z = +5.92)
+  const litDoorwayGlow = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.52, 3.05),
+    new THREE.MeshBasicMaterial({
+      color: '#ffcc84',
+      transparent: true,
+      opacity: 0.62,
+      side: THREE.DoubleSide,
+    })
+  );
+  litDoorwayGlow.position.set(0, 1.72, 5.88);
+  g.add(litDoorwayGlow);
+
+  const doorwayHit = new THREE.Mesh(new THREE.BoxGeometry(3.2, 3.6, 1.4), matInvisibleHit);
+  doorwayHit.position.set(0, 1.85, 6.1);
+  addMapsTarget(doorwayHit, {
+    kind: 'severn-doorway',
+    getAnchor: () => new THREE.Vector3(SEVERN_POS.x, SEVERN_POS.y + 4.1, SEVERN_POS.z + 6.0),
+    getWhisper: () => 'The Severn Lit Doorway (701 Cathedral St) — Click to Enter Island · Shift+Click Nolli Block',
+  });
+  g.add(doorwayHit);
+
   // Operable Threshold Door at (-1.35, 0.2, 6.0)
   const doorPivot = new THREE.Group();
   doorPivot.position.set(-1.35, 0.2, 6.0);
   const leaf = new THREE.Mesh(new THREE.BoxGeometry(2.65, 3.0, 0.14), matTimber);
   leaf.position.set(1.32, 1.5, 0);
-  doorPivot.add(leaf);
+  const leafHit = new THREE.Mesh(new THREE.BoxGeometry(2.7, 3.1, 0.55), matInvisibleHit);
+  leafHit.position.set(1.32, 1.5, 0);
+  addMapsTarget(leafHit, {
+    kind: 'severn-door-leaf',
+    getAnchor: () => new THREE.Vector3(SEVERN_POS.x - 1.2, SEVERN_POS.y + 3.4, SEVERN_POS.z + 6.0),
+    getWhisper: () =>
+      pilot.doorOpen
+        ? 'Severn Door Leaf (Open · 13.5 kHz) — Click Door Leaf to Close & Muffle'
+        : 'Severn Door Leaf (Closed · 580 Hz) — Click Door Leaf to Swing Open',
+  });
+  doorPivot.add(leaf, leafHit);
   g.add(doorPivot);
   severnAtlas.doorPivot = doorPivot;
 
@@ -810,9 +904,9 @@ function spawnAtlasAnny(archetype, coatHex, x, y, z, ry = 0) {
   cruiserBox.position.set(4.5, 0.88, 10.6);
   g.add(cruiserBox);
 
-  // Warm vestibule lamp
-  const pLight = new THREE.PointLight('#ffb464', 2.8, 28, 1.5);
-  pLight.position.set(0, 3.5, 2.5);
+  // Warm vestibule lamp + exterior threshold lantern
+  const pLight = new THREE.PointLight('#ffb464', 3.4, 32, 1.4);
+  pLight.position.set(0, 3.5, 4.2);
   g.add(pLight);
 
   g.userData = { severnPilot: true, provenance: 'checked' };
@@ -820,6 +914,14 @@ function spawnAtlasAnny(archetype, coatHex, x, y, z, ry = 0) {
 
   severnAtlas.bekeleActor = spawnAtlasAnny('adult_m', '#9c6840', SEVERN_POS.x - 0.8, SEVERN_POS.y + 0.2, SEVERN_POS.z + 3.6, 0.2);
   severnAtlas.playerActor = spawnAtlasAnny('adult_f', '#255a7a', SEVERN_POS.x + 0.9, SEVERN_POS.y + 0.2, SEVERN_POS.z + 8.2, Math.PI - 0.2);
+  const bekHit = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 2.2, 10), matInvisibleHit);
+  bekHit.position.set(0, 1.1, 0);
+  addMapsTarget(bekHit, {
+    kind: 'bekele',
+    getAnchor: () => new THREE.Vector3(SEVERN_POS.x - 0.8, SEVERN_POS.y + 2.2, SEVERN_POS.z + 3.6),
+    getWhisper: () => `Bekele · Severn Steward (Parcel: ${(pilot.parcelHolder || 'player').toUpperCase()}) — Click to Hand Off`,
+  });
+  severnAtlas.bekeleActor.root.add(bekHit);
 
   // Landmarks
   for (const lm of cityMeta.landmarks) {
@@ -837,13 +939,118 @@ function spawnAtlasAnny(archetype, coatHex, x, y, z, ry = 0) {
   }
 
   // Nongeographic Black Ring Marker (outside street network)
+  const blackY = Math.max(groundAt(BLACK_ANCHOR.x, BLACK_ANCHOR.z), 0.5);
   const blackDisc = new THREE.Mesh(
     new THREE.RingGeometry(BLACK_ANCHOR.r - 3, BLACK_ANCHOR.r, 64),
     new THREE.MeshBasicMaterial({ color: '#c98cff', side: THREE.DoubleSide })
   );
   blackDisc.rotation.x = -Math.PI / 2;
-  blackDisc.position.set(BLACK_ANCHOR.x, Math.max(groundAt(BLACK_ANCHOR.x, BLACK_ANCHOR.z), 0.5) + 1.0, BLACK_ANCHOR.z);
-  cityWorldGroup.add(blackDisc);
+  blackDisc.position.set(BLACK_ANCHOR.x, blackY + 1.0, BLACK_ANCHOR.z);
+  const blackHit = new THREE.Mesh(new THREE.CylinderGeometry(BLACK_ANCHOR.r, BLACK_ANCHOR.r, 18, 24), matInvisibleHit);
+  blackHit.position.set(BLACK_ANCHOR.x, blackY + 6, BLACK_ANCHOR.z);
+  addMapsTarget(blackHit, {
+    kind: 'black-zone',
+    getAnchor: () => new THREE.Vector3(BLACK_ANCHOR.x, blackY + 18, BLACK_ANCHOR.z),
+    getWhisper: () => 'The Black · Poem 14 Nongeographic Threshold (Outside Street Network)',
+  });
+  cityWorldGroup.add(blackDisc, blackHit);
+}
+
+// ---------------------------------------------------------------------------
+// 5b. 6 Physical Stone Era Stelae / Tide Gates Along the Harbor Quay (Eras 0..5)
+// ---------------------------------------------------------------------------
+const eraStelaeGroup = new THREE.Group();
+cityWorldGroup.add(eraStelaeGroup);
+const eraStelae = [];
+const ERA_FLOOD_LEVELS = [-0.08, 0.55, 1.25, 2.15, 4.0, 4.0];
+const ERA_FLOOD_OPACITY = [0.12, 0.22, 0.28, 0.34, 0.56, 0.36];
+
+{
+  // Sculpted Granite Harbor Quay Seawall Esplanade facing the eastern sea (x = 2728)
+  const quayPlinth = new THREE.Mesh(
+    new THREE.BoxGeometry(28, 4.2, 336),
+    new THREE.MeshStandardMaterial({ color: '#9c9486', roughness: 0.72, metalness: 0.08 })
+  );
+  quayPlinth.position.set(2728, -0.4, 2305);
+  eraStelaeGroup.add(quayPlinth);
+
+  const ERA_ROMAN = ['0 · SHORE', 'I · OLD CENTER', 'II · ADDITIONS', 'III · BOROUGHS', 'IV · THE FALL +4M', 'V · RESURRECTION'];
+  for (let eIdx = 0; eIdx < 6; eIdx++) {
+    const sx = 2728;
+    const sz = 2170 + eIdx * 54;
+    const baseY = 1.65; // Sits right at +1.65m harbor quay so +4.00m flood water washes up the sluice!
+
+    const sg = new THREE.Group();
+    sg.position.set(sx, 0, sz);
+
+    // Twin Granite Tide-Gate Piers + Bronze Sluice Gate
+    const pierMat = new THREE.MeshStandardMaterial({ color: '#cfc6b6', roughness: 0.62 });
+    const pierL = new THREE.Mesh(new THREE.BoxGeometry(5.6, 36, 5.6), pierMat);
+    pierL.position.set(0, baseY + 18, -8.5);
+    const pierR = new THREE.Mesh(new THREE.BoxGeometry(5.6, 36, 5.6), pierMat);
+    pierR.position.set(0, baseY + 18, 8.5);
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(6.8, 3.6, 24.5), matCornice);
+    lintel.position.set(0, baseY + 36.8, 0);
+    sg.add(pierL, pierR, lintel);
+
+    // Physical Sluice Gate Leaf + Explicit +4.00m Chalked Flood Datum Beam at world y = 4.00m
+    const sluice = new THREE.Mesh(
+      new THREE.BoxGeometry(1.6, 8.5, 11.2),
+      new THREE.MeshStandardMaterial({ color: '#2b3948', roughness: 0.38, metalness: 0.68 })
+    );
+    sluice.position.set(0, 4.25, 0);
+    const datumBar = new THREE.Mesh(
+      new THREE.BoxGeometry(7.2, 0.55, 23.0),
+      new THREE.MeshBasicMaterial({ color: '#e6f8ff' })
+    );
+    datumBar.position.set(0, 4.0, 0); // Exact +4.00 m world flood datum
+    sg.add(sluice, datumBar);
+
+    // Era Course Notches (eIdx + 1 glowing horizontal bands up the stele)
+    const crownMat = new THREE.MeshStandardMaterial({
+      color: eIdx === 4 ? '#f2a541' : '#18b4ff',
+      emissive: eIdx === 4 ? '#e88b1e' : '#1498de',
+      emissiveIntensity: 1.5,
+      roughness: 0.2,
+    });
+    for (let b = 0; b <= eIdx; b++) {
+      const band = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.9, 6.4), crownMat);
+      band.position.set(0, baseY + 8 + b * 4.5, -8.5);
+      const bandR = band.clone();
+      bandR.position.z = 8.5;
+      sg.add(band, bandR);
+    }
+
+    // Crown Lantern + Vertical Tide-Beacon Shaft so all 6 Stelae read cleanly from Severn Overview
+    const crown = new THREE.Mesh(new THREE.OctahedronGeometry(3.8, 0), crownMat);
+    crown.position.set(0, baseY + 42.5, 0);
+    const shaftMat = new THREE.MeshBasicMaterial({
+      color: eIdx === 4 ? '#f2a541' : '#18b4ff',
+      transparent: true,
+      opacity: 0.28,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 3.2, 95, 12, 1, true), shaftMat);
+    shaft.position.set(0, baseY + 88, 0);
+    sg.add(crown, shaft);
+
+    // Generous raycast hit volume for both aerial & quay-level clicking
+    const hit = new THREE.Mesh(new THREE.BoxGeometry(24, 125, 38), matInvisibleHit);
+    hit.position.set(0, 58, 0);
+    const steleRec = { eraIdx: eIdx, title: ERA_ROMAN[eIdx], sx, sz, group: sg, sluice, crownMat, shaftMat, crown };
+    addMapsTarget(hit, {
+      kind: 'era-stele',
+      stele: steleRec,
+      getAnchor: () => new THREE.Vector3(sx, baseY + 46, sz),
+      getWhisper: () =>
+        `Quay Tide Gate ${ERA_ROMAN[eIdx]} (${cityMeta.eras[eIdx]}) — Click to Shift City Era & +4.00m Flood Plane`,
+    });
+    sg.add(hit);
+
+    eraStelaeGroup.add(sg);
+    eraStelae.push(steleRec);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -976,19 +1183,253 @@ let severnEdgeIdx = 0;
 }
 
 // ---------------------------------------------------------------------------
-// 7. Mood Topography & Acoustic Field Group (Mode 3)
+// 6b. Glowing 3D Shot Frames Along Actual Street Corridors + Ascent Light Beam
+// ---------------------------------------------------------------------------
+const shotFramesGroup = new THREE.Group();
+cityWorldGroup.add(shotFramesGroup);
+const corridorShotFrames = [];
+
+{
+  const matFrameCyan = new THREE.MeshStandardMaterial({
+    color: '#3ad4ff',
+    emissive: '#18b4ff',
+    emissiveIntensity: 1.85,
+    roughness: 0.18,
+  });
+  const matFrameAmber = new THREE.MeshStandardMaterial({
+    color: '#ffd089',
+    emissive: '#f2a541',
+    emissiveIntensity: 1.65,
+    roughness: 0.22,
+  });
+  const matFrameGlass = new THREE.MeshBasicMaterial({
+    color: '#18b4ff',
+    transparent: true,
+    opacity: 0.13,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+
+  function makeGlowingShotFrameMesh(isAmber = false) {
+    const fg = new THREE.Group();
+    const fw = 5.6;
+    const fh = 3.3;
+    const barMat = isAmber ? matFrameAmber : matFrameCyan;
+    const topB = new THREE.Mesh(new THREE.BoxGeometry(fw, 0.14, 0.14), barMat);
+    topB.position.y = fh * 0.5;
+    const botB = new THREE.Mesh(new THREE.BoxGeometry(fw, 0.14, 0.14), barMat);
+    botB.position.y = -fh * 0.5;
+    const leftB = new THREE.Mesh(new THREE.BoxGeometry(0.14, fh, 0.14), barMat);
+    leftB.position.x = -fw * 0.5;
+    const rightB = new THREE.Mesh(new THREE.BoxGeometry(0.14, fh, 0.14), barMat);
+    rightB.position.x = fw * 0.5;
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(fw - 0.2, fh - 0.2), matFrameGlass);
+    // Brass alignment ticks at corners
+    for (const [cx, cy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const tick = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.55, 0.2), matBrass);
+      tick.position.set(cx * (fw * 0.5), cy * (fh * 0.5), 0);
+      fg.add(tick);
+    }
+    fg.add(topB, botB, leftB, rightB, pane);
+    return fg;
+  }
+
+  // Place Glowing 3D Shot Frames directly along real MovieMap street corridors!
+  const chosenCorridors = [];
+  // Prioritize corridors near Severn -> Harbor Quay sightline first, then city-wide
+  const rankedEdges = mmEdges
+    .map((e, idx) => {
+      if (!e.pts || e.pts.length < 4) return null;
+      const mx = (e.pts[0] + e.pts[e.pts.length - 2]) * 0.5;
+      const mz = (e.pts[1] + e.pts[e.pts.length - 1]) * 0.5;
+      const dSev = Math.hypot(mx - 2240, mz - 2330);
+      return { idx, mx, mz, dSev };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.dSev - b.dSev);
+
+  for (const cand of rankedEdges) {
+    if (chosenCorridors.length >= 46) break;
+    const minSep = cand.dSev < 420 ? 36 : 165;
+    if (chosenCorridors.some((c) => Math.hypot(c.x - cand.mx, c.z - cand.mz) < minSep)) continue;
+    const steps = edgeSteps(cand.idx);
+    if (steps.length < 3) continue;
+    const midStep = Math.floor(steps.length * 0.5);
+    const [fx, fz, fhd] = steps[midStep];
+    const fy = Math.max(groundAt(fx, fz), 0.4) + 3.4;
+
+    // Nearest archive shot metadata
+    let nearShot = shots[0];
+    let bestSD = Infinity;
+    for (let i = 0; i < shots.length; i++) {
+      const sd = Math.hypot(shots[i].x - fx, shots[i].y - fz);
+      if (sd < bestSD) {
+        bestSD = sd;
+        nearShot = shots[i];
+      }
+    }
+
+    const wayName = mmWays[mmEdges[cand.idx].w]?.name || 'Harbor Corridor';
+    const isAmber = nearShot?.source === 'archive' && chosenCorridors.length % 3 === 0;
+    const frameGroup = makeGlowingShotFrameMesh(isAmber);
+    frameGroup.position.set(fx, fy, fz);
+    frameGroup.rotation.y = -fhd;
+
+    const hit = new THREE.Mesh(new THREE.BoxGeometry(7.6, 5.4, 2.6), matInvisibleHit);
+    const frameRec = {
+      edgeIdx: cand.idx,
+      stepIdx: midStep,
+      x: fx,
+      y: fy,
+      z: fz,
+      hd: fhd,
+      wayName,
+      shot: nearShot,
+      group: frameGroup,
+    };
+    addMapsTarget(hit, {
+      kind: 'shot-frame',
+      frame: frameRec,
+      getAnchor: () => new THREE.Vector3(fx, fy + 2.4, fz),
+      getWhisper: () =>
+        `MovieMap Corridor · ${wayName} (${nearShot.cid}) — Click to Drop to Street Eye-Level & Scrub`,
+    });
+    frameGroup.add(hit);
+    shotFramesGroup.add(frameGroup);
+    corridorShotFrames.push(frameRec);
+    chosenCorridors.push({ x: fx, z: fz });
+  }
+}
+
+// Skyward Cyan Ascent Light Beam + 3D Intersection Turn Portals (active at street eye-level)
+const streetCorridorRig = new THREE.Group();
+streetCorridorRig.visible = false;
+scene.add(streetCorridorRig);
+
+const ascentBeamMat = new THREE.ShaderMaterial({
+  transparent: true,
+  depthWrite: false,
+  fog: false,
+  side: THREE.DoubleSide,
+  blending: THREE.AdditiveBlending,
+  uniforms: {
+    uColor: { value: new THREE.Color('#38d8ff') },
+    uTime: { value: 0 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform vec3 uColor;
+    uniform float uTime;
+    varying vec2 vUv;
+    void main() {
+      float core = pow(max(sin(vUv.x * 3.14159265), 0.0), 1.5);
+      float vFade = smoothstep(0.0, 0.08, vUv.y) * pow(1.0 - vUv.y, 1.2);
+      float pulse = 0.82 + 0.18 * sin(uTime * 2.6 - vUv.y * 8.0);
+      gl_FragColor = vec4(uColor * 1.4, core * vFade * pulse * 0.68);
+    }
+  `,
+});
+const ascentBeamGroup = new THREE.Group();
+const ascentBeamMesh = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.55, 1.45, 220, 14, 1, true),
+  ascentBeamMat
+);
+ascentBeamMesh.position.y = 110;
+ascentBeamMesh.frustumCulled = false;
+const ascentRing = new THREE.Mesh(
+  new THREE.TorusGeometry(1.75, 0.08, 8, 28),
+  matCyanBand
+);
+ascentRing.rotation.x = Math.PI / 2;
+ascentRing.position.y = 0.25;
+const ascentHit = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.2, 220, 10), matInvisibleHit);
+ascentHit.position.y = 110;
+ascentHit.frustumCulled = false;
+addMapsTarget(ascentHit, {
+  kind: 'ascent-beam',
+  getAnchor: () => new THREE.Vector3(ascentBeamGroup.position.x, ascentBeamGroup.position.y + 4.8, ascentBeamGroup.position.z),
+  getWhisper: () => 'Skyward Cartography Beam — Click (or Pull Up / Esc) to Rise to Aerial Overview',
+});
+ascentBeamGroup.add(ascentBeamMesh, ascentRing, ascentHit);
+streetCorridorRig.add(ascentBeamGroup);
+
+const corridorTurnGroup = new THREE.Group();
+streetCorridorRig.add(corridorTurnGroup);
+
+// ---------------------------------------------------------------------------
+// 7. Mood Topography & 3D District Aura Lanterns Across the Streets
 // ---------------------------------------------------------------------------
 const moodGroup = new THREE.Group();
 moodGroup.visible = false;
 scene.add(moodGroup);
 
+const auraLanternsGroup = new THREE.Group();
+cityWorldGroup.add(auraLanternsGroup);
+const auraLanterns = [];
+
 const moodDistricts = moodAtlas.city.districts || [];
 const moodBeacons = [];
+
+function createAuraLanternStandard({ x, z, districtIdx, label, auraColor = '#18b4ff' }) {
+  const y = Math.max(groundAt(x, z), 0.4);
+  const lg = new THREE.Group();
+  lg.position.set(x, y, z);
+
+  const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 1.1, 0.7, 12), matCornice);
+  plinth.position.y = 0.35;
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.26, 9.2, 10), matBrass);
+  mast.position.y = 4.9;
+  const crossArm = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.18, 0.18), matBrass);
+  crossArm.position.y = 9.1;
+
+  // Dual Sodium + Electric-Cyan Aura Globes
+  const sodOrb = new THREE.Mesh(new THREE.SphereGeometry(0.68, 14, 12), matSodiumGlow);
+  sodOrb.position.set(-1.65, 8.65, 0);
+  const cyanOrb = new THREE.Mesh(new THREE.SphereGeometry(0.68, 14, 12), matCyanBand);
+  cyanOrb.position.set(1.65, 8.65, 0);
+
+  // Harmonic Acoustic Ring around mast + subtle ground halo
+  const harmRing = new THREE.Mesh(
+    new THREE.TorusGeometry(1.9, 0.09, 8, 28),
+    new THREE.MeshBasicMaterial({ color: auraColor })
+  );
+  harmRing.position.y = 8.65;
+  const groundHalo = new THREE.Mesh(
+    new THREE.RingGeometry(2.6, 3.2, 32),
+    new THREE.MeshBasicMaterial({ color: auraColor, side: THREE.DoubleSide, transparent: true, opacity: 0.45 })
+  );
+  groundHalo.rotation.x = -Math.PI / 2;
+  groundHalo.position.y = 0.32;
+
+  lg.add(plinth, mast, crossArm, sodOrb, cyanOrb, harmRing, groundHalo);
+
+  const hit = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.2, 12.5, 10), matInvisibleHit);
+  hit.position.y = 6.2;
+  const rec = { x, y, z, districtIdx, label, group: lg, harmRing, groundHalo };
+  addMapsTarget(hit, {
+    kind: 'aura-lantern',
+    lantern: rec,
+    getAnchor: () => new THREE.Vector3(x, y + 10.6, z),
+    getWhisper: () =>
+      moodGroup.visible && atlas.moodIdx === districtIdx
+        ? `District Aura Lantern · ${label} (Active) — Click to Quiet Mood & Acoustic Rings`
+        : `3D District Aura Lantern · ${label} — Click to Toggle Live Mood & Acoustic Rings`,
+  });
+  lg.add(hit);
+  auraLanternsGroup.add(lg);
+  auraLanterns.push(rec);
+  return rec;
+}
 
 {
   for (let i = 0; i < moodDistricts.length; i++) {
     const md = moodDistricts[i];
-    // Map SVG 600x480 coords into 8000x6000 City3D space (or match city.json district)
     const matchD = cityMeta.districts.find((cd) => cd.name.toLowerCase().includes(md.id)) || cityMeta.districts[i % cityMeta.districts.length];
     const wx = matchD ? matchD.x : ((md.coords?.x || 200) / 600) * W;
     const wz = matchD ? matchD.y : ((md.coords?.y || 200) / 480) * H;
@@ -1011,7 +1452,6 @@ const moodBeacons = [];
     auraDome.position.set(wx, wy, wz);
     moodGroup.add(auraDome);
 
-    // Sodium vs Cyan twin light-tech columns
     const sodH = 26 + sodiumShare * 140;
     const cyanH = 34 + (1 - sodiumShare) * 95;
     const sodPillar = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 6.5, sodH, 16), matSodiumGlow);
@@ -1021,7 +1461,37 @@ const moodBeacons = [];
     moodGroup.add(sodPillar, cyanPillar);
 
     moodBeacons.push({ md, wx, wy, wz, auraDome, sodPillar, cyanPillar });
+    createAuraLanternStandard({
+      x: wx + 18,
+      z: wz + 18,
+      districtIdx: i,
+      label: md.name || `District ${i + 1}`,
+      auraColor: colHex,
+    });
   }
+
+  // Prominent Street-Corner 3D District Aura Lanterns framing Severn & Harbor Corridor
+  createAuraLanternStandard({
+    x: SEVERN_POS.x + 22,
+    z: SEVERN_POS.z + 17,
+    districtIdx: 0,
+    label: moodDistricts[0]?.name || 'Cathedral Nightlife Aura',
+    auraColor: '#18b4ff',
+  });
+  createAuraLanternStandard({
+    x: SEVERN_POS.x + 76,
+    z: SEVERN_POS.z - 12,
+    districtIdx: Math.min(1, moodDistricts.length - 1),
+    label: moodDistricts[1]?.name || 'Harbor Industrial Aura',
+    auraColor: '#fa8d15',
+  });
+  createAuraLanternStandard({
+    x: SEVERN_POS.x + 148,
+    z: SEVERN_POS.z + 28,
+    districtIdx: Math.min(2, moodDistricts.length - 1),
+    label: moodDistricts[2]?.name || 'Waterfront Tidal Aura',
+    auraColor: '#38d6ff',
+  });
 
   // 3D Acoustic Field Rings around Severn Threshold (coupled to doorOpen & audio buses!)
   for (let r = 0; r < 5; r++) {
@@ -1043,11 +1513,12 @@ const moodBeacons = [];
 }
 
 // ---------------------------------------------------------------------------
-// 8. Elsewhere Hybrid 3D Fold Stage (Mode 4)
+// 8. Elsewhere Hybrid 3D Fold Pavilion (Embedded on Severn West Terrace!)
 // ---------------------------------------------------------------------------
 const elsewhereGroup = new THREE.Group();
-elsewhereGroup.visible = false;
-scene.add(elsewhereGroup);
+elsewhereGroup.visible = true;
+elsewhereGroup.scale.setScalar(0.48);
+cityWorldGroup.add(elsewhereGroup);
 
 const ewStations = mmElsewhere.elsewhere.stations;
 let ewHybridMode = true;
@@ -1055,9 +1526,11 @@ let ewHybridMode = true;
 function buildElsewhereStage(stationIdx) {
   elsewhereGroup.clear();
   const st = ewStations[stationIdx] || ewStations[0];
-  elsewhereGroup.position.set(SEVERN_POS.x, SEVERN_POS.y + 85, SEVERN_POS.z);
+  const ex = SEVERN_POS.x - 24;
+  const ez = SEVERN_POS.z + 18;
+  const ey = Math.max(groundAt(ex, ez), 0.5) + 0.25;
+  elsewhereGroup.position.set(ex, ey, ez);
 
-  // Navigable dark basalt stage floor
   const floor = new THREE.Mesh(
     new THREE.BoxGeometry(34, 0.4, 34),
     new THREE.MeshStandardMaterial({ color: '#132438', roughness: 0.22, metalness: 0.25 })
@@ -1065,7 +1538,6 @@ function buildElsewhereStage(stationIdx) {
   floor.position.set(0, -0.2, 0);
   elsewhereGroup.add(floor);
 
-  // Horizon & Skyline Folded Architectural Relief Planes from station.prof & station.enc
   const prof = st.prof || [0.6, 0.7, 0.8, 0.5, 0.9, 0.7, 0.6];
   const nCols = prof.length;
   for (let i = 0; i < nCols; i++) {
@@ -1089,7 +1561,6 @@ function buildElsewhereStage(stationIdx) {
     }
   }
 
-  // Solid 3D foreground threshold doorway, step & handrail (Brief 7 hybrid set!)
   const step = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.32, 2.4), matCornice);
   step.position.set(0, 0.16, -3.5);
   const archL = new THREE.Mesh(new THREE.BoxGeometry(0.65, 3.8, 0.65), matTimber);
@@ -1098,11 +1569,20 @@ function buildElsewhereStage(stationIdx) {
   archR.position.set(1.7, 1.9, -3.5);
   const lintel = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.55, 0.75), matCornice);
   lintel.position.set(0, 3.95, -3.5);
-  const cyanPortal = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 3.6, 10), matCyanBand);
-  cyanPortal.position.set(2.2, 1.8, -3.2);
+  const cyanPortal = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 5.2, 10), matCyanBand);
+  cyanPortal.position.set(2.2, 2.6, -3.2);
   elsewhereGroup.add(step, archL, archR, lintel, cyanPortal);
 
-  // Draw Skyline · Horizon · Vanishing Point Phenotype Graph
+  const ewHit = new THREE.Mesh(new THREE.BoxGeometry(34, 22, 34), matInvisibleHit);
+  ewHit.position.set(0, 10, -4);
+  addMapsTarget(ewHit, {
+    kind: 'elsewhere-fold',
+    getAnchor: () => new THREE.Vector3(ex, ey + 9.5, ez),
+    getWhisper: () => `Elsewhere Fold Pavilion · Station ${st.cid} (Poem ${st.poem || '01'}) — Click Spatial Rhyme`,
+  });
+  elsewhereGroup.add(ewHit);
+
+  // Draw Skyline · Horizon · Vanishing Point Phenotype Graph (for Tab drawer)
   const pc = $('phenotype-canvas');
   const pctx = pc.getContext('2d');
   pctx.fillStyle = '#081526';
@@ -1151,30 +1631,50 @@ function parseEraIndex(val) {
 
 const atlas = {
   mode: 'city3d', // 'city3d' | 'moviemap' | 'mood' | 'elsewhere'
+  inStreetCorridor: false,
   era: parseEraIndex(pilot.era),
   variantIdx: 2, // 'the mixed city'
   saltDatumOn: true,
+  floodTargetY: ERA_FLOOD_LEVELS[parseEraIndex(pilot.era)] ?? 4.0,
+  floodCurrentY: ERA_FLOOD_LEVELS[parseEraIndex(pilot.era)] ?? 4.0,
+  floodTargetOpacity: ERA_FLOOD_OPACITY[parseEraIndex(pilot.era)] ?? 0.36,
   reverseAngle: false,
   mmEdgeIdx: severnEdgeIdx,
   mmStepIdx: 4,
+  mmStepFloat: 4.0,
+  mmYawOffset: 0,
+  mmPitch: 0.03,
   mmView: 0, // 0 front, 1 right, 2 back, 3 left
   mmPlaying: false,
-  mmCardOn: true,
+  mmCardOn: false,
   moodIdx: 0,
   acousticOn: true,
   ewIdx: 0,
   flyAnim: null,
 };
 
-function showToast(kicker, body) {
+let worldSpeechState = null;
+function setWorldSpeech(anchorVec3, speaker, text, durMs = 3800) {
+  worldSpeechState = {
+    anchorVec3: anchorVec3 ? anchorVec3.clone() : new THREE.Vector3(SEVERN_POS.x, SEVERN_POS.y + 8, SEVERN_POS.z),
+    speaker,
+    text,
+    until: performance.now() + durMs,
+  };
+}
+
+function showToast(kicker, body, anchorVec3 = null) {
   $('toast-kicker').textContent = kicker;
   $('toast-body').textContent = body;
   $('inspector-toast').classList.add('visible');
   clearTimeout(showToast._t);
   showToast._t = setTimeout(() => $('inspector-toast').classList.remove('visible'), 4200);
+  if (anchorVec3) {
+    setWorldSpeech(anchorVec3, kicker, body, 3800);
+  }
 }
 
-function flyCameraTo(pos, target, dur = 1.1) {
+function flyCameraTo(pos, target, dur = 1.0, onDone = null) {
   atlas.flyAnim = {
     p0: camera.position.clone(),
     p1: pos.clone(),
@@ -1182,13 +1682,20 @@ function flyCameraTo(pos, target, dur = 1.1) {
     t1: target.clone(),
     elapsed: 0,
     dur,
+    onDone,
   };
 }
 
 function focusSevernPilot(instant = false) {
   atlas.reverseAngle = false;
-  const p = new THREE.Vector3(SEVERN_POS.x + 28, SEVERN_POS.y + 18, SEVERN_POS.z + 42);
-  const t = new THREE.Vector3(SEVERN_POS.x, SEVERN_POS.y + 8.5, SEVERN_POS.z + 2);
+  atlas.inStreetCorridor = false;
+  streetCorridorRig.visible = false;
+  shotFrameCard.visible = false;
+  controls.enabled = true;
+  // Frame Severn Lit Doorway (left), Glowing Street Shot Frames + Aura Lanterns (center),
+  // and the 6 Harbor Quay Stone Era Stelae / Tide Gates + +4.00m Flood Plane (right horizon)
+  const p = new THREE.Vector3(2042, 56, 2374);
+  const t = new THREE.Vector3(2185, 18, 2326);
   if (instant) {
     camera.position.copy(p);
     controls.target.copy(t);
@@ -1233,7 +1740,7 @@ function applyHourToAtlasSky(hourVal) {
   scene.fog.color.copy(skyUniforms.uHor.value).lerp(skyUniforms.uTop.value, 0.55);
 }
 
-// Switch between the 4 Unified Modes
+// Unified Mode Switch (never hides the 3D Terraced City!)
 function setAtlasMode(mode) {
   atlas.mode = mode;
   atlas.mmPlaying = false;
@@ -1247,32 +1754,31 @@ function setAtlasMode(mode) {
     p.classList.toggle('active', p.id === `pane-${mode}`);
   });
 
-  cityWorldGroup.visible = mode !== 'elsewhere';
-  moodGroup.visible = mode === 'mood';
-  elsewhereGroup.visible = mode === 'elsewhere';
-  shotFrameCard.visible = mode === 'moviemap' && atlas.mmCardOn;
-  controls.enabled = mode === 'city3d' || mode === 'mood' || mode === 'elsewhere';
+  cityWorldGroup.visible = true;
+  elsewhereGroup.visible = true;
 
   if (mode === 'city3d') {
-    $('mode-headline').textContent = 'City3D Remastered · Terraced Masonry';
-    $('mode-subtitle').textContent = '4,800 buildings · 33 landmarks · +4m salt datum · zero grain';
+    moodGroup.visible = false;
     focusSevernPilot(false);
   } else if (mode === 'moviemap') {
-    $('mode-headline').textContent = 'MovieMap Director · Street-Edge Scrub';
-    $('mode-subtitle').textContent = '767 registered shots · 3m centerline frames · smooth non-grainy 3D';
-    syncMovieMapPose();
+    enterStreetCorridor(atlas.mmEdgeIdx, atlas.mmStepFloat, false);
   } else if (mode === 'mood') {
-    $('mode-headline').textContent = 'Mood Topography · Aura & Acoustic Field';
-    $('mode-subtitle').textContent = '12 measured districts · sodium vs cyan aura · doorway acoustics';
+    moodGroup.visible = true;
+    atlas.inStreetCorridor = false;
+    streetCorridorRig.visible = false;
+    controls.enabled = true;
     selectMoodDistrict(atlas.moodIdx);
   } else if (mode === 'elsewhere') {
-    $('mode-headline').textContent = 'Elsewhere Jump · Seed & Spatial Rhyme';
-    $('mode-subtitle').textContent = '240 folded stations · deterministic seed 2086 · hybrid 3D threshold';
+    atlas.inStreetCorridor = false;
+    streetCorridorRig.visible = false;
+    controls.enabled = true;
     jumpElsewhereBySeed(Number($('inp-ew-seed').value) || 2086);
   }
 }
 
-// Mode 1 Setup: Era Slider, Structure Variants, Landmarks
+let applyEraGlobal = null;
+
+// Mode 1 Setup: Era Slider, 6 Harbor Quay Stone Stelae, Structure Variants, Landmarks
 {
   const varSel = $('sel-variant');
   varSel.innerHTML = structuresData.variants
@@ -1295,28 +1801,51 @@ function setAtlasMode(mode) {
     const lm = cityMeta.landmarks[idx];
     const ly = Math.max(groundAt(lm.x, lm.y), 0.5);
     flyCameraTo(new THREE.Vector3(lm.x + 85, ly + 42, lm.y + 85), new THREE.Vector3(lm.x, ly + 10, lm.y));
-    showToast('LANDMARK RECORDED', `${lm.name} · Poem ${lm.poem || '—'} · ${lm.evidence.length} archive witness shots.`);
+    showToast('LANDMARK RECORDED', `${lm.name} · Poem ${lm.poem || '—'}`, new THREE.Vector3(lm.x, ly + 22, lm.y));
   });
 
-  const applyEra = (eVal) => {
+  const applyEra = (eVal, toggleSurgeIfSame = false) => {
+    const sameEra = atlas.era === eVal;
     atlas.era = eVal;
     $('sl-era').value = String(eVal);
     $('val-era').textContent = `${eVal} · ${cityMeta.eras[eVal]}`;
     $('era-lore').textContent = cityMeta.lore[eVal];
     rebuildStructuresVariant(atlas.variantIdx, eVal);
+
+    if (sameEra && toggleSurgeIfSame) {
+      const surged = atlas.floodTargetY < 3.2;
+      atlas.floodTargetY = surged ? 4.0 : 0.35;
+      atlas.floodTargetOpacity = surged ? 0.54 : 0.18;
+    } else {
+      atlas.floodTargetY = ERA_FLOOD_LEVELS[eVal] ?? 4.0;
+      atlas.floodTargetOpacity = ERA_FLOOD_OPACITY[eVal] ?? 0.36;
+    }
+    saltDatumPlane.visible = atlas.saltDatumOn && atlas.floodTargetY >= 1.2;
+
+    // Highlight active Stone Era Stele / Tide Gate on Harbor Quay
+    eraStelae.forEach((st, idx) => {
+      const active = idx === eVal;
+      const past = idx <= eVal;
+      st.crownMat.emissiveIntensity = active ? 2.6 : past ? 1.35 : 0.45;
+      st.shaftMat.opacity = active ? 0.52 : past ? 0.24 : 0.10;
+      st.sluice.position.y = active && atlas.floodTargetY >= 3.8 ? 6.8 : 3.6;
+    });
+
     savePilotState({ era: eVal });
   };
-  $('sl-era').addEventListener('input', (e) => applyEra(Number(e.target.value)));
-  applyEra(atlas.era);
+  applyEraGlobal = applyEra;
+  $('sl-era').addEventListener('input', (e) => applyEra(Number(e.target.value), false));
+  applyEra(atlas.era, false);
 
   $('btn-fly-severn').addEventListener('click', () => focusSevernPilot(false));
   $('btn-salt-datum').addEventListener('click', () => {
     atlas.saltDatumOn = !atlas.saltDatumOn;
     saltDatumPlane.visible = atlas.saltDatumOn;
+    floodWaterMesh.visible = atlas.saltDatumOn;
     $('btn-salt-datum').classList.toggle('active', atlas.saltDatumOn);
   });
   $('btn-Aerial-Overview').addEventListener('click', () => {
-    flyCameraTo(new THREE.Vector3(2520, 260, 2860), new THREE.Vector3(2180, 22, 2240), 1.3);
+    ascendToLivingOverview();
   });
   let eraTimer = null;
   $('btn-play-eras').addEventListener('click', () => {
@@ -1327,7 +1856,7 @@ function setAtlasMode(mode) {
       return;
     }
     let e = 0;
-    applyEra(0);
+    applyEra(0, false);
     $('btn-play-eras').textContent = 'Stop Eras';
     eraTimer = setInterval(() => {
       e++;
@@ -1337,87 +1866,183 @@ function setAtlasMode(mode) {
         $('btn-play-eras').textContent = 'Play Eras';
         return;
       }
-      applyEra(e);
+      applyEra(e, false);
     }, 2400);
   });
 }
 
-// Mode 2 Setup: MovieMap Street Scrubbing & Shot Pins
-function syncMovieMapPose() {
-  if (atlas.mode !== 'moviemap') return;
-  const st = edgeSteps(atlas.mmEdgeIdx);
-  atlas.mmStepIdx = THREE.MathUtils.clamp(atlas.mmStepIdx, 0, st.length - 1);
-  const [sx, sz, baseHd] = st[atlas.mmStepIdx];
-  const sy = Math.max(groundAt(sx, sz), 0.4) + 2.1;
-  const viewHd = baseHd + atlas.mmView * (Math.PI * 0.5);
+// Mode 2 Setup: Seamless Street-Level MovieMap Corridor Scrubbing + 3D Turn Frames
+let turnPortalMeshes = [];
 
-  const dx = Math.sin(viewHd);
-  const dz = -Math.cos(viewHd);
-  camera.position.set(sx, sy, sz);
-  controls.target.set(sx + dx * 40, sy + 0.5, sz + dz * 40);
-  camera.lookAt(controls.target);
+function sampleCorridorAt(edgeIdx, stepFloat) {
+  const st = edgeSteps(edgeIdx);
+  const clamped = THREE.MathUtils.clamp(stepFloat, 0, Math.max(0, st.length - 1));
+  const i0 = Math.floor(clamped);
+  const i1 = Math.min(st.length - 1, i0 + 1);
+  const f = clamped - i0;
+  const a = st[i0];
+  const b = st[i1];
+  let dHd = b[2] - a[2];
+  while (dHd > Math.PI) dHd -= Math.PI * 2;
+  while (dHd < -Math.PI) dHd += Math.PI * 2;
+  return {
+    x: THREE.MathUtils.lerp(a[0], b[0], f),
+    z: THREE.MathUtils.lerp(a[1], b[1], f),
+    hd: a[2] + dHd * f,
+    totalSteps: st.length,
+    clamped,
+  };
+}
+
+function rebuildCorridorTurnPortals() {
+  // Remove previous dynamic turn portal targets
+  for (const m of turnPortalMeshes) {
+    const idx = mapsPickables.indexOf(m);
+    if (idx >= 0) mapsPickables.splice(idx, 1);
+  }
+  turnPortalMeshes = [];
+  corridorTurnGroup.clear();
+
+  if (!atlas.inStreetCorridor) return;
+  const e = mmEdges[atlas.mmEdgeIdx];
+  if (!e) return;
+  const st = edgeSteps(atlas.mmEdgeIdx);
+  const atEnd = atlas.mmStepFloat >= st.length - 2.4;
+  const atStart = atlas.mmStepFloat <= 1.4;
+  if (!atEnd && !atStart) return;
+
+  const nodeId = atEnd ? e.b : e.a;
+  const candidates = (nodeToEdges.get(nodeId) || []).filter((idx) => idx !== atlas.mmEdgeIdx).slice(0, 4);
+  candidates.forEach((cIdx) => {
+    const cEdge = mmEdges[cIdx];
+    const cSteps = edgeSteps(cIdx);
+    const fromStart = cEdge.a === nodeId;
+    const sampleIdx = fromStart ? Math.min(2, cSteps.length - 1) : Math.max(0, cSteps.length - 3);
+    const [tx, tz, thd] = cSteps[sampleIdx];
+    const ty = Math.max(groundAt(tx, tz), 0.4) + 2.6;
+    const wayName = mmWays[cEdge.w]?.name || `Corridor #${cEdge.id}`;
+
+    const pg = new THREE.Group();
+    pg.position.set(tx, ty, tz);
+    pg.rotation.y = -(fromStart ? thd : thd + Math.PI);
+
+    const frame = new THREE.Mesh(
+      new THREE.TorusGeometry(1.85, 0.09, 8, 4),
+      new THREE.MeshBasicMaterial({ color: '#f2a541' })
+    );
+    frame.rotation.z = Math.PI * 0.25;
+    const veil = new THREE.Mesh(
+      new THREE.CircleGeometry(1.75, 4),
+      new THREE.MeshBasicMaterial({ color: '#f2a541', transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false })
+    );
+    veil.rotation.z = Math.PI * 0.25;
+    const hit = new THREE.Mesh(new THREE.BoxGeometry(4.2, 4.2, 2.2), matInvisibleHit);
+    addMapsTarget(hit, {
+      kind: 'corridor-turn',
+      edgeIdx: cIdx,
+      startStep: fromStart ? 0.5 : Math.max(0, cSteps.length - 1.5),
+      wayName,
+      getAnchor: () => new THREE.Vector3(tx, ty + 2.2, tz),
+      getWhisper: () => `Turn onto ${wayName} — Click to Continue Scrubbing`,
+    });
+    turnPortalMeshes.push(hit);
+    pg.add(frame, veil, hit);
+    corridorTurnGroup.add(pg);
+  });
+}
+
+function syncMovieMapPose(applyCameraImmediate = true) {
+  if (!atlas.inStreetCorridor && atlas.mode !== 'moviemap') return;
+  const samp = sampleCorridorAt(atlas.mmEdgeIdx, atlas.mmStepFloat);
+  atlas.mmStepFloat = samp.clamped;
+  atlas.mmStepIdx = Math.round(samp.clamped);
+
+  const sy = Math.max(groundAt(samp.x, samp.z), 0.4) + 2.05;
+  const viewHd = samp.hd + atlas.mmView * (Math.PI * 0.5) + atlas.mmYawOffset;
+  const dx = Math.sin(viewHd) * Math.cos(atlas.mmPitch);
+  const dy = Math.sin(atlas.mmPitch);
+  const dz = -Math.cos(viewHd) * Math.cos(atlas.mmPitch);
+
+  const camPos = new THREE.Vector3(samp.x, sy, samp.z);
+  const lookTarget = new THREE.Vector3(samp.x + dx * 42, sy + dy * 42, samp.z + dz * 42);
+
+  if (applyCameraImmediate && !atlas.flyAnim) {
+    camera.position.copy(camPos);
+    controls.target.copy(lookTarget);
+    camera.lookAt(lookTarget);
+  }
+
+  // Position Skyward Cyan Ascent Light Beam 14m ahead-left on the sidewalk so it's always reachable!
+  const beamX = samp.x + Math.sin(samp.hd) * 14 - Math.cos(samp.hd) * 3.8;
+  const beamZ = samp.z - Math.cos(samp.hd) * 14 - Math.sin(samp.hd) * 3.8;
+  ascentBeamGroup.position.set(beamX, Math.max(groundAt(beamX, beamZ), 0.4), beamZ);
 
   const e = mmEdges[atlas.mmEdgeIdx];
   const wayName = mmWays[e.w]?.name || 'Harbor Street';
   $('mm-street-name').textContent = `${wayName} · Segment #${e.id}`;
-  $('mm-frame-readout').textContent = `Frame ${atlas.mmStepIdx + 1} / ${st.length}`;
-  $('sl-mm-scrub').value = String(Math.round((atlas.mmStepIdx / Math.max(1, st.length - 1)) * 100));
+  $('mm-frame-readout').textContent = `Frame ${atlas.mmStepIdx + 1} / ${samp.totalSteps}`;
+  $('sl-mm-scrub').value = String(Math.round((atlas.mmStepFloat / Math.max(1, samp.totalSteps - 1)) * 100));
 
-  // Nearest registered shot along this street
   let bestShot = shots[0];
   let bestD = Infinity;
   for (let i = 0; i < shots.length; i++) {
-    const d = Math.hypot(shots[i].x - sx, shots[i].y - sz);
+    const d = Math.hypot(shots[i].x - samp.x, shots[i].y - samp.z);
     if (d < bestD) { bestD = d; bestShot = shots[i]; }
   }
   $('mm-cross-info').textContent = `Nearest Shot: ${bestShot.cid} (${Math.round(bestD)}m) · Zero-Grain Live 3D`;
 
-  if (atlas.mmCardOn) {
-    shotFrameCard.material.map?.dispose();
-    shotFrameCard.material.map = createShotCardTexture(bestShot);
-    shotFrameCard.material.needsUpdate = true;
-    shotFrameCard.position.set(sx + dx * 15, sy + 0.8, sz + dz * 15);
-    shotFrameCard.lookAt(camera.position);
-    shotFrameCard.visible = true;
-  } else {
-    shotFrameCard.visible = false;
-  }
+  shotFrameCard.visible = false;
+  rebuildCorridorTurnPortals();
+  return { camPos, lookTarget, wayName, bestShot };
+}
 
-  // Show corner turn buttons at end of street segment
-  const turnEl = $('turn-overlay');
-  if (atlas.mmStepIdx >= st.length - 1) {
-    const node = e.b;
-    const candidates = (nodeToEdges.get(node) || []).filter((idx) => idx !== atlas.mmEdgeIdx).slice(0, 4);
-    if (candidates.length > 0) {
-      turnEl.innerHTML = `<span class="kicker">CORNER INTERSECTION · CHOOSE STREET:</span>` +
-        candidates.map((cIdx) => `<button class="pill cyan" type="button" data-edge="${cIdx}">${mmWays[mmEdges[cIdx].w]?.name || `Street ${cIdx}`}</button>`).join('');
-      turnEl.classList.add('visible');
-      turnEl.querySelectorAll('button[data-edge]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          atlas.mmEdgeIdx = Number(btn.dataset.edge);
-          atlas.mmStepIdx = 0;
-          turnEl.classList.remove('visible');
-          syncMovieMapPose();
-        });
-      });
-    }
-  } else {
-    turnEl.classList.remove('visible');
+function enterStreetCorridor(edgeIdx, stepFloat = 0, animateDrop = true) {
+  atlas.mode = 'moviemap';
+  atlas.inStreetCorridor = true;
+  atlas.mmEdgeIdx = edgeIdx;
+  atlas.mmStepFloat = stepFloat;
+  atlas.mmYawOffset = 0;
+  atlas.mmPitch = 0.03;
+  controls.enabled = false;
+  streetCorridorRig.visible = true;
+
+  const pose = syncMovieMapPose(!animateDrop);
+  if (animateDrop && pose) {
+    flyCameraTo(pose.camPos, pose.lookTarget, 0.88);
   }
+  if (pose) {
+    setWorldSpeech(
+      new THREE.Vector3(pose.camPos.x + (pose.lookTarget.x - pose.camPos.x) * 0.35, pose.camPos.y + 1.8, pose.camPos.z + (pose.lookTarget.z - pose.camPos.z) * 0.35),
+      `MOVIEMAP CORRIDOR · ${pose.wayName.toUpperCase()}`,
+      'Wheel or WASD scrubs street · Click cyan sky beam (or Esc) to rise to aerial overview.',
+      3400
+    );
+  }
+}
+
+function ascendToLivingOverview() {
+  atlas.inStreetCorridor = false;
+  atlas.mode = 'city3d';
+  streetCorridorRig.visible = false;
+  controls.enabled = true;
+  flyCameraTo(
+    new THREE.Vector3(2042, 56, 2374),
+    new THREE.Vector3(2185, 18, 2326),
+    0.95
+  );
 }
 
 {
   $('sl-mm-scrub').addEventListener('input', (e) => {
     const st = edgeSteps(atlas.mmEdgeIdx);
-    // Reconstruct valid scene state cleanly without re-firing old events (Brief 9)
-    atlas.mmStepIdx = Math.round((Number(e.target.value) / 100) * (st.length - 1));
-    syncMovieMapPose();
+    atlas.mmStepFloat = (Number(e.target.value) / 100) * Math.max(0, st.length - 1);
+    syncMovieMapPose(true);
   });
   document.querySelectorAll('#mm-views .pill[data-v]').forEach((btn) => {
     btn.addEventListener('click', () => {
       atlas.mmView = Number(btn.dataset.v);
       document.querySelectorAll('#mm-views .pill[data-v]').forEach((b) => b.classList.toggle('active', b === btn));
-      syncMovieMapPose();
+      syncMovieMapPose(true);
     });
   });
   $('btn-mm-play').addEventListener('click', () => {
@@ -1428,7 +2053,6 @@ function syncMovieMapPose() {
   $('btn-mm-frame-card').addEventListener('click', () => {
     atlas.mmCardOn = !atlas.mmCardOn;
     $('btn-mm-frame-card').textContent = atlas.mmCardOn ? 'Shot Card: On' : 'Shot Card: Off';
-    syncMovieMapPose();
   });
 
   const shotSel = $('sel-mm-shot');
@@ -1436,20 +2060,17 @@ function syncMovieMapPose() {
   shotSel.addEventListener('change', () => {
     const s = shots[Number(shotSel.value)];
     if (!s) return;
-    // Snap to street segment closest to this shot pin
     let bestE = 0, bestD = Infinity;
     mmEdges.forEach((edge, idx) => {
       const d = Math.hypot(edge.pts[0] - s.x, edge.pts[1] - s.y);
       if (d < bestD) { bestD = d; bestE = idx; }
     });
-    atlas.mmEdgeIdx = bestE;
-    atlas.mmStepIdx = 0;
-    syncMovieMapPose();
+    enterStreetCorridor(bestE, 0, true);
   });
 }
 
-// Mode 3 Setup: Mood Topography & Acoustic Field
-function selectMoodDistrict(idx) {
+// Mode 3 Setup: Mood Topography & 3D District Aura Lanterns
+function selectMoodDistrict(idx, fly = true) {
   atlas.moodIdx = THREE.MathUtils.clamp(idx, 0, moodBeacons.length - 1);
   const b = moodBeacons[atlas.moodIdx];
   if (!b) return;
@@ -1459,17 +2080,48 @@ function selectMoodDistrict(idx) {
   $('mood-body-sw').innerHTML = (b.md.body || []).map((c) => `<span class="sw" style="background:${c}"></span>`).join('');
   $('mood-glow-sw').innerHTML = (b.md.glow || []).map((c) => `<span class="sw glow" style="background:${c};color:${c}"></span>`).join('');
 
-  flyCameraTo(
-    new THREE.Vector3(b.wx + 165, b.wy + 95, b.wz + 165),
-    new THREE.Vector3(b.wx, b.wy + 24, b.wz),
-    1.2
+  if (fly) {
+    flyCameraTo(
+      new THREE.Vector3(b.wx + 165, b.wy + 95, b.wz + 165),
+      new THREE.Vector3(b.wx, b.wy + 24, b.wz),
+      1.15
+    );
+  }
+}
+
+function toggleAuraLantern(lantern) {
+  const sameActive = moodGroup.visible && atlas.moodIdx === lantern.districtIdx;
+  if (sameActive) {
+    moodGroup.visible = false;
+    setWorldSpeech(
+      new THREE.Vector3(lantern.x, lantern.y + 10.2, lantern.z),
+      'DISTRICT AURA LANTERN',
+      'Mood domes & acoustic rings quieted across the streets.',
+      2600
+    );
+    return;
+  }
+  moodGroup.visible = true;
+  atlas.acousticOn = true;
+  severnAtlas.acousticRings.forEach((r) => { r.visible = true; });
+  selectMoodDistrict(lantern.districtIdx, false);
+  const b = moodBeacons[atlas.moodIdx];
+  const doorHz = pilot.doorOpen ? '13.5 kHz Open Street' : '580 Hz Muffled Stone';
+  setWorldSpeech(
+    new THREE.Vector3(lantern.x, lantern.y + 10.2, lantern.z),
+    `${lantern.label.toUpperCase()} · AURA & ACOUSTICS`,
+    `${b?.md?.mood || 'Sodium vs electric-cyan street field'} (${doorHz}).`,
+    3600
   );
 }
 
 {
   const mdSel = $('sel-mood-dist');
   mdSel.innerHTML = moodBeacons.map((b, i) => `<option value="${i}">${b.md.name} (${b.md.coords?.zone || 'Harbor'})</option>`).join('');
-  mdSel.addEventListener('change', () => selectMoodDistrict(Number(mdSel.value)));
+  mdSel.addEventListener('change', () => {
+    moodGroup.visible = true;
+    selectMoodDistrict(Number(mdSel.value), true);
+  });
 
   $('sl-aura-balance').addEventListener('input', (e) => {
     const cyanWeight = Number(e.target.value) / 100;
@@ -1485,63 +2137,71 @@ function selectMoodDistrict(idx) {
   });
 
   $('btn-mood-archipelago').addEventListener('click', () => {
+    moodGroup.visible = true;
     flyCameraTo(new THREE.Vector3(3600, 1450, 5100), new THREE.Vector3(3400, 0, 2800), 1.4);
   });
 }
 
-// Mode 4 Setup: Elsewhere Seed / Coordinate / Spatial Rhyme Jumper
-function setElsewhereStation(idx) {
+// Mode 4 Setup: Elsewhere Seed / Coordinate / Spatial Rhyme Pavilion
+function setElsewhereStation(idx, fly = true) {
+  // Prune old elsewhere hit targets before rebuilding
+  for (let i = mapsPickables.length - 1; i >= 0; i--) {
+    if (mapsPickables[i].userData?.mapsDiegetic?.kind === 'elsewhere-fold') {
+      mapsPickables.splice(i, 1);
+    }
+  }
   atlas.ewIdx = ((idx % ewStations.length) + ewStations.length) % ewStations.length;
   buildElsewhereStage(atlas.ewIdx);
-  const center = elsewhereGroup.position;
-  camera.position.set(center.x, center.y + 2.1, center.z + 8.5);
-  controls.target.set(center.x, center.y + 2.2, center.z - 6);
-  camera.lookAt(controls.target);
+  if (fly) {
+    const center = elsewhereGroup.position;
+    flyCameraTo(
+      new THREE.Vector3(center.x + 12, center.y + 11, center.z + 24),
+      new THREE.Vector3(center.x, center.y + 3.5, center.z - 2),
+      0.95
+    );
+  }
 }
 
-function jumpElsewhereBySeed(seedNum) {
+function jumpElsewhereBySeed(seedNum, fly = true) {
   const idx = Math.abs(Math.imul(seedNum | 0, 2654435761)) % ewStations.length;
   savePilotState({ seed: seedNum });
-  setElsewhereStation(idx);
+  setElsewhereStation(idx, fly);
 }
+
+// Build initial embedded Elsewhere Fold Pavilion on Severn West Terrace
+jumpElsewhereBySeed(pilot.seed || 2086, false);
 
 {
   $('btn-ew-seed-go').addEventListener('click', () => {
-    jumpElsewhereBySeed(Number($('inp-ew-seed').value) || 2086);
+    jumpElsewhereBySeed(Number($('inp-ew-seed').value) || 2086, true);
   });
 
   const poemSel = $('sel-ew-poem');
   poemSel.innerHTML = cityMeta.poems.map((p) => `<option value="${p.num}">Poem ${p.num} · ${p.title}</option>`).join('');
   poemSel.addEventListener('change', () => {
     const pNum = poemSel.value;
-    if (pNum === '14') {
-      showToast('NONGEOGRAPHIC THRESHOLD', 'Poem 14 (The Black) jumped via non-street account link.');
-    }
     const found = ewStations.findIndex((s) => s.poem === pNum);
-    setElsewhereStation(found >= 0 ? found : 0);
+    setElsewhereStation(found >= 0 ? found : 0, true);
     savePilotState({ poem: pNum });
   });
 
-  $('btn-ew-fwd').addEventListener('click', () => setElsewhereStation(ewStations[atlas.ewIdx].x.f));
-  $('btn-ew-back').addEventListener('click', () => setElsewhereStation(ewStations[atlas.ewIdx].x.b));
-  $('btn-ew-left').addEventListener('click', () => setElsewhereStation(ewStations[atlas.ewIdx].x.l));
-  $('btn-ew-right').addEventListener('click', () => setElsewhereStation(ewStations[atlas.ewIdx].x.r));
+  $('btn-ew-fwd').addEventListener('click', () => setElsewhereStation(ewStations[atlas.ewIdx].x.f, true));
+  $('btn-ew-back').addEventListener('click', () => setElsewhereStation(ewStations[atlas.ewIdx].x.b, true));
+  $('btn-ew-left').addEventListener('click', () => setElsewhereStation(ewStations[atlas.ewIdx].x.l, true));
+  $('btn-ew-right').addEventListener('click', () => setElsewhereStation(ewStations[atlas.ewIdx].x.r, true));
   $('btn-ew-rhyme').addEventListener('click', () => {
     const rh = ewStations[atlas.ewIdx].x.rh;
     const next = rh && rh.length ? rh[0] : (atlas.ewIdx + 17) % ewStations.length;
-    setElsewhereStation(next);
-    showToast('SPATIAL RHYME', `Jumped to structural rhyme ${ewStations[next].cid} across unlike district.`);
+    setElsewhereStation(next, true);
   });
   $('btn-ew-hybrid').addEventListener('click', () => {
     ewHybridMode = !ewHybridMode;
     $('btn-ew-hybrid').classList.toggle('active', ewHybridMode);
-    buildElsewhereStage(atlas.ewIdx);
+    setElsewhereStation(atlas.ewIdx, false);
   });
   $('btn-ew-black').addEventListener('click', () => {
-    setAtlasMode('city3d');
     const by = Math.max(groundAt(BLACK_ANCHOR.x, BLACK_ANCHOR.z), 0.5);
     flyCameraTo(new THREE.Vector3(BLACK_ANCHOR.x + 80, by + 48, BLACK_ANCHOR.z + 80), new THREE.Vector3(BLACK_ANCHOR.x, by + 2, BLACK_ANCHOR.z));
-    showToast('THE BLACK · NONGEOGRAPHIC', 'Explicitly isolated outside the street network (dashed violet ring).');
   });
 }
 
@@ -1561,9 +2221,17 @@ $('btn-pilot-door').addEventListener('click', () => {
   const next = !pilot.doorOpen;
   savePilotState({ doorOpen: next, building: 'severn' });
   pilot = { ...pilot, doorOpen: next };
-  if (shaderSuite?.audio) shaderSuite.audio.playDoorTransition(next);
+  if (shaderSuite?.audio) {
+    shaderSuite.audio.setDoorOpen?.(next, true);
+    shaderSuite.audio.playDoorTransition?.(next);
+  }
   syncPilotUI();
-  showToast('SEVERN THRESHOLD DOOR', next ? 'Door opened: interior vestibule & street sound coupled.' : 'Door closed: lobby sealed & street sound muffled.');
+  setWorldSpeech(
+    new THREE.Vector3(SEVERN_POS.x, SEVERN_POS.y + 4.2, SEVERN_POS.z + 6.0),
+    'SEVERN THRESHOLD DOOR',
+    next ? 'Door opened (13.5 kHz): acoustic field rings expanded.' : 'Door closed (580 Hz): street bed muffled.',
+    3000
+  );
 });
 
 $('btn-pilot-parcel').addEventListener('click', () => {
@@ -1571,11 +2239,18 @@ $('btn-pilot-parcel').addEventListener('click', () => {
   savePilotState({ parcelHolder: next, building: 'severn' });
   pilot = { ...pilot, parcelHolder: next };
   syncPilotUI();
-  showToast('PARCEL OWNERSHIP SYNCED', `Severn parcel now held by ${next.toUpperCase()} across Map, Island, Heroes, and Foundry.`);
+  setWorldSpeech(
+    new THREE.Vector3(SEVERN_POS.x - 0.8, SEVERN_POS.y + 2.4, SEVERN_POS.z + 3.6),
+    'PARCEL LEDGER SYNCED',
+    `Severn parcel & 5L cyan canister held by ${next.toUpperCase()}.`,
+    3000
+  );
 });
 
 $('btn-pilot-rev').addEventListener('click', () => {
-  if (atlas.mode !== 'city3d') setAtlasMode('city3d');
+  atlas.inStreetCorridor = false;
+  streetCorridorRig.visible = false;
+  controls.enabled = true;
   atlas.reverseAngle = !atlas.reverseAngle;
   $('btn-pilot-rev').classList.toggle('active', atlas.reverseAngle);
   if (atlas.reverseAngle) {
@@ -1584,20 +2259,167 @@ $('btn-pilot-rev').addEventListener('click', () => {
       new THREE.Vector3(SEVERN_POS.x + 2, SEVERN_POS.y + 1.6, SEVERN_POS.z + 14),
       0.8
     );
-    showToast('REVERSE THRESHOLD ANGLE', 'Looking out from Severn vestibule across Bekele and threshold door.');
   } else {
     focusSevernPilot(false);
   }
 });
 
-// 3D Viewport Picking (Buildings, Landmarks, Terraced Structures, Shot Pins)
+// ---------------------------------------------------------------------------
+// 9b. Unified In-World 3D Hover, Click, Street-Corridor Wheel & WASD Scrubbing
+// ---------------------------------------------------------------------------
+const worldWhisperEl = $('world-whisper');
+const worldSpeechEl = $('world-speech');
 const raycaster = new THREE.Raycaster();
 const mouseNDC = new THREE.Vector2();
+let hoveredMapsTarget = null;
 let downPt = null;
-canvas.addEventListener('pointerdown', (e) => { downPt = [e.clientX, e.clientY]; });
-canvas.addEventListener('pointerup', (e) => {
-  if (!downPt || Math.hypot(e.clientX - downPt[0], e.clientY - downPt[1]) > 6) return;
-  if (atlas.mode === 'elsewhere') return;
+let corridorDrag = null;
+const moveKeys = {};
+let worldRig = null;
+
+function pickMapsTargetAt(clientX, clientY) {
+  mouseNDC.set((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+  raycaster.setFromCamera(mouseNDC, camera);
+
+  if (worldRig && worldRig.hitMeshes && worldRig.hitMeshes.length > 0) {
+    const rigHits = raycaster.intersectObjects(worldRig.hitMeshes, false);
+    if (rigHits.length > 0 && rigHits[0].distance < 75) {
+      return { kind: 'world-rig', hit: rigHits[0] };
+    }
+  }
+
+  const hits = raycaster.intersectObjects(mapsPickables, false);
+  for (let i = 0; i < hits.length; i++) {
+    const info = hits[i].object.userData.mapsDiegetic;
+    if (!info) continue;
+    if ((info.kind === 'ascent-beam' || info.kind === 'corridor-turn') && !atlas.inStreetCorridor) continue;
+    return { ...info, hit: hits[i] };
+  }
+  return null;
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  downPt = { x: e.clientX, y: e.clientY, moved: 0 };
+  if (atlas.inStreetCorridor) {
+    corridorDrag = { x: e.clientX, y: e.clientY };
+  }
+});
+
+window.addEventListener('pointermove', (e) => {
+  if (downPt) {
+    downPt.moved += Math.hypot(e.clientX - downPt.x, e.clientY - downPt.y);
+    downPt.x = e.clientX;
+    downPt.y = e.clientY;
+  }
+  if (corridorDrag && atlas.inStreetCorridor) {
+    const dx = e.clientX - corridorDrag.x;
+    const dy = e.clientY - corridorDrag.y;
+    corridorDrag.x = e.clientX;
+    corridorDrag.y = e.clientY;
+    atlas.mmYawOffset -= dx * 0.0048;
+    atlas.mmPitch = THREE.MathUtils.clamp(atlas.mmPitch - dy * 0.0042, -0.35, 0.78);
+    // Pulling camera pitch strongly skyward (> 0.68 rad) rises cleanly back to aerial overview!
+    if (atlas.mmPitch > 0.68) {
+      corridorDrag = null;
+      ascendToLivingOverview();
+      return;
+    }
+    syncMovieMapPose(true);
+    return;
+  }
+
+  if (e.target === canvas && (!downPt || downPt.moved < 5)) {
+    const picked = pickMapsTargetAt(e.clientX, e.clientY);
+    hoveredMapsTarget = picked && picked.kind !== 'world-rig' ? picked : null;
+    if (!picked || picked.kind !== 'world-rig') {
+      canvas.style.cursor = hoveredMapsTarget ? 'pointer' : atlas.inStreetCorridor ? 'grab' : 'default';
+    }
+  } else {
+    hoveredMapsTarget = null;
+  }
+});
+
+window.addEventListener('pointerup', (e) => {
+  const cleanClick = downPt && downPt.moved < 7 && e.button === 0 && e.target === canvas;
+  downPt = null;
+  corridorDrag = null;
+  if (!cleanClick) return;
+
+  const picked = pickMapsTargetAt(e.clientX, e.clientY);
+  if (picked) {
+    if (picked.kind === 'world-rig') return;
+    if (picked.kind === 'severn-doorway') {
+      const dest = e.shiftKey ? '../' : '../island/';
+      if (shaderSuite?.audio) shaderSuite.audio.playDoorTransition?.(true);
+      window.location.href = `${dest}${formatPilotHash(pilot)}`;
+      return;
+    }
+    if (picked.kind === 'severn-door-leaf') {
+      $('btn-pilot-door').click();
+      return;
+    }
+    if (picked.kind === 'bekele') {
+      $('btn-pilot-parcel').click();
+      return;
+    }
+    if (picked.kind === 'shot-frame') {
+      enterStreetCorridor(picked.frame.edgeIdx, picked.frame.stepIdx, true);
+      return;
+    }
+    if (picked.kind === 'corridor-turn') {
+      enterStreetCorridor(picked.edgeIdx, picked.startStep, true);
+      return;
+    }
+    if (picked.kind === 'ascent-beam') {
+      ascendToLivingOverview();
+      return;
+    }
+    if (picked.kind === 'era-stele') {
+      if (applyEraGlobal) applyEraGlobal(picked.stele.eraIdx, true);
+      const signedLvl = `${atlas.floodTargetY >= 0 ? '+' : ''}${atlas.floodTargetY.toFixed(2)}m`;
+      setWorldSpeech(
+        picked.getAnchor(),
+        `ERA ${picked.stele.eraIdx} · ${cityMeta.eras[picked.stele.eraIdx].toUpperCase()}`,
+        `Flood water plane at ${signedLvl} · ${cityMeta.lore[picked.stele.eraIdx]}`,
+        3800
+      );
+      return;
+    }
+    if (picked.kind === 'aura-lantern') {
+      toggleAuraLantern(picked.lantern);
+      return;
+    }
+    if (picked.kind === 'elsewhere-fold') {
+      const rh = ewStations[atlas.ewIdx].x.rh;
+      const next = rh && rh.length ? rh[0] : (atlas.ewIdx + 17) % ewStations.length;
+      setElsewhereStation(next, false);
+      const st = ewStations[atlas.ewIdx];
+      setWorldSpeech(
+        picked.getAnchor(),
+        `ELSEWHERE SPATIAL RHYME · ${st.cid}`,
+        `Unfurled Poem ${st.poem || '01'} skyline relief (Horizon ${(st.hz || 0.5).toFixed(2)}).`,
+        3400
+      );
+      return;
+    }
+    if (picked.kind === 'black-zone') {
+      savePilotState({ poem: '14', district: 'the-black' });
+      const by = Math.max(groundAt(BLACK_ANCHOR.x, BLACK_ANCHOR.z), 0.5);
+      flyCameraTo(
+        new THREE.Vector3(BLACK_ANCHOR.x + 70, by + 38, BLACK_ANCHOR.z + 70),
+        new THREE.Vector3(BLACK_ANCHOR.x, by + 2, BLACK_ANCHOR.z)
+      );
+      setWorldSpeech(
+        picked.getAnchor(),
+        'THE BLACK · POEM 14',
+        'Isolated nongeographic threshold outside the street graph.',
+        3400
+      );
+      return;
+    }
+  }
+
+  // Fallback raycast against 767 Shot Pins, Terraced Structures, and Landmarks
   mouseNDC.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
   raycaster.setFromCamera(mouseNDC, camera);
   const hits = raycaster.intersectObjects([shotPinsMesh, terracedGroup, bldInstMesh], true);
@@ -1605,27 +2427,54 @@ canvas.addEventListener('pointerup', (e) => {
   const h = hits[0];
   if (h.object === shotPinsMesh && h.instanceId != null) {
     const s = shots[h.instanceId];
-    showToast(`SHOT PIN ${s.cid}`, `Poem ${s.poem || '01'} · ${s.el} · Source: ${s.source} (recorded).`);
+    let bestE = 0;
+    let bestD = Infinity;
+    mmEdges.forEach((edge, idx) => {
+      const d = Math.hypot(edge.pts[0] - s.x, edge.pts[1] - s.y);
+      if (d < bestD) { bestD = d; bestE = idx; }
+    });
+    enterStreetCorridor(bestE, 0, true);
     return;
   }
   let p = h.object;
   while (p && !p.userData?.structure) p = p.parent;
   if (p && p.userData?.structure) {
     const st = p.userData.structure;
-    showToast('TERRACED STRUCTURE (INFERRED)', `Remastered ${st.t} · Cornice setbacks + glass lightwell · Answered ${st.causes?.length || 0} shots.`);
-    return;
-  }
-  if (h.object === bldInstMesh && h.instanceId != null) {
-    const bi = bldInstanceOwners[h.instanceId];
-    const b = bldRaw[bi];
-    if (b) {
-      showToast('URBAN MASONRY BLOCK', `Height ${b[5]}m · Built Era ${b[7]} · +4m Flood Datum Checked.`);
-    }
+    setWorldSpeech(
+      h.point.clone().add(new THREE.Vector3(0, 6, 0)),
+      'TERRACED STRUCTURE (INFERRED)',
+      `Remastered ${st.t} · Cornice setbacks + glass lightwell (${st.causes?.length || 0} witness shots).`,
+      3200
+    );
   }
 });
 
+// Seamless Mousewheel Scrubbing along Street Corridor (or Pull-Up to Ascend!)
+canvas.addEventListener(
+  'wheel',
+  (e) => {
+    if (!atlas.inStreetCorridor) return;
+    e.preventDefault();
+    // If looking upward (pitch > 0.22) and scrolling backward/out, rise back to aerial overview!
+    if (atlas.mmPitch > 0.22 && e.deltaY > 0) {
+      ascendToLivingOverview();
+      return;
+    }
+    const st = edgeSteps(atlas.mmEdgeIdx);
+    const stepDelta = -e.deltaY * 0.014;
+    const nextStep = atlas.mmStepFloat + stepDelta;
+    if (nextStep < -0.6 && e.deltaY > 0) {
+      ascendToLivingOverview();
+      return;
+    }
+    atlas.mmStepFloat = THREE.MathUtils.clamp(nextStep, 0, Math.max(0, st.length - 1));
+    syncMovieMapPose(true);
+  },
+  { passive: false }
+);
+
 // ---------------------------------------------------------------------------
-// 10. Interactive 2D Cartography & Camera Frustum Canvas
+// 10. Interactive 2D Cartography & Camera Frustum Canvas (Tab Drawer Only)
 // ---------------------------------------------------------------------------
 const map2d = $('atlas-2d-canvas');
 const ctx2d = map2d.getContext('2d');
@@ -1636,7 +2485,6 @@ function draw2DCartography() {
   ctx2d.fillStyle = '#071426';
   ctx2d.fillRect(0, 0, cw, ch);
 
-  // Landmass & +4m datum tint
   for (let j = 0; j < NY; j += 3) {
     for (let i = 0; i < NX; i += 3) {
       const h = H_GRID[j * NX + i] / 10;
@@ -1648,7 +2496,6 @@ function draw2DCartography() {
     }
   }
 
-  // Major roads
   ctx2d.strokeStyle = 'rgba(203, 177, 130, 0.45)';
   ctx2d.lineWidth = 0.9;
   for (let i = 0; i < cityLayers.roads.length; i += 3) {
@@ -1664,7 +2511,6 @@ function draw2DCartography() {
     ctx2d.stroke();
   }
 
-  // District circles
   for (const d of cityMeta.districts) {
     const sx = (d.x / W) * cw;
     const sy = (d.y / H) * ch;
@@ -1674,7 +2520,6 @@ function draw2DCartography() {
     ctx2d.stroke();
   }
 
-  // Nongeographic Black dashed boundary
   ctx2d.save();
   ctx2d.setLineDash([3, 3]);
   ctx2d.strokeStyle = '#c98cff';
@@ -1684,7 +2529,6 @@ function draw2DCartography() {
   ctx2d.stroke();
   ctx2d.restore();
 
-  // Severn Pilot Gold Star / Pin
   const svX = (SEVERN_POS.x / W) * cw;
   const svY = (SEVERN_POS.z / H) * ch;
   ctx2d.fillStyle = '#f2a541';
@@ -1692,7 +2536,6 @@ function draw2DCartography() {
   ctx2d.arc(svX, svY, 4.5, 0, Math.PI * 2);
   ctx2d.fill();
 
-  // Camera Frustum Wedge
   const camX = (camera.position.x / W) * cw;
   const camY = (camera.position.z / H) * ch;
   const dir = new THREE.Vector3();
@@ -1717,23 +2560,18 @@ map2d.addEventListener('click', (e) => {
   $('cursor-coords').textContent = `X ${Math.round(wx)} · Y ${Math.round(wz)}`;
 
   if (Math.hypot(wx - SEVERN_POS.x, wz - SEVERN_POS.z) < 220) {
-    if (atlas.mode === 'elsewhere') setAtlasMode('city3d');
     focusSevernPilot(false);
-    showToast('SEVERN PILOT SELECTED', '701 Cathedral St · Shared state synced across Map, Street, and Interior.');
     return;
   }
   const wy = Math.max(groundAt(wx, wz), 0.5);
-  if (atlas.mode === 'moviemap') {
+  if (atlas.inStreetCorridor) {
     let bestE = 0, bestD = Infinity;
     mmEdges.forEach((edge, idx) => {
       const d = Math.hypot(edge.pts[0] - wx, edge.pts[1] - wz);
       if (d < bestD) { bestD = d; bestE = idx; }
     });
-    atlas.mmEdgeIdx = bestE;
-    atlas.mmStepIdx = 0;
-    syncMovieMapPose();
+    enterStreetCorridor(bestE, 0, true);
   } else {
-    if (atlas.mode === 'elsewhere') setAtlasMode('city3d');
     flyCameraTo(new THREE.Vector3(wx + 95, wy + 58, wz + 95), new THREE.Vector3(wx, wy + 8, wz));
   }
 });
@@ -1741,17 +2579,19 @@ map2d.addEventListener('click', (e) => {
 window.addEventListener('keydown', (e) => {
   if (e.target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
   const k = e.key.toLowerCase();
-  if (k === '1') setAtlasMode('city3d');
-  else if (k === '2') setAtlasMode('moviemap');
-  else if (k === '3') setAtlasMode('mood');
-  else if (k === '4') setAtlasMode('elsewhere');
-  else if (k === 'o') $('btn-pilot-door').click();
+  moveKeys[k] = true;
+  if (k === 'escape' || k === 'q') {
+    if (atlas.inStreetCorridor) ascendToLivingOverview();
+  } else if (k === 'o') $('btn-pilot-door').click();
   else if (k === 'e') $('btn-pilot-parcel').click();
   else if (k === 'r') $('btn-pilot-rev').click();
 });
+window.addEventListener('keyup', (e) => {
+  moveKeys[e.key.toLowerCase()] = false;
+});
 
 // ---------------------------------------------------------------------------
-// 11. Mount Universal 23-Look GPU Shader Suite Bar & Start Loop
+// 11. Mount Universal 23-Look GPU Shader Suite + Curb Brass Camera Tripod
 // ---------------------------------------------------------------------------
 shaderSuite = mountWebGLShaderSuite({
   THREE,
@@ -1768,6 +2608,39 @@ shaderSuite = mountWebGLShaderSuite({
   },
 });
 
+{
+  const tripX = SEVERN_POS.x + 11.5;
+  const tripZ = SEVERN_POS.z + 13.5;
+  const tripY = Math.max(groundAt(tripX, tripZ), SEVERN_POS.y);
+  const nolliX = SEVERN_POS.x - 13.5;
+  const nolliZ = SEVERN_POS.z + 11.5;
+  worldRig = createWorldPortalAndTripod({
+    THREE,
+    scene,
+    camera,
+    domElement: canvas,
+    suite: shaderSuite,
+    tripodPos: {
+      x: tripX,
+      y: tripY,
+      z: tripZ,
+      rotY: -0.65,
+      scale: 1.55,
+    },
+    portals: [
+      {
+        id: 'nolli',
+        label: 'Nolli Block & Screening Hall',
+        href: '../',
+        pos: [nolliX, Math.max(groundAt(nolliX, nolliZ), SEVERN_POS.y), nolliZ],
+        rotY: 0.35,
+        scale: 1.35,
+        color: '#e0b46a',
+      },
+    ],
+  });
+}
+
 window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -1779,9 +2652,11 @@ syncPilotUI();
 focusSevernPilot(true);
 
 // Handle #moviemap / #mood / #elsewhere deep links cleanly
-if (window.location.hash.includes('moviemap')) setAtlasMode('moviemap');
-else if (window.location.hash.includes('mood')) setAtlasMode('mood');
-else if (window.location.hash.includes('elsewhere')) setAtlasMode('elsewhere');
+if (window.location.hash.includes('moviemap')) enterStreetCorridor(severnEdgeIdx, 3, false);
+else if (window.location.hash.includes('mood')) {
+  moodGroup.visible = true;
+  selectMoodDistrict(0, false);
+}
 
 const clock = new THREE.Clock();
 let mapTimer = 0;
@@ -1792,7 +2667,22 @@ renderer.setAnimationLoop(() => {
   const elapsed = clock.elapsedTime;
   skyUniforms.uTime.value = elapsed;
   waterUniforms.uTime.value = elapsed;
+  floodUniforms.uTime.value = elapsed;
+  ascentBeamMat.uniforms.uTime.value = elapsed;
   skyDome.position.copy(camera.position);
+
+  // Smooth +4.00m physical flood water plane transition across Historical Eras 0..5
+  atlas.floodCurrentY += (atlas.floodTargetY - atlas.floodCurrentY) * Math.min(1, dt * 4.5);
+  floodWaterMesh.position.y = atlas.floodCurrentY;
+  floodUniforms.uOpacity.value += (atlas.floodTargetOpacity - floodUniforms.uOpacity.value) * Math.min(1, dt * 4.5);
+
+  // Animate Era Stelae crowns & District Aura Lantern harmonic rings
+  for (let i = 0; i < eraStelae.length; i++) {
+    eraStelae[i].crown.rotation.y = elapsed * 0.75 + i;
+  }
+  for (let i = 0; i < auraLanterns.length; i++) {
+    auraLanterns[i].harmRing.rotation.y = elapsed * 1.1 + i * 0.5;
+  }
 
   // Smooth camera flight
   if (atlas.flyAnim) {
@@ -1801,10 +2691,40 @@ renderer.setAnimationLoop(() => {
     const k = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) * 0.5;
     camera.position.lerpVectors(atlas.flyAnim.p0, atlas.flyAnim.p1, k);
     controls.target.lerpVectors(atlas.flyAnim.t0, atlas.flyAnim.t1, k);
-    if (u >= 1) atlas.flyAnim = null;
+    camera.lookAt(controls.target);
+    if (u >= 1) {
+      const doneCb = atlas.flyAnim.onDone;
+      atlas.flyAnim = null;
+      if (typeof doneCb === 'function') doneCb();
+    }
+  } else if (atlas.inStreetCorridor) {
+    // WASD / ArrowKey continuous MovieMap street corridor scrubbing
+    const fwd = (moveKeys['w'] || moveKeys['arrowup'] ? 1 : 0) - (moveKeys['s'] || moveKeys['arrowdown'] ? 1 : 0);
+    const turn = (moveKeys['d'] || moveKeys['arrowright'] ? 1 : 0) - (moveKeys['a'] || moveKeys['arrowleft'] ? 1 : 0);
+    const boost = moveKeys['shift'] ? 2.2 : 1.0;
+    if (Math.abs(fwd) > 0.01 || Math.abs(turn) > 0.01) {
+      const st = edgeSteps(atlas.mmEdgeIdx);
+      atlas.mmStepFloat = THREE.MathUtils.clamp(atlas.mmStepFloat + fwd * dt * 4.8 * boost, 0, Math.max(0, st.length - 1));
+      atlas.mmYawOffset -= turn * dt * 1.45;
+      syncMovieMapPose(true);
+    }
+  } else if (controls.enabled) {
+    // Aerial WASD gentle glide across the terraced city when in overview
+    const fwd = (moveKeys['w'] || moveKeys['arrowup'] ? 1 : 0) - (moveKeys['s'] || moveKeys['arrowdown'] ? 1 : 0);
+    const str = (moveKeys['d'] || moveKeys['arrowright'] ? 1 : 0) - (moveKeys['a'] || moveKeys['arrowleft'] ? 1 : 0);
+    if (Math.abs(fwd) > 0.01 || Math.abs(str) > 0.01) {
+      const dir = new THREE.Vector3();
+      camera.getWorldDirection(dir);
+      dir.y = 0;
+      dir.normalize();
+      const right = new THREE.Vector3(-dir.z, 0, dir.x);
+      const spd = (moveKeys['shift'] ? 180 : 85) * dt;
+      const delta = dir.multiplyScalar(fwd * spd).addScaledVector(right, str * spd);
+      camera.position.add(delta);
+      controls.target.add(delta);
+    }
+    controls.update();
   }
-
-  if (controls.enabled) controls.update();
 
   // Severn Threshold Door animation
   const targetAng = pilot.doorOpen ? -Math.PI * 0.58 : 0;
@@ -1821,20 +2741,20 @@ renderer.setAnimationLoop(() => {
     });
   }
 
-  // MovieMap auto-drive along street steps
-  if (atlas.mode === 'moviemap' && atlas.mmPlaying) {
+  // MovieMap auto-drive along street steps (if triggered via Tab drawer)
+  if (atlas.inStreetCorridor && atlas.mmPlaying) {
     mmDriveAcc += dt;
-    if (mmDriveAcc > 0.22) {
-      mmDriveAcc = 0;
+    if (mmDriveAcc > 0.05) {
       const st = edgeSteps(atlas.mmEdgeIdx);
-      if (atlas.mmStepIdx < st.length - 1) {
-        atlas.mmStepIdx++;
-        syncMovieMapPose();
+      if (atlas.mmStepFloat < st.length - 1) {
+        atlas.mmStepFloat = Math.min(st.length - 1, atlas.mmStepFloat + dt * 3.8);
+        syncMovieMapPose(true);
       } else {
         atlas.mmPlaying = false;
         $('btn-mm-play').classList.remove('active');
         $('btn-mm-play').textContent = 'Drive Street';
       }
+      mmDriveAcc = 0;
     }
   }
 
@@ -1845,6 +2765,46 @@ renderer.setAnimationLoop(() => {
   if (severnAtlas.playerActor?.v8?.update) {
     severnAtlas.playerActor.v8.setGroundY(severnAtlas.playerActor.root.position.y);
     severnAtlas.playerActor.v8.update(dt);
+  }
+
+  // World-Projected Unboxed 1-Line Hover Whisper & Action Speech (never overlapping)
+  const speechActive = Boolean(worldSpeechState && performance.now() < worldSpeechState.until);
+  if (!speechActive && hoveredMapsTarget && typeof hoveredMapsTarget.getAnchor === 'function') {
+    const prj = projectWorldLabel(camera, hoveredMapsTarget.getAnchor(), canvas);
+    if (prj.visible) {
+      worldWhisperEl.textContent = hoveredMapsTarget.getWhisper();
+      worldWhisperEl.style.left = `${Math.round(prj.x)}px`;
+      worldWhisperEl.style.top = `${Math.round(Math.max(22, prj.y - 8))}px`;
+      worldWhisperEl.style.display = 'block';
+    } else {
+      worldWhisperEl.style.display = 'none';
+    }
+  } else {
+    worldWhisperEl.style.display = 'none';
+  }
+
+  if (speechActive) {
+    const prj = projectWorldLabel(camera, worldSpeechState.anchorVec3, canvas);
+    if (prj.visible) {
+      worldSpeechEl.innerHTML = '';
+      const bEl = document.createElement('b');
+      bEl.textContent = worldSpeechState.speaker;
+      const sEl = document.createElement('span');
+      sEl.textContent = worldSpeechState.text;
+      worldSpeechEl.append(bEl, sEl);
+      worldSpeechEl.style.left = `${Math.round(THREE.MathUtils.clamp(prj.x, 220, window.innerWidth - 220))}px`;
+      worldSpeechEl.style.top = `${Math.round(THREE.MathUtils.clamp(prj.y - 12, 36, window.innerHeight - 36))}px`;
+      worldSpeechEl.style.display = 'block';
+    } else {
+      worldSpeechEl.style.display = 'none';
+    }
+  } else {
+    worldSpeechState = null;
+    worldSpeechEl.style.display = 'none';
+  }
+
+  if (worldRig) {
+    worldRig.update(camera.position);
   }
 
   if (shaderSuite) {
@@ -1861,10 +2821,12 @@ renderer.setAnimationLoop(() => {
   keyLight.position.set(camera.position.x + 380, camera.position.y + 480, camera.position.z + 320);
   keyLight.target.position.copy(controls.target);
 
-  mapTimer += dt;
-  if (mapTimer > 0.25) {
-    mapTimer = 0;
-    draw2DCartography();
+  if (document.body.classList.contains('mp-tab-open')) {
+    mapTimer += dt;
+    if (mapTimer > 0.25) {
+      mapTimer = 0;
+      draw2DCartography();
+    }
   }
 
   shaderSuite.render(scene, camera);

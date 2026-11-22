@@ -6,10 +6,10 @@
   <script type="importmap">{"imports":{"three":"../../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
   <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
   <link rel="stylesheet" href="../suite-nav.css">
-  <title>MAKE-PHOTO CITY · WEAVE Multiplane Stage, Spine-Cut &amp; World Score</title>
+  <title>MAKE-PHOTO CITY · WEAVE Multiplane Stage</title>
   <style>
     :root {
-      --bg: #0b0e14;
+      --bg: #08121f;
       --panel: rgba(13, 16, 22, 0.90);
       --panel2: rgba(19, 24, 33, 0.94);
       --ink: #f1ece1;
@@ -44,10 +44,12 @@
       outline-offset: 2px;
     }
 
-    /* Full-bleed WebGL Registered Multiplane Stage */
+    /* 100% Full-Bleed WebGL Registered Multiplane Stage */
     #stage-wrap {
       position: fixed;
       inset: 0;
+      width: 100vw;
+      height: 100vh;
       z-index: 1;
       background: #08121f;
     }
@@ -57,14 +59,63 @@
       height: 100%;
     }
 
-    /* Quiet Sky Region Title & Shot Picker (Top-Left, non-occluding) */
+    /* Pure Diegetic World-Projected 1-Line Whisper (Unboxed, invisible until 3D hover) */
+    #world-whisper {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 40;
+      pointer-events: none;
+      opacity: 0;
+      transform: translate(-50%, -140%);
+      font: 500 12px/1.3 var(--mono);
+      letter-spacing: 0.04em;
+      color: #fff8ea;
+      text-shadow: 0 2px 14px rgba(0, 0, 0, 0.96), 0 0 5px rgba(0, 0, 0, 0.9);
+      white-space: nowrap;
+      transition: opacity 120ms ease;
+    }
+    #world-whisper.visible {
+      opacity: 1;
+    }
+
+    /* Unboxed ephemeral feedback whisper (zero border, zero box, zero grid) */
+    #toast {
+      position: fixed;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 42;
+      pointer-events: none;
+      font: 500 12px/1.35 var(--mono);
+      letter-spacing: 0.04em;
+      color: #fff6e3;
+      text-shadow: 0 2px 16px rgba(0, 0, 0, 0.96), 0 0 6px rgba(0, 0, 0, 0.9);
+      opacity: 0;
+      transition: opacity 180ms ease;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    /* STRICT DIEGETIC DEFAULT: Hide ALL overlaid HTML bars, pills, sidebars & Spine table on load.
+       Summoned ONLY when user explicitly presses Tab (body.mp-tab-open / body.workbench-open). */
+    body:not(.mp-tab-open):not(.workbench-open) #sky-header,
+    body:not(.mp-tab-open):not(.workbench-open) #stage-toolbar,
+    body:not(.mp-tab-open):not(.workbench-open) #inspector,
+    body:not(.mp-tab-open):not(.workbench-open) #btn-toggle-inspector,
+    body:not(.mp-tab-open):not(.workbench-open) #lower-drawer,
+    body:not(.mp-tab-open):not(.workbench-open) #compare-modal {
+      display: none !important;
+    }
+
+    /* Optional Tab-Summoned Raw Workbench Styles */
     #sky-header {
       position: fixed;
       top: 64px;
       left: 12px;
       z-index: 25;
       max-width: 380px;
-      background: rgba(10, 14, 21, 0.80);
+      background: rgba(10, 14, 21, 0.86);
       border: 1px solid var(--rule);
       border-radius: 7px;
       padding: 8px 11px;
@@ -73,18 +124,8 @@
       flex-direction: column;
       gap: 5px;
     }
-    .kicker-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-    .kicker {
-      font: 600 10px/1.2 var(--mono);
-      letter-spacing: 0.11em;
-      text-transform: uppercase;
-      color: var(--brass);
-    }
+    .kicker-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .kicker { font: 600 10px/1.2 var(--mono); letter-spacing: 0.11em; text-transform: uppercase; color: var(--brass); }
     .cone-badge {
       font: 600 9.5px/1.2 var(--mono);
       padding: 2px 6px;
@@ -99,23 +140,9 @@
       background: rgba(242, 165, 65, 0.18);
       color: var(--amber);
     }
-    #scene-title {
-      font: 400 17px/1.18 var(--serif);
-      margin: 0;
-      color: var(--ink);
-      letter-spacing: -0.01em;
-    }
-    #scene-caption {
-      font-size: 11px;
-      color: var(--dim);
-      margin: 0;
-    }
-    .picker-row {
-      display: flex;
-      gap: 5px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
+    #scene-title { font: 400 17px/1.18 var(--serif); margin: 0; color: var(--ink); letter-spacing: -0.01em; }
+    #scene-caption { font-size: 11px; color: var(--dim); margin: 0; }
+    .picker-row { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
     .sel-dark {
       flex: 1;
       min-width: 170px;
@@ -128,7 +155,6 @@
       cursor: pointer;
     }
 
-    /* Top-Center Camera, Lighting & Hybrid Set Action Bar */
     #stage-toolbar {
       position: fixed;
       top: 64px;
@@ -147,7 +173,7 @@
       display: inline-flex;
       flex-wrap: wrap;
       gap: 4px;
-      background: rgba(11, 15, 22, 0.84);
+      background: rgba(11, 15, 22, 0.88);
       border: 1px solid var(--rule);
       border-radius: 6px;
       padding: 4px 6px;
@@ -165,22 +191,11 @@
       text-transform: uppercase;
       cursor: pointer;
       white-space: nowrap;
-      transition: border-color 140ms, background 140ms, color 140ms;
     }
     .btn:hover { border-color: var(--brass); color: #fff; }
-    .btn.on {
-      background: rgba(24, 180, 255, 0.22);
-      border-color: var(--cyan);
-      color: #e6f8ff;
-    }
-    .btn.amber.on, .btn.pri {
-      background: var(--amber);
-      border-color: var(--amber);
-      color: #101215;
-    }
-    .btn.pri:hover { background: #ffc069; }
+    .btn.on { background: rgba(24, 180, 255, 0.22); border-color: var(--cyan); color: #e6f8ff; }
+    .btn.amber.on, .btn.pri { background: var(--amber); border-color: var(--amber); color: #101215; }
 
-    /* Right Collapsible Inspector: Pilot State, Hybrid Set & WEAVE Ledger */
     #inspector {
       position: fixed;
       top: 64px;
@@ -197,19 +212,9 @@
       overflow: hidden;
       transition: transform 220ms ease;
     }
-    #inspector.collapsed {
-      transform: translateX(356px);
-    }
-    #btn-toggle-inspector {
-      position: fixed;
-      top: 64px;
-      right: 12px;
-      z-index: 27;
-      display: none;
-    }
-    #inspector.collapsed ~ #btn-toggle-inspector {
-      display: inline-block;
-    }
+    #inspector.collapsed { transform: translateX(356px); }
+    #btn-toggle-inspector { position: fixed; top: 64px; right: 12px; z-index: 27; display: none; }
+    #inspector.collapsed ~ #btn-toggle-inspector { display: inline-block; }
     .insp-head {
       padding: 8px 11px;
       border-bottom: 1px solid var(--rule);
@@ -218,27 +223,9 @@
       align-items: center;
       background: var(--panel2);
     }
-    .insp-head h2 {
-      margin: 0;
-      font: 600 10.5px/1.2 var(--mono);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--brass);
-    }
-    .insp-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px 11px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .card {
-      background: rgba(20, 25, 35, 0.72);
-      border: 1px solid var(--rule);
-      border-radius: 6px;
-      padding: 8px 9px;
-    }
+    .insp-head h2 { margin: 0; font: 600 10.5px/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--brass); }
+    .insp-body { flex: 1; overflow-y: auto; padding: 10px 11px 14px; display: flex; flex-direction: column; gap: 10px; }
+    .card { background: rgba(20, 25, 35, 0.72); border: 1px solid var(--rule); border-radius: 6px; padding: 8px 9px; }
     .card h3 {
       margin: 0 0 6px;
       font: 600 10px/1.2 var(--mono);
@@ -258,23 +245,9 @@
       color: var(--dim);
       margin: 4px 0;
     }
-    .ctrl-row input[type="range"] {
-      width: 100%;
-      accent-color: var(--cyan);
-      cursor: pointer;
-    }
-    .pilot-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5px;
-      margin-top: 4px;
-    }
-    .prov-pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-bottom: 6px;
-    }
+    .ctrl-row input[type="range"] { width: 100%; accent-color: var(--cyan); cursor: pointer; }
+    .pilot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 4px; }
+    .prov-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
     .prov-tag {
       display: inline-block;
       font: 600 9px/1.2 var(--mono);
@@ -288,12 +261,7 @@
     .prov-CHECKED, .prov-DRAWN { background: var(--lime); }
     .prov-INFERRED, .prov-RETOUCHED { background: var(--amber); }
     .prov-INVENTED, .prov-BELIEF { background: var(--rose); }
-
-    .ledger-list {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
+    .ledger-list { display: flex; flex-direction: column; gap: 5px; }
     .ledger-item {
       display: grid;
       grid-template-columns: 74px 1fr;
@@ -314,15 +282,8 @@
       font-size: 10.5px;
       margin-bottom: 4px;
     }
-    .plane-id {
-      font: 700 10px var(--mono);
-      text-align: center;
-      padding: 2px 0;
-      border-radius: 3px;
-      color: #0d1015;
-    }
+    .plane-id { font: 700 10px var(--mono); text-align: center; padding: 2px 0; border-radius: 3px; color: #0d1015; }
 
-    /* Side-by-Side 3-Up Comparison Strip (Brief 3 & Brief 7: Original | Layered WEAVE | Spatial 3D) */
     #compare-modal {
       position: fixed;
       top: 122px;
@@ -333,40 +294,14 @@
       border: 1px solid var(--brass);
       border-radius: 8px;
       padding: 10px 12px;
-      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.72);
       display: none;
     }
     #compare-modal.open { display: block; }
-    .cmp-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-      margin-top: 8px;
-    }
-    .cmp-cell {
-      background: #07090d;
-      border: 1px solid var(--rule);
-      border-radius: 5px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-    .cmp-cell img {
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      object-fit: cover;
-      display: block;
-      background: #05070a;
-    }
-    .cmp-cap {
-      padding: 5px 7px;
-      font: 600 9.5px/1.3 var(--mono);
-      color: var(--dim);
-      display: flex;
-      justify-content: space-between;
-    }
+    .cmp-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+    .cmp-cell { background: #07090d; border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; display: flex; flex-direction: column; }
+    .cmp-cell img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #05070a; }
+    .cmp-cap { padding: 5px 7px; font: 600 9.5px/1.3 var(--mono); color: var(--dim); display: flex; justify-content: space-between; }
 
-    /* Bottom Toggleable Spine-Cut (#spine) & World Score (#worldscore) Workbench */
     #lower-drawer {
       position: fixed;
       left: 12px;
@@ -378,11 +313,8 @@
       border-radius: 8px;
       backdrop-filter: blur(12px);
       overflow: hidden;
-      transition: transform 200ms ease, opacity 200ms ease;
     }
-    #lower-drawer.minimized .drawer-body {
-      display: none;
-    }
+    #lower-drawer.minimized .drawer-body { display: none; }
     .drawer-bar {
       display: flex;
       align-items: center;
@@ -393,25 +325,11 @@
       border-bottom: 1px solid var(--rule);
       flex-wrap: wrap;
     }
-    .drawer-tabs {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-    }
-    .drawer-body {
-      padding: 6px 10px;
-      max-height: 196px;
-      overflow-y: auto;
-    }
+    .drawer-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .drawer-body { padding: 6px 10px; max-height: 196px; overflow-y: auto; }
     .drawer-pane { display: none; }
     .drawer-pane.on { display: block; }
-
-    /* Spine-Cut 4-Row Synchronized Strip */
-    .spine-rows {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+    .spine-rows { display: flex; flex-direction: column; gap: 4px; }
     .spine-row {
       display: grid;
       grid-template-columns: 118px 1fr;
@@ -422,61 +340,14 @@
       border-radius: 4px;
       padding: 3px 6px;
     }
-    .spine-lbl {
-      font: 600 9.5px/1.2 var(--mono);
-      color: var(--brass);
-      text-transform: uppercase;
-    }
-    .spine-strip {
-      display: flex;
-      gap: 5px;
-      overflow-x: auto;
-      padding-bottom: 2px;
-    }
-    .spine-card {
-      flex: 0 0 112px;
-      border: 1px solid var(--rule);
-      border-radius: 3px;
-      overflow: hidden;
-      background: #080a0e;
-      cursor: pointer;
-    }
-    .spine-card.on {
-      border-color: var(--cyan);
-      box-shadow: 0 0 0 1px var(--cyan);
-    }
-    .spine-card img {
-      width: 100%;
-      height: 44px;
-      object-fit: cover;
-      display: block;
-    }
-    .spine-card span {
-      display: block;
-      padding: 2px 4px;
-      font: 500 8.5px/1.2 var(--mono);
-      color: var(--dim);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* World Score 4-Track Canvas & 5-Bus Audio Controls */
-    .ws-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 265px;
-      gap: 10px;
-      align-items: start;
-    }
-    #worldscore-canvas {
-      width: 100%;
-      height: 138px;
-      background: #06080c;
-      border: 1px solid var(--rule);
-      border-radius: 5px;
-      display: block;
-      cursor: pointer;
-    }
+    .spine-lbl { font: 600 9.5px/1.2 var(--mono); color: var(--brass); text-transform: uppercase; }
+    .spine-strip { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 2px; }
+    .spine-card { flex: 0 0 112px; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; background: #080a0e; cursor: pointer; }
+    .spine-card.on { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan); }
+    .spine-card img { width: 100%; height: 44px; object-fit: cover; display: block; }
+    .spine-card span { display: block; padding: 2px 4px; font: 500 8.5px/1.2 var(--mono); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ws-layout { display: grid; grid-template-columns: minmax(0, 1fr) 265px; gap: 10px; align-items: start; }
+    #worldscore-canvas { width: 100%; height: 138px; background: #06080c; border: 1px solid var(--rule); border-radius: 5px; display: block; cursor: pointer; }
     .spoken-bar {
       margin-top: 5px;
       padding: 5px 8px;
@@ -490,78 +361,19 @@
       gap: 8px;
       align-items: baseline;
     }
-
-    /* #Dr-OUT Foley Grid */
-    .foley-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 6px;
-    }
-    .foley-pad {
-      text-align: left;
-      padding: 7px 8px;
-      background: rgba(255, 255, 255, 0.035);
-      border: 1px solid var(--rule);
-      border-radius: 5px;
-      color: var(--ink);
-      cursor: pointer;
-    }
-    .foley-pad:hover, .foley-pad.active {
-      border-color: var(--lime);
-      background: rgba(188, 232, 104, 0.14);
-    }
-    .foley-code {
-      font: 700 10.5px var(--mono);
-      color: var(--amber);
-      display: flex;
-      justify-content: space-between;
-    }
-    .foley-law {
-      font-size: 9.5px;
-      color: var(--dim);
-      margin-top: 3px;
-      line-height: 1.3;
-    }
-
-    #toast {
-      position: fixed;
-      top: 42px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9500;
-      background: rgba(12, 16, 23, 0.96);
-      border: 1px solid var(--brass);
-      border-radius: 5px;
-      padding: 6px 12px;
-      font: 600 11px var(--mono);
-      color: var(--ink);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 180ms ease;
-    }
-    #toast.show { opacity: 1; }
-
-    @media (max-width: 1024px) {
-      #stage-toolbar { left: 12px; right: 12px; top: auto; bottom: 290px; }
-      #inspector { width: 290px; }
-      #lower-drawer { right: 12px; }
-      #compare-modal { right: 12px; }
-      .ws-layout { grid-template-columns: 1fr; }
-      .foley-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 720px) {
-      #sky-header { max-width: calc(100vw - 24px); }
-      #inspector { top: auto; left: 12px; right: 12px; width: auto; max-height: 48vh; }
-      #inspector.collapsed { transform: translateY(120%); }
-      .cmp-grid { grid-template-columns: 1fr; }
-    }
+    .foley-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+    .foley-pad { text-align: left; padding: 7px 8px; background: rgba(255, 255, 255, 0.035); border: 1px solid var(--rule); border-radius: 5px; color: var(--ink); cursor: pointer; }
+    .foley-pad:hover, .foley-pad.active { border-color: var(--lime); background: rgba(188, 232, 104, 0.14); }
+    .foley-code { font: 700 10.5px var(--mono); color: var(--amber); display: flex; justify-content: space-between; }
+    .foley-law { font-size: 9.5px; color: var(--dim); margin-top: 3px; line-height: 1.3; }
   </style>
 </head>
 <body>
   <div id="stage-wrap" aria-label="Registered 3D Multiplane WEAVE Stage"></div>
+  <div id="world-whisper" aria-hidden="true"></div>
   <div id="toast" role="status" aria-live="polite"></div>
 
-  <!-- Quiet Sky Region Header & Shot Selector -->
+  <!-- Optional Raw Workbench (Hidden on load; summoned only via Tab) -->
   <section id="sky-header">
     <div class="kicker-row">
       <span class="kicker">WEAVE MULTIPLANE STAGE · HYBRID SET</span>
@@ -575,7 +387,6 @@
     </div>
   </section>
 
-  <!-- Stage Action Toolbar (Brief 3 & Brief 7 Operations) -->
   <div id="stage-toolbar" role="toolbar" aria-label="Stage and Camera Controls">
     <div class="tb-cluster">
       <button class="btn amber" id="btn-play-encounter" title="Run inhabited arrival, parcel handoff, and threshold crossing">Play Encounter</button>
@@ -589,7 +400,6 @@
     </div>
   </div>
 
-  <!-- Side-by-Side 3-Up Comparison View -->
   <section id="compare-modal" aria-label="Side-by-Side Original, Layered WEAVE, and Spatial 3D Comparison">
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <span class="kicker">ALIGNED SOURCE COMPARISON · ORIGINAL / LAYERED WEAVE / SPATIAL 3D HYBRID SET</span>
@@ -614,14 +424,12 @@
     </div>
   </section>
 
-  <!-- Right Inspector: Severn Pilot State, Multiplane Mix & Provenance Ledger -->
   <aside id="inspector" aria-label="WEAVE Ledger and Shared World Inspector">
     <div class="insp-head">
       <h2>Severn Pilot &amp; WEAVE Ledger</h2>
       <button class="btn" id="btn-collapse-inspector" title="Collapse Inspector">Hide</button>
     </div>
     <div class="insp-body">
-      <!-- Brief 9: Shared Severn Pilot State -->
       <div class="card">
         <h3>Shared World Record <span id="pilot-sync-badge" style="color:var(--teal)">PILOT-V1</span></h3>
         <div class="pilot-grid">
@@ -638,7 +446,6 @@
         </div>
       </div>
 
-      <!-- Multiplane Depth & Redraw Mix -->
       <div class="card">
         <h3>Multiplane Layer Mix <span id="lbl-cam-lens">35MM</span></h3>
         <div class="ctrl-row">
@@ -663,7 +470,6 @@
         </div>
       </div>
 
-      <!-- Provenance Filter & WEAVE Ledger -->
       <div class="card">
         <h3>Provenance Ledger</h3>
         <div class="prov-pills" id="prov-filter-pills">
@@ -676,7 +482,6 @@
         <div class="ledger-list" id="ledger-list"></div>
       </div>
 
-      <!-- Multiplane P0-P5 Stack -->
       <div class="card">
         <h3>Registered Depth Stack <span id="lbl-sheet-count">6 Planes</span></h3>
         <div id="planes-list"></div>
@@ -685,7 +490,6 @@
   </aside>
   <button class="btn" id="btn-toggle-inspector">Open Ledger</button>
 
-  <!-- Bottom Toggleable Spine-Cut (#spine) & World Score (#worldscore) Drawer -->
   <section id="lower-drawer" aria-label="Spine-Cut and World Score Workbench">
     <div class="drawer-bar">
       <div class="drawer-tabs" id="drawer-tabs">
@@ -702,12 +506,10 @@
     </div>
 
     <div class="drawer-body">
-      <!-- PANE 1: #spine -->
       <div class="drawer-pane on" id="pane-spine">
         <div class="spine-rows" id="spine-rows"></div>
       </div>
 
-      <!-- PANE 2: #worldscore -->
       <div class="drawer-pane" id="pane-worldscore">
         <div class="ws-layout">
           <div>
@@ -734,7 +536,6 @@
         </div>
       </div>
 
-      <!-- PANE 3: #Dr-OUT Periodic Sound Table Territory Pads -->
       <div class="drawer-pane" id="pane-foley">
         <div class="foley-grid" id="foley-grid"></div>
       </div>

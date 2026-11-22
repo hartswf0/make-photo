@@ -602,9 +602,9 @@ function getOrCreateSharedSuite(initOpts = {}) {
     }
   }
 
-  controller.showToast = (msg, ms = 2800) => {
+  controller.showToast = (msg, ms = 1800) => {
     const t = controller.ui.toast;
-    if (!t) return;
+    if (!t || !controller.ui.root?.classList.contains('mp-tab-open')) return;
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(controller.toastTimer);
@@ -624,13 +624,13 @@ function getOrCreateSharedSuite(initOpts = {}) {
     }
   };
 
-  controller.nextLook = (announce = true) => {
+  controller.nextLook = (announce = false) => {
     const idx = ALL_CITY_LOOKS.findIndex((l) => l.id === state.lookId);
     const next = ALL_CITY_LOOKS[(idx + 1) % ALL_CITY_LOOKS.length];
     controller.setLook(next.id, announce, true);
   };
 
-  controller.prevLook = (announce = true) => {
+  controller.prevLook = (announce = false) => {
     const idx = ALL_CITY_LOOKS.findIndex((l) => l.id === state.lookId);
     const prev = ALL_CITY_LOOKS[(idx - 1 + ALL_CITY_LOOKS.length) % ALL_CITY_LOOKS.length];
     controller.setLook(prev.id, announce, true);
@@ -829,9 +829,9 @@ function getOrCreateSharedSuite(initOpts = {}) {
       controller.ui.routeAnchors = [...pillAnchors, ...cardAnchors];
     }
 
-    // 2. Bottom 23-Shader, Lens, Time, 5-Bus Sound & Plate Capture Capsule
+    // 2. Bottom 23-Shader, Lens, Time, 5-Bus Sound & Plate Capture Capsule (Tab-only)
     const dock = document.createElement('div');
-    dock.className = 'mp-shader-dock' + (isEntrancePage || initOpts.collapsedDock ? ' mp-dock-collapsed' : '');
+    dock.className = 'mp-shader-dock';
     dock.setAttribute('role', 'region');
     dock.setAttribute('aria-label', 'GPU Shader, Camera, Sound and Shared Pilot Controls');
 
@@ -1313,21 +1313,62 @@ function getOrCreateSharedSuite(initOpts = {}) {
       syncPilotToUI(nextPilot);
     });
 
-    // Global Hotkeys: [ / ] for shader cycling, Space for Expose Plate
+    // Global Silent Diegetic Hotkeys:
+    // Tab -> toggle translucent diagnostic drawer
+    // [ / ] -> cycle all 23 GPU shaders
+    // 1-4 -> Dawn / Midday / Blue Hour / Night
+    // Space -> expose 8x10 plate
+    // M -> start sound or toggle mute
     window.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       const activeEl = document.activeElement;
       const tag = activeEl ? activeEl.tagName : '';
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || activeEl?.isContentEditable) {
+      const inFormField =
+        tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || activeEl?.isContentEditable;
+
+      if (e.key === 'Tab' && !inFormField) {
+        e.preventDefault();
+        const nextOpen = !root.classList.contains('mp-tab-open');
+        root.classList.toggle('mp-tab-open', nextOpen);
+        document.body.classList.toggle('mp-tab-open', nextOpen);
+        if (!nextOpen) {
+          soundPopover.classList.remove('open');
+          pilotPopover.classList.remove('open');
+          const rd = root.querySelector('.mp-route-drawer');
+          if (rd) rd.classList.remove('open');
+        }
         return;
       }
+
+      if (e.key === 'Escape') {
+        root.classList.remove('mp-tab-open');
+        document.body.classList.remove('mp-tab-open');
+        soundPopover.classList.remove('open');
+        pilotPopover.classList.remove('open');
+        const rd = root.querySelector('.mp-route-drawer');
+        if (rd) rd.classList.remove('open');
+        return;
+      }
+
+      if (inFormField) return;
+
       if (e.key === '[') {
         e.preventDefault();
-        controller.prevLook(true);
+        controller.prevLook(false);
       } else if (e.key === ']') {
         e.preventDefault();
-        controller.nextLook(true);
+        controller.nextLook(false);
+      } else if (initOpts.timeHotkeys !== false && (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4')) {
+        const timeMap = { '1': 'dawn', '2': 'midday', '3': 'bluehour', '4': 'night' };
+        controller.setTime(timeMap[e.key], false, true);
+      } else if ((e.key === 'm' || e.key === 'M') && !e.repeat && initOpts.muteHotkey !== false) {
+        if (!audio.enabled) {
+          audio.toggle().then(() => syncAudioUI());
+        } else {
+          audio.setMuted(!audio.muted, true);
+          syncAudioUI();
+        }
       } else if (e.code === 'Space' && !e.repeat && tag !== 'BUTTON' && initOpts.captureOnSpace !== false) {
-        // Only prevent default if page body doesn't scroll
         if (getComputedStyle(document.body).overflow === 'hidden') {
           e.preventDefault();
         }
@@ -1692,6 +1733,699 @@ export function mountCanvas2DShaderSuite({
       overlayRenderer.dispose();
       const idx = ctrl.targets.indexOf(targetEntry);
       if (idx >= 0) ctrl.targets.splice(idx, 1);
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 4. Diegetic World-Space Projection Helper (Plain 1-line whisper anchor)
+// ---------------------------------------------------------------------------
+const _projWorldVec = new THREE_DEFAULT.Vector3();
+const _projViewVec = new THREE_DEFAULT.Vector3();
+const _projNdcVec = new THREE_DEFAULT.Vector3();
+
+export function projectWorldLabel(camera, worldVec3, viewportOrEl = null) {
+  if (!camera || !worldVec3) {
+    return { visible: false, inFront: false, x: -9999, y: -9999, left: -9999, top: -9999, ndcX: 0, ndcY: 0, ndcZ: 2, dist: Infinity };
+  }
+  if (Array.isArray(worldVec3)) {
+    _projWorldVec.set(Number(worldVec3[0]) || 0, Number(worldVec3[1]) || 0, Number(worldVec3[2]) || 0);
+  } else {
+    _projWorldVec.set(Number(worldVec3.x) || 0, Number(worldVec3.y) || 0, Number(worldVec3.z) || 0);
+  }
+
+  camera.updateMatrixWorld();
+  _projViewVec.copy(_projWorldVec).applyMatrix4(camera.matrixWorldInverse);
+  const inFront = camera.isPerspectiveCamera ? _projViewVec.z < -0.08 : true;
+  const dist = camera.position ? _projWorldVec.distanceTo(camera.position) : Math.abs(_projViewVec.z);
+
+  _projNdcVec.copy(_projWorldVec).project(camera);
+
+  let left = 0;
+  let top = 0;
+  let width = typeof window !== 'undefined' ? window.innerWidth : 1280;
+  let height = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+  if (viewportOrEl && typeof viewportOrEl.getBoundingClientRect === 'function') {
+    const rect = viewportOrEl.getBoundingClientRect();
+    if (rect.width > 1 && rect.height > 1) {
+      left = rect.left;
+      top = rect.top;
+      width = rect.width;
+      height = rect.height;
+    }
+  } else if (viewportOrEl && typeof viewportOrEl.width === 'number' && typeof viewportOrEl.height === 'number') {
+    width = viewportOrEl.width;
+    height = viewportOrEl.height;
+  }
+
+  const x = left + (_projNdcVec.x * 0.5 + 0.5) * width;
+  const y = top + (-_projNdcVec.y * 0.5 + 0.5) * height;
+  const visible =
+    inFront &&
+    _projNdcVec.x >= -1.04 &&
+    _projNdcVec.x <= 1.04 &&
+    _projNdcVec.y >= -1.04 &&
+    _projNdcVec.y <= 1.04 &&
+    _projNdcVec.z >= -1.0 &&
+    _projNdcVec.z <= 1.0;
+
+  return {
+    visible,
+    inFront,
+    x,
+    y,
+    left: x,
+    top: y,
+    ndcX: _projNdcVec.x,
+    ndcY: _projNdcVec.y,
+    ndcZ: _projNdcVec.z,
+    dist,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 5. Physical 3D In-World Brass Camera Tripod + 3D Stone/Cyan Portal Thresholds
+// ---------------------------------------------------------------------------
+function resolveSuitePortalPath(rawHref, fallbackId = '') {
+  const cityRootPath = new URL('./', import.meta.url).pathname;
+  const cleanId = String(fallbackId || '').trim().toLowerCase();
+  const knownSlugs = new Set([
+    'design-room',
+    'foundry',
+    'heroes',
+    'island',
+    'maps',
+    'weave',
+    'pointcloud',
+    'atlantis',
+    'worldtext',
+  ]);
+
+  if (!rawHref && knownSlugs.has(cleanId)) {
+    return `${cityRootPath}${cleanId}/`;
+  }
+  if (!rawHref && (cleanId === 'nolli' || cleanId === 'city')) {
+    return cityRootPath;
+  }
+
+  const s = String(rawHref || '').trim();
+  if (!s) return cityRootPath;
+  if (/^https?:\/\//i.test(s)) return s;
+
+  const noHash = s.split('#')[0];
+  if (noHash === '../' || noHash === './' || noHash === '/city/' || noHash === 'nolli') {
+    return cityRootPath;
+  }
+
+  const slugMatch = noHash.match(/^(?:\.\.\/|\.\/)?(design-room|foundry|heroes|island|maps|weave|pointcloud|atlantis|worldtext)\/?$/i);
+  if (slugMatch) {
+    return `${cityRootPath}${slugMatch[1].toLowerCase()}/`;
+  }
+
+  try {
+    return new URL(noHash, typeof window !== 'undefined' ? window.location.href : import.meta.url).pathname;
+  } catch {
+    return noHash;
+  }
+}
+
+function toVec3Coords(val, defX = 0, defY = 0, defZ = 0) {
+  if (!val) return { x: defX, y: defY, z: defZ };
+  if (Array.isArray(val)) {
+    return {
+      x: Number(val[0]) || 0,
+      y: Number(val[1]) || 0,
+      z: Number(val[2]) || 0,
+    };
+  }
+  return {
+    x: Number(val.x ?? defX) || 0,
+    y: Number(val.y ?? defY) || 0,
+    z: Number(val.z ?? defZ) || 0,
+  };
+}
+
+export function createWorldPortalAndTripod({
+  THREE = THREE_DEFAULT,
+  scene,
+  camera,
+  domElement,
+  suite,
+  portals = [],
+  tripodPos = { x: 2.6, y: 0, z: 8.5 },
+  onTripodClick = null,
+  onNavigate = null,
+} = {}) {
+  ensureSuiteStylesheet();
+
+  if (!scene) {
+    return {
+      group: null,
+      tripodGroup: null,
+      portalGroups: [],
+      hitMeshes: [],
+      whisperEl: null,
+      update: () => {},
+      setCamera: () => {},
+      destroy: () => {},
+    };
+  }
+
+  let activeCam = camera || null;
+  const targetEl =
+    domElement ||
+    (typeof document !== 'undefined' ? document.querySelector('canvas') : null);
+
+  const rootGroup = new THREE.Group();
+  rootGroup.name = 'mp-diegetic-world-rig';
+  scene.add(rootGroup);
+
+  const brassMat = new THREE.MeshStandardMaterial({
+    color: '#d9ad62',
+    roughness: 0.28,
+    metalness: 0.82,
+    emissive: '#3d2c10',
+    emissiveIntensity: 0.18,
+  });
+  const mahoganyMat = new THREE.MeshStandardMaterial({
+    color: '#4a2918',
+    roughness: 0.56,
+    metalness: 0.12,
+  });
+  const bellowsMat = new THREE.MeshStandardMaterial({
+    color: '#191b1f',
+    roughness: 0.86,
+    metalness: 0.08,
+  });
+  const lensGlassMat = new THREE.MeshStandardMaterial({
+    color: '#7fe0ff',
+    emissive: '#18b4ff',
+    emissiveIntensity: 0.95,
+    roughness: 0.12,
+    metalness: 0.35,
+  });
+  const stoneMat = new THREE.MeshStandardMaterial({
+    color: '#7b7468',
+    roughness: 0.86,
+    metalness: 0.06,
+  });
+  const stoneTrimMat = new THREE.MeshStandardMaterial({
+    color: '#9c9282',
+    roughness: 0.72,
+    metalness: 0.14,
+  });
+  const hitInvisibleMat = new THREE.MeshBasicMaterial({ visible: false });
+
+  const hitMeshes = [];
+  const interactiveEntries = [];
+  let tripodGroup = null;
+
+  // 1. Spawn Physical 3D Brass 8x10 Field Camera Tripod
+  if (tripodPos !== false && tripodPos !== null) {
+    const tp = toVec3Coords(tripodPos, 2.6, 0, 8.5);
+    tripodGroup = new THREE.Group();
+    tripodGroup.name = 'mp-brass-tripod';
+    tripodGroup.position.set(tp.x, tp.y, tp.z);
+    if (typeof tripodPos === 'object' && !Array.isArray(tripodPos)) {
+      const ry = tripodPos.rotY ?? tripodPos.rotationY ?? tripodPos.yaw;
+      if (typeof ry === 'number') tripodGroup.rotation.y = ry;
+      if (typeof tripodPos.scale === 'number') tripodGroup.scale.setScalar(tripodPos.scale);
+    }
+
+    // Three splayed wood-and-brass legs
+    for (let i = 0; i < 3; i++) {
+      const ang = (i / 3) * Math.PI * 2 + 0.25;
+      const legPivot = new THREE.Group();
+      legPivot.position.set(0, 1.28, 0);
+      legPivot.rotation.y = ang;
+      legPivot.rotation.z = 0.27;
+      const upperLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.018, 1.34, 8), mahoganyMat);
+      upperLeg.position.y = -0.66;
+      upperLeg.castShadow = true;
+      legPivot.add(upperLeg);
+      const brassFoot = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.008, 0.22, 8), brassMat);
+      brassFoot.position.y = -1.24;
+      legPivot.add(brassFoot);
+      tripodGroup.add(legPivot);
+    }
+
+    // Brass crown & riser column
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 0.07, 14), brassMat);
+    crown.position.y = 1.29;
+    crown.castShadow = true;
+    tripodGroup.add(crown);
+
+    // 8x10 Mahogany rear standard + pleated bellows + front brass lens board
+    const rearStandard = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.26, 0.08), mahoganyMat);
+    rearStandard.position.set(0, 1.46, -0.10);
+    rearStandard.castShadow = true;
+    tripodGroup.add(rearStandard);
+
+    const groundGlass = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.24, 0.19),
+      new THREE.MeshStandardMaterial({
+        color: '#d8f3ff',
+        emissive: '#4cbfff',
+        emissiveIntensity: 0.45,
+        roughness: 0.22,
+        side: THREE.DoubleSide,
+      })
+    );
+    groundGlass.position.set(0, 1.46, -0.145);
+    tripodGroup.add(groundGlass);
+
+    const bellows = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.20, 0.22), bellowsMat);
+    bellows.position.set(0, 1.45, 0.04);
+    bellows.castShadow = true;
+    tripodGroup.add(bellows);
+
+    const frontStandard = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.23, 0.05), brassMat);
+    frontStandard.position.set(0, 1.45, 0.17);
+    tripodGroup.add(frontStandard);
+
+    const lensBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.076, 0.12, 16), brassMat);
+    lensBarrel.rotation.x = Math.PI / 2;
+    lensBarrel.position.set(0, 1.45, 0.24);
+    tripodGroup.add(lensBarrel);
+
+    const lensFront = new THREE.Mesh(new THREE.CircleGeometry(0.058, 16), lensGlassMat);
+    lensFront.position.set(0, 1.45, 0.302);
+    tripodGroup.add(lensFront);
+
+    // Brass shutter release bulb on side
+    const shutterBulb = new THREE.Mesh(new THREE.SphereGeometry(0.042, 10, 8), brassMat);
+    shutterBulb.position.set(0.21, 1.38, 0.06);
+    shutterBulb.userData = { mpKind: 'tripod', mpPart: 'shutter' };
+    tripodGroup.add(shutterBulb);
+    hitMeshes.push(shutterBulb);
+
+    const tripodHit = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 1.92, 10), hitInvisibleMat);
+    tripodHit.position.y = 0.96;
+    const tripodEntry = {
+      kind: 'tripod',
+      group: tripodGroup,
+      anchorLocal: new THREE.Vector3(0, 1.88, 0),
+      customLabel: typeof tripodPos === 'object' && tripodPos.label ? tripodPos.label : '',
+      getWhisperText: () => {
+        const activeSuite = suite || sharedSuite;
+        const st = activeSuite?.getState ? activeSuite.getState() : sharedSuite?.state;
+        const lookId = st?.lookId || loadPilotState().shader || 'weave';
+        const lookObj = ALL_CITY_LOOKS.find((l) => l.id === lookId) || ALL_CITY_LOOKS[0];
+        return tripodEntry.customLabel || `8x10 Brass Tripod · ${lookObj.name} — click look · shift+click expose`;
+      },
+    };
+    tripodHit.userData = { mpKind: 'tripod', mpEntry: tripodEntry };
+    shutterBulb.userData.mpEntry = tripodEntry;
+    tripodGroup.add(tripodHit);
+    hitMeshes.push(tripodHit);
+    interactiveEntries.push(tripodEntry);
+    rootGroup.add(tripodGroup);
+  }
+
+  // 2. Spawn Physical 3D Stone & Cyan Portal Thresholds
+  const portalGroups = [];
+  const portalEntries = [];
+  const safePortals = Array.isArray(portals) ? portals : [];
+
+  safePortals.forEach((pDef, idx) => {
+    if (!pDef) return;
+    const fallbackAng = (idx / Math.max(1, safePortals.length)) * Math.PI * 1.4 - Math.PI * 0.7;
+    const rawPos = pDef.pos || pDef.position || (typeof pDef.x === 'number' ? pDef : null);
+    const coords = rawPos
+      ? toVec3Coords(rawPos)
+      : { x: Math.sin(fallbackAng) * 16, y: 0, z: Math.cos(fallbackAng) * 16 };
+
+    const pGroup = new THREE.Group();
+    pGroup.name = `mp-portal-${pDef.id || idx}`;
+    pGroup.position.set(coords.x, coords.y, coords.z);
+
+    const explicitYaw = pDef.rotY ?? pDef.rotationY ?? pDef.yaw;
+    if (typeof explicitYaw === 'number') {
+      pGroup.rotation.y = explicitYaw;
+    } else {
+      pGroup.lookAt(0, coords.y, 0);
+    }
+    if (typeof pDef.scale === 'number') {
+      pGroup.scale.setScalar(pDef.scale);
+    }
+
+    const accentHex = pDef.color || '#18b4ff';
+    const cyanArchMat = new THREE.MeshStandardMaterial({
+      color: accentHex,
+      emissive: accentHex,
+      emissiveIntensity: 1.35,
+      roughness: 0.22,
+      metalness: 0.3,
+    });
+    const veilMat = new THREE.MeshBasicMaterial({
+      color: accentHex,
+      transparent: true,
+      opacity: 0.13,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
+    // Weathered stone sill plinth
+    const sill = new THREE.Mesh(new THREE.BoxGeometry(2.45, 0.16, 0.68), stoneTrimMat);
+    sill.position.y = 0.08;
+    sill.receiveShadow = true;
+    pGroup.add(sill);
+
+    // Twin carved Severn stone piers
+    const pierGeo = new THREE.BoxGeometry(0.32, 2.95, 0.44);
+    const pierL = new THREE.Mesh(pierGeo, stoneMat);
+    pierL.position.set(-0.98, 1.55, 0);
+    pierL.castShadow = true;
+    const pierR = new THREE.Mesh(pierGeo, stoneMat);
+    pierR.position.set(0.98, 1.55, 0);
+    pierR.castShadow = true;
+    pGroup.add(pierL, pierR);
+
+    // Stone lintel & recessed cyan tide-slit
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.56, 0.34, 0.54), stoneTrimMat);
+    lintel.position.set(0, 3.16, 0);
+    lintel.castShadow = true;
+    pGroup.add(lintel);
+
+    const cyanSlit = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.075, 0.58), cyanArchMat);
+    cyanSlit.position.set(0, 2.96, 0);
+    pGroup.add(cyanSlit);
+
+    // Subtle translucent cyan optical threshold veil
+    const veil = new THREE.Mesh(new THREE.PlaneGeometry(1.62, 2.76), veilMat);
+    veil.position.set(0, 1.54, 0);
+    pGroup.add(veil);
+
+    const resolvedBaseHref = resolveSuitePortalPath(
+      pDef.href || pDef.url || pDef.rel || pDef.to || pDef.target,
+      pDef.destId || pDef.id || pDef.name
+    );
+    const rawTitle = pDef.label || pDef.title || pDef.name || 'Enter Threshold';
+    const whisperLabel = pDef.whisper || (rawTitle.includes('->') ? rawTitle : `Threshold -> ${rawTitle}`);
+
+    const portalEntry = {
+      kind: 'portal',
+      def: pDef,
+      group: pGroup,
+      veilMat,
+      cyanArchMat,
+      resolvedBaseHref,
+      walkRadius: Number(pDef.walkRadius ?? pDef.radius ?? 1.45),
+      armed: false,
+      anchorLocal: new THREE.Vector3(0, 3.48, 0),
+      getWhisperText: () => whisperLabel,
+    };
+
+    const hitBox = new THREE.Mesh(new THREE.BoxGeometry(2.35, 3.25, 0.92), hitInvisibleMat);
+    hitBox.position.set(0, 1.62, 0);
+    hitBox.userData = { mpKind: 'portal', mpEntry: portalEntry };
+    pGroup.add(hitBox);
+
+    hitMeshes.push(hitBox);
+    portalGroups.push(pGroup);
+    portalEntries.push(portalEntry);
+    interactiveEntries.push(portalEntry);
+    rootGroup.add(pGroup);
+  });
+
+  // 3. Single Floating World-Projected 1-Line Diegetic Whisper (Zero Box, Zero Panel)
+  let whisperEl = null;
+  if (typeof document !== 'undefined') {
+    whisperEl = document.createElement('div');
+    whisperEl.className = 'mp-world-whisper';
+    whisperEl.setAttribute('aria-live', 'polite');
+    document.body.appendChild(whisperEl);
+  }
+
+  const raycaster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  const worldAnchorScratch = new THREE.Vector3();
+  const observerVec = new THREE.Vector3();
+  const initialObserverVec = new THREE.Vector3();
+  let initialObserverRecorded = false;
+  let observerHasMoved = false;
+  let hoveredEntry = null;
+  let transientWhisper = null; // { entry, text, until }
+  let navigating = false;
+  let destroyed = false;
+  const createdAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  let downPos = { x: 0, y: 0 };
+
+  function navigateToPortal(portalEntry) {
+    if (!portalEntry || navigating) return;
+    const activeSuite = suite || sharedSuite;
+    activeSuite?.audio?.playDoorTransition?.(true);
+    if (typeof portalEntry.def?.onSelect === 'function') {
+      portalEntry.def.onSelect(portalEntry);
+      return;
+    }
+    const fullHref = portalEntry.resolvedBaseHref + formatPilotHash(loadPilotState());
+    if (typeof onNavigate === 'function') {
+      const handled = onNavigate(portalEntry.def, fullHref);
+      if (handled === true) return;
+    }
+    navigating = true;
+    if (typeof window !== 'undefined') {
+      window.location.href = fullHref;
+    }
+  }
+
+  function computeNdcFromEvent(e) {
+    if (targetEl && typeof targetEl.getBoundingClientRect === 'function') {
+      const r = targetEl.getBoundingClientRect();
+      if (r.width > 2 && r.height > 2) {
+        ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+        return true;
+      }
+    }
+    if (typeof window !== 'undefined') {
+      ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+      return true;
+    }
+    return false;
+  }
+
+  function raycastInteractive(e) {
+    if (!activeCam || hitMeshes.length === 0 || !computeNdcFromEvent(e)) return null;
+    raycaster.setFromCamera(ndc, activeCam);
+    const hits = raycaster.intersectObjects(hitMeshes, false);
+    if (hits.length > 0 && hits[0].distance < 58) {
+      return hits[0];
+    }
+    return null;
+  }
+
+  function onPointerDown(e) {
+    downPos.x = e.clientX;
+    downPos.y = e.clientY;
+  }
+
+  function onPointerMove(e) {
+    if (destroyed) return;
+    const hit = raycastInteractive(e);
+    hoveredEntry = hit ? hit.object.userData.mpEntry : null;
+    if (targetEl && targetEl.style) {
+      if (hoveredEntry) {
+        targetEl.dataset.mpPrevCursor = targetEl.dataset.mpPrevCursor ?? targetEl.style.cursor;
+        targetEl.style.cursor = 'pointer';
+      } else if (targetEl.dataset.mpPrevCursor !== undefined) {
+        targetEl.style.cursor = targetEl.dataset.mpPrevCursor;
+        delete targetEl.dataset.mpPrevCursor;
+      }
+    }
+  }
+
+  function onPointerUp(e) {
+    if (destroyed || e.button !== 0) return;
+    const moved = Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y);
+    if (moved > 7) return;
+    const hit = raycastInteractive(e);
+    if (!hit) return;
+
+    const entry = hit.object.userData.mpEntry;
+    if (!entry) return;
+
+    if (entry.kind === 'tripod') {
+      const activeSuite = suite || sharedSuite;
+      const isShutter = e.shiftKey || hit.object.userData.mpPart === 'shutter';
+      if (typeof onTripodClick === 'function') {
+        const consumed = onTripodClick({ event: e, isShutter, hit, entry, suite: activeSuite });
+        if (consumed === true) return;
+      }
+      if (isShutter) {
+        const plate = activeSuite?.exposePlate ? activeSuite.exposePlate() : null;
+        transientWhisper = {
+          entry,
+          text: plate ? `Exposed ${plate.id} (${plate.stock}) -> Nolli Archive` : '8x10 Plate Exposed',
+          until: performance.now() + 2000,
+        };
+      } else {
+        if (activeSuite?.nextLook) {
+          activeSuite.nextLook(false);
+        }
+        const st = activeSuite?.getState ? activeSuite.getState() : sharedSuite?.state;
+        const lookObj = ALL_CITY_LOOKS.find((l) => l.id === st?.lookId) || ALL_CITY_LOOKS[0];
+        transientWhisper = {
+          entry,
+          text: `8x10 Brass Tripod · ${lookObj.name} — shift+click expose`,
+          until: performance.now() + 2000,
+        };
+      }
+    } else if (entry.kind === 'portal') {
+      navigateToPortal(entry);
+    }
+  }
+
+  const eventTarget = targetEl || (typeof window !== 'undefined' ? window : null);
+  if (eventTarget && typeof eventTarget.addEventListener === 'function') {
+    eventTarget.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  }
+
+  let explicitObserverUpdatedAt = 0;
+
+  function stepRig(customObserverPos = null) {
+    if (destroyed || !activeCam) return;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const tSec = now * 0.001;
+
+    if (customObserverPos) {
+      const c = toVec3Coords(customObserverPos);
+      observerVec.set(c.x, c.y, c.z);
+      explicitObserverUpdatedAt = now;
+    } else if (now - explicitObserverUpdatedAt > 250 && activeCam.position) {
+      observerVec.copy(activeCam.position);
+    }
+
+    if (!initialObserverRecorded && (customObserverPos || activeCam.position)) {
+      initialObserverVec.copy(observerVec);
+      initialObserverRecorded = true;
+    } else if (initialObserverRecorded && !observerHasMoved) {
+      if (observerVec.distanceToSquared(initialObserverVec) > 0.04) {
+        observerHasMoved = true;
+      }
+    }
+
+    // Subtle portal shimmer + walk-in threshold check
+    for (const p of portalEntries) {
+      const wp = p.group.getWorldPosition(worldAnchorScratch);
+      const dx = observerVec.x - wp.x;
+      const dz = observerVec.z - wp.z;
+      const horizDist = Math.hypot(dx, dz);
+      const vertDist = Math.abs(observerVec.y - wp.y);
+
+      const nearFactor = horizDist < 7.0 ? 1 - horizDist / 7.0 : 0;
+      p.veilMat.opacity = 0.11 + nearFactor * 0.14 + Math.sin(tSec * 2.4) * 0.025;
+      p.cyanArchMat.emissiveIntensity = 1.2 + nearFactor * 0.9;
+
+      if (horizDist > p.walkRadius + 0.85) {
+        p.armed = true;
+      } else if (
+        p.armed &&
+        p.walkRadius > 0 &&
+        now - createdAt > 1800 &&
+        horizDist < p.walkRadius &&
+        vertDist < 2.6
+      ) {
+        navigateToPortal(p);
+        return;
+      }
+    }
+
+    // Project 1-line diegetic whisper ONLY when hovered, just clicked, or moved within 5m
+    if (!whisperEl) return;
+
+    let chosenEntry = null;
+    let chosenText = '';
+
+    if (transientWhisper && now < transientWhisper.until) {
+      chosenEntry = transientWhisper.entry;
+      chosenText = transientWhisper.text;
+    } else {
+      transientWhisper = null;
+      if (hoveredEntry) {
+        chosenEntry = hoveredEntry;
+        chosenText = hoveredEntry.getWhisperText();
+      } else if (observerHasMoved) {
+        let bestDist = 5.0;
+        for (const entry of interactiveEntries) {
+          const wp = entry.group.getWorldPosition(worldAnchorScratch);
+          const d = wp.distanceTo(observerVec);
+          if (d <= bestDist) {
+            const anchorWorld = entry.anchorLocal.clone().applyMatrix4(entry.group.matrixWorld);
+            const prj = projectWorldLabel(activeCam, anchorWorld, targetEl);
+            if (prj.visible) {
+              bestDist = d;
+              chosenEntry = entry;
+              chosenText = entry.getWhisperText();
+            }
+          }
+        }
+      }
+    }
+
+    if (chosenEntry && chosenText) {
+      chosenEntry.group.updateWorldMatrix(true, false);
+      const anchorWorld = worldAnchorScratch.copy(chosenEntry.anchorLocal).applyMatrix4(chosenEntry.group.matrixWorld);
+      const proj = projectWorldLabel(activeCam, anchorWorld, targetEl);
+      if (proj.visible) {
+        whisperEl.textContent = chosenText;
+        whisperEl.style.left = `${Math.round(proj.x)}px`;
+        whisperEl.style.top = `${Math.round(proj.y - 6)}px`;
+        whisperEl.classList.add('visible');
+        return;
+      }
+    }
+
+    whisperEl.classList.remove('visible');
+  }
+
+  function autoTick() {
+    if (destroyed) return;
+    if (typeof performance !== 'undefined' && performance.now() - explicitObserverUpdatedAt > 80) {
+      stepRig(null);
+    }
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(autoTick);
+    }
+  }
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(autoTick);
+  }
+
+  return {
+    group: rootGroup,
+    tripodGroup,
+    portalGroups,
+    portalEntries,
+    hitMeshes,
+    whisperEl,
+    setCamera: (nextCam) => {
+      if (nextCam) activeCam = nextCam;
+    },
+    setWhisper: (text, ms = 2000, targetEntry = null) => {
+      const chosen = targetEntry || interactiveEntries[0] || null;
+      if (!chosen || !text) return;
+      transientWhisper = {
+        entry: chosen,
+        text,
+        until: (typeof performance !== 'undefined' ? performance.now() : Date.now()) + ms,
+      };
+    },
+    projectLabel: (vec3) => projectWorldLabel(activeCam, vec3, targetEl),
+    navigateToPortal,
+    update: (observerPos) => stepRig(observerPos),
+    destroy: () => {
+      destroyed = true;
+      if (eventTarget && typeof eventTarget.removeEventListener === 'function') {
+        eventTarget.removeEventListener('pointerdown', onPointerDown);
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+      }
+      if (whisperEl) whisperEl.remove();
+      if (rootGroup.parent) rootGroup.parent.remove(rootGroup);
     },
   };
 }

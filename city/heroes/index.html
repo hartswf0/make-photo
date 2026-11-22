@@ -6,7 +6,7 @@
   <script type="importmap">{"imports":{"three":"../../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
   <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
   <link rel="stylesheet" href="../suite-nav.css">
-  <title>MAKE-PHOTO CITY · Hero Building &amp; Iconic Inspector — Severn &amp; Peers</title>
+  <title>MAKE-PHOTO CITY - Walkable 3D Hero Street Promenade (All 6 HDL Heroes)</title>
   <style>
     :root {
       --bg: #0c1f38;
@@ -24,6 +24,7 @@
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
+      width: 100%;
       height: 100%;
       overflow: hidden;
       background: var(--bg);
@@ -45,6 +46,30 @@
       width: 100%;
       height: 100%;
     }
+
+    /* Pure unboxed 1-line world-projected diegetic whisper (shown ONLY on 3D hover/action) */
+    #world-whisper {
+      position: fixed;
+      z-index: 14;
+      pointer-events: none;
+      display: none;
+      transform: translate(-50%, -135%);
+      color: #f7f2e7;
+      font: 500 13px/1.35 Georgia, "Times New Roman", serif;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      text-shadow: 0 1px 4px rgba(4, 10, 18, 0.98), 0 0 14px rgba(4, 10, 18, 0.9);
+    }
+
+    /* Pure Diegetic Default: ALL overlaid building grids, checklists, beat boxes & bars hidden on load (Tab toggles body.mp-tab-open) */
+    body:not(.mp-tab-open) #heroes-top,
+    body:not(.mp-tab-open) #left-roster,
+    body:not(.mp-tab-open) #right-inspector,
+    body:not(.mp-tab-open) #bottom-bar,
+    body:not(.mp-tab-open) #beat-labels {
+      display: none !important;
+    }
+
     #beat-labels {
       position: fixed;
       inset: 0;
@@ -72,10 +97,9 @@
       margin-top: 2px;
     }
 
-    /* Top Header & Lighting Audit Bar */
     #heroes-top {
       position: fixed;
-      top: 74px;
+      top: 58px;
       left: 12px;
       right: 12px;
       z-index: 18;
@@ -143,14 +167,13 @@
       color: #dff6ff;
     }
 
-    /* Left Roster & Cutaway Controls */
     #left-roster {
       position: fixed;
-      top: 172px;
+      top: 156px;
       left: 12px;
       z-index: 17;
       width: 262px;
-      max-height: calc(100vh - 298px);
+      max-height: calc(100vh - 280px);
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -202,14 +225,13 @@
     .badge-pass { color: var(--ok); font-size: 10px; font-weight: 700; }
     .badge-warn { color: var(--warn); font-size: 10px; font-weight: 700; }
 
-    /* Right Building Inspection Checklist, Aura Sheet & Proofs */
     #right-inspector {
       position: fixed;
-      top: 172px;
+      top: 156px;
       right: 12px;
       z-index: 17;
       width: 312px;
-      max-height: calc(100vh - 298px);
+      max-height: calc(100vh - 280px);
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -265,7 +287,7 @@
 
     #bottom-bar {
       position: fixed;
-      bottom: 118px;
+      bottom: 92px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 19;
@@ -282,7 +304,6 @@
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
     }
 
-    /* Kevin Lynch Iconic City Modal */
     #iconic-modal {
       position: fixed;
       inset: 48px 18px 56px 18px;
@@ -329,27 +350,25 @@
       }
       .modal-grid { grid-template-columns: 1fr; }
     }
-    @media (max-width: 680px) {
-      #left-roster { width: calc(100vw - 16px); bottom: 96px; max-height: 28vh; }
-      #right-inspector { display: none; }
-    }
   </style>
 </head>
 <body>
-  <div id="canvas-wrap" aria-label="Hero Building 3D Inspector Viewport"></div>
+  <div id="canvas-wrap" aria-label="Walkable 3D Hero Street Promenade Viewport"></div>
+  <div id="world-whisper" aria-live="polite"></div>
   <div id="beat-labels"></div>
 
+  <!-- Raw Audit Drawers (hidden on load; toggled only via Tab) -->
   <header id="heroes-top">
     <div class="hud-card">
-      <div class="kicker">Make-Photo City · Brief 4 · Atlantis HDL &amp; Lynch Iconic Inspector</div>
-      <div class="headline" id="hero-title">The Severn — Poem 01 Tenement &amp; Shops</div>
-      <div class="subline" id="hero-note">20 x 12 m · 5 levels · calibrated brick, cantera, granite &amp; fixture-bound aura lights.</div>
+      <div class="kicker">Make-Photo City - Brief 4 - Waterfront Hero Promenade (All 6 HDL Buildings)</div>
+      <div class="headline" id="hero-title">Waterfront Promenade - The Severn &amp; Five HDL Peers</div>
+      <div class="subline" id="hero-note">Walk (WASD) or click any Hero Building, Brass Sundial Lamp Post, or Cutaway Switchstand in 3D.</div>
       <div class="pill-row" id="cam-stations" role="tablist" aria-label="Eye-Level &amp; Room Camera Stations">
-        <button class="pill active" data-cam="hero" type="button">1. Hero Exterior</button>
-        <button class="pill" data-cam="threshold" type="button">2. Threshold (1.65m)</button>
-        <button class="pill" data-cam="standing" type="button">3. Room Standing (1.65m)</button>
-        <button class="pill" data-cam="seated" type="button">4. Room Seated (1.18m)</button>
-        <button class="pill" data-cam="window-out" type="button">5. Window -&gt; Street Out</button>
+        <button class="pill active" data-cam="promenade" type="button">0. Waterfront Promenade</button>
+        <button class="pill" data-cam="threshold" type="button">1. Threshold (1.65m)</button>
+        <button class="pill" data-cam="standing" type="button">2. Room Standing (1.65m)</button>
+        <button class="pill" data-cam="seated" type="button">3. Room Seated (1.18m)</button>
+        <button class="pill" data-cam="window-out" type="button">4. Window -&gt; Street Out</button>
       </div>
     </div>
 
@@ -372,7 +391,7 @@
     </div>
     <div class="drawer-body">
       <div id="hero-list"></div>
-      <div class="sec-head" style="margin-top:8px;"><span>Section, Cutaway &amp; Era</span></div>
+      <div class="sec-head" style="margin-top:8px;"><span>Section &amp; Cutaway</span></div>
       <div class="pill-row" id="rep-modes">
         <button class="pill active" data-rep="resolved" type="button">Resolved</button>
         <button class="pill" data-rep="mass" type="button">Mass</button>
@@ -387,7 +406,6 @@
         <button class="pill" id="btn-lift-front" type="button">Lift Front Wall</button>
         <button class="pill active" id="btn-beats" type="button">Poem Beats</button>
       </div>
-      <div class="pill-row" id="era-buttons" style="margin-top:6px;"></div>
     </div>
   </aside>
 
@@ -408,8 +426,8 @@
   </aside>
 
   <div id="bottom-bar" role="region" aria-label="Walkable Interior and Threshold Controls">
-    <span id="walk-readout" style="font-weight:600;color:var(--cyan);">ORBIT INSPECT</span>
-    <button class="pill" id="btn-walk" type="button">Walk Inside (WASD / V)</button>
+    <span id="walk-readout" style="font-weight:600;color:var(--cyan);">WALK PROMENADE</span>
+    <button class="pill cyan-act" id="btn-walk" type="button">Walk Promenade (WASD)</button>
     <button class="pill cyan-act" id="btn-door" type="button">Door: Open (E)</button>
     <button class="pill" id="btn-parcel" type="button">Parcel: Courier (H)</button>
   </div>
@@ -417,8 +435,8 @@
   <section id="iconic-modal" aria-label="Kevin Lynch Imageable City Map">
     <div class="modal-head">
       <div>
-        <span class="kicker">Upstream iconic/city.json · Paths, Edges, Districts, Nodes &amp; Landmarks</span>
-        <div class="headline" id="iconic-title">The Imageable City — Siting the Six Hero Landmarks</div>
+        <span class="kicker">Upstream iconic/city.json - Paths, Edges, Districts, Nodes &amp; Landmarks</span>
+        <div class="headline" id="iconic-title">The Imageable City - Siting the Six Hero Landmarks</div>
       </div>
       <button class="pill cyan-act" id="btn-close-iconic" type="button">Close (Esc)</button>
     </div>
@@ -429,7 +447,7 @@
       <div>
         <div class="sec-head"><span>Selected Landmark &amp; Canon Evidence</span></div>
         <div id="iconic-detail" style="font-size:11.5px;color:var(--paper);"></div>
-        <div class="sec-head" style="margin-top:12px;"><span>Jump to Hero Landmark</span></div>
+        <div class="sec-head" style="margin-top:12px;"><span>Glide to Hero Landmark</span></div>
         <div id="iconic-hero-links" class="pill-row"></div>
       </div>
     </div>

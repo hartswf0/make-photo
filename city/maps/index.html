@@ -6,7 +6,7 @@
   <script type="importmap">{"imports":{"three":"../../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
   <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
   <link rel="stylesheet" href="../suite-nav.css">
-  <title>MAKE-PHOTO MAPS · Unified City3D, MovieMap, Mood &amp; Elsewhere Atlas</title>
+  <title>MAKE-PHOTO MAPS · Unified City3D, MovieMap, Mood &amp; Elsewhere World</title>
   <style>
     :root {
       --bg: #0c1f38;
@@ -23,6 +23,7 @@
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
+      width: 100%;
       height: 100%;
       overflow: hidden;
       background: var(--bg);
@@ -45,20 +46,77 @@
       height: 100%;
     }
 
-    /* Left Atlas Mode & Inspector Column */
+    /* Strict Diegetic Default: Hide ALL left/right HUD panels, minimap boxes,
+       turn overlays, and era slider cards on load; Tab summons raw drawer only if requested. */
+    body:not(.mp-tab-open) #left-col,
+    body:not(.mp-tab-open) #right-col,
+    body:not(.mp-tab-open) #turn-overlay,
+    body:not(.mp-tab-open) #inspector-toast {
+      display: none !important;
+    }
+
+    /* Unboxed World-Projected Diegetic Typography (hidden until hover / action) */
+    #world-whisper {
+      position: fixed;
+      left: 0;
+      top: 0;
+      transform: translate(-50%, -100%);
+      z-index: 40;
+      display: none;
+      pointer-events: none;
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      color: #f4f0e6;
+      font: 500 12px/1.3 Inter, system-ui, -apple-system, sans-serif;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.96), 0 0 14px rgba(4, 10, 20, 0.92);
+    }
+    #world-speech {
+      position: fixed;
+      left: 0;
+      top: 0;
+      transform: translate(-50%, -100%);
+      z-index: 41;
+      display: none;
+      pointer-events: none;
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      max-width: min(440px, 84vw);
+      text-align: center;
+      color: #f6eedc;
+      font: 500 12.5px/1.36 Georgia, 'Iowan Old Style', serif;
+      text-shadow: 0 1px 5px rgba(0, 0, 0, 0.98), 0 0 18px rgba(4, 10, 20, 0.95);
+    }
+    #world-speech b {
+      display: block;
+      font: 600 10px/1.2 Inter, system-ui, sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--brass);
+      margin-bottom: 2px;
+    }
+
+    /* Tab-Summoned Raw Atlas Drawer */
     #left-col {
       position: fixed;
-      top: 62px;
+      top: 52px;
       left: 12px;
       z-index: 30;
       width: min(392px, calc(100vw - 24px));
-      max-height: calc(100vh - 128px);
+      max-height: calc(100vh - 118px);
       overflow-y: auto;
-      display: flex;
+      display: none;
       flex-direction: column;
       gap: 6px;
       pointer-events: auto;
     }
+    body.mp-tab-open #left-col { display: flex; }
+
     .card {
       background: var(--panel);
       border: 1px solid var(--rule);
@@ -167,7 +225,6 @@
     .mode-pane { display: none; }
     .mode-pane.active { display: block; }
 
-    /* Palette Swatches for Mood Topography */
     .swatch-row {
       display: flex;
       align-items: center;
@@ -196,7 +253,6 @@
       box-shadow: 0 0 8px currentColor;
     }
 
-    /* Elsewhere Phenotype Horizon Graph */
     #phenotype-canvas {
       display: block;
       width: 100%;
@@ -207,20 +263,21 @@
       background: #081322;
     }
 
-    /* Right 2D Cartographic Map & Severn Pilot Ledger */
     #right-col {
       position: fixed;
-      top: 62px;
+      top: 52px;
       right: 12px;
       z-index: 30;
       width: 316px;
-      max-height: calc(100vh - 128px);
+      max-height: calc(100vh - 118px);
       overflow-y: auto;
-      display: flex;
+      display: none;
       flex-direction: column;
       gap: 6px;
       pointer-events: auto;
     }
+    body.mp-tab-open #right-col { display: flex; }
+
     #atlas-2d-canvas {
       display: block;
       width: 100%;
@@ -264,7 +321,6 @@
     .prov-inferred { border-color: var(--amber); color: #ffd599; }
     .prov-invented { border-color: #c98cff; color: #e5c6ff; }
 
-    /* MovieMap Intersection Turn Chooser Overlay */
     #turn-overlay {
       position: fixed;
       bottom: 68px;
@@ -282,7 +338,7 @@
       padding: 8px 12px;
       max-width: min(680px, calc(100vw - 24px));
     }
-    #turn-overlay.visible { display: flex; }
+    body.mp-tab-open #turn-overlay.visible { display: flex; }
 
     #inspector-toast {
       position: fixed;
@@ -300,23 +356,15 @@
       text-align: center;
       pointer-events: none;
     }
-    #inspector-toast.visible { display: block; }
+    body.mp-tab-open #inspector-toast.visible { display: block; }
     #inspector-toast b { color: var(--brass); display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
-
-    @media (max-width: 860px) {
-      #right-col {
-        top: auto;
-        bottom: 64px;
-        right: 8px;
-        width: 240px;
-      }
-      #atlas-2d-canvas { height: 130px; }
-      #left-col { width: calc(100vw - 16px); left: 8px; max-height: 46vh; }
-    }
   </style>
 </head>
 <body>
   <div id="canvas-wrap"><canvas id="gl"></canvas></div>
+
+  <div id="world-whisper" aria-hidden="true"></div>
+  <div id="world-speech" role="status" aria-live="polite"></div>
 
   <section id="left-col" aria-label="Unified City3D, MovieMap, Mood, and Elsewhere modes">
     <div class="card">
@@ -336,7 +384,6 @@
     </div>
 
     <div id="left-details">
-      <!-- MODE 1: CITY3D REMASTERED -->
       <div class="card mode-pane active" id="pane-city3d">
         <div class="head-row">
           <span class="kicker">HISTORICAL ERA &amp; TERRACED STRUCTURES</span>
@@ -359,7 +406,6 @@
         </div>
       </div>
 
-      <!-- MODE 2: MOVIEMAP DIRECTOR -->
       <div class="card mode-pane" id="pane-moviemap">
         <div class="head-row">
           <span class="kicker">STREET-EDGE SCRUB &amp; REGISTERED SHOTS</span>
@@ -384,7 +430,6 @@
         </div>
       </div>
 
-      <!-- MODE 3: MOOD TOPOGRAPHY -->
       <div class="card mode-pane" id="pane-mood">
         <div class="head-row">
           <span class="kicker">DISTRICT AURA · SODIUM VS CYAN &amp; ACOUSTICS</span>
@@ -412,7 +457,6 @@
         </div>
       </div>
 
-      <!-- MODE 4: ELSEWHERE JUMP -->
       <div class="card mode-pane" id="pane-elsewhere">
         <div class="head-row">
           <span class="kicker">SEED, COORDINATE &amp; SPATIAL RHYME JUMPER</span>
