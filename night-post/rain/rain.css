@@ -494,5 +494,10 @@
 #rw #can .drop-value{font-size:24px!important}
 #rw .keep .drop-value{font-size:14px!important}
 /* a drop that shows its act: the picture is the drop, the word sits under it */
-#rw .liquid.has-clip:not(#menu-stream *)>.drop-label,#rw .liquid.has-clip:not(#menu-stream *)>.drop-value{transform:translateY(44px);font-size:15px!important;opacity:.9!important}
+
 #rw .liquid.has-clip:not(#menu-stream *)>.drop-kicker{display:none!important}
+/* NO WORDS AT REST. A drop is its picture and its colour. Words appear only while a drop is being moved, above the finger. */
+#rw #drops .liquid>.drop-kicker,#rw #drops .liquid>.drop-value,#rw #drops .liquid>.drop-label,#rw #drops .liquid>.drop-note,#rw #steer>*,#rw #menu-toggle .drop-label{opacity:0!important;transition:opacity .25s}
+#rw #drops .liquid:is([data-rain-caught=true],.pinned)>.drop-label,#rw #drops .liquid:is([data-rain-caught=true],.pinned)>.drop-value{opacity:1!important;transform:translateY(-52px)!important;font-size:17px!important}
+#rw #drops .liquid#mix>.drop-value,#rw #drops .liquid#mix>.drop-label{opacity:1!important;font-size:20px!important}
+#rw #menu-ink g{transition:opacity .25s}

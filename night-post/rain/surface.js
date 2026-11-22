@@ -409,7 +409,7 @@ function paintMenuWater(bodies) {
     let group = menuInk.querySelector(`[data-id="${key}"]`);
     if (!group) { group = document.createElementNS(svgNS, 'g'); group.dataset.id = key; const path = document.createElementNS(svgNS, 'path'); path.id = key; path.setAttribute('fill', 'none'); path.setAttribute('stroke', 'none'); group.append(path); const text = document.createElementNS(svgNS, 'text'); text.setAttribute('text-anchor', 'middle'); const flow = document.createElementNS(svgNS, 'textPath'); flow.setAttribute('href', '#' + key); flow.setAttribute('startOffset', '50%'); text.append(flow); group.append(text); menuInk.append(group); }
     group.firstChild.setAttribute('d', `M${nodes[0].x - 36},${nodes[0].y} Q${b.x - 36},${b.y - 7} ${nodes[2].x - 36},${nodes[2].y}`);
-    const native = $(b.id), label = native?.textContent.trim() || ''; group.querySelector('textPath').textContent = label; native?.setAttribute('aria-label', label);
+    const native = $(b.id), label = native?.textContent.trim() || ''; group.querySelector('textPath').textContent = label; native?.setAttribute('aria-label', label); group.style.opacity = native && (native.dataset.rainCaught === 'true' || native.matches(':hover')) ? '1' : '0';
   }
   for (const g of [...menuInk.children]) if (!liveIds.has(g.dataset.id)) g.remove();
 }
@@ -606,13 +606,15 @@ const PIC = { cv: document.createElement('canvas'), snap: document.createElement
 PIC.cv.id = 'rw-pic'; PIC.cv.setAttribute('aria-hidden', 'true'); Object.assign(PIC.cv.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', zIndex: '4', pointerEvents: 'none' }); world.append(PIC.cv);
 function subjectOf(id) {                                              // -> { x, y, r } source circle on screen, or { img }, or null
   const T = S.things || {}, W = world.clientWidth, H = world.clientHeight, on = t => t && t.front && t.x > -40 && t.x < W + 40 && t.y > -40 && t.y < H + 40;
-  const k = id.replace(/^menu-/, '').replace(/^(go|water|camera|talk|more)-/, '').replace(/^act-|^it-|^all-/, '');
+  let k = id.replace(/^menu-/, '').replace(/^(go|water|camera|talk|more|try)-/, '').replace(/^act-|^it-|^all-|^aff-/, '');
+  if (k === 'primary' && S.live) k = S.live.kind === 'draw' ? 'source' : S.live.kind === 'talk' ? 'say' : S.live.id === 'share' ? 'say' : 'donkey'; else if (k === 'alert') { const a = alertNow(); k = a && a.to === 'source' ? 'source' : 'donkey'; }
   const me = T.can, sky = { x: W * .5, y: H * .13, r: 74 }, eye = { x: W * .5, y: H * .5, r: clamp(128 - Math.min(100, S.lens.focus) * .9, 34, 120) };
   const donkey = on(T.donkey) ? { x: T.donkey.x, y: T.donkey.y - T.donkey.s * .2, r: clamp(T.donkey.s * 1.25, 16, 150) } : null;
   const can = on(me) ? { x: me.x + me.s * .22, y: me.y + me.s * .1, r: clamp(me.s * .48, 12, 90) } : null, feet = on(me) ? { x: me.x, y: me.y + me.s * .62, r: clamp(me.s * .62, 14, 110) } : null, self = on(me) ? { x: me.x, y: me.y - me.s * .25, r: clamp(me.s * 1.05, 18, 150) } : null;
   const person = (T.people || []).find(on), face = person ? { x: person.x, y: person.y + person.s * .22, r: clamp(person.s * .42, 12, 90) } : null;
   const next = on(T.next) ? { x: T.next.x, y: T.next.y, r: clamp(T.next.s * 7, 22, 120) } : null, source = on(T.source) ? { x: T.source.x, y: T.source.y, r: clamp(T.source.s * 1.1, 14, 130) } : null, wagon = on(T.wagon) ? { x: T.wagon.x, y: T.wagon.y, r: clamp(T.wagon.s * 1.7, 16, 160) } : null;
   switch (k) {
+    case 'source': case 'pump': case 'fill': return source || can; case 'thirst': return donkey; case 'empty': case 'full': return can; case 'exit': case 'steer': case 'moment': case 'me': return k === 'steer' ? feet : self; case 'voice-current': case 'share': return face || self; case 'filter': case 'stop': case 'tilt': return eye;
     case 'go': case 'next': case 'route': return next; case 'map': return { img: 'map' }; case 'jump': case 'run': return feet; case 'ride': case 'donkey': return donkey; case 'glide': case 'weather': case 'more': case 'hold': return sky;
     case 'drive': return wagon; case 'water': case 'can': case 'squirt': case 'throw': return can; case 'camera': case 'lens': case 'expose': case 'focus': return eye; case 'cam': case 'all': return { x: W * .5, y: H * .5, r: Math.min(W, H) * .48 };
     case 'rig': case 'sync': case 'plates': return eye; case 'talk': case 'say': case 'people': case 'memory': case 'lang': case 'voice': return face || self; case 'rest': case 'here': return self; case 'sound': case 'tape': case 'radio': return face || sky; default: return null;
@@ -629,10 +631,11 @@ function clipFor(id) {
   return k2 && CLIP.idx && CLIP.idx[k2] && CLIP.img[k2] && CLIP.img[k2].complete ? k2 : null;
 }
 let k2 = null;
+function toneOf(id) { const sp = refs.get(id)?._spec, c = (sp && sp.className) || ''; if (/amber|alert/.test(c) || sp?.critical || /^keep-|^exit$|^menu-try/.test(id)) return '255,206,140'; if (/action-drop|acts|quick/.test(c) || /^menu-/.test(id)) return '120,245,236'; return '214,236,240'; }
 const HAS_MORE = /^menu-(go|water|talk|more|try)$|^menu-[a-z]+-(map|can|donkey|lens|rig|people|sound|weather|all)$/;
 function picTick(now) {
   const W = world.clientWidth, H = world.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), cv = PIC.cv; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => /^menu-(?!spring|edge)|^keep-/.test(b.id) || clipFor(b.id));
+  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => b.id !== 'time-current' && !/^menu-(spring|edge)/.test(b.id) && (/^menu-|^keep-/.test(b.id) || clipFor(b.id) || subjectOf(b.id)));
   if (S.ready && !ui.past && now - (PIC.pre || 0) > 900) { PIC.pre = now;      // keep a view of every subject while it is in frame, so its drop can show it later
     const W2 = Math.round(W * .6), H2 = Math.round(H * .6); if (PIC.snap.width !== W2 || PIC.snap.height !== H2) { PIC.snap.width = W2; PIC.snap.height = H2; } let shot = false;
     for (const id of PRE) { if (bodies.some(b => b.id === id)) continue; const src = subjectOf(id); if (!src || src.img) continue; if (!shot) { try { PIC.snap.getContext('2d').drawImage(B.canvas, 0, 0, W2, H2); } catch { } shot = true; }
@@ -649,11 +652,11 @@ function picTick(now) {
       if (el) { const near = Math.hypot(ptr.x - x, ptr.y - y) < R + 70 && now - ptr.at < (ptr.mouse ? 6e4 : 1500), born = el._clipBorn || (el._clipBorn = now); if (near && !el._clipNear) el._clipT0 = now; el._clipNear = near; const t0 = el._clipT0 || born, f = Math.floor((now - t0) / 95); el._clipF = el._clipT0 && f < c.n ? f : (c.rest ?? c.n - 1); }
       g.save(); g.beginPath(); g.arc(x, y, R, 0, 7); g.clip(); g.drawImage(im, (el ? el._clipF : (c.rest ?? c.n - 1)) * c.size, 0, c.size, c.size, x - R, y - R, R * 2, R * 2);
       const sh = g.createRadialGradient(x - R * .35, y - R * .42, R * .1, x, y, R * 1.05); sh.addColorStop(0, 'rgba(255,255,255,.28)'); sh.addColorStop(.3, 'rgba(255,255,255,0)'); sh.addColorStop(.82, 'rgba(4,20,28,0)'); sh.addColorStop(1, 'rgba(4,20,28,.55)'); g.fillStyle = sh; g.fillRect(x - R, y - R, R * 2, R * 2); g.restore();
-      g.shadowColor = 'rgba(200,248,250,.55)'; g.shadowBlur = 9; g.lineWidth = 2; g.strokeStyle = 'rgba(214,250,250,.14)'; g.beginPath(); g.arc(x, y, R, 0, 7); g.stroke(); g.shadowBlur = 0; continue; }
-    const th = PIC.thumbs.get(b.id), has = th && th._ok; if (!has && !b.id.startsWith('menu-')) continue; const menu = b.id.startsWith('menu-'), R = menu ? 27 : clamp(Math.min(b.rx || 30, b.ry || 26) * .62, 15, 26), x = menu ? b.x + 34 : b.x, y = b.y + (menu ? 0 : -1), wob = Math.sin(now / 900 + x) * 1.2;
+      { const tn = toneOf(b.id); g.shadowColor = `rgba(${tn},.8)`; g.shadowBlur = 12; g.lineWidth = 2.6; g.strokeStyle = `rgba(${tn},.5)`; g.beginPath(); g.arc(x, y, R, 0, 7); g.stroke(); g.shadowBlur = 0; } continue; }
+    const th = PIC.thumbs.get(b.id), has = th && th._ok; if (!has && !b.id.startsWith('menu-')) continue; const menu = b.id.startsWith('menu-'), R = menu ? 27 : clamp(Math.min(b.rx || 30, b.ry || 26) * .78, 20, 42), x = menu ? b.x + 34 : b.x, y = b.y + (menu ? 0 : -1), wob = Math.sin(now / 900 + x) * 1.2;
     g.save(); g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.clip(); g.globalAlpha = .94; if (has) g.drawImage(th, x - R * 1.12, y - R * 1.12, R * 2.24, R * 2.24); else { g.fillStyle = 'rgba(150,225,235,.10)'; g.fillRect(x - R * 1.2, y - R * 1.2, R * 2.4, R * 2.4); }
     const sh = g.createRadialGradient(x - R * .35, y - R * .42, R * .1, x, y, R * 1.1); sh.addColorStop(0, 'rgba(255,255,255,.34)'); sh.addColorStop(.28, 'rgba(255,255,255,0)'); sh.addColorStop(.78, 'rgba(4,20,28,0)'); sh.addColorStop(1, 'rgba(4,20,28,.62)'); g.globalAlpha = 1; g.fillStyle = sh; g.fillRect(x - R * 1.2, y - R * 1.2, R * 2.4, R * 2.4); g.restore();
-    g.shadowColor = 'rgba(200,248,250,.5)'; g.shadowBlur = 8; g.lineWidth = 2; g.strokeStyle = 'rgba(214,250,250,.10)'; g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.stroke(); g.shadowBlur = 0;
+    { const tn = toneOf(b.id); g.shadowColor = `rgba(${tn},.75)`; g.shadowBlur = 11; g.lineWidth = 2.4; g.strokeStyle = `rgba(${tn},.42)`; g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.stroke(); g.shadowBlur = 0; }
     g.fillStyle = 'rgba(255,255,255,.8)'; g.beginPath(); g.ellipse(x - R * .42, y - R * .5, R * .16, R * .08, -.6, 0, 7); g.fill();
     if (HAS_MORE.test(b.id)) { for (let i = 0; i < 3; i++) { const yy = y + R * 1.05 + 5 + i * 8, rr = 3.6 - i * .9; g.beginPath(); g.arc(x + Math.sin(now / 700 + i) * 1.5, yy, rr, 0, 7); g.fillStyle = 'rgba(190,240,245,.42)'; g.fill(); g.lineWidth = 1; g.strokeStyle = 'rgba(214,250,250,.75)'; g.stroke(); } }
   }
