@@ -93,11 +93,18 @@ function autoTick(dt) { if (!auto) return; auto.t += dt; if (auto.t < .35) retur
   const tx = tgt && tgt.front ? clamp(tgt.x, 20, W - 20) : W * .5, ty = tgt && tgt.front ? clamp(tgt.y, 60, H - 60) : H * .45, a = auto.kind === 'donkey' ? [can.x, can.y] : [tx, ty], b = auto.kind === 'donkey' ? [tx, ty] : [can.x, can.y];
   if (got > 0) for (let i = 0; i < 2; i++) SP.parts.push({ x: a[0], y: a[1], vx: (b[0] - a[0]) * 1.7 + (Math.random() - .5) * 40, vy: (b[1] - a[1]) * 1.7 - 240, r: 1.6 + Math.random() * 2, life: 0, ttl: .6, tone: '178,247,240' });
   if (got <= 0 || auto.left <= .01 || auto.t > 6) { const m = auto; auto = null; seen.liters = S.water.liters; stable = snapNow(); splash(b[0], b[1], 1.9); if (m.moved > .05) addKeep('act', b[0], b[1] - 40, { before: m.before, label: `${n(m.before.liters)} → ${n(S.water.liters)} L` }); cause = m.kind === 'donkey' ? 'The donkey drank.' : 'The can is filled.'; announce(cause); render(); } }
-function alertCurrent() {                                             // droplets run from the can to the thing that needs it
-  if (ui.scene !== 'world' || ui.menu || !field || !alertNow()) return []; const bs = field.getBodies(), z = bs.find(b => b.id === 'alert'); if (!z) return []; const T = S.things || {}, W = world.clientWidth, H = world.clientHeight, a = T.can && T.can.front ? { x: T.can.x, y: T.can.y } : { x: W * .5, y: H * .7 };
-  const t = ui.reduced ? 0 : performance.now() / 1000, len = Math.hypot(z.x - a.x, z.y - a.y), count = Math.max(4, Math.round(len / 20));
-  return [{ id: 'alert-current', kind: 'menu', nodes: Array.from({ length: count + 1 }, (_, i) => { const f = i / count, ph = (f * 3 - t * .9) % 1, bead = Math.pow(Math.max(0, Math.sin((ph < 0 ? ph + 1 : ph) * Math.PI)), 6); return { x: a.x + (z.x - a.x) * f + Math.sin(f * 9 + t) * 2.5, y: a.y + (z.y - a.y) * f - Math.sin(f * Math.PI) * 26, r: 2.4 + bead * 6.5, alpha: .95 }; }) }];
+function alertCurrent() {                                             // every act on the rail is tied to its thing by a running thread of water
+  if (ui.scene !== 'world' || ui.menu || ui.past || !field) return []; const bs = field.getBodies(), out = [], t = ui.reduced ? 0 : performance.now() / 1000;
+  const ties = []; const al = alertNow(), P = bs.find(b => b.id === 'alert') || bs.find(b => b.id === 'primary');
+  if (P) { const tg = P.id === 'alert' && al ? al.t : S.live && S.live.x != null ? { x: S.live.x, y: S.live.y, front: true } : null; if (tg && tg.front) ties.push([P, tg]); }
+  if (ui.touch) for (const b of bs) if (b.id.startsWith('aff-')) ties.push([b, { x: ui.touch.x, y: ui.touch.y }]);
+  for (const [a, z] of ties) { const len = Math.hypot(z.x - a.x, z.y - a.y), count = Math.max(4, Math.round(len / 22));
+    out.push({ id: 'tie-' + a.id, kind: 'menu', nodes: Array.from({ length: count + 1 }, (_, i) => { const f = i / count, ph = ((1 - f) * 3 - t * .9) % 1, bead = Math.pow(Math.max(0, Math.sin((ph < 0 ? ph + 1 : ph) * Math.PI)), 6); return { x: a.x + (z.x - a.x) * f, y: a.y + (z.y - a.y) * f - Math.sin(f * Math.PI) * 30, r: 1.6 + bead * 5, alpha: .8 }; }) }); }
+  return out;
 }
+// the rail: acts live where the thumb is, never over the road. A thread of droplets runs from an act to what it acts on.
+let motion = 0;
+const RAIL = [[.8, .86], [.6, .89], [.42, .9]], RAIL2 = [[.8, .73], [.6, .89], [.42, .9]];   // RAIL2: what a touch offers, beside the act already there
 const snapNow = () => ({ liters: S.water.liters, donkey: S.water.donkey, x: S.pos.x, z: S.pos.z, yaw: S.pos.yaw, place: S.place.name });
 let stable = null, worm = null;
 function watchGame() {
@@ -127,7 +134,7 @@ function pushUndo(label, restore) { undo.push({ label, restore }); if (undo.leng
 function doUndo() { if (ui.past) return; const u = undo.pop(); if (!u) return; u.restore(); S = B.state(); cause = `Restored ${u.label}.`; announce(cause); glass.burst(world.clientWidth * .5, world.clientHeight * .6, 'amber'); render(); }
 function liveDrop(slot = 'primary') {
   const L = S.live; if (!L || S.busy) return false;
-  const home = L.x != null && ui.scene === 'world' ? [clamp(L.x / world.clientWidth, .16, .84), clamp(L.y / world.clientHeight, .2, .78)] : null;
+  const home = ui.scene === 'world' ? RAIL[0] : null;
   const note = L.kind === 'draw' ? 'from the source to your can' : L.kind === 'give' ? 'pour from your can' : 'pull their voice';
   button('primary', slot, L.kind === 'draw' ? 'Draw' : L.id === 'share' ? 'Share' : L.kind === 'give' ? 'Water' : 'Ask', note, live(() => B.act.live(false)), { className: 'action-drop', viscosity: 1.15, home, flow: true });
   return true;
@@ -157,19 +164,19 @@ const BUILD = {
     mixSpec();
     exitDrop();
     if ((!open || open === 'primary') && !auto && !(S.water.donkeyDown || S.water.donkey < .3)) liveDrop();   // while something needs you, its act is the only act
-    if (!open || open === 'can') button('can', 'water', null, null, opener('can'), { fill: S.water.liters / 20, kicker: '', value: `${Math.round(S.water.liters)} L`, viscosity: 1.8, opens: true });
+    if (!open || open === 'can') info('can', 'water', '', `${Math.round(S.water.liters)} L`, '', { fill: S.water.liters / 20, className: 'gauge', viscosity: 5, home: [.1, .075] });
     const d = T.donkey, thirsty = S.water.donkeyDown || S.water.donkey < .3, al = !open && !auto && !S.busy ? alertNow() : null;
-    if (al) { const t = al.t, vis = onScr(t), hm = vis ? at(t, -.06) : [t.front ? clamp(t.x / W, .15, .82) : (t.x > W / 2 ? .15 : .82), .46];
+    if (al) { const hm = RAIL[0];
       button('alert', 'need', al.word, '', live(() => doAlert()), { className: 'action-drop alert', critical: true, viscosity: 1, home: hm }); }
     if (true) { /* the donkey is reported only as an act: the alert, or by touching it */ } else if ((!open || open === 'donkey') && S.mode === 'walk' && d && d.dist < 28 && d.dist > 1.2 && onScr(d) && !(S.live && S.live.id === 'water-burro'))
       button('donkey', 'need', null, null, opener('donkey'), { kicker: 'Donkey', value: thirsty ? 'Thirsty' : `${Math.round(S.water.donkey * 100)}%`, className: thirsty ? 'amber' : '', viscosity: 3, home: at(d, -.03), opens: true });
     else if (!open && thirsty && S.mode === 'walk') button('donkey', 'need', null, null, opener('donkey'), { kicker: 'Donkey', value: 'Thirsty', className: 'amber', viscosity: 3, opens: true });
     const v = currentVoice(); if (v && (!open || open === 'voice-current')) voiceDrop(v, voiceHome());
     const nx = T.next;
-    if ((!open || open === 'next') && nx && nx.dist > 14) { const side = !nx.front ? (nx.x < W / 2 ? .8 : .16) : clamp(nx.x / W, .16, .8);
+    if (false) { const side = !nx.front ? (nx.x < W / 2 ? .8 : .16) : clamp(nx.x / W, .16, .8);
       button('next', 'c', null, null, opener('next'), { kicker: 'Next', value: nx.name.split(' at the ').pop().replace(/^the /, ''), viscosity: 1.2, home: [side, nx.front ? clamp(nx.y / H - .05, .17, .5) : .5], opens: true }); }
     if (performance.now() < ui.titleUntil && !open) button('place', 'title', S.place.name, '', opener('place'), { className: 'drop-title', viscosity: 4, kicker: MODE[S.mode], opens: true });
-    if (!open && !S.busy && !ui.touch) { const acts = [], it = id => menuItems().find(x => x.id === id), near = d && d.dist < 7;
+    if (false) { const acts = [], it = id => menuItems().find(x => x.id === id), near = d && d.dist < 7;
       if (S.mode === 'walk') { acts.push(['jump', 'Jump']); acts.push(['run', 'Run']); acts.push(['glide', 'Glide']); }
       else if (S.mode === 'ride' || S.mode === 'drive') acts.push(['run', 'Run']);
       acts.slice(0, 3).forEach(([id, word], i) => { const m = it(id); if (m) button('act-' + id, 'a', word, '', live(() => m.run()), { className: 'acts quick' + (m.on ? ' on' : ''), viscosity: .6 + i * .3, home: [.83, .8 - i * .105] }); }); }
@@ -184,10 +191,10 @@ const BUILD = {
       else if (t.kind === 'sky') { it('glide', S.mode === 'glide' ? 'Land' : 'Glide'); act('weather', 'Weather', () => { ui.scene = 'weather'; }); }
       else if (t.kind === 'next') act('map', 'Map', () => { ui.mapSel = null; ui.scene = 'map'; });
       if (!list.length) ui.touch = null;
-      const up = t.y / H > .3 ? -1 : 1; list.slice(0, 3).forEach(([id, word, run, cls], i, arr) => { const a = (i - (arr.length - 1) / 2) * .95, hm = [clamp(t.x / W + Math.sin(a) * 86 / W, .15, .82), clamp(t.y / H + up * Math.cos(a) * 92 / H, .13, .8)];
+      list.slice(0, 3).forEach(([id, word, run, cls], i) => { const hm = RAIL2[i];
         if (run) button('aff-' + id, 'a', word, '', live(() => { run(); ui.touch = null; }), { className: cls + ' quick', viscosity: .7 + i * .3, home: hm, critical: true }); else info('aff-' + id, 'a', '', '', '', { label: word, className: cls + ' quick', viscosity: 2, home: hm, critical: true }); }); }
     { const now = performance.now(); for (const k of keeps.slice()) { k.life = 1 - (now - k.born) / k.ttl; if (k.life <= 0) dropKeep0(k.id); } }
-    for (const k of keeps) button(k.id, 'a', null, null, () => restoreKeep(k), { value: k.label, fill: k.life, className: 'keep ' + (k.kind === 'act' ? '' : 'amber'), viscosity: 4.5, home: [k.x, k.y], keep: true });
+    for (const k of keeps) button(k.id, 'a', null, null, () => restoreKeep(k), { value: k.label, fill: k.life, className: 'keep ' + (k.kind === 'act' ? '' : 'amber'), viscosity: 4.5, home: [.3 + keeps.indexOf(k) * .13, .07], keep: true });
     if (open) unfold(open);
   },
   lens() {
@@ -429,7 +436,7 @@ function inkLabel(id) {
 }
 function initializeField() {
   const proxy = {
-    setBodies: bodies => { if (!S.ready) { glass.setBodies([]); return; } paintMenuWater(bodies); glass.setBodies([...bodies.map(b => { const sp = refs.get(b.id)?._spec, m = b.id.startsWith('menu-'); const warm = /amber|time-current/.test(sp?.className || '') || sp?.critical, k = sp?.kind === 'info' ? .84 : 1; return { ...b, fill: sp?.fill, kind: sp?.fluidKind || (warm ? 'amber' : b.kind),  rx: m ? b.rx * .38 : b.id === 'time-current' ? b.rx * 1.3 : b.id === 'voice-current' ? b.rx * 1.15 : b.rx * k, ry: m ? b.ry * .34 : b.id === 'time-current' ? b.ry * .5 : b.id === 'voice-current' ? b.ry * .62 : b.ry * k }; }), { id: 'menu-spring', x: world.clientWidth - 18, y: world.clientHeight * (ui.menu ? .237 : .222), rx: 15, ry: ui.menu ? 55 : 43, viscosity: 4, kind: 'menu', critical: true, opacity: 1 }]); },
+    setBodies: bodies => { if (!S.ready) { glass.setBodies([]); return; } motion += ((S.speed > 1.3 && ui.scene === 'world' ? 1 : 0) - motion) * .08; const fade = 1 - .82 * motion; bodies = bodies.map(b => /^(exit|alert|steer|time-current|mix)$|^menu-/.test(b.id) ? b : { ...b, opacity: (b.opacity ?? 1) * fade }); paintMenuWater(bodies); glass.setBodies([...bodies.map(b => { const sp = refs.get(b.id)?._spec, m = b.id.startsWith('menu-'); const warm = /amber|time-current/.test(sp?.className || '') || sp?.critical, k = sp?.kind === 'info' ? .84 : 1; return { ...b, fill: sp?.fill, kind: sp?.fluidKind || (warm ? 'amber' : b.kind),  rx: m ? b.rx * .38 : b.id === 'time-current' ? b.rx * 1.3 : b.id === 'voice-current' ? b.rx * 1.15 : b.rx * k, ry: m ? b.ry * .34 : b.id === 'time-current' ? b.ry * .5 : b.id === 'voice-current' ? b.ry * .62 : b.ry * k }; }), { id: 'menu-spring', x: world.clientWidth - 18, y: world.clientHeight * (ui.menu ? .237 : .222), rx: 15, ry: ui.menu ? 55 : 43, viscosity: 4, kind: 'menu', critical: true, opacity: 1 }]); },
     setTrails: trails => { if (!S.ready) { glass.setTrails([]); return; } glass.setTrails([edgeCurrent(), ...routeCurrent(), ...alertCurrent(), ...menuWater, ...(ink.getTrails?.() || []), ...trails]); },
     setPointer: p => glass.setPointer(p), captureFrame: () => glass.captureFrame()
   };
@@ -472,7 +479,11 @@ function initializeField() {
   });
   field.setReducedMotion(ui.reduced);
 }
-function homeFor(sp) {
+function homeFor(sp) { const h = homeFor0(sp); return ui.scene === 'world' && !ui.menu && sp.id !== 'mix' ? clearOf(h) : h; }
+function clearOf(h) { const T = S.things || {}, c = T.can, W = world.clientWidth, H = world.clientHeight; if (!c || !c.front) return h;
+  const cx = c.x / W, cy = (c.y - c.s * .5) / H, rx = Math.max(.17, c.s * 1.1 / W), ry = Math.max(.15, c.s * 1.6 / H), dx = (h[0] - cx) / rx, dy = (h[1] - cy) / ry, d = Math.hypot(dx, dy); if (d >= 1) return h;
+  const a = d < .05 ? Math.PI / 2 : Math.atan2(dy, dx); return [clamp(cx + Math.cos(a) * rx * 1.02, .1, .9), clamp(cy + Math.sin(a) * ry * 1.02, .08, .92)]; }
+function homeFor0(sp) {
   if (sp.home) return sp.home;
   const small = world.clientWidth < 701, left = small ? .205 : .14, right = small ? .765 : .86;
   const homes = { title: [small ? .27 : .15, .09], water: [left, .235], need: [small ? .49 : .29, .22], a: [left, .405], b: [left, .575], c: [right, .255], d: [right, .425], e: [right, .605], primary: [right, .81], time: [small ? .43 : .2, .945], erosion: [right, .64], recovery: [small ? .51 : .72, .71], topic1: [left, .72], memory1: [small ? .3 : .2, .38], speech: [small ? .32 : .22, .42] };
@@ -614,13 +625,13 @@ function subjectOf(id) {                                              // -> { x,
   const person = (T.people || []).find(on), face = person ? { x: person.x, y: person.y + person.s * .22, r: clamp(person.s * .42, 12, 90) } : null;
   const next = on(T.next) ? { x: T.next.x, y: T.next.y, r: clamp(T.next.s * 7, 22, 120) } : null, source = on(T.source) ? { x: T.source.x, y: T.source.y, r: clamp(T.source.s * 1.1, 14, 130) } : null, wagon = on(T.wagon) ? { x: T.wagon.x, y: T.wagon.y, r: clamp(T.wagon.s * 1.7, 16, 160) } : null;
   switch (k) {
-    case 'source': case 'pump': case 'fill': return source || can; case 'thirst': return donkey; case 'empty': case 'full': return can; case 'exit': case 'steer': case 'moment': case 'me': return k === 'steer' ? feet : self; case 'voice-current': case 'share': return face || self; case 'filter': case 'stop': case 'tilt': return eye;
+    case 'source': case 'pump': case 'fill': return source || can; case 'thirst': return donkey; case 'empty': case 'full': return can; case 'exit': case 'moment': case 'me': return self; case 'steer': return null; case 'voice-current': case 'share': return face || self; case 'filter': case 'stop': case 'tilt': return eye;
     case 'go': case 'next': case 'route': return next; case 'map': return { img: 'map' }; case 'jump': case 'run': return feet; case 'ride': case 'donkey': return donkey; case 'glide': case 'weather': case 'more': case 'hold': return sky;
     case 'drive': return wagon; case 'water': case 'can': case 'squirt': case 'throw': return can; case 'camera': case 'lens': case 'expose': case 'focus': return eye; case 'cam': case 'all': return { x: W * .5, y: H * .5, r: Math.min(W, H) * .48 };
     case 'rig': case 'sync': case 'plates': return eye; case 'talk': case 'say': case 'people': case 'memory': case 'lang': case 'voice': return face || self; case 'rest': case 'here': return self; case 'sound': case 'tape': case 'radio': return face || sky; default: return null;
   }
 }
-const PRE = ['menu-go', 'menu-water', 'menu-camera', 'menu-talk', 'menu-more', 'menu-go-ride', 'menu-go-drive', 'menu-go-jump', 'menu-go-run', 'menu-go-glide', 'menu-water-can', 'menu-water-donkey', 'menu-water-squirt', 'menu-water-throw', 'menu-talk-say', 'menu-talk-memory', 'menu-talk-people', 'menu-talk-lang', 'act-ride', 'act-jump', 'act-run', 'act-glide', 'can', 'next'];
+const PRE = ['alert', 'primary', 'menu-go', 'menu-water', 'menu-camera', 'menu-talk', 'menu-more', 'menu-go-ride', 'menu-go-drive', 'menu-go-jump', 'menu-go-run', 'menu-go-glide', 'menu-water-can', 'menu-water-donkey', 'menu-water-squirt', 'menu-water-throw', 'menu-talk-say', 'menu-talk-memory', 'menu-talk-people', 'menu-talk-lang', 'act-ride', 'act-jump', 'act-run', 'act-glide', 'can', 'next'];
 // THE ACT, SHOWN. Each act was recorded in the game doing exactly that (night-post/rain/clips/), graded for contrast.
 // A drop that does something plays its clip when your finger comes near, then rests on the last frame: the consequence.
 const CLIP = { idx: null, img: {} };
@@ -631,11 +642,11 @@ function clipFor(id) {
   return k2 && CLIP.idx && CLIP.idx[k2] && CLIP.img[k2] && CLIP.img[k2].complete ? k2 : null;
 }
 let k2 = null;
-function toneOf(id) { const sp = refs.get(id)?._spec, c = (sp && sp.className) || ''; if (/amber|alert/.test(c) || sp?.critical || /^keep-|^exit$|^menu-try/.test(id)) return '255,206,140'; if (/action-drop|acts|quick/.test(c) || /^menu-/.test(id)) return '120,245,236'; return '214,236,240'; }
+function toneOf(id) { const sp = refs.get(id)?._spec, c = (sp && sp.className) || ''; if (/amber|alert/.test(c) || /^keep-|^exit$|^alert$|^menu-try/.test(id)) return '255,206,140'; if (/action-drop|acts|quick/.test(c) || /^menu-/.test(id)) return '120,245,236'; return '214,236,240'; }
 const HAS_MORE = /^menu-(go|water|talk|more|try)$|^menu-[a-z]+-(map|can|donkey|lens|rig|people|sound|weather|all)$/;
 function picTick(now) {
   const W = world.clientWidth, H = world.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), cv = PIC.cv; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => b.id !== 'time-current' && !/^menu-(spring|edge)/.test(b.id) && (/^menu-|^keep-/.test(b.id) || clipFor(b.id) || subjectOf(b.id)));
+  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => b.id !== 'time-current' && b.id !== 'can' && b.id !== 'steer' && !/^menu-(spring|edge)/.test(b.id) && (/^menu-|^keep-|^alert$/.test(b.id) || clipFor(b.id) || subjectOf(b.id) || (PIC.thumbs.get(b.id) || {})._ok));
   if (S.ready && !ui.past && now - (PIC.pre || 0) > 900) { PIC.pre = now;      // keep a view of every subject while it is in frame, so its drop can show it later
     const W2 = Math.round(W * .6), H2 = Math.round(H * .6); if (PIC.snap.width !== W2 || PIC.snap.height !== H2) { PIC.snap.width = W2; PIC.snap.height = H2; } let shot = false;
     for (const id of PRE) { if (bodies.some(b => b.id === id)) continue; const src = subjectOf(id); if (!src || src.img) continue; if (!shot) { try { PIC.snap.getContext('2d').drawImage(B.canvas, 0, 0, W2, H2); } catch { } shot = true; }
@@ -647,13 +658,13 @@ function picTick(now) {
       const tg = th.getContext('2d'), k = PIC.snap.width / W;
       if (src.img === 'map') { const im = drawMap.c; if (im) tg.drawImage(im, 0, 0, im.width, im.height, 0, 0, PIC.TH, PIC.TH); th._ok = true; continue; }
       tg.drawImage(PIC.snap, (src.x - src.r) * k, (src.y - src.r) * k, src.r * 2 * k, src.r * 2 * k, 0, 0, PIC.TH, PIC.TH); th._ok = true; } }
-  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); PIC.dirty = true;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); PIC.dirty = true; PIC.cv.style.opacity = String(1 - .85 * motion);
   for (const b of bodies) { const ck = clipFor(b.id); if (ck) { const c = CLIP.idx[ck], im = CLIP.img[ck], el = refs.get(b.id) || $(b.id), R = clamp(Math.min(b.rx || 34, b.ry || 30) * .78, 22, 44), menu = b.id.startsWith('menu-'), x = menu ? b.x + 38 : b.x, y = b.y - (menu ? 0 : 6);
       if (el) { const near = Math.hypot(ptr.x - x, ptr.y - y) < R + 70 && now - ptr.at < (ptr.mouse ? 6e4 : 1500), born = el._clipBorn || (el._clipBorn = now); if (near && !el._clipNear) el._clipT0 = now; el._clipNear = near; const t0 = el._clipT0 || born, f = Math.floor((now - t0) / 95); el._clipF = el._clipT0 && f < c.n ? f : (c.rest ?? c.n - 1); }
       g.save(); g.beginPath(); g.arc(x, y, R, 0, 7); g.clip(); g.drawImage(im, (el ? el._clipF : (c.rest ?? c.n - 1)) * c.size, 0, c.size, c.size, x - R, y - R, R * 2, R * 2);
       const sh = g.createRadialGradient(x - R * .35, y - R * .42, R * .1, x, y, R * 1.05); sh.addColorStop(0, 'rgba(255,255,255,.28)'); sh.addColorStop(.3, 'rgba(255,255,255,0)'); sh.addColorStop(.82, 'rgba(4,20,28,0)'); sh.addColorStop(1, 'rgba(4,20,28,.55)'); g.fillStyle = sh; g.fillRect(x - R, y - R, R * 2, R * 2); g.restore();
       { const tn = toneOf(b.id); g.shadowColor = `rgba(${tn},.8)`; g.shadowBlur = 12; g.lineWidth = 2.6; g.strokeStyle = `rgba(${tn},.5)`; g.beginPath(); g.arc(x, y, R, 0, 7); g.stroke(); g.shadowBlur = 0; } continue; }
-    const th = PIC.thumbs.get(b.id), has = th && th._ok; if (!has && !b.id.startsWith('menu-')) continue; const menu = b.id.startsWith('menu-'), R = menu ? 27 : clamp(Math.min(b.rx || 30, b.ry || 26) * .78, 20, 42), x = menu ? b.x + 34 : b.x, y = b.y + (menu ? 0 : -1), wob = Math.sin(now / 900 + x) * 1.2;
+    const th = PIC.thumbs.get(b.id), has = th && th._ok; if (!has && !/^menu-|^alert$/.test(b.id)) continue; const menu = b.id.startsWith('menu-'), R = menu ? 27 : clamp(Math.min(b.rx || 30, b.ry || 26) * .78, 20, 42), x = menu ? b.x + 34 : b.x, y = b.y + (menu ? 0 : -1), wob = Math.sin(now / 900 + x) * 1.2;
     g.save(); g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.clip(); g.globalAlpha = .94; if (has) g.drawImage(th, x - R * 1.12, y - R * 1.12, R * 2.24, R * 2.24); else { g.fillStyle = 'rgba(150,225,235,.10)'; g.fillRect(x - R * 1.2, y - R * 1.2, R * 2.4, R * 2.4); }
     const sh = g.createRadialGradient(x - R * .35, y - R * .42, R * .1, x, y, R * 1.1); sh.addColorStop(0, 'rgba(255,255,255,.34)'); sh.addColorStop(.28, 'rgba(255,255,255,0)'); sh.addColorStop(.78, 'rgba(4,20,28,0)'); sh.addColorStop(1, 'rgba(4,20,28,.62)'); g.globalAlpha = 1; g.fillStyle = sh; g.fillRect(x - R * 1.2, y - R * 1.2, R * 2.4, R * 2.4); g.restore();
     { const tn = toneOf(b.id); g.shadowColor = `rgba(${tn},.75)`; g.shadowBlur = 11; g.lineWidth = 2.4; g.strokeStyle = `rgba(${tn},.42)`; g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.stroke(); g.shadowBlur = 0; }
@@ -709,8 +720,8 @@ function splash(x, y, k = 1, tone = '178,247,240') {
 function guideTick(now) {                                             // it rains on the one thing that matters most now, harder when it matters more
   if (ui.reduced || ui.menu || ui.past || ui.scene !== 'world' || !S.ready || S.busy) return; const w = S.water, T = S.things || {}, W = world.clientWidth, H = world.clientHeight;
   const need = w.donkeyDown ? ['donkey', 10] : w.donkey < .3 && w.liters > .5 ? ['donkey', 6] : w.liters < 1 ? ['source', 5] : T.next ? ['next', 2] : null; if (!need) return;
-  if (now - (SP.guideAt || 0) < 3600 / need[1] * (.8 + Math.random() * .4)) return; SP.guideAt = now; const t = T[need[0]]; if (!t) return; if (S.live && need[0] !== 'next' && Math.hypot((S.live.x || 0) - t.x, (S.live.y || 0) - t.y) < 60 && need[1] < 10) return;   // already under your hand
-  SP.falls = SP.falls || []; const on = t.front && t.x > 20 && t.x < W - 20, count = need[1] >= 10 ? 3 : 1;
+  if (now - (SP.guideAt || 0) < 5200 / Math.sqrt(need[1]) * (.85 + Math.random() * .3)) return; SP.guideAt = now; const t = T[need[0]]; if (!t) return; if (S.live && need[0] !== 'next' && Math.hypot((S.live.x || 0) - t.x, (S.live.y || 0) - t.y) < 60 && need[1] < 10) return;   // already under your hand
+  SP.falls = SP.falls || []; const on = t.front && t.x > 20 && t.x < W - 20, count = 1;
   for (let i = 0; i < count; i++) { if (on) SP.falls.push({ x: t.x + (Math.random() - .5) * 40, y: -20 - i * 60, ty: clamp(t.y, 40, H - 40), v: 520, tone: '255,223,168' }); else { const left = !t.front ? t.x > W / 2 : t.x < W / 2; SP.falls.push({ x: left ? 12 + Math.random() * 60 : W - 12 - Math.random() * 60, y: H * .08 - i * 50, ty: H * (.5 + Math.random() * .25), v: 480, vx: left ? -140 : 140, tone: '255,223,168' }); } }
 }
 function splashTick(dt) {
