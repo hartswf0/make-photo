@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Donkey Water (night-post) | yes | yes, canonical | rain surface (`night-post/rain/surface.js`) |
 | Overworld (atlas) | yes, follows you, rideable | yes: Imani via `CAST_2086` | **the rain surface**, through its own `AhiyaBridge` (legacy buttons: `?legacy` or `overworld-legacy.html`) |
-| Ethiopia Highlands | yes | yes, but re-specified by hand (its Imani's coat differs) | its own HUD |
+| Ethiopia Highlands | yes | yes, but re-specified by hand (its Imani's coat differs) | **the rain surface** via `ethiopia-highlands/surface-bridge.js` (legacy: `?legacy` or `index-legacy.html`) |
 | Abyssinian roof | yes | yes | its own HUD |
 | zones | yes | yes | its own HUD |
 | MONOLITH-3, field plates | yes (embedded copy in MONOLITH-3) | no | their own HUDs |
@@ -50,6 +50,16 @@ window.AhiyaBridge = {
 ```
 
 Donkey Water implements it in `night-post/night-post.js`. A world that cannot do something leaves that field empty and the surface drops it; nothing breaks.
+
+## Attaching a world
+
+1. Keep a legacy copy of its page.
+2. Write `<world>/surface-bridge.js` that defines `window.AhiyaBridge` from the world's own state (see Ethiopia's for a short example: about 60 lines).
+3. Add `<script src="../night-post/rain/attach.js" data-hide="<the world's own HUD selectors>"></script>` after it. `?legacy` on the URL keeps the old HUD.
+
+## Walk animation
+
+The motion clips load through the page's import map. Pages that pointed `three` at three@0.170 on a CDN could not drive the r160 characters, so the cast glided in a fixed pose. Every page with the cast must map `three` to `../highland-exposure/motion-lab/vendor/three/three.module.js` and load `m2m-world-bridge.js?v=2`. Fixed in Ethiopia Highlands, the Abyssinian roof and the study audition.
 
 ## Order to bring the rest in
 

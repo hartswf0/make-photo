@@ -508,6 +508,7 @@
     const renderer = new T.WebGLRenderer({
       canvas,
       antialias: true,
+      preserveDrawingBuffer: true,                 // the game surface's glass refracts this canvas
       powerPreference: "high-performance"
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -1686,6 +1687,9 @@
 
     // Expose programmatic API for inspection & automated Playwright audit
     window.__ethiopiaWorld = {
+      input: { keys, touchStick, orbit },
+      landmarks: () => activeEcology ? activeEcology.landmarks : null,
+      heightAt: (x, z) => activeTerrain ? activeTerrain.sampleHeight(x, z) : 0,
       renderer,
       scene,
       camera,
