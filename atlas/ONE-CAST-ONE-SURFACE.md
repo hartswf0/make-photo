@@ -5,7 +5,7 @@
 | World | Mistletoe (donkey.js) | The cast (characters.js) | Operator surface |
 |---|---|---|---|
 | Donkey Water (night-post) | yes | yes, canonical | rain surface (`night-post/rain/surface.js`) |
-| Overworld (atlas) | yes, follows you, rideable | yes: Imani via `CAST_2086` | its own buttons and stick |
+| Overworld (atlas) | yes, follows you, rideable | yes: Imani via `CAST_2086` | **the rain surface**, through its own `AhiyaBridge` (legacy buttons: `?legacy` or `overworld-legacy.html`) |
 | Ethiopia Highlands | yes | yes, but re-specified by hand (its Imani's coat differs) | its own HUD |
 | Abyssinian roof | yes | yes | its own HUD |
 | zones | yes | yes | its own HUD |
@@ -54,6 +54,10 @@ Donkey Water implements it in `night-post/night-post.js`. A world that cannot do
 ## Order to bring the rest in
 
 1. Ethiopia Highlands and Abyssinian roof: switch their hand-copied cast to `CAST_2086.make`.
-2. Overworld: implement `AhiyaBridge` (water, place, mode, live act at the nearest place) and load the rain surface instead of its buttons.
+2. ~~Overworld~~ done: its bridge offers Enter (a level's place), Sail (a ferry pier) and Draw (a well), the Go menu gains Boat, and Map opens the archipelago at your spot.
 3. zones, then MONOLITH-3: the same.
 4. Highland Exposure and WYGWYL: they have no carrier or water yet; give them Imani and Mistletoe first.
+
+## Legacy copies
+
+Before moving a world onto the one surface, keep a copy beside it: `atlas/overworld-legacy.html`, `atlas/map-legacy.html`, and Donkey Water's `?rain=1`. The git tag `legacy-before-one-surface` marks the same point locally (this session's proxy would not push tags).

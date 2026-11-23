@@ -27,10 +27,10 @@ const P = (x, y) => [(x - V.x) * V.s + W / 2, (y - V.y) * V.s + H / 2];
 const minS = () => Math.min(W / A.width_km, H / A.height_km) * .9;
 function size() { dpr = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; draw(); }
 // where the player stands, when a game opens the map: ?island=ahiya&x=-1460&z=760
-let ME = null; { const il = A.islands.find(i => i.id === QS.get('island')), x = parseFloat(QS.get('x')), z = parseFloat(QS.get('z'));
+let ME = Number.isFinite(parseFloat(QS.get('mx'))) ? [parseFloat(QS.get('mx')) / 1000, parseFloat(QS.get('mz')) / 1000] : null; if (!ME) { const il = A.islands.find(i => i.id === QS.get('island')), x = parseFloat(QS.get('x')), z = parseFloat(QS.get('z'));
   if (il && il.frame && Number.isFinite(x) && Number.isFinite(z)) { const f = il.frame; ME = [il.center[0] - il.size[0] / 2 + (x - f.x0) / f.w * il.size[0], il.center[1] - il.size[1] / 2 + (z - f.z0) / f.h * il.size[1]]; } }
 function start() { const il = A.islands.find(i => i.id === QS.get('island'));
-  if (ME) { V.x = ME[0]; V.y = ME[1]; V.s = Math.min(W, H) / Math.max(1.4, il.size[0] * 1.3); } else if (il) { V.x = il.center[0]; V.y = il.center[1]; V.s = Math.min(W / il.size[0], H / il.size[1]) * .8; }
+  if (ME) { V.x = ME[0]; V.y = ME[1]; V.s = il ? Math.min(W, H) / Math.max(1.4, il.size[0] * 1.3) : 60; } else if (il) { V.x = il.center[0]; V.y = il.center[1]; V.s = Math.min(W / il.size[0], H / il.size[1]) * .8; }
   else { V.x = A.width_km / 2; V.y = A.height_km / 2; V.s = Math.min(W / A.width_km, (H - 70) / A.height_km) * 1.02; } }
 const ROAD = { highway: [4, '#f3e3a6', 1.6, '#6e5f33'], trail: [2.4, '#ffffff', 1.2, 'rgba(50,40,24,.6)', [5, 4]], rail: [2, '#e3e3e3', 1.1, '#555', [3, 3]], river: [2.6, '#62b8e8', 0] };
 function line(pts, w, col, casew, casecol, dash) { if (pts.length < 2) return; g.beginPath(); pts.forEach((p, i) => { const [x, y] = P(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); });

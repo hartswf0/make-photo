@@ -178,6 +178,18 @@ for a_, b_ in PAIRS:
     deck = e0 * (1 - t) + e1 * t + np.sin(t * np.pi) * min(60, 14 + L / 120)       # a gentle arch over the channel
     deck = np.maximum(deck, ground + 1.2)
     bridges.append(dict(a=a_, b=b_, length_m=round(L), pts=[[round(x, 1), round(y, 2), round(z, 1)] for x, y, z in zip(xs_, deck, zs_)]))
+# ferries: sea lanes between islands no bridge joins; a pier reaches out from each shore
+FERRY = [('teton', 'halfdome'), ('gerd_belaya_escarpment', 'wygwyl'), ('blue_nile_gorge', 'gheralta_spires'), ('corridor', 'gerd_belaya_escarpment'), ('teton', 'wygwyl')]
+ferries = []
+for a_, b_ in FERRY:
+    A_, B_ = coast[a_], coast[b_]; d, idx = cKDTree(B_).query(A_); order = np.argsort(d)
+    for k in order[:400:20]:                                                     # the shortest lane that stays on water
+        p0, p1 = A_[k].astype(float), B_[idx[k]].astype(float); L = float(d[k]); dv = (p1 - p0) / max(L, 1)
+        q0, q1 = p0 + dv * 70, p1 - dv * 70; t = np.linspace(0, 1, max(8, int(L / 60))); xs_ = q0[0] + (q1[0] - q0[0]) * t; zs_ = q0[1] + (q1[1] - q0[1]) * t
+        if (Hm(xs_, zs_) > -1.5).mean() < .03:
+            pier = lambda a, b: [[round(a[0] - dv[0] * 30 * s_, 1), round(max(1.2, float(Hm(np.array([a[0] - dv[0] * 30 * s_]), np.array([a[1] - dv[1] * 30 * s_]))[0]) + 1.2), 2), round(a[1] - dv[1] * 30 * s_, 1)] for s_ in (1, 0)] + [[round(b[0], 1), 1.6, round(b[1], 1)]]
+            ferries.append(dict(a=a_, b=b_, length_m=round(L), lane=[[round(x, 1), 0, round(z, 1)] for x, z in zip(xs_, zs_)], piers=[pier(p0, q0), pier(p1 + dv * 0, q1) if False else [[round(p1[0] + dv[0] * 30, 1), round(max(1.2, float(Hm(np.array([p1[0] + dv[0] * 30]), np.array([p1[1] + dv[1] * 30]))[0]) + 1.2), 2), round(p1[1] + dv[1] * 30, 1)], [round(p1[0], 1), 1.6, round(p1[1], 1)], [round(q1[0], 1), 1.6, round(q1[1], 1)]]]))
+            break
 # roads in 3D: each island's highways and trails at the terrain, plus a connector from every bridge end to its island's nearest road
 def road3d(pts_km, lift=1.0, step=30.0):
     out = []
@@ -197,7 +209,7 @@ for b in bridges:
         if d[k] < 9000: roads3.append(dict(kind='highway', island=isl, pts=road3d([[end[0] / 1000, end[2] / 1000], [c[k, 0] / 1000, c[k, 2] / 1000]])))
 places3 = [dict(name=p_['name'], island=i['id'], world=p_['world'], entry=p_['entry'], x=round(p_['at'][0] * 1000, 1), z=round(p_['at'][1] * 1000, 1)) for i in out['islands'] for p_ in i['places']]
 LOW = 10; lowh = Hmap[::LOW, ::LOW]; (OW / 'low.bin').write_bytes(np.clip(np.round((lowh + 1000) * 10), 0, 65535).astype('<u2').tobytes())
-json.dump(dict(tile=T, mpp=MPP, tiles=tiles, low=dict(step=LOW * MPP, w=lowh.shape[1], h=lowh.shape[0]), width_m=PW * MPP, height_m=PH * MPP, encode='(h+1000)*10 uint16 LE, rows south-increasing z', bridges=bridges, roads=roads3, places=places3,
+json.dump(dict(ferries=ferries, tile=T, mpp=MPP, tiles=tiles, low=dict(step=LOW * MPP, w=lowh.shape[1], h=lowh.shape[0]), width_m=PW * MPP, height_m=PH * MPP, encode='(h+1000)*10 uint16 LE, rows south-increasing z', bridges=bridges, roads=roads3, places=places3,
                islands=[dict(id=i['id'], name=i['name'], level=i['level'], entry=i['entry'], center=[i['center'][0] * 1000, i['center'][1] * 1000], size=[i['size'][0] * 1000, i['size'][1] * 1000], frame=i['frame']) for i in out['islands']],
                texture='./archipelago.jpg'), open(OW / 'world.json', 'w'), separators=(',', ':'))
-print('overworld', len(tiles), 'tiles', len(bridges), 'bridges', [(b['a'][:6], b['b'][:6], b['length_m']) for b in bridges], len(roads3), 'roads')
+print('ferries', [(f['a'][:6], f['b'][:6], f['length_m']) for f in ferries]); print('overworld', len(tiles), 'tiles', len(bridges), 'bridges', [(b['a'][:6], b['b'][:6], b['length_m']) for b in bridges], len(roads3), 'roads')

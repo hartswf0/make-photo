@@ -136,7 +136,7 @@ function liveDrop(slot = 'primary') {
   const L = S.live; if (!L || S.busy) return false;
   const home = ui.scene === 'world' ? RAIL[0] : null;
   const note = L.kind === 'draw' ? 'from the source to your can' : L.kind === 'give' ? 'pour from your can' : 'pull their voice';
-  button('primary', slot, L.kind === 'draw' ? 'Draw' : L.kind === 'give' ? 'Give' : 'Ask', note, live(() => B.act.live(false)), { className: 'action-drop', viscosity: 1.15, home, flow: true });
+  button('primary', slot, L.kind === 'enter' ? 'Enter' : L.kind === 'sail' ? 'Sail' : L.kind === 'draw' ? 'Draw' : L.kind === 'give' ? 'Give' : 'Ask', note, live(() => B.act.live(false)), { className: 'action-drop', viscosity: 1.15, home, flow: true });
   return true;
 }
 function exitDrop() { if (S.exit) button('exit', 'recovery', S.exit.label, 'back to your feet', live(() => B.act.exit()), { critical: true, className: 'amber', viscosity: 3, home: ui.scene === 'world' ? [.5, .86] : null }); }
@@ -151,11 +151,15 @@ function base() {
 }
 // ONE MAP. Every world in make-photo lives on one liquid atlas (../atlas/). Here it opens at the carrier's real place:
 // Ahiya is the Simien hillside about the Basalt Pump; the western basin is Grand Teton metres about the survey origin.
-let atlasFrame = null;
+let atlasFrame = null, openAtlasMake = null;
+openAtlasMake = () => { atlasFrame = document.createElement('iframe'); atlasFrame.id = 'rw-atlas'; atlasFrame.title = 'World atlas'; Object.assign(atlasFrame.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', border: '0', zIndex: '30', pointerEvents: 'auto', background: '#0a151d' }); world.append(atlasFrame);
+  addEventListener('message', e => { if (e.data === 'atlas:back') { ui.scene = 'world'; render(); } }); };
 function myLatLon() { const p = S.pos || { x: 0, z: 0 }; if (p.x < -1180 && p.z > 200) { const dx = p.x + 1460, dz = p.z - 760, a = 10 * Math.PI / 180, ex = dx * Math.cos(a) - dz * Math.sin(a), nz = dx * Math.sin(a) + dz * Math.cos(a), lat = 13.22461 - nz / 110574; return [lat, 38.10454 + ex / (111320 * Math.cos(lat * Math.PI / 180))]; }
   return [43.7541667 - p.z / 110574, -110.6235 + p.x / (111320 * Math.cos(43.7541667 * Math.PI / 180))]; }
-function openAtlas() { const p = S.pos || { x: 0, z: 0 }, isl = p.x < -1180 && p.z > 200 ? 'ahiya' : 'teton', src = `../atlas/index.html?embed=1&island=${isl}&x=${p.x.toFixed(1)}&z=${p.z.toFixed(1)}`;   // the archipelago, at your place on your island
-  if (!atlasFrame) { atlasFrame = document.createElement('iframe'); atlasFrame.id = 'rw-atlas'; atlasFrame.title = 'World atlas'; Object.assign(atlasFrame.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', border: '0', zIndex: '30', pointerEvents: 'auto', background: '#0a151d' }); world.append(atlasFrame);
+function openAtlas() { if (S.atlas) { const src = `./index.html?embed=1&mx=${Math.round(S.atlas.mx)}&mz=${Math.round(S.atlas.mz)}`; if (!atlasFrame) openAtlasMake(); if (atlasFrame.hidden || !atlasFrame.dataset.src) { if (atlasFrame.dataset.src !== src) { atlasFrame.dataset.src = src; atlasFrame.src = src; } atlasFrame.hidden = false; } return; }
+  const p = S.pos || { x: 0, z: 0 }, isl = p.x < -1180 && p.z > 200 ? 'ahiya' : 'teton', src = `../atlas/index.html?embed=1&island=${isl}&x=${p.x.toFixed(1)}&z=${p.z.toFixed(1)}`;   // the archipelago, at your place on your island
+  if (!atlasFrame) openAtlasMake();
+  if (false) { atlasFrame = document.createElement('iframe'); atlasFrame.id = 'rw-atlas'; atlasFrame.title = 'World atlas'; Object.assign(atlasFrame.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', border: '0', zIndex: '30', pointerEvents: 'auto', background: '#0a151d' }); world.append(atlasFrame);
     addEventListener('message', e => { if (e.data === 'atlas:back') { ui.scene = 'world'; render(); } }); }
   if (atlasFrame.hidden || !atlasFrame.dataset.src) { if (atlasFrame.dataset.src !== src) { atlasFrame.dataset.src = src; atlasFrame.src = src; } atlasFrame.hidden = false; } }   // load once per opening; it does not reload while you look
 const chart = document.createElement('img'); chart.id = 'rw-chart'; chart.alt = ''; chart.hidden = true; world.append(chart);
@@ -380,7 +384,7 @@ const mItem = id => menuItems().find(x => x.id === id);
 const runItem = id => () => { const it = mItem(id); if (!it || ui.past) return; it.run(); closeMenu(); S = B.state(); render(); };
 const closeMenu = () => { ui.menu = false; ui.menuGroup = null; };
 const GROUPS = {
-  go: () => [['map', 'Map', go('map')], ['jump', 'Jump', runItem('jump')], ['run', mItem('run')?.on ? 'Walk' : 'Run', runItem('run')], ['ride', S.mode === 'ride' ? 'Get down' : 'Ride', runItem('ride')], ['glide', S.mode === 'glide' ? 'Land' : 'Glide', runItem('glide')], ['drive', S.mode === 'drive' ? 'Park' : 'Wagon', runItem('drive')]],
+  go: () => [['map', 'Map', go('map')], ['jump', 'Jump', runItem('jump')], ['run', mItem('run')?.on ? 'Walk' : 'Run', runItem('run')], ['ride', S.mode === 'ride' ? 'Get down' : 'Ride', runItem('ride')], ['glide', S.mode === 'glide' ? 'Land' : 'Glide', runItem('glide')], ['drive', S.mode === 'drive' ? 'Park' : 'Wagon', runItem('drive')], ['boat', S.mode === 'boat' ? 'Ashore' : 'Boat', runItem('boat')]],
   water: () => [['can', 'Can', go('water')], ['donkey', 'Donkey', go('donkey')], ['squirt', 'Squirt', runItem('squirt')], ['throw', 'Throw', runItem('throw')]],
   camera: () => [['expose', 'Expose', () => { if (ui.past) return; B.act.expose(); cause = 'A plate was exposed.'; closeMenu(); render(); }], ['lens', 'Lens', go('lens')], ['rig', 'Rig', go('rig')], ['cam', 'View', runItem('cam')]],
   talk: () => [['say', 'Say', () => { returnNow(false); Object.assign(ui, { scene: 'people', say: true, menu: false, menuGroup: null }); render(); $('say-text').focus(); }], ['memory', 'Voices', () => { stopSteer(); returnNow(false); ui.memory = true; ui.recallIndex = 0; closeMenu(); render(); }], ['people', 'People', go('people')], ['lang', 'Language', () => { mItem('lang')?.run(); render(); announce('Language: ' + (B.state().lang || 'en')); }]],
@@ -390,7 +394,8 @@ const GROUPS = {
   more: () => [['sound', 'Sound', go('sound')], ['weather', 'Weather', go('weather')], ['words', ui.words ? 'Hide words' : 'Words', () => { ui.words = !ui.words; closeMenu(); render(); }], ['hold', ui.reduced ? 'Let it move' : 'Hold rain', () => { ui.reduced = !ui.reduced; glass.setReducedMotion(ui.reduced); field?.setReducedMotion(ui.reduced); closeMenu(); render(); }], ['rest', 'Rest', () => { returnNow(false); stopSteer(); ui.rest = true; closeMenu(); render(); }], ['all', 'Everything', go('all')]]
 };
 function menuList() {
-  if (ui.menuGroup && GROUPS[ui.menuGroup]) return [['back', '‹ Back', () => { ui.menuGroup = null; ui.menuAt = 0; render(); }], ...GROUPS[ui.menuGroup]()].map(([id, label, run]) => ({ id: ui.menuGroup + '-' + id, label, run }));
+  const BACKED = new Set(['jump', 'run', 'ride', 'glide', 'drive', 'squirt', 'throw', 'cam', 'boat']);
+  if (ui.menuGroup && GROUPS[ui.menuGroup]) return [['back', '‹ Back', () => { ui.menuGroup = null; ui.menuAt = 0; render(); }], ...GROUPS[ui.menuGroup]().filter(([id]) => !BACKED.has(id) || mItem(id))].map(([id, label, run]) => ({ id: ui.menuGroup + '-' + id, label, run }));
   const open = g => () => { ui.menuGroup = g; ui.menuAt = 0; ui.menuTouch = performance.now(); render(); };
   return [['go', 'Go ›'], ['water', 'Water ›'], ['camera', 'Camera'], ['talk', 'Talk ›'], ['more', 'More ›'], ['try', 'Try ›']].map(([id, label]) => ({ id, label, run: id === 'camera' ? go('lens') : open(id) })).concat(ui.scene !== 'world' ? [{ id: 'here', label: 'Close ' + (TITLES[ui.scene] || '').toLowerCase(), run: go('world') }] : []);
 }
