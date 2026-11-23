@@ -96,12 +96,12 @@ streets = [[cl(*p) for p in s_['pts']] for s_ in roads['streets'][:2500] if 'pts
 island('wygwyl', 'WYGWYL', np.minimum(np.where(city > 0, city + 6, city - 30), islandize(np.maximum(city, 0), .22)), hg['W'] / 1000, hg['H'] / 1000, 52, 48.5, 'City suite · Atlantis · Nolli block', '../city/island/index.html',
   places=[dict(name=g['name'], uv=cl(g['x'], g['y']), world='WYGWYL island', entry='../city/island/index.html') for g in meta['regions']], roads=crd, streets=streets, note='six real places rotated into one island, 9.6 by 6.4 km')
 # ---------- compose ----------
-Hmap = np.full((PH, PW), -400.0)
+Hmap = np.full((PH, PW), -400.0); OWN = np.full((PH, PW), -1, np.int16)
 for i in I:
     pw, ph = max(2, int(i['w'] * 1000 / MPP)), max(2, int(i['hgt'] * 1000 / MPP)); x0p = int((i['cx'] - i['w'] / 2) * 1000 / MPP); y0p = int((i['cy'] - i['hgt'] / 2) * 1000 / MPP)
     a_ = np.asarray(Image.fromarray(i['h'].astype(np.float32)).resize((pw, ph), Image.BILINEAR), dtype=np.float64)
     ys, xs = slice(max(0, y0p), min(PH, y0p + ph)), slice(max(0, x0p), min(PW, x0p + pw))
-    sub = a_[ys.start - y0p: ys.stop - y0p, xs.start - x0p: xs.stop - x0p]; Hmap[ys, xs] = np.maximum(Hmap[ys, xs], sub)
+    sub = a_[ys.start - y0p: ys.stop - y0p, xs.start - x0p: xs.stop - x0p]; win = sub > Hmap[ys, xs]; Hmap[ys, xs] = np.where(win, sub, Hmap[ys, xs]); OWN[ys, xs] = np.where(win & (sub > 0), I.index(i), OWN[ys, xs])
     i['px'] = [x0p, y0p, pw, ph]
 land = Hmap > 0
 # ---------- paint: sea with shallows, land with height bands and light from the north-west ----------
@@ -143,3 +143,61 @@ for i in I:
       streets=[[km(i, q) for q in s_] for s_ in i.get('streets', [])]))
 json.dump(out, open(R / 'atlas' / 'archipelago.json', 'w'), separators=(',', ':'))
 print('islands', [(i['id'], round(i['w'], 1), round(i['hgt'], 1)) for i in I], 'land %', round(land.mean() * 100, 1), 'px', PW, PH)
+
+# ================= the overworld: streamed terrain tiles, bridges, roads in 3D =================
+from scipy.spatial import cKDTree
+OW = R / 'atlas' / 'ow'; (OW / 't').mkdir(parents=True, exist_ok=True)
+T = 100                                                                       # samples per tile edge: 2 km tiles at 20 m
+def Hm(x, z):                                                                 # metres -> height, bilinear
+    u = np.clip(x / MPP, 0, PW - 1.001); v = np.clip(z / MPP, 0, PH - 1.001); i = np.floor(u).astype(int); j = np.floor(v).astype(int); fu = u - i; fv = v - j
+    return Hmap[j, i] * (1 - fu) * (1 - fv) + Hmap[j, i + 1] * fu * (1 - fv) + Hmap[j + 1, i] * (1 - fu) * fv + Hmap[j + 1, i + 1] * fu * fv
+tiles = []
+for tj in range(PH // T):
+    for ti in range(PW // T):
+        blk = Hmap[tj * T: tj * T + T + 1, ti * T: ti * T + T + 1]
+        if blk.shape != (T + 1, T + 1): blk = np.pad(blk, ((0, T + 1 - blk.shape[0]), (0, T + 1 - blk.shape[1])), mode='edge')
+        if blk.max() < -2: continue
+        q = np.clip(np.round((blk + 1000) * 10), 0, 65535).astype('<u2'); (OW / 't' / f'{ti}_{tj}.bin').write_bytes(q.tobytes()); tiles.append([ti, tj])
+# bridges: the shortest crossing between neighbouring islands, coast to coast
+coast = {}
+land_ = Hmap > 2
+for k, i in enumerate(I):
+    m_ = (OWN == k) & land_
+    edge = m_ & ~(np.roll(m_, 1, 0) & np.roll(m_, -1, 0) & np.roll(m_, 1, 1) & np.roll(m_, -1, 1))
+    ys_, xs_ = np.nonzero(edge); pts = np.stack([xs_, ys_], 1)[:: max(1, len(xs_) // 4000)] * MPP; coast[i['id']] = pts
+PAIRS = [('teton', 'corridor'), ('teton', 'gerd_belaya_escarpment'), ('corridor', 'halfdome'), ('corridor', 'blue_nile_gorge'), ('halfdome', 'simien_imet_gogo'),   # one chain that joins every island
+         ('simien_imet_gogo', 'gheralta_spires'), ('simien_imet_gogo', 'ahiya'), ('blue_nile_gorge', 'wygwyl')]
+bridges = []
+for a_, b_ in PAIRS:
+    A_, B_ = coast[a_], coast[b_]
+    if not len(A_) or not len(B_): continue
+    d, idx = cKDTree(B_).query(A_); k = int(np.argmin(d)); p0, p1 = A_[k].astype(float), B_[idx[k]].astype(float); L = float(d[k])
+    dirv = (p1 - p0) / max(L, 1); p0 = p0 - dirv * 160; p1 = p1 + dirv * 160; L = float(np.hypot(*(p1 - p0)))   # land a little way inland on both shores
+    n = max(4, int(L / 40)); xs_ = np.linspace(p0[0], p1[0], n + 1); zs_ = np.linspace(p0[1], p1[1], n + 1); ground = Hm(xs_, zs_)
+    e0, e1 = max(ground[0], 1) + 1.5, max(ground[-1], 1) + 1.5; t = np.linspace(0, 1, n + 1)
+    deck = e0 * (1 - t) + e1 * t + np.sin(t * np.pi) * min(60, 14 + L / 120)       # a gentle arch over the channel
+    deck = np.maximum(deck, ground + 1.2)
+    bridges.append(dict(a=a_, b=b_, length_m=round(L), pts=[[round(x, 1), round(y, 2), round(z, 1)] for x, y, z in zip(xs_, deck, zs_)]))
+# roads in 3D: each island's highways and trails at the terrain, plus a connector from every bridge end to its island's nearest road
+def road3d(pts_km, lift=1.0, step=30.0):
+    out = []
+    for (x0_, z0_), (x1_, z1_) in zip(pts_km, pts_km[1:]):
+        L = math.hypot(x1_ - x0_, z1_ - z0_) * 1000; n = max(1, int(L / step))
+        for t in np.arange(n) / n: x = (x0_ + (x1_ - x0_) * t) * 1000; z = (z0_ + (z1_ - z0_) * t) * 1000; out.append([round(x, 1), round(max(float(Hm(np.array([x]), np.array([z]))[0]), 0.5) + lift, 2), round(z, 1)])
+    x, z = pts_km[-1][0] * 1000, pts_km[-1][1] * 1000; out.append([round(x, 1), round(max(float(Hm(np.array([x]), np.array([z]))[0]), .5) + lift, 2), round(z, 1)]); return out
+roads3 = []
+for i in out['islands']:
+    for r_ in i['roads']:
+        if r_['kind'] in ('highway', 'trail'): roads3.append(dict(kind=r_['kind'], island=i['id'], pts=road3d(r_['pts'])))
+for b in bridges:
+    for end, isl in ((b['pts'][0], b['a']), (b['pts'][-1], b['b'])):
+        cand = [p_ for r_ in roads3 if r_['island'] == isl for p_ in r_['pts']]
+        if not cand: continue
+        c = np.array(cand); d = np.hypot(c[:, 0] - end[0], c[:, 2] - end[2]); k = int(np.argmin(d))
+        if d[k] < 9000: roads3.append(dict(kind='highway', island=isl, pts=road3d([[end[0] / 1000, end[2] / 1000], [c[k, 0] / 1000, c[k, 2] / 1000]])))
+places3 = [dict(name=p_['name'], island=i['id'], world=p_['world'], entry=p_['entry'], x=round(p_['at'][0] * 1000, 1), z=round(p_['at'][1] * 1000, 1)) for i in out['islands'] for p_ in i['places']]
+LOW = 10; lowh = Hmap[::LOW, ::LOW]; (OW / 'low.bin').write_bytes(np.clip(np.round((lowh + 1000) * 10), 0, 65535).astype('<u2').tobytes())
+json.dump(dict(tile=T, mpp=MPP, tiles=tiles, low=dict(step=LOW * MPP, w=lowh.shape[1], h=lowh.shape[0]), width_m=PW * MPP, height_m=PH * MPP, encode='(h+1000)*10 uint16 LE, rows south-increasing z', bridges=bridges, roads=roads3, places=places3,
+               islands=[dict(id=i['id'], name=i['name'], level=i['level'], entry=i['entry'], center=[i['center'][0] * 1000, i['center'][1] * 1000], size=[i['size'][0] * 1000, i['size'][1] * 1000], frame=i['frame']) for i in out['islands']],
+               texture='../archipelago.jpg'), open(OW / 'world.json', 'w'), separators=(',', ':'))
+print('overworld', len(tiles), 'tiles', len(bridges), 'bridges', [(b['a'][:6], b['b'][:6], b['length_m']) for b in bridges], len(roads3), 'roads')
