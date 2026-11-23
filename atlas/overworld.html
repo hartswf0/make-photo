@@ -29,6 +29,8 @@ canvas{display:block;touch-action:none}
 <script src="../donkey/human-physical-v6.js?v=v6sculpt1"></script><script src="../donkey/human-sculpt-v3.js?v=v6sculpt1"></script><script src="../donkey/expressions-v4.js?v=v6sculpt1"></script>
 <script src="../donkey/scion-groom-garments.js?v=v6sculpt1"></script><script src="../donkey/characters.js?v=cast1"></script>
 <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
+<script src="../abyssinian-highlands/habitus-kits.js"></script>
+<script src="../donkey/vehicles.js?v=1"></script>
 <script>
 (async () => {
 const T = THREE, QS = new URLSearchParams(location.search), $ = id => document.getElementById(id);
@@ -114,6 +116,11 @@ const glider = new T.Group(); { const wing = new T.Mesh(new T.ConeGeometry(4.5, 
 let imani = null, motion = null;
 try { if (window.CAST_2086) { imani = window.CAST_2086.make(T, 'imani'); if (imani && imani.label && imani.label.sprite) imani.label.sprite.visible = false; if (imani) { walker.children.forEach(c => c.visible = false); walker.add(imani.group); imani.group.position.set(0, 0, 0); imani.group.rotation.set(0, 0, 0); } }
   if (imani && window.Mesh2MotionWorldBridge) { motion = window.Mesh2MotionWorldBridge.createWorldCastDriver(T, { clipsBaseUrl: '../motion-pipeline/mesh2motion/clips', preload: ['idle', 'walk-carry', 'jog', 'walk'], defaultBlend: 1, defaultFade: .25 }); motion.registerActor('imani', imani, { defaultClip: 'idle', blend: 1 }); } } catch (e) { console.warn('cast', e); }
+// the game's own vehicles: the Woody camera wagon to drive, the Rogallo to fly, Isuzu trucks waiting at the bridge ends
+let woody = null, rogallo = null;
+try { if (window.DWVehicles) { woody = window.DWVehicles.wagon(T); car.children.forEach(c => c.visible = false); woody.group.position.set(0, 0, 0); woody.group.rotation.set(0, 0, 0); car.add(woody.group);
+  rogallo = window.DWVehicles.rogallo(T); glider.children.forEach(c => c.visible = false); rogallo.root.position.set(0, 0, 0); rogallo.root.visible = true; glider.add(rogallo.root);
+  for (const b of OW.bridges) for (const end of [b.pts[1], b.pts[b.pts.length - 2]]) { const tk = window.DWVehicles.truck(T); if (!tk) break; const k = end === b.pts[1] ? 1 : b.pts.length - 2, nb = b.pts[k === 1 ? 4 : k - 3]; tk.position.set(end[0] + 9, end[1] - .2, end[2]); tk.rotation.y = Math.atan2(nb[0] - end[0], nb[2] - end[2]); scene.add(tk); } } } catch (e) { console.warn('vehicles', e); }
 const skiff = makeBoat('#d9d2bf', .8); scene.add(skiff); skiff.visible = false;
 let donkey = null; try { donkey = window.makeDonkey({ assetPath: '../donkey/', shells: 8 }); scene.add(donkey.group); } catch (e) { console.warn('no donkey', e); }
 // ---------- start: where the game or the map sent you, otherwise the Overlook ----------
@@ -170,6 +177,8 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
   walker.visible = m === 'walk' || m === 'ride' || m === 'boat' || m === 'ferry'; if (m === 'boat' || m === 'ferry') { walker.position.set(P.x, P.y + (m === 'ferry' ? 1.6 : .8), P.z); } car.visible = m === 'drive'; glider.visible = m === 'fly'; if (donkey) donkey.group.visible = m === 'ride' || m === 'walk';
   if (motion) { try { motion.setActorLocomotion('imani', { speedMps: 0, sitting: m === 'boat' }); } catch { } }
   if (m !== 'boat' && m !== 'ferry') walker.position.set(P.x, P.y + (m === 'ride' ? 1.05 : 0), P.z); if (m === 'ride' && donkey) { walker.position.copy(donkey.group.position); walker.position.y += 1.05; } walker.rotation.y = P.yaw; car.position.set(P.x, P.y, P.z); car.rotation.y = P.yaw; glider.position.set(P.x, P.y, P.z); glider.rotation.y = P.yaw;
+  if (woody && m === 'drive') { for (const w of woody.wheels || []) if (w && w.spin) w.spin.rotation.x += P.speed * dt / .39; }
+  if (rogallo && rogallo.updateContrails) try { rogallo.updateContrails(m === 'fly'); } catch { }
   if (m === 'drive') { const ahead = groundAt(P.x + Math.sin(P.yaw) * 2, P.z + Math.cos(P.yaw) * 2, P.y), behind = groundAt(P.x - Math.sin(P.yaw) * 2, P.z - Math.cos(P.yaw) * 2, P.y); car.rotation.x = -Math.atan2(ahead - behind, 4); }
   // chase camera
   const [dist, up] = CAM[m], cy = P.yaw + Math.PI + camYaw, ex = P.x + Math.sin(cy) * dist * Math.cos(camPitch), ez = P.z + Math.cos(cy) * dist * Math.cos(camPitch); let ey = P.y + up + Math.sin(camPitch) * dist;
@@ -236,6 +245,6 @@ if (SURF) { for (const id of ['modes', 'stick', 'enter', 'mini', 'where']) $(id)
 // wait for the ground under you before letting go
 { const k = Math.floor(P.x / TS) + '_' + Math.floor(P.z / TS); await fetchTile(k); P.y = groundAt(P.x, P.z); if (donkey) donkey.place(P.x, P.z, P.yaw, (x, z) => groundAt(x, z)); }
 camera.position.set(P.x, P.y + 40, P.z + 60); requestAnimationFrame(frame);
-window.__ow = { P, OW, tiles, data, setMode, groundAt, ferries, board, nearPier, wet };
+window.__ow = { P, OW, tiles, data, setMode, groundAt, ferries, board, nearPier, wet, woody, rogallo };
 })();
 </script></body></html>
