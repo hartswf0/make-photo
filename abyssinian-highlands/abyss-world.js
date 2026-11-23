@@ -146,7 +146,7 @@
     const canvas = $("view"), stageWrap = $("stage-wrap"), loaderEl = $("loader");
     let renderer;
     try {
-      renderer = new T.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+      renderer = new T.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });   /* the game surface refracts this canvas */
     } catch (e) { $("loader-sub").textContent = "WebGL unavailable on this device."; return; }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isNarrow ? 1.5 : 2));
     renderer.setSize(window.innerWidth, window.innerHeight, false);
@@ -358,6 +358,7 @@
     const GC = { x: 0, y: 0, z: 0, yaw: 0.3, pitch: 0.4, dist: 900 };
 
     window.__abyss = { S, OC, GC, T, scene, renderer, post, camOrb, camGnd };
+    window.__abyss.surface = { player: () => player, stick: () => stick, keys: () => keys, ground: (x, z) => walkSurfaceAt(x, z), walk: () => dropToWalk(), up: () => toOrbit(), dive: (id, o) => diveTo(id, o), landmarks: () => (typeof activeEcology !== 'undefined' && activeEcology ? activeEcology.landmarks : null), donkey: () => (typeof donkey !== 'undefined' ? donkey : null) };
     $("loader-sub").textContent = "Preparing terrain pack…";
 
     /* ================= GROUND: pack, adapter, ecology ================= */

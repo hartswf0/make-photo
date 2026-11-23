@@ -22,6 +22,7 @@ canvas{display:block;touch-action:none}
 <a id="enter" href="#"></a>
 <div id="stick"><i></i></div>
 <div id="load">Streaming the archipelago…</div>
+<script src="../night-post/rain/carry.js?v=1"></script>
 <script src="../field-plates/three.js"></script>
 <script src="../donkey/donkey.js?v=v6sculpt1"></script>
 <script src="../donkey/scion-eye-globe.js?v=v6sculpt1"></script><script src="../donkey/scion-eyelids.js?v=v6sculpt1"></script><script src="../donkey/scion-neck.js?v=v6sculpt1"></script>
@@ -62,8 +63,10 @@ const have = new Set(OW.tiles.map(([i, j]) => i + '_' + j)), tiles = new Map(), 
 async function fetchTile(key) { if (data.has(key) || loading.has(key)) return; loading.add(key); try { const b = new Uint16Array(await (await fetch(`./ow/t/${key}.bin?v=1`)).arrayBuffer()), f = new Float32Array(b.length); for (let k = 0; k < b.length; k++) f[k] = b[k] / 10 - 1000; data.set(key, f); } catch { } loading.delete(key); }
 function buildTile(key, stride) { const [ti, tj] = key.split('_').map(Number), f = data.get(key), n = OW.tile + 1, c = Math.floor((n - 1) / stride) + 1;
   const m = gridMesh(c, c, ti * TS, tj * TS, OW.mpp * stride, (i, j) => f[(j * stride) * n + i * stride], groundMat); m.userData.stride = stride; return m; }
-function stream() { const pi = Math.floor(P.x / TS), pj = Math.floor(P.z / TS), R = P.mode === 'fly' ? 5 : 4, want = new Map();
+function stream() { const ahead = P.mode === 'ferry' ? 0 : Math.min(9000, Math.abs(P.speed) * 8), cx = P.x + Math.sin(P.yaw) * ahead, cz = P.z + Math.cos(P.yaw) * ahead; const pi = Math.floor(cx / TS), pj = Math.floor(cz / TS), R = P.mode === 'fly' ? 5 : 4, want = new Map();
   for (let dj = -R; dj <= R; dj++) for (let di = -R; di <= R; di++) { const key = (pi + di) + '_' + (pj + dj); if (!have.has(key)) continue; const d = Math.max(Math.abs(di), Math.abs(dj)); want.set(key, d <= 1 ? 1 : d <= 2 ? 2 : 5); }
+  { const me = Math.floor(P.x / TS) + '_' + Math.floor(P.z / TS); if (have.has(me) && !want.has(me)) want.set(me, 1); }      // loading ahead never drops the ground you stand on
+  if (P.ferry) { const end = (P.ferry.dir > 0 ? P.ferry.fe.f.piers[1] : P.ferry.fe.f.piers[0])[0]; for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const k = (Math.floor(end[0] / TS) + di) + '_' + (Math.floor(end[2] / TS) + dj); if (have.has(k)) want.set(k, 2); } }   // the far shore is ready before the ferry lands
   let built = 0;
   for (const [key, stride] of want) { if (!data.has(key)) { fetchTile(key); continue; } const cur = tiles.get(key); if (cur && cur.userData.stride === stride) continue; if (built++ > 1) continue;
     const m = buildTile(key, stride); scene.add(m); if (cur) { scene.remove(cur); cur.geometry.dispose(); } tiles.set(key, m); }
@@ -188,11 +191,13 @@ function hud() { let isl = OW.islands.find(i => Math.abs(P.x - i.center[0]) < i.
 function nearPier() { for (const fe of ferries) for (const [k, pr] of fe.f.piers.entries()) if (Math.hypot(P.x - pr[0][0], P.z - pr[0][2]) < 45) return { fe, dir: k === 0 ? 1 : -1, to: k === 0 ? fe.f.b : fe.f.a }; return null; }
 function board(pier) { P.ferry = { fe: pier.fe, dir: pier.dir, t: 0 }; P.mode = 'ferry'; P.speed = 0; for (const b of document.querySelectorAll('#modes button')) b.classList.remove('on'); }
 // ---------- THE GAME SURFACE: the same rain glass, drops, menu and map as Donkey Water ----------
-const OWS = { liters: 12, dk: .8, fast: false, jumpT: 0 };
+const CAR = window.DW && window.DW.carry, OWS = { liters: CAR && Number.isFinite(CAR.liters) ? CAR.liters : 12, dk: CAR && Number.isFinite(CAR.donkey) ? CAR.donkey : .8, fast: false, jumpT: 0 };
 const WELLS = OW.places.filter(p => /Pump|Wellhead|Cistern|Source|Well/i.test(p.name));
 const V3 = new T.Vector3(), proj = (x, y, z) => { V3.set(x, y, z).project(camera); return { x: (V3.x * .5 + .5) * innerWidth, y: (-V3.y * .5 + .5) * innerHeight, front: V3.z < 1 }; };
 const scaleAt = (x, y, z) => { const a = proj(x, y, z), b = proj(x, y + 1, z); return Math.abs(a.y - b.y); };
 function nearest(list) { let best = null, bd = 1e9; for (const p of list) { const d = Math.hypot(P.x - p.x, P.z - p.z); if (d < bd) { bd = d; best = p; } } return best ? { p: best, d: bd } : null; }
+const AHEAD = { 'Donkey Water': ['../night-post/index.html', '../night-post/night-post.js', '../donkey/characters.js'], 'Ethiopia Highlands': ['../ethiopia-highlands/ethiopia-world.js', '../ethiopia-highlands/ethiopia-terrain.js'], 'zones': ['../zones/zones.js', '../MONOLITH-3.html'], 'MONOLITH-3': ['../MONOLITH-3.html'] };
+setInterval(() => { const n = nearest(OW.places); if (n && n.d < 500 && window.DW) window.DW.prefetch([n.p.entry.split('?')[0], ...(AHEAD[n.p.world] || [])]); }, 1500);   // a level is fetched before you reach it
 function liveAct() { if (P.mode === 'ferry' || P.mode === 'fly') return null;
   const pier = nearPier(); if (pier) { const pr = pier.fe.f.piers[pier.dir > 0 ? 0 : 1][0], sp = proj(pr[0], pr[1] + 2, pr[2]); return { kind: 'sail', id: 'sail', label: 'Ferry to ' + OW.islands.find(i => i.id === pier.to).name, x: sp.x, y: sp.y, pier }; }
   const w = nearest(WELLS); if (w && w.d < 30 && OWS.liters < 19.9) { const sp = proj(w.p.x, P.y + 1.5, w.p.z); return { kind: 'draw', id: 'draw', label: 'Draw', delta: 20 - OWS.liters, x: sp.x, y: sp.y }; }
@@ -213,7 +218,7 @@ window.AhiyaBridge = { version: 1, canvas: renderer.domElement,
         source: w ? { ...proj(w.p.x, P.y + 1, w.p.z), s: scaleAt(w.p.x, P.y, w.p.z), dist: w.d, wx: w.p.x, wz: w.p.z } : null, people: [], next: n && n.d > 90 ? { ...proj(n.p.x, P.y + 20, n.p.z), s: 1, dist: n.d, name: n.p.name } : null, wagon: null },
       pos: { x: P.x, z: P.z, yaw: P.yaw }, atlas: { mx: P.x, mz: P.z }, sound: { voices: false, tape: false, radio: false } }; },
   act: {
-    live() { const L = liveAct(); if (!L) return false; if (L.kind === 'enter') location.href = L.entry; else if (L.kind === 'sail') board(L.pier); else if (L.kind === 'draw') OWS.liters = 20; return true; },
+    live() { const L = liveAct(); if (!L) return false; if (L.kind === 'enter') { if (window.DW) window.DW.go(L.entry, { mode: 'walk' }); else location.href = L.entry; } else if (L.kind === 'sail') board(L.pier); else if (L.kind === 'draw') OWS.liters = 20; return true; },
     exit() { setMode('walk'); }, steer(x, y, active) { EXT.x = active ? x : 0; EXT.y = active ? y : 0; }, look(dx, dy) { camYaw -= dx * .006; camPitch = Math.max(-.2, Math.min(1.2, camPitch + dy * .004)); },
     jump() { if (P.mode === 'walk') OWS.jumpT = .5; }, say() { }, focus() { }, set() { }, lang() { }, expose() { }, lastPlate() { return null; }, begin() { },
     lean(kind, litres) { if (kind === 'draw') { const w = nearest(WELLS); if (!w || w.d > 30) return 0; const a = Math.min(litres, 20 - OWS.liters); OWS.liters += a; return a; }

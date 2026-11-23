@@ -3,6 +3,7 @@
 // The world's own HUD (data-hide) is hidden while the surface runs; add ?legacy to the URL to keep the old HUD instead.
 (() => {
   const me = document.currentScript, base = new URL('./', me.src).href;
+  if (!window.DW) { const c = document.createElement('script'); c.src = base + 'carry.js?v=1'; document.head.append(c); }
   if (new URLSearchParams(location.search).has('legacy')) return;
   const hide = (me.dataset.hide || '').split(',').map(s => s.trim()).filter(Boolean);
   if (hide.length) { const st = document.createElement('style'); st.textContent = hide.join(',') + '{display:none!important}'; document.head.append(st); }

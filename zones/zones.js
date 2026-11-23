@@ -6011,6 +6011,12 @@ void main(){
     requestAnimationFrame(loop);
 
     window.__zones = {
+      surface: {                                                     // what the one game surface needs from zones
+        canvas: renderer.domElement, camera: () => camera, state: () => state, donkey: () => donkey, wagon: () => wagon, groundAt: (x, z) => groundAt(x, z),
+        steer(x, y, active) { stickPointer = active ? -7 : null; stickX = active ? Math.max(-1, Math.min(1, x)) : 0; stickY = active ? Math.max(-1, Math.min(1, y)) : 0; },
+        look(dx, dy) { state.yaw -= dx * .0045; state.pitch = Math.max(-.82, Math.min(.82, state.pitch - dy * .0038)); },
+        toggleRide: () => toggleRide(), toggleGlide: () => toggleGlide(), toggleCart: () => toggleCart(), jump: () => (typeof jumpPlayer === 'function' ? jumpPlayer() : null)
+      },
       isReady: () => state.ready,
       stepOnce: dt => { step(dt || .05); sampleMeter(); updateHUD(); renderFrame(performance.now() * .001); },
       getState: () => {

@@ -8311,7 +8311,7 @@ void main(){
       const RAIN2 = urlParams.get("rain") !== "1";                         // the vendored rain engine (night-post/rain/) instead of dew-ui
       demo.dew = window.makeDew && !RAIN2 ? window.makeDew(canvas) : null;
       document.body.classList.toggle("rain2", RAIN2);
-      if (RAIN2) { const V = "?v=23", lk = document.createElement("link"); lk.rel = "stylesheet"; lk.href = "./rain/rain.css" + V; document.head.append(lk);
+      if (RAIN2) { const V = "?v=24", lk = document.createElement("link"); lk.rel = "stylesheet"; lk.href = "./rain/rain.css" + V; document.head.append(lk);
         const en = document.createElement("script"); en.src = "./rain/engine.js" + V; en.onload = () => { const su = document.createElement("script"); su.src = "./rain/surface.js" + V; document.head.append(su); }; document.head.append(en); }
       document.body.classList.toggle("dew-skin", !!demo.dew);
       if (demo.dew) {
@@ -8502,6 +8502,7 @@ void main(){
           restore: sn => { if (!sn) return false; const c = npCarrier(); if (Number.isFinite(sn.liters)) c.liters = clamp(sn.liters, 0, 20); if (Number.isFinite(sn.donkey)) state.donkeyWater = clamp(sn.donkey, 0, 1);
             if (Number.isFinite(sn.x)) { teleportToWorld(sn.x, sn.z, "a kept moment"); if (Number.isFinite(sn.yaw)) state.yaw = sn.yaw; } demo.dockSig = ""; return true; },
           warp: (x, z, yaw) => { teleportToWorld(x, z, "a kept moment"); if (Number.isFinite(yaw)) state.yaw = yaw; demo.dockSig = ""; return true; },
+          overworld: () => { const isl = state.x < -1180 && state.z > 200 ? 'ahiya' : 'teton', url = `../atlas/overworld.html?island=${isl}&x=${state.x.toFixed(1)}&z=${state.z.toFixed(1)}`; window.DW ? window.DW.go(url) : (location.href = url); },
           travel: id => { const st = DEMO_SETS[id]; if (!st) return false; teleportToWorld(st[0] + 2.4, st[1] + 2.6, st[2]); demo.dockSig = ""; return true; },
           lang: code => demo.setLang && demo.setLang(code), jump: () => jumpPlayer(), begin: () => { ui.brief.hidden = true; startField(); if (state.introActive) finishIntro(true); }
         },
@@ -8546,6 +8547,7 @@ void main(){
           }; })(),
         menu: () => Object.entries(demo.MENU || {}).flatMap(([g, items]) => items.map(it => ({ id: it.id, group: g, label: it.cap, value: String(it.val()), on: !!(it.on && it.on()), run: () => it.act() })))
       };
+      { const c = window.DW && window.DW.carry; if (c && Number.isFinite(c.liters) && Date.now() - c.at < 60000) setTimeout(() => { try { window.AhiyaBridge.act.restore({ liters: c.liters, donkey: c.donkey }); } catch { } }, 1500); }   // arrive with the can you carried
       ui.say.addEventListener("submit", e => { e.preventDefault(); const v = ui.input.value.trim(); if (v) demoSay(v); ui.input.value = ""; ui.input.blur(); document.body.classList.remove("demo-typing"); });
       ui.input.addEventListener("keydown", e => { if (e.code === "Escape") ui.input.blur(); });
       ui.voice.onclick = () => { demo.voice = !demo.voice; ui.voice.setAttribute("aria-pressed", demo.voice); ui.voice.textContent = demo.voice ? "Voice on" : "Voice off"; if (!demo.voice && window.speechSynthesis) speechSynthesis.cancel(); };
