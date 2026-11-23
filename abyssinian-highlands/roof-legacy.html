@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#12161a">
+  <title>Abyssinian Highlands — Roof of Africa</title>
+  <meta name="description" content="Abyssinian Highlands — Roof of Africa. Dive from a stylized orbital view of the largest continuous high ground in Africa (most of it above 1,500 m, Ras Dashen ~4,550 m) through real-DEM terrain to the field patterns of Simien, Gheralta, the Blue Nile gorge and GERD — then walk the fields with Imani and Mistletoe.">
+  <meta property="og:title" content="Abyssinian Highlands — Roof of Africa">
+  <meta property="og:description" content="Orbit → ground dive through real elevation data of the Ethiopian massif: agro-ecological zones, field geometries, a seasonal slider, and a walk among the fields. Stylized where marked.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://hartswf0.github.io/make-photo/abyssinian-highlands/roof.html">
+  <meta property="og:image" content="https://hartswf0.github.io/make-photo/abyssinian-highlands/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Abyssinian Highlands — Roof of Africa">
+  <meta name="twitter:description" content="Orbit → ground dive through the Ethiopian massif: real DEM, real field polygons, seasonal slider, walk mode.">
+  <meta name="twitter:image" content="https://hartswf0.github.io/make-photo/abyssinian-highlands/og.jpg">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="alternate icon" href="../favicon.ico">
+  <link rel="stylesheet" href="./abyss-style.css?v=1">
+</head>
+<body>
+  <div id="stage-wrap">
+    <canvas id="view" aria-label="Abyssinian Highlands 3D view: orbital to ground"></canvas>
+    <div id="labels" aria-hidden="true"></div>
+  </div>
+  <div id="fade"></div>
+
+  <div id="loader" role="status" aria-live="polite">
+    <span class="kicker">Real elevation data · AWS Terrarium (SRTM / GMTED)</span>
+    <h2>Abyssinian Highlands</h2>
+    <p id="loader-sub">Loading orbital elevation grid…</p>
+    <div class="loader-bar"></div>
+  </div>
+
+  <header class="top">
+    <p class="eyebrow">Roof of Africa · 6–15° N · 35–42° E</p>
+    <h1>Abyssinian Highlands</h1>
+    <p class="tag" id="tagline">The largest continuous high ground in Africa — most of it above 1,500 m, Ras Dashen ~4,550 m.</p>
+    <nav class="links" aria-label="Site navigation">
+      <a href="../night-post/">Night Post</a>
+      <a href="../study/">Study</a>
+      <a href="../ethiopia-highlands/">Ethiopia Highlands</a>
+      <a href="./">Transect world</a>
+      <a href="../">Home</a>
+      <button type="button" id="btn-share" class="mini">Share link</button>
+    </nav>
+  </header>
+
+  <aside class="hud" aria-label="Position readout">
+    <div class="hud-gps" id="hud-gps">— · —</div>
+    <div class="hud-elev" id="hud-elev">orbit · drag to look · wheel to zoom</div>
+    <div class="hud-zone" id="hud-zone"></div>
+    <div class="hud-fps" id="hud-fps"></div>
+  </aside>
+
+  <div id="stylized-note" class="note">STYLIZED orbital view</div>
+
+  <div id="mobile-pad" aria-label="Walk stick"><div id="mobile-knob"></div></div>
+
+  <section class="sheet" id="sheet-layers" hidden aria-label="Agriculture layer">
+    <h3>Agriculture layer</h3>
+    <p class="sub" id="ag-status">Real field polygons draped on the DEM. Dive into a region to see them.</p>
+    <label class="tog"><input type="checkbox" id="tg-fields" checked> Fields</label>
+    <label class="tog"><input type="checkbox" id="tg-labels" checked> Map labels</label>
+    <label class="tog"><input type="checkbox" id="tg-zones" checked> Zone contours (orbit)</label>
+    <div class="row" id="color-by" role="group" aria-label="Colour fields by">
+      <span class="tag-k">Colour by</span>
+      <button type="button" class="pill active" data-by="crop">Crop (inferred)</button>
+      <button type="button" class="pill" data-by="zone">Agro-zone</button>
+      <button type="button" class="pill" data-by="shape">Geometry</button>
+    </div>
+    <div id="legend"></div>
+    <button type="button" class="pill wide" id="btn-compare">Compare field shapes ▸</button>
+  </section>
+
+  <section class="sheet" id="sheet-info" hidden aria-label="Info cards">
+    <div class="row tabs" id="info-tabs" role="tablist"></div>
+    <div id="info-body"></div>
+  </section>
+
+  <section class="sheet wide" id="sheet-compare" hidden aria-label="Compare field shapes">
+    <h3>Compare field shapes</h3>
+    <p class="sub" id="cmp-sub"></p>
+    <div id="cmp-body"></div>
+  </section>
+
+  <div class="dock" role="region" aria-label="Controls">
+    <div class="row" id="stage-pills" aria-label="Dive targets"></div>
+    <div class="row">
+      <label class="season" title="Season (stylized phenology)">
+        <span class="tag-k">Season</span>
+        <input type="range" id="sl-season" min="0" max="11.99" step="0.01" value="7.5" aria-label="Month of year">
+        <span id="val-season" class="val">Aug · monsoon</span>
+      </label>
+      <button type="button" class="pill sub" id="btn-layers">Fields</button>
+      <button type="button" class="pill sub" id="btn-info">Info</button>
+      <button type="button" class="pill sub" id="btn-ground" hidden>Walk ▾</button>
+    </div>
+    <div class="row looks" id="look-pills" aria-label="Looks"></div>
+  </div>
+
+  <script src="../field-plates/fonts.js"></script>
+  <script src="../field-plates/three.js"></script>
+  <script src="../donkey/donkey.js?v=v6pass3"></script>
+  <script src="../donkey/scion-eye-globe.js?v=v6pass3"></script>
+  <script src="../donkey/scion-eyelids.js?v=v6pass3"></script>
+  <script src="../donkey/scion-neck.js?v=v6pass3"></script>
+  <script src="../donkey/human-physical-v6.js?v=v6pass3"></script>
+  <script src="../donkey/human-sculpt-v3.js?v=v6pass3"></script>
+  <script src="../donkey/expressions-v4.js?v=v6pass3"></script>
+  <script src="../donkey/scion-groom-garments.js?v=v6pass3"></script>
+  <script src="../donkey/characters.js?v=v6pass3"></script>
+  <script src="../study/look-audition-mv.js?v=v6pass3"></script>
+  <script src="../motion-pipeline/mesh2motion/m2m-retarget.js?v=3"></script>
+  <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=1"></script>
+  <script src="../ethiopia-highlands/ethiopia-terrain.js?v=v6pass3c"></script>
+  <script src="../ethiopia-highlands/endemic-fauna.js?v=v6pass3c"></script>
+  <script src="./field-pack/fields-loader.js"></script>
+  <script src="./abyss-world.js?v=2"></script>
+</body>
+</html>
