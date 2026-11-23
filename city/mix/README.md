@@ -1,8 +1,11 @@
 # Mix Discs
 
-A multimodal mixing tool for WYGWYL. Every source is a disc that can carry picture, sound and words.
-Pick a disc, mark IN and OUT, send any of its picture, sound or words into the mix at the playhead,
-set each clip's opacity or volume, and watch the real output in the preview. EXPORT gives a CMX3600 list
-(picture tracks V1…, sound tracks A1…, words as notes), the project as JSON, and RECORD FILM records the mix to a file.
+A two-deck multimodal mixer for WYGWYL, built for a phone held sideways.
 
-It reads its media from `../decks/` (readings, world reels, line-sound reels, X-sheet stems).
+- **DECKS:** disc A and disc B. Drag along a disc's ring to jump, inside it to nudge (one turn = 8 s); `|◀` `▶|` jump by spoken line.
+  T · V · A route each deck's words, picture and sound to the output; the crossfader blends them (DISSOLVE or CUT).
+  `[` `]` + SEND lays a cut into the mix; ● REC lays down the live output while decks play. Poem numbers load a reading on A and its world or rooms on B.
+- **MIX:** the preview plays the mix exactly; the three lanes (picture, sound, words) hold the clips. Tap a clip for opacity/volume, delete or back-to-deck; drag to move; drag an edge to trim; UNDO.
+- **EXPORT:** CMX3600 (V1… picture, A1… sound, words as notes), project JSON; RECORD FILM records the mix.
+
+Media comes from `../decks/`. The design reasoning is in `THEORY.md`.
