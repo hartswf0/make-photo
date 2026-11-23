@@ -6655,6 +6655,14 @@
   if (typeof window !== "undefined") {
     window.makeExpeditionCharacter = makeExpeditionCharacter;
     window.makeExpeditionCast = makeExpeditionCast;
+    // THE ONE CAST. Every world builds its people from these specs, so Imani is the same Imani everywhere.
+    // CAST_2086.make(THREE, "imani") -> a character; CAST_2086.specs lists everyone; CAST_2086.get(id) returns a copy of one spec.
+    window.CAST_2086 = {
+      specs: BASE_CAST.concat(AHIYA_CAST),
+      get(id) { const s = BASE_CAST.concat(AHIYA_CAST).find(c => c.id === id); return s ? Object.assign({}, s) : null; },
+      make(T, id, extra) { const s = this.get(id); return s ? makeExpeditionCharacter(T, Object.assign({ textureBase: resolveDonkeyBase() }, s, extra || {})) : null; },
+      donkey: { name: "Mistletoe", note: "the gray pack donkey: window.makeDonkey({ assetPath: '../donkey/' })" }
+    };
     window.applyCervicalLeanArc = applyCervicalLeanArc;
     window.makeWaterWifiCan = (T, opts = {}) =>
       build20LWaterWifiCan(T, getSharedAssets(T, opts.textureBase || opts.assetPath), opts.withPourAndRipples !== false);

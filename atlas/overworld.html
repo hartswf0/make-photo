@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#8fb4d6">
+<meta charset="utf-8"><script type="importmap">{"imports":{"three":"../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../highland-exposure/motion-lab/vendor/three/addons/"}}</script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#8fb4d6">
 <title>Overworld · The Archipelago</title>
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#8fb4d6;font:15px/1.3 system-ui,-apple-system,'Segoe UI',sans-serif;overscroll-behavior:none}
@@ -23,7 +23,11 @@ canvas{display:block;touch-action:none}
 <div id="stick"><i></i></div>
 <div id="load">Streaming the archipelago…</div>
 <script src="../field-plates/three.js"></script>
-<script src="../donkey/donkey.js"></script>
+<script src="../donkey/donkey.js?v=v6sculpt1"></script>
+<script src="../donkey/scion-eye-globe.js?v=v6sculpt1"></script><script src="../donkey/scion-eyelids.js?v=v6sculpt1"></script><script src="../donkey/scion-neck.js?v=v6sculpt1"></script>
+<script src="../donkey/human-physical-v6.js?v=v6sculpt1"></script><script src="../donkey/human-sculpt-v3.js?v=v6sculpt1"></script><script src="../donkey/expressions-v4.js?v=v6sculpt1"></script>
+<script src="../donkey/scion-groom-garments.js?v=v6sculpt1"></script><script src="../donkey/characters.js?v=cast1"></script>
+<script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
 <script>
 (async () => {
 const T = THREE, QS = new URLSearchParams(location.search), $ = id => document.getElementById(id);
@@ -75,7 +79,7 @@ function groundAt(x, z, near) { const g = terrain(x, z), d = deckAt(x, z); retur
 function ribbon(pts, w, color, lift) { const pos = [], idx = []; for (let k = 0; k < pts.length; k++) { const a = pts[Math.max(0, k - 1)], b = pts[Math.min(pts.length - 1, k + 1)], dx = b[2] - a[2], dz = -(b[0] - a[0]), L = Math.hypot(dx, dz) || 1, ox = dx / L * w / 2, oz = dz / L * w / 2, [x, y, z] = pts[k];
     pos.push(x + ox, y + lift, z + oz, x - ox, y + lift, z - oz); if (k) { const q = (k - 1) * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } }
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); const m = new T.Mesh(g, new T.MeshLambertMaterial({ color, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 })); scene.add(m); return m; }
-for (const r of OW.roads) ribbon(r.pts, r.kind === 'highway' ? 9 : 3.4, r.kind === 'highway' ? '#4a4a4c' : '#c9b48a', .5);
+for (const r of OW.roads) ribbon(r.pts, r.kind === 'highway' ? 9 : 3.4, r.kind === 'highway' ? '#4a4a4c' : '#c9b48a', -.92);   // road points carry +1 m from the build; lay them on the ground
 const side = (pts, off) => pts.map((p, k) => { const a = pts[Math.max(0, k - 1)], b = pts[Math.min(pts.length - 1, k + 1)], dx = b[2] - a[2], dz = -(b[0] - a[0]), L = Math.hypot(dx, dz) || 1; return [p[0] + dx / L * off, p[1] + 1.1, p[2] + dz / L * off]; });
 for (const b of OW.bridges) { ribbon(b.pts, 13, '#565658', .35); ribbon(side(b.pts, 6.6), .45, '#e8e3d6', 0); ribbon(side(b.pts, -6.6), .45, '#e8e3d6', 0); ribbon(b.pts, .3, '#f2d36b', .4);
   const pierG = new T.BoxGeometry(5, 1, 5), pierM = new T.MeshLambertMaterial({ color: '#bdb7a8' });
@@ -87,6 +91,9 @@ const car = new T.Group(); { const body = new T.Mesh(new T.BoxGeometry(2, 1, 4.4
   const can = new T.Mesh(new T.BoxGeometry(.5, .6, .35), new T.MeshLambertMaterial({ color: '#1b6fc0' })); can.position.set(.4, 1.65, 1.6); car.add(body, cab, can);
   for (const [x, z] of [[-1, 1.4], [1, 1.4], [-1, -1.4], [1, -1.4]]) { const w = new T.Mesh(new T.CylinderGeometry(.42, .42, .3, 14), new T.MeshLambertMaterial({ color: '#1a1a1a' })); w.rotation.z = Math.PI / 2; w.position.set(x, .42, z); car.add(w); } } scene.add(car);
 const glider = new T.Group(); { const wing = new T.Mesh(new T.ConeGeometry(4.5, 1, 3), new T.MeshLambertMaterial({ color: '#5dd4da', transparent: true, opacity: .75, side: T.DoubleSide })); wing.rotation.x = Math.PI / 2; wing.scale.set(1, 1, .35); wing.position.y = 2.6; glider.add(wing); } scene.add(glider);
+let imani = null, motion = null;
+try { if (window.CAST_2086) { imani = window.CAST_2086.make(T, 'imani'); if (imani && imani.label && imani.label.sprite) imani.label.sprite.visible = false; if (imani) { walker.children.forEach(c => c.visible = false); walker.add(imani.group); imani.group.position.set(0, 0, 0); imani.group.rotation.set(0, 0, 0); } }
+  if (imani && window.Mesh2MotionWorldBridge) { motion = window.Mesh2MotionWorldBridge.createWorldCastDriver(T, { clipsBaseUrl: '../motion-pipeline/mesh2motion/clips', preload: ['idle', 'walk-carry', 'jog', 'walk'], defaultBlend: 1, defaultFade: .25 }); motion.registerActor('imani', imani, { defaultClip: 'idle', blend: 1 }); } } catch (e) { console.warn('cast', e); }
 let donkey = null; try { donkey = window.makeDonkey({ assetPath: '../donkey/', shells: 8 }); scene.add(donkey.group); } catch (e) { console.warn('no donkey', e); }
 // ---------- start: where the game or the map sent you, otherwise the Overlook ----------
 { const isl = OW.islands.find(i => i.id === QS.get('island')), x = parseFloat(QS.get('x')), z = parseFloat(QS.get('z')); let sx, sz;
@@ -106,7 +113,7 @@ const end = e => { if (e.pointerId === stick.id) { stick.id = null; stick.x = st
 cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
 const SPEED = { walk: 5.5, ride: 11, drive: 42, fly: 75 }, CAM = { walk: [7, 3], ride: [10, 4], drive: [16, 6], fly: [34, 10] };
 function setMode(m) { if (m === 'ride' && !donkey) m = 'walk'; const was = P.mode; P.mode = m; for (const b of document.querySelectorAll('#modes button')) b.classList.toggle('on', b.dataset.m === m);
-  if (m === 'fly' && was !== 'fly') { P.alt = Math.max(P.y, 0) + 60; P.speed = SPEED.fly * .6; } if (m === 'ride' && donkey) donkey.place(P.x, P.z, P.yaw, (x, z) => groundAt(x, z)); }
+  if (m === 'fly' && was !== 'fly') { P.alt = Math.max(P.y, 0) + 60; P.speed = SPEED.fly * .6; } if (m === 'ride' && donkey) { const g = donkey.group.position; if (Math.hypot(g.x - P.x, g.z - P.z) > 30) donkey.place(P.x, P.z, P.yaw, (x, z) => groundAt(x, z)); } if (m === 'walk' && was !== 'walk' && was !== 'ride' && donkey) donkey.place(P.x - Math.sin(P.yaw) * 3, P.z - Math.cos(P.yaw) * 3, P.yaw, (x, z) => groundAt(x, z)); }
 for (const b of document.querySelectorAll('#modes button')) b.onclick = () => setMode(b.dataset.m);
 setMode(QS.get('mode') || 'walk');
 // ---------- the loop ----------
@@ -122,8 +129,13 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
     if (m === 'fly') { P.x = nx; P.z = nz; const lift = (keys.Space || keys.KeyE ? 1 : 0) - (keys.KeyQ || keys.KeyC ? 1 : 0) - (stick.id !== null ? 0 : 0); P.alt += (lift * 30 - 2) * dt; const gnd = Math.max(0, groundAt(P.x, P.z)); P.alt = Math.max(gnd + 4, P.alt); P.y = P.alt; if (P.alt - gnd < 4.5 && fwd < 0) setMode('walk'); }
     else { const gy = groundAt(nx, nz, P.y); if (gy < -0.6) P.speed = 0; else { const slope = (gy - P.y) / Math.max(.1, Math.hypot(nx - P.x, nz - P.z)); if (m === 'drive' || slope < 1.4) { P.x = nx; P.z = nz; } else P.speed *= .5; } P.y = Math.max(groundAt(P.x, P.z, P.y), -0.6); }
   }
-  walker.visible = m === 'walk' || m === 'ride'; car.visible = m === 'drive'; glider.visible = m === 'fly'; if (donkey) donkey.group.visible = m === 'ride';
-  walker.position.set(P.x, P.y + (m === 'ride' ? 1.05 : 0), P.z); walker.rotation.y = P.yaw; car.position.set(P.x, P.y, P.z); car.rotation.y = P.yaw; glider.position.set(P.x, P.y, P.z); glider.rotation.y = P.yaw;
+  if (motion) { try { motion.setActorLocomotion('imani', { speedMps: m === 'walk' ? Math.abs(P.speed) : 0, carrying: true, sitting: m === 'ride', blend: 1 }); motion.update(dt); } catch { } }
+  if (donkey && m === 'walk') {                                                // Mistletoe keeps to your side on foot
+    const bx = P.x - Math.sin(P.yaw) * 3 + Math.cos(P.yaw) * 1.6, bz = P.z - Math.cos(P.yaw) * 3 - Math.sin(P.yaw) * 1.6, g = donkey.group.position, dx = bx - g.x, dz = bz - g.z, d = Math.hypot(dx, dz);
+    if (d > 60) donkey.place(bx, bz, P.yaw, (x, z) => groundAt(x, z));
+    else { const want = Math.atan2(dx, dz); let dh = want - donkey.group.rotation.y; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); donkey.update(dt, { throttle: d > 2.2 ? Math.min(1, d / 6) : 0, steer: Math.max(-1, Math.min(1, dh * 2)), pace: d > 12 ? 2 : 0 }, (x, z) => groundAt(x, z)); } }
+  walker.visible = m === 'walk' || m === 'ride'; car.visible = m === 'drive'; glider.visible = m === 'fly'; if (donkey) donkey.group.visible = m === 'ride' || m === 'walk';
+  walker.position.set(P.x, P.y + (m === 'ride' ? 1.05 : 0), P.z); if (m === 'ride' && donkey) { walker.position.copy(donkey.group.position); walker.position.y += 1.05; } walker.rotation.y = P.yaw; car.position.set(P.x, P.y, P.z); car.rotation.y = P.yaw; glider.position.set(P.x, P.y, P.z); glider.rotation.y = P.yaw;
   if (m === 'drive') { const ahead = groundAt(P.x + Math.sin(P.yaw) * 2, P.z + Math.cos(P.yaw) * 2, P.y), behind = groundAt(P.x - Math.sin(P.yaw) * 2, P.z - Math.cos(P.yaw) * 2, P.y); car.rotation.x = -Math.atan2(ahead - behind, 4); }
   // chase camera
   const [dist, up] = CAM[m], cy = P.yaw + Math.PI + camYaw, ex = P.x + Math.sin(cy) * dist * Math.cos(camPitch), ez = P.z + Math.cos(cy) * dist * Math.cos(camPitch); let ey = P.y + up + Math.sin(camPitch) * dist;
