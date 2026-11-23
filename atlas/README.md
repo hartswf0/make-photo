@@ -21,6 +21,10 @@ python3 atlas/build_archipelago.py   # paints archipelago.jpg, archipelago-small
 
 `archipelago.json` holds every island's places, roads, trails, rails, rivers and streets in map kilometres, and a `frame` for the islands a game can stand on, so a game can open the map at its player: `atlas/?embed=1&island=ahiya&x=-1460&z=760`. Donkey Water's Map does exactly that.
 
+## The overworld (`overworld.html`)
+
+The archipelago in 3D, streamed like an open-world game: 2 km terrain tiles (`ow/t/*.bin`) load around you, full detail near and coarser further out, over a coarse mesh of the whole archipelago (`ow/low.bin`) so distant islands stand on the horizon. Eight bridges (`ow/world.json`) join every island into one chain; each island's highways and trails are roads, with a connector from each bridge end. Walk, ride the donkey, drive, or fly. Near a level's place an Enter button opens that level. The map's cards have Travel there.
+
 ## Files
 
 - `index.html`: the map. Pan, pinch, wheel, double-tap; tap an island or place for its card and Enter.

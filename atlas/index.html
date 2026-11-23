@@ -15,7 +15,7 @@ canvas{position:fixed;inset:0;display:block;touch-action:none}
 <canvas id="c"></canvas>
 <div id="title"><b>THE ARCHIPELAGO</b><span>every level's real ground at true scale · only the sea is invented</span></div>
 <button id="back">‹ Back to the world</button>
-<div id="card" role="dialog" aria-live="polite"><button class="x" aria-label="Close">×</button><div class="k"></div><h2></h2><p></p><a href="#">Enter</a></div>
+<div id="card" role="dialog" aria-live="polite"><button class="x" aria-label="Close">×</button><div class="k"></div><h2></h2><p></p><a href="#" id="go">Enter</a> <a href="#" id="travel" style="background:#e9e2cf;color:#1c468c">Travel there</a></div>
 <script>
 (async () => {
 const cv = document.getElementById('c'), g = cv.getContext('2d'), card = document.getElementById('card'), QS = new URLSearchParams(location.search), EMBED = QS.has('embed');
@@ -80,7 +80,8 @@ function tap(x, y) { let best = null, bd = 26;
   if (!best) for (const il of A.islands) { const c = P(il.center[0], il.center[1]), hw = il.size[0] * V.s / 2, hh = il.size[1] * V.s / 2; if (Math.abs(x - c[0]) < Math.max(hw, 18) && Math.abs(y - c[1]) < Math.max(hh, 18)) { best = { il }; break; } }
   if (!best) { card.classList.remove('on'); return; }
   const { il, p } = best; card.querySelector('.k').textContent = p ? `${il.name} · ${p.world}` : il.level; card.querySelector('h2').textContent = p ? p.name : il.name;
-  card.querySelector('p').textContent = il.note; const a = card.querySelector('a'); a.href = (p && p.entry) || il.entry; a.target = EMBED ? '_top' : '';
+  card.querySelector('p').textContent = il.note; const a = document.getElementById('go'); a.href = (p && p.entry) || il.entry; a.target = EMBED ? '_top' : '';
+  const tr = document.getElementById('travel'), at = p ? p.at : il.center; tr.href = `./overworld.html?island=${il.id}&mx=${(at[0] * 1000).toFixed(0)}&mz=${(at[1] * 1000).toFixed(0)}`; tr.target = EMBED ? '_top' : '';
   card.classList.add('on'); if (!p) { V.x = il.center[0]; V.y = il.center[1]; V.s = Math.min(W / il.size[0], (H - 170) / il.size[1]) * .85; draw(); } }
 card.querySelector('.x').onclick = () => card.classList.remove('on');
 if (EMBED) { const b = document.getElementById('back'); b.style.display = 'block'; b.onclick = () => parent.postMessage('atlas:back', '*'); }

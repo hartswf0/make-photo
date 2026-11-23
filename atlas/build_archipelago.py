@@ -199,5 +199,5 @@ places3 = [dict(name=p_['name'], island=i['id'], world=p_['world'], entry=p_['en
 LOW = 10; lowh = Hmap[::LOW, ::LOW]; (OW / 'low.bin').write_bytes(np.clip(np.round((lowh + 1000) * 10), 0, 65535).astype('<u2').tobytes())
 json.dump(dict(tile=T, mpp=MPP, tiles=tiles, low=dict(step=LOW * MPP, w=lowh.shape[1], h=lowh.shape[0]), width_m=PW * MPP, height_m=PH * MPP, encode='(h+1000)*10 uint16 LE, rows south-increasing z', bridges=bridges, roads=roads3, places=places3,
                islands=[dict(id=i['id'], name=i['name'], level=i['level'], entry=i['entry'], center=[i['center'][0] * 1000, i['center'][1] * 1000], size=[i['size'][0] * 1000, i['size'][1] * 1000], frame=i['frame']) for i in out['islands']],
-               texture='../archipelago.jpg'), open(OW / 'world.json', 'w'), separators=(',', ':'))
+               texture='./archipelago.jpg'), open(OW / 'world.json', 'w'), separators=(',', ':'))
 print('overworld', len(tiles), 'tiles', len(bridges), 'bridges', [(b['a'][:6], b['b'][:6], b['length_m']) for b in bridges], len(roads3), 'roads')
