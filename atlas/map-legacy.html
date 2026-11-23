@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#1c468c">
+<title>The Archipelago · make-photo</title>
+<style>
+html,body{margin:0;height:100%;background:#1c468c;overflow:hidden;overscroll-behavior:none;font:15px/1.35 system-ui,-apple-system,'Segoe UI',sans-serif;color:#10202a}
+canvas{position:fixed;inset:0;display:block;touch-action:none}
+#card{position:fixed;left:10px;right:10px;bottom:10px;max-width:520px;margin:0 auto;padding:14px 16px 16px;border-radius:14px;background:#f4f1e8;box-shadow:0 8px 30px rgba(0,0,0,.35);transform:translateY(140%);transition:transform .22s;z-index:3}
+#card.on{transform:none}#card .k{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#5b6b70}#card h2{margin:2px 0 4px;font-size:21px;font-weight:700}
+#card p{margin:4px 0 10px;color:#334;font-size:14px}#card a{display:inline-block;background:#1c468c;color:#fff;text-decoration:none;padding:9px 16px;border-radius:8px;font-weight:600}
+#card .x{position:absolute;right:8px;top:4px;border:0;background:none;font-size:24px;color:#556}
+#title{position:fixed;left:14px;top:12px;color:#fff;z-index:2;pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,.4)}#title b{display:block;font-size:20px;letter-spacing:.14em}#title span{font-size:12px;opacity:.85}
+#back{position:fixed;right:12px;top:12px;z-index:2;border:0;background:#f4f1e8;color:#1c468c;font-weight:700;padding:9px 14px;border-radius:8px;display:none}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="title"><b>THE ARCHIPELAGO</b><span>every level's real ground at true scale · only the sea is invented</span></div>
+<button id="back">‹ Back to the world</button>
+<div id="card" role="dialog" aria-live="polite"><button class="x" aria-label="Close">×</button><div class="k"></div><h2></h2><p></p><a href="#" id="go">Enter</a> <a href="#" id="travel" style="background:#e9e2cf;color:#1c468c">Travel there</a></div>
+<script>
+(async () => {
+const cv = document.getElementById('c'), g = cv.getContext('2d'), card = document.getElementById('card'), QS = new URLSearchParams(location.search), EMBED = QS.has('embed');
+const A = await (await fetch('./archipelago.json?v=1')).json();
+let W = innerWidth, H = innerHeight, dpr = Math.min(2, devicePixelRatio || 1), ready = false;
+const img = new Image(), big = new Image();
+const V = { x: A.width_km / 2, y: A.height_km / 2, s: 10 };              // view centre in map km; px per km
+const P = (x, y) => [(x - V.x) * V.s + W / 2, (y - V.y) * V.s + H / 2];
+const minS = () => Math.min(W / A.width_km, H / A.height_km) * .9;
+function size() { dpr = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; draw(); }
+// where the player stands, when a game opens the map: ?island=ahiya&x=-1460&z=760
+let ME = null; { const il = A.islands.find(i => i.id === QS.get('island')), x = parseFloat(QS.get('x')), z = parseFloat(QS.get('z'));
+  if (il && il.frame && Number.isFinite(x) && Number.isFinite(z)) { const f = il.frame; ME = [il.center[0] - il.size[0] / 2 + (x - f.x0) / f.w * il.size[0], il.center[1] - il.size[1] / 2 + (z - f.z0) / f.h * il.size[1]]; } }
+function start() { const il = A.islands.find(i => i.id === QS.get('island'));
+  if (ME) { V.x = ME[0]; V.y = ME[1]; V.s = Math.min(W, H) / Math.max(1.4, il.size[0] * 1.3); } else if (il) { V.x = il.center[0]; V.y = il.center[1]; V.s = Math.min(W / il.size[0], H / il.size[1]) * .8; }
+  else { V.x = A.width_km / 2; V.y = A.height_km / 2; V.s = Math.min(W / A.width_km, (H - 70) / A.height_km) * 1.02; } }
+const ROAD = { highway: [4, '#f3e3a6', 1.6, '#6e5f33'], trail: [2.4, '#ffffff', 1.2, 'rgba(50,40,24,.6)', [5, 4]], rail: [2, '#e3e3e3', 1.1, '#555', [3, 3]], river: [2.6, '#62b8e8', 0] };
+function line(pts, w, col, casew, casecol, dash) { if (pts.length < 2) return; g.beginPath(); pts.forEach((p, i) => { const [x, y] = P(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+  g.setLineDash(dash || []); if (casew) { g.strokeStyle = casecol; g.lineWidth = w + casew * 2; g.stroke(); } g.strokeStyle = col; g.lineWidth = w; g.stroke(); g.setLineDash([]); }
+function draw() {
+  if (!ready) return; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = '#1c468c'; g.fillRect(0, 0, W, H);
+  const [x0, y0] = P(0, 0), [x1, y1] = P(A.width_km, A.height_km), src = big.complete && big.naturalWidth && V.s > 13 ? big : img;
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(src, x0, y0, x1 - x0, y1 - y0);
+  for (const il of A.islands) { if (!il.detail) continue; const [ix, iy] = P(il.center[0] - il.size[0] / 2, il.center[1] - il.size[1] / 2), iw = il.size[0] * V.s, ih = il.size[1] * V.s;   // each island sharp when it is large on screen
+    if (iw < A.mpp / 1000 * V.s * 0 + il.size[0] * 1000 / A.mpp * 1.1 || ix > W || iy > H || ix + iw < 0 || iy + ih < 0) continue;
+    if (!il._img) { il._img = new Image(); il._img.onload = draw; il._img.src = il.detail + '?v=1'; } if (il._img.complete && il._img.naturalWidth) g.drawImage(il._img, ix, iy, iw, ih); }
+  const k = V.s, zoomed = k > 30, close = k > 110;
+  g.lineCap = g.lineJoin = 'round';
+  for (const il of A.islands) {
+    if (close) for (const s of il.streets || []) line(s, Math.max(.6, k / 260), 'rgba(255,255,255,.8)', 0);
+    if (zoomed || il.size[0] > 8) for (const r of il.roads) { const st = ROAD[r.kind] || ROAD.trail, sc = Math.min(1.6, Math.max(.5, k / 45)); line(r.pts, st[0] * sc, st[1], st[2] * sc, st[3], st[4]); }
+  }
+  const labels = [];
+  for (const il of A.islands) for (const p of il.places) { const [x, y] = P(p.at[0], p.at[1]); p.hit = [x, y]; const show = zoomed && (!il.small || k > 160);
+    if (!show) continue; g.fillStyle = '#fff'; g.strokeStyle = '#1b2a33'; g.lineWidth = 2; g.beginPath(); g.arc(x, y, close ? 5 : 3.6, 0, 7); g.fill(); g.stroke();
+    labels.push([p.name, x + 8, y + 4, close ? 14 : 12, 600, '#1b2a33', 'rgba(255,255,255,.92)']); }
+  for (const il of A.islands) { const [x, y] = P(il.center[0], il.center[1]), sz = il.small ? 11 : Math.max(11, Math.min(28, k * Math.sqrt(il.size[0] * il.size[1]) / 24));
+    if (il.small && k < 22) continue; labels.unshift([il.name, x, y, sz, 800, '#fff', 'rgba(16,32,48,.6)', true, il.level]); }
+  const taken = [];
+  for (const [t, x, y, sz, wt, fill, halo, center, sub] of labels) { g.font = `${wt} ${sz}px system-ui,-apple-system,'Segoe UI',sans-serif`; const sp = center ? sz * .16 : 0;
+    const w = g.measureText(t).width + sp * t.length, lx = center ? x - w / 2 : x;
+    if (taken.some(r => lx < r[2] && lx + w > r[0] && y - sz < r[3] && y + 2 > r[1])) continue; taken.push([lx, y - sz, lx + w, y + (sub ? 17 : 3)]);
+    g.lineWidth = Math.max(3, sz * .22); g.strokeStyle = halo; g.fillStyle = fill; let cx = lx;
+    if (sp) { for (const ch of t) { g.strokeText(ch, cx, y); g.fillText(ch, cx, y); cx += g.measureText(ch).width + sp; } } else { g.strokeText(t, lx, y); g.fillText(t, lx, y); }
+    if (sub && sz > 14) { g.font = '500 12px system-ui,sans-serif'; const sw = g.measureText(sub).width; g.lineWidth = 3; g.strokeStyle = 'rgba(16,32,48,.65)'; g.strokeText(sub, x - sw / 2, y + 16); g.fillStyle = '#eaf2f4'; g.fillText(sub, x - sw / 2, y + 16); } }
+  if (ME) { const [x, y] = P(ME[0], ME[1]); g.fillStyle = '#ff4d3d'; g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 8, y - 14); g.arc(x, y - 18, 9, Math.PI * .85, Math.PI * .15); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y - 18, 3.4, 0, 7); g.fill(); }
+  const km = [.05, .1, .2, .5, 1, 2, 5, 10, 20].find(v => v * k > 70) || 20, bx = 16, by = H - 22; g.fillStyle = '#fff'; g.fillRect(bx, by, km * k, 4); g.font = '600 12px system-ui,sans-serif'; g.fillText(km < 1 ? km * 1000 + ' m' : km + ' km', bx, by - 6);
+  g.textAlign = 'center'; g.fillText('N', W - 22, H - 48); g.beginPath(); g.moveTo(W - 22, H - 42); g.lineTo(W - 28, H - 24); g.lineTo(W - 22, H - 29); g.lineTo(W - 16, H - 24); g.closePath(); g.fill(); g.textAlign = 'left';
+}
+const ptrs = new Map(); let pinch = null, moved = 0;
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); moved = 0; if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), s: V.s }; } });
+cv.addEventListener('pointermove', e => { const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.clientX - p[0], dy = e.clientY - p[1]; ptrs.set(e.pointerId, [e.clientX, e.clientY]); moved += Math.hypot(dx, dy);
+  if (ptrs.size === 1) { V.x -= dx / V.s; V.y -= dy / V.s; } else if (pinch) { const [a, b] = [...ptrs.values()]; zoomAt((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, pinch.s * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d / V.s); } clampV(); draw(); });
+const up = e => { const was = ptrs.size; ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; if (was === 1 && moved < 8) tap(e.clientX, e.clientY); };
+cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+cv.addEventListener('wheel', e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * .0016)); clampV(); draw(); }, { passive: false });
+cv.addEventListener('dblclick', e => { zoomAt(e.clientX, e.clientY, 2.2); clampV(); draw(); });
+function zoomAt(x, y, f) { const mx = V.x + (x - W / 2) / V.s, my = V.y + (y - H / 2) / V.s; V.s = Math.max(minS(), Math.min(3000, V.s * f)); V.x = mx - (x - W / 2) / V.s; V.y = my - (y - H / 2) / V.s; }
+function clampV() { V.x = Math.max(0, Math.min(A.width_km, V.x)); V.y = Math.max(0, Math.min(A.height_km, V.y)); }
+function tap(x, y) { let best = null, bd = 26;
+  for (const il of A.islands) for (const p of il.places) if (p.hit && V.s > 30) { const d = Math.hypot(x - p.hit[0], y - p.hit[1]); if (d < bd) { bd = d; best = { il, p }; } }
+  if (!best) for (const il of A.islands) { const c = P(il.center[0], il.center[1]), hw = il.size[0] * V.s / 2, hh = il.size[1] * V.s / 2; if (Math.abs(x - c[0]) < Math.max(hw, 18) && Math.abs(y - c[1]) < Math.max(hh, 18)) { best = { il }; break; } }
+  if (!best) { card.classList.remove('on'); return; }
+  const { il, p } = best; card.querySelector('.k').textContent = p ? `${il.name} · ${p.world}` : il.level; card.querySelector('h2').textContent = p ? p.name : il.name;
+  card.querySelector('p').textContent = il.note; const a = document.getElementById('go'); a.href = (p && p.entry) || il.entry; a.target = EMBED ? '_top' : '';
+  const tr = document.getElementById('travel'), at = p ? p.at : il.center; tr.href = `./overworld.html?island=${il.id}&mx=${(at[0] * 1000).toFixed(0)}&mz=${(at[1] * 1000).toFixed(0)}`; tr.target = EMBED ? '_top' : '';
+  card.classList.add('on'); if (!p) { V.x = il.center[0]; V.y = il.center[1]; V.s = Math.min(W / il.size[0], (H - 170) / il.size[1]) * .85; draw(); } }
+card.querySelector('.x').onclick = () => card.classList.remove('on');
+if (EMBED) { const b = document.getElementById('back'); b.style.display = 'block'; b.onclick = () => parent.postMessage('atlas:back', '*'); }
+addEventListener('resize', size);
+cv.width = W * dpr; cv.height = H * dpr;
+img.onload = () => { ready = true; start(); draw(); }; img.src = A.preview + '?v=1';
+big.onload = () => draw(); big.src = A.image + '?v=1';
+window.__arch = { A, V, draw };
+})();
+</script></body></html>
