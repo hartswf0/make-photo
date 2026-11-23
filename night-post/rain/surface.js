@@ -149,6 +149,15 @@ function base() {
   if (ui.memory) { buildRecall(); return false; }
   return true;
 }
+// ONE MAP. Every world in make-photo lives on one liquid atlas (../atlas/). Here it opens at the carrier's real place:
+// Ahiya is the Simien hillside about the Basalt Pump; the western basin is Grand Teton metres about the survey origin.
+let atlasFrame = null;
+function myLatLon() { const p = S.pos || { x: 0, z: 0 }; if (p.x < -1180 && p.z > 200) { const dx = p.x + 1460, dz = p.z - 760, a = 10 * Math.PI / 180, ex = dx * Math.cos(a) - dz * Math.sin(a), nz = dx * Math.sin(a) + dz * Math.cos(a), lat = 13.22461 - nz / 110574; return [lat, 38.10454 + ex / (111320 * Math.cos(lat * Math.PI / 180))]; }
+  return [43.7541667 - p.z / 110574, -110.6235 + p.x / (111320 * Math.cos(43.7541667 * Math.PI / 180))]; }
+function openAtlas() { const [la, lo] = myLatLon(), src = `../atlas/index.html?embed=1&me=${la.toFixed(6)},${lo.toFixed(6)}`;
+  if (!atlasFrame) { atlasFrame = document.createElement('iframe'); atlasFrame.id = 'rw-atlas'; atlasFrame.title = 'World atlas'; Object.assign(atlasFrame.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', border: '0', zIndex: '30', pointerEvents: 'auto', background: '#0a151d' }); world.append(atlasFrame);
+    addEventListener('message', e => { if (e.data === 'atlas:back') { ui.scene = 'world'; render(); } }); }
+  if (atlasFrame.hidden || !atlasFrame.dataset.src) { if (atlasFrame.dataset.src !== src) { atlasFrame.dataset.src = src; atlasFrame.src = src; } atlasFrame.hidden = false; } }   // load once per opening; it does not reload while you look
 const chart = document.createElement('img'); chart.id = 'rw-chart'; chart.alt = ''; chart.hidden = true; world.append(chart);
 const shortName = nm => nm.replace(/^the /, '').replace(/^white wall at the /, '');
 function mixSpec() { const W = world.clientWidth, H = world.clientHeight;
@@ -211,18 +220,7 @@ const BUILD = {
   water() { info('reserve', 'a', 'Keep back', `${n(S.water.reserve)} L`, 'for the way home', { viscosity: 2.2 }); info('space', 'b', 'Space in the can', `${n(20 - S.water.liters)} L`, 'Nothing disappears.', { viscosity: 1.9 }); item('squirt', 'c', .6); item('throw', 'd', .7); if (!liveDrop()) info('walk-to', 'primary', 'Water', 'Find the pump', 'Basalt Pump holds the source', { viscosity: 2 }); },
   people() { const v = currentVoice(); if (!ui.say) { if (v) voiceDrop(v, voiceHome()); else info('no-voice', 'speech', 'No one near', '', 'Walk up to someone. Their voice arrives as water.', { viscosity: 4 }); } if (S.live && S.live.kind === 'talk') liveDrop('topic1'); button('say', 'c', ui.say ? 'Cancel' : 'Say', ui.say ? 'keep listening' : 'write into the water', () => { ui.say = !ui.say; render(); if (ui.say) $('say-text').focus(); }, { viscosity: 4 }); item('voice', 'd', 2); },
   rig() { item('rig', 'a', 2.4); item('sync', 'b', 1.8); item('plates', 'c', 2.6); item('cam', 'd', 1.4); if (ui.details) item('playas', 'e', 2); const p = B.act.lastPlate(); if (p) info('plate-view', 'speech', 'Last plate', '', `${n(Math.min(100, S.lens.focus))} m · ${S.lens.stopName}`, { className: 'plate-detail', image: p, viscosity: 3 }); button('primary', 'primary', 'Expose', 'capture one plate', live(() => B.act.expose()), { className: 'action-drop', viscosity: 2.2 }); },
-  map() {                                                             // the way, in water: a pool of relief, the stops and you as drops, the route as a current
-    const stops = S.map.stops, sel = stops.find(x => x.id === ui.mapSel) || stops.find(x => x.next) || stops[0]; ui.mapSel = sel.id;
-    const W = world.clientWidth, H = world.clientHeight, w = Math.min(W - 60, 420), h = w * 660 / 720, cx = .46, cy = .37, img = drawMap();
-    const at = id => { const uv = B.chart.uv(id); return uv ? [clamp(cx + (uv[0] - .5) * w / W, .14, .82), clamp(cy + (uv[1] - .5) * h / H, .12, .8)] : null; };
-    mixSpec();
-    chart.src !== img && (chart.src = img); Object.assign(chart.style, { left: (cx * W - w / 2) + 'px', top: (cy * H - h / 2) + 'px', width: w + 'px', height: h + 'px' });
-    stops.forEach((st, i) => { const hm = at(st.id); if (!hm) return; button('stop-' + st.id, 'a', null, null, () => { ui.mapSel = st.id; mapAt = 0; glass.burst(hm[0] * W, hm[1] * H, 'water'); render(); }, { kicker: String(i + 1), value: shortName(st.name), className: 'stop-drop' + (st.next ? ' amber' : st.id === sel.id ? ' action-drop' : ''), fill: st.seen ? 1 : .15, viscosity: 2.4 + i * .3, home: hm, flow: false }); });
-    const me = at('me'); if (me) button('me', 'a', null, null, () => { glass.burst(me[0] * W, me[1] * H, 'water'); }, { kicker: '', value: 'You', className: 'stop-drop me-drop', viscosity: .9, home: [me[0], me[1] + .012], carry: true });
-    const dk = at('donkey'); if (dk && Math.hypot((dk[0] - (me ? me[0] : 0)) * W, (dk[1] - (me ? me[1] : 0)) * H) > 46) info('map-donkey', 'a', '', 'Donkey', '', { className: 'stop-drop amber', viscosity: 3, home: dk });
-    if (sel.dist >= 14) button('primary', 'primary', 'Go', '', live(() => { B.act.travel(sel.id); cause = `Travelled to ${shortName(sel.name)}.`; ui.scene = 'world'; }), { className: 'action-drop', viscosity: 2, home: [.7, .84] });
-    button('map-back', 'recovery', 'Back', '', () => { ui.scene = 'world'; render(); }, { className: 'amber', viscosity: 3, home: [.26, .84] });
-  },
+  map() { openAtlas(); },                                            // the map is the one world atlas, at your real place on Earth
   all() {                                                             // every operational control the game has, eight to a page, nothing left out
     const items = menuItems(), per = 8, pages = Math.max(1, Math.ceil(items.length / per)); ui.page = ((ui.page % pages) + pages) % pages;
     const small = world.clientWidth < 701, lx = small ? .22 : .16, rx = small ? .74 : .84;
@@ -341,7 +339,7 @@ function render() {
     for (const [id, h] of held0.map) { if (have.has(id)) continue; if (now - h.at < 700 && !/^(mix|aff-|keep-|k-|it-)/.test(id)) specs.push(h.sp); else held0.map.delete(id); } }
   { const now = performance.now(), want = new Set(specs.map(sp => sp.id)); for (const id of admitted) if (!want.has(id)) admitted.delete(id);
     specs = specs.filter(sp => { if (admitted.has(sp.id)) return true; if (sp.critical || now - lastAdmit > 380) { admitted.add(sp.id); if (!sp.critical) lastAdmit = now; return true; } return false; }); }
-  chart.hidden = !(S.ready && ui.scene === 'map' && !ui.menu && !ui.past);
+  chart.hidden = true; if (atlasFrame) atlasFrame.hidden = !(S.ready && ui.scene === 'map' && !ui.menu && !ui.past);
   syncDrops(); renderMenu();
   const canSteer = S.ready && !ui.past && !ui.rest && !ui.memory && !ui.menu && !ui.say && ui.scene !== 'map';
   $('steer').hidden = !canSteer; $('say-form').hidden = !ui.say || ui.scene !== 'people' || ui.past; $('menu-toggle').hidden = !S.ready;

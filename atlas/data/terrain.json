@@ -1,0 +1,77 @@
+{
+ "tiles": [
+  {
+   "id": "teton_far",
+   "title": "Grand Teton \u00b7 far grid",
+   "bbox": [
+    43.624842,
+    -110.89213,
+    43.974833,
+    -110.58619
+   ],
+   "dem": "./data/teton_far.bin",
+   "w": 801,
+   "h": 1281,
+   "elev": [
+    1943.1,
+    4186.7
+   ],
+   "source": "USGS 3DEP via MONOLITH-3"
+  },
+  {
+   "id": "teton_near",
+   "title": "Grand Teton \u00b7 near grid",
+   "bbox": [
+    43.728392,
+    -110.657701,
+    43.764838,
+    -110.610566
+   ],
+   "dem": "./data/teton_near.bin",
+   "w": 641,
+   "h": 681,
+   "elev": [
+    2004.8,
+    2126.5
+   ],
+   "source": "USGS 3DEP via MONOLITH-3"
+  },
+  {
+   "id": "teton_detail",
+   "title": "Grand Teton \u00b7 detail grid",
+   "bbox": [
+    43.752539,
+    -110.626609,
+    43.756156,
+    -110.621635
+   ],
+   "dem": "./data/teton_detail.bin",
+   "w": 201,
+   "h": 201,
+   "elev": [
+    2018.5,
+    2108.7
+   ],
+   "source": "USGS 3DEP via MONOLITH-3"
+  },
+  {
+   "id": "ahiya",
+   "title": "Ahiya \u00b7 the pump hillside",
+   "approx": true,
+   "bbox": [
+    13.221388,
+    38.09883,
+    13.229528,
+    38.107135
+   ],
+   "dem": "./data/ahiya.bin",
+   "w": 91,
+   "h": 91,
+   "elev": [
+    -87.8,
+    101.1
+   ],
+   "source": "Copernicus GLO-30 via night-post"
+  }
+ ]
+}

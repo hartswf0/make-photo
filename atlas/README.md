@@ -21,13 +21,19 @@ Not spatial, so not registered: study, music-video, city/design-room, the root i
 4. **Valley elevation**: each Ethiopia tile DEM (`ethiopia-highlands/terrain-pack/*.dem16.bin`, 295 KB, 384 x 384 over 6 km) loads when its box fills more than 36 px, with its carrier trail drawn on it.
 5. **Enter**: every place opens its own world (Ethiopia tiles deep-link with `?region=`).
 
+## Freed terrain (done)
+
+`python3 atlas/build_terrain.py` pulls the Grand Teton far (801 x 1281), near (641 x 681) and detail (201 x 201) grids out of `MONOLITH-3.html`, and the Ahiya hillside (91 x 91) out of `night-post/ahiya-real-terrain.js`, into `atlas/data/*.bin`. They stream exactly like the Ethiopia tiles.
+
+## Liquid, and the game's own map
+
+The map renders under the rain engine's glass (`night-post/rain/engine.js`): each visible world or place is a lens drop that refracts the ground under it, routes and Donkey Water's seams are currents, a drag moves water and a tap splashes. Inside Donkey Water, Menu → Map (or tapping the way) opens this same atlas at the carrier's real latitude and longitude with `?embed=1&me=lat,lon`; Back returns to the world.
+
 ## What the next streams need
 
 | World | Data | What is needed to stream it here |
 |---|---|---|
-| Grand Teton (MONOLITH-3, zones, Donkey Water west) | far, near, detail grids embedded as base64 in the 21 MB `MONOLITH-3.html` | extract each grid to its own `.bin` with its bounds (the build script already knows them), then the atlas streams them like the Ethiopia tiles |
 | Highland Exposure | 196 sectors of 1 km with byte offsets and sha256, inside the 6.7 MB html | move `terrain-src` out to a sidecar `.bin`; the sector table is already a streaming index |
-| Ahiya (Donkey Water) | `night-post/ahiya-real-terrain.js`, 91 x 91 at 10 m | already small; register it as a fifth Simien tile at the pump |
 | WYGWYL island | `city/island/data/height_grid.json` | per-region rot and scale are needed to place each piece on Earth |
 
 ## Contradictions the atlas keeps visible, not merged
