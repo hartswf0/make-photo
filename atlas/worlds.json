@@ -1,0 +1,1234 @@
+{
+ "schema": 1,
+ "note": "Every world registered once. latlon is WGS84. approx marks values derived here, not read from the world.",
+ "worlds": [
+  {
+   "id": "donkey-water",
+   "title": "Donkey Water 2086 · Night Post",
+   "kind": "montage",
+   "entry": "../night-post/index.html?circuit=ahiya&demo=ahiya",
+   "note": "One walkable world stitched from real places at invented offsets: the Teton frame is real metres; Ahiya (Simien) is pasted 1.6 km west; the Abyss is procedural; Half Dome is mirrored in at x 620.",
+   "pieces": [
+    {
+     "id": "np-west",
+     "title": "Western Basin (Grand Teton frame)",
+     "geo": "real",
+     "landmarks": [
+      {
+       "name": "Overlook",
+       "local": [
+        -14.8,
+        0.8
+       ],
+       "latlon": [
+        43.754159,
+        -110.623684
+       ]
+      },
+      {
+       "name": "Switchback",
+       "local": [
+        -40,
+        -157
+       ],
+       "latlon": [
+        43.755587,
+        -110.623997
+       ]
+      },
+      {
+       "name": "Ford",
+       "local": [
+        -236.5,
+        -46.5
+       ],
+       "latlon": [
+        43.754587,
+        -110.626441
+       ]
+      },
+      {
+       "name": "Oxbow",
+       "local": [
+        -504.5,
+        106.5
+       ],
+       "latlon": [
+        43.753204,
+        -110.629774
+       ]
+      },
+      {
+       "name": "Plaza",
+       "local": [
+        -772.5,
+        -19.5
+       ],
+       "latlon": [
+        43.754343,
+        -110.633107
+       ]
+      }
+     ]
+    },
+    {
+     "id": "np-ahiya",
+     "title": "Ahiya Highlands (Simien)",
+     "geo": "real",
+     "approx": true,
+     "landmarks": [
+      {
+       "name": "Basalt Pump",
+       "local": [
+        -1460,
+        760
+       ],
+       "latlon": [
+        13.22461,
+        38.10454
+       ]
+      },
+      {
+       "name": "Cross-Beacon Watch",
+       "local": [
+        -1610,
+        590
+       ],
+       "latlon": [
+        13.22636,
+        38.103449
+       ]
+      },
+      {
+       "name": "Hill Archive",
+       "local": [
+        -1765,
+        540
+       ],
+       "latlon": [
+        13.227048,
+        38.102121
+       ]
+      },
+      {
+       "name": "Daylight Compound",
+       "local": [
+        -1680,
+        775
+       ],
+       "latlon": [
+        13.224822,
+        38.102517
+       ]
+      }
+     ]
+    },
+    {
+     "id": "np-abyss",
+     "title": "Abyssal Whale Fluke Sanctuary",
+     "geo": "fictional",
+     "landmarks": [
+      {
+       "name": "Whale Fluke Cistern",
+       "local": [
+        -1064,
+        -18.5
+       ]
+      }
+     ]
+    },
+    {
+     "id": "np-ridge",
+     "title": "Half Dome (mirrored in)",
+     "geo": "real",
+     "approx": true,
+     "landmarks": [
+      {
+       "name": "Half Dome East Apron",
+       "local": [
+        428,
+        43
+       ],
+       "latlon": [
+        37.746,
+        -119.5675
+       ]
+      }
+     ]
+    }
+   ],
+   "seams": [
+    {
+     "a": [
+      13.22461,
+      38.10454
+     ],
+     "b": [
+      43.754343,
+      -110.633107
+     ],
+     "label": "Ahiya pump ↔ Pueblo plaza: 0.7 km walk in the game, 13,000 km on Earth"
+    },
+    {
+     "a": [
+      43.753778,
+      -110.618177
+     ],
+     "b": [
+      37.746,
+      -119.5675
+     ],
+     "label": "Half Dome sits 440 m east of the Teton overlook in the game"
+    }
+   ]
+  },
+  {
+   "id": "monolith-3",
+   "title": "MONOLITH-3 · Grand Teton expedition",
+   "kind": "real",
+   "entry": "../MONOLITH-3.html",
+   "source": "USGS 3DEP, NHD",
+   "landmarks": [
+    {
+     "name": "Snake River Overlook",
+     "local": [
+      -46.3,
+      1.4
+     ],
+     "latlon": [
+      43.754154,
+      -110.624076
+     ]
+    },
+    {
+     "name": "Moraine Switchback",
+     "local": [
+      -48,
+      -168
+     ],
+     "latlon": [
+      43.755686,
+      -110.624097
+     ]
+    },
+    {
+     "name": "Silver Ford",
+     "local": [
+      -246,
+      -54.8
+     ],
+     "latlon": [
+      43.754662,
+      -110.626559
+     ]
+    },
+    {
+     "name": "North Cottonwood Oxbow",
+     "local": [
+      -518,
+      94
+     ],
+     "latlon": [
+      43.753317,
+      -110.629942
+     ]
+    },
+    {
+     "name": "Far-Bank Sage Terrace",
+     "local": [
+      -790,
+      -35
+     ],
+     "latlon": [
+      43.754483,
+      -110.633325
+     ]
+    }
+   ]
+  },
+  {
+   "id": "zones",
+   "title": "THRESHOLD · zones",
+   "kind": "real",
+   "entry": "../zones/index.html",
+   "landmarks": [
+    {
+     "name": "Overlook Rim",
+     "local": [
+      -45,
+      1.4
+     ],
+     "latlon": [
+      43.754154,
+      -110.62406
+     ]
+    },
+    {
+     "name": "Moraine",
+     "local": [
+      -22,
+      -52
+     ],
+     "latlon": [
+      43.754637,
+      -110.623774
+     ]
+    },
+    {
+     "name": "Bluff",
+     "local": [
+      -48,
+      -168
+     ],
+     "latlon": [
+      43.755686,
+      -110.624097
+     ]
+    },
+    {
+     "name": "Sage Bench",
+     "local": [
+      -162,
+      -112
+     ],
+     "latlon": [
+      43.75518,
+      -110.625515
+     ]
+    },
+    {
+     "name": "Silver Ford",
+     "local": [
+      -248,
+      -55
+     ],
+     "latlon": [
+      43.754664,
+      -110.626584
+     ]
+    },
+    {
+     "name": "Oxbow",
+     "local": [
+      -518,
+      94
+     ],
+     "latlon": [
+      43.753317,
+      -110.629942
+     ]
+    }
+   ]
+  },
+  {
+   "id": "half-dome",
+   "title": "MONOLITH · Half Dome survey",
+   "kind": "real",
+   "entry": "../MONOLITH.html",
+   "landmarks": [
+    {
+     "name": "Half Dome survey centre",
+     "latlon": [
+      37.746,
+      -119.5675
+     ]
+    }
+   ]
+  },
+  {
+   "id": "field-plates",
+   "title": "Field plates · three assignments",
+   "kind": "real",
+   "entry": "../field-plates/index.html",
+   "landmarks": [
+    {
+     "name": "Half Dome plate",
+     "latlon": [
+      37.746,
+      -119.5675
+     ]
+    },
+    {
+     "name": "Yosemite Valley plate",
+     "latlon": [
+      37.71491,
+      -119.67691
+     ]
+    },
+    {
+     "name": "Teton plate",
+     "latlon": [
+      43.7541667,
+      -110.6235
+     ]
+    }
+   ]
+  },
+  {
+   "id": "pack-donkey",
+   "title": "Pack Donkey",
+   "kind": "fictional",
+   "anchor_note": "named for Tuolumne Meadows; terrain is procedural",
+   "entry": "../donkey/index.html",
+   "landmarks": [
+    {
+     "name": "Tuolumne Meadow (named)",
+     "latlon": [
+      37.8735,
+      -119.3593
+     ],
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "ethiopia-highlands",
+   "title": "Ethiopia highlands · real-DEM tiles",
+   "kind": "real",
+   "entry": "../ethiopia-highlands/index.html",
+   "source": "AWS Terrarium z11-13",
+   "tiles": [
+    {
+     "id": "simien_imet_gogo",
+     "title": "Simien Mountains · Imet Gogo Promontory",
+     "bbox": [
+      13.235752,
+      38.066966,
+      13.293244,
+      38.126034
+     ],
+     "dem": "../ethiopia-highlands/terrain-pack/simien_imet_gogo.dem16.bin",
+     "grid": 384,
+     "elev": [
+      1962.88,
+      3926.5
+     ],
+     "entry": "../ethiopia-highlands/index.html?region=simien_imet_gogo",
+     "landmarks": [
+      {
+       "name": "Imet Gogo Promontory",
+       "local": [
+        -59.53,
+        -288.18
+       ],
+       "latlon": [
+        13.271401,
+        38.095035
+       ]
+      },
+      {
+       "name": "Imet Gogo Escarpment Launch",
+       "local": [
+        -87.53,
+        -300.18
+       ],
+       "latlon": [
+        13.271689,
+        38.094346
+       ]
+      },
+      {
+       "name": "Geech Rim Monolithic Sanctuary",
+       "local": [
+        197.39,
+        -278.85
+       ],
+       "latlon": [
+        13.271178,
+        38.101358
+       ]
+      },
+      {
+       "name": "Simien Wurch Cyan Standpipe",
+       "local": [
+        56.08,
+        -265.98
+       ],
+       "latlon": [
+        13.27087,
+        38.09788
+       ]
+      },
+      {
+       "name": "Gelada Cliff-Rim Meadow",
+       "local": [
+        -147.26,
+        -128.46
+       ],
+       "latlon": [
+        13.267575,
+        38.092876
+       ]
+      },
+      {
+       "name": "Walia Ibex Basalt Ledge",
+       "local": [
+        -77.53,
+        -383.18
+       ],
+       "latlon": [
+        13.273677,
+        38.094592
+       ]
+      },
+      {
+       "name": "Afro-Alpine Lobelia Moorland",
+       "local": [
+        292.39,
+        -168.85
+       ],
+       "latlon": [
+        13.268543,
+        38.103696
+       ]
+      },
+      {
+       "name": "Geech Abyss Gorge Bench",
+       "local": [
+        -380.0,
+        -640.0
+       ],
+       "latlon": [
+        13.279829,
+        38.087148
+       ]
+      },
+      {
+       "name": "Western Escarpment Spur",
+       "local": [
+        -154.53,
+        -263.18
+       ],
+       "latlon": [
+        13.270802,
+        38.092697
+       ]
+      }
+     ],
+     "trail": [
+      [
+       13.268902,
+       38.104188
+      ],
+      [
+       13.271178,
+       38.101358
+      ],
+      [
+       13.27087,
+       38.09788
+      ],
+      [
+       13.271401,
+       38.095035
+      ],
+      [
+       13.267575,
+       38.092876
+      ]
+     ]
+    },
+    {
+     "id": "gheralta_spires",
+     "title": "Gheralta Mountains · Tigray Spires",
+     "bbox": [
+      13.946147,
+      39.401755,
+      13.99825,
+      39.455445
+     ],
+     "dem": "../ethiopia-highlands/terrain-pack/gheralta_spires.dem16.bin",
+     "grid": 384,
+     "elev": [
+      1953.1,
+      2588.0
+     ],
+     "entry": "../ethiopia-highlands/index.html?region=gheralta_spires",
+     "landmarks": [
+      {
+       "name": "Abuna Yemata / Korkor Cliff Ledge",
+       "local": [
+        -52.0,
+        -44.0
+       ],
+       "latlon": [
+        13.973154,
+        39.427437
+       ]
+      },
+      {
+       "name": "Korkor Amba Summit Overlook",
+       "local": [
+        -55.0,
+        -155.0
+       ],
+       "latlon": [
+        13.975563,
+        39.42737
+       ]
+      },
+      {
+       "name": "Korkor Sandstone Spire Launch",
+       "local": [
+        -55.0,
+        -118.0
+       ],
+       "latlon": [
+        13.97476,
+        39.42737
+       ]
+      },
+      {
+       "name": "Hawzen Acacia Plain Cyan Standpipe",
+       "local": [
+        28.0,
+        235.0
+       ],
+       "latlon": [
+        13.967097,
+        39.429226
+       ]
+      },
+      {
+       "name": "Gheralta Sunken Cruciform Court",
+       "local": [
+        -92.0,
+        165.0
+       ],
+       "latlon": [
+        13.968616,
+        39.426542
+       ]
+      },
+      {
+       "name": "Wadi Dry-Sandstone Terrace",
+       "local": [
+        145.0,
+        205.0
+       ],
+       "latlon": [
+        13.967748,
+        39.431844
+       ]
+      },
+      {
+       "name": "Eastern Amba Rim",
+       "local": [
+        205.0,
+        -215.0
+       ],
+       "latlon": [
+        13.976866,
+        39.433186
+       ]
+      }
+     ],
+     "trail": [
+      [
+       13.966011,
+       39.430725
+      ],
+      [
+       13.967097,
+       39.429226
+      ],
+      [
+       13.969051,
+       39.428242
+      ],
+      [
+       13.970853,
+       39.429137
+      ],
+      [
+       13.971981,
+       39.428153
+      ],
+      [
+       13.973154,
+       39.427437
+      ]
+     ]
+    },
+    {
+     "id": "blue_nile_gorge",
+     "title": "Blue Nile (Abay) Gorge · Dejen–Goha Tsion",
+     "bbox": [
+      10.004924,
+      38.120534,
+      10.145061,
+      38.262866
+     ],
+     "dem": "../ethiopia-highlands/terrain-pack/blue_nile_gorge.dem16.bin",
+     "grid": 384,
+     "elev": [
+      1004.0,
+      2531.6
+     ],
+     "entry": "../ethiopia-highlands/index.html?region=blue_nile_gorge",
+     "landmarks": [
+      {
+       "name": "Abay Inner Sandstone Terrace",
+       "local": [
+        -40.73,
+        -134.73
+       ],
+       "latlon": [
+        10.082859,
+        38.189285
+       ]
+      },
+      {
+       "name": "Dejen–Goha Tsion Basalt Rim",
+       "local": [
+        -911.75,
+        -924.28
+       ],
+       "latlon": [
+        10.128962,
+        38.137629
+       ]
+      },
+      {
+       "name": "Antalo Limestone Bench Sanctuary",
+       "local": [
+        -604.7,
+        -516.97
+       ],
+       "latlon": [
+        10.105179,
+        38.155838
+       ]
+      },
+      {
+       "name": "Abay Canyon Rim Launch",
+       "local": [
+        -889.75,
+        -898.28
+       ],
+       "latlon": [
+        10.127443,
+        38.138933
+       ]
+      },
+      {
+       "name": "Dejen Rim Cyan Relay",
+       "local": [
+        -935.75,
+        -936.28
+       ],
+       "latlon": [
+        10.129662,
+        38.136205
+       ]
+      },
+      {
+       "name": "Mid-Gorge Limestone Spur",
+       "local": [
+        -572.7,
+        -502.97
+       ],
+       "latlon": [
+        10.104361,
+        38.157736
+       ]
+      }
+     ],
+     "trail": [
+      [
+       10.129662,
+       38.136205
+      ],
+      [
+       10.128962,
+       38.137629
+      ],
+      [
+       10.118259,
+       38.145823
+      ],
+      [
+       10.105179,
+       38.155838
+      ],
+      [
+       10.092903,
+       38.174233
+      ],
+      [
+       10.082859,
+       38.189285
+      ]
+     ]
+    },
+    {
+     "id": "gerd_belaya_escarpment",
+     "title": "GERD Saddle -> Mt. Belaya Escarpment",
+     "bbox": [
+      11.149879,
+      35.096444,
+      11.298101,
+      35.247556
+     ],
+     "dem": "../ethiopia-highlands/terrain-pack/gerd_belaya_escarpment.dem16.bin",
+     "grid": 384,
+     "elev": [
+      505.66,
+      2512.64
+     ],
+     "entry": "../ethiopia-highlands/index.html?region=gerd_belaya_escarpment",
+     "landmarks": [
+      {
+       "name": "GERD Escarpment Spur Overlook",
+       "local": [
+        560.84,
+        -197.39
+       ],
+       "latlon": [
+        11.236181,
+        35.207312
+       ]
+      },
+      {
+       "name": "Mt. Belaya Dega Escarpment Crest",
+       "local": [
+        1055.87,
+        -272.58
+       ],
+       "latlon": [
+        11.240824,
+        35.238481
+       ]
+      },
+      {
+       "name": "Belaya Western Wall Launch",
+       "local": [
+        1033.87,
+        -272.58
+       ],
+       "latlon": [
+        11.240824,
+        35.237096
+       ]
+      },
+      {
+       "name": "Belaya Dega Terrace Sanctuary",
+       "local": [
+        723.76,
+        234.99
+       ],
+       "latlon": [
+        11.209477,
+        35.21757
+       ]
+      },
+      {
+       "name": "Blue Nile Reservoir Shore Landing",
+       "local": [
+        228.72,
+        159.79
+       ],
+       "latlon": [
+        11.214122,
+        35.186401
+       ]
+      },
+      {
+       "name": "Escarpment Monsoon Relay",
+       "local": [
+        580.84,
+        -185.39
+       ],
+       "latlon": [
+        11.23544,
+        35.208572
+       ]
+      }
+     ],
+     "trail": [
+      [
+       11.214122,
+       35.186401
+      ],
+      [
+       11.225151,
+       35.196857
+      ],
+      [
+       11.236181,
+       35.207312
+      ],
+      [
+       11.209477,
+       35.21757
+      ],
+      [
+       11.240824,
+       35.238481
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "abyssinian-roof",
+   "title": "Abyssinian highlands · roof of Africa",
+   "kind": "real",
+   "entry": "../abyssinian-highlands/roof.html",
+   "region_dem": {
+    "url": "../abyssinian-highlands/orbital/orbital_dem16.bin",
+    "w": 420,
+    "h": 540,
+    "bbox": [
+     6.0,
+     35.0,
+     15.0,
+     42.0
+    ],
+    "elev": [
+     -525.6,
+     4317.7
+    ]
+   },
+   "landmarks": [
+    {
+     "name": "Lake Tana",
+     "latlon": [
+      12.0,
+      37.3
+     ]
+    },
+    {
+     "name": "Ras Dashen",
+     "latlon": [
+      13.2417,
+      38.37
+     ]
+    },
+    {
+     "name": "Gheralta",
+     "latlon": [
+      13.9722,
+      39.4286
+     ]
+    },
+    {
+     "name": "Lalibela",
+     "latlon": [
+      12.0317,
+      39.0417
+     ]
+    },
+    {
+     "name": "Aksum",
+     "latlon": [
+      14.13,
+      38.72
+     ]
+    },
+    {
+     "name": "Addis Ababa",
+     "latlon": [
+      9.03,
+      38.74
+     ]
+    },
+    {
+     "name": "GERD",
+     "latlon": [
+      11.2153,
+      35.0931
+     ]
+    },
+    {
+     "name": "Abay gorge",
+     "latlon": [
+      10.075,
+      38.1917
+     ]
+    },
+    {
+     "name": "Imet Gogo",
+     "latlon": [
+      13.2167,
+      38.0833
+     ]
+    },
+    {
+     "name": "Rift",
+     "latlon": [
+      8.6,
+      39.45
+     ]
+    },
+    {
+     "name": "Afar",
+     "latlon": [
+      12.0,
+      41.0
+     ]
+    }
+   ]
+  },
+  {
+   "id": "abyssinian-transect",
+   "title": "Abyssinian transect (four zones)",
+   "kind": "composite",
+   "entry": "../abyssinian-highlands/index.html",
+   "anchor_note": "compressed 860 m transect; its gorge zone is GERD",
+   "landmarks": [
+    {
+     "name": "Gorge / GERD zone",
+     "latlon": [
+      11.2153,
+      35.0931
+     ]
+    }
+   ]
+  },
+  {
+   "id": "highland-exposure",
+   "title": "Highland Exposure · Entoto to Simien corridor",
+   "kind": "composite",
+   "entry": "../highland-exposure/index.html",
+   "compression": "about 40:1 along the corridor",
+   "landmarks": [
+    {
+     "name": "Entoto",
+     "local": [
+      0,
+      -6400
+     ],
+     "latlon": [
+      9.1083,
+      38.8194
+     ]
+    },
+    {
+     "name": "Addis (Meskel Sq)",
+     "local": [
+      0,
+      -3600
+     ],
+     "latlon": [
+      9.0106,
+      38.7613
+     ]
+    },
+    {
+     "name": "Abay crossing",
+     "local": [
+      0,
+      -500
+     ],
+     "latlon": [
+      10.0758,
+      38.1914
+     ]
+    },
+    {
+     "name": "Lalibela (Biete Ghiorgis)",
+     "local": [
+      0,
+      2800
+     ],
+     "latlon": [
+      12.0316,
+      39.0411
+     ]
+    },
+    {
+     "name": "Ras Dashen",
+     "local": [
+      0,
+      6400
+     ],
+     "latlon": [
+      13.2369,
+      38.3731
+     ]
+    }
+   ],
+   "route": [
+    [
+     9.1083,
+     38.8194
+    ],
+    [
+     9.0106,
+     38.7613
+    ],
+    [
+     10.0758,
+     38.1914
+    ],
+    [
+     12.0316,
+     39.0411
+    ],
+    [
+     13.2369,
+     38.3731
+    ]
+   ]
+  },
+  {
+   "id": "scion-demiurge",
+   "title": "Scion Demiurge · crucible corridor",
+   "kind": "composite",
+   "entry": "../scion-demiurge/index.html",
+   "anchor_note": "same corridor as Highland Exposure; anchors differ (Entoto z -6275 vs -6400; Roha 2400 vs 2800)",
+   "landmarks": [
+    {
+     "name": "Entoto",
+     "local": [
+      5.5,
+      -6275
+     ],
+     "latlon": [
+      9.1083,
+      38.8194
+     ]
+    },
+    {
+     "name": "Addis",
+     "local": [
+      0,
+      -3610
+     ],
+     "latlon": [
+      9.0106,
+      38.7613
+     ]
+    },
+    {
+     "name": "Abay bridge",
+     "local": [
+      0,
+      -548
+     ],
+     "latlon": [
+      10.0758,
+      38.1914
+     ]
+    },
+    {
+     "name": "Roha",
+     "local": [
+      -48,
+      2400
+     ],
+     "latlon": [
+      12.0316,
+      39.0411
+     ]
+    },
+    {
+     "name": "Simien",
+     "local": [
+      0,
+      6188
+     ],
+     "latlon": [
+      13.2369,
+      38.3731
+     ]
+    }
+   ]
+  },
+  {
+   "id": "city-island",
+   "title": "WYGWYL island · six places in one",
+   "kind": "composite",
+   "entry": "../city/island/index.html",
+   "anchor_note": "each region is a real place rotated and scaled into one island",
+   "landmarks": [
+    {
+     "name": "Baltimere · Mount Vernon",
+     "latlon": [
+      39.3002,
+      -76.6163
+     ]
+    },
+    {
+     "name": "Atlantis · Centro CDMX",
+     "latlon": [
+      19.434,
+      -99.1395
+     ]
+    },
+    {
+     "name": "Chapel · Holland Island",
+     "latlon": [
+      38.11984,
+      -76.08713
+     ]
+    },
+    {
+     "name": "Nevermore · Assateague",
+     "latlon": [
+      38.06,
+      -75.18
+     ],
+     "approx": true
+    },
+    {
+     "name": "Field · Teotihuacan",
+     "latlon": [
+      19.6925,
+      -98.8438
+     ],
+     "approx": true
+    },
+    {
+     "name": "Pass · Tres Marías",
+     "latlon": [
+      19.05,
+      -99.24
+     ],
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "city-maps",
+   "title": "City3D · Baltimore",
+   "kind": "composite",
+   "entry": "../city/maps/index.html",
+   "landmarks": [
+    {
+     "name": "City3D nominal centre",
+     "latlon": [
+      39.29,
+      -76.61
+     ]
+    }
+   ]
+  },
+  {
+   "id": "atlantis",
+   "title": "Atlantis rings",
+   "kind": "fictional",
+   "entry": "../city/atlantis/index.html",
+   "anchor_note": "anchored to Centro CDMX through the island",
+   "landmarks": [
+    {
+     "name": "Atlantis (via Centro CDMX)",
+     "latlon": [
+      19.434,
+      -99.1395
+     ],
+     "approx": true
+    }
+   ]
+  },
+  {
+   "id": "nolli-block",
+   "title": "Nolli block",
+   "kind": "fictional",
+   "entry": "../city/index.html",
+   "anchor_note": "a single block with cartridge skins; no place",
+   "landmarks": []
+  }
+ ]
+}
