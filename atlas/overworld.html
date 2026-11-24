@@ -31,28 +31,40 @@ canvas{display:block;touch-action:none}
 <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
 <script src="../abyssinian-highlands/habitus-kits.js"></script>
 <script src="../donkey/vehicles.js?v=1"></script>
-<script src="./regions.js?v=7"></script>
+<script src="./regions.js?v=8"></script>
 <script>
 (async () => {
 const T = THREE, QS = new URLSearchParams(location.search), $ = id => document.getElementById(id);
 const OW = await (await fetch('./ow/world.json?v=2')).json(), TS = OW.tile * OW.mpp;          // a tile is 2 km
 // ---------- renderer, sky, light ----------
 const renderer = new T.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); /* the rain glass refracts this canvas */ renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1)); renderer.setSize(innerWidth, innerHeight); document.body.prepend(renderer.domElement);
-renderer.outputColorSpace = T.SRGBColorSpace;
+renderer.outputColorSpace = T.SRGBColorSpace; renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;   /* light@1: shadows, as the levels have them */
 const scene = new T.Scene(), SKY = new T.Color('#b4c9d6'); scene.fog = new T.Fog(SKY.clone(), 900, 24000);
 const skyC = document.createElement('canvas'); skyC.width = 4; skyC.height = 256; const skyX = skyC.getContext('2d'), skyT = new T.CanvasTexture(skyC); skyT.colorSpace = T.SRGBColorSpace; scene.background = skyT;
 const CLEAR_SKY = ['#5f8fbf', '#a9c4d8', '#c9d6dc', '#b4c9d6'].map(c => new T.Color(c)), STORM_SKY = ['#3a4550', '#5d6873', '#6c767e', '#69737b'].map(c => new T.Color(c)), _c = new T.Color();
 function paintSky(v) { const gr = skyX.createLinearGradient(0, 0, 0, 256); [0, .55, .75, 1].forEach((s, k) => gr.addColorStop(s, '#' + _c.copy(CLEAR_SKY[k]).lerp(STORM_SKY[k], v).getHexString())); skyX.fillStyle = gr; skyX.fillRect(0, 0, 4, 256); skyT.needsUpdate = true; }
 paintSky(0);
 const camera = new T.PerspectiveCamera(60, innerWidth / innerHeight, .5, 70000);
-const hemi = new T.HemisphereLight('#dfefff', '#4a5a3a', 1.1); scene.add(hemi); const sun = new T.DirectionalLight('#fff4dc', 1.6); sun.position.set(-1, 2, -.6); scene.add(sun);
+const hemi = new T.HemisphereLight('#dfefff', '#4a5a3a', 1.1); scene.add(hemi);
+const LIGHT = { dir: new T.Vector3(-1, 2, -.6).normalize(), box: 80, map: 2048, glow: new T.Color('#fff1d6'), disc: 1 };
+const sunGlowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.07, 'rgba(255,255,255,.95)'); g.addColorStop(.16, 'rgba(255,255,255,.28)'); g.addColorStop(.45, 'rgba(255,255,255,.07)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t; })();
+const sunSprite = new T.Sprite(new T.SpriteMaterial({ map: sunGlowTex, color: '#fff1d6', fog: false, depthWrite: false, transparent: true, blending: T.AdditiveBlending })); sunSprite.renderOrder = -1; scene.add(sunSprite);
+function shade(root) { root.traverse(o => { if (!o.isMesh || o.isSprite) return; const ms = Array.isArray(o.material) ? o.material : [o.material]; if (ms.some(m => m && (m.isMeshBasicMaterial || m.isShaderMaterial || m.blending === T.AdditiveBlending))) return;
+  o.receiveShadow = true; o.castShadow = !ms.some(m => m && m.transparent && m.opacity < .9); }); }
+const LAMPS = [], LAMP_POOL = Array.from({ length: 6 }, () => { const l = new T.PointLight('#ffca88', 0, 28, 1.6); scene.add(l); return l; });   /* the nearest lamps a can declares borrow these */ const sun = new T.DirectionalLight('#fff4dc', 1.6); sun.position.set(-1, 2, -.6); scene.add(sun); scene.add(sun.target);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.camera.near = 2; sun.shadow.camera.far = 900; sun.shadow.bias = -.0004; sun.shadow.normalBias = .06;
+function placeSun() { const b = LIGHT.box, c = sun.shadow.camera; if (c.right !== b) { c.left = -b; c.right = b; c.top = b; c.bottom = -b; c.updateProjectionMatrix(); }
+  if (sun.shadow.mapSize.x !== LIGHT.map) { sun.shadow.mapSize.set(LIGHT.map, LIGHT.map); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+  const px = 2 * b / LIGHT.map, tx = Math.round(P.x / px) * px, tz = Math.round(P.z / px) * px;   /* snapped to shadow texels so edges do not crawl */
+  sun.target.position.set(tx, P.y, tz); sun.position.copy(sun.target.position).addScaledVector(LIGHT.dir, 400); sun.target.updateMatrixWorld();
+  sunSprite.position.copy(camera.position).addScaledVector(LIGHT.dir, 30000); const s = 2600 * LIGHT.disc; sunSprite.scale.set(s, s, 1); sunSprite.visible = LIGHT.dir.y > -.03; }
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 // ---------- LOOKS (look@1): every world keeps its own colour. See atlas/LOOKS.md.
 // Ground palettes are applied by place, so an island reads as itself from afar; sky, sun, fog, exposure, tone and grade blend by where you
 // stand (RAGE's timecycle zones); a final grade pass carries each world's own treatment and its named looks (the shared 14-look catalogue) ----------
 const NISL = 12;
 const DEFAULT_LOOK = { sky: ['#5f8fbf', '#a9c4d8', '#c9d6dc', '#b4c9d6'], fog: { color: '#b4c9d6', near: 900, far: 24000 }, hemi: { sky: '#dfefff', ground: '#4a5a3a', i: 1.1 }, sun: { color: '#fff4dc', i: 1.6 }, fill: { color: '#18b4ff', i: 0 },
-  water: { color: '#235f8f', specular: '#d8eefc' }, exposure: 1, aces: 0,
+  water: { color: '#235f8f', specular: '#d8eefc' }, exposure: 1, aces: 0, light: { dir: [-1, 2, -.6], box: 80, map: 2048, glow: '#fff1d6', disc: 1, lamps: 1 },
   ground: { meadow: ['#7c9569', '#b5bc8b'], rock: '#b3ada8', sand: '#dfd8c4', snow: '#f7f9fc', snowLine: 2350, rockSlope: [.22, .48], paint: .38 },
   grade: { saturation: 1, contrast: 1, lift: [0, 0, 0], gamma: [1, 1, 1], gain: [1, 1, 1], tint: '#ffffff', tintAmt: 0, vignette: .12, grain: .02,
     filter: [1, 1, 1], ramp: null, rampMix: 0, steps: 0, edge: 0, edgeColor: '#101010', scan: 0, cyan: 0, cyanLo: [0, .50, .96], cyanHi: [.32, .92, 1] } };
@@ -82,7 +94,7 @@ gradeScene.add(new T.Mesh(new T.PlaneGeometry(2, 2), new T.ShaderMaterial({ unif
     float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
     float lumAt(vec2 o){ return dot(texture2D(tDiffuse, vUv + o / uRes).rgb * uSpec, R709); }
     vec3 ramp(float t){ t = clamp(t, 0., 1.) * 5.; int k = int(min(4., floor(t))); float f = t - float(k); vec3 a = uRamp[0], b = uRamp[1];
-      for (int i = 0; i < 5; i++) if (i == k) { a = uRamp[i]; b = uRamp[i + 1]; } return mix(a, b, f); }
+      for (int i = 0; i < 5; i++) if (i == k) { a = uRamp[i]; b = uRamp[i + 1]; } return pow(mix(pow(a, vec3(1. / 2.2)), pow(b, vec3(1. / 2.2)), f), vec3(2.2)); }   /* stops blend in display space: L is perceptual, so a linear blend would lift every shadow */
     void main(){ vec3 raw = texture2D(tDiffuse, vUv).rgb, c = raw * uExp; c *= mix(vec3(1.), uTint, uTintAmt);
       float l0 = dot(c, R709); c = mix(vec3(l0), c, uSat); c = .18 * pow(max(c, vec3(0.)) / .18, vec3(uCon));
       c = mix(clamp(c, 0., 1.), aces(c), uAces);
@@ -108,10 +120,11 @@ function lookOf(id) { const D = DEFAULT_LOOK, L = (id && LOOKS.islands[id]) || D
 function timecycle() { const ws = [], here = islandAt(P.x, P.z); let tot = 0; for (const isl of OW.islands) { if (!LOOKS.islands[isl.id]) continue; const hw = isl.size[0] / 2, hh = isl.size[1] / 2, sN = Math.max(Math.abs(P.x - isl.center[0]) / hw, Math.abs(P.z - isl.center[1]) / hh), o = Math.max(0, sN - .8) * Math.min(hw, hh), w = isl.id === here ? 1 : Math.exp(-o / 300);   /* distance past the island's coast, which the islandize falloff puts near 80% of its half-size */ if (w > .01) { ws.push([isl.id, w]); tot += w; } }   /* the island you stand on owns the look; a neighbour across a strait lends about a quarter */
   ws.sort((a, b) => b[1] - a[1]); ATM.top = ws[0] && ws[0][1] > .5 ? ws[0][0] : 'default';
   const parts = [[null, Math.max(0, 1 - (ws[0] ? ws[0][1] : 0))], ...ws], sum = parts.reduce((a, q) => a + q[1], 0) || 1, Z = () => new T.Color(0, 0, 0);
-  const A = { sky: [Z(), Z(), Z(), Z()], fog: Z(), near: 0, far: 0, hs: Z(), hg: Z(), hi: 0, sc: Z(), si: 0, fc: Z(), fi: 0, wc: Z(), wsp: Z(), exp: 0, aces: 0,
+  const A = { sd: new T.Vector3(), box: 0, map: 0, glow: Z(), disc: 0, lamps: 0, sky: [Z(), Z(), Z(), Z()], fog: Z(), near: 0, far: 0, hs: Z(), hg: Z(), hi: 0, sc: Z(), si: 0, fc: Z(), fi: 0, wc: Z(), wsp: Z(), exp: 0, aces: 0,
     sat: 0, con: 0, lift: [0, 0, 0], gam: [0, 0, 0], gain: [0, 0, 0], tint: Z(), ta: 0, vig: 0, grain: 0, spec: [0, 0, 0], ramp: [Z(), Z(), Z(), Z(), Z(), Z()], rmix: 0, steps: 0, sw: 0, std: 0, edge: 0, ec: Z(), scan: 0, cyan: 0, cl: Z(), ch: Z() };
   const add = (col, v, w) => col.add(hexOrArr(v).multiplyScalar(w));
   for (const [id, w0] of parts) { if (w0 <= 0) continue; const w = w0 / sum, L = lookOf(id), D = DEFAULT_LOOK, fog = { ...D.fog, ...L.fog }, hm = { ...D.hemi, ...L.hemi }, sn = { ...D.sun, ...L.sun }, fl = { ...D.fill, ...L.fill }, wa = { ...D.water, ...L.water }, g = L.grade;
+    { const lt = { ...D.light, ...(L.light || {}) }, sd = lt.dir || D.light.dir; A.sd.add(new T.Vector3(...sd).normalize().multiplyScalar(w)); A.box += (lt.box ?? 80) * w; if (w > .5) A.map = lt.map ?? 2048; add(A.glow, lt.glow || '#fff1d6', w); A.disc += (lt.disc ?? 1) * w; A.lamps += (lt.lamps ?? 1) * w; }
     (L.sky || D.sky).forEach((h, k) => add(A.sky[k], h, w)); add(A.fog, fog.color, w); A.near += fog.near * w; A.far += fog.far * w; add(A.hs, hm.sky, w); add(A.hg, hm.ground, w); A.hi += hm.i * w; add(A.sc, sn.color, w); A.si += sn.i * w; add(A.fc, fl.color, w); A.fi += fl.i * w;
     add(A.wc, wa.color, w); add(A.wsp, wa.specular, w); A.exp += (L.exposure ?? 1) * w; A.aces += (L.aces ?? 0) * w;
     A.sat += g.saturation * w; A.con += g.contrast * w; for (let k = 0; k < 3; k++) { A.lift[k] += g.lift[k] * w; A.gam[k] += g.gamma[k] * w; A.gain[k] += g.gain[k] * w; A.spec[k] += g.filter[k] * w; } add(A.tint, g.tint, w); A.ta += g.tintAmt * w; A.vig += g.vignette * w; A.grain += g.grain * w;
@@ -125,6 +138,8 @@ function applyAtmosphere(A, storm) { const e = storm * storm * (3 - 2 * storm);
   scene.fog.color.copy(A.fog).lerp(STORM_SKY[3], e); scene.fog.near = A.near * (1 - .9 * e); scene.fog.far = A.far * (1 - .9 * e);
   hemi.color.copy(A.hs); hemi.groundColor.copy(A.hg); hemi.intensity = A.hi * (1 - .4 * e) + (STORM.flash > .09 ? 2.2 : STORM.flash > 0 ? .8 : 0); sun.color.copy(A.sc); sun.intensity = A.si * (1 - .7 * e); fill.color.copy(A.fc); fill.intensity = A.fi;
   water.material.color.copy(A.wc); water.material.specular.copy(A.wsp);
+  LIGHT.dir.copy(A.sd.lengthSq() > 1e-6 ? A.sd : new T.Vector3(-1, 2, -.6)).normalize(); LIGHT.box = Math.round(A.box) || 80; LIGHT.map = A.map || 2048; LIGHT.lamps = A.lamps;
+  sunSprite.material.color.copy(A.glow).multiplyScalar(1 - .85 * e); LIGHT.disc = A.disc; if (A.std > 0) { const l = A.glow.r * .2126 + A.glow.g * .7152 + A.glow.b * .0722; sunSprite.material.color.lerp(new T.Color(l, l, l), A.std); }
   const u = GRADE_U; u.uSat.value = A.sat; u.uCon.value = A.con; u.uLift.value.set(...A.lift); u.uGam.value.set(...A.gam); u.uGain.value.set(...A.gain); u.uTint.value.copy(A.tint); u.uTintAmt.value = A.ta; u.uVig.value = A.vig; u.uGrain.value = A.grain;
   u.uExp.value = A.exp; u.uAces.value = A.aces; u.uSpec.value.set(...A.spec); A.ramp.forEach((c, k) => u.uRamp.value[k].copy(c)); u.uRampMix.value = A.sw > 0 ? A.rmix : 0; u.uSteps.value = A.steps; u.uEdge.value = A.edge; u.uEdgeCol.value.copy(A.ec); u.uScan.value = A.scan; u.uCyan.value = A.cyan; u.uCyLo.value.copy(A.cl); u.uCyHi.value.copy(A.ch); }
 // look packets: the trough's own (atlas/looks.json, the islands no can claims yet), the shared catalogue, and each can's
@@ -158,7 +173,7 @@ function gridMesh(cols, rows, x0, z0, step, hAt, mat, ov) {   // ov: a can's own
     if (ov && ov.uv) { const q = ov.uv(x, z, y); uv[k * 2] = q[0]; uv[k * 2 + 1] = q[1]; } else { uv[k * 2] = x / W; uv[k * 2 + 1] = 1 - z / H; }
     if (col) { const c = ov.color(x, z, y); col[k * 3] = c[0]; col[k * 3 + 1] = c[1]; col[k * 3 + 2] = c[2]; } }
   for (let j = 0; j < rows - 1; j++) for (let i = 0; i < cols - 1; i++) { const a = j * cols + i; idx.push(a, a + cols, a + 1, a + 1, a + cols, a + cols + 1); }
-  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2)); if (col) g.setAttribute('color', new T.BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals(); return new T.Mesh(g, mat);
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2)); if (col) g.setAttribute('color', new T.BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals(); const me = new T.Mesh(g, mat); me.receiveShadow = me.castShadow = true; return me;
 }
 // a can's own ground: its material, UV frame and paint replace the trough's on its island's tiles while it is poured
 const GROUND_OVR = new Map(), tileIsland = key => { const [ti, tj] = key.split('_').map(Number); return islandAt((ti + .5) * TS, (tj + .5) * TS); };
@@ -188,7 +203,7 @@ function treesFor(key) { if (treeCache.has(key)) return treeCache.get(key); cons
 function forest(key, mesh) { const isl = islandAt(...key.split('_').map((v, k) => (+v + .5) * TS)), kind = isl in KIND ? KIND[isl] : 'acacia'; if (!kind) return; const pts = treesFor(key); if (!pts.length) return;
   const [cg, tg, cols] = TREE[kind], crown = new T.InstancedMesh(cg, TREE.crownM, pts.length), trunk = new T.InstancedMesh(tg, TREE.trunkM, pts.length), M = new T.Matrix4(), Q = new T.Quaternion(), S = new T.Vector3(), V = new T.Vector3(), Y = new T.Vector3(0, 1, 0), C = new T.Color();
   pts.forEach(([x, y, z, sc, r, c], k) => { const s = sc * (kind === 'conifer' ? 6 : 4.2); Q.setFromAxisAngle(Y, r); S.set(s, s * (kind === 'conifer' ? 1 + c * .5 : 1), s); V.set(x, y, z); M.compose(V, Q, S); crown.setMatrixAt(k, M); trunk.setMatrixAt(k, M); crown.setColorAt(k, C.set(cols[Math.floor(c * 3)])); });
-  crown.instanceMatrix.needsUpdate = trunk.instanceMatrix.needsUpdate = true; if (crown.instanceColor) crown.instanceColor.needsUpdate = true; mesh.add(crown, trunk); }
+  crown.castShadow = trunk.castShadow = crown.receiveShadow = true; crown.instanceMatrix.needsUpdate = trunk.instanceMatrix.needsUpdate = true; if (crown.instanceColor) crown.instanceColor.needsUpdate = true; mesh.add(crown, trunk); }
 function buildTile(key, stride) { const [ti, tj] = key.split('_').map(Number), f = data.get(key), n = OW.tile + 1, c = Math.floor((n - 1) / stride) + 1;
   const ov = GROUND_OVR.get(tileIsland(key)), m = gridMesh(c, c, ti * TS, tj * TS, OW.mpp * stride, (i, j) => f[(j * stride) * n + i * stride], ov ? ov.material : groundMat, ov); m.userData.stride = stride; if (stride <= 2 && !ov) forest(key, m); return m; }
 function stream() { const ahead = P.mode === 'ferry' ? 0 : Math.min(9000, Math.abs(P.speed) * 8), cx = P.x + Math.sin(P.yaw) * ahead, cz = P.z + Math.cos(P.yaw) * ahead; const pi = Math.floor(cx / TS), pj = Math.floor(cz / TS), R = P.mode === 'fly' ? 5 : 4, want = new Map();
@@ -227,7 +242,7 @@ function hearAndHouse() { INSIDE = null; for (const r of ROOMS) if (inPoly(r.pts
   if (L.positionX) { L.positionX.value = camera.position.x; L.positionY.value = camera.position.y; L.positionZ.value = camera.position.z; L.forwardX.value = f.x; L.forwardY.value = f.y; L.forwardZ.value = f.z; L.upX.value = 0; L.upY.value = 1; L.upZ.value = 0; }
   for (const e of AUD.list) if (e.g) { const d = Math.hypot(e.x - P.x, e.z - P.z), want = d > e.radius * 1.5 ? 0 : e.gain * (e.room ? (INSIDE === e.room ? 1 : 0) : INSIDE ? .18 : 1); e.g.gain.setTargetAtTime(want, c.currentTime, .4); } }
 const REG = window.DWRegions ? window.DWRegions.create({ T, scene, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, shelf: './cans.json?v=4',
-  addSource: o => reg(CAN_SOURCES, o), addWeather: o => reg(CAN_WEATHER, o), addBlockers, setGround, sunDir: () => sun.position.clone().normalize(), maxAnisotropy: renderer.capabilities.getMaxAnisotropy(), addInterior: o => reg(ROOMS, o), addSwitch: o => reg(SWITCHES, o), addPerson: o => reg(PEOPLE, o), addSound, say,
+  addSource: o => reg(CAN_SOURCES, o), addWeather: o => reg(CAN_WEATHER, o), addBlockers, setGround, shade, addLamps: list => { const o = list.map(l => ({ ...l })); LAMPS.push(...o); return () => { for (const l of o) { const k = LAMPS.indexOf(l); if (k >= 0) LAMPS.splice(k, 1); } }; }, sunDir: () => sun.position.clone().normalize(), maxAnisotropy: renderer.capabilities.getMaxAnisotropy(), addInterior: o => reg(ROOMS, o), addSwitch: o => reg(SWITCHES, o), addPerson: o => reg(PEOPLE, o), addSound, say,
   motion: { add: (id, ch) => motion && motion.registerActor(id, ch, { defaultClip: 'idle', blend: 1 }), loco: (id, o) => motion && motion.setActorLocomotion(id, o), drop: id => motion && motion.unregisterActor && motion.unregisterActor(id) }, onShelf: ids => { for (const id of ids) KIND[id] = null; },
   onStart: () => { STORM.pending++; STORM.want = 1; STORM.t0 = STORM.t0 || performance.now(); },
   onMount: (isl, r, ms) => { MOUNTS.push({ id: isl.id, ms: Math.round(ms), at: [Math.round(P.x), Math.round(P.z)] }); STORM.pending = Math.max(0, STORM.pending - 1); STORM.until = Math.max((STORM.t0 || 0) + 4000, performance.now() + 1500); } }) : null;
@@ -406,7 +421,9 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
   ey = Math.max(ey, groundAt(ex, ez) + 1.5); camera.position.lerp(new T.Vector3(ex, ey, ez), Math.min(1, dt * 6)); camera.lookAt(P.x + Math.sin(P.yaw) * dist * .5, P.y + 1.6 + up * .55, P.z + Math.cos(P.yaw) * dist * .5);   /* look past yourself so the horizon, and the lights on it, stay in view */ if (!look.id && Math.abs(fwd) > .1) camYaw *= Math.pow(.2, dt);
   water.position.x = P.x; water.position.z = P.z;
   OWS.dk = Math.max(0, OWS.dk - dt * .0025); if (OWS.jumpT > 0) { OWS.jumpT -= dt; walker.position.y += Math.sin((.5 - OWS.jumpT) / .5 * Math.PI) * 1.1; }
-  if (REG) REG.update(dt, now / 1000, P, donkey && donkey.group.position); hearAndHouse();
+  if (REG) REG.update(dt, now / 1000, P, donkey && donkey.group.position); hearAndHouse(); placeSun();
+  if (now - (LIGHT.lt || 0) > 250) { LIGHT.lt = now; const near = LAMPS.map(l => [Math.hypot(l.x - P.x, l.z - P.z), l]).filter(q => q[0] < 160).sort((a, b) => a[0] - b[0]);
+    LAMP_POOL.forEach((pl, k) => { const q = near[k]; if (!q) { pl.intensity = 0; return; } const l = q[1]; pl.position.set(l.x, l.y, l.z); pl.color.set(l.color || '#ffca88'); pl.distance = l.r || 28; pl.intensity = (l.i ?? 2.4) * (LIGHT.lamps ?? 1); }); }
   { if (STORM.until && now > STORM.until && !STORM.pending) { STORM.want = 0; STORM.until = 0; STORM.t0 = 0; }
     { const fd = Math.min(.5, sdtRaw(now)), slow = fd > .028; STORM.slowT = slow ? (STORM.slowT || 0) + fd : Math.max(0, (STORM.slowT || 0) - fd); STORM.glass = STORM.slowT > 2 ? .35 : STORM.slowT < .5 ? 1 : STORM.glass || 1; } const sdt = Math.min(.25, (now - (STORM.t || now)) / 1000); STORM.t = now; let floor = 0; for (const w of CAN_WEATHER) if (Math.abs(P.x - w.x) < w.hx && Math.abs(P.z - w.z) < w.hz) floor = Math.max(floor, w.storm || 0); const goal = Math.max(STORM.want, floor), prev = STORM.v; STORM.v += (goal - STORM.v) * Math.min(1, sdt * (goal > STORM.v ? .9 : .35));   // wall-clock, so a slow device clears on time
     if (STORM.v > .7 && Math.random() < dt * .35) STORM.flash = .18; STORM.flash = Math.max(0, STORM.flash - sdt); }
@@ -476,11 +493,12 @@ if (SURF) { for (const id of ['modes', 'stick', 'enter', 'mini', 'where']) $(id)
   const en = document.createElement('script'); en.src = '../night-post/rain/engine.js?v=2'; en.onload = () => { const su = document.createElement('script'); su.src = '../night-post/rain/surface.js?v=ow4'; document.head.append(su); }; document.head.append(en); }
 // wait for the ground under you before letting go
 { const k = Math.floor(P.x / TS) + '_' + Math.floor(P.z / TS); await fetchTile(k); P.y = groundAt(P.x, P.z); if (donkey) placeDk(P.x + Math.sin(P.yaw) * 2 - Math.cos(P.yaw) * 1.8, P.z + Math.cos(P.yaw) * 2 + Math.sin(P.yaw) * 1.8, P.yaw, (x, z) => groundAt(x, z)); }
-await loadLooks('./looks.json?v=1'); await loadLooks('./look-catalog.json?v=1');
+await loadLooks('./looks.json?v=3'); await loadLooks('./look-catalog.json?v=3');
+for (const o of [walker, car, glider, skiff, ...(donkey ? [donkey.group] : []), ...(parked ? [parked.group] : []), ...MOORED.map(m => m.boat), ...ferries.map(f => f.boat)]) shade(o);
 camera.position.set(P.x, P.y + 40, P.z + 60); requestAnimationFrame(frame);
 async function goTo(x, z, yaw) { const k = Math.floor(x / TS) + '_' + Math.floor(z / TS); await fetchTile(k); if (P.mode === 'ferry') { P.ferry = null; P.mode = 'walk'; } if (P.mode === 'boat' && !wet(x, z)) setMode('walk'); P.x = x; P.z = z; P.y = groundAt(x, z); if (Number.isFinite(yaw)) P.yaw = yaw; if (P.mode === 'fly') P.alt = Math.max(P.y, 0) + 60; P.speed = 0;
   if (donkey) placeDk(P.x - Math.sin(P.yaw) * 3, P.z - Math.cos(P.yaw) * 3, P.yaw, (x, z) => groundAt(x, z)); camera.position.set(P.x - Math.sin(P.yaw) * 20, P.y + 12, P.z - Math.cos(P.yaw) * 20); }
-window.__ow = { P, OW, tiles, data, setMode, groundAt, deckAt, terrain, ferries, board, nearPier, wet, woody, rogallo, CROSS, MOORED, goTo, donkey, parked, PARK, REG, MOUNTS, STORM, LOOKS, ATM, get look() { return ATM.top; }, CAN_SOURCES, PEOPLE, SWITCHES, ROOMS, blocked, get inside() { return INSIDE; }, get speech() { return SPEECH; },
+window.__ow = { sun, renderer, scene, LIGHT, camera, RT, P, OW, tiles, data, setMode, groundAt, deckAt, terrain, ferries, board, nearPier, wet, woody, rogallo, CROSS, MOORED, goTo, donkey, parked, PARK, REG, MOUNTS, STORM, LOOKS, ATM, get look() { return ATM.top; }, CAN_SOURCES, PEOPLE, SWITCHES, ROOMS, blocked, get inside() { return INSIDE; }, get speech() { return SPEECH; },
   setTarget(t) { TARGET = t ? { x: t.x, z: t.z, kind: t.kind || 'door', label: t.label || '' } : null; }, way() { if (!WAY) return null; const path = [[P.x, P.z]]; for (const c of ROUTE) path.push([c.x, c.z], c.far); if (TARGET) path.push([TARGET.x, TARGET.z]); else path.push([WAY.x, WAY.z]);
     return { x: WAY.x, z: WAY.z, kind: WAY.kind, label: WAY.label, chosen: !!TARGET, goal: TARGET && TARGET.label, path }; } };
 })();

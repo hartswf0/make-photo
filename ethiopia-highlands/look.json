@@ -3,6 +3,17 @@
  "source": "ethiopia-world.js:516-801, ethiopia-terrain.js:223-680, study/look-audition-mv.js:22-66",
  "islands": {
   "simien_imet_gogo": {
+   "light": {
+    "dir": [
+     0.2063,
+     0.6122,
+     0.7633
+    ],
+    "box": 68,
+    "map": 2048,
+    "glow": "#ffc77a",
+    "disc": 1.0
+   },
    "sky": [
     "#95bad8",
     "#beccd2",
@@ -58,6 +69,17 @@
      "sun": {
       "color": "#ffaf69",
       "i": 2.65
+     },
+     "light": {
+      "dir": [
+       -0.6842,
+       0.228,
+       0.6927
+      ],
+      "box": 68,
+      "map": 2048,
+      "glow": "#ffb46a",
+      "disc": 1.4
      },
      "hemi": {
       "sky": "#c4987d",
@@ -121,6 +143,17 @@
    "toning_exposure": 0.9
   },
   "gheralta_spires": {
+   "light": {
+    "dir": [
+     0.2063,
+     0.6122,
+     0.7633
+    ],
+    "box": 68,
+    "map": 2048,
+    "glow": "#ffc77a",
+    "disc": 1.0
+   },
    "sky": [
     "#95bad8",
     "#beccd2",
@@ -176,6 +209,17 @@
      "sun": {
       "color": "#ffaf69",
       "i": 2.65
+     },
+     "light": {
+      "dir": [
+       -0.6842,
+       0.228,
+       0.6927
+      ],
+      "box": 68,
+      "map": 2048,
+      "glow": "#ffb46a",
+      "disc": 1.4
      },
      "hemi": {
       "sky": "#c4987d",
@@ -239,6 +283,17 @@
    "toning_exposure": 0.9
   },
   "blue_nile_gorge": {
+   "light": {
+    "dir": [
+     0.2063,
+     0.6122,
+     0.7633
+    ],
+    "box": 68,
+    "map": 2048,
+    "glow": "#ffc77a",
+    "disc": 1.0
+   },
    "sky": [
     "#95bad8",
     "#beccd2",
@@ -294,6 +349,17 @@
      "sun": {
       "color": "#ffaf69",
       "i": 2.65
+     },
+     "light": {
+      "dir": [
+       -0.6842,
+       0.228,
+       0.6927
+      ],
+      "box": 68,
+      "map": 2048,
+      "glow": "#ffb46a",
+      "disc": 1.4
      },
      "hemi": {
       "sky": "#c4987d",
@@ -357,6 +423,17 @@
    "toning_exposure": 0.9
   },
   "gerd_belaya_escarpment": {
+   "light": {
+    "dir": [
+     0.2063,
+     0.6122,
+     0.7633
+    ],
+    "box": 68,
+    "map": 2048,
+    "glow": "#ffc77a",
+    "disc": 1.0
+   },
    "sky": [
     "#95bad8",
     "#beccd2",
@@ -412,6 +489,17 @@
      "sun": {
       "color": "#ffaf69",
       "i": 2.65
+     },
+     "light": {
+      "dir": [
+       -0.6842,
+       0.228,
+       0.6927
+      ],
+      "box": 68,
+      "map": 2048,
+      "glow": "#ffb46a",
+      "disc": 1.4
      },
      "hemi": {
       "sky": "#c4987d",

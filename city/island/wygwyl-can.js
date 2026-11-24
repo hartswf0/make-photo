@@ -72,11 +72,18 @@
     const paint = (x, z, y) => { const yl = y - 6; if (yl < -.2) tc.copy(cSea); else if (yl < 2.2) tc.copy(cS).lerp(cU, urban(x, z) * .85); else { tc.copy(cG).lerp(cHi, Math.min(1, Math.max(0, (yl - 35) / 85))).lerp(cU, urban(x, z) * .92); }
       if (black) { const db = Math.hypot(x - black.x, z - black.y); if (db < 48) tc.lerp(cB, 1 - db / 48); } return [tc.r, tc.g, tc.b]; };
     const materials = { ground: { material: WM.groundMaterial(), uv: (x, z) => [x / W, z / Hh], color: paint } };
+    // ---------- lamps (light@1): the Severn's kerb light, as island.js sets it, and lamp posts every 60 m along the cores' streets ----------
+    const lamps = [{ x: at(0, D2 + 6)[0], y: y0 + 5, z: at(0, D2 + 6)[1], color: '#ffca88', i: 2.4, r: 28 }];
+    for (const st of roads.streets) { if (st.k !== 'core' || !st.pts) continue; let acc = 0; for (let i = 1; i < st.pts.length; i++) { const [ax, az] = st.pts[i - 1], [bx, bz] = st.pts[i], L = Math.hypot(bx - ax, bz - az); acc += L;
+        if (acc > 60) { acc = 0; const nx = -(bz - az) / (L || 1), nz = (bx - ax) / (L || 1), x = bx + nx * 5.5, z = bz + nz * 5.5, gy = g.H(x, z); if (gy > .6) lamps.push({ x, y: gy + 5.2, z, color: '#ffb668', i: 1.8, r: 24 }); } } }
+    { const pole = new T.CylinderGeometry(.07, .1, 5.2, 6); pole.translate(0, 2.6, 0); const head = new T.SphereGeometry(.28, 10, 8); head.translate(0, 5.25, 0);
+      const PM = new T.InstancedMesh(pole, new T.MeshStandardMaterial({ color: '#20262e', roughness: .45, metalness: .6 }), lamps.length), HM = new T.InstancedMesh(head, new T.MeshStandardMaterial({ color: '#ffcf96', emissive: '#ff9d42', emissiveIntensity: 1.6 }), lamps.length), M4 = new T.Matrix4();
+      lamps.forEach((l, k) => { M4.makeTranslation(l.x, l.y - 5.2, l.z); PM.setMatrixAt(k, M4); HM.setMatrixAt(k, M4); }); root.add(PM, HM); }
     // ---------- landmarks the LEGOS graph names ----------
     const landmarks = { severnDoor: { x: at(0, D2 + 2)[0], z: at(0, D2 + 2)[1] }, severnRoom: { x: SX, z: SZ }, severnCurb: { x: at(0, D2 + 9)[0], z: at(0, D2 + 9)[1] } };
     for (const r of meta.regions) { landmarks[r.key] = { x: r.x, z: r.y, name: r.name }; for (const c of r.cores || []) landmarks[c.key] = { x: c.x, z: c.y, name: c.name, r: c.r }; }
     landmarks.hiwotHome = { x: 2394, z: 3388 }; landmarks.dawitHome = { x: 6706, z: 2268 }; landmarks.selamHome = { x: 6550, z: 3644 };
-    return { root, landmarks, blockers, walls: sevWalls, door: doorPoly, room, materials,
+    return { root, landmarks, blockers, walls: sevWalls, door: doorPoly, room, materials, lamps,
       get doorOpen() { return doorOpen; }, setDoor(o) { doorOpen = !!o; }, setFlood, inside,
       update(dt, t) { waterU.uTime.value = t || 0; if (g.sunDir) waterU.uSunDir.value.copy(g.sunDir()); doorA += ((doorOpen ? -Math.PI * .58 : 0) - doorA) * Math.min(1, dt * 4); doorPivot.rotation.y = doorA; },
       dispose() { root.traverse(o => { if (o.geometry) o.geometry.dispose(); }); } };

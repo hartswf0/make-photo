@@ -81,7 +81,7 @@
     // ground@1: the can is laid out in metres from its island's corner, at true scale, on the trough's ground; it returns blockers, rooms and landmarks
     async 'ground@1'(ctx, isl, can) { const ox = isl.center[0] - isl.size[0] / 2, oz = isl.center[1] - isl.size[1] / 2, Wp = p => [p[0] + ox, p[1] + oz];
       await ctx.ensureGround(ox, oz, ox + isl.size[0], oz + isl.size[1]);
-      const live = await window[can.entry.global][can.entry.call](ctx.T, { H: (x, z) => ctx.groundAt(ox + x, oz + z), sunDir: ctx.sunDir, maxAnisotropy: ctx.maxAnisotropy }); live.root.position.set(ox, 0, oz); ctx.scene.add(live.root);
+      const live = await window[can.entry.global][can.entry.call](ctx.T, { H: (x, z) => ctx.groundAt(ox + x, oz + z), sunDir: ctx.sunDir, maxAnisotropy: ctx.maxAnisotropy }); live.root.position.set(ox, 0, oz); ctx.scene.add(live.root); if (ctx.shade) ctx.shade(live.root); const lampOff = live.lamps && ctx.addLamps ? ctx.addLamps(live.lamps.map(l => ({ ...l, x: l.x + ox, z: l.z + oz }))) : null;
       const gm = live.materials && live.materials.ground, gOff = gm && ctx.setGround ? ctx.setGround(isl.id, { material: gm.material, uv: gm.uv && ((x, z, y) => gm.uv(x - ox, z - oz, y)), color: gm.color && ((x, z, y) => gm.color(x - ox, z - oz, y)) }) : null;
       const regs = []; if (ctx.addBlockers) { if (live.blockers) regs.push(ctx.addBlockers(live.blockers.map(pl => pl.map(Wp)))); if (live.walls) regs.push(ctx.addBlockers(live.walls.map(pl => pl.map(Wp)))); }
       let doorOff = null; const door = () => { if (!live.door || !ctx.addBlockers) return; if (!live.doorOpen && !doorOff) doorOff = ctx.addBlockers([live.door.map(Wp)]); if (live.doorOpen && doorOff) { doorOff(); doorOff = null; } }; door();
@@ -90,7 +90,7 @@
       return { marks, live,
         apply(v) { if ('door' in v) { live.setDoor(v.door === 'open'); door(); } if (v.flood) live.setFlood(true); },
         toggle() { live.setDoor(!live.doorOpen); door(); return live.doorOpen; },
-        update(dt, t) { live.update(dt, t); }, dispose() { if (gOff) gOff(); for (const o of regs) o(); if (doorOff) doorOff(); ctx.scene.remove(live.root); live.dispose(); } }; },
+        update(dt, t) { live.update(dt, t); }, dispose() { if (gOff) gOff(); if (lampOff) lampOff(); for (const o of regs) o(); if (doorOff) doorOff(); ctx.scene.remove(live.root); live.dispose(); } }; },
     // terrain@1: the can builds on the trough's ground at true scale. Its own coordinates were squeezed into frame.span; landmarks spread back out.
     async 'terrain@1'(ctx, isl, can, site) {
       const man = await json(abs(can.url, can.frame.manifest)), r = man.regions[site.region]; if (!r) throw new Error('no region ' + site.region);
@@ -106,7 +106,7 @@
         sampleSlopeDegrees: (x, z) => { N(x, z, tmp); return Math.acos(Math.min(1, tmp.y)) * 180 / Math.PI; },
         sampleRealElevM: real, sampleBiome: (x, z) => { const e = real(x, z); return e >= 3200 ? 'wurch' : e >= 2300 ? 'dega' : e >= 1500 ? 'woina_dega' : 'kolla'; },
         sampleUpdraft: (x, z) => Math.min(8.5, terrain.sampleSlope(x, z) * 3.8) };
-      const make = window[can.entry.global][can.entry.call], live = make(ctx.T, terrain); live.root.position.set(cx, 0, cz); ctx.scene.add(live.root);
+      const make = window[can.entry.global][can.entry.call], live = make(ctx.T, terrain); live.root.position.set(cx, 0, cz); ctx.scene.add(live.root); if (ctx.shade) ctx.shade(live.root);
       const mats = [], offs = [];   // material@1: the level's own shaders and textures, given the trough's frame (true scale, this island's datum)
       for (const pk of can.materials || []) { if (!pk.script || !ctx.setGround) continue; await script(abs(can.url, pk.script)); const f = dig(pk.make); if (typeof f !== 'function') continue;
         const out = f.call(dig(pk.make.split('.').slice(0, -1).join('.')), ctx.T, { regionStyle: r.regionStyle, minElevM: r.minElevM, maxElevM: r.maxElevM, datumElevM: isl.datum ?? (r.minElevM - 30), verticalScale: 1,
@@ -142,9 +142,9 @@
       regs.push(ctx.addSound({ url: abs(can.legosUrl, E.sound), x: m.x + ((E.offset || [])[0] || 0), y: H(m.x, m.z) + 2, z: m.z + ((E.offset || [])[1] || 0), radius: E.radius || 200, gain: E.gain || .6, room: E.room || null })); }
     for (const E of legos.E || []) { if (!E.archetype) continue; const m = body.marks[E.at]; if (!m) continue;   // a kit body, placed by a few lines of LEGOS
       try { const b = await makeBody(ctx.T, E.archetype, E), o = E.offset || [0, 0], home = { x: m.x + o[0], z: m.z + o[1] };
-        if (b.kind === 'walker') { const w = walker(ctx, E, b, home, H, r); w.ledger = l => { LEDGER.note(mem, [mem.visits, 'give', E.id, l, '']); LEDGER.put(can.id, isl.id, mem); }; ctx.scene.add(w.root); bodies.push(w); if (ctx.addPerson) regs.push(ctx.addPerson(w)); }
-        else if (b.kind === 'beast') { const bs = beast(E, b, home, H, srcOf, r); ctx.scene.add(bs.root); bodies.push(bs); }
-        else { b.root.position.set(home.x, H(home.x, home.z), home.z); b.root.rotation.y = r() * 6.28; ctx.scene.add(b.root); bodies.push({ kind: b.kind, id: E.id, root: b.root, x: home.x, z: home.z }); } }
+        if (b.kind === 'walker') { const w = walker(ctx, E, b, home, H, r); w.ledger = l => { LEDGER.note(mem, [mem.visits, 'give', E.id, l, '']); LEDGER.put(can.id, isl.id, mem); }; ctx.scene.add(w.root); if (ctx.shade) ctx.shade(w.root); bodies.push(w); if (ctx.addPerson) regs.push(ctx.addPerson(w)); }
+        else if (b.kind === 'beast') { const bs = beast(E, b, home, H, srcOf, r); ctx.scene.add(bs.root); if (ctx.shade) ctx.shade(bs.root); bodies.push(bs); }
+        else { b.root.position.set(home.x, H(home.x, home.z), home.z); b.root.rotation.y = r() * 6.28; ctx.scene.add(b.root); if (ctx.shade) ctx.shade(b.root); bodies.push({ kind: b.kind, id: E.id, root: b.root, x: home.x, z: home.z }); } }
       catch (e) { console.warn('body', E.id, e); } }
     mem.variants = Object.fromEntries(Object.entries(pick).map(([k, v]) => [k, v.tier])); mem.last = Date.now(); LEDGER.put(can.id, isl.id, mem);
     return { id: isl.id, can: can.id, pick, marks: body.marks, bodies,

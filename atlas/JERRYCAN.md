@@ -316,3 +316,48 @@ Contrast now matches the levels almost exactly: Simien 0.19 against 0.20, Gheral
 2. Name the uniforms whose frame differs.
 3. Add a `materials[]` entry with its `bind`.
 4. Measure the level against the trough with `atlas/looks/lookstats.py`.
+
+---
+
+## 7. Light (`light@1`): shadows, each world's sun, and its lamps
+
+Light is a liquid too. Each world's look packet carries `light`, which the timecycle blends by where you stand like the rest of the atmosphere:
+
+| Key | Meaning | Source in the level |
+|---|---|---|
+| `dir` | The sun's direction | Ethiopia: the pack's own sun, `setGoldenHour`: elevation .90→.23 rad, azimuth .72→2.35 rad (`ethiopia-terrain.js`). The level uses this one, not `ethiopia-world.js`'s fallback; the city (−.55, .22, −.80) (`island.js`); Teton: MONOLITH-3's sun states (high, storm break, low); the Corridor: Highland Exposure's dawn, noon, squall and night |
+| `box`, `map` | Shadow box half-size (m) and map size | Ethiopia: ±68 m, 2048, PCF soft, bias −0.0004, normal bias 0.06 |
+| `glow`, `disc` | The colour and size of the visible sun | Ethiopia: glow (1, .78, .48); the city: sodium `#ffb870` |
+| `lamps` | How strongly the world's lamps burn | The city: 1 at dusk, 0 at midday, 1.4 at night |
+
+What the trough does with it:
+- **Shadows:** PCF-soft shadows from the sun.
+  - The shadow box follows you and snaps to shadow texels, so edges don't crawl.
+  - Ground tiles, forests, the cast, Mistletoe, the vehicles, the boats and every can's content cast and receive (`ctx.shade`).
+  - Additive and shader materials are left out, and so are transparent ones for casting.
+- **A visible sun:** a disc and glow in the world's sun colour. Under the house standard it is grey, like the sky, so only blue things turn cyan.
+- **A lamp pool** (the GTA light budget): six real point lights. Every quarter second they go to the nearest lamps a can declares (`addLamps`) within 160 m.
+  - The city declares the Severn's kerb light (`#ffca88`, 2.4, r 28, as `island.js` sets it) and lamp posts every 60 m along its 1,345 core streets.
+  - The lamp positions along the streets are derived from the street data, not copied from the level.
+
+**A bug this found.** The grade's ramp read luminance perceptually, then blended its colour stops in linear space. That applied the gamma twice, lifting every shadow and flattening every monochrome world: Teton read at luminance 0.57 against its level's 0.30. The stops now blend in display space.
+
+**Measured** with shadows, each world's sun and the ramp fix (distance from the level's own frame; sheet: `atlas/looks/evidence-light.jpg`):
+
+| World | Before light@1 | After | Contrast: level / trough |
+|---|---|---|---|
+| Grand Teton (house standard) | 1.22 | **0.90** | 0.159 / **0.158** |
+| WYGWYL | 0.64 | 0.64 | 0.148 / 0.141 |
+| Simien | 0.74 | 0.78 | 0.196 / 0.205 |
+| Gheralta | 0.55 | 0.81 | 0.201 / 0.109 |
+
+Shadows now show in every world: the acacia's on Gheralta's sand, the lobelias' in Simien, Mistletoe's and the trees' at Teton.
+
+Gheralta's distance rose for a reason the metric can't separate. The pack's true sun now lights the sandstone cliff face-on, and the trough frame looks at that cliff, while the level's frame looks at sand and trees. The two frames show different subjects. Matched-composition captures are the next step for honest numbers.
+
+**Not yet carried:**
+- the terrain casting long shadows beyond the 68–90 m box (no cascades);
+- Ethiopia's envMap and sky-dome sun glow lobes;
+- MONOLITH's planar reflections;
+- Donkey Water's cyan lamps (it is not a can yet);
+- the level's own street-lamp placements in the city (lamp posts here are derived from the street data).
