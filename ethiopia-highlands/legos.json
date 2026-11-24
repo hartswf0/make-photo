@@ -1,41 +1,312 @@
 {
-  "legos": 1,
-  "can": "ethiopia-highlands",
-  "L": [
-    { "id": "standpipe", "name": "Cyan standpipe", "at": "relayPos", "keeper": "makeda", "offers": ["draw"],
-      "variants": {
-        "probable": { "flowing": true, "note": "the line from the spring is running" },
-        "plausible": { "flowing": false, "note": "dry today; the spring line is shut upstream" },
-        "preposterous": { "flowing": true, "weather": { "storm": 0.45 }, "note": "the cloud sea has risen over the rim" } } },
-    { "id": "church", "name": "Rock-hewn church", "at": "churchPos", "keeper": "berhanu", "offers": ["give", "listen"] },
-    { "id": "hamlet", "name": "Tukul hamlet", "at": "hamletPos", "offers": ["ask"] },
-    { "id": "lookout", "name": "Lookout", "at": "primaryLookout", "offers": ["glide"] }
+ "legos": 1.1,
+ "can": "ethiopia-highlands",
+ "L": [
+  {
+   "id": "standpipe",
+   "name": "Cyan standpipe",
+   "at": "relayPos",
+   "keeper": "makeda",
+   "offers": [
+    "draw"
+   ],
+   "variants": {
+    "probable": {
+     "flowing": true,
+     "note": "the line from the spring is running"
+    },
+    "plausible": {
+     "flowing": false,
+     "note": "dry today; the spring line is shut upstream"
+    },
+    "preposterous": {
+     "flowing": true,
+     "weather": {
+      "storm": 0.45
+     },
+     "note": "the cloud sea has risen over the rim"
+    }
+   },
+   "zone_ring": "center"
+  },
+  {
+   "id": "church",
+   "name": "Rock-hewn church",
+   "at": "churchPos",
+   "keeper": "berhanu",
+   "offers": [
+    "give",
+    "listen"
+   ],
+   "zone_ring": "inner"
+  },
+  {
+   "id": "hamlet",
+   "name": "Tukul hamlet",
+   "at": "hamletPos",
+   "offers": [
+    "ask"
+   ],
+   "zone_ring": "inner"
+  },
+  {
+   "id": "lookout",
+   "name": "Lookout",
+   "at": "primaryLookout",
+   "offers": [
+    "glide"
+   ],
+   "zone_ring": "rim"
+  }
+ ],
+ "E": [
+  {
+   "id": "gelada",
+   "kind": "creature",
+   "states": [
+    "forage_sit",
+    "quad_walk",
+    "watch_visitor"
+   ],
+   "source": "endemic-fauna.js:2537"
+  },
+  {
+   "id": "walia_ibex",
+   "kind": "creature",
+   "states": [
+    "ledge_bound",
+    "sentinel_perch"
+   ],
+   "source": "endemic-fauna.js:2537"
+  },
+  {
+   "id": "ethiopian_wolf",
+   "kind": "creature",
+   "states": [
+    "trot_patrol",
+    "mole_rat_stalk"
+   ],
+   "source": "endemic-fauna.js:2537"
+  },
+  {
+   "id": "nyala",
+   "kind": "creature",
+   "states": [
+    "browse",
+    "walk",
+    "freeze_listen"
+   ],
+   "source": "endemic-fauna.js:2537"
+  },
+  {
+   "id": "flora",
+   "kind": "fixture",
+   "note": "giant lobelia, acacia, heather guilds as InstancedMesh",
+   "source": "endemic-fauna.js:814"
+  },
+  {
+   "id": "church",
+   "kind": "fixture",
+   "source": "endemic-fauna.js:1092"
+  },
+  {
+   "id": "standpipe",
+   "kind": "fixture",
+   "affords": [
+    "draw"
+   ],
+   "source": "endemic-fauna.js:1092"
+  },
+  {
+   "id": "standpipe_donkey",
+   "body": "beast",
+   "archetype": "pack.donkey",
+   "at": "relayPos",
+   "offset": [
+    9,
+    6
+   ],
+   "zone_ring": "inner",
+   "skills": [
+    {
+     "name": "graze",
+     "description": "crop the grass near home",
+     "parameters": {},
+     "base": 0.3
+    },
+    {
+     "name": "drink",
+     "description": "walk to the standpipe and drink",
+     "parameters": {
+      "at": "standpipe"
+     },
+     "base": 0.0,
+     "when": {
+      "thirst_above": 0.45,
+      "source_flowing": "standpipe"
+     },
+     "score": 0.85
+    },
+    {
+     "name": "approach",
+     "description": "come and look at whoever is carrying water",
+     "parameters": {
+      "target": "player"
+     },
+     "base": 0.0,
+     "when": {
+      "player_within": 22,
+      "player_beyond": 3.5
+     },
+     "score": 0.55
+    }
+   ]
+  },
+  {
+   "id": "hamlet_woody",
+   "body": "vehicle",
+   "archetype": "woody_1942",
+   "at": "hamletPos",
+   "offset": [
+    14,
+    -8
+   ],
+   "zone_ring": "inner"
+  },
+  {
+   "id": "church_hiace",
+   "body": "vehicle",
+   "archetype": "abyssinia.hiace",
+   "at": "churchPos",
+   "offset": [
+    -24,
+    16
+   ],
+   "zone_ring": "outer"
+  },
+  {
+   "id": "makeda",
+   "kind": "walker",
+   "cast": "makeda",
+   "status": "not yet poured"
+  },
+  {
+   "id": "berhanu",
+   "kind": "walker",
+   "cast": "elder",
+   "status": "not yet poured"
+  }
+ ],
+ "G": [
+  {
+   "id": "fill-at-standpipe",
+   "want": "fill the can at the cyan standpipe",
+   "status": "live"
+  },
+  {
+   "id": "water-the-church",
+   "want": "carry 5 L from the standpipe to the church keeper",
+   "status": "proposed"
+  }
+ ],
+ "O": [
+  {
+   "id": "cliff",
+   "rule": "slope above 0.66 cannot be walked",
+   "source": "ethiopia-world.js:1168"
+  },
+  {
+   "id": "dry-line",
+   "rule": "a dry standpipe gives nothing; draw at another source",
+   "from": "standpipe.plausible"
+  },
+  {
+   "id": "thirst",
+   "rule": "Mistletoe's thirst falls 0.0025 a second",
+   "source": "night-post/rain/bridge-kit.js"
+  }
+ ],
+ "S": [
+  {
+   "id": "draw",
+   "verb": "draw",
+   "at": "standpipe",
+   "needs": {
+    "flowing": true
+   },
+   "gives": {
+    "litres": "to 20"
+   },
+   "shift": {
+    "id": "shift_heavy_draw",
+    "causes": [
+     "standpipe"
+    ],
+    "results_in": "dry-line",
+    "ledger_delta": {
+     "dry_bias_per_litre": 0.01
+    }
+   },
+   "ripple": {
+    "radius": 40,
+    "vector": "GOAL",
+    "note": "water drawn draws the animals that smell it"
+   }
+  },
+  {
+   "id": "glide-down",
+   "verb": "glide",
+   "at": "lookout",
+   "meets": "cliff"
+  }
+ ],
+ "chance": {
+  "key": [
+   "can",
+   "island",
+   "visit"
   ],
-  "E": [
-    { "id": "gelada", "kind": "creature", "states": ["forage_sit", "quad_walk", "watch_visitor"], "source": "endemic-fauna.js:2537" },
-    { "id": "walia_ibex", "kind": "creature", "states": ["ledge_bound", "sentinel_perch"], "source": "endemic-fauna.js:2537" },
-    { "id": "ethiopian_wolf", "kind": "creature", "states": ["trot_patrol", "mole_rat_stalk"], "source": "endemic-fauna.js:2537" },
-    { "id": "nyala", "kind": "creature", "states": ["browse", "walk", "freeze_listen"], "source": "endemic-fauna.js:2537" },
-    { "id": "flora", "kind": "fixture", "note": "giant lobelia, acacia, heather guilds as InstancedMesh", "source": "endemic-fauna.js:814" },
-    { "id": "church", "kind": "fixture", "source": "endemic-fauna.js:1092" },
-    { "id": "standpipe", "kind": "fixture", "affords": ["draw"], "source": "endemic-fauna.js:1092" },
-    { "id": "makeda", "kind": "walker", "cast": "makeda", "status": "not yet poured" },
-    { "id": "berhanu", "kind": "walker", "cast": "elder", "status": "not yet poured" }
+  "weights": {
+   "probable": 0.72,
+   "plausible": 0.23,
+   "preposterous": 0.05
+  },
+  "memory": "dry_bias moves weight from probable to plausible; it recharges 0.08 for every visit to anywhere else, and a storm or a risen cloud sea takes 0.25 off it"
+ },
+ "memory": {
+  "store": "dw.ledger",
+  "keeps": [
+   "visits",
+   "variants",
+   "bias",
+   "last-12 tuples [visit, verb, entity, delta, tier]"
+  ]
+ },
+ "relations": [
+  [
+   "supplies",
+   "standpipe",
+   "fill-at-standpipe"
   ],
-  "G": [
-    { "id": "fill-at-standpipe", "want": "fill the can at the cyan standpipe", "status": "live" },
-    { "id": "water-the-church", "want": "carry 5 L from the standpipe to the church keeper", "status": "proposed" }
+  [
+   "blocks",
+   "dry-line",
+   "fill-at-standpipe"
   ],
-  "O": [
-    { "id": "cliff", "rule": "slope above 0.66 cannot be walked", "source": "ethiopia-world.js:1168" },
-    { "id": "dry-line", "rule": "a dry standpipe gives nothing; draw at another source", "from": "standpipe.plausible" },
-    { "id": "thirst", "rule": "Mistletoe's thirst falls 0.0025 a second", "source": "night-post/rain/bridge-kit.js" }
+  [
+   "triggers",
+   "shift_heavy_draw",
+   "dry-line"
   ],
-  "S": [
-    { "id": "draw", "verb": "draw", "at": "standpipe", "needs": { "flowing": true }, "gives": { "litres": "to 20" }, "consequence": "standpipe.drawn += litres" },
-    { "id": "glide-down", "verb": "glide", "at": "lookout", "meets": "cliff" }
+  [
+   "drinks_at",
+   "standpipe_donkey",
+   "standpipe"
   ],
-  "chance": { "key": ["can", "island", "visit"], "weights": { "probable": 0.72, "plausible": 0.23, "preposterous": 0.05 },
-    "memory": "every 20 L drawn at a standpipe moves 0.1 of its weight from probable to plausible next visit" },
-  "memory": { "store": "dw.ledger", "keeps": ["visits", "variant", "drawn"] }
+  [
+   "keeps",
+   "berhanu",
+   "church"
+  ]
+ ]
 }

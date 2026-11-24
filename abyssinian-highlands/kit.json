@@ -1,0 +1,14 @@
+{
+  "kit": 1,
+  "id": "abyssinia",
+  "name": "Abyssinian road and threshold kit",
+  "scripts": ["../abyssinian-highlands/habitus-kits.js"],
+  "archetypes": {
+    "abyssinia.hiace": { "body": "vehicle", "make": "AbyssinianKits.makeLineTaxiHiAce", "call": "T" },
+    "abyssinia.bajaj": { "body": "vehicle", "make": "AbyssinianKits.makeBajajRickshaw", "call": "T" },
+    "abyssinia.isuzu": { "body": "vehicle", "make": "AbyssinianKits.makeIsuzuEscarpmentTruck", "call": "T" },
+    "abyssinia.mast":  { "body": "fixture", "make": "AbyssinianKits.makeRidgeRadioMast", "call": "T" },
+    "abyssinia.kiosk": { "body": "fixture", "make": "AbyssinianKits.makeStreetKiosk", "call": "T" },
+    "abyssinia.cobra_light": { "body": "fixture", "make": "AbyssinianKits.makeSolarCobraLight", "call": "T" }
+  }
+}

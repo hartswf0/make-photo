@@ -1,0 +1,13 @@
+{
+  "kit": 1,
+  "id": "core",
+  "name": "The cast's own bodies",
+  "note": "Canonical builders the trough registers once; every can names them by archetype. Replaces the per-level copies of the donkey and the Woody as those levels become cans.",
+  "scripts": ["../donkey/vehicles.js?v=1"],
+  "needs": ["makeDonkey"],
+  "archetypes": {
+    "pack.donkey": { "body": "beast", "make": "makeDonkey", "call": "opts", "opts": { "assetPath": "../donkey/", "shells": 6 }, "root": "group" },
+    "woody_1942":  { "body": "vehicle", "make": "DWVehicles.wagon", "call": "T", "root": "group" },
+    "rogallo":     { "body": "wing", "make": "DWVehicles.rogallo", "call": "T", "root": "root" }
+  }
+}

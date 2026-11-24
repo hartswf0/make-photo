@@ -173,3 +173,70 @@ Any L, E, G, O or S may carry **variants**:
 6. **Highland Exposure.** Port it to three.js, or composite its canvas. Its hydrology and relay line-of-sight become obstacles in its legos.
 
 The rule of thumb: **a can never brings a renderer, a camera, a loop, a player, a HUD or a storage key.** If it needs one, the trough is missing a service, and the service goes in the trough.
+
+---
+
+## 4. v1.1 fold-in: the LEGOS lineage, SAGA, kits, and four fixes
+
+### Checked against sources
+
+**LEGOS** (read from the `tractor-dce-gyo` repository):
+- `prompt-library/LEGOS-scene-template.yaml` gives the shape:
+  - entities with `type`, `traits` and `location`;
+  - goals with an `owner`;
+  - obstacles that `affects` a goal;
+  - **shifts** with `causes` and `results_in`;
+  - **relations** as `[morphism] a -> b`.
+- `LEGOS-COGNITIVE-ARCHITECTURE.md` gives:
+  - the **9×9 tray**: Center (axis mundi), Inner (protagonists), Outer (environment), Rim (boundary);
+  - **Micro-PLoT**: `score = 0.3·G + 0.4·M + 0.3·W`.
+
+**RIPPLES** (read from the `ripples` repository): a headless engine whose GOAL, OBSTACLE and SHIFT vectors produce ticked ripples. I did not find the one-hop cascade rule stated there.
+
+**SAGA** (read from the `fablestudio/fable-saga` README):
+- *"SAGA itself doesn't know how to drive the simulation or characters"* (Bring Your Own Simulation).
+- Skills are `{name, description, parameters}`.
+- The answer is `{options:[{skill, parameters}], scores:[…]}`, with the highest score first.
+- There is a `POST /generate-actions` endpoint.
+- It warns that memories grow until the context runs out.
+- It does not say action scores are confined to 0..1.
+
+### What changed in the format
+
+- **S is Solution and Shift.** A solution names the shift it causes (`shift: {causes, results_in, ledger_delta}`). `relations` holds `[verb, from, to]` triples.
+- **`zone_ring`** (center, inner, outer or rim) on locations and placed entities. It is a placement budget: anchors at the centre, interactive bodies in the inner ring, sparse pressure outside it, silhouettes on the rim. It is declared, not yet enforced.
+- **Skills, the SAGA shape.** A beast entity carries `skills` (`name`, `description`, `parameters`, `when`, `score`). Every half second the trough scores them deterministically into SAGA's `{options, scores}`, best first, and moves the body itself. An external SAGA server could answer the same call later without the can changing.
+- **Ripple.** A solution may carry `ripple: {radius, vector}`. When it fires, bodies within the radius get the vector, one hop. Drawing at the Simien standpipe raises a nearby donkey's *approach* from 0.55 to 0.9.
+- **kit@1, alongside can@1.** Kits are archetype packets (the `.ytyp` idea), registered once from the shelf and named by any can:
+  - `donkey/kit.json`: `pack.donkey`, `woody_1942`, `rogallo`;
+  - `abyssinian-highlands/kit.json`: `abyssinia.hiace`, `.bajaj`, `.isuzu`, `.mast`, `.kiosk`, `.cobra_light`.
+
+  A can places one with a few lines of LEGOS: `{body, archetype, at, offset}`. Simien now places a pack donkey, a parked Woody and a HiAce this way, with no mesh or controller code in the Ethiopia can. The per-level copies of the donkey and the Woody go when those levels become cans.
+
+### Four fixes
+
+1. **Drought lockout.**
+   - Memory keeps a *dry bias* per source: +0.01 per litre drawn, capped at 0.5.
+   - It recharges 0.08 for every visit to anywhere else (a global visit clock).
+   - A preposterous or weather variant takes 0.25 off it.
+   - Older ledgers that kept litres are migrated.
+   - Memory is compact: counters plus the last 12 tuples `[visit, verb, entity, delta, tier]`.
+2. **Storm gate.** The squall cannot clear before the region has mounted, nor sooner than 4 s after it began and 1.5 s after the mount. Mounting at 2.6 km and draining at 5.2 km leave a wide gap, so turning round near the shore does not re-trigger it.
+3. **The glass.**
+   - There is still one actionable offer at a time, `live`.
+   - If frames run over 28 ms for 2 s, the storm on the glass is capped at 0.35.
+   - Not yet done: keeping rain clear of the player's and speaker's boxes, and checking that Look drags never wipe an offer.
+4. **kit@1 versus can@1.** Done, as above.
+
+### Read, but not adopted as fact
+
+The longer report proposes:
+- a 64 MB budget with a 20 MB trough;
+- an eight-compartment binary `.jcan`;
+- 120 Hz IK and 32-byte coarse tokens;
+- a 20-second storm timeline with a 60 m clear pocket around the player.
+
+These are good targets, but they are not measured from this codebase, so they stay proposals. Worth taking from it:
+- the storm should swap distant ground while the player's near pocket stays clear;
+- drained bodies should survive as small tokens that keep living on a slow tick;
+- rising water is a second veil, besides weather.

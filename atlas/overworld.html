@@ -31,7 +31,7 @@ canvas{display:block;touch-action:none}
 <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
 <script src="../abyssinian-highlands/habitus-kits.js"></script>
 <script src="../donkey/vehicles.js?v=1"></script>
-<script src="./regions.js?v=3"></script>
+<script src="./regions.js?v=4"></script>
 <script>
 (async () => {
 const T = THREE, QS = new URLSearchParams(location.search), $ = id => document.getElementById(id);
@@ -109,13 +109,13 @@ function stream() { const ahead = P.mode === 'ferry' ? 0 : Math.min(9000, Math.a
 async function ensureGround(x0, z0, x1, z1) { const ks = []; for (let j = Math.floor(z0 / TS); j <= Math.floor(z1 / TS); j++) for (let i = Math.floor(x0 / TS); i <= Math.floor(x1 / TS); i++) { const k = i + '_' + j; if (have.has(k)) ks.push(fetchTile(k)); } await Promise.all(ks); }
 const MOUNTS = [];
 // a region arrives inside a passing squall: the fog closes, the rain thickens on the glass, and when it clears the island is alive
-const STORM = { v: 0, want: 0, hold: 0, pending: 0, flash: 0 };
+const STORM = { v: 0, want: 0, hold: 0, pending: 0, flash: 0, glass: 1 }; let _lastFrame = 0; const sdtRaw = now => { const d = _lastFrame ? (now - _lastFrame) / 1000 : 0; _lastFrame = now; return d; };
 // what a can registers with the world while it is poured: sources of water (flowing or dry this visit) and weather of its own
 const CAN_SOURCES = [], CAN_WEATHER = [], reg = (list, o) => { list.push(o); return () => { const k = list.indexOf(o); if (k >= 0) list.splice(k, 1); }; };
-const REG = window.DWRegions ? window.DWRegions.create({ T, scene, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, shelf: './cans.json?v=1',
+const REG = window.DWRegions ? window.DWRegions.create({ T, scene, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, shelf: './cans.json?v=2',
   addSource: o => reg(CAN_SOURCES, o), addWeather: o => reg(CAN_WEATHER, o), onShelf: ids => { for (const id of ids) KIND[id] = null; },
-  onStart: () => { STORM.pending++; STORM.want = 1; },
-  onMount: (isl, r, ms) => { MOUNTS.push({ id: isl.id, ms: Math.round(ms), at: [Math.round(P.x), Math.round(P.z)] }); STORM.pending = Math.max(0, STORM.pending - 1); STORM.until = performance.now() + 2500; } }) : null;
+  onStart: () => { STORM.pending++; STORM.want = 1; STORM.t0 = STORM.t0 || performance.now(); },
+  onMount: (isl, r, ms) => { MOUNTS.push({ id: isl.id, ms: Math.round(ms), at: [Math.round(P.x), Math.round(P.z)] }); STORM.pending = Math.max(0, STORM.pending - 1); STORM.until = Math.max((STORM.t0 || 0) + 4000, performance.now() + 1500); } }) : null;
 // ---------- ground height: streamed tiles, then bridge decks on top ----------
 function terrain(x, z) { const ti = Math.floor(x / TS), tj = Math.floor(z / TS), f = data.get(ti + '_' + tj); if (!f) return -40; const n = OW.tile + 1, u = (x - ti * TS) / OW.mpp, v = (z - tj * TS) / OW.mpp, i = Math.min(n - 2, Math.floor(u)), j = Math.min(n - 2, Math.floor(v)), a = u - i, b = v - j;
   return f[j * n + i] * (1 - a) * (1 - b) + f[j * n + i + 1] * a * (1 - b) + f[(j + 1) * n + i] * (1 - a) * b + f[(j + 1) * n + i + 1] * a * b; }
@@ -291,7 +291,8 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
   water.position.x = P.x; water.position.z = P.z;
   OWS.dk = Math.max(0, OWS.dk - dt * .0025); if (OWS.jumpT > 0) { OWS.jumpT -= dt; walker.position.y += Math.sin((.5 - OWS.jumpT) / .5 * Math.PI) * 1.1; }
   if (REG) REG.update(dt, now / 1000, P, donkey && donkey.group.position);
-  { if (STORM.until && now > STORM.until && !STORM.pending) { STORM.want = 0; STORM.until = 0; } const sdt = Math.min(.25, (now - (STORM.t || now)) / 1000); STORM.t = now; let floor = 0; for (const w of CAN_WEATHER) if (Math.abs(P.x - w.x) < w.hx && Math.abs(P.z - w.z) < w.hz) floor = Math.max(floor, w.storm || 0); const goal = Math.max(STORM.want, floor), prev = STORM.v; STORM.v += (goal - STORM.v) * Math.min(1, sdt * (goal > STORM.v ? .9 : .35));   // wall-clock, so a slow device clears on time
+  { if (STORM.until && now > STORM.until && !STORM.pending) { STORM.want = 0; STORM.until = 0; STORM.t0 = 0; }
+    { const fd = Math.min(.5, sdtRaw(now)), slow = fd > .028; STORM.slowT = slow ? (STORM.slowT || 0) + fd : Math.max(0, (STORM.slowT || 0) - fd); STORM.glass = STORM.slowT > 2 ? .35 : STORM.slowT < .5 ? 1 : STORM.glass || 1; } const sdt = Math.min(.25, (now - (STORM.t || now)) / 1000); STORM.t = now; let floor = 0; for (const w of CAN_WEATHER) if (Math.abs(P.x - w.x) < w.hx && Math.abs(P.z - w.z) < w.hz) floor = Math.max(floor, w.storm || 0); const goal = Math.max(STORM.want, floor), prev = STORM.v; STORM.v += (goal - STORM.v) * Math.min(1, sdt * (goal > STORM.v ? .9 : .35));   // wall-clock, so a slow device clears on time
     if (Math.abs(STORM.v - prev) > .002 || STORM.v > .01) { const v = STORM.v, e = v * v * (3 - 2 * v); scene.fog.near = 900 - 820 * e; scene.fog.far = 24000 - 21800 * e; scene.fog.color.copy(SKY).lerp(STORM_SKY[3], e); paintSky(e);
       if (v > .7 && Math.random() < dt * .35) STORM.flash = .18; STORM.flash = Math.max(0, STORM.flash - sdt); hemi.intensity = 1.1 - .45 * e + (STORM.flash > .09 ? 2.2 : STORM.flash > 0 ? .8 : 0); sun.intensity = 1.6 * (1 - .7 * e); } }
   if (now - streamAt > 250) { streamAt = now; stream(); if (REG) REG.tick(P.x, P.z); if (!SURF) hud(); }
@@ -330,7 +331,7 @@ window.AhiyaBridge = { version: 1, canvas: renderer.domElement,
   state() { const isl = OW.islands.find(i => Math.abs(P.x - i.center[0]) < i.size[0] / 2 && Math.abs(P.z - i.center[1]) < i.size[1] / 2), n = nearest(OW.places), dg = donkey ? donkey.group.position : null;
     const me = proj(P.x, P.y + 1, P.z), meS = scaleAt(P.x, P.y, P.z), w = nearest(WELLS.concat(CAN_SOURCES.filter(c => c.flowing)));
     return { ready, clock: performance.now() / 1000, lang: 'en',
-      water: { liters: OWS.liters, capacity: 20, reserve: 4, donkey: OWS.dk, donkeyDown: OWS.dk < .05 }, weather: { storm: STORM.v },
+      water: { liters: OWS.liters, capacity: 20, reserve: 4, donkey: OWS.dk, donkeyDown: OWS.dk < .05 }, weather: { storm: Math.min(STORM.v, STORM.glass) },
       place: { id: isl ? isl.id : 'sea', name: deckAt(P.x, P.z) && P.mode !== 'fly' ? 'the bridge' : isl ? isl.name : 'the open sea', next: null, visited: [] }, signal: 1,
       mode: { fly: 'glide', boat: 'drive', ferry: 'walk' }[P.mode] || P.mode, speed: Math.abs(P.speed), exit: MODE_OUT[P.mode] ? { id: 'down', label: MODE_OUT[P.mode] } : null,
       live: liveAct(), busy: P.mode === 'ferry', speech: null, said: null,
