@@ -124,3 +124,23 @@ States: REST (no disc) → READY (disc loaded, paused) → WORKING (deck playing
 *Invariants added:* at most 4 discs; mesh is symmetric and recomputed from positions only (`computeMesh`); group direction alternates by depth (`groups`, bounded by `MAXD*4` steps); the anchor of a group is the last disc touched and the others keep the clock offset they had then (`anchor`, `follow`); the record log is capped at 14 400 samples (one hour), the recorder at 6 000 chunks.
 
 *Cut:* the MIX lanes and clip editing (the edit now comes from the performance), IN/OUT, the crossfader (position is the fader), every title and label except poem numbers.
+
+## Revision 4 · body, not text
+
+*Obstruction in revision 3:* position set the level, so a disc always covered the middle of the picture; scrubbing was silent and weightless; there was no way to shape colour or sound; long press only swapped.
+
+| Gesture | Operation | Feel |
+|---|---|---|
+| pinch a disc (or scroll on it) | [size] = level, 0.35–1.6 × | a click every 10 % |
+| turn the ring forward | [scrub], heard at hand speed (playback rate = hand speed, up to 3.5×) | tooth clicks scale with speed; a heavier thunk on every spoken line |
+| flick the ring and let go | [coast] | slows like a heavy platter (decay 3.2/s) |
+| hold the centre | petals: blend · colour · tone · swap · remove; slide and release, or tap | petals fan toward the middle of the screen; each petal ticks as you cross it |
+| colour / tone petal | the ring becomes a dial: hue wheel, or low-pass ↔ high-pass with a detent at off | tap the centre to leave; the dial closes itself after 3.5 s idle |
+| tap empty space | [clear] the gears tuck into the corner as small orbs, still turning | tap an orb or the space to bring them back |
+| mesh discs of different sizes | gear law: follower speed = r_anchor / r_follower, 0.5–2 × | a smaller gear runs faster |
+
+*Blend modes:* normal, screen, multiply, difference, add, shown as the hub's outline (glow, dark core, dash).
+*Colour:* a per-disc tint drawn through an off-screen layer with the `color` composite, so it works where `ctx.filter` does not.
+*Tone:* one biquad per disc, before its gain.
+
+*Bounds:* the petals have 5 entries; the dial has one value; momentum is cleared below 0.25 s/s or at either end; vibration is throttled to one pulse per 28 ms, except mesh, line and menu events.
