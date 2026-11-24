@@ -3706,6 +3706,7 @@ renderer.setAnimationLoop(() => {
 window.__island = {
   state,
   keys,   // the game surface steers through these (surface-bridge.js)
+  get suite() { return shaderSuite; },   // the lens switches the city's looks through it
   THREE,   // the bridge kit projects with it (the page is a module, so there is no global)
   playerActor,
   residents,

@@ -11,6 +11,8 @@
     steer(x, y, a) { K.w = K.arrowup = a && y < -.25; K.s = K.arrowdown = a && y > .25; K.a = K.arrowleft = a && x < -.25; K.d = K.arrowright = a && x > .25; K.shift = a && Math.hypot(x, y) > .92; },
     look(dx) { S.camYaw = (S.camYaw || 0) - dx * .006; },
     jump() { tap(' '); },
+    looks: () => { const su = I.suite; if (!su) return null; const id = su.getState().lookId; return { names: su.looks.map(l => l.name), index: su.looks.findIndex(l => l.id === id) }; },
+    setLook: i => { const su = I.suite; if (su && su.looks[i]) su.setLook(su.looks[i].id, true); },
     menu: () => [{ id: 'drive', label: 'drive', on: S.mode === 'drive', run: () => tap('f') }, { id: 'door', label: 'Severn door', run: () => I.toggleSevernDoor && I.toggleSevernDoor() },
       { id: 'parcel', label: 'parcel', run: () => I.cycleParcelHandoff && I.cycleParcelHandoff() }, { id: 'run', label: 'run', on: !!K.shift, run: () => { K.shift = !K.shift; } }],
     atlas: () => isl ? { mx: (isl.center[0] - isl.size[0] / 2) * 1000 + S.px, mz: (isl.center[1] - isl.size[1] / 2) * 1000 + S.pz } : null });

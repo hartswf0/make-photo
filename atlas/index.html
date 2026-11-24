@@ -116,8 +116,10 @@ function tap(x, y) { let best = null, bd = 26;
       { x: m[0], z: m[1], kind: h.kind, label: h.label }, { x: m[0] - Math.sin(a) * 40, z: m[1] - Math.cos(a) * 40, yaw: a }, null); return; }
   bd = 26;
   for (const il of A.islands) for (const p of il.places) if (p.hit && V.s > 30) { const d = Math.hypot(x - p.hit[0], y - p.hit[1]); if (d < bd) { bd = d; best = { il, p }; } }
-  if (!best) for (const il of A.islands) { const c = P(il.center[0], il.center[1]), hw = il.size[0] * V.s / 2, hh = il.size[1] * V.s / 2; if (Math.abs(x - c[0]) < Math.max(hw, 18) && Math.abs(y - c[1]) < Math.max(hh, 18)) { best = { il }; break; } }
-  if (!best) { card.classList.remove('on'); return; }
+  if (!best) for (const il of A.islands) { const c = P(il.center[0], il.center[1]), hw = il.size[0] * V.s / 2, hh = il.size[1] * V.s / 2; if (hw < W * .3 && Math.abs(x - c[0]) < Math.max(hw, 18) && Math.abs(y - c[1]) < Math.max(hh, 18)) { best = { il }; break; } }
+  if (!best) { const kx = V.x + (x - W / 2) / V.s, ky = V.y + (y - H / 2) / V.s; if (kx < 0 || ky < 0 || kx > A.width_km || ky > A.height_km) { card.classList.remove('on'); return; }   /* any spot on the map: go there */
+    const il = A.islands.find(i => Math.abs(kx - i.center[0]) < i.size[0] / 2 && Math.abs(ky - i.center[1]) < i.size[1] / 2), m = [kx * 1000, ky * 1000];
+    setCard(`${kx.toFixed(1)}, ${ky.toFixed(1)} km${away([kx, ky])}`, il ? `Here on ${title(il.name)}` : 'Here, on the open sea', il ? il.note : 'You arrive in the water; swim, or call the boat from the menu.', { x: m[0], z: m[1], kind: 'door', label: il ? title(il.name) : 'the sea' }, { x: m[0], z: m[1] }, null); return; }
   const { il, p } = best, at = p ? p.at : (il.places[0] ? il.places[0].at : il.center), m = [at[0] * 1000, at[1] * 1000];
   setCard(p ? `${il.name} · ${p.world}${away(at)}` : il.level, p ? p.name : il.name, il.note, { x: m[0], z: m[1], kind: 'door', label: p ? p.name : title(il.name) }, { x: m[0], z: m[1] }, (p && p.entry) || il.entry);
   if (!p) { follow = false; meBtn(); V.x = il.center[0]; V.y = il.center[1]; V.s = Math.min(W / il.size[0], (H - 170) / il.size[1]) * .85; draw(); } }

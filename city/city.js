@@ -3177,6 +3177,10 @@ animate();
 
 // Expose clean verification handle
 window.__CITY__ = {
+  THREE,   // the game surface (surface-bridge.js) projects with it, steers through keys and looks through the suite
+  keys,
+  camera,
+  renderer,
   ledger,
   player,
   residents,
