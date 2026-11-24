@@ -273,3 +273,46 @@ Cast stand-ins: the city's Bekele, Hiwot and Selam use the shared cast's `ferry_
 The city's build is heavy: about 12 s in the software-GL test browser. The squall hides it, but its `build_ms` budget of 2,500 is not yet met there.
 
 Looks (look@1), how each world keeps its colour, and the house standard are documented in `atlas/LOOKS.md`.
+
+---
+
+## 6. Liquids: anything a level is made of, carried as itself
+
+A jerry can holds any liquid. Nothing a level is made of should be re-imitated by the trough. Its shaders, textures, UVs, uniforms and meshes travel in the can and run as they do in the level.
+
+The trough's job is only to give each liquid the **frame** it expects: coordinates, scale, datum, sun and time.
+
+| Liquid | Packet | What the can ships | What the trough gives it |
+|---|---|---|---|
+| **Shader / material** | `material@1` in `can.json → materials[]`, with `bind`: `ground`, `water`, `sky` or `props` | A builder from the level's own code, e.g. `EthiopiaHighlandsPack.material` (the pack's `createGeologicalTerrainMaterial`) or `WygwylMaterials.make` | The frame its uniforms need: Ethiopia's shader reads `elevM = y / uVertScale + uDatumElevM`, so the trough sets `uVertScale = 1` and this island's **datum** (exported per island by `build_archipelago.py`); `uTime` and `uSunDir` are kept live |
+| **Textures** | Inside the material, procedural (canvas) or image files | `masonryTex` (diffuse, roughness, emissive night windows), `roadTex`, `groundTex` | The host's `maxAnisotropy`: a can owns no renderer, so it is passed in |
+| **UV maps** | On the can's own geometry (`uv` attribute), or a `uv(x, z, y)` function for ground the trough tessellates | Walls on 24 m UVs, roads `(0..1, distance/14)`, ground `(x/W, z/H)`, exactly as `island.js` lays them | `setGround` builds this island's tiles with the can's UV frame instead of the archipelago's |
+| **Vertex paint** | `color(x, z, y)` for trough ground; a `color` attribute on can geometry | The city's paint by height, urban cores and the Black circle | Written into the tile geometry |
+| **Meshes** | In the entry's `root` | Buildings, the Severn, the harbour plane, flora | Placed in the island frame |
+| **Look** | `look@1` (`atlas/LOOKS.md`) | Atmosphere, grade, named looks | Timecycle and grade pass |
+| Bodies, places, sounds, rules | `kit@1`, `legos.json`, emitters | See sections 3 to 5 | Trough services |
+
+**One copy of each liquid.** The level page and the can draw with the same code, so they cannot drift apart. `city/island/materials.js` now holds the city's textures, harbour shader and materials. Both `island.js` (the level) and `wygwyl-can.js` (the can) use it. The level renders as before: mean pixel difference 0.35 out of 255, against a capture of the original.
+
+**`setGround(island, {material, uv, color})`** is the trough service behind the `ground` binding. While a can is poured, that island's streamed tiles are rebuilt with the can's own material, UV frame and paint. On drain they revert to the trough's ground.
+
+**Measured.** These are the trough frames with **Its own colour** selected, before and after the levels' own materials poured in. Distance is from the level's own frame, as in `LOOKS.md`.
+
+| World | Before | After |
+|---|---|---|
+| Simien (Ethiopia's geological shader on trough ground) | 0.80 | **0.74** |
+| Gheralta (the same shader; its sandstone strata are back) | 0.90 | **0.55** |
+| WYGWYL (facade texture with lit night windows, asphalt, harbour shader, wet-stone ground) | 0.84 | **0.64** |
+
+Contrast now matches the levels almost exactly: Simien 0.19 against 0.20, Gheralta 0.20 against 0.20. The sheet is `atlas/looks/evidence-own-materials.jpg`.
+
+**Not yet poured as liquids:**
+- Ethiopia's sky dome and cloud sea, its water shader and its talus boulders;
+- the city's instanced tree species and street kit (`buildTreeSpeciesGeometries`);
+- every MONOLITH, MONOLITH-3 and Donkey Water shader. Those levels are not cans yet.
+
+**To pour a new liquid:**
+1. Lift the level's builder into a module both the page and the can load.
+2. Name the uniforms whose frame differs.
+3. Add a `materials[]` entry with its `bind`.
+4. Measure the level against the trough with `atlas/looks/lookstats.py`.

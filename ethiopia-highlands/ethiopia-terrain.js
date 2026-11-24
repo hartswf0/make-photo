@@ -1635,7 +1635,15 @@
     BIOMES: BIOME_DEFS,
     resolveRegionId,
     classifyBiome,
-    create
+    create,
+    // material@1: the pack's own geological terrain shader, for a host that brings its own ground (the trough).
+    // y is metres above the host's datum: elevM = y / uVertScale + uDatumElevM, so a true-scale host sets uVertScale 1 and its own datum.
+    material(THREE, o = {}) {
+      const u = { uRegionStyle: { value: REGION_STYLE_INDEX[o.regionStyle] ?? 0 }, uDatumElevM: { value: o.datumElevM ?? 0 }, uVertScale: { value: o.verticalScale ?? 1 },
+        uMinElevM: { value: o.minElevM ?? 0 }, uMaxElevM: { value: o.maxElevM ?? 4000 }, uCloudElevY: { value: o.cloudElevY ?? -9999 }, uWaterElevY: { value: -9999 }, uHasWater: { value: 0 },
+        uMist: { value: o.mist ?? 0.32 }, uGoldenHour: { value: o.goldenHour ?? 0.36 }, uTime: { value: 0 }, uSunDir: { value: o.sunDir || new THREE.Vector3(0.52, 0.56, 0.64).normalize() } };
+      return { material: createGeologicalTerrainMaterial(THREE, u, false), uniforms: u };
+    }
   };
 
   root.EthiopiaHighlandsPack = EthiopiaHighlandsPack;

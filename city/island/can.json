@@ -5,10 +5,13 @@
  "version": "2026.11.24",
  "page": "./index.html",
  "entry": {
-  "script": "./wygwyl-can.js?v=1",
+  "script": "./wygwyl-can.js?v=2",
   "global": "WygwylCan",
   "call": "create",
-  "adapter": "ground@1"
+  "adapter": "ground@1",
+  "needs": [
+   "./materials.js?v=1"
+  ]
  },
  "ground": "trough",
  "frame": {
@@ -39,5 +42,22 @@
   "voice"
  ],
  "legos": "./legos.json",
- "look": "./look.json"
+ "look": "./look.json",
+ "materials": [
+  {
+   "bind": "ground",
+   "from": "entry",
+   "note": "wet stone and asphalt ground texture + roughness, island-local UV x/W z/H, vertex paint by height and urban cores"
+  },
+  {
+   "bind": "water",
+   "from": "entry",
+   "note": "the harbour water ShaderMaterial (island.js), as a mesh in the can"
+  },
+  {
+   "bind": "props",
+   "from": "entry",
+   "note": "masonry facade map + emissive night windows on 24 m UVs, roofs, asphalt road texture on 14 m UVs"
+  }
+ ]
 }

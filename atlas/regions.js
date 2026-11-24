@@ -81,7 +81,8 @@
     // ground@1: the can is laid out in metres from its island's corner, at true scale, on the trough's ground; it returns blockers, rooms and landmarks
     async 'ground@1'(ctx, isl, can) { const ox = isl.center[0] - isl.size[0] / 2, oz = isl.center[1] - isl.size[1] / 2, Wp = p => [p[0] + ox, p[1] + oz];
       await ctx.ensureGround(ox, oz, ox + isl.size[0], oz + isl.size[1]);
-      const live = await window[can.entry.global][can.entry.call](ctx.T, { H: (x, z) => ctx.groundAt(ox + x, oz + z) }); live.root.position.set(ox, 0, oz); ctx.scene.add(live.root);
+      const live = await window[can.entry.global][can.entry.call](ctx.T, { H: (x, z) => ctx.groundAt(ox + x, oz + z), sunDir: ctx.sunDir, maxAnisotropy: ctx.maxAnisotropy }); live.root.position.set(ox, 0, oz); ctx.scene.add(live.root);
+      const gm = live.materials && live.materials.ground, gOff = gm && ctx.setGround ? ctx.setGround(isl.id, { material: gm.material, uv: gm.uv && ((x, z, y) => gm.uv(x - ox, z - oz, y)), color: gm.color && ((x, z, y) => gm.color(x - ox, z - oz, y)) }) : null;
       const regs = []; if (ctx.addBlockers) { if (live.blockers) regs.push(ctx.addBlockers(live.blockers.map(pl => pl.map(Wp)))); if (live.walls) regs.push(ctx.addBlockers(live.walls.map(pl => pl.map(Wp)))); }
       let doorOff = null; const door = () => { if (!live.door || !ctx.addBlockers) return; if (!live.doorOpen && !doorOff) doorOff = ctx.addBlockers([live.door.map(Wp)]); if (live.doorOpen && doorOff) { doorOff(); doorOff = null; } }; door();
       if (live.room && ctx.addInterior) regs.push(ctx.addInterior({ id: live.room.id, pts: live.room.pts.map(Wp) }));
@@ -89,7 +90,7 @@
       return { marks, live,
         apply(v) { if ('door' in v) { live.setDoor(v.door === 'open'); door(); } if (v.flood) live.setFlood(true); },
         toggle() { live.setDoor(!live.doorOpen); door(); return live.doorOpen; },
-        update(dt) { live.update(dt); }, dispose() { for (const o of regs) o(); if (doorOff) doorOff(); ctx.scene.remove(live.root); live.dispose(); } }; },
+        update(dt, t) { live.update(dt, t); }, dispose() { if (gOff) gOff(); for (const o of regs) o(); if (doorOff) doorOff(); ctx.scene.remove(live.root); live.dispose(); } }; },
     // terrain@1: the can builds on the trough's ground at true scale. Its own coordinates were squeezed into frame.span; landmarks spread back out.
     async 'terrain@1'(ctx, isl, can, site) {
       const man = await json(abs(can.url, can.frame.manifest)), r = man.regions[site.region]; if (!r) throw new Error('no region ' + site.region);
@@ -106,14 +107,20 @@
         sampleRealElevM: real, sampleBiome: (x, z) => { const e = real(x, z); return e >= 3200 ? 'wurch' : e >= 2300 ? 'dega' : e >= 1500 ? 'woina_dega' : 'kolla'; },
         sampleUpdraft: (x, z) => Math.min(8.5, terrain.sampleSlope(x, z) * 3.8) };
       const make = window[can.entry.global][can.entry.call], live = make(ctx.T, terrain); live.root.position.set(cx, 0, cz); ctx.scene.add(live.root);
+      const mats = [], offs = [];   // material@1: the level's own shaders and textures, given the trough's frame (true scale, this island's datum)
+      for (const pk of can.materials || []) { if (!pk.script || !ctx.setGround) continue; await script(abs(can.url, pk.script)); const f = dig(pk.make); if (typeof f !== 'function') continue;
+        const out = f.call(dig(pk.make.split('.').slice(0, -1).join('.')), ctx.T, { regionStyle: r.regionStyle, minElevM: r.minElevM, maxElevM: r.maxElevM, datumElevM: isl.datum ?? (r.minElevM - 30), verticalScale: 1,
+          cloudElevY: typeof r.cloudSeaElevM === 'number' && isl.datum != null ? r.cloudSeaElevM - isl.datum : -9999, sunDir: ctx.sunDir ? ctx.sunDir() : undefined }), m = out && out.material ? out : { material: out };
+        mats.push(m); if (pk.bind === 'ground') offs.push(ctx.setGround(isl.id, { material: m.material })); }
       const lp = { x: 0, y: 0, z: 0 }, ld = { x: 0, y: 0, z: 0 }, at = (o, p) => { o.x = p.x - cx; o.y = p.y; o.z = p.z - cz; return o; };
       const marks = {}; for (const [k, v] of Object.entries(live.landmarks || {})) if (v && Number.isFinite(v.x)) marks[k] = { x: v.x + cx, z: v.z + cz };
-      return { marks, update(dt, t, pl, dk) { live.update(dt, t, { playerPos: pl && at(lp, pl), donkeyPos: dk && at(ld, dk) }); }, dispose() { ctx.scene.remove(live.root); live.dispose(); } };
+      return { marks, update(dt, t, pl, dk) { live.update(dt, t, { playerPos: pl && at(lp, pl), donkeyPos: dk && at(ld, dk) }); for (const m of mats) if (m.uniforms) { if (m.uniforms.uTime) m.uniforms.uTime.value = t; if (m.uniforms.uSunDir && ctx.sunDir) m.uniforms.uSunDir.value.copy(ctx.sunDir()); } },
+        dispose() { for (const o of offs) o(); ctx.scene.remove(live.root); live.dispose(); } };
     } };
 
   // ---------- pour and drain ----------
   async function pour(ctx, isl, can, site) {
-    await script(abs(can.url, can.entry.script)); const legos = can.legos ? await json(abs(can.url, can.legos)) : { L: [] }; can.legosUrl = can.legos ? abs(can.url, can.legos) : can.url;
+    for (const n of can.entry.needs || []) await script(abs(can.url, n)); await script(abs(can.url, can.entry.script)); const legos = can.legos ? await json(abs(can.url, can.legos)) : { L: [] }; can.legosUrl = can.legos ? abs(can.url, can.legos) : can.url;
     const clock = LEDGER.tick(), mem = LEDGER.get(can.id, isl.id);
     if (mem.seen) for (const k in mem.bias) mem.bias[k] = Math.max(0, mem.bias[k] - .08 * Math.max(0, clock - mem.seen - 1));   // recharge: every visit elsewhere refills the aquifer a little
     mem.visits++; mem.seen = clock;

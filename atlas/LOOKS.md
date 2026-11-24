@@ -86,6 +86,8 @@ Distance is a colour-fingerprint difference from the level, where 0 means the sa
 | Grand Teton (MONOLITH-3 / Donkey Water) | 2.34 | **1.22** |
 | Half Dome (MONOLITH) | 1.59 | **0.71** |
 
+With the levels' own materials poured (JERRYCAN.md §6): Simien **0.74**, Gheralta **0.55**, WYGWYL **0.64**.
+
 **Sheets in `atlas/looks/`:**
 - `evidence-colour.jpg`: level, before and after, with palettes.
 - `named-looks.jpg`: 19 named looks working in the world.

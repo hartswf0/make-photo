@@ -16,8 +16,9 @@ def noise(h, w, scale):                                   # smooth fractal noise
         out += amp * np.asarray(Image.fromarray(small).resize((w, h), Image.BICUBIC)); tot += amp; amp *= .5
     out /= tot; return (out - out.min()) / max(1e-6, out.max() - out.min())
 def smooth(e): e = np.clip(e, 0, 1); return e * e * (3 - 2 * e)
+DATUM = [None]
 def islandize(h, fall=.3, depth=None, keep=30.0):        # metres above a local sea; the outline is a warped rounded shape the terrain then carves
-    h = h.astype(np.float64); base = np.percentile(h, 3); rel = h - base; H, W = rel.shape
+    h = h.astype(np.float64); base = np.percentile(h, 3); DATUM[0] = float(base - keep); rel = h - base; H, W = rel.shape   # real elevation = trough height + datum, inland
     yy, xx = np.mgrid[0:H, 0:W]; u = (xx / (W - 1)) * 2 - 1; v = (yy / (H - 1)) * 2 - 1
     r = (np.abs(u) ** 3.2 + np.abs(v) ** 3.2) ** (1 / 3.2)                                  # 0 centre, 1 at the tile edge, rounded corners
     rn = r + (noise(H, W, 2) - .5) * .5 + (noise(H, W, 7) - .5) * .12                        # capes and bays
@@ -25,6 +26,7 @@ def islandize(h, fall=.3, depth=None, keep=30.0):        # metres above a local 
     return (rel + keep) * f - (1 - f) * 380
 I = []
 def island(id_, name, h, km_w, km_h, cx, cy, level, entry, places=(), roads=(), local=None, **kw):
+    kw.setdefault('datum', DATUM[0]); DATUM[0] = None
     I.append(dict(id=id_, name=name, h=h, w=km_w, hgt=km_h, cx=cx, cy=cy, level=level, entry=entry, places=list(places), roads=list(roads), local=local, **kw))
 # ---------- Grand Teton (MONOLITH-3, zones, Donkey Water west) ----------
 s3 = (R / 'MONOLITH-3.html').read_text(encoding='utf-8')
@@ -248,6 +250,6 @@ for b in bridges:
 places3 = [dict(name=p_['name'], island=i['id'], world=p_['world'], entry=p_['entry'], x=round(p_['at'][0] * 1000, 1), z=round(p_['at'][1] * 1000, 1)) for i in out['islands'] for p_ in i['places']]
 LOW = 10; lowh = Hmap[::LOW, ::LOW]; (OW / 'low.bin').write_bytes(np.clip(np.round((lowh + 1000) * 10), 0, 65535).astype('<u2').tobytes())
 json.dump(dict(ferries=ferries, tile=T, mpp=MPP, tiles=tiles, low=dict(step=LOW * MPP, w=lowh.shape[1], h=lowh.shape[0]), width_m=PW * MPP, height_m=PH * MPP, encode='(h+1000)*10 uint16 LE, rows south-increasing z', bridges=bridges, roads=roads3, places=places3,
-               islands=[dict(id=i['id'], name=i['name'], level=i['level'], entry=i['entry'], center=[i['center'][0] * 1000, i['center'][1] * 1000], size=[i['size'][0] * 1000, i['size'][1] * 1000], frame=i['frame']) for i in out['islands']],
+               islands=[dict(id=i['id'], name=i['name'], level=i['level'], entry=i['entry'], center=[i['center'][0] * 1000, i['center'][1] * 1000], size=[i['size'][0] * 1000, i['size'][1] * 1000], frame=i['frame'], datum=ID[i['id']].get('datum')) for i in out['islands']],
                texture='./archipelago.jpg'), open(OW / 'world.json', 'w'), separators=(',', ':'))
 print('ends', [(b['a'][:6], b['b'][:6], b['pts'][0][1], b['pts'][-1][1]) for b in bridges]); print('ferries', [(f['a'][:6], f['b'][:6], f['length_m']) for f in ferries]); print('overworld', len(tiles), 'tiles', len(bridges), 'bridges', [(b['a'][:6], b['b'][:6], b['length_m']) for b in bridges], len(roads3), 'roads')

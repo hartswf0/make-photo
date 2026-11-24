@@ -31,7 +31,7 @@ canvas{display:block;touch-action:none}
 <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
 <script src="../abyssinian-highlands/habitus-kits.js"></script>
 <script src="../donkey/vehicles.js?v=1"></script>
-<script src="./regions.js?v=5"></script>
+<script src="./regions.js?v=7"></script>
 <script>
 (async () => {
 const T = THREE, QS = new URLSearchParams(location.search), $ = id => document.getElementById(id);
@@ -152,12 +152,18 @@ const groundMat = new T.MeshLambertMaterial({ map: tex });
       c = mix(c, SN, smoothstep(GP.x, GP.x + 450.0, h + g3 * 120.0) * (1.0 - smoothstep(.45, .7, sl)));                         // snow on the high ground
       diffuseColor.rgb = c * mix(1.0, g1 * .55 + g2 * .45, gd * .5);`); }; }
 const W = OW.width_m, H = OW.height_m;
-function gridMesh(cols, rows, x0, z0, step, hAt, mat) {
-  const pos = new Float32Array(cols * rows * 3), uv = new Float32Array(cols * rows * 2), idx = [];
-  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) { const k = j * cols + i, x = x0 + i * step, z = z0 + j * step; pos[k * 3] = x; pos[k * 3 + 1] = hAt(i, j); pos[k * 3 + 2] = z; uv[k * 2] = x / W; uv[k * 2 + 1] = 1 - z / H; }
+function gridMesh(cols, rows, x0, z0, step, hAt, mat, ov) {   // ov: a can's own ground (material@1) brings its UV frame and vertex paint
+  const pos = new Float32Array(cols * rows * 3), uv = new Float32Array(cols * rows * 2), idx = [], col = ov && ov.color ? new Float32Array(cols * rows * 3) : null;
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) { const k = j * cols + i, x = x0 + i * step, z = z0 + j * step, y = hAt(i, j); pos[k * 3] = x; pos[k * 3 + 1] = y; pos[k * 3 + 2] = z;
+    if (ov && ov.uv) { const q = ov.uv(x, z, y); uv[k * 2] = q[0]; uv[k * 2 + 1] = q[1]; } else { uv[k * 2] = x / W; uv[k * 2 + 1] = 1 - z / H; }
+    if (col) { const c = ov.color(x, z, y); col[k * 3] = c[0]; col[k * 3 + 1] = c[1]; col[k * 3 + 2] = c[2]; } }
   for (let j = 0; j < rows - 1; j++) for (let i = 0; i < cols - 1; i++) { const a = j * cols + i; idx.push(a, a + cols, a + 1, a + 1, a + cols, a + cols + 1); }
-  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals(); return new T.Mesh(g, mat);
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2)); if (col) g.setAttribute('color', new T.BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals(); return new T.Mesh(g, mat);
 }
+// a can's own ground: its material, UV frame and paint replace the trough's on its island's tiles while it is poured
+const GROUND_OVR = new Map(), tileIsland = key => { const [ti, tj] = key.split('_').map(Number); return islandAt((ti + .5) * TS, (tj + .5) * TS); };
+function retile(id) { for (const [k, m] of tiles) if (tileIsland(k) === id) { scene.remove(m); m.geometry.dispose(); tiles.delete(k); } }
+function setGround(id, ov) { GROUND_OVR.set(id, ov); retile(id); return () => { if (GROUND_OVR.get(id) === ov) { GROUND_OVR.delete(id); retile(id); } }; }
 // the whole archipelago, coarse, so far islands stand on the horizon
 const LOWB = new Uint16Array(await (await fetch('./ow/low.bin?v=2')).arrayBuffer()), lowAt = (x, z) => { const L = OW.low, u = Math.max(0, Math.min(L.w - 1.001, x / L.step)), v = Math.max(0, Math.min(L.h - 1.001, z / L.step)), i = Math.floor(u), j = Math.floor(v), a = u - i, b = v - j, H = (i, j) => LOWB[j * L.w + i] / 10 - 1000;
   return H(i, j) * (1 - a) * (1 - b) + H(i + 1, j) * a * (1 - b) + H(i, j + 1) * (1 - a) * b + H(i + 1, j + 1) * a * b; };
@@ -184,7 +190,7 @@ function forest(key, mesh) { const isl = islandAt(...key.split('_').map((v, k) =
   pts.forEach(([x, y, z, sc, r, c], k) => { const s = sc * (kind === 'conifer' ? 6 : 4.2); Q.setFromAxisAngle(Y, r); S.set(s, s * (kind === 'conifer' ? 1 + c * .5 : 1), s); V.set(x, y, z); M.compose(V, Q, S); crown.setMatrixAt(k, M); trunk.setMatrixAt(k, M); crown.setColorAt(k, C.set(cols[Math.floor(c * 3)])); });
   crown.instanceMatrix.needsUpdate = trunk.instanceMatrix.needsUpdate = true; if (crown.instanceColor) crown.instanceColor.needsUpdate = true; mesh.add(crown, trunk); }
 function buildTile(key, stride) { const [ti, tj] = key.split('_').map(Number), f = data.get(key), n = OW.tile + 1, c = Math.floor((n - 1) / stride) + 1;
-  const m = gridMesh(c, c, ti * TS, tj * TS, OW.mpp * stride, (i, j) => f[(j * stride) * n + i * stride], groundMat); m.userData.stride = stride; if (stride <= 2) forest(key, m); return m; }
+  const ov = GROUND_OVR.get(tileIsland(key)), m = gridMesh(c, c, ti * TS, tj * TS, OW.mpp * stride, (i, j) => f[(j * stride) * n + i * stride], ov ? ov.material : groundMat, ov); m.userData.stride = stride; if (stride <= 2 && !ov) forest(key, m); return m; }
 function stream() { const ahead = P.mode === 'ferry' ? 0 : Math.min(9000, Math.abs(P.speed) * 8), cx = P.x + Math.sin(P.yaw) * ahead, cz = P.z + Math.cos(P.yaw) * ahead; const pi = Math.floor(cx / TS), pj = Math.floor(cz / TS), R = P.mode === 'fly' ? 5 : 4, want = new Map();
   for (let dj = -R; dj <= R; dj++) for (let di = -R; di <= R; di++) { const key = (pi + di) + '_' + (pj + dj); if (!have.has(key)) continue; const d = Math.max(Math.abs(di), Math.abs(dj)); want.set(key, d <= 1 ? 1 : d <= 2 ? 2 : 5); }
   { const me = Math.floor(P.x / TS) + '_' + Math.floor(P.z / TS); if (have.has(me) && !want.has(me)) want.set(me, 1); }      // loading ahead never drops the ground you stand on
@@ -220,8 +226,8 @@ function hearAndHouse() { INSIDE = null; for (const r of ROOMS) if (inPoly(r.pts
   if (!AUD.ctx) return; const c = AUD.ctx, L = c.listener, f = new T.Vector3(); camera.getWorldDirection(f);
   if (L.positionX) { L.positionX.value = camera.position.x; L.positionY.value = camera.position.y; L.positionZ.value = camera.position.z; L.forwardX.value = f.x; L.forwardY.value = f.y; L.forwardZ.value = f.z; L.upX.value = 0; L.upY.value = 1; L.upZ.value = 0; }
   for (const e of AUD.list) if (e.g) { const d = Math.hypot(e.x - P.x, e.z - P.z), want = d > e.radius * 1.5 ? 0 : e.gain * (e.room ? (INSIDE === e.room ? 1 : 0) : INSIDE ? .18 : 1); e.g.gain.setTargetAtTime(want, c.currentTime, .4); } }
-const REG = window.DWRegions ? window.DWRegions.create({ T, scene, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, shelf: './cans.json?v=3',
-  addSource: o => reg(CAN_SOURCES, o), addWeather: o => reg(CAN_WEATHER, o), addBlockers, addInterior: o => reg(ROOMS, o), addSwitch: o => reg(SWITCHES, o), addPerson: o => reg(PEOPLE, o), addSound, say,
+const REG = window.DWRegions ? window.DWRegions.create({ T, scene, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, shelf: './cans.json?v=4',
+  addSource: o => reg(CAN_SOURCES, o), addWeather: o => reg(CAN_WEATHER, o), addBlockers, setGround, sunDir: () => sun.position.clone().normalize(), maxAnisotropy: renderer.capabilities.getMaxAnisotropy(), addInterior: o => reg(ROOMS, o), addSwitch: o => reg(SWITCHES, o), addPerson: o => reg(PEOPLE, o), addSound, say,
   motion: { add: (id, ch) => motion && motion.registerActor(id, ch, { defaultClip: 'idle', blend: 1 }), loco: (id, o) => motion && motion.setActorLocomotion(id, o), drop: id => motion && motion.unregisterActor && motion.unregisterActor(id) }, onShelf: ids => { for (const id of ids) KIND[id] = null; },
   onStart: () => { STORM.pending++; STORM.want = 1; STORM.t0 = STORM.t0 || performance.now(); },
   onMount: (isl, r, ms) => { MOUNTS.push({ id: isl.id, ms: Math.round(ms), at: [Math.round(P.x), Math.round(P.z)] }); STORM.pending = Math.max(0, STORM.pending - 1); STORM.until = Math.max((STORM.t0 || 0) + 4000, performance.now() + 1500); } }) : null;

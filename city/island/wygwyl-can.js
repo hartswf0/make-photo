@@ -11,6 +11,7 @@
     const get = f => fetch(BASE + 'data/' + f + '.json').then(r => r.json());
     const [blds, roads, trees, meta, sets] = await Promise.all(['buildings', 'roads', 'trees', 'meta', 'sets'].map(get));
     const root = new T.Group(); root.name = 'WYGWYL';
+    const WM = window.WygwylMaterials.make(T, { maxAnisotropy: g.maxAnisotropy });   // the city's own textures and shaders (./materials.js), the same ones the level page draws with
     const sev = sets.sets.find(s => s.num === '01'), SX = sev.x, SZ = sev.y;
     // ---------- buildings: walls and flat roofs, merged per kilometre cell so the trough can cull them; footprints become blockers ----------
     const cells = new Map(), blockers = [], col = new T.Color();
@@ -19,20 +20,23 @@
       let cx = 0, cz = 0; for (const p of pts) { cx += p[0]; cz += p[1]; } cx /= pts.length; cz /= pts.length; if (Math.hypot(cx - SX, cz - SZ) < 34) continue;   // the Severn is built by hand below
       let base = Infinity; for (const p of pts) base = Math.min(base, g.H(p[0], p[1])); if (base < .6) continue;
       let area = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; area += p[0] * q[1] - q[0] * p[1]; } if (area < 0) pts.reverse();
-      const key = Math.floor(cx / 1200) + '_' + Math.floor(cz / 1200); let c = cells.get(key); if (!c) cells.set(key, c = { P: [], C: [] });
+      const key = Math.floor(cx / 1200) + '_' + Math.floor(cz / 1200); let c = cells.get(key); if (!c) cells.set(key, c = { P: [], C: [], UV: [], RP: [], RC: [] });
       col.set(PAL[b[1] % 4]).offsetHSL(((bi % 17) - 8) * .004, 0, ((bi % 11) - 5) * .014); const top = base + b[0], bot = base - 2, rc = col.clone().multiplyScalar(.62);
-      const tri = (a, b_, c_, k) => { c.P.push(...a, ...b_, ...c_); for (let n = 0; n < 3; n++) c.C.push(k.r, k.g, k.b); };
-      for (let i = 0; i < pts.length; i++) { const [x0, z0] = pts[i], [x1, z1] = pts[(i + 1) % pts.length]; tri([x0, bot, z0], [x1, top, z1], [x1, bot, z1], col); tri([x0, bot, z0], [x0, top, z0], [x1, top, z1], col); }
-      const tris = T.ShapeUtils.triangulateShape(pts.map(p => new T.Vector2(p[0], p[1])), []); for (const [a, b_, c_] of tris) tri([pts[a][0], top, pts[a][1]], [pts[c_][0], top, pts[c_][1]], [pts[b_][0], top, pts[b_][1]], rc);
+      const wall = (a, b_, c_, uv) => { c.P.push(...a, ...b_, ...c_); c.UV.push(...uv); for (let n = 0; n < 3; n++) c.C.push(col.r, col.g, col.b); };
+      const vTop = b[0] / 24; let uAcc = 0;
+      for (let i = 0; i < pts.length; i++) { const [x0, z0] = pts[i], [x1, z1] = pts[(i + 1) % pts.length], u0 = uAcc / 24, u1 = (uAcc += Math.hypot(x1 - x0, z1 - z0)) / 24;
+        wall([x0, bot, z0], [x1, top, z1], [x1, bot, z1], [u0, 0, u1, vTop, u1, 0]); wall([x0, bot, z0], [x0, top, z0], [x1, top, z1], [u0, 0, u0, vTop, u1, vTop]); }
+      const tris = T.ShapeUtils.triangulateShape(pts.map(p => new T.Vector2(p[0], p[1])), []); for (const [a, b_, c_] of tris) { c.RP.push(pts[a][0], top, pts[a][1], pts[c_][0], top, pts[c_][1], pts[b_][0], top, pts[b_][1]); for (let n = 0; n < 3; n++) c.RC.push(rc.r, rc.g, rc.b); }
       blockers.push(pts); }
-    const wallMat = new T.MeshLambertMaterial({ vertexColors: true });
-    for (const c of cells.values()) { const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(c.P, 3)); geo.setAttribute('color', new T.Float32BufferAttribute(c.C, 3)); geo.computeVertexNormals(); geo.computeBoundingSphere(); root.add(new T.Mesh(geo, wallMat)); }
+    const wallMat = WM.wallMaterial(), roofMat = WM.roofMaterial();
+    for (const c of cells.values()) { const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(c.P, 3)); geo.setAttribute('uv', new T.Float32BufferAttribute(c.UV, 2)); geo.setAttribute('color', new T.Float32BufferAttribute(c.C, 3)); geo.computeVertexNormals(); geo.computeBoundingSphere(); root.add(new T.Mesh(geo, wallMat));
+      const rg = new T.BufferGeometry(); rg.setAttribute('position', new T.Float32BufferAttribute(c.RP, 3)); rg.setAttribute('color', new T.Float32BufferAttribute(c.RC, 3)); rg.computeVertexNormals(); root.add(new T.Mesh(rg, roofMat)); }
     // ---------- streets: flat asphalt ribbons laid on the ground ----------
-    { const P = [], idx = []; const lay = (pts, w) => { const s = []; for (let i = 0; i < pts.length - 1; i++) { const [ax, az] = pts[i], [bx, bz] = pts[i + 1], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 18)); for (let k = 0; k < n; k++) s.push([ax + (bx - ax) * k / n, az + (bz - az) * k / n]); } s.push(pts[pts.length - 1]); if (s.length < 2) return;
-        const b0 = P.length / 3; s.forEach((p, k) => { const a = s[Math.max(0, k - 1)], b = s[Math.min(s.length - 1, k + 1)], dx = b[1] - a[1], dz = -(b[0] - a[0]), L = Math.hypot(dx, dz) || 1, ox = dx / L * w / 2, oz = dz / L * w / 2, y = g.H(p[0], p[1]) + .12; P.push(p[0] + ox, y, p[1] + oz, p[0] - ox, y, p[1] - oz); if (k) { const q = b0 + (k - 1) * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } }); };
+    { const P = [], UV = [], idx = []; const lay = (pts, w) => { const s = []; for (let i = 0; i < pts.length - 1; i++) { const [ax, az] = pts[i], [bx, bz] = pts[i + 1], n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / 18)); for (let k = 0; k < n; k++) s.push([ax + (bx - ax) * k / n, az + (bz - az) * k / n]); } s.push(pts[pts.length - 1]); if (s.length < 2) return;
+        const b0 = P.length / 3; let dist = 0; s.forEach((p, k) => { if (k) dist += Math.hypot(p[0] - s[k - 1][0], p[1] - s[k - 1][1]); UV.push(0, dist / 14, 1, dist / 14); const a = s[Math.max(0, k - 1)], b = s[Math.min(s.length - 1, k + 1)], dx = b[1] - a[1], dz = -(b[0] - a[0]), L = Math.hypot(dx, dz) || 1, ox = dx / L * w / 2, oz = dz / L * w / 2, y = g.H(p[0], p[1]) + .12; P.push(p[0] + ox, y, p[1] + oz, p[0] - ox, y, p[1] - oz); if (k) { const q = b0 + (k - 1) * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } }); };
       for (const s of roads.streets) if (s.pts && s.pts.length > 1) lay(s.pts, Math.min(14, s.w || 7)); for (const h of roads.highways) if (h.pts) lay(h.pts, 12);
-      const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(P, 3)); geo.setIndex(idx); geo.computeVertexNormals();
-      root.add(new T.Mesh(geo, new T.MeshLambertMaterial({ color: '#3b3d40', side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 }))); }
+      const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(P, 3)); geo.setAttribute('uv', new T.Float32BufferAttribute(UV, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+      const rm = WM.roadMaterial(); rm.side = T.DoubleSide; root.add(new T.Mesh(geo, rm)); }
     // ---------- street trees ----------
     { const ok = trees.filter(t => g.H(t[0], t[1]) > .8), crown = new T.SphereGeometry(1, 7, 5), trunk = new T.CylinderGeometry(.1, .16, 1, 5); crown.translate(0, 1.6, 0); trunk.translate(0, .5, 0);
       const C = new T.InstancedMesh(crown, new T.MeshLambertMaterial({ color: '#4d6b3a' }), ok.length), K = new T.InstancedMesh(trunk, new T.MeshLambertMaterial({ color: '#4a3826' }), ok.length), M = new T.Matrix4(), Q = new T.Quaternion(), S = new T.Vector3(), V = new T.Vector3();
@@ -42,7 +46,7 @@
     const face = near ? Math.atan2(near[0] - SX, near[1] - SZ) : 0, fx = Math.sin(face), fz = Math.cos(face), rx = Math.cos(face), rz = -Math.sin(face);
     const W2 = 10, D2 = 6, HT = 9, GAP = .9, y0 = Math.max(g.H(SX, SZ), .6) + .05, at = (u, v) => [SX + rx * u + fx * v, SZ + rz * u + fz * v];
     const sev3 = new T.Group(); sev3.position.set(SX, y0, SZ); sev3.rotation.y = face; root.add(sev3);
-    const brick = new T.MeshLambertMaterial({ color: '#8a4a36' }), trim = new T.MeshLambertMaterial({ color: '#d8d0c0' }), dark = new T.MeshLambertMaterial({ color: '#2a2420' });
+    const brick = new T.MeshStandardMaterial({ map: WM.masonryTex.map, color: '#c99a84', roughness: .8 }), trim = new T.MeshLambertMaterial({ color: '#d8d0c0' }), dark = new T.MeshLambertMaterial({ color: '#2a2420' });
     const box = (w, h, d, x, y, z, m) => { const o = new T.Mesh(new T.BoxGeometry(w, h, d), m); o.position.set(x, y, z); sev3.add(o); return o; };
     box(W2 * 2, HT, .4, 0, HT / 2, -D2, brick); box(.4, HT, D2 * 2, -W2, HT / 2, 0, brick); box(.4, HT, D2 * 2, W2, HT / 2, 0, brick);                       // back and sides
     box(W2 - GAP, HT, .4, -(W2 + GAP) / 2, HT / 2, D2, brick); box(W2 - GAP, HT, .4, (W2 + GAP) / 2, HT / 2, D2, brick); box(GAP * 2, HT - 2.6, .4, 0, 2.6 + (HT - 2.6) / 2, D2, brick);   // front, with a doorway
@@ -59,13 +63,22 @@
     // ---------- the Inner Harbor salt line: the preposterous flood, if chance pours it ----------
     const harbor = meta.regions.flatMap(r => r.cores || []).find(c => c.key === 'inner-harbor');
     let flood = null; const setFlood = on => { if (on && !flood && harbor) { const y = g.H(harbor.x, harbor.y) + 4; flood = new T.Mesh(new T.CircleGeometry(harbor.r * 1.3, 48), new T.MeshPhongMaterial({ color: '#2e6f8e', transparent: true, opacity: .78, shininess: 80 })); flood.rotation.x = -Math.PI / 2; flood.position.set(harbor.x, y, harbor.y); root.add(flood); } else if (!on && flood) { root.remove(flood); flood = null; } };
+    // ---------- the harbour water (island.js's own ShaderMaterial), over the island and its bays ----------
+    const W = meta.W, Hh = meta.H, waterU = { uTime: { value: 0 }, uSunDir: { value: (g.sunDir && g.sunDir()) || new T.Vector3(-.55, .22, -.8).normalize() }, uDeep: { value: new T.Color('#081c36') }, uShallow: { value: new T.Color('#13466e') }, uCyan: { value: new T.Color('#18b4ff') }, uSunCol: { value: new T.Color('#ffbe78') } };
+    const harborSea = new T.Mesh(new T.PlaneGeometry(W * 1.25, Hh * 1.35, 96, 96), WM.harborWaterMaterial(waterU)); harborSea.rotation.x = -Math.PI / 2; harborSea.position.set(W / 2, .06, Hh / 2); harborSea.renderOrder = 1; root.add(harborSea);
+    // ---------- the ground: island.js's wet stone texture, its island UV (x/W, z/H) and its vertex paint (height, urban cores, the Black circle) ----------
+    const cores = meta.regions.flatMap(r => r.cores || []), black = sets.sets.find(s => s.num === '14'), cU = new T.Color('#6b7380'), cS = new T.Color('#b6a483'), cG = new T.Color('#4c6348'), cHi = new T.Color('#7c715e'), cSea = new T.Color('#0c233c'), cB = new T.Color('#090d14'), tc = new T.Color();
+    const urban = (x, z) => { let b = 0; for (const c of cores) { const d = Math.hypot(x - c.x, z - c.y), f = 1 - Math.min(1, Math.max(0, (d - c.r * .75) / (c.r * .95))); if (f > b) b = f; } return b; };
+    const paint = (x, z, y) => { const yl = y - 6; if (yl < -.2) tc.copy(cSea); else if (yl < 2.2) tc.copy(cS).lerp(cU, urban(x, z) * .85); else { tc.copy(cG).lerp(cHi, Math.min(1, Math.max(0, (yl - 35) / 85))).lerp(cU, urban(x, z) * .92); }
+      if (black) { const db = Math.hypot(x - black.x, z - black.y); if (db < 48) tc.lerp(cB, 1 - db / 48); } return [tc.r, tc.g, tc.b]; };
+    const materials = { ground: { material: WM.groundMaterial(), uv: (x, z) => [x / W, z / Hh], color: paint } };
     // ---------- landmarks the LEGOS graph names ----------
     const landmarks = { severnDoor: { x: at(0, D2 + 2)[0], z: at(0, D2 + 2)[1] }, severnRoom: { x: SX, z: SZ }, severnCurb: { x: at(0, D2 + 9)[0], z: at(0, D2 + 9)[1] } };
     for (const r of meta.regions) { landmarks[r.key] = { x: r.x, z: r.y, name: r.name }; for (const c of r.cores || []) landmarks[c.key] = { x: c.x, z: c.y, name: c.name, r: c.r }; }
     landmarks.hiwotHome = { x: 2394, z: 3388 }; landmarks.dawitHome = { x: 6706, z: 2268 }; landmarks.selamHome = { x: 6550, z: 3644 };
-    return { root, landmarks, blockers, walls: sevWalls, door: doorPoly, room,
+    return { root, landmarks, blockers, walls: sevWalls, door: doorPoly, room, materials,
       get doorOpen() { return doorOpen; }, setDoor(o) { doorOpen = !!o; }, setFlood, inside,
-      update(dt) { doorA += ((doorOpen ? -Math.PI * .58 : 0) - doorA) * Math.min(1, dt * 4); doorPivot.rotation.y = doorA; },
+      update(dt, t) { waterU.uTime.value = t || 0; if (g.sunDir) waterU.uSunDir.value.copy(g.sunDir()); doorA += ((doorOpen ? -Math.PI * .58 : 0) - doorA) * Math.min(1, dt * 4); doorPivot.rotation.y = doorA; },
       dispose() { root.traverse(o => { if (o.geometry) o.geometry.dispose(); }); } };
   }
   window.WygwylCan = { create, inside };

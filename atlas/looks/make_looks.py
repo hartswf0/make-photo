@@ -37,7 +37,7 @@ fog=hmix(bot,mid,.35)
 ETH={'sky':[mid,hmix(mid,bot,.5),bot,fog],   # the dome is mix(mid, top, pow(h,.58)): a portrait frame sees mostly its low band
  'fog':{'color':fog,'near':1400,'far':17000},'hemi':{'sky':mid,'ground':hmix('#7c634a','#523828',g),'i':.92-.2*g},
  'sun':{'color':hmix('#fff4df','#ff9b48',g*.78),'i':2.25+.4*g},'exposure':1.06,'aces':1,'water':{'color':'#124858','specular':'#bff5ff'},
- 'grade':{'saturation':1.0,'contrast':1.14,'tint':tohex(mix([1,1,1],[1.0,.97/1.10,.86/1.10],1)),'tintAmt':g*.3,'vignette':.1,'grain':.012},
+ 'grade':{'saturation':.9,'contrast':1.0,'tint':tohex(mix([1,1,1],[1.0,.97/1.10,.86/1.10],1)),'tintAmt':g*.3,'vignette':.1,'grain':.012},
  'offers':['jerikan','silver','woodblock','cyanotype','risograph','inkwash','silhouette','set'],
  'looks':{'Golden hour':{'sky':[hmix('#24558c','#28365e',.78),hmix('#8fb8dc','#d88c58',.72),hmix('#e5dfd0','#ffbe76',.85),hmix(hmix('#e5dfd0','#ffbe76',.85),hmix('#8fb8dc','#d88c58',.72),.35)],
      'sun':{'color':hmix('#fff4df','#ff9b48',.78),'i':2.65},'hemi':{'sky':hmix('#8fb8dc','#d88c58',.72),'ground':'#523828','i':.72},'grade':{'tint':'#ffe7d0','tintAmt':.55}},

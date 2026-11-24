@@ -30,8 +30,8 @@
     "specular": "#bff5ff"
    },
    "grade": {
-    "saturation": 1.0,
-    "contrast": 1.14,
+    "saturation": 0.9,
+    "contrast": 1.0,
     "tint": "#ffe1c7",
     "tintAmt": 0.108,
     "vignette": 0.1,
@@ -148,8 +148,8 @@
     "specular": "#bff5ff"
    },
    "grade": {
-    "saturation": 1.0,
-    "contrast": 1.14,
+    "saturation": 0.9,
+    "contrast": 1.0,
     "tint": "#ffe1c7",
     "tintAmt": 0.108,
     "vignette": 0.1,
@@ -266,8 +266,8 @@
     "specular": "#bff5ff"
    },
    "grade": {
-    "saturation": 1.0,
-    "contrast": 1.14,
+    "saturation": 0.9,
+    "contrast": 1.0,
     "tint": "#ffe1c7",
     "tintAmt": 0.108,
     "vignette": 0.1,
@@ -384,8 +384,8 @@
     "specular": "#bff5ff"
    },
    "grade": {
-    "saturation": 1.0,
-    "contrast": 1.14,
+    "saturation": 0.9,
+    "contrast": 1.0,
     "tint": "#ffe1c7",
     "tintAmt": 0.108,
     "vignette": 0.1,
