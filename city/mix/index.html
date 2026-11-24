@@ -28,6 +28,7 @@ body{background:#020418;color:var(--ink);font:500 13px/1.4 ui-monospace,Menlo,mo
 .poems button{flex:1;min-width:0;height:36px;border:0;background:transparent;padding:0;display:grid;place-items:center;cursor:pointer;color:var(--dim)}
 .poems button span{width:23px;height:23px;border-radius:50%;border:1px solid rgba(200,225,255,.28);display:grid;place-items:center;font:500 9px ui-monospace,monospace;transition:background .25s,color .25s}
 .poems button.on span{background:#fff;color:#06106a;border-color:#fff}
+.poems button.sc span{box-shadow:0 0 0 2px rgba(255,209,102,.6)}
 @media (orientation:landscape){.sp{display:none}}
 @media (orientation:portrait){.poems{order:9;flex-basis:100%}}
 .rt{flex:none;font:600 11px ui-monospace,monospace;color:var(--rec)}
@@ -108,7 +109,7 @@ function lineWords(p,t){if(t<p.speech[0]-.3||t>p.speech[1]+.6)return null;let L=
 function addSrc(s){SRC.push(s);SK[s.key]=s}
 function build(su,dk,ly){SRCNAME=su.source.name;const P=n=>su.poems.find(p=>p.num===n);
   su.poems.forEach(p=>addSrc({key:'R'+p.num,kind:'reading',num:p.num,title:p.title,thumb:'thumbs/'+p.num+'.jpg',dur:p.clip.dur,files:[p.clip.file],video:true,pic:1,snd:1,txt:1,base:p.clip.src_in,reel:'WYGWYL',start:Math.max(0,p.speech[0]-.4),marks:p.lines.map(l=>l.s),words:t=>lineWords(p,t),wl:p.words,speech:p.speech}));
-  dk.world.forEach(w=>{const p=w.poem&&P(w.poem);addSrc({key:'W'+w.key,kind:'world',num:w.poem,title:w.title,thumb:w.thumb,dur:w.dur,files:[w.file],video:true,pic:1,snd:1,txt:0,base:0,reel:w.key.replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase(),start:0,marks:[0,...w.cuts],speech:p?p.speech:null,sync:Array.isArray(w.sync)&&w.sync.length>1?w.sync:null})});
+  dk.world.forEach(w=>{const p=w.poem&&P(w.poem);addSrc({key:'W'+w.key,kind:'world',num:w.poem,title:w.title,thumb:w.thumb,dur:w.dur,files:[w.file],video:true,pic:1,snd:1,txt:0,base:0,reel:w.key.replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase(),start:0,marks:[0,...w.cuts],speech:p?p.speech:null,sync:Array.isArray(w.sync)&&w.sync.length>1?w.sync:null,crop:/^street-/.test(w.key)?.93:/^(poemwalk-|probe-)/.test(w.key)?-.88:w.key==='magic-ride'?.84:1})});
   dk.sounds.forEach(s=>{const p=P(s.num);addSrc({key:'S'+s.num,kind:'sounds',num:s.num,title:'Line sounds · '+p.title,dur:s.dur,files:[s.file],video:false,pic:0,snd:1,txt:1,base:0,reel:'FS'+s.num,start:Math.max(0,p.speech[0]-.4),marks:s.cues.map(c=>c.t),speech:p.speech,words:t=>{const c=lastBefore(s.cues,t,'t');return c&&t-c.t<6?[{w:'♪ '+c.title,on:true}]:null}})});
   ly.poems.forEach(x=>{const p=P(x.num);addSrc({key:'X'+x.num,kind:'layers',num:x.num,title:'Rooms · '+p.title,dur:x.dur,files:x.stems.map(s=>s.file),video:false,pic:0,snd:1,txt:1,base:0,reel:'MP'+x.num,start:Math.max(0,p.speech[0]-.4),marks:x.lines.map(l=>l.t),speech:p.speech,words:t=>{const L=lastBefore(x.lines,t,'t');return L?[{w:L.beat,on:true}]:null}})})}
 /* one poem clock: readings, line sounds and rooms share the clip's timeline. A world reel carries his voice too, so it is aligned to his words
@@ -117,6 +118,8 @@ function interp(A,x,ix,iy){const n=A.length;if(x<=A[0][ix])return A[0][iy]+(x-A[
 function toClock(s,t){if(s.kind!=='world')return t;if(s.sync)return interp(s.sync,t,1,0);if(s.speech){const[a,b]=s.speech;return a+t/s.dur*(b-a)}return t}
 function fromClock(s,c){if(s.kind!=='world')return c;if(s.sync)return interp(s.sync,c,0,1);if(s.speech){const[a,b]=s.speech;return(c-a)/(b-a)*s.dur}return c}
 function stretchOf(s,c){if(s.kind!=='world')return 1;if(s.sync){const c0=c??s.sync[0][0];return clamp((fromClock(s,c0+1.5)-fromClock(s,c0-1.5))/3,.5,2)}if(s.speech){const[a,b]=s.speech;return s.dur/(b-a)}return 1}
+function nodeTime(k,c){return k.map?interp(k.map,c,0,1):fromClock(k.s,c)}
+function nodeRate(k,c){return k.map?clamp((interp(k.map,c+1,0,1)-interp(k.map,c-1,0,1))/2,.0625,4):stretchOf(k.s,c)}
 /* his voice comes first: the line sounds and rooms duck under every spoken word (a pure function of the reading's clock) */
 function duckAt(s,c){if(!s||!s.wl)return 0;let v=0;for(const w of s.wl){if(w[0]-.08>c)break;if(c>w[1]+.35)continue;v=Math.max(v,c<w[0]?(c-(w[0]-.08))/.08:c<=w[1]?1:1-(c-w[1])/.35);if(v>=1)return 1}return v}
 /* ===== audio: node → tone filter → gain → master ===== */
@@ -128,7 +131,7 @@ function makeDistance(){const i=AC.createGain(),d=AC.createDelay(1),hp=AC.create
 function ensureAC(){if(AC){AC.resume().catch(()=>{});return}AC=new (window.AudioContext||window.webkitAudioContext)();master=AC.createDynamicsCompressor();master.connect(AC.destination);try{mDest=AC.createMediaStreamDestination();master.connect(mDest)}catch(e){mDest=null}
   DIST=makeDistance();noise=AC.createBuffer(1,AC.sampleRate>>3,AC.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;NODES.forEach(wire)}
 function click(v,f,q){if(!AC||v<=0)return;const s=AC.createBufferSource(),b=AC.createBiquadFilter(),g=AC.createGain();s.buffer=noise;b.type='bandpass';b.frequency.value=f||1800;b.Q.value=q||5;g.gain.setValueAtTime(v,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.035);s.connect(b);b.connect(g);g.connect(master);s.start();s.stop(AC.currentTime+.045)}
-function wire(k){if(!AC||k.g)return;k.flt=AC.createBiquadFilter();k.flt.type='lowpass';k.flt.frequency.value=22000;k.g=AC.createGain();k.g.gain.value=0;k.flt.connect(k.g);k.g.connect(k.s.kind==='world'&&DIST?DIST:master);
+function wire(k){if(!AC||k.g)return;k.flt=AC.createBiquadFilter();k.flt.type='lowpass';k.flt.frequency.value=22000;k.g=AC.createGain();k.g.gain.value=0;k.flt.connect(k.g);k.g.connect((k.s.kind==='world'||k.far)&&DIST?DIST:master);
   for(const e of k.els){let n=e._n;if(!n){try{n=e._n=AC.createMediaElementSource(e)}catch(x){continue}}try{n.disconnect()}catch(x){}n.connect(k.flt)}applyTone(k)}
 function applyTone(k){if(!k.flt)return;const v=k.tone,T=AC.currentTime;if(Math.abs(v)<.04){k.flt.type='lowpass';k.flt.frequency.setTargetAtTime(22000,T,.03);k.flt.Q.value=.7}else if(v<0){k.flt.type='lowpass';k.flt.frequency.setTargetAtTime(22000*Math.pow(180/22000,-v),T,.03);k.flt.Q.value=1.6}else{k.flt.type='highpass';k.flt.frequency.setTargetAtTime(20*Math.pow(6000/20,v),T,.03);k.flt.Q.value=1.6}}
 /* ===== nodes: a source, a mass on the field, a transport with a motor ===== */
@@ -155,11 +158,11 @@ function transport(dt){for(const k of NODES){if(k.hold)continue;k.spd+=(k.motor-
     pitchD(k,Math.abs(k.spd-1)<.03);rateD(k,k.spd*k.mult);elPlay(k,true)}}
 /* ===== link: every node that is on and linked turns with the anchor (the last touched) on the poem clock ===== */
 const grp=()=>NODES.filter(k=>k.on&&k.link),inGrp=k=>k.on&&k.link;
-function anc(){const g=grp();return g.includes(ANC)?ANC:(g.find(k=>k.s.kind==='reading')||g[0]||null)}
-const tgtAt=(k,a,at)=>fromClock(k.s,toClock(a.s,at));
+function anc(){const g=grp();return g.includes(ANC)?ANC:(g.find(k=>k.s.kind==='reading'&&!k.far)||g[0]||null)}
+const tgtAt=(k,a,at)=>nodeTime(k,toClock(a.s,at));
 function follow(){const A=anc();for(const k of NODES)if(!inGrp(k)||k===A)k.mult=1;if(!A)return;
   for(const k of grp()){if(k===A||k.hold)continue;const t=tgtAt(k,A,tD(A)),inR=t>=0&&t<k.s.dur-.05,want=playing(A)&&(!A.hold||A.hold===DEMO)&&inR;
-    {const c=toClock(A.s,tD(A));k.mult=stretchOf(k.s,c)/stretchOf(A.s,c)}
+    {const c=toClock(A.s,tD(A));k.mult=nodeRate(k,c)/nodeRate(A,c)}
     if(want&&!playing(k)){seekD(k,t);k.motor=1;k.spd=A.spd}else if(!want&&playing(k))k.motor=0;
     if(want)k.spd=A.spd;if(inR&&Math.abs(tD(k)-t)>(elPlaying(k)?.3:.04))seekD(k,t)}}
 function setPower(k,on){k.on=on;if(!on)k.motor=0;buzz(on?[12,24,12]:14,true);click(on?.4:.25,on?900:500,3);save()}
@@ -180,7 +183,7 @@ function field(){PICS=NODES.filter(picReady).slice(0,8);const n=PICS.length,G=FM
       for(let i=0;i<n;i++){const f=fAt(PICS[i],x,y);fr[i]=f;lw[i]=G*LG(f);if(lw[i]>m)m=lw[i]}let t=Math.exp(l0-m);for(let i=0;i<n;i++)t+=Math.exp(lw[i]-m);
       for(let i=0;i<n;i++){let w=Math.exp(lw[i]-m)/t;w+=(PICS[i].vw-w)*veil;w+=(Math.min(1,fr[i]*1.8)-w)*tang;PICS[i].w[ix]=w;PICS[i].share+=w}}}
   for(const k of PICS){k.share/=GW*GH;if(GL)continue;const d=k.md.data;for(let i=0;i<GW*GH;i++)d[i*4+3]=k.w[i]*255;k.mc.putImageData(k.md,0,0)}
-  const ga=Math.min(G,5),snd=NODES.filter(k=>k.on&&k.s.snd&&k.route.snd&&k.s.kind!=='reading'),sl=snd.map(k=>ga*LG(fAt(k,EAR.x,EAR.y))),E2=lsum(sl,ga*LG(VOID));
+  const ga=Math.min(G,5),snd=NODES.filter(k=>k.on&&k.s.snd&&k.route.snd&&!(k.s.kind==='reading'&&!k.far)),sl=snd.map(k=>ga*LG(fAt(k,EAR.x,EAR.y))),E2=lsum(sl,ga*LG(VOID));
   for(const k of NODES)k.earW=0;snd.forEach((k,i)=>k.earW=Math.exp(sl[i]-E2.m)/E2.s)}
 /* ===== physics: nodes and the ear glide on springs, coast when flung, bounce at the edges, and keep apart ===== */
 function bodies(dt){const fr=Math.exp(-dt*4.5);
@@ -191,7 +194,7 @@ function bodies(dt){const fr=Math.exp(-dt*4.5);
   for(let i=0;i<NODES.length;i++)for(let j=i+1;j<NODES.length;j++){const a=NODES[i],b=NODES[j],dx=(b.x-a.x)*ASP,dy=b.y-a.y,d=Math.hypot(dx,dy),m=.07;if(d<m&&d>1e-5){const p=(m-d)/d*.5*ease(dt,10);if(!a.drag){a.x-=dx/ASP*p;a.y-=dy*p}if(!b.drag){b.x+=dx/ASP*p;b.y+=dy*p}}}
   if(!DEMO.on){const T=FMT[FM];for(const q of ['G','veil','tang'])FMP[q]+=(T[q]-FMP[q])*ease(dt,3.5)}
   for(const k of NODES){if(DEMO.on)break;const m=k.on&&inTake(k)?k.level:0;k.mS+=(m-k.mS)*ease(dt,6);k.rS+=(k.reach-k.rS)*ease(dt,8);for(const d of KNOBS)k.kS[d.id]+=(k[d.id]-k.kS[d.id])*ease(dt,20)}}
-function inTake(k){if(k.s.kind!=='world'||!inGrp(k))return true;const A=anc();if(!A||A===k)return true;const t=fromClock(k.s,toClock(A.s,tD(A)));return t>=0&&t<k.s.dur-.05}
+function inTake(k){if(!(k.s.kind==='world'||k.map)||!inGrp(k))return true;const A=anc();if(!A||A===k)return true;const t=nodeTime(k,toClock(A.s,tD(A)));return t>=0&&t<k.s.dur-.05}
 function edgeTick(b){if(Math.abs(b.vx)+Math.abs(b.vy)>.05){buzz(8);click(.15,500,3)}}
 /* ===== layout ===== */
 let W=0,H=0,L={O:{x:0,y:0,w:1,h:1},I:null,strip:null,plat:null,knobs:[],row:null,orbs:[],bad:[]};
@@ -325,7 +328,7 @@ function glTex(k){const gl=GL.gl;if(!k.tex){k.tex=gl.createTexture();gl.bindText
   gl.bindTexture(gl.TEXTURE_2D,k.tex);try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,k.els[0])}catch(e){}}
 function glRender(){const{gl,U}=GL,n=PICS.length,P=new Float32Array(16),M=new Float32Array(8),S=new Float32Array(8),HU=new Float32Array(8).fill(-1),TA=new Float32Array(8),VW=new Float32Array(8),CV=new Float32Array(32);gl.viewport(0,0,out.width,out.height);
   for(let i=0;i<8;i++){gl.activeTexture(gl.TEXTURE0+i);if(i<n){const k=PICS[i],v=k.els[0];glTex(k);P[i*2]=k.x;P[i*2+1]=k.y;M[i]=k.mS;S[i]=.08+k.rS*.55;HU[i]=k.hue==null?-1:k.hue/360;TA[i]=k.ta??1;VW[i]=k.vw;
-      const sc=Math.max(16/v.videoWidth,9/v.videoHeight),fx=16/sc/v.videoWidth,fy=9/sc/v.videoHeight;CV.set([(1-fx)/2,(1-fy)/2,fx,fy],i*4)}else gl.bindTexture(gl.TEXTURE_2D,GL.black)}
+      const sc=Math.max(16/v.videoWidth,9/v.videoHeight),fx=16/sc/v.videoWidth,fy=9/sc/v.videoHeight;const cr=k.s.crop||1,z=Math.abs(cr);CV.set([(1-fx*z)/2,cr<0?(1-fy*z)/2:(1-fy)/2,fx*z,fy*z],i*4)}else gl.bindTexture(gl.TEXTURE_2D,GL.black)}
   gl.uniform1i(U.N,n);gl.uniform2fv(U.P,P);gl.uniform1fv(U.M,M);gl.uniform1fv(U.S,S);gl.uniform1fv(U.HU,HU);gl.uniform1fv(U.TA,TA);gl.uniform1fv(U.VW,VW);gl.uniform4fv(U.CV,CV);gl.uniform1f(U.G,FMP.G);gl.uniform1f(U.LV,FMP.G*Math.log(VOID));gl.uniform1f(U.VEIL,FMP.veil);gl.uniform1f(U.TANG,FMP.tang);gl.uniform1f(U.ASP,ASP);
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4)}
 function drawOut(){if(GL)glRender();else draw2D();drawWords()}
@@ -340,7 +343,7 @@ function drawWords(){const w=tx.width,h=tx.height,g=tx.getContext('2d');g.clearR
   for(const k of NODES){if(!k.on||!k.s.txt||!k.route.txt||k.mS<.05)continue;const ws=k.s.words(tD(k));if(!ws)continue;const fs=Math.round(m*(k.s.kind==='reading'?.062:.045)*(.75+k.mS*.4)),mw=w*.62;
     g.font=`500 ${fs}px system-ui,sans-serif`;g.textAlign='center';g.textBaseline='middle';g.shadowColor='rgba(0,0,0,.9)';g.shadowBlur=fs*.35;
     let lines=[],line='';for(const x of ws){const t2=line?line+' '+x.w:x.w;if(g.measureText(t2).width>mw&&line){lines.push(line);line=x.w}else line=t2}lines.push(line);lines=lines.slice(-2);
-    const rd=k.s.kind==='reading',cx=rd?w/2:clamp(k.x*w,mw/2+8,w-mw/2-8),cy=rd?h*.87-(lines.length-1)*fs*1.25:clamp(k.y*h+fs*1.6,fs*1.5,h-fs*(lines.length+.2)*1.25);g.globalAlpha=rd?clamp(k.mS/.3,0,1):clamp(.3+k.earW*1.5,.3,1)*Math.min(1,k.mS*2);g.fillStyle='#fff';
+    const rd=k.s.kind==='reading'&&!k.far,cx=rd?w/2:clamp(k.x*w,mw/2+8,w-mw/2-8),cy=rd?h*.87-(lines.length-1)*fs*1.25:clamp(k.y*h+fs*1.6,fs*1.5,h-fs*(lines.length+.2)*1.25);g.globalAlpha=rd?clamp(k.mS/.3,0,1):clamp(.3+k.earW*1.5,.3,1)*Math.min(1,k.mS*2);g.fillStyle='#fff';
     lines.forEach((l,j)=>g.fillText(l,cx,cy+j*fs*1.25));g.globalAlpha=1;g.shadowBlur=0}}
 function compose(){if(rc.width!==out.width||rc.height!==out.height){rc.width=out.width;rc.height=out.height}const g=rc.getContext('2d');g.drawImage(out,0,0);g.drawImage(tx,0,0)}
 /* marching squares: the edge of each territory, drawn on the overlay only */
@@ -404,8 +407,8 @@ function drawRow(g,k){const R=L.row,sw=R.w/5,br=Math.max(9,Math.min(sw*.4,R.h*.4
     drawIcon(g,b,cx,cy,br*1.15,on?'#06106a':'rgba(255,255,255,.75)',2.1)});g.globalAlpha=1}
 /* ===== the jam ===== */
 let DUCK=0;
-function gainOf(k,duck){if(!k.on||!k.s.snd)return 0;if(k.s.kind==='reading')return k.route.snd?clamp(k.mS/.3,0,1):0;if(k.s.kind==='world')return DEMO.on?k.echo:(k.route.snd?Math.sqrt(k.earW)*.8:0);return Math.sqrt(k.earW)*.95*(1-.6*duck)}
-function applyLevels(){const R0=NODES.find(k=>k.s.kind==='reading'&&k.on);DUCK=R0&&R0.route.snd?duckAt(R0.s,tD(R0)):0;if(!AC)return;for(const k of NODES)if(k.g)k.g.gain.setTargetAtTime(gainOf(k,DUCK),AC.currentTime,.04)}
+function gainOf(k,duck){if(!k.on||!k.s.snd)return 0;if(k.s.kind==='reading'&&!k.far)return k.route.snd?clamp(k.mS/.3,0,1):0;if(k.s.kind==='world'||k.far)return DEMO.on?k.echo:(k.route.snd?Math.sqrt(k.earW)*.8:0);return Math.sqrt(k.earW)*.95*(1-.6*duck)}
+function applyLevels(){const R0=NODES.find(k=>k.s.kind==='reading'&&!k.far&&k.on);DUCK=R0&&R0.route.snd?duckAt(R0.s,tD(R0)):0;if(!AC)return;for(const k of NODES)if(k.g)k.g.gain.setTargetAtTime(gainOf(k,DUCK),AC.currentTime,.04)}
 function loops(){for(const k of NODES)if(k.loop&&playing(k)&&!k.hold&&tD(k)>=k.loop.b)seekD(k,k.loop.a)}
 function syncStems(){for(const k of NODES){if(k.els.length<2)continue;const t=tD(k),p=k.els[0].paused;for(let i=1;i<k.els.length;i++){const e=k.els[i];if(Math.abs(e.currentTime-t)>.08)e.currentTime=t;e.playbackRate=k.els[0].playbackRate;e.preservesPitch=k.els[0].preservesPitch;if(e.paused!==p)p?e.pause():e.play().catch(()=>{})}}}
 const REC={on:false,mr:null,parts:[],t0:0,log:[],last:0};
@@ -432,7 +435,7 @@ function placeSheet(){const I=L.I,e=$('sheet');Object.assign(e.style,I?{left:I.x
 function sheet(h,b){$('shH').innerHTML=h;$('shB').innerHTML=b;$('sheet').hidden=false;placeSheet()}
 function closeSheet(){$('sheet').hidden=true}
 let KF='reading';
-const snap=k=>({key:k.s.key,on:k.on,link:k.link,route:{...k.route},level:k.level,reach:k.reach,tone:k.tone,col:k.col,x:k.x,y:k.y});
+const snap=k=>({rid:k.rid,far:!!k.far,map:k.map||null,key:k.s.key,on:k.on,link:k.link,route:{...k.route},level:k.level,reach:k.reach,tone:k.tone,col:k.col,x:k.x,y:k.y});
 function picker(k){const kinds=['reading','world','sounds','layers'];if(k)KF=k.s.kind;
   sheet(`<button class="b" type="button" id="pkB" aria-label="Back">${svg('back',2)}</button><div class="tabsk">${kinds.map(x=>`<button type="button" data-f="${x}" class="${KF===x?'on':''}" aria-label="${x}">${svg(x)}</button>`).join('')}</div>${k?`<span class="sp"></span><button class="b" type="button" id="pkT" aria-label="Remove this node">${svg('trash')}</button>`:''}`,
     `<div class="grid">${SRC.filter(s=>s.kind===KF).map(s=>`<button type="button" data-k="${s.key}" class="${k&&k.s===s?'cur':''}" title="${esc(s.title)}" aria-label="${esc(s.title)}" style="${s.thumb?`background-image:url(${BASE+s.thumb})`:`background:radial-gradient(circle at 40% 35%,${KCOL[s.kind]}88,#0a1690 72%)`}"><i>${['pic','snd','txt'].map(c=>`<b style="background:${s[c]?CHC[c]:'rgba(255,255,255,.15)'}"></b>`).join('')}</i><span>${s.num||'·'}</span></button>`).join('')}</div>`);
@@ -450,10 +453,10 @@ function helpSheet(){const card=(ic,txt)=>`<div>${ic}<span>${txt}</span></div>`;
   ${card('<svg viewBox="0 0 52 52" fill="none" stroke="#fff" stroke-width="1.5"><circle cx="26" cy="26" r="22"/><circle cx="26" cy="26" r="8"/><path d="M26 18V6" stroke="#7fd8ff" stroke-width="3"/></svg>','The platter: turn it through time. Near the rim, one turn is 8 seconds; nearer the centre is finer. Tap the centre: the sound spins up or winds down like tape. Tap twice: loop the line.')}
   ${card('<svg viewBox="0 0 52 52" fill="none" stroke-width="4" stroke-linecap="round"><path d="M14 38A16 16 0 1 1 38 38" stroke="rgba(255,255,255,.2)"/><path d="M14 38A16 16 0 0 1 26 10" stroke="#7fd8ff"/><circle cx="26" cy="26" r="10" fill="#1a2470" stroke="none"/><path d="M26 26V18" stroke="#fff" stroke-width="2.5"/></svg>','Dials: mass, reach, tone, colour. Turn around a dial; the farther out your finger, the finer the turn. Or slide up and down from its centre. Tap twice to reset.')}
   ${card('<svg viewBox="0 0 52 52" fill="none" stroke="#fff" stroke-width="1.5"><circle cx="6" cy="26" r="5" fill="#9ff0c4" stroke="none"/><circle cx="16" cy="26" r="5" fill="#d8c9ff" stroke="none"/><circle cx="26" cy="26" r="5" fill="#7fd8ff" stroke="none"/><circle cx="36" cy="26" r="5" fill="#ffb35c" stroke="none"/><circle cx="46" cy="26" r="5"/></svg>','Power · words · picture · sound · link. Linked sources keep one clock with the one you last touched. His voice always comes first: the reels are silent until you open their sound, and then they are his voice from another take, far away.')}
-  ${card('<svg viewBox="0 0 52 52" fill="none" stroke="#fff" stroke-width="1.4"><circle cx="14" cy="26" r="9"/><circle cx="38" cy="26" r="9" fill="#fff"/></svg>','The orbs above the platter: every source in this poem. Tap to select, tap twice for power, hold to swap. A poem number opens all of its sources.')}
+  ${card('<svg viewBox="0 0 52 52" fill="none" stroke="#fff" stroke-width="1.4"><circle cx="14" cy="26" r="9"/><circle cx="38" cy="26" r="9" fill="#fff"/></svg>','A gold ring on a poem number means it has a performance: choose it and press ✦. The orbs above the platter: every source in this poem. Tap to select, tap twice for power, hold to swap. A poem number opens all of its sources.')}
   ${card('<svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="17" fill="none" stroke="#ff5a6e" stroke-width="2"/><circle cx="26" cy="26" r="7" fill="#ff5a6e"/></svg>','Record the picture and the mix (without the dots), plus an edit list.')}</div>`)}
 /* ===== poems: open every relevant node, arranged on the field ===== */
-function poemDots(){$('poems').innerHTML=SRC.filter(s=>s.kind==='reading').map(s=>`<button type="button" data-n="${s.num}" aria-label="${esc(s.title)}"><span>${s.num}</span></button>`).join('');$('poems').querySelectorAll('button').forEach(b=>b.onclick=()=>loadPoem(b.dataset.n))}
+function poemDots(){$('poems').innerHTML=SRC.filter(s=>s.kind==='reading').map(s=>`<button type="button" data-n="${s.num}" aria-label="${esc(s.title)}${SCORES[s.num]?' (has a performance)':''}" class="${SCORES[s.num]?'sc':''}"><span>${s.num}</span></button>`).join('');$('poems').querySelectorAll('button').forEach(b=>b.onclick=()=>loadPoem(b.dataset.n))}
 function poemNodes(n){const ws=SRC.filter(s=>s.kind==='world'&&s.num===n).slice(0,MAXN-3),list=[{key:'R'+n,o:{level:.9,x:.42,y:.45}}];
   ws.forEach((w,i)=>{const a=-Math.PI*.15+i*(Math.PI*2/Math.max(3,ws.length+1));list.push({key:w.key,o:{level:i?.55:.8,x:.5+Math.cos(a)*.33,y:.46+Math.sin(a)*.34}})});
   if(SK['S'+n])list.push({key:'S'+n,o:{level:.5,x:.16,y:.82}});if(SK['X'+n])list.push({key:'X'+n,o:{level:.5,x:.84,y:.82}});return list}
@@ -462,17 +465,21 @@ function poemUI(){$('poems').querySelectorAll('button').forEach(b=>b.classList.t
 function setFM(m){if(!FMODES.includes(m))return;FM=m;$('fmodes').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));buzz(12,true);click(.3,800,3);save()}
 function setStage(on){STAGE=on;$('stage').innerHTML=svg(on?'deck':'stage');$('stage').classList.toggle('on',on);layout();save()}
 function setEye(on){EYE=on;$('eye').classList.toggle('on',on);lastTouch=performance.now();save()}
-/* ===== a performance of poem 10, played like an instrument: a score keyed to his words =====
-   Each cue is [clock, seconds, who, {values}]: from that word, glide (smoothstep) to these values over that many seconds.
-   who: R reading · G grey reel (whole ride) · C cel reel · M LiDAR reel · F rider-in-the-seed reel · S line sounds · X rooms · ear · field.
-   values: x, y, m (mass), r (reach), h (hue), ta (tint amount), e (echo: his voice from that reel's take, far away); field: G, veil, tang.
-   The reading plays untouched at 1×: the score follows his clock, live and when rendered. */
-const DEMO={on:false,t0:0,poem:'10',c0:1.5,c1:97.4};DEMO.len=DEMO.c1-DEMO.c0;
+/* ===== performances: scores keyed to his words =====
+   A score names its cast (sources, including borrowed reels and time-shifted copies of his own reading), where each starts, and cues:
+   [clock, seconds, who, {values}] = from that word, glide (smoothstep) to these values over that many seconds.
+   values: x, y, m (mass), r (reach), h (hue), ta (tint amount), e (echo: that node's voice, far away); ear: x, y; field: G, veil, tang.
+   cast: {id, key, far (a copy whose voice is only ever distant), map ([clock, source time] anchors, slope 1 outside), txt}.
+   The reading plays untouched at 1×; every score follows its clock, live and when rendered. */
+const DEMO={on:false,t0:0,c0:0,c1:0,len:0};
 const smo=x=>{x=clamp(x,0,1);return x*x*(3-2*x)},lerp=(a,b,u)=>a+(b-a)*u;
-const ROLE={R:'R10',G:'W10ride-grey',C:'W10ride-cel',M:'Wmagic-ride',F:'W10ride-greyfig',S:'S10',X:'X10'};
-const INIT={R:{x:.42,y:.42,m:.9,r:.3,h:38,ta:0},G:{x:.08,y:.45,m:0,r:.36,h:228,ta:0,e:0},C:{x:.93,y:.5,m:0,r:.3,h:42,ta:0,e:0},M:{x:.5,y:.08,m:0,r:.4,h:0,ta:0,e:0},F:{x:.92,y:.15,m:0,r:.4,h:0,ta:0,e:0},
-  S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5},ear:{x:.5,y:.5},field:{G:1.6,veil:0,tang:0}};
-const SCORE=[
+const DEFV={x:.5,y:.5,m:0,r:.4,h:0,ta:0,e:0};
+const SCORES={
+ '10':{title:'Magic Ride',c0:1.5,c1:97.4,
+  cast:[{id:'R',key:'R10'},{id:'G',key:'W10ride-grey'},{id:'C',key:'W10ride-cel'},{id:'M',key:'Wmagic-ride'},{id:'F',key:'W10ride-greyfig'},{id:'S',key:'S10'},{id:'X',key:'X10'}],
+  init:{R:{x:.42,y:.42,m:.9,r:.3,h:38,ta:0},G:{x:.08,y:.45,m:0,r:.36,h:228,ta:0,e:0},C:{x:.93,y:.5,m:0,r:.3,h:42,ta:0,e:0},M:{x:.5,y:.08,m:0,r:.4,h:0,ta:0,e:0},F:{x:.92,y:.15,m:0,r:.4,h:0,ta:0,e:0},
+  S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5},ear:{x:.5,y:.5},field:{G:1.6,veil:0,tang:0}},
+  cues:[
  // I wasn't looking for a ride, but here you are, blissful and oddly sensitive — he is alone; on "ride" the bike under the lamp arrives
  [2.4,1.2,'R',{r:.4}],[3.6,2.2,'C',{x:.74,y:.48,m:.85,r:.34}],[3.7,3,'ear',{x:.72,y:.72}],[5.5,2,'C',{r:.5}],[7.0,1.6,'R',{ta:.35}],[8.5,1.2,'C',{r:.42}],
  // withering a soul purveying both the dark and the light worlds I've known — two worlds, a seam through him
@@ -514,39 +521,157 @@ const SCORE=[
  // riding it away that you can't help but double-click — the road drifts off; two clicks snap the field
  [86.4,2.0,'G',{x:.85}],[88.3,.8,'ear',{x:.8,y:.8}],[89.30,.06,'field',{G:12}],[89.42,.1,'field',{G:1.6}],[89.56,.06,'field',{G:12}],[89.68,.12,'field',{G:1.6}],
  // and prove, yeah, the magic it still exists — the far voice answers; the world goes; let's call it magic, right
- [90.0,1.5,'ear',{x:.5,y:.5}],[92.4,.4,'G',{e:.55}],[93.6,2.4,'G',{m:0}],[94.2,2,'G',{e:0}],[94.0,2.5,'S',{m:0}],[94.0,2.5,'X',{m:0}],[95.6,1.6,'R',{m:0}]];
-/* tracks: per (who, value) the cues in order, with the value each one starts from, so evaluation is a lookup, not a replay */
-const TRK={};
-(function(){for(const c of SCORE)for(const[q,v]of Object.entries(c[3])){const id=c[2]+'.'+q;(TRK[id]=TRK[id]||[]).push([c[0],c[1],v])}
-  for(const id in TRK){const a=TRK[id].sort((x,y)=>x[0]-y[0]),[w,q]=id.split('.'),v0=INIT[w][q];a.sv=[];for(let i=0;i<a.length;i++)a.sv[i]=i?segAt(a,i-1,a[i][0]):v0}})();
+ [90.0,1.5,'ear',{x:.5,y:.5}],[92.4,.4,'G',{e:.55}],[93.6,2.4,'G',{m:0}],[94.2,2,'G',{e:0}],[94.0,2.5,'S',{m:0}],[94.0,2.5,'X',{m:0}],[95.6,1.6,'R',{m:0}]]},
+ '11':{title:'New Day',c0:1.5,c1:101.8,
+  cast:[{id:'R',key:'R11'},{id:'A',key:'W06',map:[[20,22],[26.2,28.2],[26.25,62],[33,69],[38.8,75],[38.85,24],[60,45],[82.9,67],[82.95,30]]},{id:'D',key:'Wstreet-098',map:[[33.5,0],[53.5,20],[82.9,20.1],[82.95,4]]},
+    {id:'Wt',key:'Wpoemwalk-cel020',map:[[53,48],[64,59],[79.9,61.5],[80,10]]},{id:'Sun',key:'Wprobe-spin',map:[[76,0]]},{id:'Gh',key:'R11',far:true,map:[[68,40]]},{id:'S',key:'S11'},{id:'X',key:'X11'}],
+  init:{R:{x:.42,y:.4,m:.9,r:.35,h:205,ta:0},A:{x:.5,y:.12,m:0,r:.4,h:30},D:{x:.85,y:.45,m:0,r:.5,h:45},Wt:{x:.6,y:.5,m:0,r:.3},Sun:{x:.78,y:.3,m:0,r:.35,h:42},Gh:{x:.76,y:.42,m:0,r:.3,h:230,ta:.5},S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5}},
+  cues:[
+   // Even here is chilly in the morning · river … seas in the distance · this world is at peace
+   [2.4,2,'R',{ta:.45}],[5.2,2.2,'ear',{x:.82,y:.8}],[11.8,2.2,'R',{r:.5,ta:.15}],
+   // in silent resounds, choir chords … offered them back as keepsakes to the higher power: wings rise above him
+   [14.3,1.8,'ear',{x:.5,y:.55}],[16.2,1.6,'R',{r:.42}],[21.4,2.6,'A',{m:.75,r:.45}],[24.2,1.4,'A',{y:.1}],
+   // exhausted emotions carry forward a diminishing flame · jazz-tuned lyrics that heat and dry the morning dew
+   [26.3,1.2,'A',{x:.22,y:.62,r:.35,ta:.5,h:25}],[28.3,1.8,'A',{r:.14,m:.55}],[30.0,1.5,'ear',{x:.2,y:.82}],[31.7,1.6,'R',{ta:.35,h:30}],
+   // the remnants of the destruction revealed in the sunlight: the cenotaph walk
+   [34.6,1.0,'A',{m:0}],[34.8,2.4,'D',{x:.64,y:.45,m:.9,r:.7}],[34.8,2.2,'R',{r:.26,ta:0}],[37.4,1.2,'D',{ta:.55}],
+   // we can rebuild this temple: the frame sets into blocks · it's a new day: it softens, warm
+   [39.2,.8,'field',{G:10}],[39.2,1,'A',{x:.74,y:.36,m:.9,r:.42,ta:0}],[39.2,1,'D',{x:.2,y:.42,r:.42}],[39.4,1,'R',{r:.4,x:.44,y:.46}],
+   [41.5,1.4,'field',{G:1.6}],[41.6,1.4,'R',{ta:.35,h:42}],[41.6,1.4,'A',{ta:.4,h:42}],
+   // the painful crawl along the cobblestone boulevard of broken dreams
+   [43.0,2.2,'A',{m:0}],[43.0,2.4,'D',{x:.6,y:.5,r:.8,m:.95,ta:0}],[43.0,2.4,'R',{r:.24,ta:0}],[43,2,'ear',{x:.3,y:.75}],[49.4,.8,'field',{tang:.55}],[50.4,1.2,'field',{tang:0}],
+   // I can close the chapter and open a journal … words written … a blueprint … majestic
+   [51.5,1.2,'D',{m:0,r:.4}],[53.1,1.8,'Wt',{m:.85,r:.55}],[53.1,1.8,'R',{r:.32}],[59.4,1.6,'Wt',{x:.66,y:.45}],[62.8,1.4,'Wt',{r:.7,ta:.3,h:45}],[63,1.4,'R',{ta:.25}],
+   // sung alone as gospels to the lonely mirror's midnight hours: his own face from earlier, far, with its voice
+   [66.0,1.6,'Wt',{m:0}],[66.1,2.4,'R',{ta:.5,h:230,r:.3}],[66.1,2,'ear',{x:.5,y:.15}],[68.4,1.8,'Gh',{m:.5,r:.32}],[69.3,.8,'Gh',{e:.22}],[72.0,2.6,'Gh',{m:0,e:0}],[72.4,2.4,'R',{ta:.2}],
+   // we can embrace · receive · welcome a new day: three steps of light
+   [76.3,1.2,'Sun',{m:.35,r:.25}],[76.3,1.2,'R',{r:.34,ta:.35,h:200}],[78.3,1.2,'Sun',{m:.6,r:.35}],[78.3,1.2,'R',{r:.42,h:60,ta:.2}],[80.2,1.4,'Sun',{m:.85,r:.48}],[80.2,1.4,'R',{r:.52,h:42,ta:.35}],[80.2,1.6,'ear',{x:.6,y:.6}],
+   // everything I've known and learned … together in this sacred place: all of it gathers round him
+   [83.0,2.6,'A',{x:.18,y:.25,m:.5,r:.3,ta:.2,h:42}],[83.2,2.6,'D',{x:.2,y:.75,m:.5,r:.3,ta:.2}],[83.4,2.6,'Wt',{x:.8,y:.75,m:.5,r:.3,ta:0}],[83.0,2.4,'Sun',{x:.8,y:.25,r:.3}],[83,2.4,'R',{r:.4}],[88.4,2.4,'field',{veil:.25}],[90.5,1.6,'R',{ta:.4}],
+   // reveling in the sunlight of a new beginning … at peace
+   [91.6,2.6,'Sun',{x:.62,y:.38,r:.75,m:.95}],[91.6,2.6,'A',{m:0}],[91.6,2.6,'D',{m:0}],[91.6,2.6,'Wt',{m:0}],[91.6,2,'field',{veil:0}],[95.0,2.4,'R',{r:.45}],
+   [98.6,2.6,'Sun',{m:0}],[98.8,1.8,'S',{m:0}],[98.8,1.8,'X',{m:0}],[100.8,1.0,'R',{m:0}]]},
+ '12':{title:'Reunion',c0:1.5,c1:67.5,
+  cast:[{id:'R',key:'R12'},{id:'T',key:'W12shots'},{id:'H',key:'W12'},{id:'Q',key:'R12',far:true,map:[[23,15]]},{id:'Mt',key:'Wprobe-spin',map:[[47,2]]},{id:'Nt',key:'W06',map:[[52,4]]},{id:'S',key:'S12'},{id:'X',key:'X12'}],
+  init:{R:{x:.42,y:.4,m:.9,r:.35,h:35},T:{x:.7,y:.45,m:0,r:.4,h:220},H:{x:.5,y:.5,m:0,r:.6,h:35},Q:{x:.25,y:.7,m:0,r:.35},Mt:{x:.6,y:.4,m:0,r:.6,h:45},Nt:{x:.5,y:.35,m:0,r:.8,h:230},S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5}},
+  cues:[
+   // decades later … more space for laughter: the welcome-home hall around him · hugs with no reason
+   [2.4,2.4,'H',{m:.8,r:.7}],[2.4,2.4,'R',{r:.3,ta:.25}],[7.6,1.4,'ear',{x:.8,y:.8}],[9.3,1.6,'T',{m:.85,r:.5}],[9.3,1.6,'H',{r:.45}],
+   // loud voices so our hearts can be overheard: the other takes of his voice, for this phrase only
+   [11.9,.6,'T',{e:.4}],[11.9,.6,'H',{e:.35}],[11.9,.8,'ear',{x:.5,y:.55}],[14.6,1.4,'T',{e:0}],[14.6,1.4,'H',{e:0}],
+   // my mind drifts into the darkness of our afterlives, and all those rooms are empty
+   [16.2,2.4,'H',{m:0}],[16.2,2.6,'R',{m:.55,r:.28,ta:0}],[16.2,2.4,'T',{x:.62,y:.45,r:.75,ta:.55}],[16.4,2,'ear',{x:.5,y:.12}],[21.4,1.2,'T',{m:.6}],
+   // we're all here: four cells, the room among them · glasses of burning sands
+   [23.2,1.0,'field',{G:8}],[23.2,1.2,'R',{m:.9,x:.3,y:.32,r:.38}],[23.3,1.2,'Q',{m:.85,x:.28,y:.74,r:.38}],[23.4,1.2,'T',{x:.72,y:.3,m:.85,r:.38,ta:0}],[23.5,1.2,'H',{x:.72,y:.74,m:.8,r:.38}],[23.3,1.4,'ear',{x:.5,y:.5}],[25.6,1.0,'T',{ta:.6,h:35}],
+   // grateful for every living tree … shared memories
+   [27.0,2.4,'field',{G:1.6}],[28.8,2.4,'ear',{x:.82,y:.82}],[33.6,2.6,'Q',{m:0}],
+   // this is brotherhood: all motion stills, three equal cells · narrow differences: they draw together
+   [35.6,.7,'field',{G:6}],[35.6,.8,'R',{x:.3,y:.38,r:.36,m:.85}],[35.6,.8,'T',{x:.7,y:.38,r:.36,m:.85,ta:0}],[35.6,.8,'H',{x:.5,y:.78,r:.36,m:.85}],[35.6,1,'ear',{x:.84,y:.84}],
+   [39.2,2.2,'field',{G:1.2}],[39.2,2.2,'R',{x:.42,y:.42}],[39.2,2.2,'T',{x:.58,y:.42}],[39.2,2.2,'H',{x:.5,y:.6}],[41.3,.4,'T',{e:.3}],[42.2,1.2,'T',{e:0}],
+   // we can place our ears upon the next brother's soul: the ear goes from one to the next, and hears each
+   [44.4,1.4,'ear',{x:.58,y:.42}],[45.0,.6,'T',{e:.28}],[46.0,1.2,'ear',{x:.5,y:.62}],[46.0,.8,'T',{e:0}],[46.2,.6,'H',{e:.25}],[47.4,1,'H',{e:0}],
+   // paths of hilltops and canyons · blinding lights · infinite nights · all too familiar
+   [47.2,2.4,'Mt',{m:.85,r:.75}],[47.2,2.4,'field',{veil:.5}],[47.2,2,'H',{m:0}],[47.2,2,'T',{m:.3}],[50.9,.6,'Mt',{r:.9,m:1}],[50.9,.6,'field',{veil:.75}],[52.6,1.2,'Nt',{m:.95}],[52.6,1.2,'Mt',{m:0}],[53.2,1.6,'Nt',{ta:.45}],
+   [55.0,2.0,'Nt',{m:0}],[55,2,'field',{veil:0}],[55.2,2,'T',{m:.85,r:.55,ta:0}],
+   // laughter and football and recollections that bring us back home every time
+   [58.8,1.2,'ear',{x:.8,y:.8}],[60.2,1.6,'T',{r:.7,ta:.35,h:38}],[63.7,1.6,'H',{m:.5,r:.4}],[63.8,1.4,'R',{ta:.35,r:.4}],
+   [65.4,1.6,'T',{m:0}],[65.4,1.6,'H',{m:0}],[65.6,1.4,'S',{m:0}],[65.6,1.4,'X',{m:0}],[66.4,1.0,'R',{m:0}]]},
+ '13':{title:'How to Win My Heart',c0:1.5,c1:102.6,
+  cast:[{id:'R',key:'R13'},{id:'Sky',key:'W06',map:[[6,3]]},{id:'Ice',key:'Wpoemwalk-cel020',map:[[9.5,25],[20,35.5],[54.5,40],[72,57.5],[72.05,30]]},
+    {id:'Y',key:'R13',far:true,map:[[27.5,3]]},{id:'Aud',key:'R13',far:true,map:[[29.8,30]]},{id:'Fu',key:'R13',far:true,map:[[24.8,96.6],[97.6,97.6]]},{id:'S',key:'S13'},{id:'X',key:'X13'}],
+  init:{R:{x:.42,y:.38,m:.9,r:.08,h:30},Sky:{x:.5,y:.3,m:0,r:.6,h:260},Ice:{x:.55,y:.82,m:0,r:.35},Y:{x:.2,y:.5,m:0,r:.22,h:205,ta:.5},Aud:{x:.62,y:.76,m:0,r:.3,h:30,ta:.2},Fu:{x:.86,y:.2,m:0,r:.07,h:45,ta:.25},S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5}},
+  cues:[
+   // I want you to notice me in a corner cafe: we see him only through a small window
+   [2.9,1.0,'R',{r:.16}],[4.8,1.2,'R',{r:.12}],
+   // at the Harbor of the Heavens, wandering in thought, discovering water on Jupiter's moons
+   [6.5,2.4,'Sky',{m:.8,r:.7}],[6.5,2.4,'R',{r:.22}],[8.6,2,'R',{r:.3}],[10.0,1.8,'Ice',{m:.7,r:.35}],
+   // healing the sick with silent prayers … every pulsing beat … after walking alone
+   [12.6,1.8,'Sky',{m:0}],[12.6,1.8,'Ice',{m:0}],[13.6,1.6,'R',{r:.34,ta:.2}],[18.3,.12,'R',{r:.42}],[18.45,.3,'R',{r:.34}],[19.0,.12,'R',{r:.42}],[19.15,.3,'R',{r:.34}],[20.2,1.0,'R',{r:.2}],
+   // I don't want you to really notice me · but the distance: a far window, the room at the very end of his reading
+   [23.0,1.0,'R',{r:.07,m:.6}],[24.8,1.8,'Fu',{m:.75}],
+   // our younger selves watching and dreaming · our elders clutch their pearls, hold their faith and breath closely, free their worries peacefully
+   [27.6,1.6,'Y',{m:.55}],[29.4,1.2,'R',{r:.2,m:.8}],[30.0,1.6,'Aud',{m:.7}],
+   [32.4,1.0,'R',{r:.14}],[32.4,1.0,'Aud',{r:.22}],[32.4,1.0,'Y',{r:.16}],[34.7,1.6,'R',{r:.3}],[34.7,1.6,'Aud',{r:.36}],[34.7,1.6,'Y',{r:.26}],[34.7,1.6,'field',{G:1.2}],
+   // I've journeyed beyond any place you could conceivably be
+   [37.4,2.4,'Sky',{m:.75,r:.8,x:.55,y:.35}],[37.4,2.4,'field',{veil:.45}],[37.6,2,'Aud',{m:0}],[37.6,2,'Y',{m:0}],[41.4,1.4,'Sky',{m:0}],[41.4,1.4,'field',{veil:0,G:1.6}],
+   // life has burned all my love stories · all ends led to losses · victory-less seasons · a man that just wanted one win · I could celebrate forever
+   [43.6,1.0,'R',{ta:.8,h:18,r:.36}],[43.6,1.0,'field',{tang:.55}],[43.6,1.0,'Ice',{m:.6,x:.66,y:.55,r:.35,ta:.85,h:15}],[45.4,1.6,'field',{tang:0}],[45.5,2,'Ice',{m:0}],[47.5,1.2,'R',{m:.6,ta:0}],
+   [48.6,.9,'field',{G:10}],[48.6,1,'Y',{m:.6,x:.18,y:.36,r:.3,ta:.6}],[48.7,1,'Aud',{m:.6,x:.78,y:.7,r:.3,ta:.6,h:210}],[50.8,1.0,'R',{m:.95,r:.45}],[50.8,1,'Y',{m:.3}],[50.8,1,'Aud',{m:.3}],
+   [51.8,1.6,'field',{G:1.6}],[51.8,1.4,'R',{ta:.4,h:45}],[52.4,1.6,'Y',{m:0}],[52.4,1.6,'Aud',{m:0}],
+   // ice has frozen and thawed friendships in death and departure
+   [54.8,.8,'Ice',{m:.85,x:.62,y:.5,r:.6,ta:.6,h:200}],[54.8,.6,'field',{G:12}],[54.9,1,'R',{ta:.5,h:200,r:.3}],[55.8,1.4,'field',{G:1.4}],[57.4,2,'Ice',{x:.95,m:0}],
+   // I've learned to love myself more … more brilliant than the scarlet poppies and purple blossoms that time and tears have disclaimed
+   [59.6,1.8,'R',{r:.45,ta:.3,h:35,m:.95}],[66.2,1.2,'R',{ta:.45,h:50}],[67.2,1.0,'Ice',{x:.7,y:.7,m:.8,r:.4,ta:.85,h:355}],[68.4,1.0,'Sky',{x:.25,y:.25,m:.7,r:.4,ta:.7,h:285}],
+   [70.2,2.2,'Ice',{m:0}],[70.2,2.2,'Sky',{m:0}],[70.6,2,'R',{ta:.1}],
+   // yet from a distant window, beautiful and calm, hope tells me you'll see me
+   [74.8,1.4,'Fu',{m:.95,r:.1}],[76.6,1.6,'field',{G:1.2}],[76.6,1.6,'R',{r:.36}],[78.2,2.4,'Fu',{x:.74,y:.28,r:.2}],
+   // and if you notice me, it captured my eyes · as you refocused yours · stepping back · letting them say hello
+   [81.9,.7,'R',{r:.12}],[81.9,.5,'field',{G:8}],[83.2,1.4,'field',{G:1.6}],[83.2,1.6,'R',{r:.48}],[85.0,1.4,'R',{r:.36}],[86.0,1.6,'Fu',{x:.68,y:.42,r:.34}],
+   // all the fatigue of wandering alone … windless seasons … scarlet poppies: each returns once, faint
+   [88.5,2.4,'Y',{m:.3,x:.15,y:.4}],[90.8,1.6,'Sky',{m:.3,x:.2,y:.2,ta:0}],[93.4,1.4,'Ice',{m:.4,x:.8,y:.8,ta:.85,h:355}],[95.6,1.6,'Y',{m:0}],[95.6,1.6,'Sky',{m:0}],[95.6,1.6,'Ice',{m:0}],
+   // won't prevent me from sharing a smile: the far window, slowed all along, reaches this moment and meets him
+   [96.2,1.6,'Fu',{x:.44,y:.4,r:.4,m:.6}],[97.8,1.4,'Fu',{m:0}],[98.0,1.6,'R',{r:.5,ta:.35,h:40}],
+   [100.6,1.4,'S',{m:0}],[100.6,1.4,'X',{m:0}],[101.4,1.0,'R',{m:0}]]},
+ '14':{title:'Hot Minute',c0:1.5,c1:72.8,
+  cast:[{id:'R',key:'R14'},{id:'Con',key:'W06',map:[[4,2]]},{id:'Door',key:'Wpoemwalk-cel020',map:[[9,34.5],[11,36.5],[65.5,34.6],[69,38]]},{id:'Ml',key:'Wmagic-ride',map:[[32.4,18]]},
+    {id:'E1',key:'R14',far:true,txt:true,map:[[54.8,9.2]]},{id:'Dn',key:'R14',far:true,map:[[57,4.5]]},{id:'Dawn',key:'Wprobe-spin',map:[[61,0]]},{id:'S',key:'S14'},{id:'X',key:'X14'}],
+  init:{R:{x:.42,y:.38,m:.9,r:.42,h:30},Con:{x:.5,y:.3,m:0,r:.6},Door:{x:.8,y:.45,m:0,r:.4},Ml:{x:.5,y:.4,m:0,r:.5},E1:{x:.76,y:.3,m:0,r:.22,h:210,ta:.4},Dn:{x:.7,y:.5,m:0,r:.3,h:15,ta:.2},Dawn:{x:.65,y:.35,m:0,r:.5,h:20,ta:.2},S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5}},
+  cues:[
+   // don't make me leave and go where promises, hearts, spectrums of light-filled constellations are broken
+   [2.4,1.2,'R',{r:.5,m:1}],[5.8,1.6,'Con',{m:.8,r:.65}],[5.8,1.6,'R',{r:.34}],[6.6,1.2,'Con',{ta:.5,h:200}],[7.1,1.0,'Con',{h:300}],[8.0,.15,'field',{G:12}],
+   // I escaped here for a reason: the gate shows, and closes · a sharpened key · a more grounded vibrato
+   [9.4,1.2,'Con',{m:0}],[9.4,1.2,'field',{G:1.6}],[9.4,1.2,'R',{ta:.3,r:.4}],[9.5,.8,'Door',{m:.8}],[10.4,1.0,'Door',{r:.01,m:0}],
+   [13.8,.3,'field',{G:6}],[14.3,1,'field',{G:1.6}],[16.5,.1,'R',{r:.46}],[16.65,.1,'R',{r:.4}],[16.8,.1,'R',{r:.46}],[16.95,.1,'R',{r:.4}],[17.1,.1,'R',{r:.45}],[17.25,.3,'R',{r:.4}],
+   // the way you see things felt safe and timeless · whatever has terminated this moment · damn you
+   [21.6,1.8,'R',{r:.5,ta:.35}],[25.4,.1,'field',{G:12}],[25.4,.12,'R',{r:.2,m:.55,ta:0}],[27.3,.3,'R',{ta:.65,h:0}],
+   // let it feel love · and loss · as we must endure
+   [29.6,.8,'R',{ta:.4,h:35,r:.36,m:.9}],[29.6,1,'field',{G:1.6}],[30.6,.8,'R',{h:215}],[31.9,1,'R',{ta:.1}],
+   // absent artificial escapes and machine-learning strengths … our highs and our lows as your source material
+   [33.6,1.0,'Ml',{m:.9,r:.6}],[33.6,1,'field',{tang:.7}],[37.8,.6,'Ml',{y:.2}],[38.8,.6,'Ml',{y:.8}],[40.0,1.4,'field',{tang:0}],[40.0,1.6,'Ml',{m:0}],
+   // battle scars · the wisdom that brushes great tones into our melanin · disappointments and defeat · I trust that you'll be fine
+   [44.6,.3,'field',{G:10}],[44.6,.4,'R',{r:.3}],[47.8,1.6,'field',{G:1.6}],[47.8,2,'R',{ta:.55,h:28,r:.42}],[51.6,1.2,'R',{m:.6}],[53.1,1.2,'R',{m:.95,r:.5,ta:.25}],
+   // I escaped here for a reason, again: the first time returns, far away, with its own words
+   [54.9,.8,'E1',{m:.6}],[55.0,.5,'E1',{e:.35}],[56.4,1.2,'E1',{m:0,e:0}],
+   // our dance together … to entwine muses: two moments of him trade places · twisted dawns · a hot minute
+   [57.3,1.0,'Dn',{m:.75,r:.32}],[57.3,5,'Dn',{x:.3,y:.6}],[57.3,5,'R',{x:.55,y:.32}],[61.2,1.2,'Dawn',{m:.85,r:.6}],[62.4,.8,'field',{tang:.5}],[62.4,1,'Dawn',{ta:.6}],[63.7,.6,'R',{ta:.8,h:12}],[63.7,.6,'Dn',{ta:.8,h:12}],
+   // a genesis of a new testament · as this ends: the gate again, closing
+   [65.0,1.4,'field',{tang:0,veil:.5}],[65.0,1.4,'Dn',{m:0}],[66.6,1.0,'Door',{x:.6,y:.45,m:.9,r:.6}],[66.6,1.0,'Dawn',{m:0}],[66.6,1,'field',{veil:0}],[66.6,1.2,'R',{x:.42,y:.38,ta:0}],[67.8,.9,'Door',{r:.01,m:0}],
+   [69.6,1.4,'S',{m:0}],[69.6,1.4,'X',{m:0}],[71.0,1.6,'R',{m:0}]]}};
+let SC=null;
 function segAt(a,i,c){return lerp(a.sv[i],a[i][2],smo((c-a[i][0])/Math.max(.001,a[i][1])))}
-function val(w,q,c){const a=TRK[w+'.'+q];if(!a)return INIT[w][q];let i=-1;for(let j=0;j<a.length;j++){if(a[j][0]<=c)i=j;else break}return i<0?(a.sv[0]):segAt(a,i,c)}
-function roles(){const o={};for(const w in ROLE)o[w]=NODES.find(k=>k.s.key===ROLE[w])||null;return o}
-function applyDemo(c){const ro=roles();FMP.G=val('field','G',c);FMP.veil=val('field','veil',c);FMP.tang=val('field','tang',c);EAR.x=val('ear','x',c);EAR.y=val('ear','y',c);EAR.drag=EAR.glide=null;EAR.vx=EAR.vy=0;
-  for(const w of ['R','G','C','M','F','S','X']){const k=ro[w];if(!k)continue;const I=INIT[w];k.on=true;k.link=true;k.drag=null;k.vx=k.vy=0;k.x=val(w,'x',c);k.y=val(w,'y',c);k.level=val(w,'m',c);
-    if('r' in I){k.reach=val(w,'r',c);k.rS=k.reach}if('h' in I){k.ta=val(w,'ta',c);k.hue=k.ta>.01?val(w,'h',c):null;k.col=k.hue==null?0:k.hue/360}k.echo='e' in I?val(w,'e',c):0;
-    k.mS=k.level*(inTake(k)?1:0);for(const d of KNOBS)k.kS[d.id]=k[d.id]}
+function initOf(sc,w,q){const I=sc.init[w]||{};if(q in I)return I[q];if(w==='ear')return .5;if(w==='field')return{G:1.6,veil:0,tang:0}[q];return DEFV[q]}
+function tracks(sc){if(sc.trk)return;sc.trk={};for(const cue of sc.cues)for(const[q,v]of Object.entries(cue[3])){const id=cue[2]+'.'+q;(sc.trk[id]=sc.trk[id]||[]).push([cue[0],cue[1],v])}
+  for(const id in sc.trk){const a=sc.trk[id].sort((x,y)=>x[0]-y[0]),[w,q]=id.split('.'),v0=initOf(sc,w,q);a.sv=[];for(let i=0;i<a.length;i++)a.sv[i]=i?segAt(a,i-1,a[i][0]):v0}}
+function val(w,q,c){const a=SC.trk[w+'.'+q];if(!a)return initOf(SC,w,q);let i=-1;for(let j=0;j<a.length;j++){if(a[j][0]<=c)i=j;else break}return i<0?a.sv[0]:segAt(a,i,c)}
+const byRid=id=>NODES.find(k=>k.rid===id)||null;
+function castScore(sc){tracks(sc);while(NODES.length)removeNode(NODES[0]);for(const m of sc.cast){const s=SK[m.key];if(!s)continue;const I=sc.init[m.id]||{};
+    makeNode(m.key,{rid:m.id,far:!!m.far,map:m.map||null,x:I.x??.5,y:I.y??.5,level:0,route:{pic:!!s.pic,snd:!!s.snd&&s.kind!=='world'&&!m.far,txt:!!m.txt||(s.kind==='reading'&&!m.far)}})}
+  ANC=byRid('R');SEL=ANC}
+function applyDemo(c){FMP.G=val('field','G',c);FMP.veil=val('field','veil',c);FMP.tang=val('field','tang',c);EAR.x=val('ear','x',c);EAR.y=val('ear','y',c);EAR.drag=EAR.glide=null;EAR.vx=EAR.vy=0;
+  for(const m of SC.cast){const k=byRid(m.id);if(!k)continue;const w=m.id;k.on=true;k.link=true;k.drag=null;k.vx=k.vy=0;k.x=val(w,'x',c);k.y=val(w,'y',c);k.level=val(w,'m',c);k.reach=val(w,'r',c);k.rS=k.reach;
+    k.ta=val(w,'ta',c);k.hue=k.ta>.01?val(w,'h',c):null;k.col=k.hue==null?0:k.hue/360;k.echo=val(w,'e',c);k.mS=k.level*(inTake(k)?1:0);for(const d of KNOBS)k.kS[d.id]=k[d.id]}
   let best='gravity',bd=1e9;for(const m of FMODES){const T=FMT[m],d=Math.abs(Math.log(T.G/FMP.G))+Math.abs(T.veil-FMP.veil)*3+Math.abs(T.tang-FMP.tang)*3;if(d<bd){bd=d;best=m}}
   if(best!==FM){FM=best;$('fmodes').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.m===FM))}}
-function startDemo(){if(POEM!==DEMO.poem||!roles().R){loadPoem(DEMO.poem);setTimeout(startDemo,1200);return}ensureAC();const ro=roles();for(const k of NODES){k.loop=null;k.mom=0;k.tone=0;applyTone(k);k.route.snd=k.s.kind!=='world'}
-  ANC=ro.R;SEL=ro.R;seekD(ro.R,DEMO.c0);playD(ro.R,true);ro.R.spd=1;DEMO.on=true;DEMO.t0=performance.now();applyDemo(DEMO.c0);$('demo').classList.add('on');buzz([10,40,10],true)}
+function startDemo(){const n=SCORES[POEM]?POEM:'10';SC=SCORES[n];POEM=n;poemUI();castScore(SC);layout();DEMO.c0=SC.c0;DEMO.c1=SC.c1;DEMO.len=SC.c1-SC.c0;applyDemo(SC.c0);$('demo').classList.add('on');
+  setTimeout(()=>{const R=byRid('R');if(!R)return;ensureAC();seekD(R,SC.c0);playD(R,true);R.spd=1;DEMO.on=true;DEMO.t0=performance.now();buzz([10,40,10],true)},900)}
 function stopDemo(){DEMO.on=false;$('demo').classList.remove('on');for(const k of NODES)k.echo=0;save()}
 /* live: the score follows the reading's own clock, so every gesture lands on its word */
-function demoTick(now){if(!DEMO.on)return;const ro=roles();if(!ro.R){stopDemo();return}const c=tD(ro.R);ANC=ro.R;SEL=ro.R;if(!playing(ro.R))playD(ro.R,true);
+function demoTick(now){if(!DEMO.on)return;const R=byRid('R');if(!R){stopDemo();return}const c=tD(R);ANC=R;if(!playing(R))playD(R,true);
   DEMO.t0=now-(c-DEMO.c0)*1000;if(c>=DEMO.c1){stopDemo();for(const k of NODES)k.motor=0;return}applyDemo(c)}
 /* offline: every source at exactly the frame's time, the same shader, and the sound mix the tool computes for that frame */
-DEMO.renderAt=async function(t){OFFLINE=true;const c=DEMO.c0+t,ro=roles(),waits=[];ANC=ro.R;
-  for(const k of NODES){const mt=fromClock(k.s,c),tt=clamp(mt,0,k.s.dur-.05);k._mt=mt;for(const e of k.els)if(!e.paused)e.pause();
+DEMO.renderAt=async function(t){OFFLINE=true;const c=DEMO.c0+t,R=byRid('R'),waits=[];ANC=R;
+  for(const k of NODES){const mt=nodeTime(k,c),tt=clamp(mt,0,k.s.dur-.05);k._mt=mt;for(const e of k.els)if(!e.paused)e.pause();
     const v=k.els[0];if(Math.abs(v.currentTime-tt)>1e-3){if(k.s.video)waits.push(new Promise(r=>{const to=setTimeout(r,2500);v.addEventListener('seeked',()=>{clearTimeout(to);r()},{once:true})}));for(const e of k.els)e.currentTime=tt}}
-  await Promise.all(waits);DEMO.on=true;applyDemo(c);field();drawOut();compose();const duck=duckAt(ro.R.s,c);const mix=NODES.map(k=>({key:k.s.key,kind:k.s.kind,files:k.s.files,mt:k._mt,dur:k.s.dur,g:gainOf(k,duck)}));DEMO.on=false;
+  await Promise.all(waits);DEMO.on=true;applyDemo(c);field();drawOut();compose();const duck=duckAt(R.s,c);const mix=NODES.map(k=>({g:gainOf(k,duck),mt:k._mt}));DEMO.on=false;
   return{img:rc.toDataURL('image/jpeg',.9),mix}};
-DEMO.prepare=function(w,h){OFFLINE=true;sizeOut(w,h);for(const k of NODES)k.route.snd=k.s.kind!=='world';return NODES.map(k=>k.s.key)};
+DEMO.prepare=function(w,h,poem){OFFLINE=true;SC=SCORES[poem];POEM=poem;castScore(SC);DEMO.c0=SC.c0;DEMO.c1=SC.c1;DEMO.len=SC.c1-SC.c0;sizeOut(w,h);
+  return{len:DEMO.len,c0:SC.c0,nodes:NODES.map(k=>({rid:k.rid,key:k.s.key,kind:k.s.kind,files:k.s.files,far:!!k.far,map:k.map||null,sync:k.s.sync||null,speech:k.s.speech||null,dur:k.s.dur}))}};
 /* ===== persistence ===== */
 function save(){try{localStorage.setItem(STORE,JSON.stringify({poem:POEM,fm:FM,stage:STAGE,eye:EYE,sel:NODES.indexOf(SEL),anc:NODES.indexOf(ANC),ear:{x:EAR.x,y:EAR.y},n:NODES.map(snap)}))}catch(e){}}
 function restore(){let sv=null;try{sv=JSON.parse(localStorage.getItem(STORE)||'null')}catch(e){sv=null}if(!sv||!Array.isArray(sv.n)||!sv.n.length)return false;
   if(FMODES.includes(sv.fm))FM=sv.fm;STAGE=!!sv.stage;EYE=sv.eye!==false;POEM=typeof sv.poem==='string'?sv.poem:null;if(sv.ear){EAR.x=clamp(+sv.ear.x||.5,.03,.97);EAR.y=clamp(+sv.ear.y||.5,.04,.96)}
   const n01=(v,d)=>Number.isFinite(+v)?clamp(+v,0,1):d;
-  sv.n.slice(0,MAXN).forEach(d=>{if(!d||!SK[d.key])return;makeNode(d.key,{on:d.on!==false,link:d.link!==false,route:d.route&&typeof d.route==='object'?{pic:!!d.route.pic,snd:!!d.route.snd,txt:!!d.route.txt}:undefined,level:n01(d.level,.75),reach:n01(d.reach,.45),tone:clamp(+d.tone||0,-1,1),col:n01(d.col,0),x:clamp(n01(d.x,.5),.03,.97),y:clamp(n01(d.y,.5),.04,.96)})});
+  sv.n.slice(0,MAXN).forEach(d=>{if(!d||!SK[d.key])return;makeNode(d.key,{rid:typeof d.rid==='string'?d.rid:undefined,far:!!d.far,map:Array.isArray(d.map)&&d.map.every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite))?d.map:null,on:d.on!==false,link:d.link!==false,route:d.route&&typeof d.route==='object'?{pic:!!d.route.pic,snd:!!d.route.snd,txt:!!d.route.txt}:undefined,level:n01(d.level,.75),reach:n01(d.reach,.45),tone:clamp(+d.tone||0,-1,1),col:n01(d.col,0),x:clamp(n01(d.x,.5),.03,.97),y:clamp(n01(d.y,.5),.04,.96)})});
   SEL=NODES[sv.sel]||NODES[0]||null;ANC=NODES[sv.anc]||null;return NODES.length>0}
 /* ===== the one loop ===== */
 let lastT=0,lastPlay=null;

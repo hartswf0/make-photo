@@ -257,3 +257,26 @@ The `VOID` term stands for black and silence, so a light or distant mass fades i
 | blissful and oddly *innocent* | the opening composition again, in rhyme |
 | *double-click* | the field snaps twice |
 | the *magic* still *exists* | the far voice answers; the world goes; he is last |
+
+## Revision 9 · scores for the next poems
+
+*Need:* poems 13 and 14 have no reels, 11 has one wordless 20 s walk, and 12 has two reels that carry his voice. A score has to find its material in the meaning.
+
+*Two new kinds of cast member:*
+- **A time-shifted copy of his reading** (`far: true`, `map`). It is the same clip at another moment: his younger self, the room listening, the end of the reading seen early through a far window, or his first saying of a line that he repeats. Its voice is never dry; it goes only to the distance bus, and only when the score asks.
+- **A borrowed reel** (`map`), taken from another poem where his words point to it: Atlantis for a temple and a flame, the 06 walk's gate and its waterfall of letters, the LiDAR street for "machine learning", a sunlit city for dawn.
+
+`map` is a list of `[clock, source time]` anchors (slope 1 outside them; a jump is two anchors close together). It overrides a reel's own sync. `nodeTime` and `nodeRate` replace `fromClock` and `stretchOf` wherever a node's time is needed.
+
+*Burned-in text:* street walks lose their bottom band (crop 0.93), the 06 walks and probes are cropped from the centre (0.88), magic-ride loses its subtitles (0.84).
+
+*Scores* (`SCORES` in `index.html`; frames in `scores/`):
+
+| Poem | Idea | A few cues |
+|---|---|---|
+| 11 New Day | a liturgy of light | wings rise on "higher power"; a flame shrinks on "diminishing"; the memorial walk on "remnants of the destruction"; blocks on "rebuild this temple"; three refrains raise the dawn in three steps; everything gathers on "this sacred place" |
+| 12 Reunion | the brothers | other takes' voices only on "loud voices so our hearts can be overheard"; one cold room on "afterlives"; four cells on "we're all here"; stillness on "brotherhood"; the ear moves brother to brother on "the next brother's soul" |
+| 13 How to Win My Heart | being seen | he is shown through a window that opens and closes with being noticed; the end of the reading, slowed, creeps forward from a far corner and meets him on "smile" |
+| 14 Hot Minute | a door and a dance | a gate closes on "I escaped here for a reason"; on the second saying, the first returns far away with its words; two moments of him trade places on "our dance" |
+
+Poem numbers with a score wear a gold ring; ✦ plays the score for the poem on screen.
