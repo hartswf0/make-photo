@@ -26,6 +26,14 @@ import {
   SimpleOrbitControls as OrbitControls,
   SimpleLabelProjector,
 } from './hdl-compiler.js';
+import {
+  createHeroOrCastV9,
+  evolveHeroPhenotype,
+} from '../hero-build/anny-hero-v9.js';
+import {
+  createArticulated31CutoutRig,
+  evolveCutoutPhenotype,
+} from '../hero-build/cutout-31-rig.js';
 
 const $ = (id) => document.getElementById(id);
 const gltfLoader = new GLTFLoader();
@@ -301,12 +309,66 @@ scene.add(promenadeEnv.env);
 // Siting Coordinates for All 6 Compiled HDL Hero Buildings Along the Promenade
 // ---------------------------------------------------------------------------
 const HERO_SITING = {
-  severn: { ox: -32.0, oz: 0.0, residentName: 'Imani (Courier)', archetype: 'adult_f', coatHex: '#354457' },
-  rowhouse: { ox: -9.5, oz: 0.0, residentName: 'Tadesse (Rowhouse Tenant)', archetype: 'adult_m', coatHex: '#6c4f3d' },
-  clocktower: { ox: -2.0, oz: 0.5, residentName: 'Makeda (Timekeeper)', archetype: 'elder', coatHex: '#753e45' },
-  chapel: { ox: 7.5, oz: 0.5, residentName: 'Miriam (Chapel Cantor)', archetype: 'adult_f', coatHex: '#3e5468' },
-  marquee: { ox: 19.0, oz: 0.0, residentName: 'June (Cinema Usher)', archetype: 'child7', coatHex: '#c36539' },
-  cafe: { ox: 38.5, oz: 2.0, residentName: 'Dawit (Pier Host)', archetype: 'adult_m', coatHex: '#8c5438' },
+  severn: {
+    ox: -32.0,
+    oz: 0.0,
+    residentName: 'Imani (Courier)',
+    role: 'imani',
+    archetype: 'adult_f',
+    coatHex: '#354457',
+    homeClip: 'carry',
+    altClip: 'greet',
+  },
+  rowhouse: {
+    ox: -9.5,
+    oz: 0.0,
+    residentName: 'Tadesse (Rowhouse Tenant)',
+    role: 'tadesse',
+    archetype: 'adult_m',
+    coatHex: '#6c4f3d',
+    homeClip: 'greet',
+    altClip: 'idle-talking',
+  },
+  clocktower: {
+    ox: -2.0,
+    oz: 0.5,
+    residentName: 'Makeda (Timekeeper)',
+    role: 'makeda',
+    archetype: 'elder',
+    coatHex: '#753e45',
+    homeClip: 'listen',
+    altClip: 'pump',
+  },
+  chapel: {
+    ox: 7.5,
+    oz: 0.5,
+    residentName: 'Miriam (Chapel Cantor)',
+    role: 'miriam',
+    archetype: 'adult_f',
+    coatHex: '#3e5468',
+    homeClip: 'pray',
+    altClip: 'pray',
+  },
+  marquee: {
+    ox: 19.0,
+    oz: 0.0,
+    residentName: 'June (Cinema Usher)',
+    role: 'june',
+    archetype: 'child7',
+    coatHex: '#c36539',
+    homeClip: 'dance',
+    altClip: 'clap',
+  },
+  cafe: {
+    ox: 38.5,
+    oz: 2.0,
+    residentName: 'Dawit (Pier Host)',
+    role: 'dawit',
+    archetype: 'adult_m',
+    coatHex: '#8c5438',
+    homeClip: 'sit-talk',
+    altClip: 'sit-talk',
+  },
 };
 
 function getDoorX(H) {
@@ -322,7 +384,8 @@ function getDoorX(H) {
 }
 
 // ---------------------------------------------------------------------------
-// Clothed 1.70m Anny V8 Threshold Residents Across All 6 Hero Buildings + Severn Parcel
+// Upgraded V9 Waterfront Cast (All 7 Threshold Characters) + V9 Poet Hero
+// + Toggleable 31-Part Brass-Pivot Cutout Hero beside The NEW SINGLE / Chapel
 // ---------------------------------------------------------------------------
 const humanGroup = new THREE.Group();
 scene.add(humanGroup);
@@ -342,7 +405,24 @@ const parcelMesh = new THREE.Group();
 scene.add(parcelMesh);
 
 const scaleActors = [];
-function createPromenadeResident({ id, heroIdx, name, archetype, coatHex, withStadiaRod = false }) {
+function createPromenadeResident({
+  id,
+  heroIdx,
+  role = 'chorus',
+  name,
+  archetype,
+  coatHex,
+  homeClip = 'idle',
+  altClip = 'listen',
+  wingsMode = 'off',
+  glasses = false,
+  prop = 'none',
+  seed = 1,
+  withStadiaRod = false,
+  withCafeSeat = false,
+  customAction = 'resident',
+  customWhisper = null,
+}) {
   const root = new THREE.Group();
   humanGroup.add(root);
 
@@ -363,7 +443,7 @@ function createPromenadeResident({ id, heroIdx, name, archetype, coatHex, withSt
   // Calibrated 1.70m surveyor stadia rod beside Severn exterior courier
   if (withStadiaRod) {
     const rod = new THREE.Group();
-    rod.position.set(-0.55, 0, 0);
+    rod.position.set(0.55, 0, 0);
     for (let s = 0; s < 5; s++) {
       const seg = new THREE.Mesh(
         new THREE.BoxGeometry(0.05, 0.34, 0.05),
@@ -375,61 +455,131 @@ function createPromenadeResident({ id, heroIdx, name, archetype, coatHex, withSt
     root.add(rod);
   }
 
-  const hitCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 1.86, 10), hitInvisibleMat);
-  hitCyl.position.y = 0.93;
+  // Diegetic timber & brass bistro chair + harbor cafe table for Dawit's 'sit-talk' clip at The Pier Cafe
+  if (withCafeSeat) {
+    const cafeSet = new THREE.Group();
+    const walnutMat = new THREE.MeshStandardMaterial({ color: '#5c3c24', roughness: 0.64 });
+    const brassTrim = new THREE.MeshStandardMaterial({ color: '#d8b268', roughness: 0.28, metalness: 0.84 });
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.045, 0.44), walnutMat);
+    seat.position.set(0, 0.45, -0.14);
+    seat.castShadow = true;
+    cafeSet.add(seat);
+    const backrest = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.42, 0.04), walnutMat);
+    backrest.position.set(0, 0.68, -0.34);
+    cafeSet.add(backrest);
+    for (const [lx, lz] of [[-0.19, -0.32], [0.19, -0.32], [-0.19, 0.04], [0.19, 0.04]]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.018, 0.45, 8), brassTrim);
+      leg.position.set(lx, 0.225, lz);
+      cafeSet.add(leg);
+    }
+    // Small harbor bistro table & warm porcelain cup beside Dawit
+    const tblTop = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.035, 18), walnutMat);
+    tblTop.position.set(-0.56, 0.68, 0.32);
+    tblTop.castShadow = true;
+    const tblPed = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.66, 10), brassTrim);
+    tblPed.position.set(-0.56, 0.33, 0.32);
+    const tblFoot = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.20, 0.03, 14), brassTrim);
+    tblFoot.position.set(-0.56, 0.015, 0.32);
+    const cup = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.042, 0.034, 0.065, 12),
+      new THREE.MeshStandardMaterial({ color: '#f4efe4', roughness: 0.3 })
+    );
+    cup.position.set(-0.48, 0.73, 0.28);
+    cafeSet.add(tblTop, tblPed, tblFoot, cup);
+    root.add(cafeSet);
+  }
+
+  const hitCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 1.88, 10), hitInvisibleMat);
+  hitCyl.position.y = 0.94;
   registerTarget(hitCyl, {
-    action: 'resident',
+    action: customAction,
     heroIdx,
     residentId: id,
     name,
-    anchor: new THREE.Vector3(0, 1.92, 0),
+    anchor: new THREE.Vector3(0, 1.94, 0),
     isLocalAnchor: true,
-    getWhisper: () =>
-      id === 'severn-courier' || id === 'severn-keeper'
-        ? `${name} (1.70m Anny V8) - click to hand off Severn parcel`
-        : `${name} at ${HD.heroes[heroIdx]?.name || 'Threshold'} - click to speak`,
+    getWhisper:
+      customWhisper ||
+      (() =>
+        id === 'severn-courier' || id === 'severn-keeper'
+          ? `${name} (1.72m V9 Cast) - click to hand off Severn parcel`
+          : `${name} at ${HD.heroes[heroIdx]?.name || 'Threshold'} - click to speak`),
   });
   root.add(hitCyl);
 
-  const entry = { id, heroIdx, name, root, proxy, v8: null };
+  const entry = {
+    id,
+    heroIdx,
+    role,
+    name,
+    root,
+    proxy,
+    v9: null,
+    v8: null,
+    groundY: 0,
+    baseRotY: Math.PI,
+    homeClip,
+    altClip,
+    activeClip: homeClip,
+    speakStart: 0,
+    speakUntil: 0,
+    spokenText: '',
+    gestureUntil: 0,
+    gestureClip: 'greet',
+    seed,
+  };
   scaleActors.push(entry);
 
-  if (typeof window !== 'undefined' && window.AnnyHumanV7?.createCharacter) {
-    window.AnnyHumanV7.createCharacter({
-      THREE,
-      loader: gltfLoader,
-      archetype,
-      assetBaseUrl: '../../abyssinian-highlands/human-forge/assets',
-      clipsBaseUrl: '../../motion-pipeline/mesh2motion/clips',
-      clothed: true,
-      groundY: 0,
-      preloadClips: ['idle', 'walk', 'idle-talking'],
-      initialClip: 'idle',
+  createHeroOrCastV9({
+    THREE,
+    loader: gltfLoader,
+    role,
+    archetype,
+    wingsMode,
+    glasses,
+    prop,
+    groundY: 0,
+    seed,
+    initialClip: homeClip,
+  })
+    .then((inst) => {
+      if (!inst) return;
+      inst.root.position.set(0, 0, 0);
+      inst.root.rotation.set(0, 0, 0);
+      root.add(inst.root);
+      proxy.visible = false;
+      entry.v9 = inst;
+      entry.v8 = inst;
+      inst.setGroundY(entry.groundY);
     })
-      .then((inst) => {
-        if (!inst) return;
-        inst.root.position.set(0, 0, 0);
-        root.add(inst.root);
-        proxy.visible = false;
-        entry.v8 = inst;
-        inst.setGroundY(0);
-      })
-      .catch((err) => {
-        console.warn('Anny V8 load error:', err);
-      });
-  }
+    .catch((err) => {
+      console.warn('Promenade V9 load warning:', err);
+    });
+
   return entry;
 }
 
 const residentByHeroIdx = HD.heroes.map((h, idx) => {
-  const site = HERO_SITING[h.id] || { residentName: 'Resident', archetype: 'adult_f', coatHex: '#354457' };
+  const site = HERO_SITING[h.id] || {
+    residentName: 'Resident',
+    role: 'chorus',
+    archetype: 'adult_f',
+    coatHex: '#354457',
+    homeClip: 'idle',
+    altClip: 'listen',
+  };
   return createPromenadeResident({
     id: h.id === 'severn' ? 'severn-courier' : `res-${h.id}`,
     heroIdx: idx,
+    role: site.role,
     name: site.residentName,
     archetype: site.archetype,
     coatHex: site.coatHex,
+    homeClip: site.homeClip,
+    altClip: site.altClip,
+    seed: idx + 2,
     withStadiaRod: h.id === 'severn',
+    withCafeSeat: h.id === 'cafe',
   });
 });
 
@@ -437,11 +587,136 @@ const severnIdx = Math.max(0, HD.heroes.findIndex((h) => h.id === 'severn'));
 const severnKeeperActor = createPromenadeResident({
   id: 'severn-keeper',
   heroIdx: severnIdx,
+  role: 'bekele',
   name: 'Bekele (Severn Keeper)',
   archetype: 'adult_m',
   coatHex: '#8c5438',
+  homeClip: 'listen',
+  altClip: 'greet',
+  seed: 9,
   withStadiaRod: false,
 });
+
+// V9 Poet Hero on the West Quay / Severn Waterfront Foreground Apron
+const promenadePoetHero = createPromenadeResident({
+  id: 'promenade-poet-hero',
+  heroIdx: severnIdx,
+  role: 'poet_hero',
+  name: 'Poet Hero (V9 Waterfront Lead)',
+  archetype: 'adult_m',
+  coatHex: '#181d2c',
+  homeClip: 'idle',
+  altClip: 'fold-arms',
+  wingsMode: 'marble',
+  glasses: true,
+  prop: 'camera',
+  seed: 1,
+  customAction: 'poet-hero',
+  customWhisper: () => {
+    const wMode = promenadePoetHero.v9?.getWingsMode ? promenadePoetHero.v9.getWingsMode() : 'marble';
+    const gState = promenadePoetHero.v9?.getGlasses ? promenadePoetHero.v9.getGlasses() : true;
+    return `Poet Hero V9 (Wings: ${wMode}, Glasses: ${String(gState)}) - click or G to evolve phenotype`;
+  },
+});
+promenadePoetHero.groundY = 0.02;
+promenadePoetHero.baseRotY = -2.28;
+promenadePoetHero.root.position.set(-32.2, 0.02, -14.8);
+promenadePoetHero.root.rotation.y = -2.28;
+
+// Toggleable True-Scale (1.72m) 31-Part Brass-Pivot Cutout Hero Stage Plinth
+// Positioned beside The Chapel (x: 7.5..16.5) & The NEW SINGLE Marquee (x: 19.0..35.0)!
+const cutoutStageState = {
+  mode: 0, // 0: 31-Part Cutout (Brass Pivots + Angel Wings), 1: Side-by-Side Twin (Cutout + V9), 2: Clean Cutout (Marble Wings), 3: Dance/Greet Performance
+  seed: 7,
+  cutout: null,
+  twinActor: null,
+  plinthRingMat: null,
+};
+
+const cutoutStageGroup = new THREE.Group();
+cutoutStageGroup.position.set(16.35, 0.0, -2.05);
+cutoutStageGroup.rotation.y = Math.PI - 0.10;
+scene.add(cutoutStageGroup);
+{
+  const slateMat = new THREE.MeshStandardMaterial({ color: '#142236', roughness: 0.48, metalness: 0.24 });
+  const brassMat = new THREE.MeshStandardMaterial({ color: '#dfb86c', roughness: 0.24, metalness: 0.88 });
+  cutoutStageState.plinthRingMat = new THREE.MeshStandardMaterial({
+    color: '#18b4ff',
+    emissive: '#18b4ff',
+    emissiveIntensity: 1.1,
+    roughness: 0.2,
+  });
+
+  const plinthDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.92, 1.02, 0.06, 28), slateMat);
+  plinthDisc.position.y = 0.03;
+  plinthDisc.receiveShadow = true;
+  cutoutStageGroup.add(plinthDisc);
+
+  const brassRim = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.024, 10, 32), brassMat);
+  brassRim.rotation.x = Math.PI / 2;
+  brassRim.position.y = 0.055;
+  cutoutStageGroup.add(brassRim);
+
+  const cyanHalo = new THREE.Mesh(new THREE.TorusGeometry(0.76, 0.014, 8, 28), cutoutStageState.plinthRingMat);
+  cyanHalo.rotation.x = Math.PI / 2;
+  cyanHalo.position.y = 0.064;
+  cutoutStageGroup.add(cyanHalo);
+
+  // True-scale 1.72m 31-Part Brass-Pivot Cutout Hero
+  const cutout = createArticulated31CutoutRig({
+    THREE,
+    variant: 'poet_tracksuit_31',
+    showBrassPivots: true,
+    wingsMode: 'angel',
+    glasses: true,
+    prop: 'none',
+    groundY: 0.06,
+    seed: 7,
+  });
+  cutout.playAction('greet');
+  cutoutStageGroup.add(cutout.root);
+  cutoutStageState.cutout = cutout;
+
+  // Optional side-by-side 104-bone V9 Twin (shown in Twin Audit mode 1)
+  createHeroOrCastV9({
+    THREE,
+    loader: gltfLoader,
+    role: 'poet_hero',
+    wingsMode: 'angel',
+    glasses: true,
+    prop: 'none',
+    groundY: 0.06,
+    seed: 17,
+    initialClip: 'greet',
+  })
+    .then((twin) => {
+      if (!twin) return;
+      twin.root.position.set(0.54, 0, 0);
+      twin.root.visible = false;
+      cutoutStageGroup.add(twin.root);
+      cutoutStageState.twinActor = twin;
+      twin.setGroundY(0.06);
+    })
+    .catch(() => {});
+
+  const cutoutHit = new THREE.Mesh(new THREE.CylinderGeometry(0.96, 0.96, 2.05, 14), hitInvisibleMat);
+  cutoutHit.position.y = 1.02;
+  registerTarget(cutoutHit, {
+    action: 'toggle-cutout-hero',
+    anchor: new THREE.Vector3(0, 2.02, 0),
+    isLocalAnchor: true,
+    getWhisper: () => {
+      const labels = [
+        '31-Part Brass-Pivot Cutout Hero (1.72m, Brass Pins On + Angel Wings)',
+        'Side-by-Side Twin Audit (31-Part Cutout + 104-Bone V9 Poet Hero)',
+        '31-Part Cutout Hero (Clean Theatrical Silhouette + Marble Wings)',
+        '31-Part Cutout Hero (Marquee Dance & Co-Evolved Trim)',
+      ];
+      return `${labels[cutoutStageState.mode]} - click or press K to cycle`;
+    },
+  });
+  cutoutStageGroup.add(cutoutHit);
+}
 
 // ---------------------------------------------------------------------------
 // 3D In-World Brass Sundial Lamp Posts (Poem Hour <-> Raw Neutral Daylight)
@@ -734,18 +1009,24 @@ function compileAllHeroes() {
     const doorX = getDoorX(h);
     const baseZ = h.levels[0]?.z || 0;
 
-    // Position clothed 1.70m Anny V8 threshold resident
+    // Position clothed 1.72m V9 threshold resident with exact ground-pinned elevation
     const res = residentByHeroIdx[idx];
     if (res) {
       const extLocalY = h.id === 'cafe' ? -2.1 : -1.85;
       const extFloor = floorAt(built, doorX - 1.25, extLocalY, baseZ);
+      res.groundY = extFloor;
+      res.baseRotY = isSevern ? 0.28 : Math.PI - 0.16;
       res.root.position.set(site.ox + doorX - 1.25, extFloor, site.oz + extLocalY);
-      res.root.rotation.y = 0.24;
+      res.root.rotation.y = res.baseRotY;
+      res.v9?.setGroundY(extFloor);
     }
     if (isSevern && severnKeeperActor) {
       const intFloor = floorAt(built, doorX + 0.55, 1.55, baseZ);
+      severnKeeperActor.groundY = intFloor;
+      severnKeeperActor.baseRotY = Math.PI - 0.18;
       severnKeeperActor.root.position.set(site.ox + doorX + 0.55, intFloor, site.oz + 1.55);
-      severnKeeperActor.root.rotation.y = Math.PI - 0.18;
+      severnKeeperActor.root.rotation.y = severnKeeperActor.baseRotY;
+      severnKeeperActor.v9?.setGroundY(intFloor);
     }
 
     // 1. Operable 3D Doorway Hitbox
@@ -1184,18 +1465,116 @@ function cycleCutawayLever(idx, isMaster, anchorVec) {
   showActionWhisper(desc, anchorVec || new THREE.Vector3(p.ox + p.w / 2, 4.2, p.oz), 2800);
 }
 
+let promenadeEvoSeed = 21;
+function evolvePromenadePoetHero() {
+  if (!promenadePoetHero.v9) return null;
+  const h = HD.heroes[activeHeroIdx] || HD.heroes[0];
+  const pheno = evolveHeroPhenotype(promenadePoetHero.v9, {
+    poem: h?.poem || '06',
+    shotKind: rawDaylight ? 'survey' : 'street',
+    bgLuminance: rawDaylight ? 0.68 : 0.24,
+    seed: promenadeEvoSeed++,
+  });
+  promenadePoetHero.gestureClip = 'greet';
+  promenadePoetHero.gestureUntil = performance.now() + 2400;
+  suite.audio?.playDoorTransition?.(true);
+  if (pheno) {
+    showActionWhisper(
+      `Poet Hero V9 Evolved Gen ${pheno.generation} (Poem ${pheno.poem} - Wings: ${pheno.wingsMode}, Glasses: ${String(pheno.glasses)})`,
+      promenadePoetHero.root.position.clone().add(new THREE.Vector3(0, 2.05, 0)),
+      2800
+    );
+  }
+  return pheno;
+}
+
+function cyclePromenadeCutoutMode() {
+  cutoutStageState.mode = (cutoutStageState.mode + 1) % 4;
+  cutoutStageState.seed += 5;
+  const c = cutoutStageState.cutout;
+  const twin = cutoutStageState.twinActor;
+  if (c) {
+    if (cutoutStageState.mode === 0) {
+      c.root.position.set(0, 0, 0);
+      c.setBrassPivots(true);
+      c.setWingsMode('angel');
+      c.setGlasses(true);
+      c.playAction('greet');
+      if (twin) twin.root.visible = false;
+    } else if (cutoutStageState.mode === 1) {
+      c.root.position.set(-0.46, 0, 0);
+      c.setBrassPivots(true);
+      c.setWingsMode('angel');
+      c.setGlasses(true);
+      c.playAction('walk');
+      if (twin) {
+        twin.root.visible = true;
+        twin.setWingsMode('angel');
+        twin.setGlasses(true);
+        twin.playAction('walk', 0.22);
+      }
+    } else if (cutoutStageState.mode === 2) {
+      c.root.position.set(0, 0, 0);
+      c.setBrassPivots(false);
+      c.setWingsMode('marble');
+      c.setGlasses('up');
+      c.playAction('idle-talking');
+      if (twin) twin.root.visible = false;
+    } else {
+      c.root.position.set(0, 0, 0);
+      c.setBrassPivots(true);
+      evolveCutoutPhenotype(c, {
+        poem: '08',
+        shotKind: 'dance',
+        bgLuminance: rawDaylight ? 0.68 : 0.24,
+        seed: cutoutStageState.seed,
+      });
+      if (twin) twin.root.visible = false;
+    }
+  }
+  if (cutoutStageState.plinthRingMat) {
+    const ringHex = cutoutStageState.mode === 1 ? '#ffb85c' : cutoutStageState.mode === 3 ? '#ff5868' : '#18b4ff';
+    cutoutStageState.plinthRingMat.color.set(ringHex);
+    cutoutStageState.plinthRingMat.emissive.set(ringHex);
+  }
+  suite.audio?.playDoorTransition?.(true);
+  const modeLabels = [
+    '31-Part Brass-Pivot Cutout Hero: Gleaming Brass Pins + P06 Angel Wings',
+    'Side-by-Side Twin Audit: 31-Part Cutout + 104-Bone V9 Poet Hero',
+    '31-Part Cutout Hero: Clean Theatrical Silhouette + Sculpted Marble Wings',
+    '31-Part Cutout Hero: Co-Evolved Marquee Dance Phenotype',
+  ];
+  showActionWhisper(
+    modeLabels[cutoutStageState.mode],
+    cutoutStageGroup.position.clone().add(new THREE.Vector3(0, 2.08, 0)),
+    3000
+  );
+}
+
 function onResidentClicked(td) {
+  const nowMs = performance.now();
   if (td.residentId === 'severn-courier' || td.residentId === 'severn-keeper') {
     parcelHolder = parcelHolder === 'player' ? 'bekele' : 'player';
     savePilotState({ parcelHolder });
     updateBottomReadout();
     const speaker = parcelHolder === 'bekele' ? 'Bekele' : 'Imani';
-    const line =
+    const rawVerse =
       parcelHolder === 'bekele'
-        ? 'Bekele: "Parcel logged inside The Severn lobby. All six promenade doors stand ready."'
-        : 'Imani: "Parcel returned to courier satchel along the harbor promenade."';
-    suite.speakLine(speaker, line, parcelHolder === 'bekele' ? 0.94 : 1.04);
+        ? 'Parcel logged inside The Severn lobby. All six promenade doors stand ready.'
+        : 'Parcel returned to courier satchel along the harbor promenade.';
+    const line = `${speaker}: "${rawVerse}"`;
+    suite.speakLine(speaker, rawVerse, parcelHolder === 'bekele' ? 0.94 : 1.04);
     const act = parcelHolder === 'bekele' ? severnKeeperActor : residentByHeroIdx[severnIdx];
+    const listener = parcelHolder === 'bekele' ? residentByHeroIdx[severnIdx] : severnKeeperActor;
+    if (act) {
+      act.speakStart = nowMs;
+      act.speakUntil = nowMs + 3600;
+      act.spokenText = rawVerse;
+    }
+    if (listener) {
+      listener.gestureClip = 'greet';
+      listener.gestureUntil = nowMs + 1600;
+    }
     showActionWhisper(line, act.root.position.clone().add(new THREE.Vector3(0, 2.0, 0)), 3200);
     return;
   }
@@ -1208,6 +1587,11 @@ function onResidentClicked(td) {
   const spoken = `${td.name}: "${verse}"`;
   suite.speakLine(td.name, verse, 1.0);
   if (res) {
+    res.speakStart = nowMs;
+    res.speakUntil = nowMs + 3600;
+    res.spokenText = verse;
+    res.gestureClip = h.id === 'cafe' ? 'sit-talk' : 'greet';
+    res.gestureUntil = nowMs + 1100;
     showActionWhisper(spoken, res.root.position.clone().add(new THREE.Vector3(0, 2.0, 0)), 3200);
   }
 }
@@ -1517,6 +1901,8 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'h') onResidentClicked({ residentId: 'severn-courier' });
   else if (k === 'l') toggleDaylightInWorld();
   else if (k === 'c') cycleCutawayLever(activeHeroIdx, true);
+  else if (k === 'g') evolvePromenadePoetHero();
+  else if (k === 'k') cyclePromenadeCutoutMode();
   else if (k === 'i') {
     $('iconic-modal').classList.toggle('open');
     if ($('iconic-modal').classList.contains('open')) buildIconicMapModal();
@@ -1566,6 +1952,10 @@ window.addEventListener('pointerup', (e) => {
         onHeroDoorClicked(td.heroIdx);
       } else if (td.action === 'hero-facade') {
         onHeroFacadeClicked(td.heroIdx);
+      } else if (td.action === 'poet-hero') {
+        evolvePromenadePoetHero();
+      } else if (td.action === 'toggle-cutout-hero') {
+        cyclePromenadeCutoutMode();
       } else if (td.action === 'resident') {
         onResidentClicked(td);
       }
@@ -1597,10 +1987,12 @@ updateBottomReadout();
 const clock = new THREE.Clock();
 const _courierHand = new THREE.Vector3();
 const _keeperHand = new THREE.Vector3();
+const _playerEyeVec = new THREE.Vector3();
 
 function animate() {
   const dt = Math.min(0.05, clock.getDelta());
   const now = performance.now() * 0.001;
+  const nowMs = performance.now();
 
   // Smoothly swing operable 3D threshold doors across all 6 Hero Buildings
   for (const p of heroPlacements) {
@@ -1657,11 +2049,95 @@ function animate() {
 
   camera.position.set(walkState.wx, walkState.z + 1.68, walkState.wz);
   camera.rotation.set(walkState.pitch, walkState.yaw, 0);
+  _playerEyeVec.copy(camera.position);
 
-  // Update all clothed Anny V8 residents & Severn parcel arc
+  // Update all 8 V9 Promenade Characters (Imani, Bekele, Tadesse, Makeda, Miriam, June, Dawit + Poet Hero)
   for (const act of scaleActors) {
-    if (act.v8?.update) act.v8.update(dt);
+    if (!act.v9) continue;
+    act.v9.setGroundY(act.groundY);
+    const dCam = Math.hypot(_playerEyeVec.x - act.root.position.x, _playerEyeVec.z - act.root.position.z);
+    const isClose = dCam < 14.0;
+    const isVeryNear = dCam < 5.4;
+    const isSpeaking = nowMs < act.speakUntil;
+    const isGesturing = nowMs < act.gestureUntil;
+    const talkProg = isSpeaking
+      ? THREE.MathUtils.clamp((nowMs - act.speakStart) / Math.max(1, act.speakUntil - act.speakStart), 0, 1)
+      : undefined;
+
+    // Determine expressive waterfront role clip per character
+    let wantClip = act.homeClip;
+    if (isSpeaking) {
+      wantClip = act.id === 'res-cafe' ? 'sit-talk' : 'idle-talking';
+    } else if (isGesturing) {
+      wantClip = act.gestureClip;
+    } else if (act.id === 'res-cafe') {
+      // Dawit at The Pier Cafe: seated harbor conversation
+      wantClip = 'sit-talk';
+    } else if (act.id === 'res-chapel') {
+      // Miriam at The Chapel: reverent prayer, greeting briefly if player walks right up
+      wantClip = isVeryNear ? 'greet' : 'pray';
+    } else if (act.id === 'res-marquee') {
+      // June under The NEW SINGLE marquee: lively dance <-> clap cycle
+      wantClip = Math.floor(now * 0.22) % 2 === 0 ? 'dance' : 'clap';
+    } else if (act.id === 'severn-courier') {
+      // Imani at The Severn: carry / greet / idle-talking
+      wantClip = isVeryNear ? 'greet' : (parcelHolder === 'player' ? 'carry' : 'idle-talking');
+    } else if (act.id === 'severn-keeper') {
+      // Bekele inside The Severn threshold: greet / carry / idle-talking
+      wantClip = isVeryNear ? 'greet' : (parcelHolder === 'bekele' ? 'carry' : ((Math.floor(now * 0.18) % 2 === 0) ? 'listen' : 'idle-talking'));
+    } else if (act.id === 'res-rowhouse') {
+      // Tadesse at The Atlantis Rowhouse: greet <-> idle-talking
+      wantClip = Math.floor(now * 0.20 + 1) % 2 === 0 ? 'greet' : 'idle-talking';
+    } else if (act.id === 'res-clocktower') {
+      // Makeda at The Clock Tower: listen / pump / greet
+      wantClip = isVeryNear ? 'greet' : (Math.floor(now * 0.17) % 3 === 1 ? 'pump' : 'listen');
+    } else if (act.id === 'promenade-poet-hero') {
+      wantClip = isVeryNear ? 'greet' : (Math.floor(now * 0.16) % 2 === 0 ? 'idle' : 'fold-arms');
+    }
+
+    if (act.activeClip !== wantClip) {
+      act.activeClip = wantClip;
+      act.v9.playAction(wantClip, 0.26);
+    }
+
+    // Smoothly orient standing threshold actors toward player when approached (keep seated Dawit on chair)
+    if (act.id !== 'res-cafe') {
+      const wantYaw = dCam < 7.0
+        ? Math.atan2(_playerEyeVec.x - act.root.position.x, _playerEyeVec.z - act.root.position.z)
+        : act.baseRotY;
+      act.root.rotation.y += shortestAngleDelta(act.root.rotation.y, wantYaw) * Math.min(1, dt * 5.0);
+    }
+
+    act.v9.update(dt, {
+      autoLocomotion: false,
+      lookTargetVec3: isClose ? _playerEyeVec : null,
+      speaking: isSpeaking || act.activeClip === 'sit-talk' || act.activeClip === 'idle-talking',
+      talkText: isSpeaking ? act.spokenText : undefined,
+      talkProgress: talkProg,
+    });
   }
+
+  // Update True-Scale 1.72m 31-Part Brass-Pivot Cutout Hero (+ Twin) beside Chapel / NEW SINGLE
+  if (cutoutStageState.cutout) {
+    const dCutout = Math.hypot(_playerEyeVec.x - cutoutStageGroup.position.x, _playerEyeVec.z - cutoutStageGroup.position.z);
+    cutoutStageState.cutout.setGroundY(0.06);
+    cutoutStageState.cutout.update(dt, {
+      lookTargetVec3: dCutout < 16 ? _playerEyeVec : null,
+      moveSpeed: cutoutStageState.mode === 1 ? 1.35 : 0,
+      speaking: cutoutStageState.mode === 2,
+      wingFlapBoost: dCutout < 7.5 ? 0.85 : 0.25,
+    });
+    if (cutoutStageState.twinActor && cutoutStageState.twinActor.root.visible) {
+      cutoutStageState.twinActor.setGroundY(0.06);
+      cutoutStageState.twinActor.update(dt, {
+        autoLocomotion: false,
+        moveSpeed: 1.35,
+        lookTargetVec3: dCutout < 16 ? _playerEyeVec : null,
+        wingFlapBoost: dCutout < 7.5 ? 0.85 : 0.25,
+      });
+    }
+  }
+
   const courier = residentByHeroIdx[severnIdx];
   if (courier && severnKeeperActor) {
     const targetT = parcelHolder === 'bekele' ? 1 : 0;
@@ -1713,6 +2189,12 @@ window.__heroes = {
   toggleDoor: () => toggleHeroDoor(activeHeroIdx),
   toggleDaylightInWorld,
   cycleCutawayLever: (idx = activeHeroIdx) => cycleCutawayLever(idx, false),
+  evolvePromenadePoetHero,
+  cyclePromenadeCutoutMode,
+  scaleActors,
+  promenadePoetHero,
+  cutoutStageState,
+  glidePlayerTo,
   get rawDaylight() {
     return rawDaylight;
   },

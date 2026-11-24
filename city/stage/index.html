@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <script type="importmap">{"imports":{"three":"../../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
+  <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+  <link rel="stylesheet" href="../suite-nav.css">
+  <title>MAKE-PHOTO CITY | P06-S01 Atlantis Gate &amp; Poet Hero Stage</title>
+  <style>
+    :root {
+      --bg: #08182e;
+      --paper: #f4eedd;
+      --muted: rgba(244, 238, 221, 0.78);
+      --brass: #e0b46a;
+      --amber: #f2a541;
+      --cyan: #18b4ff;
+      --aqua: #7ce8ff;
+      --rule: rgba(244, 238, 221, 0.18);
+      --serif: "Iowan Old Style", Palatino, Georgia, serif;
+      --sans: Inter, system-ui, -apple-system, sans-serif;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--paper);
+      font: 400 13px/1.4 var(--sans);
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    #canvas-wrap {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+    #canvas-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Unboxed 1-line world-projected whisper (ONLY shown when raycast-hovering a 3D object) */
+    #world-whisper {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 18;
+      display: none;
+      pointer-events: none;
+      transform: translate(-50%, -135%);
+      font: 500 14.5px/1.28 var(--serif);
+      letter-spacing: 0.015em;
+      color: #faf6eb;
+      white-space: nowrap;
+      text-shadow:
+        0 1px 3px rgba(3, 8, 16, 0.98),
+        0 3px 14px rgba(4, 12, 24, 0.95),
+        0 0 22px rgba(24, 180, 255, 0.48);
+    }
+    #world-whisper .wh-meta {
+      font: 600 10.5px/1.2 var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--aqua);
+      margin-left: 8px;
+    }
+
+    /* Unboxed floating 3D Duet lyric softly projected above speaking character */
+    #world-speaker-lyric {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 17;
+      display: none;
+      pointer-events: none;
+      transform: translate(-50%, -120%);
+      max-width: min(460px, 84vw);
+      text-align: center;
+      font: italic 17px/1.36 var(--serif);
+      color: #faf6eb;
+      text-shadow:
+        0 2px 6px rgba(3, 8, 16, 0.98),
+        0 4px 18px rgba(4, 12, 24, 0.96),
+        0 0 26px rgba(24, 180, 255, 0.55);
+    }
+    #world-speaker-lyric .sp-tag {
+      display: block;
+      font: 600 10px/1.2 var(--mono);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--brass);
+      margin-bottom: 2px;
+    }
+
+    /* Camera shutter flash when exposing an 8x10 plate in-world */
+    #shutter-flash {
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+      pointer-events: none;
+      background: #faf6eb;
+      opacity: 0;
+      transition: opacity 280ms ease-out;
+    }
+
+    /* Optional raw stage notes sheet — 100% hidden on load; summoned ONLY on explicit Tab */
+    #raw-notes-sheet {
+      position: fixed;
+      right: 16px;
+      bottom: 58px;
+      z-index: 40;
+      display: none;
+      width: min(390px, calc(100vw - 32px));
+      max-height: calc(100vh - 110px);
+      overflow-y: auto;
+      padding: 12px 14px;
+      background: rgba(7, 16, 28, 0.86);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--paper);
+      font: 400 11.5px/1.45 var(--mono);
+    }
+    body.mp-tab-open #raw-notes-sheet {
+      display: block;
+    }
+    #raw-notes-sheet h2 {
+      margin: 0 0 6px;
+      font: 600 14px/1.2 var(--serif);
+      color: var(--brass);
+    }
+    #raw-notes-sheet p {
+      margin: 4px 0;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-wrap"></div>
+
+  <div id="world-whisper" aria-live="polite"></div>
+  <div id="world-speaker-lyric" aria-live="polite"></div>
+  <div id="shutter-flash"></div>
+
+  <aside id="raw-notes-sheet" aria-label="P06-S01 Stage field notes">
+    <h2>P06-S01 Atlantis Gate Stage (Tab to close)</h2>
+    <p id="notes-scene-line">Scene: P06-S01 | Hero: V9 Skinned Poet | Wings: Angel Flap</p>
+    <p id="notes-ensemble-line">Ensemble: Locomotion &amp; Weight | Gate: Closed | Look: WEAVE</p>
+    <p>Move: WASD walk, Shift jog/sprint, Space evolutionary wing-boost jump &amp; glide. Drag to orbit around your Hero at any distance (scroll wheel to inspect boots, cuff-tucks, hands, sunglasses, and wings up close).</p>
+    <p>In-World Props: Click Brass Cheval Mirror (stage left) to cycle V9 Skinned / 31-Part Cutout / Twin Audit, or upper frame for Sunglasses; click Marble Wing Pedestal for Wings; click Downstage Music Stand / Metronome for Ensemble Choreography; click Wing Flats to switch Stage Scenes; click any Cast Actor for Duet Speech; click Atlantis Marble Gate to swing open or walk into Atlantis; click 8x10 Brass Tripod for 23 GPU Shaders or Shift+Click to expose a plate.</p>
+  </aside>
+
+  <script src="../../motion-pipeline/mesh2motion/m2m-retarget.js"></script>
+  <script src="../../motion-pipeline/anny-human-v7.js?v=5"></script>
+  <script type="module" src="./stage-p06.js"></script>
+</body>
+</html>

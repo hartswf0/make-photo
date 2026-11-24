@@ -27,6 +27,10 @@ import {
   mutateSevernCandidate,
   SimpleOrbitControls as OrbitControls,
 } from '../heroes/hdl-compiler.js';
+import {
+  createHeroOrCastV9,
+  evolveHeroPhenotype,
+} from '../hero-build/anny-hero-v9.js';
 
 const $ = (id) => document.getElementById(id);
 const gltfLoader = new GLTFLoader();
@@ -373,7 +377,8 @@ worldRoot.add(xrayFrustumGroup);
 }
 
 // ---------------------------------------------------------------------------
-// Persistent Anny V8 Cast & Parcel Ownership (Imani Courier, Bekele Keeper, Maren Witness)
+// Persistent V9 Cast & Poet Hero Maquette Inspector + Parcel Ownership
+// (Imani Courier, Bekele Keeper, Maren Witness in Flat 2A, V9 Poet Hero at Maquette Table)
 // ---------------------------------------------------------------------------
 const castGroup = new THREE.Group();
 worldRoot.add(castGroup);
@@ -403,7 +408,24 @@ const parcelMesh = new THREE.Group();
 scene.add(parcelMesh);
 
 const castActors = [];
-function spawnAnnyActor({ id, name, archetype, x, y, z, rotY, coatHex, clip, targetAction, whisperFn }) {
+function spawnV9FoundryActor({
+  id,
+  role,
+  name,
+  archetype,
+  x,
+  y,
+  z,
+  rotY,
+  coatHex,
+  clip,
+  wingsMode = 'off',
+  glasses = false,
+  prop = 'none',
+  seed = 1,
+  targetAction,
+  whisperFn,
+}) {
   const root = new THREE.Group();
   root.position.set(x, y, z);
   root.rotation.y = rotY;
@@ -424,67 +446,115 @@ function spawnAnnyActor({ id, name, archetype, x, y, z, rotY, coatHex, clip, tar
   root.add(proxy);
 
   if (targetAction) {
-    const hitCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 1.88, 10), hitInvisibleMat);
+    const hitCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.48, 1.88, 10), hitInvisibleMat);
     hitCyl.position.y = 0.94;
     registerTarget(hitCyl, {
       action: targetAction.action,
       room: targetAction.room,
-      anchor: new THREE.Vector3(0, 1.92, 0),
+      anchor: new THREE.Vector3(0, 1.94, 0),
       isLocalAnchor: true,
       getWhisper: whisperFn,
     });
     root.add(hitCyl);
   }
 
-  const actor = { id, name, root, proxy, v8: null };
+  const actor = {
+    id,
+    role,
+    name,
+    root,
+    proxy,
+    v9: null,
+    v8: null,
+    groundY: y,
+    baseX: x,
+    baseZ: z,
+    baseRotY: rotY,
+    homeClip: clip || 'idle',
+    activeClip: clip || 'idle',
+    speakStart: 0,
+    speakUntil: 0,
+    spokenText: '',
+    gestureUntil: 0,
+    gestureClip: 'greet',
+    moveSpeed: 0,
+    seed,
+  };
   castActors.push(actor);
 
-  if (typeof window !== 'undefined' && window.AnnyHumanV7?.createCharacter) {
-    window.AnnyHumanV7.createCharacter({
-      THREE,
-      loader: gltfLoader,
-      archetype,
-      assetBaseUrl: '../../abyssinian-highlands/human-forge/assets',
-      clipsBaseUrl: '../../motion-pipeline/mesh2motion/clips',
-      clothed: true,
-      groundY: 0,
-      preloadClips: ['idle', 'walk', 'idle-talking'],
-      initialClip: clip || 'idle',
+  createHeroOrCastV9({
+    THREE,
+    loader: gltfLoader,
+    role,
+    archetype,
+    wingsMode,
+    glasses,
+    prop,
+    groundY: y,
+    seed,
+    initialClip: clip || 'idle',
+  })
+    .then((inst) => {
+      if (!inst) return;
+      inst.root.position.set(0, 0, 0);
+      inst.root.rotation.set(0, 0, 0);
+      root.add(inst.root);
+      proxy.visible = false;
+      actor.v9 = inst;
+      actor.v8 = inst;
+      inst.setGroundY(actor.groundY);
     })
-      .then((inst) => {
-        if (!inst) return;
-        inst.root.position.set(0, 0, 0);
-        root.add(inst.root);
-        proxy.visible = false;
-        actor.v8 = inst;
-        inst.setGroundY(0);
-      })
-      .catch((err) => {
-        console.warn('Anny V8 load error:', err);
-      });
-  }
+    .catch((err) => {
+      console.warn('Foundry V9 load warning:', err);
+    });
+
   return actor;
 }
 
-const courierActor = spawnAnnyActor({
+const courierActor = spawnV9FoundryActor({
   id: 'player',
+  role: 'imani',
   name: 'Imani (Courier)',
   archetype: 'adult_f',
-  x: -0.68,
+  x: -1.12,
   y: 0,
-  z: -2.35,
-  rotY: 0.22,
+  z: -4.45,
+  rotY: 0.24,
   coatHex: '#354457',
-  clip: 'idle',
+  clip: 'walk',
+  seed: 2,
   targetAction: { action: 'toggle-parcel' },
   whisperFn: () =>
     parcelHolder === 'player'
-      ? 'Imani (Courier, holding parcel) - click to hand parcel to Bekele'
-      : 'Imani (Courier) - click to return parcel to satchel',
+      ? 'Imani (V9 Courier, holding parcel) - click to hand parcel to Bekele'
+      : 'Imani (V9 Courier) - click to return parcel to satchel',
 });
 
-const keeperActor = spawnAnnyActor({
+// Imani walks smoothly from street curb (-1.12, -4.45) to Severn threshold (-0.68, -2.35) on arrival & handoffs
+const imaniWalkState = {
+  fromX: -1.12,
+  fromZ: -4.45,
+  toX: -0.68,
+  toZ: -2.35,
+  t: 0.0,
+  dur: 1.85,
+  active: true,
+};
+
+function startImaniThresholdWalk(toThreshold = true) {
+  imaniWalkState.fromX = courierActor.root.position.x;
+  imaniWalkState.fromZ = courierActor.root.position.z;
+  imaniWalkState.toX = toThreshold ? -0.68 : -0.96;
+  imaniWalkState.toZ = toThreshold ? -2.28 : -3.55;
+  const dist = Math.hypot(imaniWalkState.toX - imaniWalkState.fromX, imaniWalkState.toZ - imaniWalkState.fromZ);
+  imaniWalkState.dur = Math.max(0.55, dist / 1.45);
+  imaniWalkState.t = 0;
+  imaniWalkState.active = dist > 0.12;
+}
+
+const keeperActor = spawnV9FoundryActor({
   id: 'bekele',
+  role: 'bekele',
   name: 'Bekele (Severn Keeper)',
   archetype: 'adult_m',
   x: 0.42,
@@ -492,16 +562,18 @@ const keeperActor = spawnAnnyActor({
   z: 1.15,
   rotY: Math.PI - 0.16,
   coatHex: '#8c5438',
-  clip: 'idle',
+  clip: 'listen',
+  seed: 3,
   targetAction: { action: 'toggle-parcel' },
   whisperFn: () =>
     parcelHolder === 'bekele'
-      ? 'Bekele (Severn Keeper, holding parcel) - click to hand parcel back to Imani'
-      : 'Bekele (Severn Keeper) - click to receive parcel at Severn threshold',
+      ? 'Bekele (V9 Severn Keeper, holding parcel) - click to hand parcel back to Imani'
+      : 'Bekele (V9 Severn Keeper) - click to receive parcel at Severn threshold',
 });
 
-const witnessActor = spawnAnnyActor({
+const witnessActor = spawnV9FoundryActor({
   id: 'maren',
+  role: 'maren',
   name: 'Maren (Flat 2A Tenant)',
   archetype: 'elder',
   x: -5.5,
@@ -509,9 +581,33 @@ const witnessActor = spawnAnnyActor({
   z: 1.05,
   rotY: Math.PI,
   coatHex: '#5c6b78',
-  clip: 'idle',
+  clip: 'listen',
+  seed: 4,
   targetAction: { action: 'jump-room', room: 'flat-2a' },
   whisperFn: () => 'Maren in Flat 2A (L2 Poet Desk) - click to step inside Flat 2A',
+});
+
+const poetHeroActor = spawnV9FoundryActor({
+  id: 'poet_hero',
+  role: 'poet_hero',
+  name: 'Poet Hero (V9 Maquette Inspector)',
+  archetype: 'adult_m',
+  x: -5.05,
+  y: 0,
+  z: -6.85,
+  rotY: 1.95,
+  coatHex: '#181d2c',
+  clip: 'fold-arms',
+  wingsMode: 'marble',
+  glasses: true,
+  prop: 'none',
+  seed: 1,
+  targetAction: { action: 'evolve-poet-hero' },
+  whisperFn: () => {
+    const wMode = poetHeroActor.v9?.getWingsMode ? poetHeroActor.v9.getWingsMode() : 'marble';
+    const gState = poetHeroActor.v9?.getGlasses ? poetHeroActor.v9.getGlasses() : true;
+    return `Poet Hero V9 (Inspecting Maquette - Wings: ${wMode}, Glasses: ${String(gState)}) - click or G to evolve`;
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -1155,6 +1251,30 @@ function toggleXray() {
   );
 }
 
+function evolveFoundryPoetHero(announce = true) {
+  if (!poetHeroActor.v9) return null;
+  const poemMap = ['01', '06', '02', '08', '11', '06'];
+  const pheno = evolveHeroPhenotype(poetHeroActor.v9, {
+    poem: poemMap[activeMaquetteIdx % poemMap.length] || '06',
+    shotKind: xrayActive ? 'night' : 'survey',
+    bgLuminance: 0.25,
+    seed: currentSeed,
+  });
+  poetHeroActor.gestureClip = 'yes';
+  poetHeroActor.gestureUntil = performance.now() + 2200;
+  poetHeroActor.activeClip = 'yes';
+  poetHeroActor.v9.playAction('yes', 0.22);
+  if (announce && pheno) {
+    suite.audio?.playDoorTransition?.(true);
+    showActionWhisper(
+      `Poet Hero Evolved Gen ${pheno.generation} (Poem ${pheno.poem} - Wings: ${pheno.wingsMode}, Glasses: ${String(pheno.glasses)})`,
+      new THREE.Vector3(-4.45, 2.05, -5.95),
+      2800
+    );
+  }
+  return pheno;
+}
+
 function selectMaquette(idx) {
   if (idx === activeMaquetteIdx) {
     mutateCandidate();
@@ -1169,6 +1289,7 @@ function selectMaquette(idx) {
   renderCalvinoSliders();
   rebuildActiveCandidate(true);
   rebuildMaquetteTableModels();
+  evolveFoundryPoetHero(false);
   severnPulse = 1.0;
   suite.audio?.playDoorTransition?.(true);
   const m = activeCand.metrics;
@@ -1192,6 +1313,7 @@ function mutateCandidate() {
   savePilotState({ seed: currentSeed });
   rebuildActiveCandidate(true);
   rebuildMaquetteTableModels();
+  evolveFoundryPoetHero(false);
   severnPulse = 1.0;
   if (mutateWheelMesh) mutateWheelMesh.rotation.z += Math.PI * 0.65;
   suite.audio?.playDoorTransition?.(true);
@@ -1241,17 +1363,34 @@ function toggleDoor() {
 function toggleParcel() {
   parcelHolder = parcelHolder === 'player' ? 'bekele' : 'player';
   savePilotState({ parcelHolder });
+  const nowMs = performance.now();
   if (parcelHolder === 'bekele') {
-    suite.speakLine('Bekele', 'Parcel received at the Severn threshold. Flat 2A is open upstairs.', 0.94);
+    const line = 'Parcel received at the Severn threshold. Flat 2A is open upstairs.';
+    startImaniThresholdWalk(true);
+    keeperActor.speakStart = nowMs;
+    keeperActor.speakUntil = nowMs + 3600;
+    keeperActor.spokenText = line;
+    keeperActor.gestureClip = 'greet';
+    keeperActor.gestureUntil = nowMs + 1100;
+    courierActor.gestureClip = 'greet';
+    courierActor.gestureUntil = nowMs + 1400;
+    suite.speakLine('Bekele', line, 0.94);
     showActionWhisper(
-      'Bekele: "Parcel received at the Severn threshold. Flat 2A is open upstairs."',
+      `Bekele: "${line}"`,
       new THREE.Vector3(0.42, 2.05, 1.15),
       3200
     );
   } else {
-    suite.speakLine('Imani', 'Parcel back in courier satchel for street dispatch.', 1.04);
+    const line = 'Parcel back in courier satchel for street dispatch.';
+    startImaniThresholdWalk(false);
+    courierActor.speakStart = nowMs;
+    courierActor.speakUntil = nowMs + 3400;
+    courierActor.spokenText = line;
+    keeperActor.gestureClip = 'greet';
+    keeperActor.gestureUntil = nowMs + 1400;
+    suite.speakLine('Imani', line, 1.04);
     showActionWhisper(
-      'Imani: "Parcel back in courier satchel for street dispatch."',
+      `Imani: "${line}"`,
       new THREE.Vector3(-0.68, 2.05, -2.35),
       3200
     );
@@ -1654,6 +1793,7 @@ window.addEventListener('keydown', (e) => {
   else if (k === 'h') toggleParcel();
   else if (k === 'r') cycleTripodAngle();
   else if (k === 'n') mutateCandidate();
+  else if (k === 'g') evolveFoundryPoetHero(true);
   else if (k === 'b') {
     $('archive-modal').classList.toggle('open');
     if ($('archive-modal').classList.contains('open')) buildArchiveModal();
@@ -1700,6 +1840,8 @@ window.addEventListener('pointerup', (e) => {
         selectMaquette(td.candIdx);
       } else if (td.action === 'mutate-wheel') {
         mutateCandidate();
+      } else if (td.action === 'evolve-poet-hero') {
+        evolveFoundryPoetHero(true);
       } else if (td.action === 'toggle-xray') {
         toggleXray();
       } else if (td.action === 'toggle-door') {
@@ -1712,6 +1854,10 @@ window.addEventListener('pointerup', (e) => {
         $('archive-modal').classList.add('open');
         buildArchiveModal();
       } else if (td.action === 'jump-room') {
+        if (td.room === 'flat-2a') {
+          witnessActor.gestureClip = 'greet';
+          witnessActor.gestureUntil = performance.now() + 2600;
+        }
         jumpToRoom(td.room, true);
       } else if (td.action === 'climb-stair') {
         const order = ['vestibule', 'darkroom', 'flat-2a', 'screening', 'roof', 'street'];
@@ -1748,10 +1894,15 @@ if (explicitUrlRoom && ROOM_JUMPS[explicitUrlRoom]) {
 const clock = new THREE.Clock();
 const _courierHand = new THREE.Vector3();
 const _keeperHand = new THREE.Vector3();
+const _playerEyeWorld = new THREE.Vector3();
+const _maquetteFocusWorld = new THREE.Vector3();
+const _bekeleHeadWorld = new THREE.Vector3();
+const _imaniHeadWorld = new THREE.Vector3();
 
 function animate() {
   const dt = Math.min(0.05, clock.getDelta());
   const now = performance.now() * 0.001;
+  const nowMs = performance.now();
 
   // Rotate 3D Optical Glass X-Ray Prism gently
   if (prismCrystalMesh) {
@@ -1814,10 +1965,136 @@ function animate() {
     orbit.update();
   }
 
-  // Update Anny V8 cast animations & smooth 3D parcel handoff arc
-  for (const act of castActors) {
-    if (act.v8?.update) act.v8.update(dt);
+  _playerEyeWorld.copy(camera.position);
+
+  // 1. Imani threshold approach locomotion (curb <-> threshold) + role animations
+  let imaniMoveMps = 0;
+  if (imaniWalkState.active) {
+    imaniWalkState.t += dt;
+    const u = Math.min(1, imaniWalkState.t / imaniWalkState.dur);
+    const prevX = courierActor.root.position.x;
+    const prevZ = courierActor.root.position.z;
+    const ease = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) * 0.5;
+    const nx = imaniWalkState.fromX + (imaniWalkState.toX - imaniWalkState.fromX) * ease;
+    const nz = imaniWalkState.fromZ + (imaniWalkState.toZ - imaniWalkState.fromZ) * ease;
+    courierActor.root.position.set(nx, 0, nz);
+    imaniMoveMps = Math.hypot(nx - prevX, nz - prevZ) / Math.max(dt, 0.004);
+    const travelYaw = Math.atan2(imaniWalkState.toX - imaniWalkState.fromX, imaniWalkState.toZ - imaniWalkState.fromZ);
+    courierActor.root.rotation.y += shortestAngleDelta(courierActor.root.rotation.y, travelYaw) * Math.min(1, dt * 8);
+    if (u >= 1) {
+      imaniWalkState.active = false;
+      imaniMoveMps = 0;
+    }
+  } else {
+    const wantFaceBekele = Math.atan2(
+      keeperActor.root.position.x - courierActor.root.position.x,
+      keeperActor.root.position.z - courierActor.root.position.z
+    );
+    courierActor.root.rotation.y += shortestAngleDelta(courierActor.root.rotation.y, wantFaceBekele) * Math.min(1, dt * 6);
   }
+
+  _bekeleHeadWorld.set(keeperActor.root.position.x, keeperActor.root.position.y + 1.62, keeperActor.root.position.z);
+  _imaniHeadWorld.set(courierActor.root.position.x, courierActor.root.position.y + 1.60, courierActor.root.position.z);
+
+  // Active miniature tabletop coordinate for Poet Hero gaze inspection
+  {
+    const col = activeMaquetteIdx % 3;
+    const row = Math.floor(activeMaquetteIdx / 3);
+    _maquetteFocusWorld.set((col - 1) * 0.76, 1.02, (row - 0.5) * 0.56);
+    maquetteTableGroup.localToWorld(_maquetteFocusWorld);
+  }
+
+  // 2. Update all 4 V9 Foundry characters with role clips, FACS speech, blinking, relaxed fingers & gaze
+  for (const act of castActors) {
+    if (!act.v9) continue;
+    act.v9.setGroundY(act.groundY);
+    const dCam = Math.hypot(_playerEyeWorld.x - act.root.position.x, _playerEyeWorld.z - act.root.position.z);
+    const isSpeaking = nowMs < act.speakUntil;
+    const isGesturing = nowMs < act.gestureUntil;
+    const talkProg = isSpeaking
+      ? THREE.MathUtils.clamp((nowMs - act.speakStart) / Math.max(1, act.speakUntil - act.speakStart), 0, 1)
+      : undefined;
+
+    if (act.id === 'player') {
+      // Imani (Courier)
+      const wantClip = imaniMoveMps > 0.08
+        ? (parcelHolder === 'player' ? 'carry' : 'walk')
+        : isSpeaking
+          ? 'idle-talking'
+          : isGesturing
+            ? act.gestureClip
+            : parcelHolder === 'player'
+              ? 'carry'
+              : 'listen';
+      if (act.activeClip !== wantClip) {
+        act.activeClip = wantClip;
+        act.v9.playAction(wantClip, 0.24);
+      }
+      act.v9.setMoveSpeed(imaniMoveMps);
+      act.v9.update(dt, {
+        autoLocomotion: false,
+        moveSpeed: imaniMoveMps,
+        lookTargetVec3: dCam < 5.2 ? _playerEyeWorld : _bekeleHeadWorld,
+        speaking: isSpeaking,
+        talkText: isSpeaking ? act.spokenText : undefined,
+        talkProgress: talkProg,
+      });
+    } else if (act.id === 'bekele') {
+      // Bekele (Severn Threshold Keeper)
+      const wantClip = isSpeaking
+        ? 'idle-talking'
+        : isGesturing
+          ? act.gestureClip
+          : parcelHolder === 'bekele'
+            ? 'carry'
+            : dCam < 4.5
+              ? 'greet'
+              : ((Math.floor(now * 0.16) % 2 === 0) ? 'listen' : 'fold-arms');
+      if (act.activeClip !== wantClip) {
+        act.activeClip = wantClip;
+        act.v9.playAction(wantClip, 0.26);
+      }
+      act.v9.update(dt, {
+        autoLocomotion: false,
+        lookTargetVec3: dCam < 6.5 ? _playerEyeWorld : _imaniHeadWorld,
+        speaking: isSpeaking,
+        talkText: isSpeaking ? act.spokenText : undefined,
+        talkProgress: talkProg,
+      });
+    } else if (act.id === 'poet_hero') {
+      // V9 Poet Hero inspecting 3D Sidewalk Maquette Table
+      const wantClip = isGesturing
+        ? act.gestureClip
+        : ((Math.floor(now * 0.15) % 2 === 0) ? 'fold-arms' : 'listen');
+      if (act.activeClip !== wantClip) {
+        act.activeClip = wantClip;
+        act.v9.playAction(wantClip, 0.28);
+      }
+      act.v9.update(dt, {
+        autoLocomotion: false,
+        lookTargetVec3: dCam < 4.4 ? _playerEyeWorld : _maquetteFocusWorld,
+        wingFlapBoost: severnPulse * 1.15,
+      });
+    } else {
+      // Maren in L2 Flat 2A (standing solidly at y = 6.8m)
+      const nearFlat2A = Math.abs(_playerEyeWorld.y - (act.groundY + 1.65)) < 2.2 && dCam < 7.5;
+      const wantClip = isGesturing
+        ? act.gestureClip
+        : nearFlat2A
+          ? 'idle-talking'
+          : ((Math.floor(now * 0.14) % 2 === 0) ? 'listen' : 'fold-arms');
+      if (act.activeClip !== wantClip) {
+        act.activeClip = wantClip;
+        act.v9.playAction(wantClip, 0.28);
+      }
+      act.v9.update(dt, {
+        autoLocomotion: false,
+        lookTargetVec3: nearFlat2A ? _playerEyeWorld : null,
+        speaking: nearFlat2A,
+      });
+    }
+  }
+
   const targetParcelT = parcelHolder === 'bekele' ? 1 : 0;
   parcelLerp += (targetParcelT - parcelLerp) * Math.min(1, dt * 6.5);
 
@@ -1860,10 +2137,13 @@ window.__foundry = {
   toggleXray,
   selectMaquette,
   mutateCandidate,
+  evolveFoundryPoetHero,
   jumpToRoom,
   toggleDoor,
   toggleParcel,
   cycleTripodAngle,
+  castActors,
+  poetHeroActor,
   get xrayActive() {
     return xrayActive;
   },

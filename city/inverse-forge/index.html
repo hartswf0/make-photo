@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <script type="importmap">{"imports":{"three":"../../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
+  <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+  <link rel="stylesheet" href="../suite-nav.css">
+  <title>MAKE-PHOTO CITY | Inverse Foundry 5-Level Shot Optimizer &amp; Hero Co-Evolution</title>
+  <style>
+    :root {
+      --bg: #09182c;
+      --paper: #f4eedd;
+      --muted: rgba(244, 238, 221, 0.76);
+      --brass: #e0b46a;
+      --ochre: #cf7948;
+      --cyan: #18b4ff;
+      --aqua: #7ce8ff;
+      --ok: #84dfa2;
+      --rule: rgba(244, 238, 221, 0.18);
+      --serif: "Iowan Old Style", Palatino, Georgia, serif;
+      --sans: Inter, system-ui, -apple-system, sans-serif;
+      --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--paper);
+      font: 400 12.5px/1.42 var(--sans);
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    #canvas-wrap {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+    #canvas-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Unboxed 1-line world-projected diegetic whisper (shown ONLY on 3D hover or action) */
+    #world-whisper {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 18;
+      display: none;
+      pointer-events: none;
+      transform: translate(-50%, -135%);
+      font: 500 14px/1.3 var(--serif);
+      letter-spacing: 0.015em;
+      color: #faf6eb;
+      white-space: nowrap;
+      text-shadow:
+        0 1px 3px rgba(3, 8, 16, 0.98),
+        0 3px 14px rgba(4, 12, 24, 0.95),
+        0 0 22px rgba(24, 180, 255, 0.45);
+    }
+
+    /* Subtle darkroom shutter flash when exposing or exporting plates */
+    #shutter-flash {
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+      pointer-events: none;
+      background: #faf6eb;
+      opacity: 0;
+      transition: opacity 240ms ease-out;
+    }
+
+    /* Raw Buffer & Structured Prompt Export Drawer — STRICTLY HIDDEN ON DEFAULT LOAD; Tab only */
+    body:not(.mp-tab-open) #raw-export-drawer {
+      display: none !important;
+    }
+    body.mp-tab-open #raw-export-drawer {
+      display: flex;
+    }
+
+    #raw-export-drawer {
+      position: fixed;
+      right: 14px;
+      top: 44px;
+      bottom: 52px;
+      width: min(430px, calc(100vw - 28px));
+      z-index: 42;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px 14px;
+      overflow-y: auto;
+      background: rgba(7, 15, 27, 0.90);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--paper);
+      user-select: text;
+    }
+    #raw-export-drawer h2 {
+      margin: 0;
+      font: 600 14.5px/1.25 var(--serif);
+      color: var(--brass);
+    }
+    .exp-kicker {
+      font: 600 10px/1.2 var(--mono);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--aqua);
+    }
+    .exp-meta {
+      font: 400 11.5px/1.45 var(--mono);
+      color: var(--muted);
+      margin: 0;
+    }
+    .exp-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .exp-select {
+      flex: 1 1 100%;
+      background: rgba(14, 26, 44, 0.95);
+      color: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 5px;
+      padding: 5px 8px;
+      font: 500 11.5px/1.3 var(--mono);
+    }
+    .exp-btn {
+      appearance: none;
+      background: rgba(20, 38, 62, 0.92);
+      color: var(--paper);
+      border: 1px solid var(--rule);
+      border-radius: 5px;
+      padding: 6px 10px;
+      font: 600 11px/1.2 var(--mono);
+      letter-spacing: 0.03em;
+      cursor: pointer;
+    }
+    .exp-btn:hover {
+      border-color: var(--cyan);
+      color: #ffffff;
+    }
+    .exp-btn.primary {
+      background: rgba(24, 180, 255, 0.2);
+      border-color: var(--cyan);
+      color: var(--aqua);
+    }
+    .exp-btn.gold {
+      background: rgba(224, 180, 106, 0.18);
+      border-color: var(--brass);
+      color: var(--brass);
+    }
+    #prompt-json-preview {
+      margin: 0;
+      padding: 9px 10px;
+      background: rgba(4, 10, 18, 0.85);
+      border: 1px solid rgba(244, 238, 221, 0.12);
+      border-radius: 6px;
+      font: 400 10.5px/1.4 var(--mono);
+      color: #dce9f5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 290px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-wrap"></div>
+  <div id="world-whisper" aria-live="polite"></div>
+  <div id="shutter-flash"></div>
+
+  <aside id="raw-export-drawer" aria-label="Raw Multi-Pass Buffer and Prompt Export">
+    <div>
+      <div class="exp-kicker">Inverse Foundry Darkroom Export (Tab to close)</div>
+      <h2 id="exp-shot-title">Shot 01/60 | w1623-01-07</h2>
+      <p class="exp-meta" id="exp-shot-summary">Loading 60 Inverse Foundry shots...</p>
+    </div>
+
+    <div class="exp-row">
+      <select id="exp-shot-select" class="exp-select" aria-label="Jump to any of the 60 Inverse Foundry shots"></select>
+    </div>
+
+    <div class="exp-row">
+      <button type="button" class="exp-btn primary" id="btn-export-pack">Download 4-Pass PNG Pack</button>
+      <button type="button" class="exp-btn gold" id="btn-export-json">Download Prompt JSON</button>
+      <button type="button" class="exp-btn" id="btn-copy-json">Copy JSON</button>
+    </div>
+
+    <div class="exp-row">
+      <button type="button" class="exp-btn" data-pass-btn="0">1. Final WEAVE</button>
+      <button type="button" class="exp-btn" data-pass-btn="1">2. Metric Depth</button>
+      <button type="button" class="exp-btn" data-pass-btn="2">3. Notan / Canny</button>
+      <button type="button" class="exp-btn" data-pass-btn="3">4. 4-Up Sheet</button>
+    </div>
+
+    <div class="exp-kicker">Structured Reference-Guided Generation Payload</div>
+    <pre id="prompt-json-preview">{}</pre>
+  </aside>
+
+  <script src="../../motion-pipeline/mesh2motion/m2m-retarget.js"></script>
+  <script src="../../motion-pipeline/anny-human-v7.js?v=5"></script>
+  <script type="module" src="./inverse-forge.js"></script>
+</body>
+</html>
