@@ -3,6 +3,18 @@
  "source": "city/island/island.js:87-166, :461-506, :2429-2451; city/shader-suite-bar.js:52-126; city/shaders.js:3-205",
  "islands": {
   "wygwyl": {
+   "light": {
+    "dir": [
+     -0.55,
+     0.22,
+     -0.8
+    ],
+    "box": 90,
+    "map": 2048,
+    "glow": "#ffb870",
+    "disc": 0.9,
+    "lamps": 1
+   },
    "sky": [
     "#08182e",
     "#0f2c52",
@@ -127,6 +139,18 @@
      }
     },
     "Midday": {
+     "light": {
+      "dir": [
+       0.3,
+       0.83,
+       -0.47
+      ],
+      "box": 90,
+      "map": 2048,
+      "glow": "#fff8ec",
+      "disc": 0.8,
+      "lamps": 0
+     },
      "sky": [
       "#4c7294",
       "#7ea6c4",
@@ -174,6 +198,18 @@
      }
     },
     "Night": {
+     "light": {
+      "dir": [
+       -0.45,
+       0.35,
+       0.82
+      ],
+      "box": 90,
+      "map": 2048,
+      "glow": "#90b6db",
+      "disc": 0.5,
+      "lamps": 1.4
+     },
      "sky": [
       "#08111e",
       "#162d47",
