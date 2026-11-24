@@ -240,3 +240,34 @@ These are good targets, but they are not measured from this codebase, so they st
 - the storm should swap distant ground while the player's near pocket stays clear;
 - drained bodies should survive as small tokens that keep living on a slow tick;
 - rising water is a second veil, besides weather.
+
+---
+
+## 5. Can 2: WYGWYL (`ground@1`), and the services it made the trough grow
+
+`city/island/can.json`, `legos.json` and `wygwyl-can.js` form the second can. It is laid out in metres from the island's corner, at true scale, on the trough's ground. It brings:
+- the six real places' 6,991 buildings, merged per kilometre cell;
+- 4,459 streets and 5,641 street trees;
+- the **Severn Pilot**: a brick shell with a doorway, a door that opens and closes, a lit room, and Bekele on the curb.
+
+New trough services, available to any can:
+
+| Service | What it does |
+|---|---|
+| `addBlockers(polys)` | Walls. Building footprints and the Severn's walls cannot be walked or driven through; you slide along them. A closed door is a blocker that comes and goes. |
+| `addInterior(room)` | A portal room, the MLO idea. Inside it the rain leaves the glass (`weather.indoor`), outdoor sound drops to 18 %, and the camera comes in close. |
+| `addSwitch` | The interlock verb: *Open the door* / *Close the door*. Each use is written to memory. |
+| `addPerson` and `say` | Walkers from the shared cast (`cast.walker` in the core kit) appear in the surface's `things.people`. They score *listen*, *face* and *greet* (SAGA shape), greet you once with their line, and thank you when you give. Giving 5 L is the surface's own Give. |
+| `addSound` | Placed sound sources in 3D (HRTF panning) from `audio/samples`: the harbour, the Woodberry crickets, the Condesa pump. They start on your first touch. |
+| `motion` | The trough's one animation driver; a can's walkers register with it. |
+
+The Severn's variants:
+- **probable:** the door is shut;
+- **plausible:** Bekele has propped it open;
+- **preposterous:** the Fall salt line, with the Inner Harbor standing four metres high.
+
+A pour that fails now waits 30 s before trying again.
+
+Cast stand-ins: the city's Bekele, Hiwot and Selam use the shared cast's `ferry_bekele`, `saba` and `alma` bodies under their own names and lines. Dawit is `dawit`.
+
+The city's build is heavy: about 12 s in the software-GL test browser. The squall hides it, but its `build_ms` budget of 2,500 is not yet met there.

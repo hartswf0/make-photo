@@ -31,7 +31,7 @@ canvas{display:block;touch-action:none}
 <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
 <script src="../abyssinian-highlands/habitus-kits.js"></script>
 <script src="../donkey/vehicles.js?v=1"></script>
-<script src="./regions.js?v=4"></script>
+<script src="./regions.js?v=5"></script>
 <script>
 (async () => {
 const T = THREE, QS = new URLSearchParams(location.search), $ = id => document.getElementById(id);
@@ -112,8 +112,29 @@ const MOUNTS = [];
 const STORM = { v: 0, want: 0, hold: 0, pending: 0, flash: 0, glass: 1 }; let _lastFrame = 0; const sdtRaw = now => { const d = _lastFrame ? (now - _lastFrame) / 1000 : 0; _lastFrame = now; return d; };
 // what a can registers with the world while it is poured: sources of water (flowing or dry this visit) and weather of its own
 const CAN_SOURCES = [], CAN_WEATHER = [], reg = (list, o) => { list.push(o); return () => { const k = list.indexOf(o); if (k >= 0) list.splice(k, 1); }; };
-const REG = window.DWRegions ? window.DWRegions.create({ T, scene, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, shelf: './cans.json?v=2',
-  addSource: o => reg(CAN_SOURCES, o), addWeather: o => reg(CAN_WEATHER, o), onShelf: ids => { for (const id of ids) KIND[id] = null; },
+// ---------- trough services a can may ask for: walls, rooms, switches, people, speech, sound ----------
+const inPoly = (pts, x, z) => { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, zi] = pts[i], [xj, zj] = pts[j]; if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) c = !c; } return c; };
+const BLOCK = new Map(), BCELL = 50;
+function addBlockers(polys) { const added = []; for (const pts of polys) { let x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9; for (const [x, z] of pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+    const o = { pts, b: [x0, z0, x1, z1] }; for (let j = Math.floor(z0 / BCELL); j <= Math.floor(z1 / BCELL); j++) for (let i = Math.floor(x0 / BCELL); i <= Math.floor(x1 / BCELL); i++) { const k = i + '_' + j; if (!BLOCK.has(k)) BLOCK.set(k, []); BLOCK.get(k).push(o); added.push([k, o]); } }
+  return () => { for (const [k, o] of added) { const L = BLOCK.get(k); if (!L) continue; const n = L.indexOf(o); if (n >= 0) L.splice(n, 1); } }; }
+function blocked(x, z) { const L = BLOCK.get(Math.floor(x / BCELL) + '_' + Math.floor(z / BCELL)); if (!L) return false; for (const o of L) if (x >= o.b[0] && x <= o.b[2] && z >= o.b[1] && z <= o.b[3] && inPoly(o.pts, x, z)) return true; return false; }
+const ROOMS = [], SWITCHES = [], PEOPLE = []; let INSIDE = null, SPEECH = null, speechSeq = 0;
+const say = (name, text, who) => { SPEECH = { seq: ++speechSeq, name, text, who, t: performance.now() }; };
+const AUD = { ctx: null, list: [], bufs: new Map() };
+function audioOn() { if (AUD.ctx) return; try { AUD.ctx = new (window.AudioContext || window.webkitAudioContext)(); for (const e of AUD.list) startSound(e); } catch (e) { } }
+addEventListener('pointerdown', audioOn, { capture: true }); addEventListener('keydown', audioOn, { capture: true });
+function startSound(e) { const c = AUD.ctx; e.g = c.createGain(); e.g.gain.value = 0; e.p = new PannerNode(c, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 10, maxDistance: e.radius * 2, rolloffFactor: 1.1, positionX: e.x, positionY: e.y, positionZ: e.z }); e.g.connect(e.p).connect(c.destination);
+  if (!AUD.bufs.has(e.url)) AUD.bufs.set(e.url, fetch(e.url).then(r => r.arrayBuffer()).then(b => c.decodeAudioData(b)));
+  AUD.bufs.get(e.url).then(buf => { if (e.dead) return; const s = c.createBufferSource(); s.buffer = buf; s.loop = true; s.connect(e.g); s.start(0, (e.x * 7 % buf.duration + buf.duration) % buf.duration); e.s = s; }).catch(() => { }); }
+function addSound(e) { AUD.list.push(e); if (AUD.ctx) startSound(e); return () => { e.dead = true; const k = AUD.list.indexOf(e); if (k >= 0) AUD.list.splice(k, 1); try { e.s && e.s.stop(); e.g && e.g.disconnect(); } catch { } }; }
+function hearAndHouse() { INSIDE = null; for (const r of ROOMS) if (inPoly(r.pts, P.x, P.z)) { INSIDE = r.id; break; }
+  if (!AUD.ctx) return; const c = AUD.ctx, L = c.listener, f = new T.Vector3(); camera.getWorldDirection(f);
+  if (L.positionX) { L.positionX.value = camera.position.x; L.positionY.value = camera.position.y; L.positionZ.value = camera.position.z; L.forwardX.value = f.x; L.forwardY.value = f.y; L.forwardZ.value = f.z; L.upX.value = 0; L.upY.value = 1; L.upZ.value = 0; }
+  for (const e of AUD.list) if (e.g) { const d = Math.hypot(e.x - P.x, e.z - P.z), want = d > e.radius * 1.5 ? 0 : e.gain * (e.room ? (INSIDE === e.room ? 1 : 0) : INSIDE ? .18 : 1); e.g.gain.setTargetAtTime(want, c.currentTime, .4); } }
+const REG = window.DWRegions ? window.DWRegions.create({ T, scene, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, shelf: './cans.json?v=3',
+  addSource: o => reg(CAN_SOURCES, o), addWeather: o => reg(CAN_WEATHER, o), addBlockers, addInterior: o => reg(ROOMS, o), addSwitch: o => reg(SWITCHES, o), addPerson: o => reg(PEOPLE, o), addSound, say,
+  motion: { add: (id, ch) => motion && motion.registerActor(id, ch, { defaultClip: 'idle', blend: 1 }), loco: (id, o) => motion && motion.setActorLocomotion(id, o), drop: id => motion && motion.unregisterActor && motion.unregisterActor(id) }, onShelf: ids => { for (const id of ids) KIND[id] = null; },
   onStart: () => { STORM.pending++; STORM.want = 1; STORM.t0 = STORM.t0 || performance.now(); },
   onMount: (isl, r, ms) => { MOUNTS.push({ id: isl.id, ms: Math.round(ms), at: [Math.round(P.x), Math.round(P.z)] }); STORM.pending = Math.max(0, STORM.pending - 1); STORM.until = Math.max((STORM.t0 || 0) + 4000, performance.now() + 1500); } }) : null;
 // ---------- ground height: streamed tiles, then bridge decks on top ----------
@@ -255,6 +276,7 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
     if (m === 'fly') { P.x = nx; P.z = nz; const lift = (keys.Space || keys.KeyE ? 1 : 0) - (keys.KeyQ || keys.KeyC ? 1 : 0) - (stick.id !== null ? 0 : 0); P.alt += (lift * 30 - 2) * dt; const gnd = Math.max(0, groundAt(P.x, P.z)); P.alt = Math.max(gnd + 4, P.alt); P.y = P.alt; if (P.alt - gnd < 4.5 && fwd < 0) setMode('walk'); }
     else { const onD = deckAt(P.x, P.z), nD = deckAt(nx, nz), lim = m === 'drive' ? 4.9 : 6.1; if (onD && (!nD || nD.d > lim) && (!nD || nD.d > onD.d) && terrain(nx, nz) < onD.y - 2.5) { const pts = decks[onD.bi]; let k = 0, bd = 1e12; for (let i = 0; i < pts.length - 1; i++) { const d = Math.hypot(pts[i][0] - P.x, pts[i][2] - P.z); if (d < bd) { bd = d; k = i; } }
         const a = pts[Math.min(k + 1, pts.length - 1)], b0 = pts[Math.max(0, k - 1)], dyaw = Math.atan2(a[0] - b0[0], a[2] - b0[2]), along = Math.cos(P.yaw - dyaw) >= 0 ? dyaw : dyaw + Math.PI; P.yaw += Math.atan2(Math.sin(along - P.yaw), Math.cos(along - P.yaw)) * .5; P.speed *= .85; }   // the rail turns you back along the deck
+      else if (blocked(nx, nz)) { if (!blocked(nx, P.z)) P.x = nx; else if (!blocked(P.x, nz)) P.z = nz; P.speed *= m === 'drive' ? -.25 : .6; }   /* walls: slide along them */
       else { const gy = groundAt(nx, nz, P.y); if (gy < -0.6) P.speed = 0; else { const slope = (gy - P.y) / Math.max(.1, Math.hypot(nx - P.x, nz - P.z)); if ((m === 'drive' && slope < .9) || slope < 1.4 || deckAt(nx, nz)) { P.x = nx; P.z = nz; } else P.speed *= m === 'drive' ? -.2 : .5; } } P.y = Math.max(groundAt(P.x, P.z, P.y), -0.6); }
   }
   if (motion) { try { motion.setActorLocomotion('imani', { speedMps: m === 'walk' ? Math.abs(P.speed) : 0, carrying: true, sitting: m === 'ride', blend: 1 }); motion.update(dt); } catch { } }
@@ -286,11 +308,11 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
     guide.position.set(gx, m === 'fly' ? P.y - 6 : Math.max(groundAt(gx, gz, P.y), m === 'boat' ? .4 : -1) + .35, gz); guide.rotation.y = br; guide.scale.setScalar(sc);
     const col = WAY.kind === 'ferry' ? COL.ferry : WAY.kind === 'door' ? COL.door : COL.bridge; guide.children.forEach((c, k) => { c.material.color.set(col); c.material.opacity = .35 + .5 * Math.max(0, Math.sin(now / 260 - k * .9)); }); }
   // chase camera
-  const [dist, up] = CAM[m], cy = P.yaw + Math.PI + camYaw, ex = P.x + Math.sin(cy) * dist * Math.cos(camPitch), ez = P.z + Math.cos(cy) * dist * Math.cos(camPitch); let ey = P.y + up + Math.sin(camPitch) * dist;
+  const [dist, up] = INSIDE && m === 'walk' ? [2.6, 1.5] : CAM[m], cy = P.yaw + Math.PI + camYaw, ex = P.x + Math.sin(cy) * dist * Math.cos(camPitch), ez = P.z + Math.cos(cy) * dist * Math.cos(camPitch); let ey = P.y + up + Math.sin(camPitch) * dist;
   ey = Math.max(ey, groundAt(ex, ez) + 1.5); camera.position.lerp(new T.Vector3(ex, ey, ez), Math.min(1, dt * 6)); camera.lookAt(P.x + Math.sin(P.yaw) * dist * .5, P.y + 1.6 + up * .55, P.z + Math.cos(P.yaw) * dist * .5);   // look past yourself so the horizon, and the lights on it, stay in view if (!look.id && Math.abs(fwd) > .1) camYaw *= Math.pow(.2, dt);
   water.position.x = P.x; water.position.z = P.z;
   OWS.dk = Math.max(0, OWS.dk - dt * .0025); if (OWS.jumpT > 0) { OWS.jumpT -= dt; walker.position.y += Math.sin((.5 - OWS.jumpT) / .5 * Math.PI) * 1.1; }
-  if (REG) REG.update(dt, now / 1000, P, donkey && donkey.group.position);
+  if (REG) REG.update(dt, now / 1000, P, donkey && donkey.group.position); hearAndHouse();
   { if (STORM.until && now > STORM.until && !STORM.pending) { STORM.want = 0; STORM.until = 0; STORM.t0 = 0; }
     { const fd = Math.min(.5, sdtRaw(now)), slow = fd > .028; STORM.slowT = slow ? (STORM.slowT || 0) + fd : Math.max(0, (STORM.slowT || 0) - fd); STORM.glass = STORM.slowT > 2 ? .35 : STORM.slowT < .5 ? 1 : STORM.glass || 1; } const sdt = Math.min(.25, (now - (STORM.t || now)) / 1000); STORM.t = now; let floor = 0; for (const w of CAN_WEATHER) if (Math.abs(P.x - w.x) < w.hx && Math.abs(P.z - w.z) < w.hz) floor = Math.max(floor, w.storm || 0); const goal = Math.max(STORM.want, floor), prev = STORM.v; STORM.v += (goal - STORM.v) * Math.min(1, sdt * (goal > STORM.v ? .9 : .35));   // wall-clock, so a slow device clears on time
     if (Math.abs(STORM.v - prev) > .002 || STORM.v > .01) { const v = STORM.v, e = v * v * (3 - 2 * v); scene.fog.near = 900 - 820 * e; scene.fog.far = 24000 - 21800 * e; scene.fog.color.copy(SKY).lerp(STORM_SKY[3], e); paintSky(e);
@@ -319,6 +341,8 @@ const AHEAD = { 'Donkey Water': ['../night-post/index.html', '../night-post/nigh
 setInterval(() => { const n = nearest(OW.places); if (n && n.d < 500 && window.DW) window.DW.prefetch([n.p.entry.split('?')[0], ...(AHEAD[n.p.world] || [])]); }, 1500);   // a level is fetched before you reach it
 function liveAct() { if (P.mode === 'ferry' || P.mode === 'fly') return null;
   const pier = nearPier(); if (pier) { const pr = pier.fe.f.piers[pier.dir > 0 ? 0 : 1][0], sp = proj(pr[0], pr[1] + 2, pr[2]); return { kind: 'sail', id: 'sail', label: 'Ferry to ' + OW.islands.find(i => i.id === pier.to).name, x: sp.x, y: sp.y, pier }; }
+  for (const sw of SWITCHES) if (Math.hypot(sw.x - P.x, sw.z - P.z) < 4.5) { const sp = proj(sw.x, P.y + 1.4, sw.z); return { kind: 'switch', id: 'switch', label: sw.label(), x: sp.x, y: sp.y, sw }; }
+  { const pp = nearest(PEOPLE); if (pp && pp.d < 4.5 && OWS.liters >= 5) { const sp = proj(pp.p.x, pp.p.y + 1.6, pp.p.z); return { kind: 'give', id: 'share', label: 'Give 5 L', person: pp.p.name, delta: -5, x: sp.x, y: sp.y, who: pp.p }; } }
   const cs = nearest(CAN_SOURCES); if (cs && cs.d < 14) { const sp = proj(cs.p.x, P.y + 1.5, cs.p.z); if (!cs.p.flowing) return { kind: 'dry', id: 'dry', label: 'Dry today', x: sp.x, y: sp.y, note: cs.p.note };
     if (OWS.liters < 19.9) return { kind: 'draw', id: 'draw', label: 'Draw', delta: 20 - OWS.liters, x: sp.x, y: sp.y, src: cs.p }; }
   const w = nearest(WELLS); if (w && w.d < 30 && OWS.liters < 19.9) { const sp = proj(w.p.x, P.y + 1.5, w.p.z); return { kind: 'draw', id: 'draw', label: 'Draw', delta: 20 - OWS.liters, x: sp.x, y: sp.y }; }
@@ -331,17 +355,17 @@ window.AhiyaBridge = { version: 1, canvas: renderer.domElement,
   state() { const isl = OW.islands.find(i => Math.abs(P.x - i.center[0]) < i.size[0] / 2 && Math.abs(P.z - i.center[1]) < i.size[1] / 2), n = nearest(OW.places), dg = donkey ? donkey.group.position : null;
     const me = proj(P.x, P.y + 1, P.z), meS = scaleAt(P.x, P.y, P.z), w = nearest(WELLS.concat(CAN_SOURCES.filter(c => c.flowing)));
     return { ready, clock: performance.now() / 1000, lang: 'en',
-      water: { liters: OWS.liters, capacity: 20, reserve: 4, donkey: OWS.dk, donkeyDown: OWS.dk < .05 }, weather: { storm: Math.min(STORM.v, STORM.glass) },
+      water: { liters: OWS.liters, capacity: 20, reserve: 4, donkey: OWS.dk, donkeyDown: OWS.dk < .05 }, weather: { storm: INSIDE ? 0 : Math.min(STORM.v, STORM.glass), indoor: !!INSIDE }, inside: INSIDE,
       place: { id: isl ? isl.id : 'sea', name: deckAt(P.x, P.z) && P.mode !== 'fly' ? 'the bridge' : isl ? isl.name : 'the open sea', next: null, visited: [] }, signal: 1,
       mode: { fly: 'glide', boat: 'drive', ferry: 'walk' }[P.mode] || P.mode, speed: Math.abs(P.speed), exit: MODE_OUT[P.mode] ? { id: 'down', label: MODE_OUT[P.mode] } : null,
-      live: liveAct(), busy: P.mode === 'ferry', speech: null, said: null,
+      live: liveAct(), busy: P.mode === 'ferry', speech: SPEECH && performance.now() - SPEECH.t < 9000 ? (() => { const w = SPEECH.who, h = w ? proj(w.x, w.y + 1.9, w.z) : null; return { seq: SPEECH.seq, name: SPEECH.name, text: SPEECH.text, spoken: SPEECH.text, t: SPEECH.t / 1000, dur: 8, x: h && h.x, y: h && h.y }; })() : null, said: null,
       lens: { focus: 18, filter: 0, filterName: 'Clear', filters: ['Clear'], stop: 0, stopName: 'f/8', stops: ['f/8'], mode: 0, modeName: '', modes: [''], tilt: 0, guides: false, lidar: false, camera: 'third', plates: 0 },
       map: { stops: [], me: [P.x / W, P.z / H], donkey: dg ? [dg.x / W, dg.z / H] : [0, 0], heading: -P.yaw },
       things: { can: { ...me, s: meS, dist: 0 }, donkey: dg && P.mode === 'walk' ? { ...proj(dg.x, dg.y + 1.5, dg.z), s: scaleAt(dg.x, dg.y, dg.z), dist: Math.hypot(dg.x - P.x, dg.z - P.z), wx: dg.x, wz: dg.z } : null,
-        source: w ? { ...proj(w.p.x, P.y + 1, w.p.z), s: scaleAt(w.p.x, P.y, w.p.z), dist: w.d, wx: w.p.x, wz: w.p.z } : null, people: [], next: WAY ? { ...proj(WAY.x, (WAY.y || P.y) + 8, WAY.z), s: 1, dist: Math.hypot(WAY.x - P.x, WAY.z - P.z), name: WAY.label } : null, wagon: null },
+        source: w ? { ...proj(w.p.x, P.y + 1, w.p.z), s: scaleAt(w.p.x, P.y, w.p.z), dist: w.d, wx: w.p.x, wz: w.p.z } : null, people: PEOPLE.map(q => ({ id: q.id, name: q.name, ...proj(q.x, q.y + 1.9, q.z), dist: Math.hypot(q.x - P.x, q.z - P.z), wx: q.x, wz: q.z })).filter(q => q.dist < 40), next: WAY ? { ...proj(WAY.x, (WAY.y || P.y) + 8, WAY.z), s: 1, dist: Math.hypot(WAY.x - P.x, WAY.z - P.z), name: WAY.label } : null, wagon: null },
       pos: { x: P.x, z: P.z, yaw: P.yaw }, atlas: { mx: P.x, mz: P.z }, sound: { voices: false, tape: false, radio: false } }; },
   act: {
-    live() { const L = liveAct(); if (!L) return false; if (L.kind === 'enter') { if (window.DW) window.DW.go(L.entry, { mode: 'walk', door: true }); else location.href = L.entry; } else if (L.kind === 'sail') board(L.pier); else if (L.kind === 'drive') setMode('drive'); else if (L.kind === 'boat') { L.mb.boat.visible = false; P.x = L.mb.x; P.z = L.mb.z; P.yaw = L.mb.yaw; P.mode = 'walk'; setMode('boat'); } else if (L.kind === 'draw') { const a = 20 - OWS.liters; OWS.liters = 20; if (L.src && L.src.onDraw) L.src.onDraw(a); } else if (L.kind === 'dry') return false; return true; },
+    live() { const L = liveAct(); if (!L) return false; if (L.kind === 'enter') { if (window.DW) window.DW.go(L.entry, { mode: 'walk', door: true }); else location.href = L.entry; } else if (L.kind === 'sail') board(L.pier); else if (L.kind === 'drive') setMode('drive'); else if (L.kind === 'boat') { L.mb.boat.visible = false; P.x = L.mb.x; P.z = L.mb.z; P.yaw = L.mb.yaw; P.mode = 'walk'; setMode('boat'); } else if (L.kind === 'draw') { const a = 20 - OWS.liters; OWS.liters = 20; if (L.src && L.src.onDraw) L.src.onDraw(a); } else if (L.kind === 'dry') return false; else if (L.kind === 'switch') L.sw.run(); else if (L.kind === 'give') { OWS.liters -= 5; L.who.onGive(5); } return true; },
     exit() { setMode('walk'); }, steer(x, y, active) { EXT.x = active ? x : 0; EXT.y = active ? y : 0; }, look(dx, dy) { camYaw -= dx * .006; camPitch = Math.max(-.2, Math.min(1.2, camPitch + dy * .004)); },
     jump() { if (P.mode === 'walk') OWS.jumpT = .5; }, say() { }, focus() { }, set() { }, lang() { }, expose() { }, lastPlate() { return null; }, begin() { },
     lean(kind, litres) { if (kind === 'draw') { const cs = nearest(CAN_SOURCES.filter(c => c.flowing)), w = cs && cs.d < 14 ? cs : nearest(WELLS); if (!w || w.d > 30) return 0; const a = Math.min(litres, 20 - OWS.liters); OWS.liters += a; if (w.p.onDraw) w.p.onDraw(a); return a; }
@@ -355,13 +379,13 @@ window.AhiyaBridge = { version: 1, canvas: renderer.domElement,
   chart: { draw() { }, uv() { return null; }, hit() { return null; } } };
 if (SURF) { for (const id of ['modes', 'stick', 'enter', 'mini', 'where']) $(id).style.display = 'none';
   const lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = '../night-post/rain/rain.css?v=1'; document.head.append(lk);
-  const en = document.createElement('script'); en.src = '../night-post/rain/engine.js?v=2'; en.onload = () => { const su = document.createElement('script'); su.src = '../night-post/rain/surface.js?v=ow3'; document.head.append(su); }; document.head.append(en); }
+  const en = document.createElement('script'); en.src = '../night-post/rain/engine.js?v=2'; en.onload = () => { const su = document.createElement('script'); su.src = '../night-post/rain/surface.js?v=ow4'; document.head.append(su); }; document.head.append(en); }
 // wait for the ground under you before letting go
 { const k = Math.floor(P.x / TS) + '_' + Math.floor(P.z / TS); await fetchTile(k); P.y = groundAt(P.x, P.z); if (donkey) placeDk(P.x + Math.sin(P.yaw) * 2 - Math.cos(P.yaw) * 1.8, P.z + Math.cos(P.yaw) * 2 + Math.sin(P.yaw) * 1.8, P.yaw, (x, z) => groundAt(x, z)); }
 camera.position.set(P.x, P.y + 40, P.z + 60); requestAnimationFrame(frame);
 async function goTo(x, z, yaw) { const k = Math.floor(x / TS) + '_' + Math.floor(z / TS); await fetchTile(k); if (P.mode === 'ferry') { P.ferry = null; P.mode = 'walk'; } if (P.mode === 'boat' && !wet(x, z)) setMode('walk'); P.x = x; P.z = z; P.y = groundAt(x, z); if (Number.isFinite(yaw)) P.yaw = yaw; if (P.mode === 'fly') P.alt = Math.max(P.y, 0) + 60; P.speed = 0;
   if (donkey) placeDk(P.x - Math.sin(P.yaw) * 3, P.z - Math.cos(P.yaw) * 3, P.yaw, (x, z) => groundAt(x, z)); camera.position.set(P.x - Math.sin(P.yaw) * 20, P.y + 12, P.z - Math.cos(P.yaw) * 20); }
-window.__ow = { P, OW, tiles, data, setMode, groundAt, deckAt, terrain, ferries, board, nearPier, wet, woody, rogallo, CROSS, MOORED, goTo, donkey, parked, PARK, REG, MOUNTS, STORM, CAN_SOURCES,
+window.__ow = { P, OW, tiles, data, setMode, groundAt, deckAt, terrain, ferries, board, nearPier, wet, woody, rogallo, CROSS, MOORED, goTo, donkey, parked, PARK, REG, MOUNTS, STORM, CAN_SOURCES, PEOPLE, SWITCHES, ROOMS, blocked, get inside() { return INSIDE; }, get speech() { return SPEECH; },
   setTarget(t) { TARGET = t ? { x: t.x, z: t.z, kind: t.kind || 'door', label: t.label || '' } : null; }, way() { if (!WAY) return null; const path = [[P.x, P.z]]; for (const c of ROUTE) path.push([c.x, c.z], c.far); if (TARGET) path.push([TARGET.x, TARGET.z]); else path.push([WAY.x, WAY.z]);
     return { x: WAY.x, z: WAY.z, kind: WAY.kind, label: WAY.label, chosen: !!TARGET, goal: TARGET && TARGET.label, path }; } };
 })();

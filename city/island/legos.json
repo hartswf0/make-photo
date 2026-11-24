@@ -1,0 +1,260 @@
+{
+ "legos": 1.1,
+ "can": "wygwyl",
+ "L": [
+  {
+   "id": "severn",
+   "name": "The Severn Pilot \u00b7 701 Cathedral St",
+   "at": "severnDoor",
+   "zone_ring": "center",
+   "keeper": "bekele",
+   "offers": [
+    "open",
+    "enter"
+   ],
+   "portal": {
+    "room": "severn",
+    "note": "a doorway in the collision: walk in when the door is open; indoors the rain leaves the glass and the street goes quiet"
+   },
+   "variants": {
+    "probable": {
+     "door": "closed",
+     "note": "the vestibule door is shut"
+    },
+    "plausible": {
+     "door": "open",
+     "note": "Bekele has propped the door for the parcel"
+    },
+    "preposterous": {
+     "door": "open",
+     "flood": true,
+     "note": "the Fall salt line: the Inner Harbor stands four metres high"
+    }
+   }
+  },
+  {
+   "id": "harbor",
+   "name": "Inner Harbor",
+   "at": "inner-harbor",
+   "zone_ring": "inner",
+   "keeper": "hiwot",
+   "offers": [
+    "give"
+   ]
+  },
+  {
+   "id": "centro",
+   "name": "Light Gates of Centro",
+   "at": "centro",
+   "zone_ring": "outer",
+   "keeper": "dawit"
+  },
+  {
+   "id": "condesa",
+   "name": "Condesa soil pits",
+   "at": "condesa",
+   "zone_ring": "outer",
+   "keeper": "selam"
+  }
+ ],
+ "E": [
+  {
+   "id": "bekele",
+   "name": "Bekele",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "ferry_bekele",
+   "at": "severnCurb",
+   "offset": [
+    2,
+    -3
+   ],
+   "zone_ring": "center",
+   "line": "Welcome to 701 Cathedral St. Close the vestibule door and hear the street quiet down.",
+   "thanks": "Water for the steward. The Severn thanks you."
+  },
+  {
+   "id": "hiwot",
+   "name": "Hiwot",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "saba",
+   "at": "hiwotHome",
+   "zone_ring": "inner",
+   "line": "Every cyan standpipe feeds the harbor darkroom. Bring me five litres and the prints will wash.",
+   "thanks": "Five litres. The darkroom can wash today's prints."
+  },
+  {
+   "id": "dawit",
+   "name": "Dawit",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "dawit",
+   "at": "dawitHome",
+   "zone_ring": "outer",
+   "line": "At the Light Gates of Centro, four metres marks the Fall salt line across every older facade."
+  },
+  {
+   "id": "selam",
+   "name": "Selam",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "alma",
+   "at": "selamHome",
+   "zone_ring": "outer",
+   "line": "Jacarandas only take root in the sidewalk soil pits here in Condesa."
+  },
+  {
+   "id": "severn_wagon",
+   "body": "vehicle",
+   "archetype": "woody_1942",
+   "at": "severnCurb",
+   "offset": [
+    -6,
+    2
+   ],
+   "zone_ring": "inner"
+  },
+  {
+   "id": "condesa_bajaj",
+   "body": "vehicle",
+   "archetype": "abyssinia.bajaj",
+   "at": "condesa",
+   "offset": [
+    12,
+    8
+   ],
+   "zone_ring": "outer"
+  },
+  {
+   "id": "harbor_water",
+   "body": "emitter",
+   "sound": "../../audio/samples/river_gorge.mp3",
+   "at": "inner-harbor",
+   "radius": 320,
+   "gain": 0.55
+  },
+  {
+   "id": "woodberry_crickets",
+   "body": "emitter",
+   "sound": "../../audio/samples/crickets_night.mp3",
+   "at": "woodberry",
+   "radius": 260,
+   "gain": 0.5
+  },
+  {
+   "id": "condesa_pump",
+   "body": "emitter",
+   "sound": "../../audio/samples/metal_pump.mp3",
+   "at": "condesa",
+   "radius": 120,
+   "gain": 0.45
+  }
+ ],
+ "G": [
+  {
+   "id": "wash-the-prints",
+   "want": "give Hiwot 5 L for the harbor darkroom",
+   "owner": "player",
+   "status": "live"
+  },
+  {
+   "id": "quiet-the-street",
+   "want": "step into the Severn and close the door",
+   "owner": "player",
+   "status": "live"
+  }
+ ],
+ "O": [
+  {
+   "id": "walls",
+   "rule": "building footprints cannot be walked or driven through",
+   "source": "city/island/data/buildings.json"
+  },
+  {
+   "id": "closed-door",
+   "rule": "a closed vestibule door blocks the doorway",
+   "from": "severn.probable",
+   "affects": "quiet-the-street"
+  },
+  {
+   "id": "salt-line",
+   "rule": "the harbor stands four metres high",
+   "from": "severn.preposterous"
+  }
+ ],
+ "S": [
+  {
+   "id": "open",
+   "verb": "open",
+   "at": "severn",
+   "shift": {
+    "causes": [
+     "closed-door"
+    ],
+    "results_in": "quiet-the-street"
+   }
+  },
+  {
+   "id": "give",
+   "verb": "give",
+   "to": "hiwot",
+   "needs": {
+    "litres": 5
+   },
+   "shift": {
+    "causes": [
+     "wash-the-prints"
+    ],
+    "results_in": "wash-the-prints"
+   }
+  }
+ ],
+ "relations": [
+  [
+   "keeps",
+   "bekele",
+   "severn"
+  ],
+  [
+   "keeps",
+   "hiwot",
+   "harbor"
+  ],
+  [
+   "blocks",
+   "closed-door",
+   "quiet-the-street"
+  ],
+  [
+   "wants",
+   "hiwot",
+   "wash-the-prints"
+  ],
+  [
+   "floods",
+   "salt-line",
+   "harbor"
+  ]
+ ],
+ "chance": {
+  "key": [
+   "can",
+   "island",
+   "visit"
+  ],
+  "weights": {
+   "probable": 0.72,
+   "plausible": 0.23,
+   "preposterous": 0.05
+  }
+ },
+ "memory": {
+  "store": "dw.ledger",
+  "keeps": [
+   "visits",
+   "variants",
+   "last-12 tuples [visit, verb, entity, delta, tier]"
+  ]
+ }
+}

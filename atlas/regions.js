@@ -33,10 +33,10 @@
   // ---------- kits: archetype packets the trough registers once; cans name them ----------
   const ARCH = new Map();
   async function loadKit(url) { const k = await json(url); for (const [id, def] of Object.entries(k.archetypes || {})) ARCH.set(id, { kit: k, url, def }); return k; }
-  async function makeBody(T, id) { const a = ARCH.get(id); if (!a) throw new Error('no archetype ' + id); for (const s of a.kit.scripts || []) await script(abs(a.url, s));
+  async function makeBody(T, id, E) { const a = ARCH.get(id); if (!a) throw new Error('no archetype ' + id); for (const s of a.kit.scripts || []) await script(abs(a.url, s));
     const f = dig(a.def.make), owner = a.def.make.includes('.') ? dig(a.def.make.split('.').slice(0, -1).join('.')) : window; if (typeof f !== 'function') throw new Error('no builder ' + a.def.make);
     const opts = a.def.opts && { ...a.def.opts, ...(a.def.opts.assetPath ? { assetPath: abs(a.url, a.def.opts.assetPath) } : {}) };
-    const raw = a.def.call === 'opts' ? f.call(owner, opts) : f.call(owner, T), root = a.def.root ? raw[a.def.root] : raw && raw.isObject3D ? raw : raw.group || raw.root;
+    const raw = a.def.call === 'opts' ? f.call(owner, opts) : a.def.call === 'T,cast' ? f.call(owner, T, E && E.cast) : f.call(owner, T), root = a.def.root ? raw[a.def.root] : raw && raw.isObject3D ? raw : raw.group || raw.root;
     return { kind: a.def.body, raw, root }; }
 
   // ---------- a beast that chooses: skills scored each half second (SAGA's shape), moved by the trough ----------
@@ -50,7 +50,7 @@
         o.sort((a, c) => c.score - a.score); return { options: o.map(x => ({ skill: x.skill, parameters: x.parameters })), scores: o.map(x => +x.score.toFixed(3)) }; },
       ripple(vector) { if (vector === 'GOAL') { st.boost = .35; st.boostT = 20; } },
       update(dt, pl, now) { st.thirst = Math.min(1, st.thirst + dt * .004); if (st.boostT > 0 && (st.boostT -= dt) <= 0) st.boost = 0;
-        if ((st.t += dt) > .5) { st.t = 0; me.last = me.options(pl); }
+        { const w = performance.now(); if (!me.last || w - (st.at || 0) > 500) { st.at = w; me.last = me.options(pl); } }
         const top = me.last.options[0]; let tx, tz, stop;
         if (top.skill === 'drink') { const src = srcOf(top.parameters.at); tx = src.x + 1.6; tz = src.z + 1.6; stop = 1.4; if (Math.hypot(tx - me.x, tz - me.z) < 2.2) st.thirst = Math.max(0, st.thirst - dt * .15); }
         else if (top.skill === 'approach' && pl) { tx = pl.x; tz = pl.z; stop = 3.5; }
@@ -59,8 +59,37 @@
         d.update(dt, { throttle: dd > stop ? Math.min(1, (dd - stop) / 4) : 0, steer: Math.max(-1, Math.min(1, dh * 2)), pace: 0 }, H); } };
     return me; }
 
+  // ---------- a walker who chooses: listen at home, turn to you, greet you once and say their line, thank you for water ----------
+  function walker(ctx, E, b, home, H, r) { const ch = b.raw; ch.group.position.set(home.x, H(home.x, home.z), home.z); ch.group.rotation.y = r() * 6.28; if (ch.label && ch.label.sprite) ch.label.sprite.visible = false;
+    if (ctx.motion) ctx.motion.add(E.id, ch); const st = { t: 9, cool: 0, greetT: 0, given: 0 };
+    const me = { kind: 'walker', id: E.id, name: E.name, root: ch.group, x: home.x, z: home.z, get y() { return ch.group.position.y; }, last: null,
+      options(pl) { const d = pl ? Math.hypot(pl.x - me.x, pl.z - me.z) : 1e9, o = [];
+        for (const s of E.skills || [{ name: 'listen', base: .3 }, { name: 'face', when: { player_within: 14 }, score: .45 }, { name: 'greet', when: { player_within: 8 }, score: .7 }]) { const w = s.when || {}; let sc = s.base || 0;
+          if (w.player_within && d < w.player_within) sc = s.score; if (s.name === 'greet' && st.cool > 0) sc = 0; o.push({ skill: s.name, parameters: s.parameters || {}, score: sc }); }
+        o.sort((a, c) => c.score - a.score); return { options: o.map(x => ({ skill: x.skill, parameters: x.parameters })), scores: o.map(x => +x.score.toFixed(3)) }; },
+      onGive(l) { st.given += l; if (me.ledger) me.ledger(l); st.cool = 40; st.greetT = 2.5; if (ctx.say) ctx.say(E.name, E.thanks || 'Thank you for the water.', me); },
+      update(dt, pl) { st.cool = Math.max(0, st.cool - dt); st.greetT = Math.max(0, st.greetT - dt); { const w = performance.now(); if (!me.last || w - (st.at || 0) > 500) { st.at = w; me.last = me.options(pl); } }
+        const top = me.last.options[0].skill;
+        if ((top === 'face' || top === 'greet') && pl) { let dh = Math.atan2(pl.x - me.x, pl.z - me.z) - ch.group.rotation.y; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); ch.group.rotation.y += dh * Math.min(1, dt * 3); }
+        if (top === 'greet') { st.cool = 60; st.greetT = 2.5; if (ctx.say) ctx.say(E.name, E.line, me); }
+        if (ctx.motion) ctx.motion.loco(E.id, { speedMps: 0, greeting: st.greetT > 0, talking: st.greetT > 0 }); },
+      drop() { if (ctx.motion) ctx.motion.drop(E.id); } };
+    return me; }
+
   // ---------- adapters: the contracts the trough offers a can ----------
   const ADAPTERS = {
+    // ground@1: the can is laid out in metres from its island's corner, at true scale, on the trough's ground; it returns blockers, rooms and landmarks
+    async 'ground@1'(ctx, isl, can) { const ox = isl.center[0] - isl.size[0] / 2, oz = isl.center[1] - isl.size[1] / 2, Wp = p => [p[0] + ox, p[1] + oz];
+      await ctx.ensureGround(ox, oz, ox + isl.size[0], oz + isl.size[1]);
+      const live = await window[can.entry.global][can.entry.call](ctx.T, { H: (x, z) => ctx.groundAt(ox + x, oz + z) }); live.root.position.set(ox, 0, oz); ctx.scene.add(live.root);
+      const regs = []; if (ctx.addBlockers) { if (live.blockers) regs.push(ctx.addBlockers(live.blockers.map(pl => pl.map(Wp)))); if (live.walls) regs.push(ctx.addBlockers(live.walls.map(pl => pl.map(Wp)))); }
+      let doorOff = null; const door = () => { if (!live.door || !ctx.addBlockers) return; if (!live.doorOpen && !doorOff) doorOff = ctx.addBlockers([live.door.map(Wp)]); if (live.doorOpen && doorOff) { doorOff(); doorOff = null; } }; door();
+      if (live.room && ctx.addInterior) regs.push(ctx.addInterior({ id: live.room.id, pts: live.room.pts.map(Wp) }));
+      const marks = {}; for (const [k, v] of Object.entries(live.landmarks || {})) marks[k] = { ...v, x: v.x + ox, z: v.z + oz };
+      return { marks, live,
+        apply(v) { if ('door' in v) { live.setDoor(v.door === 'open'); door(); } if (v.flood) live.setFlood(true); },
+        toggle() { live.setDoor(!live.doorOpen); door(); return live.doorOpen; },
+        update(dt) { live.update(dt); }, dispose() { for (const o of regs) o(); if (doorOff) doorOff(); ctx.scene.remove(live.root); live.dispose(); } }; },
     // terrain@1: the can builds on the trough's ground at true scale. Its own coordinates were squeezed into frame.span; landmarks spread back out.
     async 'terrain@1'(ctx, isl, can, site) {
       const man = await json(abs(can.url, can.frame.manifest)), r = man.regions[site.region]; if (!r) throw new Error('no region ' + site.region);
@@ -84,7 +113,7 @@
 
   // ---------- pour and drain ----------
   async function pour(ctx, isl, can, site) {
-    await script(abs(can.url, can.entry.script)); const legos = can.legos ? await json(abs(can.url, can.legos)) : { L: [] };
+    await script(abs(can.url, can.entry.script)); const legos = can.legos ? await json(abs(can.url, can.legos)) : { L: [] }; can.legosUrl = can.legos ? abs(can.url, can.legos) : can.url;
     const clock = LEDGER.tick(), mem = LEDGER.get(can.id, isl.id);
     if (mem.seen) for (const k in mem.bias) mem.bias[k] = Math.max(0, mem.bias[k] - .08 * Math.max(0, clock - mem.seen - 1));   // recharge: every visit elsewhere refills the aquifer a little
     mem.visits++; mem.seen = clock;
@@ -98,21 +127,27 @@
         const o = { id: can.id + ':' + isl.id + ':' + L.id, x: m.x, z: m.z, name: L.name, flowing: v.flowing !== false, note: v.note || '', tier: v.tier,
           onDraw: litres => { mem.bias[L.id] = Math.min(.5, (mem.bias[L.id] || 0) + litres * per); LEDGER.note(mem, [mem.visits, 'draw', L.id, +litres.toFixed(1), v.tier]); LEDGER.put(can.id, isl.id, mem); ripple(S, m.x, m.z); } };
         src[L.id] = o; regs.push(ctx.addSource(o)); }
+      if (body.apply && (v.door || v.flood)) body.apply(v);
+      if ((L.offers || []).includes('open') && body.toggle && ctx.addSwitch) regs.push(ctx.addSwitch({ x: m.x, z: m.z, label: () => body.live.doorOpen ? 'Close the door' : 'Open the door',
+        run: () => { const o = body.toggle(); LEDGER.note(mem, [mem.visits, o ? 'open' : 'close', L.id, 0, v.tier]); LEDGER.put(can.id, isl.id, mem); } }));
       if (v.weather && ctx.addWeather) regs.push(ctx.addWeather({ x: isl.center[0], z: isl.center[1], hx: isl.size[0] / 2, hz: isl.size[1] / 2, ...v.weather })); }
+    for (const E of legos.E || []) { if (E.body !== 'emitter' || !E.sound || !ctx.addSound) continue; const m = body.marks[E.at]; if (!m) continue;   // a sound placed in the world
+      regs.push(ctx.addSound({ url: abs(can.legosUrl, E.sound), x: m.x + ((E.offset || [])[0] || 0), y: H(m.x, m.z) + 2, z: m.z + ((E.offset || [])[1] || 0), radius: E.radius || 200, gain: E.gain || .6, room: E.room || null })); }
     for (const E of legos.E || []) { if (!E.archetype) continue; const m = body.marks[E.at]; if (!m) continue;   // a kit body, placed by a few lines of LEGOS
-      try { const b = await makeBody(ctx.T, E.archetype), o = E.offset || [0, 0], home = { x: m.x + o[0], z: m.z + o[1] };
-        if (b.kind === 'beast') { const bs = beast(E, b, home, H, srcOf, r); ctx.scene.add(bs.root); bodies.push(bs); }
+      try { const b = await makeBody(ctx.T, E.archetype, E), o = E.offset || [0, 0], home = { x: m.x + o[0], z: m.z + o[1] };
+        if (b.kind === 'walker') { const w = walker(ctx, E, b, home, H, r); w.ledger = l => { LEDGER.note(mem, [mem.visits, 'give', E.id, l, '']); LEDGER.put(can.id, isl.id, mem); }; ctx.scene.add(w.root); bodies.push(w); if (ctx.addPerson) regs.push(ctx.addPerson(w)); }
+        else if (b.kind === 'beast') { const bs = beast(E, b, home, H, srcOf, r); ctx.scene.add(bs.root); bodies.push(bs); }
         else { b.root.position.set(home.x, H(home.x, home.z), home.z); b.root.rotation.y = r() * 6.28; ctx.scene.add(b.root); bodies.push({ kind: b.kind, id: E.id, root: b.root, x: home.x, z: home.z }); } }
       catch (e) { console.warn('body', E.id, e); } }
     mem.variants = Object.fromEntries(Object.entries(pick).map(([k, v]) => [k, v.tier])); mem.last = Date.now(); LEDGER.put(can.id, isl.id, mem);
     return { id: isl.id, can: can.id, pick, marks: body.marks, bodies,
       update(dt, t, pl, dk) { body.update(dt, t, pl, dk); for (const b of bodies) if (b.update) b.update(dt, pl, t); },
-      dispose() { for (const off of regs) try { off(); } catch { } for (const b of bodies) ctx.scene.remove(b.root); body.dispose(); LEDGER.put(can.id, isl.id, { ...mem, drained: Date.now() }); } };
+      dispose() { for (const off of regs) try { off(); } catch { } for (const b of bodies) { ctx.scene.remove(b.root); if (b.drop) b.drop(); } body.dispose(); LEDGER.put(can.id, isl.id, { ...mem, drained: Date.now() }); } };
   }
 
   window.DWRegions = {
     ledger: LEDGER, archetypes: ARCH, makeBody,
-    create(ctx) { const live = new Map(), busy = new Set(), SITES = new Map(); let shelf = null;
+    create(ctx) { const live = new Map(), busy = new Set(), failed = new Map(), SITES = new Map(); let shelf = null;   // a pour that fails waits 30 s before trying again
       const ready = json(ctx.shelf || './cans.json').then(async s => { await Promise.all((s.kits || []).map(u => loadKit(abs(location.href, u)).catch(e => console.warn('kit', u, e))));
         shelf = await Promise.all(s.cans.map(async u => ({ ...(await json(abs(location.href, u))), url: abs(location.href, u) })));
         for (const can of shelf) for (const site of can.sites || []) SITES.set(site.island, { can, site }); if (ctx.onShelf) ctx.onShelf([...SITES.keys()]); }).catch(e => console.warn('shelf', e));
@@ -120,8 +155,8 @@
       return { live, ready, sites: SITES,
         tick(x, z) { if (!shelf) return; for (const isl of ctx.islands) { const s = SITES.get(isl.id); if (!s) continue; const d = edge(isl, x, z), B = s.can.bands || { scent: 7000, pour: 2600, drain: 5200 };
             if (d < B.scent) { script(abs(s.can.url, s.can.entry.script)); if (s.can.legos) json(abs(s.can.url, s.can.legos)); if (s.can.frame && s.can.frame.manifest) json(abs(s.can.url, s.can.frame.manifest)); }
-            if (d < B.pour && !live.has(isl.id) && !busy.has(isl.id)) { busy.add(isl.id); const t0 = performance.now(); if (ctx.onStart) ctx.onStart(isl);
-              pour(ctx, isl, s.can, s.site).then(r => { live.set(isl.id, r); if (ctx.onMount) ctx.onMount(isl, r, performance.now() - t0); }).catch(e => { console.warn('pour', isl.id, e); if (ctx.onMount) ctx.onMount(isl, null, 0); }).finally(() => busy.delete(isl.id)); }
+            if (d < B.pour && !live.has(isl.id) && !busy.has(isl.id) && !(failed.get(isl.id) > performance.now())) { busy.add(isl.id); const t0 = performance.now(); if (ctx.onStart) ctx.onStart(isl);
+              pour(ctx, isl, s.can, s.site).then(r => { live.set(isl.id, r); if (ctx.onMount) ctx.onMount(isl, r, performance.now() - t0); }).catch(e => { console.warn('pour', isl.id, e && (e.message || (e.target && e.target.src) || e)); failed.set(isl.id, performance.now() + 30000); if (ctx.onMount) ctx.onMount(isl, null, 0); }).finally(() => busy.delete(isl.id)); }
             else if (d > B.drain && live.has(isl.id)) { try { live.get(isl.id).dispose(); } catch { } live.delete(isl.id); } } },
         update(dt, t, pl, dk) { for (const r of live.values()) try { r.update(dt, t, pl, dk); } catch (e) { } } }; } };
 })();

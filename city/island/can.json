@@ -1,0 +1,42 @@
+{
+ "can": 1,
+ "id": "wygwyl",
+ "name": "WYGWYL island",
+ "version": "2026.11.24",
+ "page": "./index.html",
+ "entry": {
+  "script": "./wygwyl-can.js?v=1",
+  "global": "WygwylCan",
+  "call": "create",
+  "adapter": "ground@1"
+ },
+ "ground": "trough",
+ "frame": {
+  "origin": "island corner",
+  "units": "metres",
+  "scale": "true"
+ },
+ "sites": [
+  {
+   "island": "wygwyl",
+   "region": "wygwyl"
+  }
+ ],
+ "bands": {
+  "scent": 7000,
+  "pour": 2600,
+  "drain": 5200
+ },
+ "budget": {
+  "js_kb": 12,
+  "data_kb": 1750,
+  "build_ms": 2500
+ },
+ "packets": [
+  "places",
+  "kinds",
+  "life",
+  "voice"
+ ],
+ "legos": "./legos.json"
+}
