@@ -79,8 +79,8 @@ body{background:#020418;color:var(--ink);font:500 13px/1.4 ui-monospace,Menlo,mo
 const BASE=/\/city\/mix\/?/.test(location.pathname)?'../decks/':'';
 const FPS=23.976,TB=24,TURN=8,TEETH=40,MAXN=8,HOLD_MS=450,GW=80,GH=45,VOID=.018;
 const KCOL={reading:'#7fd8ff',world:'#9ff0c4',sounds:'#ffb35c',layers:'#d6a8ff'},CHC={pic:'#7fd8ff',snd:'#ffb35c',txt:'#d8c9ff'};
-const FMODES=['gravity','cells','veil','tangle'],GAM={gravity:1.6,cells:12,veil:1.6,tangle:1.2},GAMA={gravity:1.6,cells:5,veil:1.6,tangle:1.2},SLOTS=['pw','txt','pic','snd','ln'];
-const KNOBS=[{id:'level',ic:'lvl',min:0,max:1,def:.75},{id:'reach',ic:'reach',min:0,max:1,def:.45},{id:'tone',ic:'tone',min:-1,max:1,def:0,detent:0},{id:'col',ic:'tint',min:0,max:1,def:0,detent:0}];
+const FMODES=['gravity','cells','veil','tangle'],GAM={gravity:1.6,cells:12,veil:1.6,tangle:1.2},GAMA={gravity:1.6,cells:5,veil:1.6,tangle:1.2},SLOTS=['pw','txt','pic','snd','fig','ln'];
+const KNOBS=[{id:'level',ic:'lvl',min:0,max:1,def:.75},{id:'reach',ic:'reach',min:0,max:1,def:.45},{id:'tone',ic:'tone',min:-1,max:1,def:0,detent:0},{id:'col',ic:'tint',min:0,max:1,def:0,detent:0},{id:'z',ic:'zoom',min:.4,max:3,def:1,detent:1}];
 const STORE='mixdiscs.field.v6';
 /* the four field buttons are targets in a continuous space (gamma, veil, tangle); the field glides between them */
 const FMT={gravity:{G:1.6,veil:0,tang:0},cells:{G:12,veil:0,tang:0},veil:{G:1.6,veil:1,tang:0},tangle:{G:1.2,veil:0,tang:1}},FMP={G:1.6,veil:0,tang:0};
@@ -97,7 +97,7 @@ const ICON={pic:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16
   trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',back:'<path d="M15 5l-7 7 7 7"/>',save:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/>',film:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14"/>',
   tint:'<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z"/>',tone:'<path d="M3 14c3 0 3-6 6-6s3 8 6 8 3-4 6-4"/>',lvl:'<circle cx="12" cy="14" r="6"/><path d="M9 5h6M12 5v3"/>',reach:'<circle cx="12" cy="12" r="2.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
   pw:'<path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/>',ln:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
-  play:'<path d="M7 5l12 7-12 7z"/>',pause:'<path d="M8 5v14M16 5v14"/>',plus:'<path d="M12 6v12M6 12h12"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8M12 17h.01"/>',
+  fig:'<circle cx="12" cy="7" r="3.2"/><path d="M5 21c.8-5 3.6-8 7-8s6.2 3 7 8"/>',zoom:'<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5h5M10.5 8v5"/>',play:'<path d="M7 5l12 7-12 7z"/>',pause:'<path d="M8 5v14M16 5v14"/>',plus:'<path d="M12 6v12M6 12h12"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8M12 17h.01"/>',
   eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',stage:'<rect x="2" y="4" width="20" height="13" rx="1.5"/><path d="M8 21h8"/>',deck:'<rect x="2" y="5" width="11" height="12" rx="1.5"/><circle cx="18" cy="11" r="3.5"/>',
   gravity:'<circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="12" r="5.8"/><circle cx="12" cy="12" r="9.5"/>',cells:'<path d="M3 4l7 6-2 11M10 10l11-4M10 10l7 11"/>',veil:'<rect x="3" y="4" width="12" height="12" rx="1"/><rect x="9" y="8" width="12" height="12" rx="1"/>',tangle:'<path d="M3 12c3-8 6 8 9 0s6 8 9 0"/><path d="M3 12c3 8 6-8 9 0s6-8 9 0"/>',spark:'<path d="M12 3l1.8 5.4L19 10l-5.2 1.6L12 17l-1.8-5.4L5 10l5.2-1.6z"/><path d="M19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>'};
 const svg=(k,w=1.7)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
@@ -108,7 +108,7 @@ function lastBefore(list,t,k){let r=null;for(let i=0;i<list.length;i++){if(list[
 function lineWords(p,t){if(t<p.speech[0]-.3||t>p.speech[1]+.6)return null;let L=p.lines[0];for(const l of p.lines){if(l.s<=t)L=l;else break}const ws=p.words.filter(w=>w[0]>=L.s-.3&&w[0]<L.e);return ws.length?ws.map(w=>({w:w[2],on:w[0]<=t})):[{w:L.text,on:true}]}
 function addSrc(s){SRC.push(s);SK[s.key]=s}
 function build(su,dk,ly){SRCNAME=su.source.name;const P=n=>su.poems.find(p=>p.num===n);
-  su.poems.forEach(p=>addSrc({key:'R'+p.num,kind:'reading',num:p.num,title:p.title,thumb:'thumbs/'+p.num+'.jpg',dur:p.clip.dur,files:[p.clip.file],video:true,pic:1,snd:1,txt:1,base:p.clip.src_in,reel:'WYGWYL',start:Math.max(0,p.speech[0]-.4),marks:p.lines.map(l=>l.s),words:t=>lineWords(p,t),wl:p.words,speech:p.speech}));
+  su.poems.forEach(p=>addSrc({key:'R'+p.num,kind:'reading',num:p.num,title:p.title,thumb:'thumbs/'+p.num+'.jpg',dur:p.clip.dur,files:[p.clip.file],video:true,pic:1,snd:1,txt:1,base:p.clip.src_in,reel:'WYGWYL',start:Math.max(0,p.speech[0]-.4),marks:p.lines.map(l=>l.s),words:t=>lineWords(p,t),wl:p.words,speech:p.speech,matte:'clips/'+p.num+'-matte.mp4',trackUrl:'tracks/'+p.num+'.json'}));
   dk.world.forEach(w=>{const p=w.poem&&P(w.poem);addSrc({key:'W'+w.key,kind:'world',num:w.poem,title:w.title,thumb:w.thumb,dur:w.dur,files:[w.file],video:true,pic:1,snd:1,txt:0,base:0,reel:w.key.replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase(),start:0,marks:[0,...w.cuts],speech:p?p.speech:null,sync:Array.isArray(w.sync)&&w.sync.length>1?w.sync:null,crop:/^street-/.test(w.key)?.93:/^(poemwalk-|probe-)/.test(w.key)?-.88:w.key==='magic-ride'?.84:1})});
   dk.sounds.forEach(s=>{const p=P(s.num);addSrc({key:'S'+s.num,kind:'sounds',num:s.num,title:'Line sounds · '+p.title,dur:s.dur,files:[s.file],video:false,pic:0,snd:1,txt:1,base:0,reel:'FS'+s.num,start:Math.max(0,p.speech[0]-.4),marks:s.cues.map(c=>c.t),speech:p.speech,words:t=>{const c=lastBefore(s.cues,t,'t');return c&&t-c.t<6?[{w:'♪ '+c.title,on:true}]:null}})});
   ly.poems.forEach(x=>{const p=P(x.num);addSrc({key:'X'+x.num,kind:'layers',num:x.num,title:'Rooms · '+p.title,dur:x.dur,files:x.stems.map(s=>s.file),video:false,pic:0,snd:1,txt:1,base:0,reel:'MP'+x.num,start:Math.max(0,p.speech[0]-.4),marks:x.lines.map(l=>l.t),speech:p.speech,words:t=>{const L=lastBefore(x.lines,t,'t');return L?[{w:L.beat,on:true}]:null}})})}
@@ -140,12 +140,18 @@ const EAR={x:.5,y:.5,vx:0,vy:0,drag:null,glide:null};
 const hueOf=c=>c<.03?null:c*360;
 function makeNode(key,o){const s=SK[key];if(!s||NODES.length>=MAXN)return null;
   const els=s.files.map((f,i)=>{const e=s.video&&i===0?document.createElement('video'):new Audio();e.preload='auto';e.playsInline=true;e.src=BASE+f;e.preservesPitch=true;return e});
-  const k=Object.assign({id:uid++,s,els,g:null,flt:null,on:true,link:true,level:.75,reach:.45,tone:0,col:0,x:.5,y:.5,vx:0,vy:0,drag:null,glide:null,mS:0,rS:.45,motor:0,spd:0,mult:1,pitchKeep:true,loop:null,hold:null,mom:0,err:false,lastTap:0,share:0,earW:0,vw:0,kS:{}},o||{});
+  const k=Object.assign({id:uid++,s,els,g:null,flt:null,on:true,link:true,level:.75,reach:.45,tone:0,col:0,z:1,fg:s.matte&&!(o&&o.far)?1:0,follow:s.matte&&!(o&&o.far)?1:0,pres:0,face:null,x:.5,y:.5,vx:0,vy:0,drag:null,glide:null,mS:0,rS:.45,motor:0,spd:0,mult:1,pitchKeep:true,loop:null,hold:null,mom:0,err:false,lastTap:0,share:0,earW:0,vw:0,kS:{}},o||{});
   k.route=Object.assign({pic:!!s.pic,snd:!!s.snd&&s.kind!=='world',txt:s.kind==='reading'},o&&o.route||{});k.echo=0;k.ta=1;k.hue=hueOf(k.col);k.rS=k.reach;
   k.w=new Float32Array(GW*GH);k.mk=document.createElement('canvas');k.mk.width=GW;k.mk.height=GH;k.mc=k.mk.getContext('2d');k.md=k.mc.createImageData(GW,GH);for(let i=0;i<GW*GH;i++){k.md.data[i*4]=k.md.data[i*4+1]=k.md.data[i*4+2]=255}
   KNOBS.forEach(d=>k.kS[d.id]=k[d.id]);
+  if(s.matte){const m=document.createElement('video');m.muted=true;m.playsInline=true;m.preload='auto';m.src=BASE+s.matte;m.onerror=()=>{k.mt=null};k.mt=m;loadTrack(s).then(t=>{k.trk=t})}
   els[0].onerror=()=>{k.err=true};els[0].addEventListener('loadedmetadata',()=>seekD(k,s.start),{once:true});wire(k);NODES.push(k);return k}
-function removeNode(k){for(const e of k.els){e.pause();e.removeAttribute('src');e.load()}if(k.g)try{k.g.disconnect()}catch(e){}NODES.splice(NODES.indexOf(k),1);if(ANC===k)ANC=null;if(SEL===k)SEL=NODES[0]||null}
+function removeNode(k){if(k.mt){k.mt.pause();k.mt.removeAttribute('src');k.mt.load()}for(const e of k.els){e.pause();e.removeAttribute('src');e.load()}if(k.g)try{k.g.disconnect()}catch(e){}NODES.splice(NODES.indexOf(k),1);if(ANC===k)ANC=null;if(SEL===k)SEL=NODES[0]||null}
+/* his track: per 12 fps frame, is he in shot, and where is his face (centre, size) */
+const TRKS={};
+function loadTrack(s){if(!TRKS[s.key])TRKS[s.key]=fetch(BASE+s.trackUrl).then(r=>r.ok?r.json():null).catch(()=>null);return TRKS[s.key]}
+function faceAt(k,t){const T=k.trk;if(!T)return null;const n=T.f.length,i0=Math.round(t*T.fps);let on=0,x=0,y=0,r=0,c=0;
+  for(let d=-2;d<=2;d++){const f=T.f[clamp(i0+d,0,n-1)];if(f[1]){on++;x+=f[2];y+=f[3];r+=f[4];c++}}return c?{on:on/5,x:x/c,y:y/c,r:r/c}:{on:0}}
 const tD=k=>k.els[0].currentTime||0,playing=k=>k.motor>0,elPlaying=k=>!k.els[0].paused;
 function seekD(k,t){t=clamp(t,0,k.s.dur-.05);for(const e of k.els){try{e.currentTime=t}catch(x){}}}
 function elPlay(k,on){if(on){for(const e of k.els)if(e.paused)e.play().catch(()=>{})}else for(const e of k.els)if(!e.paused)e.pause()}
@@ -193,8 +199,11 @@ function bodies(dt){const fr=Math.exp(-dt*4.5);
     if(b.x<.03){b.x=.03;b.vx=Math.abs(b.vx)*.5;edgeTick(b)}if(b.x>.97){b.x=.97;b.vx=-Math.abs(b.vx)*.5;edgeTick(b)}if(b.y<.04){b.y=.04;b.vy=Math.abs(b.vy)*.5;edgeTick(b)}if(b.y>.96){b.y=.96;b.vy=-Math.abs(b.vy)*.5;edgeTick(b)}}
   for(let i=0;i<NODES.length;i++)for(let j=i+1;j<NODES.length;j++){const a=NODES[i],b=NODES[j],dx=(b.x-a.x)*ASP,dy=b.y-a.y,d=Math.hypot(dx,dy),m=.07;if(d<m&&d>1e-5){const p=(m-d)/d*.5*ease(dt,10);if(!a.drag){a.x-=dx/ASP*p;a.y-=dy*p}if(!b.drag){b.x+=dx/ASP*p;b.y+=dy*p}}}
   if(!DEMO.on){const T=FMT[FM];for(const q of ['G','veil','tang'])FMP[q]+=(T[q]-FMP[q])*ease(dt,3.5)}
+  for(const k of NODES){frameNode(k,dt,false);if(!DEMO.on&&k.follow>0&&k.face&&!k.drag){const fo=faceOut(k);k.x+=(fo.x-k.x)*ease(dt,6)*k.follow;k.y+=(fo.y-k.y)*ease(dt,6)*k.follow}}
   for(const k of NODES){if(DEMO.on)break;const m=k.on&&inTake(k)?k.level:0;k.mS+=(m-k.mS)*ease(dt,6);k.rS+=(k.reach-k.rS)*ease(dt,8);for(const d of KNOBS)k.kS[d.id]+=(k[d.id]-k.kS[d.id])*ease(dt,20)}}
 function inTake(k){if(!(k.s.kind==='world'||k.map)||!inGrp(k))return true;const A=anc();if(!A||A===k)return true;const t=nodeTime(k,toClock(A.s,tD(A)));return t>=0&&t<k.s.dur-.05}
+function frameNode(k,dt,exact){if(!k.trk)return;const f=faceAt(k,tD(k));if(!f)return;const a=exact?1:ease(dt,8);k.pres+=(f.on-k.pres)*a;if(f.on>0){if(!k.face||exact)k.face={x:f.x,y:f.y,r:f.r};else{k.face.x+=(f.x-k.face.x)*a;k.face.y+=(f.y-k.face.y)*a;k.face.r+=(f.r-k.face.r)*a}}}
+function faceOut(k){return k.face?{x:k.face.x,y:k.face.y}:null}
 function edgeTick(b){if(Math.abs(b.vx)+Math.abs(b.vy)>.05){buzz(8);click(.15,500,3)}}
 /* ===== layout ===== */
 let W=0,H=0,L={O:{x:0,y:0,w:1,h:1},I:null,strip:null,plat:null,knobs:[],row:null,orbs:[],bad:[]};
@@ -211,10 +220,10 @@ function layout(){W=innerWidth;H=innerHeight;const S=$('safe').getBoundingClient
   if(!OFFLINE){const sc=Math.min(1,(GL?1920:800)/(O.w*DPR));sizeOut(Math.max(2,Math.round(O.w*DPR*sc)),Math.max(2,Math.round(O.h*DPR*sc)))}ov.width=Math.round(O.w*DPR);ov.height=Math.round(O.h*DPR);
   rig.width=Math.round(W*DPR);rig.height=Math.round(H*DPR);L.bad=checkLayout();if(L.bad.length)console.error('layout overlaps',L.bad);if(!$('sheet').hidden)placeSheet()}
 function inspector(R){const G=8,bh=42,wide=R.w>R.h*1.25;let d,ks;
-  if(wide){d=Math.min(R.h-8,R.w*.5,360);const rx=R.x+d+G*2,rw=R.x+R.w-rx;ks=Math.min(rw/4,R.h-bh-G,100);const blockH=ks+G+bh,y0=R.y+(R.h-blockH)/2;
-    L.plat={x:R.x+d/2+4,y:R.y+R.h/2,r:d/2};KNOBS.forEach((kn,i)=>L.knobs.push({kn,cell:{x:rx+i*ks,y:y0,w:ks,h:ks},x:rx+i*ks+ks/2,y:y0+ks*.44,r:ks*.3}));L.row={x:rx,y:y0+ks+G,w:Math.min(rw,ks*4),h:bh}}
-  else{ks=Math.min(R.w/4,96);d=Math.max(60,Math.min(R.w*.86,R.h-ks-bh-G*3,360));const blockH=d+G+ks+G+bh,y0=R.y+Math.max(0,(R.h-blockH)/2),kx=R.x+(R.w-ks*4)/2;
-    L.plat={x:R.x+R.w/2,y:y0+d/2,r:d/2};KNOBS.forEach((kn,i)=>L.knobs.push({kn,cell:{x:kx+i*ks,y:y0+d+G,w:ks,h:ks},x:kx+i*ks+ks/2,y:y0+d+G+ks*.44,r:ks*.3}));const rw=Math.min(R.w,Math.max(ks*4,5*44));L.row={x:R.x+(R.w-rw)/2,y:y0+d+G+ks+G,w:rw,h:bh}}}
+  if(wide){d=Math.min(R.h-8,R.w*.5,360);const rx=R.x+d+G*2,rw=R.x+R.w-rx;ks=Math.min(rw/KNOBS.length,R.h-bh-G,100);const blockH=ks+G+bh,y0=R.y+(R.h-blockH)/2;
+    L.plat={x:R.x+d/2+4,y:R.y+R.h/2,r:d/2};KNOBS.forEach((kn,i)=>L.knobs.push({kn,cell:{x:rx+i*ks,y:y0,w:ks,h:ks},x:rx+i*ks+ks/2,y:y0+ks*.44,r:ks*.3}));L.row={x:rx,y:y0+ks+G,w:Math.min(rw,ks*KNOBS.length),h:bh}}
+  else{ks=Math.min(R.w/KNOBS.length,96);d=Math.max(60,Math.min(R.w*.86,R.h-ks-bh-G*3,360));const blockH=d+G+ks+G+bh,y0=R.y+Math.max(0,(R.h-blockH)/2),kx=R.x+(R.w-ks*KNOBS.length)/2;
+    L.plat={x:R.x+R.w/2,y:y0+d/2,r:d/2};KNOBS.forEach((kn,i)=>L.knobs.push({kn,cell:{x:kx+i*ks,y:y0+d+G,w:ks,h:ks},x:kx+i*ks+ks/2,y:y0+d+G+ks*.44,r:ks*.3}));const rw=Math.min(R.w,Math.max(ks*KNOBS.length,SLOTS.length*44));L.row={x:R.x+(R.w-rw)/2,y:y0+d+G+ks+G,w:rw,h:bh}}}
 function orbs(R){const n=NODES.length+(NODES.length<MAXN?1:0),cw=R.w/Math.max(1,n),r=Math.max(9,Math.min(R.h*.38,cw*.4,22));L.orbs=[];
   for(let i=0;i<n;i++)L.orbs.push({k:NODES[i]||null,x:R.x+cw*(i+.5),y:R.y+R.h/2,r,cell:{x:R.x+cw*i,y:R.y,w:cw,h:R.h}})}
 const meet=(a,b)=>a&&b&&a.x<b.x+b.w-.5&&b.x<a.x+a.w-.5&&a.y<b.y+b.h-.5&&b.y<a.y+a.h-.5;
@@ -252,7 +261,7 @@ const SCRUBS=new Set();
 function rigHit(x,y){const P=L.plat;
   for(const o of L.orbs){const c=o.cell;if(x>=c.x&&x<c.x+c.w&&y>=c.y&&y<c.y+c.h)return{zone:'orb',o}}
   if(!SEL)return null;
-  if(L.row){const R=L.row;if(x>=R.x&&x<=R.x+R.w&&y>=R.y-3&&y<=R.y+R.h+3)return{zone:'btn',b:SLOTS[clamp(Math.floor((x-R.x)/(R.w/5)),0,4)]}}
+  if(L.row){const R=L.row;if(x>=R.x&&x<=R.x+R.w&&y>=R.y-3&&y<=R.y+R.h+3)return{zone:'btn',b:SLOTS[clamp(Math.floor((x-R.x)/(R.w/SLOTS.length)),0,SLOTS.length-1)]}}
   for(const kb of L.knobs){const c=kb.cell;if(x>=c.x&&x<c.x+c.w&&y>=c.y&&y<c.y+c.h)return{zone:'knob',kb}}
   if(P){const d=Math.hypot(x-P.x,y-P.y);if(d<P.r*.34)return{zone:'hub'};if(d<P.r*1.08)return{zone:'plat'}}return null}
 function rigDown(e){if(DEMO.on)stopDemo();TOUCHED=true;lastTouch=performance.now();ensureAC();const x=e.clientX,y=e.clientY,h=rigHit(x,y);if(!h)return;e.preventDefault();try{rig.setPointerCapture(e.pointerId)}catch(z){}const now=performance.now(),k=SEL;
@@ -295,7 +304,7 @@ function knobDrag(st,x,y){const kb=st.kb,d=kb.kn,k=st.k,dist=Math.hypot(x-kb.x,y
   if(d.detent!=null){const dn0=(d.detent-d.min)/(d.max-d.min);if((prev-dn0)*(n-dn0)<0||Math.abs(n-dn0)<.02){if(Math.abs(prev-dn0)>=.02){buzz(20,true);click(.35,700,2)}if(Math.abs(n-dn0)<.035)n=dn0}}
   k[d.id]=d.min+n*(d.max-d.min);const s=Math.round(n*20);if(s!==st.step){st.step=s;buzz(s===0||s===20?16:4,s===0||s===20);click(.1,500+n*1600)}
   if(d.id==='tone')applyTone(k);if(d.id==='col'){k.hue=hueOf(k.col);k.ta=1}}
-function pressBtn(k,b){if(b==='pw')return setPower(k,!k.on);if(b==='ln'){k.link=!k.link;buzz(k.link?[10,20,10]:12,true);click(.3,k.link?520:2600,3);save();return}
+function pressBtn(k,b){if(b==='pw')return setPower(k,!k.on);if(b==='fig'){if(!k.mt)return;k.fg=k.fg>0?0:1;buzz(k.fg?[10,20,10]:12,true);click(.3,k.fg?700:1400,3);save();return}if(b==='ln'){k.link=!k.link;buzz(k.link?[10,20,10]:12,true);click(.3,k.link?520:2600,3);save();return}
   if(!k.s[b])return;k.route[b]=!k.route[b];buzz(10,true);click(.25,3200);save()}
 /* ===== output: masked layers summed by the field; words live where their node is ===== */
 const out=$('out'),tx=$('tx'),ov=$('ov'),rig=$('rig'),layer=document.createElement('canvas'),rc=document.createElement('canvas');
@@ -306,13 +315,15 @@ function coverDraw(g,v,w,h){const s=Math.max(w/v.videoWidth,h/v.videoHeight);g.d
 let GL=null;
 function initGL(){let gl=null;try{gl=out.getContext('webgl',{alpha:false,antialias:false,premultipliedAlpha:false,preserveDrawingBuffer:false})}catch(e){gl=null}if(!gl)return null;
   const VS='attribute vec2 a;varying vec2 v;void main(){v=vec2(a.x*.5+.5,.5-a.y*.5);gl_Position=vec4(a,0.,1.);}';
-  const FS=`precision highp float;varying vec2 v;uniform sampler2D T[8];uniform int N;uniform vec2 P[8];uniform float M[8];uniform float S[8];uniform float HU[8];uniform float TA[8];uniform float VW[8];uniform vec4 CV[8];uniform float G,LV,VEIL,TANG,ASP;
+  const FS=`precision highp float;varying vec2 v;uniform sampler2D T[8];uniform sampler2D MT[3];uniform float MI[8];uniform float FG[8];uniform int N;uniform vec2 P[8];uniform float M[8];uniform float S[8];uniform float HU[8];uniform float TA[8];uniform float VW[8];uniform vec4 CV[8];uniform float G,LV,VEIL,TANG,ASP;
 vec3 hsl(float h){vec3 k=clamp(abs(mod(h*6.+vec3(0.,4.,2.),6.)-3.)-1.,0.,1.);return mix(vec3(.5),k,.85);}
 float lum(vec3 c){return dot(c,vec3(.3,.59,.11));}
 vec3 setLum(vec3 c,float l){c+=l-lum(c);float L=lum(c),n=min(min(c.r,c.g),c.b),x=max(max(c.r,c.g),c.b);if(n<0.)c=L+(c-L)*L/(L-n);if(x>1.)c=L+(c-L)*(1.-L)/(x-L);return c;}
 void main(){float lw[8];float fr[8];vec3 col[8];float lm=LV;
  for(int i=0;i<8;i++){if(i>=N)break;vec2 d=(v-P[i])*vec2(ASP,1.);float q=dot(d,d)/(S[i]*S[i]);float f=M[i]/((1.+q)*(1.+q));fr[i]=f;lw[i]=G*log(max(f,1e-30));lm=max(lm,lw[i]);
-  vec3 c=texture2D(T[i],CV[i].xy+v*CV[i].zw).rgb;if(HU[i]>=0.)c=mix(c,setLum(hsl(HU[i]),lum(c)),.75*TA[i]);col[i]=c;}
+  vec2 uv=CV[i].xy+v*CV[i].zw;float inb=step(0.,uv.x)*step(uv.x,1.)*step(0.,uv.y)*step(uv.y,1.);
+  if(MI[i]>=0.){float mv=0.;for(int j=0;j<3;j++){if(float(j)==MI[i])mv=texture2D(MT[j],uv).r;}fr[i]=mix(f,M[i]*smoothstep(.12,.8,mv)*inb*3.,FG[i]);lw[i]=G*log(max(fr[i],1e-30));lm=max(lm,lw[i]);}
+  vec3 c=texture2D(T[i],uv).rgb*inb;if(HU[i]>=0.)c=mix(c,setLum(hsl(HU[i]),lum(c)),.75*TA[i]);col[i]=c;}
  float sm=exp(LV-lm);for(int i=0;i<8;i++){if(i>=N)break;sm+=exp(lw[i]-lm);}
  vec3 nm=vec3(0.);vec3 tg=vec3(0.);
  for(int i=0;i<8;i++){if(i>=N)break;float w=exp(lw[i]-lm)/sm;w=mix(w,VW[i],VEIL);nm+=col[i]*w;vec3 s=col[i]*min(1.,fr[i]*1.8);
@@ -321,15 +332,18 @@ void main(){float lw[8];float fr[8];vec3 col[8];float lm=LV;
   const sh=(t,src)=>{const o=gl.createShader(t);gl.shaderSource(o,src);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)){console.warn(gl.getShaderInfoLog(o));return null}return o};
   const vs=sh(gl.VERTEX_SHADER,VS),fs=sh(gl.FRAGMENT_SHADER,FS);if(!vs||!fs)return null;const p=gl.createProgram();gl.attachShader(p,vs);gl.attachShader(p,fs);gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))return null;
   gl.useProgram(p);const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);const al=gl.getAttribLocation(p,'a');gl.enableVertexAttribArray(al);gl.vertexAttribPointer(al,2,gl.FLOAT,false,0,0);
-  const U={};['N','P','M','S','HU','TA','VW','CV','G','LV','VEIL','TANG','ASP','T'].forEach(n=>U[n]=gl.getUniformLocation(p,n));gl.uniform1iv(U.T,[0,1,2,3,4,5,6,7]);
+  const U={};['N','P','M','S','HU','TA','VW','CV','G','LV','VEIL','TANG','ASP','T','MT','MI','FG'].forEach(n=>U[n]=gl.getUniformLocation(p,n));gl.uniform1iv(U.T,[0,1,2,3,4,5,6,7]);const units=gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);if(units>=11)gl.uniform1iv(U.MT,[8,9,10]);
   const black=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,black);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,1,1,0,gl.RGB,gl.UNSIGNED_BYTE,new Uint8Array(3));
-  return{gl,p,U,black}}
-function glTex(k){const gl=GL.gl;if(!k.tex){k.tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,k.tex);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE)}
-  gl.bindTexture(gl.TEXTURE_2D,k.tex);try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,k.els[0])}catch(e){}}
-function glRender(){const{gl,U}=GL,n=PICS.length,P=new Float32Array(16),M=new Float32Array(8),S=new Float32Array(8),HU=new Float32Array(8).fill(-1),TA=new Float32Array(8),VW=new Float32Array(8),CV=new Float32Array(32);gl.viewport(0,0,out.width,out.height);
+  return{gl,p,U,black,mattes:units>=11}}
+function glTex(k,el,key){el=el||k.els[0];key=key||'tex';const gl=GL.gl;if(!k[key]){k[key]=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,k[key]);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE)}
+  gl.bindTexture(gl.TEXTURE_2D,k[key]);try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,el)}catch(e){}}
+function glRender(){let mi=0;const{gl,U}=GL,n=PICS.length,P=new Float32Array(16),M=new Float32Array(8),S=new Float32Array(8),HU=new Float32Array(8).fill(-1),TA=new Float32Array(8),MI=new Float32Array(8).fill(-1),FG=new Float32Array(8),VW=new Float32Array(8),CV=new Float32Array(32);gl.viewport(0,0,out.width,out.height);
   for(let i=0;i<8;i++){gl.activeTexture(gl.TEXTURE0+i);if(i<n){const k=PICS[i],v=k.els[0];glTex(k);P[i*2]=k.x;P[i*2+1]=k.y;M[i]=k.mS;S[i]=.08+k.rS*.55;HU[i]=k.hue==null?-1:k.hue/360;TA[i]=k.ta??1;VW[i]=k.vw;
-      const sc=Math.max(16/v.videoWidth,9/v.videoHeight),fx=16/sc/v.videoWidth,fy=9/sc/v.videoHeight;const cr=k.s.crop||1,z=Math.abs(cr);CV.set([(1-fx*z)/2,cr<0?(1-fy*z)/2:(1-fy)/2,fx*z,fy*z],i*4)}else gl.bindTexture(gl.TEXTURE_2D,GL.black)}
-  gl.uniform1i(U.N,n);gl.uniform2fv(U.P,P);gl.uniform1fv(U.M,M);gl.uniform1fv(U.S,S);gl.uniform1fv(U.HU,HU);gl.uniform1fv(U.TA,TA);gl.uniform1fv(U.VW,VW);gl.uniform4fv(U.CV,CV);gl.uniform1f(U.G,FMP.G);gl.uniform1f(U.LV,FMP.G*Math.log(VOID));gl.uniform1f(U.VEIL,FMP.veil);gl.uniform1f(U.TANG,FMP.tang);gl.uniform1f(U.ASP,ASP);
+      const sc=Math.max(16/v.videoWidth,9/v.videoHeight),fx=16/sc/v.videoWidth,fy=9/sc/v.videoHeight;const cr=k.s.crop||1,z=Math.abs(cr),ox=(1-fx*z)/2,oy=cr<0?(1-fy*z)/2:(1-fy)/2,sx=fx*z,sy=fy*z,zz=Math.max(.2,k.kS.z||k.z||1);
+      // framing: a tracked figure maps its face to its node (a cut-out you can place and scale); anything else zooms about its centre
+      if(k.face&&k.trk){const ax=k.face.x,ay=k.face.y;CV.set([ax-k.x/zz,ay-k.y/zz,1/zz,1/zz],i*4)}else CV.set([ox+sx*(.5-.5/zz),oy+sy*(.5-.5/zz),sx/zz,sy/zz],i*4)
+      if(GL.mattes&&k.mt&&k.mt.readyState>=2&&mi<3&&k.fg>0){gl.activeTexture(gl.TEXTURE8+mi);glTex(k,k.mt,'mtex');MI[i]=mi;FG[i]=clamp(k.fg*k.pres,0,1);mi++;gl.activeTexture(gl.TEXTURE0+i)}}else gl.bindTexture(gl.TEXTURE_2D,GL.black)}
+  gl.uniform1i(U.N,n);gl.uniform2fv(U.P,P);gl.uniform1fv(U.M,M);gl.uniform1fv(U.S,S);gl.uniform1fv(U.HU,HU);gl.uniform1fv(U.TA,TA);gl.uniform1fv(U.MI,MI);gl.uniform1fv(U.FG,FG);gl.uniform1fv(U.VW,VW);gl.uniform4fv(U.CV,CV);gl.uniform1f(U.G,FMP.G);gl.uniform1f(U.LV,FMP.G*Math.log(VOID));gl.uniform1f(U.VEIL,FMP.veil);gl.uniform1f(U.TANG,FMP.tang);gl.uniform1f(U.ASP,ASP);
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4)}
 function drawOut(){if(GL)glRender();else draw2D();drawWords()}
 function draw2D(){const w=out.width,h=out.height,g=out.getContext('2d');g.globalCompositeOperation='source-over';g.globalAlpha=1;g.fillStyle='#000';g.fillRect(0,0,w,h);
@@ -400,9 +414,9 @@ function drawKnob(g,k,kb){const d=kb.kn,{x,y,r}=kb,n=(k.kS[d.id]-d.min)/(d.max-d
   const grd=g.createRadialGradient(x-r*.3,y-r*.4,r*.1,x,y,r);grd.addColorStop(0,'#2a3480');grd.addColorStop(1,'#0a0f3e');g.fillStyle=grd;g.beginPath();g.arc(x,y,r*.92,0,7);g.fill();g.strokeStyle='rgba(255,255,255,.18)';g.lineWidth=1;g.stroke();
   g.strokeStyle='#fff';g.lineWidth=2.5;g.beginPath();g.moveTo(x+Math.cos(av)*r*.4,y+Math.sin(av)*r*.4);g.lineTo(x+Math.cos(av)*r*.84,y+Math.sin(av)*r*.84);g.stroke();g.lineCap='butt';
   drawIcon(g,d.ic,x,y+r*1.55,Math.min(14,r*.5),'rgba(255,255,255,.55)',2);g.globalAlpha=1}
-function drawRow(g,k){const R=L.row,sw=R.w/5,br=Math.max(9,Math.min(sw*.4,R.h*.46));
+function drawRow(g,k){const R=L.row,sw=R.w/SLOTS.length,br=Math.max(9,Math.min(sw*.4,R.h*.46));
   SLOTS.forEach((b,i)=>{const cx=R.x+sw*(i+.5),cy=R.y+R.h/2;let on,avail=true,colr;
-    if(b==='pw'){on=k.on;colr=KCOL[k.s.kind]}else if(b==='ln'){on=k.link;colr='#fff'}else{avail=!!k.s[b];on=avail&&k.route[b];colr=CHC[b]}
+    if(b==='pw'){on=k.on;colr=KCOL[k.s.kind]}else if(b==='ln'){on=k.link;colr='#fff'}else if(b==='fig'){avail=!!k.mt;on=avail&&k.fg>0;colr='#ffd166'}else{avail=!!k.s[b];on=avail&&k.route[b];colr=CHC[b]}
     g.globalAlpha=!avail?.18:b==='pw'||k.on?1:.4;g.fillStyle=on?colr:'rgba(255,255,255,.04)';g.strokeStyle=on?colr:'rgba(255,255,255,.32)';g.lineWidth=1.2;g.beginPath();g.arc(cx,cy,br,0,7);g.fill();g.stroke();
     drawIcon(g,b,cx,cy,br*1.15,on?'#06106a':'rgba(255,255,255,.75)',2.1)});g.globalAlpha=1}
 /* ===== the jam ===== */
@@ -410,7 +424,7 @@ let DUCK=0;
 function gainOf(k,duck){if(!k.on||!k.s.snd)return 0;if(k.s.kind==='reading'&&!k.far)return k.route.snd?clamp(k.mS/.3,0,1):0;if(k.s.kind==='world'||k.far)return DEMO.on?k.echo:(k.route.snd?Math.sqrt(k.earW)*.8:0);return Math.sqrt(k.earW)*.95*(1-.6*duck)}
 function applyLevels(){const R0=NODES.find(k=>k.s.kind==='reading'&&!k.far&&k.on);DUCK=R0&&R0.route.snd?duckAt(R0.s,tD(R0)):0;if(!AC)return;for(const k of NODES)if(k.g)k.g.gain.setTargetAtTime(gainOf(k,DUCK),AC.currentTime,.04)}
 function loops(){for(const k of NODES)if(k.loop&&playing(k)&&!k.hold&&tD(k)>=k.loop.b)seekD(k,k.loop.a)}
-function syncStems(){for(const k of NODES){if(k.els.length<2)continue;const t=tD(k),p=k.els[0].paused;for(let i=1;i<k.els.length;i++){const e=k.els[i];if(Math.abs(e.currentTime-t)>.08)e.currentTime=t;e.playbackRate=k.els[0].playbackRate;e.preservesPitch=k.els[0].preservesPitch;if(e.paused!==p)p?e.pause():e.play().catch(()=>{})}}}
+function syncStems(){for(const k of NODES){if(k.mt&&k.mt.readyState>=1){const t=tD(k),p=k.els[0].paused;if(Math.abs(k.mt.currentTime-t)>.12)try{k.mt.currentTime=t}catch(e){}k.mt.playbackRate=k.els[0].playbackRate;if(k.mt.paused!==p)p?k.mt.pause():k.mt.play().catch(()=>{})}if(k.els.length<2)continue;const t=tD(k),p=k.els[0].paused;for(let i=1;i<k.els.length;i++){const e=k.els[i];if(Math.abs(e.currentTime-t)>.08)e.currentTime=t;e.playbackRate=k.els[0].playbackRate;e.preservesPitch=k.els[0].preservesPitch;if(e.paused!==p)p?e.pause():e.play().catch(()=>{})}}}
 const REC={on:false,mr:null,parts:[],t0:0,log:[],last:0};
 function recToggle(){if(REC.on){if(REC.mr&&REC.mr.state==='recording')REC.mr.stop();return}if(!window.MediaRecorder||!rc.captureStream)return toast('Recording is not available in this browser');ensureAC();
   compose();const st=rc.captureStream(30);if(mDest)mDest.stream.getAudioTracks().forEach(t=>st.addTrack(t));const type=['video/webm;codecs=vp9,opus','video/webm','video/mp4'].find(t=>MediaRecorder.isTypeSupported(t))||'';
@@ -435,7 +449,7 @@ function placeSheet(){const I=L.I,e=$('sheet');Object.assign(e.style,I?{left:I.x
 function sheet(h,b){$('shH').innerHTML=h;$('shB').innerHTML=b;$('sheet').hidden=false;placeSheet()}
 function closeSheet(){$('sheet').hidden=true}
 let KF='reading';
-const snap=k=>({rid:k.rid,far:!!k.far,map:k.map||null,key:k.s.key,on:k.on,link:k.link,route:{...k.route},level:k.level,reach:k.reach,tone:k.tone,col:k.col,x:k.x,y:k.y});
+const snap=k=>({z:k.z,fg:k.fg,follow:k.follow,rid:k.rid,far:!!k.far,map:k.map||null,key:k.s.key,on:k.on,link:k.link,route:{...k.route},level:k.level,reach:k.reach,tone:k.tone,col:k.col,x:k.x,y:k.y});
 function picker(k){const kinds=['reading','world','sounds','layers'];if(k)KF=k.s.kind;
   sheet(`<button class="b" type="button" id="pkB" aria-label="Back">${svg('back',2)}</button><div class="tabsk">${kinds.map(x=>`<button type="button" data-f="${x}" class="${KF===x?'on':''}" aria-label="${x}">${svg(x)}</button>`).join('')}</div>${k?`<span class="sp"></span><button class="b" type="button" id="pkT" aria-label="Remove this node">${svg('trash')}</button>`:''}`,
     `<div class="grid">${SRC.filter(s=>s.kind===KF).map(s=>`<button type="button" data-k="${s.key}" class="${k&&k.s===s?'cur':''}" title="${esc(s.title)}" aria-label="${esc(s.title)}" style="${s.thumb?`background-image:url(${BASE+s.thumb})`:`background:radial-gradient(circle at 40% 35%,${KCOL[s.kind]}88,#0a1690 72%)`}"><i>${['pic','snd','txt'].map(c=>`<b style="background:${s[c]?CHC[c]:'rgba(255,255,255,.15)'}"></b>`).join('')}</i><span>${s.num||'·'}</span></button>`).join('')}</div>`);
@@ -473,59 +487,56 @@ function setEye(on){EYE=on;$('eye').classList.toggle('on',on);lastTouch=performa
    The reading plays untouched at 1×; every score follows its clock, live and when rendered. */
 const DEMO={on:false,t0:0,c0:0,c1:0,len:0};
 const smo=x=>{x=clamp(x,0,1);return x*x*(3-2*x)},lerp=(a,b,u)=>a+(b-a)*u;
-const DEFV={x:.5,y:.5,m:0,r:.4,h:0,ta:0,e:0};
+const DEFV={x:.5,y:.5,m:0,r:.4,h:0,ta:0,e:0,z:1,fg:0,tf:0};
 const SCORES={
  '10':{title:'Magic Ride',c0:1.5,c1:97.4,
-  cast:[{id:'R',key:'R10'},{id:'G',key:'W10ride-grey'},{id:'C',key:'W10ride-cel'},{id:'M',key:'Wmagic-ride'},{id:'F',key:'W10ride-greyfig'},{id:'S',key:'S10'},{id:'X',key:'X10'}],
-  init:{R:{x:.42,y:.42,m:.9,r:.3,h:38,ta:0},G:{x:.08,y:.45,m:0,r:.36,h:228,ta:0,e:0},C:{x:.93,y:.5,m:0,r:.3,h:42,ta:0,e:0},M:{x:.5,y:.08,m:0,r:.4,h:0,ta:0,e:0},F:{x:.92,y:.15,m:0,r:.4,h:0,ta:0,e:0},
-  S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5},ear:{x:.5,y:.5},field:{G:1.6,veil:0,tang:0}},
+  cast:[{id:'R',key:'R10'},{id:'L',key:'Wlidar10',map:[[3.6,0],[9.2,5.6],[9.25,12],[15.4,18.15],[15.45,36],[19.25,39.8],[19.3,48],[23.05,51.75],[23.1,72],[27.4,76.3],[27.45,96],[32.35,100.9],[32.4,108],[37.55,113.15],[37.6,144],[43.45,149.85],[43.5,168],[49.9,174.4],[54.8,120],[58.4,123.6],[76.8,84],[83.4,90.6],[90,24],[96.5,30.5]]},
+    {id:'G',key:'W10ride-grey'},{id:'C',key:'W10ride-cel'},{id:'Y1',key:'R10',far:true,map:[[27.4,63]]},{id:'Y2',key:'R10',far:true,map:[[27.6,78]]},{id:'S',key:'S10'},{id:'X',key:'X10'}],
+  init:{R:{x:.42,y:.42,m:.9,r:.3,h:38,ta:0,fg:1,tf:1,z:1},L:{x:.5,y:.5,m:0,r:.9,h:220,ta:0},G:{x:.08,y:.45,m:0,r:.36,h:228,ta:0,e:0},C:{x:.93,y:.5,m:0,r:.3,h:42,ta:0,e:0},
+    Y1:{x:.22,y:.62,m:0,r:.3,fg:1,z:.36},Y2:{x:.78,y:.6,m:0,r:.3,fg:1,z:.34},S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5},ear:{x:.5,y:.5},field:{G:1.6,veil:0,tang:0}},
   cues:[
- // I wasn't looking for a ride, but here you are, blissful and oddly sensitive — he is alone; on "ride" the bike under the lamp arrives
- [2.4,1.2,'R',{r:.4}],[3.6,2.2,'C',{x:.74,y:.48,m:.85,r:.34}],[3.7,3,'ear',{x:.72,y:.72}],[5.5,2,'C',{r:.5}],[7.0,1.6,'R',{ta:.35}],[8.5,1.2,'C',{r:.42}],
- // withering a soul purveying both the dark and the light worlds I've known — two worlds, a seam through him
- [9.3,2.2,'field',{G:5}],[9.4,2.2,'G',{x:.16,y:.45,m:.85,r:.36}],[9.4,1.8,'ear',{x:.5,y:.6}],[12.2,.9,'G',{ta:.85}],[13.2,.9,'C',{ta:.6,r:.5}],[13.6,1.6,'R',{r:.27,ta:0}],
- // So I rub my aggressions into your steel coverings and hop on to amuse myself — friction, metal; then the ride begins
- [15.6,1.0,'field',{tang:.65,G:2}],[15.6,1.2,'M',{x:.5,y:.22,m:.8,r:.4}],[15.6,1.5,'ear',{x:.2,y:.8}],[15.6,1.2,'G',{ta:0}],[15.6,1.2,'C',{ta:0}],[17.3,.6,'M',{r:.58}],[17.9,1.0,'M',{r:.45}],
- [18.9,.9,'field',{tang:0,G:1.6}],[19.0,1.4,'M',{m:0}],[19.2,1.8,'G',{x:.62,y:.6,r:.5}],[19.2,1.6,'C',{m:.3}],[20.3,1.5,'R',{r:.36}],
- // Loneliness is having everything with no one to tell — he shrinks into a corner of a vast empty road; the foley thins; "no one to tell" answers from far away
- [23.0,2.8,'R',{x:.24,y:.3,r:.12,m:.6}],[23.0,2.6,'G',{x:.56,y:.62,r:.95,m:.9}],[23.0,1.5,'C',{m:0}],[23.0,2.5,'ear',{x:.5,y:.12}],[23.0,2,'S',{m:.3}],[23.0,2,'X',{m:.35}],
- [25.3,.5,'G',{e:.55}],[26.6,2.2,'G',{e:0}],
- // being everywhere with no one to love and escape — everywhere at once: a mosaic of every take, him small among them
- [27.4,1.6,'field',{G:10}],[27.5,1.5,'G',{x:.5,y:.56,r:.4}],[27.5,1.5,'F',{x:.8,y:.24,m:.8,r:.4}],[27.6,1.5,'C',{x:.82,y:.76,m:.8,r:.4}],[27.7,1.5,'M',{x:.2,y:.78,m:.7,r:.4}],[27.5,1.5,'R',{r:.2,m:.75}],
- [29.0,1.0,'R',{m:.55}],[30.8,1.2,'field',{G:3}],
- // wide-eyed and stone but alive and well, wandering with no clear end — he opens wide; stone hardens the edges; then fog, and no edge at all
- [31.2,1.0,'R',{x:.4,y:.4,r:.5,m:.9}],[32.3,.5,'field',{G:12}],[33.0,1.2,'field',{G:1.6}],[34.6,1.8,'M',{m:0}],[34.6,1.8,'F',{m:0}],[34.6,1.8,'G',{m:.5}],
- [34.8,2.6,'C',{x:.7,y:.55,m:.8,r:.5}],[35.0,2.6,'R',{m:.7}],[36.2,1.4,'field',{veil:.5}],[36.2,1.4,'ear',{x:.5,y:.5}],[36.2,1.4,'S',{m:.5}],[36.2,1.4,'X',{m:.5}],
- // I let the noise block the noise — interference and street roar; the way I ride through the streets with a swag — the lantern street; and eyes turn, heads twist — the worlds turn around him
- [38.3,.6,'field',{veil:0,tang:.75,G:1.6}],[38.3,.8,'M',{x:.45,y:.22,m:.9,r:.6}],[38.3,1.2,'ear',{x:.84,y:.8}],[38.3,1,'X',{m:.9}],[39.2,.4,'M',{r:.75}],[39.7,.8,'M',{r:.5}],
- [40.2,1.0,'field',{tang:0,G:2.5}],[40.2,1.2,'G',{x:.6,y:.62,m:.85,r:.45}],[40.2,1.2,'C',{m:0}],[40.4,1.4,'M',{m:0}],
- [41.6,.1,'C',{x:.1,y:.55}],[42.0,1.0,'C',{x:.25,m:.9,r:.5,ta:.3}],[43.5,1.4,'C',{x:.78}],[43.5,1.4,'G',{x:.2}],[44.4,1.2,'ear',{x:.5,y:.6}],
- // yeah, that magic still exists — everything melts warm; the far voice repeats it
- [47.6,1.4,'field',{G:1.2}],[47.6,1.2,'C',{ta:.7,r:.6}],[47.7,1.2,'R',{ta:.3,r:.42}],[48.0,.4,'G',{e:.5}],[49.4,2,'G',{e:0}],
- // All preparations to live and dream in darkness I no longer desire — the worlds sink into the dark
- [51.8,1.6,'C',{m:0}],[51.8,1.6,'G',{m:.15}],[51.8,1.6,'R',{m:.6,ta:0,r:.3}],[51.8,1.6,'ear',{x:.5,y:.15}],[51.8,1.6,'field',{G:1.6}],
- // The moon settles and the tease of distant stars subsides — night water and stars, cool
- [54.9,2.4,'G',{x:.62,y:.4,m:.75,r:.7,ta:.6}],[55.0,2.4,'field',{veil:.35}],[55.0,2.4,'R',{m:.7}],[57.4,1.0,'G',{r:.6}],
- // and I can see a morning ahead from me — the colour turns to dawn; he steps aside for the road ahead
- [59.0,1.8,'G',{h:34,ta:.55,m:.9}],[59.0,1.6,'field',{veil:0}],[59.2,1.6,'G',{x:.66,y:.55,r:.8}],[59.2,1.6,'R',{x:.3,y:.4,r:.3}],[59.0,2,'ear',{x:.75,y:.75}],[59.0,2,'X',{m:.7}],
- // It looks like a morning I could believe in — he and the world in balance
- [62.4,1.4,'R',{r:.42,m:.9}],
- // a morning where loss and life aren't so well, ripe with sunlight that's deceptively warm — a breath out and in; warmth, a cold flicker, warmth
- [64.2,.9,'R',{m:.6}],[65.2,.9,'R',{m:.95}],[67.7,1.0,'G',{ta:.8,h:42}],[68.6,.35,'G',{h:210}],[69.2,.7,'G',{h:38}],
- // The chirping of birds, the fueling of nests, spring out of the night that has covered me — birds; he springs out of the night
- [71.0,1.6,'ear',{x:.82,y:.82}],[71.0,1.6,'X',{m:.85}],[71.0,1.6,'S',{m:.6}],[72.4,1.0,'R',{r:.18}],[73.4,1.2,'R',{r:.55,m:1}],[73.4,1.4,'G',{m:.6,r:.5,ta:.3}],
- // with my own curiosities for a chance at an end, where everything will be okay. Sweet chariot
- [77.0,3.0,'G',{x:.7,y:.5}],[79.2,1.4,'field',{G:1.0}],[79.2,1.4,'R',{ta:.3}],[81.6,1.4,'ear',{x:.8,y:.85}],
- // blissful and oddly innocent — the opening again: him alone, the road arriving where the bike arrived
- [83.3,1.4,'G',{m:.3,r:.3,x:.78,y:.5,ta:.25}],[83.4,1.3,'R',{x:.42,y:.42,r:.4,ta:.35}],[83.4,1.5,'ear',{x:.5,y:.5}],[83.4,1.4,'field',{G:1.6}],[85.0,1.4,'G',{m:.8,r:.42}],
- // riding it away that you can't help but double-click — the road drifts off; two clicks snap the field
- [86.4,2.0,'G',{x:.85}],[88.3,.8,'ear',{x:.8,y:.8}],[89.30,.06,'field',{G:12}],[89.42,.1,'field',{G:1.6}],[89.56,.06,'field',{G:12}],[89.68,.12,'field',{G:1.6}],
- // and prove, yeah, the magic it still exists — the far voice answers; the world goes; let's call it magic, right
- [90.0,1.5,'ear',{x:.5,y:.5}],[92.4,.4,'G',{e:.55}],[93.6,2.4,'G',{m:0}],[94.2,2,'G',{e:0}],[94.0,2.5,'S',{m:0}],[94.0,2.5,'X',{m:0}],[95.6,1.6,'R',{m:0}]]},
+   // I wasn't looking for a ride: his figure alone; on "ride" he stands in the scanned kerb · here you are: the bike under the lamp · blissful
+   [2.4,1.4,'R',{m:.95}],[3.6,2.4,'L',{m:.85}],[3.7,3,'ear',{x:.72,y:.72}],[5.5,2.0,'C',{x:.76,y:.5,m:.8,r:.34}],[7.0,1.6,'R',{ta:.3}],
+   // withering a soul purveying both the dark and the light worlds: the kerb again in white scan points; a dark take and a light take split the frame
+   [9.3,1.4,'field',{G:5}],[9.3,1.8,'G',{x:.15,y:.45,m:.8,r:.36}],[9.4,1.8,'ear',{x:.5,y:.6}],[12.2,.9,'G',{ta:.85}],[13.2,.9,'C',{ta:.6,r:.48}],[13.6,1.6,'R',{ta:0}],
+   // So I rub my aggressions into your steel coverings: the neon road, friction, and we push in on him · and hop on: the dolly begins
+   [15.6,1.0,'field',{tang:.6,G:2}],[15.6,1.2,'C',{m:0,ta:0}],[15.6,1.2,'G',{m:.45,ta:0}],[15.7,1.2,'R',{z:1.35}],[15.6,1.5,'ear',{x:.2,y:.8}],[17.3,.6,'L',{r:1}],
+   [18.9,.9,'field',{tang:0,G:1.6}],[19.2,1.0,'R',{z:1}],[19.3,1.4,'G',{m:0}],
+   // Loneliness is having everything with no one to tell: his figure, small, in the mouth of the LiDAR tunnel; the beds thin; the far voice answers
+   [23.0,2.8,'R',{tf:0,x:.5,y:.56,z:.42}],[23.0,2.5,'ear',{x:.5,y:.12}],[23.0,2,'S',{m:.3}],[23.0,2,'X',{m:.35}],[25.3,.5,'G',{e:.55}],[26.6,2.2,'G',{e:0}],
+   // being everywhere: the tunnel from above, and him in three places at once · with no one to love · and escape: the others leave
+   [27.4,1.4,'Y1',{m:.85}],[27.6,1.4,'Y2',{m:.85}],[27.5,2,'R',{x:.5,y:.42,z:.36}],[29.4,1,'Y1',{m:.45}],[29.4,1,'Y2',{m:.45}],[30.8,1.4,'Y1',{x:.04,m:0}],[30.8,1.4,'Y2',{x:.96,m:0}],
+   // wide-eyed: back on his face, close · and stone: hard edges · but alive and well · wandering with no clear end: small, drifting through the fog
+   [31.2,1.0,'R',{tf:1,z:1.55}],[31.2,1.2,'L',{m:.3}],[32.3,.5,'field',{G:12}],[33.0,1.2,'field',{G:1.6}],[33.0,1.4,'R',{z:1}],
+   [34.8,1.2,'L',{m:.85,r:1}],[34.8,1.4,'R',{tf:0,z:.5,x:.32,y:.56}],[36.0,3.0,'R',{x:.62}],[36.2,1.4,'field',{veil:.4}],[36.2,1.4,'ear',{x:.5,y:.5}],[36.2,1.4,'S',{m:.5}],[36.2,1.4,'X',{m:.5}],
+   // I let the noise block the noise: the lantern street in points, interference, street roar · the way I ride through the streets with a swag · and eyes turn, heads twist: the street from above
+   [37.4,1.0,'R',{tf:1,z:1}],[38.3,.6,'field',{veil:0,tang:.7,G:1.6}],[38.3,1.2,'ear',{x:.84,y:.8}],[38.3,1,'X',{m:.9}],[39.2,.4,'R',{z:1.15}],[39.7,.8,'R',{z:1}],
+   [40.2,1.0,'field',{tang:0,G:2.5}],[41.6,.1,'C',{x:.1,y:.55}],[42.0,1.0,'C',{x:.26,m:.9,r:.5,ta:.25,h:45}],[43.5,1.4,'C',{x:.78}],[44.4,1.2,'ear',{x:.5,y:.6}],
+   // yeah, that magic still exists: everything melts warm; the far voice repeats it
+   [47.6,1.4,'field',{G:1.2}],[47.6,1.2,'C',{ta:.7,r:.6}],[47.7,1.2,'R',{ta:.3}],[48.0,.4,'G',{e:.5}],[49.4,2,'G',{e:0}],
+   // All preparations to live and dream in darkness I no longer desire: only his figure, in black
+   [51.8,1.6,'C',{m:0}],[51.8,1.6,'L',{m:0}],[51.8,1.6,'R',{ta:0}],[51.8,1.6,'ear',{x:.5,y:.15}],[51.8,1.6,'field',{G:1.6}],
+   // The moon settles and the tease of distant stars subsides: white scan points like stars, and night water
+   [54.8,2.4,'L',{m:.6,ta:.5}],[54.9,2.4,'G',{x:.62,y:.42,m:.6,r:.7,ta:.55,h:222}],[55.0,2.4,'field',{veil:.3}],
+   // and I can see a morning ahead from me: dawn; he steps aside for the road ahead · It looks like a morning I could believe in
+   [59.0,1.8,'G',{h:34,ta:.55,m:.9,r:.85}],[59.0,1.4,'L',{m:0}],[59.0,1.6,'field',{veil:0}],[59.2,1.6,'R',{tf:0,x:.27,y:.42,z:.8}],[59.0,2,'ear',{x:.75,y:.75}],[59.0,2,'X',{m:.7}],[62.4,1.4,'R',{tf:1,z:1}],
+   // a morning where loss and life aren't so well · ripe with sunlight that's deceptively warm: a slow push in; warmth, a cold flicker, warmth
+   [64.2,.9,'R',{m:.55}],[65.2,.9,'R',{m:.95}],[65.5,4,'R',{z:1.25}],[67.7,1.0,'G',{ta:.8,h:42}],[68.6,.35,'G',{h:210}],[69.2,.7,'G',{h:38}],[69.8,1.4,'R',{z:1}],
+   // The chirping of birds · spring out of the night that has covered me: small, then he springs back into his own frame
+   [71.0,1.6,'ear',{x:.82,y:.82}],[71.0,1.6,'X',{m:.85}],[71.0,1.6,'S',{m:.6}],[72.2,1.0,'R',{tf:0,x:.5,y:.72,z:.35}],[73.4,1.3,'R',{tf:1,z:1}],[73.4,1.4,'G',{m:.55,r:.5,ta:.3}],
+   // with my own curiosities for a chance at an end, where everything will be okay: the tunnel, pushing toward its light · Sweet chariot
+   [76.8,1.6,'L',{m:.75,r:.9,ta:.35,h:40}],[76.8,1.6,'G',{m:.3}],[79.2,1.4,'field',{G:1.0}],[80.2,1.2,'R',{ta:.3}],[81.6,1.4,'ear',{x:.8,y:.85}],[82.6,1.2,'L',{m:0}],
+   // blissful and oddly innocent: the opening again, his figure alone, then the road arriving where the bike arrived
+   [83.3,1.4,'G',{m:.3,r:.3,x:.78,y:.5,ta:.25}],[83.4,1.4,'ear',{x:.5,y:.5}],[83.4,1.4,'field',{G:1.6}],[85.0,1.4,'G',{m:.8,r:.42}],
+   // riding it away: he goes small, out toward the road · that you can't help but double-click: two clicks punch in on him
+   [86.4,2.0,'G',{x:.85}],[86.4,2.2,'R',{tf:0,x:.62,y:.46,z:.62}],[88.6,.7,'R',{tf:1,z:1}],[88.3,.8,'ear',{x:.8,y:.8}],
+   [89.30,.06,'R',{z:1.45}],[89.30,.06,'field',{G:12}],[89.42,.1,'R',{z:1}],[89.42,.1,'field',{G:1.6}],[89.56,.06,'R',{z:1.45}],[89.56,.06,'field',{G:12}],[89.68,.12,'R',{z:1}],[89.68,.12,'field',{G:1.6}],
+   // and prove, yeah, the magic it still exists: the kerb where it began, rising away; the far voice answers; he is last
+   [90.0,1.5,'ear',{x:.5,y:.5}],[90.2,2,'L',{m:.5}],[92.4,.4,'G',{e:.55}],[93.6,2.4,'G',{m:0}],[94.2,2,'G',{e:0}],[94.0,2.5,'L',{m:0}],[94.0,2.5,'S',{m:0}],[94.0,2.5,'X',{m:0}],[95.6,1.6,'R',{m:0}]]},
  '11':{title:'New Day',c0:1.5,c1:101.8,
   cast:[{id:'R',key:'R11'},{id:'A',key:'W06',map:[[20,22],[26.2,28.2],[26.25,62],[33,69],[38.8,75],[38.85,24],[60,45],[82.9,67],[82.95,30]]},{id:'D',key:'Wstreet-098',map:[[33.5,0],[53.5,20],[82.9,20.1],[82.95,4]]},
     {id:'Wt',key:'Wpoemwalk-cel020',map:[[53,48],[64,59],[79.9,61.5],[80,10]]},{id:'Sun',key:'Wprobe-spin',map:[[76,0]]},{id:'Gh',key:'R11',far:true,map:[[68,40]]},{id:'S',key:'S11'},{id:'X',key:'X11'}],
-  init:{R:{x:.42,y:.4,m:.9,r:.35,h:205,ta:0},A:{x:.5,y:.12,m:0,r:.4,h:30},D:{x:.85,y:.45,m:0,r:.5,h:45},Wt:{x:.6,y:.5,m:0,r:.3},Sun:{x:.78,y:.3,m:0,r:.35,h:42},Gh:{x:.76,y:.42,m:0,r:.3,h:230,ta:.5},S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5}},
+  init:{R:{x:.42,y:.4,m:.9,r:.35,h:205,ta:0,fg:1,tf:1},A:{x:.5,y:.12,m:0,r:.4,h:30},D:{x:.85,y:.45,m:0,r:.5,h:45},Wt:{x:.6,y:.5,m:0,r:.3},Sun:{x:.78,y:.3,m:0,r:.35,h:42},Gh:{x:.76,y:.42,m:0,r:.3,h:230,ta:.5},S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5}},
   cues:[
    // Even here is chilly in the morning · river … seas in the distance · this world is at peace
    [2.4,2,'R',{ta:.45}],[5.2,2.2,'ear',{x:.82,y:.8}],[11.8,2.2,'R',{r:.5,ta:.15}],
@@ -553,7 +564,7 @@ const SCORES={
    [98.6,2.6,'Sun',{m:0}],[98.8,1.8,'S',{m:0}],[98.8,1.8,'X',{m:0}],[100.8,1.0,'R',{m:0}]]},
  '12':{title:'Reunion',c0:1.5,c1:67.5,
   cast:[{id:'R',key:'R12'},{id:'T',key:'W12shots'},{id:'H',key:'W12'},{id:'Q',key:'R12',far:true,map:[[23,15]]},{id:'Mt',key:'Wprobe-spin',map:[[47,2]]},{id:'Nt',key:'W06',map:[[52,4]]},{id:'S',key:'S12'},{id:'X',key:'X12'}],
-  init:{R:{x:.42,y:.4,m:.9,r:.35,h:35},T:{x:.7,y:.45,m:0,r:.4,h:220},H:{x:.5,y:.5,m:0,r:.6,h:35},Q:{x:.25,y:.7,m:0,r:.35},Mt:{x:.6,y:.4,m:0,r:.6,h:45},Nt:{x:.5,y:.35,m:0,r:.8,h:230},S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5}},
+  init:{R:{x:.42,y:.4,m:.9,r:.35,h:35,fg:1,tf:1},T:{x:.7,y:.45,m:0,r:.4,h:220},H:{x:.5,y:.5,m:0,r:.6,h:35},Q:{x:.25,y:.7,m:0,r:.35},Mt:{x:.6,y:.4,m:0,r:.6,h:45},Nt:{x:.5,y:.35,m:0,r:.8,h:230},S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5}},
   cues:[
    // decades later … more space for laughter: the welcome-home hall around him · hugs with no reason
    [2.4,2.4,'H',{m:.8,r:.7}],[2.4,2.4,'R',{r:.3,ta:.25}],[7.6,1.4,'ear',{x:.8,y:.8}],[9.3,1.6,'T',{m:.85,r:.5}],[9.3,1.6,'H',{r:.45}],
@@ -579,7 +590,7 @@ const SCORES={
  '13':{title:'How to Win My Heart',c0:1.5,c1:102.6,
   cast:[{id:'R',key:'R13'},{id:'Sky',key:'W06',map:[[6,3]]},{id:'Ice',key:'Wpoemwalk-cel020',map:[[9.5,25],[20,35.5],[54.5,40],[72,57.5],[72.05,30]]},
     {id:'Y',key:'R13',far:true,map:[[27.5,3]]},{id:'Aud',key:'R13',far:true,map:[[29.8,30]]},{id:'Fu',key:'R13',far:true,map:[[24.8,96.6],[97.6,97.6]]},{id:'S',key:'S13'},{id:'X',key:'X13'}],
-  init:{R:{x:.42,y:.38,m:.9,r:.08,h:30},Sky:{x:.5,y:.3,m:0,r:.6,h:260},Ice:{x:.55,y:.82,m:0,r:.35},Y:{x:.2,y:.5,m:0,r:.22,h:205,ta:.5},Aud:{x:.62,y:.76,m:0,r:.3,h:30,ta:.2},Fu:{x:.86,y:.2,m:0,r:.07,h:45,ta:.25},S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5}},
+  init:{R:{x:.42,y:.38,m:.9,r:.08,h:30,fg:1,tf:1},Sky:{x:.5,y:.3,m:0,r:.6,h:260},Ice:{x:.55,y:.82,m:0,r:.35},Y:{x:.2,y:.5,m:0,r:.22,h:205,ta:.5},Aud:{x:.62,y:.76,m:0,r:.3,h:30,ta:.2},Fu:{x:.86,y:.2,m:0,r:.07,h:45,ta:.25},S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5}},
   cues:[
    // I want you to notice me in a corner cafe: we see him only through a small window
    [2.9,1.0,'R',{r:.16}],[4.8,1.2,'R',{r:.12}],
@@ -615,7 +626,7 @@ const SCORES={
  '14':{title:'Hot Minute',c0:1.5,c1:72.8,
   cast:[{id:'R',key:'R14'},{id:'Con',key:'W06',map:[[4,2]]},{id:'Door',key:'Wpoemwalk-cel020',map:[[9,34.5],[11,36.5],[65.5,34.6],[69,38]]},{id:'Ml',key:'Wmagic-ride',map:[[32.4,18]]},
     {id:'E1',key:'R14',far:true,txt:true,map:[[54.8,9.2]]},{id:'Dn',key:'R14',far:true,map:[[57,4.5]]},{id:'Dawn',key:'Wprobe-spin',map:[[61,0]]},{id:'S',key:'S14'},{id:'X',key:'X14'}],
-  init:{R:{x:.42,y:.38,m:.9,r:.42,h:30},Con:{x:.5,y:.3,m:0,r:.6},Door:{x:.8,y:.45,m:0,r:.4},Ml:{x:.5,y:.4,m:0,r:.5},E1:{x:.76,y:.3,m:0,r:.22,h:210,ta:.4},Dn:{x:.7,y:.5,m:0,r:.3,h:15,ta:.2},Dawn:{x:.65,y:.35,m:0,r:.5,h:20,ta:.2},S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5}},
+  init:{R:{x:.42,y:.38,m:.9,r:.42,h:30,fg:1,tf:1},Con:{x:.5,y:.3,m:0,r:.6},Door:{x:.8,y:.45,m:0,r:.4},Ml:{x:.5,y:.4,m:0,r:.5},E1:{x:.76,y:.3,m:0,r:.22,h:210,ta:.4},Dn:{x:.7,y:.5,m:0,r:.3,h:15,ta:.2},Dawn:{x:.65,y:.35,m:0,r:.5,h:20,ta:.2},S:{x:.16,y:.86,m:.5},X:{x:.84,y:.86,m:.5}},
   cues:[
    // don't make me leave and go where promises, hearts, spectrums of light-filled constellations are broken
    [2.4,1.2,'R',{r:.5,m:1}],[5.8,1.6,'Con',{m:.8,r:.65}],[5.8,1.6,'R',{r:.34}],[6.6,1.2,'Con',{ta:.5,h:200}],[7.1,1.0,'Con',{h:300}],[8.0,.15,'field',{G:12}],
@@ -649,7 +660,8 @@ function castScore(sc){tracks(sc);while(NODES.length)removeNode(NODES[0]);for(co
   ANC=byRid('R');SEL=ANC}
 function applyDemo(c){FMP.G=val('field','G',c);FMP.veil=val('field','veil',c);FMP.tang=val('field','tang',c);EAR.x=val('ear','x',c);EAR.y=val('ear','y',c);EAR.drag=EAR.glide=null;EAR.vx=EAR.vy=0;
   for(const m of SC.cast){const k=byRid(m.id);if(!k)continue;const w=m.id;k.on=true;k.link=true;k.drag=null;k.vx=k.vy=0;k.x=val(w,'x',c);k.y=val(w,'y',c);k.level=val(w,'m',c);k.reach=val(w,'r',c);k.rS=k.reach;
-    k.ta=val(w,'ta',c);k.hue=k.ta>.01?val(w,'h',c):null;k.col=k.hue==null?0:k.hue/360;k.echo=val(w,'e',c);k.mS=k.level*(inTake(k)?1:0);for(const d of KNOBS)k.kS[d.id]=k[d.id]}
+    k.ta=val(w,'ta',c);k.hue=k.ta>.01?val(w,'h',c):null;k.col=k.hue==null?0:k.hue/360;k.echo=val(w,'e',c);k.z=val(w,'z',c);k.fg=val(w,'fg',c);k.follow=0;
+    if(k.trk){frameNode(k,0,true);const tf=val(w,'tf',c);if(tf>0&&k.face){k.x=lerp(k.x,k.face.x,tf);k.y=lerp(k.y,k.face.y,tf)}}k.mS=k.level*(inTake(k)?1:0);for(const d of KNOBS)k.kS[d.id]=k[d.id]}
   let best='gravity',bd=1e9;for(const m of FMODES){const T=FMT[m],d=Math.abs(Math.log(T.G/FMP.G))+Math.abs(T.veil-FMP.veil)*3+Math.abs(T.tang-FMP.tang)*3;if(d<bd){bd=d;best=m}}
   if(best!==FM){FM=best;$('fmodes').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.m===FM))}}
 function startDemo(){const n=SCORES[POEM]?POEM:'10';SC=SCORES[n];POEM=n;poemUI();castScore(SC);layout();DEMO.c0=SC.c0;DEMO.c1=SC.c1;DEMO.len=SC.c1-SC.c0;applyDemo(SC.c0);$('demo').classList.add('on');
@@ -661,6 +673,7 @@ function demoTick(now){if(!DEMO.on)return;const R=byRid('R');if(!R){stopDemo();r
 /* offline: every source at exactly the frame's time, the same shader, and the sound mix the tool computes for that frame */
 DEMO.renderAt=async function(t){OFFLINE=true;const c=DEMO.c0+t,R=byRid('R'),waits=[];ANC=R;
   for(const k of NODES){const mt=nodeTime(k,c),tt=clamp(mt,0,k.s.dur-.05);k._mt=mt;for(const e of k.els)if(!e.paused)e.pause();
+    if(k.mt&&Math.abs(k.mt.currentTime-tt)>1e-3){k.mt.pause();waits.push(new Promise(r=>{const to=setTimeout(r,2500);k.mt.addEventListener('seeked',()=>{clearTimeout(to);r()},{once:true})}));k.mt.currentTime=tt}
     const v=k.els[0];if(Math.abs(v.currentTime-tt)>1e-3){if(k.s.video)waits.push(new Promise(r=>{const to=setTimeout(r,2500);v.addEventListener('seeked',()=>{clearTimeout(to);r()},{once:true})}));for(const e of k.els)e.currentTime=tt}}
   await Promise.all(waits);DEMO.on=true;applyDemo(c);field();drawOut();compose();const duck=duckAt(R.s,c);const mix=NODES.map(k=>({g:gainOf(k,duck),mt:k._mt}));DEMO.on=false;
   return{img:rc.toDataURL('image/jpeg',.9),mix}};
@@ -671,7 +684,7 @@ function save(){try{localStorage.setItem(STORE,JSON.stringify({poem:POEM,fm:FM,s
 function restore(){let sv=null;try{sv=JSON.parse(localStorage.getItem(STORE)||'null')}catch(e){sv=null}if(!sv||!Array.isArray(sv.n)||!sv.n.length)return false;
   if(FMODES.includes(sv.fm))FM=sv.fm;STAGE=!!sv.stage;EYE=sv.eye!==false;POEM=typeof sv.poem==='string'?sv.poem:null;if(sv.ear){EAR.x=clamp(+sv.ear.x||.5,.03,.97);EAR.y=clamp(+sv.ear.y||.5,.04,.96)}
   const n01=(v,d)=>Number.isFinite(+v)?clamp(+v,0,1):d;
-  sv.n.slice(0,MAXN).forEach(d=>{if(!d||!SK[d.key])return;makeNode(d.key,{rid:typeof d.rid==='string'?d.rid:undefined,far:!!d.far,map:Array.isArray(d.map)&&d.map.every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite))?d.map:null,on:d.on!==false,link:d.link!==false,route:d.route&&typeof d.route==='object'?{pic:!!d.route.pic,snd:!!d.route.snd,txt:!!d.route.txt}:undefined,level:n01(d.level,.75),reach:n01(d.reach,.45),tone:clamp(+d.tone||0,-1,1),col:n01(d.col,0),x:clamp(n01(d.x,.5),.03,.97),y:clamp(n01(d.y,.5),.04,.96)})});
+  sv.n.slice(0,MAXN).forEach(d=>{if(!d||!SK[d.key])return;makeNode(d.key,{z:clamp(+d.z||1,.4,3),...(d.fg!=null?{fg:clamp(+d.fg||0,0,1)}:{}),...(d.follow!=null?{follow:clamp(+d.follow||0,0,1)}:{}),rid:typeof d.rid==='string'?d.rid:undefined,far:!!d.far,map:Array.isArray(d.map)&&d.map.every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite))?d.map:null,on:d.on!==false,link:d.link!==false,route:d.route&&typeof d.route==='object'?{pic:!!d.route.pic,snd:!!d.route.snd,txt:!!d.route.txt}:undefined,level:n01(d.level,.75),reach:n01(d.reach,.45),tone:clamp(+d.tone||0,-1,1),col:n01(d.col,0),x:clamp(n01(d.x,.5),.03,.97),y:clamp(n01(d.y,.5),.04,.96)})});
   SEL=NODES[sv.sel]||NODES[0]||null;ANC=NODES[sv.anc]||null;return NODES.length>0}
 /* ===== the one loop ===== */
 let lastT=0,lastPlay=null;

@@ -280,3 +280,44 @@ The `VOID` term stands for black and silence, so a light or distant mass fades i
 | 14 Hot Minute | a door and a dance | a gate closes on "I escaped here for a reason"; on the second saying, the first returns far away with its words; two moments of him trade places on "our dance" |
 
 Poem numbers with a score wear a gold ring; ✦ plays the score for the poem on screen.
+
+## Revision 10 · his figure, tracked; the LiDAR places
+
+*Obstruction in revision 9:*
+- His territory was a soft circle placed by hand. It did not follow him, and it framed whatever sat near it.
+- The scores reused the same few reels.
+- The LiDAR scans of the ride were never used as shots of their own.
+
+*Segmentation and tracking* (`tools/track_performer.py` → `clips/NN-matte.mp4`, `tracks/NN.json`), per reading clip at 12 fps:
+1. **Detect:** pose landmarks for up to four people, each with an instance mask; faces with jaw-open; a person and clothing segmentation; an appearance embedding of each person's head and shoulders. Dark takes (01–04) are lifted with a gamma curve before detection.
+2. **Cut into shots** where the colour histogram jumps.
+3. **Learn him:** take frames where one person is large and in a very dark top, and average their embeddings.
+4. **Choose him in every frame:** the person most like that reference (similarity > 0.62, or > 0.5 in a dark top), or the one standing figure in a wide shot. Runs shorter than five frames are dropped.
+5. **Label each shot:** close, room or audience.
+6. **Write outputs:** his matte (his pose mask, kept to where the segmenter sees a person, eased in time), and per frame his face centre and size, body box, shoulders, wrists and jaw.
+
+Coverage of frames, by poem: 01 52 %, 02 52 %, 03 39 %, 04 53 %, 05 57 %, 06 57 %, 07 52 %, 08 71 %, 09 64 %, 10 75 %, 11 39 %, 12 57 %, 13 50 %, 14 55 %.
+- Audience cutaways and wide room shots are correctly left empty.
+- What is missed: some bright wide shots, the dark stage close-ups in 01–04, and his tiny figure in crowded room shots.
+- Where he is not found, his territory falls back to the soft field. It never takes an audience member.
+
+*In the tool:*
+- **Figure** (button `fig`; score value `fg`): his matte is his territory, so he is cut out cleanly against any world.
+- **Follow** (default for the reading; score value `tf`): his node follows his face.
+- **Zoom** (new dial; score value `z`): reframes any source. For a tracked figure the source is mapped so that his face sits at the node, at that scale (`uv = face + (v − node)/z`). That makes a copy of him from another moment a cut-out you can place, scale and move. Outside the frame is black.
+- The shader reads up to three mattes (texture units 8–10; checked against `MAX_TEXTURE_IMAGE_UNITS`).
+
+*LiDAR shots* (`tools/lidar_shots.py`): the Atlas point clouds of kerb, neon, tunnel, fog, lanterns and the arcade, each flown three ways (**path** along its cameras, **push** a dolly in with white scan points, **rise** a crane up and over). Clean, with no words.
+- `world/lidar10.mp4` holds the five ride places, 15 shots of 12 s, synced by default so each place arrives on its line.
+- `world/lidar09.mp4` holds the arcade.
+
+*Score for poem 10, rewritten:*
+- He stands in the scanned kerb on "ride".
+- The neon road comes in with a push on his face on "rub my aggressions".
+- He is a small figure in the mouth of the tunnel on "Loneliness", and three of him are spread across the tunnel from above on "being everywhere".
+- He is close on "wide-eyed", and drifting small through the fog on "wandering".
+- The lantern street interferes on "the noise", and is seen from above on "eyes turn".
+- On "darkness" only his figure remains, in black.
+- He steps aside for the road on "a morning ahead", and springs back into his frame on "spring out of the night".
+- The tunnel pushes toward its light on "a chance at an end", and the double-click punches in on his face.
+- In the scores for 11–14 he is cut out and followed by default.
