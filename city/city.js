@@ -2958,7 +2958,7 @@ function animate() {
       const euler = new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ');
       camera.quaternion.setFromEuler(euler);
     } else {
-      const desiredDist = player.isInside ? 2.25 : 3.45;
+      const desiredDist = player.isInside ? 1.7 : 3.45;   // closer indoors, so walls and door frames do not swallow the view
       const backX = Math.sin(player.yaw);
       const backZ = Math.cos(player.yaw);
       let safeDist = desiredDist;

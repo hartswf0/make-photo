@@ -22,7 +22,7 @@
     // the far grid, eased into the trough's island shape at the coast: one height for what is drawn and what is walked outside the near grid
     const farAt = (x, z) => { const real = gFar.at(x, z); if (real === null) return null; const lo = g.low ? g.low(x, z) : real, t = Math.min(1, Math.max(0, (lo - 2) / 60)), v = lo * (1 - t) + real * t;
       if (!g.low) return v; const d = Math.min(x - gFar.x0, gFar.x1 - x, z - gFar.z0, gFar.z1 - z), e = Math.min(1, Math.max(0, d / 1500)), w = e * e * (3 - 2 * e);   /* and into the trough's ground at its outer edge, so the cut-out meets it */
-      return w >= 1 ? v : lo + (v - lo) * w; };
+      const f = w >= 1 ? v : lo + (v - lo) * w; return g.shape ? g.shape(x, z, f, 55) : f; };   /* widened by about one far-grid cell, so its 65 m triangles can hold the road */   /* and the archipelago's landings: causeway and ramp */
     const farEdge = (x, z) => { const d = Math.min(x - gFar.x0, gFar.x1 - x, z - gFar.z0, gFar.z1 - z), e = Math.min(1, Math.max(0, d / 1500)); return e * e * (3 - 2 * e); };
     // feather each finer grid into the ground around it, so there is no wall or drop at its edge: near into the trough's coarse ground over 150 m, detail into near over 25 m
     const feather = (G, edge, outer) => { for (let j = 0; j < G.h; j++) for (let i = 0; i < G.w; i++) { const x = G.x0 + i / (G.w - 1) * (G.x1 - G.x0), z = G.z0 + j / (G.h - 1) * (G.z1 - G.z0), d = Math.min(x - G.x0, G.x1 - x, z - G.z0, G.z1 - z), t = Math.min(1, d / edge), w = t * t * (3 - 2 * t);

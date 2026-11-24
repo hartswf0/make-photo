@@ -141,6 +141,65 @@ for i in I:
     ys, xs = slice(max(0, y0p), min(PH, y0p + ph)), slice(max(0, x0p), min(PW, x0p + pw))
     sub = a_[ys.start - y0p: ys.stop - y0p, xs.start - x0p: xs.stop - x0p]; win = sub > Hmap[ys, xs]; Hmap[ys, xs] = np.where(win, sub, Hmap[ys, xs]); OWN[ys, xs] = np.where(win & (sub > 0), I.index(i), OWN[ys, xs])
     i['px'] = [x0p, y0p, pw, ph]
+# ---------- thresholds: every crossing is shaped as a landscape, not dropped onto it. A low sand causeway runs out from each shore,
+#            a channel stays open for boats, a road ramp no steeper than 6% is cut into each island, and only the channel is bridged.
+#            The same recipe (SHAPES) goes to the trough, so a can that brings its own ground (Teton) carves the same landings. ----------
+HC, RAMP, CORE, EDGE = 3.0, .06, 12.0, 70.0
+def grade(s): s = np.maximum(np.asarray(s, dtype=np.float64), 0); return HC + RAMP * np.minimum(s, 1200) + .14 * np.maximum(s - 1200, 0)   # 6% from the shore, a mountain road's 14% after 1.2 km
+def Hs(x, z):
+    u = np.clip(np.asarray(x) / MPP, 0, PW - 1.001); v = np.clip(np.asarray(z) / MPP, 0, PH - 1.001); i = np.floor(u).astype(int); j = np.floor(v).astype(int); fu = u - i; fv = v - j
+    return Hmap[j, i] * (1 - fu) * (1 - fv) + Hmap[j, i + 1] * fu * (1 - fv) + Hmap[j + 1, i] * (1 - fu) * fv + Hmap[j + 1, i + 1] * fu * fv
+def seg_d(X, Z, p, q):                      # distance to segment p-q and the position along it (0..1)
+    dx, dz = q[0] - p[0], q[1] - p[1]; L2 = max(dx * dx + dz * dz, 1e-6); t = np.clip(((X - p[0]) * dx + (Z - p[1]) * dz) / L2, 0, 1)
+    return np.hypot(X - p[0] - t * dx, Z - p[1] - t * dz), t
+def causeway_prof(d, h): return np.where(d < 22, h, np.where(d < 70, h - (d - 22) * (h + 1.5) / 48, -1.5 - (d - 70) * .45))
+def ramp_w(d): e = np.clip((CORE + EDGE - d) / EDGE, 0, 1); return e * e * (3 - 2 * e)
+def apply_shape(sh, box=None):
+    pts = sh['pts']; xs = [q[0] for q in pts]; zs = [q[2] for q in pts]; R_ = 22 + 48 + 400 if sh['kind'] == 'fill' else CORE + EDGE
+    x0, x1 = int(max(0, (min(xs) - R_) / MPP)), int(min(PW - 1, (max(xs) + R_) / MPP) + 1); z0, z1 = int(max(0, (min(zs) - R_) / MPP)), int(min(PH - 1, (max(zs) + R_) / MPP) + 1)
+    Z, X = np.mgrid[z0:z1 + 1, x0:x1 + 1].astype(np.float64) * MPP; best = np.full(X.shape, 1e9); hh = np.zeros(X.shape)
+    for a, b in zip(pts, pts[1:]):
+        d, t = seg_d(X, Z, (a[0], a[2]), (b[0], b[2])); m = d < best; best = np.where(m, d, best); hh = np.where(m, a[1] + (b[1] - a[1]) * t, hh)
+    sub = Hmap[z0:z1 + 1, x0:x1 + 1]
+    Hmap[z0:z1 + 1, x0:x1 + 1] = np.maximum(sub, causeway_prof(best, hh)) if sh['kind'] == 'fill' else sub + (hh - sub) * ramp_w(best)
+coastL = {}
+for k, i in enumerate(I):
+    m_ = (OWN == k) & (Hmap > 2); e_ = m_ & ~(np.roll(m_, 1, 0) & np.roll(m_, -1, 0) & np.roll(m_, 1, 1) & np.roll(m_, -1, 1)); ys_, xs_ = np.nonzero(e_); coastL[i['id']] = np.stack([xs_, ys_], 1)[:: max(1, len(xs_) // 3000)] * MPP
+def inland(q, dv, side):                    # the ramp into an island: where it meets the ground, and how much has to be cut
+    s = np.arange(0, 9000, 20.0); X = q[0] - dv[0] * s * side; Z = q[1] - dv[1] * s * side; g = Hs(X, Z); tgt = grade(s)
+    met = np.nonzero((g <= tgt) & (s > 60))[0]; k = int(met[0]) if len(met) else len(s) - 1
+    cut = float(np.maximum(g[:k + 1] - tgt[:k + 1], 0).sum()) * 20; wet = float((g[:k + 1] < -1).mean())
+    return s[k], cut, wet
+SHAPES, CROSS = [], []
+for a_, b_ in PAIRS:
+    A_, B_ = coastL[a_], coastL[b_]; d, idx = cKDTree(B_).query(A_); best = None
+    for k in np.argsort(d)[:1500:3]:
+        q0, q1 = A_[k].astype(float), B_[idx[k]].astype(float); L0 = float(d[k])
+        if L0 > 3200: break
+        dv = (q1 - q0) / max(L0, 1); sA, cA, wA = inland(q0, dv, 1); sB, cB, wB = inland(q1, dv, -1)
+        sc = L0 * 40 + (cA + cB) * .05 + (sA + sB) * 20 + (wA + wB) * 1e6
+        if best is None or sc < best[0]: best = (sc, q0, q1, dv, L0, sA, sB)
+    _, q0, q1, dv, L0, sA, sB = best
+    # where each shore really reaches the water along the line (the coast sample is a few cells in)
+    def wet_edge(q, side):
+        for s_ in np.arange(0, 600, 10.0):
+            x, z = q[0] + dv[0] * s_ * side, q[1] + dv[1] * s_ * side
+            if Hs(x, z) < 0: return np.array([x, z])
+        return q.copy()
+    w0, w1 = wet_edge(q0, 1), wet_edge(q1, -1); Lw = float(np.hypot(*(w1 - w0)))
+    ch = 0 if Lw < 320 else min(240.0, max(140.0, Lw * .22))             # the channel left open; short straits are simply bridged
+    m0 = w0 + (w1 - w0) * (.5 - ch / 2 / max(Lw, 1)); m1 = w0 + (w1 - w0) * (.5 + ch / 2 / max(Lw, 1))
+    if ch: SHAPES.append(dict(kind='fill', pts=[[*(w0 - dv * 40)[:1], HC, *(w0 - dv * 40)[1:]], [m0[0], HC, m0[1]]])); SHAPES.append(dict(kind='fill', pts=[[m1[0], HC, m1[1]], [*(w1 + dv * 40)[:1], HC, *(w1 + dv * 40)[1:]]]))
+    for q, w, side, sL in ((q0, w0, 1, sA), (q1, w1, -1, sB)):
+        n_ = max(2, int((sL + 60) / 60)); pts = []
+        for t in np.linspace(0, 1, n_ + 1):
+            s_ = -40 + t * (sL + 100 + float(np.hypot(*(w - q))))
+            x, z = w[0] - dv[0] * s_ * side, w[1] - dv[1] * s_ * side; pts.append([round(float(x), 1), round(float(grade(s_)), 2), round(float(z), 1)])
+        SHAPES.append(dict(kind='cut', pts=pts))
+    CROSS.append(dict(a=a_, b=b_, w0=w0, w1=w1, m0=m0 if ch else w0, m1=m1 if ch else w1, dv=dv, ch=ch, sA=sA, sB=sB))
+for sh in SHAPES: sh['pts'] = [[round(float(v), 2) for v in q] for q in sh['pts']]; apply_shape(sh)
+print('deepest cut', [round(float(max(0, max(Hs(np.array([q[0]]), np.array([q[2]]))[0] - q[1] for q in sh['pts'])))) for sh in SHAPES if sh['kind'] == 'cut']) if False else None
+print('thresholds', [(c['a'][:6], c['b'][:6], 'water', round(float(np.hypot(*(c['w1'] - c['w0'])))), 'channel', round(c['ch']), 'ramps', round(c['sA']), round(c['sB'])) for c in CROSS])
 land = Hmap > 0
 # ---------- paint: sea with shallows, land with height bands and light from the north-west ----------
 lm = Image.fromarray((land * 255).astype(np.uint8)); near = np.asarray(lm.filter(ImageFilter.GaussianBlur(14)), dtype=np.float64) / 255; far = np.asarray(lm.filter(ImageFilter.GaussianBlur(60)), dtype=np.float64) / 255
@@ -203,20 +262,12 @@ for k, i in enumerate(I):
     edge = m_ & ~(np.roll(m_, 1, 0) & np.roll(m_, -1, 0) & np.roll(m_, 1, 1) & np.roll(m_, -1, 1))
     ys_, xs_ = np.nonzero(edge); pts = np.stack([xs_, ys_], 1)[:: max(1, len(xs_) // 4000)] * MPP; coast[i['id']] = pts
 bridges = []
-for a_, b_ in PAIRS:
-    A_, B_ = coast[a_], coast[b_]
-    if not len(A_) or not len(B_): continue
-    d, idx = cKDTree(B_).query(A_); best = None
-    for k in np.argsort(d)[:700]:                                                  # short, and landing on low shore at both ends
-        q0, q1 = A_[k].astype(float), B_[idx[k]].astype(float); L0 = float(d[k]); dv = (q1 - q0) / max(L0, 1); q0 = q0 - dv * 160; q1 = q1 + dv * 160
-        h0, h1 = (float(Hm(np.array([q[0]]), np.array([q[1]]))[0]) for q in (q0, q1)); sc = L0 + 6 * max(h0, h1, 0) + 3 * abs(h0 - h1)
-        if best is None or sc < best[0]: best = (sc, q0, q1)
-    p0, p1 = best[1], best[2]; L = float(np.hypot(*(p1 - p0)))
-    n = max(4, int(L / 40)); xs_ = np.linspace(p0[0], p1[0], n + 1); zs_ = np.linspace(p0[1], p1[1], n + 1); ground = Hm(xs_, zs_)
-    e0, e1 = max(ground[0], 1) + 1.5, max(ground[-1], 1) + 1.5; t = np.linspace(0, 1, n + 1)
-    deck = e0 * (1 - t) + e1 * t + np.sin(t * np.pi) * min(60, 14 + L / 120)       # a gentle arch over the channel
-    deck = np.maximum(deck, ground + 1.2)
-    bridges.append(dict(a=a_, b=b_, length_m=round(L), pts=[[round(x, 1), round(y, 2), round(z, 1)] for x, y, z in zip(xs_, deck, zs_)]))
+for c in CROSS:                                                                   # only the channel (or a short strait) is bridged, low and gentle
+    p0 = c['m0'] - c['dv'] * 50; p1 = c['m1'] + c['dv'] * 50; L = float(np.hypot(*(p1 - p0))); n = max(4, int(L / 20))
+    xs_ = np.linspace(p0[0], p1[0], n + 1); zs_ = np.linspace(p0[1], p1[1], n + 1); ground = Hm(xs_, zs_); t = np.linspace(0, 1, n + 1)
+    e0, e1 = max(float(ground[0]), HC) + .4, max(float(ground[-1]), HC) + .4
+    deck = e0 * (1 - t) + e1 * t + np.sin(t * np.pi) * max(5.0, L * .02); deck = np.maximum(deck, ground + .4)
+    bridges.append(dict(a=c['a'], b=c['b'], length_m=round(L), pts=[[round(x, 1), round(y, 2), round(z, 1)] for x, y, z in zip(xs_, deck, zs_)]))
 # ferries: sea lanes between islands no bridge joins; a pier reaches out from each shore
 NEAR = sorted((gap(A, B)[0], A['id'], B['id']) for x, A in enumerate(I) for B in I[x + 1:] if (A['id'], B['id']) not in PAIRS and (B['id'], A['id']) not in PAIRS)
 FERRY = [(a_, b_) for d_, a_, b_ in NEAR if 1000 < d_ < 4000][:5]                  # ferries across the next-narrowest straits no bridge takes
@@ -241,6 +292,8 @@ roads3 = []
 for i in out['islands']:
     for r_ in i['roads']:
         if r_['kind'] in ('highway', 'trail'): roads3.append(dict(kind=r_['kind'], island=i['id'], pts=road3d(r_['pts'])))
+for sh in SHAPES:                                                                  # the road on every causeway and up every ramp
+    roads3.append(dict(kind='highway', island='', pts=[[q[0], round(max(float(Hm(np.array([q[0]]), np.array([q[2]]))[0]), .5) + .3, 2), q[2]] for q in (sh['pts'] if sh['kind'] == 'cut' else [sh['pts'][0], [(sh['pts'][0][0] + sh['pts'][1][0]) / 2, 0, (sh['pts'][0][2] + sh['pts'][1][2]) / 2], sh['pts'][1]])]))
 for b in bridges:
     for end, isl in ((b['pts'][0], b['a']), (b['pts'][-1], b['b'])):
         cand = [p_ for r_ in roads3 if r_['island'] == isl for p_ in r_['pts']]
@@ -249,7 +302,7 @@ for b in bridges:
         if d[k] < 9000: roads3.append(dict(kind='highway', island=isl, pts=road3d([[end[0] / 1000, end[2] / 1000], [c[k, 0] / 1000, c[k, 2] / 1000]])))
 places3 = [dict(name=p_['name'], island=i['id'], world=p_['world'], entry=p_['entry'], x=round(p_['at'][0] * 1000, 1), z=round(p_['at'][1] * 1000, 1)) for i in out['islands'] for p_ in i['places']]
 LOW = 10; lowh = Hmap[::LOW, ::LOW]; (OW / 'low.bin').write_bytes(np.clip(np.round((lowh + 1000) * 10), 0, 65535).astype('<u2').tobytes())
-json.dump(dict(ferries=ferries, tile=T, mpp=MPP, tiles=tiles, low=dict(step=LOW * MPP, w=lowh.shape[1], h=lowh.shape[0]), width_m=PW * MPP, height_m=PH * MPP, encode='(h+1000)*10 uint16 LE, rows south-increasing z', bridges=bridges, roads=roads3, places=places3,
+json.dump(dict(ferries=ferries, tile=T, mpp=MPP, tiles=tiles, low=dict(step=LOW * MPP, w=lowh.shape[1], h=lowh.shape[0]), width_m=PW * MPP, height_m=PH * MPP, encode='(h+1000)*10 uint16 LE, rows south-increasing z', bridges=bridges, shapes=SHAPES, roads=roads3, places=places3,
                islands=[dict(id=i['id'], name=i['name'], level=i['level'], entry=i['entry'], center=[i['center'][0] * 1000, i['center'][1] * 1000], size=[i['size'][0] * 1000, i['size'][1] * 1000], frame=i['frame'], datum=ID[i['id']].get('datum')) for i in out['islands']],
                texture='./archipelago.jpg'), open(OW / 'world.json', 'w'), separators=(',', ':'))
 print('ends', [(b['a'][:6], b['b'][:6], b['pts'][0][1], b['pts'][-1][1]) for b in bridges]); print('ferries', [(f['a'][:6], f['b'][:6], f['length_m']) for f in ferries]); print('overworld', len(tiles), 'tiles', len(bridges), 'bridges', [(b['a'][:6], b['b'][:6], b['length_m']) for b in bridges], len(roads3), 'roads')

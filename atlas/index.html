@@ -24,8 +24,8 @@ canvas{position:fixed;inset:0;display:block;touch-action:none}
 <script>
 (async () => {
 const cv = document.getElementById('c'), g = cv.getContext('2d'), card = document.getElementById('card'), QS = new URLSearchParams(location.search), EMBED = QS.has('embed');
-const A = await (await fetch('./archipelago.json?v=2')).json();
-const OWJ = await fetch('./ow/world.json?v=2').then(r => r.json()).catch(() => null), km = p => [p[0] / 1000, p[2] / 1000];
+const A = await (await fetch('./archipelago.json?v=3')).json();
+const OWJ = await fetch('./ow/world.json?v=3').then(r => r.json()).catch(() => null), km = p => [p[0] / 1000, p[2] / 1000];
 const title = s => s.toLowerCase().replace(/(^|[\s–-])\p{L}/gu, c => c.toUpperCase()), ISL = id => A.islands.find(i => i.id === id);
 const BR = OWJ ? OWJ.bridges.map(b => ({ b, line: b.pts.map(km) })) : [], FE = OWJ ? OWJ.ferries.map(f => ({ f, lane: f.lane.map(km), piers: f.piers.map(pr => pr.map(km)) })) : [];
 const HEADS = [];   // every end of every crossing, as you would walk up to it
@@ -132,7 +132,7 @@ setInterval(() => { const ow = OWP(); if (!ow || document.hidden) return; const 
 if (EMBED) { const b = document.getElementById('back'); b.style.display = 'block'; b.onclick = () => parent.postMessage('atlas:back', '*'); }
 addEventListener('resize', size);
 cv.width = W * dpr; cv.height = H * dpr;
-img.onload = () => { ready = true; start(); draw(); }; img.src = A.preview + '?v=2';
+img.onload = () => { ready = true; start(); draw(); }; img.src = A.preview + '?v=3';
 big.onload = () => draw(); big.src = A.image + '?v=2';
 window.__arch = { A, V, draw };
 })();
