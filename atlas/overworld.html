@@ -143,7 +143,7 @@ function applyAtmosphere(A, storm) { const e = storm * storm * (3 - 2 * storm);
   const u = GRADE_U; u.uSat.value = A.sat; u.uCon.value = A.con; u.uLift.value.set(...A.lift); u.uGam.value.set(...A.gam); u.uGain.value.set(...A.gain); u.uTint.value.copy(A.tint); u.uTintAmt.value = A.ta; u.uVig.value = A.vig; u.uGrain.value = A.grain;
   u.uExp.value = A.exp; u.uAces.value = A.aces; u.uSpec.value.set(...A.spec); A.ramp.forEach((c, k) => u.uRamp.value[k].copy(c)); u.uRampMix.value = A.sw > 0 ? A.rmix : 0; u.uSteps.value = A.steps; u.uEdge.value = A.edge; u.uEdgeCol.value.copy(A.ec); u.uScan.value = A.scan; u.uCyan.value = A.cyan; u.uCyLo.value.copy(A.cl); u.uCyHi.value.copy(A.ch); }
 // look packets: the trough's own (atlas/looks.json, the islands no can claims yet), the shared catalogue, and each can's
-function lensLooks() { const id = ATM.top, L = LOOKS.islands[id] || {}, names = ['As it is', ...(STANDARD && LOOKS.standard && L.toning ? [OWN] : []), ...Object.keys(L.looks || {}), ...(L.offers || []).filter(n => LOOKS.catalog[n] && !(L.looks || {})[n])], c = ATM.choice[id]; const k = Math.max(0, names.indexOf(c));
+function lensLooks() { const id = ATM.top, L = LOOKS.islands[id] || {}, names = ['As it is', ...(STANDARD && LOOKS.standard && L.toning ? [OWN] : []), ...Object.keys(L.looks || {}), ...(L.offers || []).filter(n => LOOKS.catalog[n] && !(L.looks || {})[n])], c = ATM.choice[id]; for (const n of Object.keys(LOOKS.catalog)) if (!names.includes(n)) names.push(n);   /* every look in the catalogue, on every island: woodblock, cyanotype, risograph... after the island's own */ const k = Math.max(0, names.indexOf(c));
   return { filter: k, filterName: names[k], filters: names }; }
 async function loadLooks(url) { try { const L = await (await fetch(url)).json(); for (const u of L.packets || []) await loadLooks(new URL(u, new URL(url, location.href)).href); if (L.catalog) Object.assign(LOOKS.catalog, L.catalog); if (L.standard) LOOKS.standard = L.standard; for (const [id, lk] of Object.entries(L.islands || {})) { LOOKS.islands[id] = lk; const k = OW.islands.findIndex(i => i.id === id); if (k >= 0 && lk.ground) setIslandGround(k, OW.islands[k], lk.ground); } } catch (e) { console.warn('looks', url, e); } }
 // ---------- the painted map drapes every piece of ground ----------
@@ -152,8 +152,12 @@ const groundMat = new T.MeshLambertMaterial({ map: tex });
 { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'), im = x.createImageData(256, 256); for (let i = 0; i < 256 * 256; i++) { const v = 150 + Math.random() * 80 + Math.sin(i * .013) * 10; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; } x.putImageData(im, 0, 0);
   x.globalAlpha = .35; for (let k = 0; k < 900; k++) { x.fillStyle = Math.random() < .5 ? '#555' : '#fff'; x.beginPath(); x.arc(Math.random() * 256, Math.random() * 256, Math.random() * 3 + .5, 0, 7); x.fill(); }
   const grain = new T.CanvasTexture(c); grain.wrapS = grain.wrapT = T.RepeatWrapping; grain.generateMipmaps = true;
-  groundMat.onBeforeCompile = sh => { sh.uniforms.grain = { value: grain }; Object.assign(sh.uniforms, GROUND_U); sh.vertexShader = 'varying vec3 vWp; varying float vUp;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz; vUp = normalize(mat3(modelMatrix) * objectNormal).y;');
-    sh.fragmentShader = 'uniform sampler2D grain; varying vec3 vWp; varying float vUp;\n' + GROUND_DECL + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+  /* MONOLITH-3's own ground textures (its packets: red is the value, green the relief, blue the variation), so every island's ground is
+     photographic up close the way Teton's is, each still in its own palette */
+  const dtex = id => { const t = new T.TextureLoader().load(`../monolith3/packets/${id}.webp`); t.wrapS = t.wrapT = T.RepeatWrapping; t.colorSpace = T.NoColorSpace; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); return t; };
+  const DT = { uGT: { value: dtex('ground') }, uRT: { value: dtex('rock') }, uST: { value: dtex('scree') } };
+  groundMat.onBeforeCompile = sh => { sh.uniforms.grain = { value: grain }; Object.assign(sh.uniforms, GROUND_U, DT); sh.vertexShader = 'varying vec3 vWp; varying float vUp; varying vec3 vNw;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz; vNw = normalize(mat3(modelMatrix) * objectNormal); vUp = vNw.y;');
+    sh.fragmentShader = 'uniform sampler2D grain, uGT, uRT, uST; varying vec3 vWp; varying float vUp; varying vec3 vNw;\nvec3 tri(sampler2D m, vec3 p, vec3 n) { vec3 k = pow(abs(n), vec3(4.)); k /= dot(k, vec3(1.)); return texture2D(m, p.yz).rgb * k.x + texture2D(m, p.xz).rgb * k.y + texture2D(m, p.xy).rgb * k.z; }\n' + GROUND_DECL + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
       for (int i = 0; i < 4; i++) { vec4 hr = uHoles[i]; if (hr.z > hr.x && vWp.x > hr.x && vWp.x < hr.z && vWp.z > hr.y && vWp.z < hr.w) discard; }   // a can's own ground stands here
       vec3 MA = uDMA, MB = uDMB, RK = uDRK, SD = uDSD, SN = uDSN; vec4 GP = uDGP; { vec3 aMA = vec3(0.), aMB = vec3(0.), aRK = vec3(0.), aSD = vec3(0.), aSN = vec3(0.); vec4 aGP = vec4(0.); float ws = 0.;
         for (int i = 0; i < 12; i++) { vec4 r = uIR[i]; if (r.z <= r.x) continue; vec2 dd = max(r.xy - vWp.xz, vWp.xz - r.zw); float w = 1.0 - smoothstep(0.0, 700.0, length(max(dd, vec2(0.0))));
@@ -166,7 +170,10 @@ const groundMat = new T.MeshLambertMaterial({ map: tex });
       vec3 rock = RK * mix(.78, 1.18, g2 * .7); c = mix(c, rock, smoothstep(GP.y, GP.z, sl));                       // this island's rock where it is steep
       c = mix(SD, c, smoothstep(1.5, 7.0, h));                                                                                // a shore of sand
       c = mix(c, SN, smoothstep(GP.x, GP.x + 450.0, h + g3 * 120.0) * (1.0 - smoothstep(.45, .7, sl)));                         // snow on the high ground
-      diffuseColor.rgb = c * mix(1.0, g1 * .55 + g2 * .45, gd * .5);`); }; }
+      { float dn = clamp(1.0 - length(vWp - cameraPosition) / 900.0, 0.0, 1.0); vec3 n = normalize(vNw);   /* MONOLITH-3's ground recipe, as a value on this island's colour */
+        vec3 grit = texture2D(uGT, vWp.xz * .23).rgb, scr = texture2D(uST, vWp.xz * .069 + vec2(.26, .17)).rgb, slabs = tri(uRT, vWp / 132., n), grains = tri(uRT, vWp / 14., n);
+        float soil = (.22 + .95 * grit.r) * (.69 + .46 * grit.b) * mix(1., .55 + .9 * scr.r, .45), stone = (.3 + 1.05 * slabs.r) * (.66 + .68 * grains.r), cliff = smoothstep(.16, .47, sl);
+        float v = mix(soil / .78, stone / .98, cliff); diffuseColor.rgb = c * mix(mix(1.0, g1 * .55 + g2 * .45, gd * .5), v, dn * .85); }`); }; }
 const W = OW.width_m, H = OW.height_m;
 function gridMesh(cols, rows, x0, z0, step, hAt, mat, ov) {   // ov: a can's own ground (material@1) brings its UV frame and vertex paint
   const pos = new Float32Array(cols * rows * 3), uv = new Float32Array(cols * rows * 2), idx = [], col = ov && ov.color ? new Float32Array(cols * rows * 3) : null;
@@ -494,7 +501,7 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
       else { const gy = footing(nx, nz); if (m === 'drive' && gy < -0.8) P.speed *= -.2; else { const slope = (gy - P.y) / Math.max(.1, Math.hypot(nx - P.x, nz - P.z)); if ((m === 'drive' && slope < .9) || slope < 1.4 || deckAt(nx, nz)) { P.x = nx; P.z = nz; } else P.speed *= m === 'drive' ? -.2 : .5; } } } if (m === 'walk' && P.swim) P.speed = Math.max(-1.8, Math.min(1.8, P.speed));
   }
   if (m === 'walk' || m === 'drive') gravity(dt, now);
-  if (motion && !DIVE.on) { try { motion.setActorLocomotion('imani', { speedMps: m === 'walk' ? Math.abs(P.speed) * (P.swim ? 2.2 : 1) : 0, carrying: !P.swim, sitting: m === 'ride' || m === 'boat' || m === 'ferry' || m === 'fly', blend: 1 }); motion.update(dt); } catch { } }   /* one call a frame: a second call each frame cross-faded the walk back to idle and froze her */
+  if (motion && !DIVE.on) { try { motion.setActorLocomotion('imani', { speedMps: m === 'walk' && !P.swim ? Math.abs(P.speed) : 0, carrying: !P.swim, sitting: m === 'ride' || m === 'boat' || m === 'ferry' || m === 'fly', blend: 1 }); motion.update(dt); } catch { } }   /* one call a frame: a second call each frame cross-faded the walk back to idle and froze her */
   if (donkey && m === 'walk') {                                                // Mistletoe keeps to your side on foot
     const bx = P.x + Math.sin(P.yaw) * 1.2 - Math.cos(P.yaw) * 1.9, bz = P.z + Math.cos(P.yaw) * 1.2 + Math.sin(P.yaw) * 1.9, g = donkey.group.position, dx = bx - g.x, dz = bz - g.z, d = Math.hypot(dx, dz);
     if (d > 60) placeDk(bx, bz, P.yaw, (x, z) => groundAt(x, z));
@@ -504,7 +511,7 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
   skiff.visible = m === 'boat'; if (m === 'boat') { skiff.position.set(P.x, P.y, P.z); skiff.rotation.y = P.yaw; skiff.rotation.z = Math.sin(now / 700) * .04; }
   for (const fe of ferries) if (!(P.ferry && P.ferry.fe === fe)) { fe.t += dt * 12 / fe.len * fe.dir; if (fe.t >= 1 || fe.t <= 0) { fe.t = Math.max(0, Math.min(1, fe.t)); fe.wait += dt; if (fe.wait > 20) { fe.dir *= -1; fe.wait = 0; } } const q = laneAt(fe, fe.t); fe.boat.position.set(q[0], .2 + Math.sin(now / 800 + fe.len) * .1, q[1]); fe.boat.rotation.y = q[2] + (fe.dir > 0 ? 0 : Math.PI); }
   walker.visible = m === 'walk' || m === 'ride' || m === 'boat' || m === 'ferry'; if (m === 'boat' || m === 'ferry') { walker.position.set(P.x, P.y + (m === 'ferry' ? 1.6 : .8), P.z); } car.visible = m === 'drive'; glider.visible = m === 'fly'; if (donkey) donkey.group.visible = m === 'ride' || m === 'walk';
-  if (m !== 'boat' && m !== 'ferry') walker.position.set(P.x, P.y + (m === 'ride' ? 1.05 : 0), P.z); if (m === 'ride' && donkey) { walker.position.copy(donkey.group.position); walker.position.y += 1.05; } walker.rotation.y = P.yaw; { const sw = P.swim && m === 'walk', go = sw && Math.abs(P.speed) > .3; P.lean = (P.lean || 0) + ((go ? 1.25 : 0) - (P.lean || 0)) * Math.min(1, dt * 4); walker.rotation.x = P.lean; walker.rotation.order = 'YXZ'; if (sw) walker.position.y = P.y - (go ? .55 : 1.25); }   /* swimming: flat at the waterline and kicking, or treading water upright */ car.position.set(P.x, P.y, P.z); car.rotation.y = P.yaw; glider.position.set(P.x, P.y, P.z); glider.rotation.y = P.yaw; glider.visible = false;
+  if (m !== 'boat' && m !== 'ferry') walker.position.set(P.x, P.y + (m === 'ride' ? 1.05 : 0), P.z); if (m === 'ride' && donkey) { walker.position.copy(donkey.group.position); walker.position.y += 1.05; } walker.rotation.y = P.yaw; { const sw = P.swim && m === 'walk', go = sw && (Math.abs(P.speed) > .15 || Math.abs(EXT.y) > .1); P.lean = (P.lean || 0) + ((go ? 1.38 : sw ? .35 : 0) - (P.lean || 0)) * Math.min(1, dt * 4); walker.rotation.x = P.lean; walker.rotation.order = 'YXZ'; if (sw) { walker.position.y = P.y - (go ? .5 : 1.25) + Math.sin(now / 650) * .05; SWIM.pose(now / 1000, Math.min(1, P.lean / 1.2 + .3), go ? 1 : .45); } }   /* swimming: flat at the waterline and kicking, or treading water upright */ car.position.set(P.x, P.y, P.z); car.rotation.y = P.yaw; glider.position.set(P.x, P.y, P.z); glider.rotation.y = P.yaw; glider.visible = false;
   if (m === 'fly' && donkey) { donkey.group.visible = true; placeDk(P.x, P.z, P.yaw, () => P.y - 1.05); donkey.group.rotation.z = Math.sin(now / 900) * .06; walker.visible = true; walker.position.set(P.x, P.y + .05, P.z); walker.rotation.y = P.yaw;
     const f = Math.sin(now / 1000 * (P.speed > 30 ? 4.2 : 6.5)) * .55; DKWINGS.g.visible = true; DKWINGS.g.position.copy(donkey.group.position); DKWINGS.g.rotation.y = P.yaw; DKWINGS.l.rotation.z = .25 + f; DKWINGS.r.rotation.z = -.25 - f; }
   else { DKWINGS.g.visible = false; if (donkey) donkey.group.rotation.z = 0; }
@@ -551,11 +558,22 @@ function abyss() { return DIVE.frame && DIVE.frame.contentWindow && DIVE.frame.c
 function diveScent() { if (DIVE.frame) return; const f = document.createElement('iframe'); f.src = '../abyss/reef.html?embed=1&v=1'; f.title = 'The reef'; f.setAttribute('aria-hidden', 'true');
   Object.assign(f.style, { position: 'fixed', inset: '0', width: '100%', height: '100%', border: '0', zIndex: '1', pointerEvents: 'none', opacity: '0', visibility: 'hidden', transition: 'opacity .9s ease' }); document.body.append(f); DIVE.frame = f; }
 const deepHere = () => terrain(P.x, P.z) < -6 && !deckAt(P.x, P.z);
+/* swimming, procedurally: no clip exists for it, so after the clip each limb is aimed at a direction in her own frame (arms reach past her head
+   and sweep back in a breaststroke, legs kick), whatever the bone axes. k is how strongly, 0..1 */
+const SWIM = (() => { const V = T.Vector3, Q = T.Quaternion, a = new V(), b = new V(), d = new V(), q = new Q(), pq = new Q(), bq = new Q(), rq = new Q(); let B = null;
+  const bones = () => { if (B) return B; let sk = null; walker.traverse(o => { if (o.isSkinnedMesh && !sk) sk = o.skeleton; }); if (!sk) return null; const n = id => sk.bones.find(x => x.name === id);
+    B = { uL: n('uarm_L'), fL: n('farm_L'), hL: n('hand_L'), uR: n('uarm_R'), fR: n('farm_R'), hR: n('hand_R'), lL: n('uleg_L'), kL: n('lleg_L'), ftL: n('foot_L'), lR: n('uleg_R'), kR: n('lleg_R'), ftR: n('foot_R') }; return B; };
+  const aim = (bone, child, x, y, z, w) => { if (!bone || !child) return; bone.updateWorldMatrix(true, false); child.updateWorldMatrix(false, false); a.setFromMatrixPosition(bone.matrixWorld); b.setFromMatrixPosition(child.matrixWorld);
+    d.set(x, y, z).applyQuaternion(rq).normalize(); q.setFromUnitVectors(b.sub(a).normalize(), d); bone.getWorldQuaternion(bq); bone.parent.getWorldQuaternion(pq); bone.quaternion.slerp(pq.invert().multiply(q.multiply(bq)), w); };
+  return { pose(t, k, stroke = 1) { const S = bones(); if (!S || k <= 0) return; walker.updateWorldMatrix(true, false); walker.getWorldQuaternion(rq);
+    const ph = t * 2.3 * stroke, s = (Math.sin(ph) + 1) / 2, side = .25 + s * .85, up = 1 - s * .85, fwd = .25 - s * .2;   /* reach (s=0), then sweep out and back (s=1) */
+    for (const [u, f, h, sg] of [[S.uL, S.fL, S.hL, 1], [S.uR, S.fR, S.hR, -1]]) { aim(u, f, sg * side, up, fwd, k); aim(f, h, sg * side * .7, up * 1.1 + .1, fwd + .25, k); }
+    const kick = Math.sin(t * 6.5 * stroke) * .45; for (const [l, kn, ft, sg] of [[S.lL, S.kL, S.ftL, 1], [S.lR, S.kR, S.ftR, -1]]) { aim(l, kn, sg * .12, -1, sg * kick * .5, k); aim(kn, ft, sg * .1, -1, -.35 + sg * kick, k); } } }; })();
 /* the diver: Imani herself, drawn over the reef by a small transparent renderer of her own, flat in the water and kicking */
 function diverRig() { if (DIVE.r) return; const r = new T.WebGLRenderer({ alpha: true, antialias: true }); r.setPixelRatio(Math.min(2, devicePixelRatio || 1)); r.setSize(innerWidth, innerHeight); r.setClearColor(0, 0); r.outputColorSpace = renderer.outputColorSpace;
   Object.assign(r.domElement.style, { position: 'fixed', inset: '0', width: '100%', height: '100%', zIndex: '1', pointerEvents: 'none', display: 'none' }); document.body.append(r.domElement);
   const sc = new T.Scene(); sc.add(new T.HemisphereLight('#bff6ff', '#0b3a48', 1.9)); const sun = new T.DirectionalLight('#e8fbff', 1.6); sun.position.set(.4, 3, -1); sc.add(sun);
-  const cam = new T.PerspectiveCamera(58, innerWidth / innerHeight, .05, 50); cam.position.set(0, 1.25, -3.1); cam.lookAt(0, .55, 2.5); addEventListener('resize', () => { r.setSize(innerWidth, innerHeight); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); });
+  const cam = new T.PerspectiveCamera(58, innerWidth / innerHeight, .05, 50); cam.position.set(0, 1.55, -2.7); cam.lookAt(0, .1, 1.8); addEventListener('resize', () => { r.setSize(innerWidth, innerHeight); cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix(); });
   Object.assign(DIVE, { r, sc, cam }); }
 function diverOn(on) { diverRig(); DIVE.r.domElement.style.display = on ? '' : 'none'; if (on) { scene.remove(walker); DIVE.sc.add(walker); } else { DIVE.sc.remove(walker); scene.add(walker); walker.rotation.x = 0; } }
 function dive() { const A = abyss(); if (DIVE.on || !A || !A.ready) return false; let h = 2166136261; for (const c of `${Math.round(P.x / 400)},${Math.round(P.z / 400)}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619);   /* the same water, the same reef: chance by place */
@@ -565,9 +583,21 @@ function surfaceUp() { const A = abyss(); if (!DIVE.on) return; const q = A ? A.
   const dx = q.x - DIVE.start.x, dz = q.z - DIVE.start.z; let x = DIVE.at.x + dx, z = DIVE.at.z + dz; if (terrain(x, z) > -1) { x = DIVE.at.x; z = DIVE.at.z; }
   P.x = x; P.z = z; P.y = -1.05; P.vy = 0; P.swim = true; P.ground = false; P.yaw = q.yaw; camYaw = 0; splash(P.x, P.z, 1.2); }
 function diveTick(dt) { const A = abyss(); if (!A) return; const q = A.pose(); const sp = q.speed || 0; DIVE.kick = (DIVE.kick || 0) + ((sp > .4 ? 1.35 : .5) - (DIVE.kick || 0)) * Math.min(1, dt * 3);
-  walker.position.set(0, Math.sin(performance.now() / 700) * .06, 0); walker.rotation.set(DIVE.kick - q.pitch * .6, 0, Math.sin(performance.now() / 900) * .05, 'YXZ'); walker.visible = true;
-  if (motion) try { motion.setActorLocomotion('imani', { speedMps: Math.max(.5, sp * 1.6), carrying: false, blend: 1 }); motion.update(dt); } catch { } DIVE.r.render(DIVE.sc, DIVE.cam); if (q.atSurface && DIVE.lift > 0) surfaceUp(); DIVE.lift = Math.max(0, DIVE.lift - dt); }
+  walker.position.set(0, Math.sin(performance.now() / 700) * .06, 0); walker.rotation.set(1.42 - q.pitch * .5, 0, Math.sin(performance.now() / 900) * .06, 'YXZ'); walker.visible = true;   /* flat in the water, nose along the way she looks */
+  if (motion) try { motion.setActorLocomotion('imani', { speedMps: 0, carrying: false, blend: 1 }); motion.update(dt); } catch { } SWIM.pose(performance.now() / 1000, 1, sp > .4 ? 1.25 : .55); DIVE.r.render(DIVE.sc, DIVE.cam); if (q.atSurface && DIVE.lift > 0) surfaceUp(); DIVE.lift = Math.max(0, DIVE.lift - dt); }
 // ---------- the corner map: always there, heading-up, about 1.5 km around you, your way drawn on it; tap for the whole map ----------
+function paintMini(mg, R, sc, t) {   /* the world beneath the drop: heading-up, about 1.5 km around you, your way moving on it */
+    const img = tex.image, k = img.width / OW.width_m, yaw = P.yaw + camYaw; mg.setTransform(sc, 0, 0, sc, 0, 0); mg.fillStyle = '#0e3346'; mg.fillRect(0, 0, R * 2, R * 2);
+    mg.save(); mg.translate(R, R); mg.rotate(yaw + Math.PI); const M = 1500 / R, W2 = (x, z) => [(x - P.x) / M, (z - P.z) / M], span = 1700;
+    mg.drawImage(img, (P.x - span) * k, (P.z - span) * k, span * 2 * k, span * 2 * k, -span / M, -span / M, span * 2 / M, span * 2 / M);
+    mg.lineCap = 'round'; mg.strokeStyle = 'rgba(255,240,210,.6)'; mg.lineWidth = 1.4;
+    for (const r of OW.roads) { const p0 = r.pts[0], pn = r.pts[r.pts.length - 1]; if (Math.min(Math.hypot(p0[0] - P.x, p0[2] - P.z), Math.hypot(pn[0] - P.x, pn[2] - P.z)) > 9000) continue; mg.beginPath(); r.pts.forEach((q, i) => { const [x, y] = W2(q[0], q[2]); i ? mg.lineTo(x, y) : mg.moveTo(x, y); }); mg.stroke(); }
+    mg.strokeStyle = '#ffd27a'; mg.lineWidth = 3; for (const b of OW.bridges) { mg.beginPath(); b.pts.forEach((q, i) => { const [x, y] = W2(q[0], q[2]); i ? mg.lineTo(x, y) : mg.moveTo(x, y); }); mg.stroke(); }
+    for (const p of OW.places) { const [x, y] = W2(p.x, p.z); if (Math.hypot(x, y) > R + 4) continue; mg.fillStyle = '#fff'; mg.beginPath(); mg.arc(x, y, 2.6, 0, 6.283); mg.fill(); }
+    const w = window.__ow && window.__ow.way && window.__ow.way(); if (w) { mg.strokeStyle = '#5ff2ff'; mg.lineWidth = 2.6; mg.setLineDash([4, 4]); mg.lineDashOffset = -t * 14; mg.beginPath(); w.path.forEach((q, i) => { const [x, y] = W2(q[0], q[1]); i ? mg.lineTo(x, y) : mg.moveTo(x, y); }); mg.lineTo(...W2(w.x, w.z)); mg.stroke(); mg.setLineDash([]);
+      let [tx, ty] = W2(w.x, w.z); const d = Math.hypot(tx, ty); if (d > R - 9) { tx *= (R - 9) / d; ty *= (R - 9) / d; } mg.fillStyle = '#5ff2ff'; mg.beginPath(); mg.arc(tx, ty, 4.5 + Math.sin(t * 4) * 1, 0, 6.283); mg.fill(); }
+    mg.restore();
+  return w; }
 const CORNER = (() => { const R = 62, PAD = 14, S2 = (R + PAD) * 2, dpr = Math.min(2, devicePixelRatio || 1), c = document.createElement('canvas'); c.width = c.height = S2 * dpr; c.id = 'corner-map';
   Object.assign(c.style, { position: 'fixed', left: `calc(${10 - PAD}px + env(safe-area-inset-left))`, top: `calc(${10 - PAD}px + env(safe-area-inset-top))`, width: S2 + 'px', height: S2 + 'px', zIndex: 45, cursor: 'pointer', touchAction: 'none' });
   c.title = 'Map'; c.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); const s = window.__rainSurface; if (s && s.go) s.go('map'); else location.href = './index.html'; });
@@ -577,18 +607,8 @@ const CORNER = (() => { const R = 62, PAD = 14, S2 = (R + PAD) * 2, dpr = Math.m
   const edge = (a, t) => R * (1 + .035 * Math.sin(3 * a + t * .9) + .025 * Math.sin(5 * a - t * 1.3) + .018 * Math.sin(2 * a + 1.7 + t * .5));
   const blob = (t, k = 1) => { g.beginPath(); for (let i = 0; i <= 64; i++) { const a = i / 64 * 6.2832, r = edge(a, t) * k; const x = R + PAD + Math.cos(a) * r, y = R + PAD + Math.sin(a) * r; i ? g.lineTo(x, y) : g.moveTo(x, y); } g.closePath(); };
   let at = 0;
-  return { draw(now) { if (DIVE.on) { c.style.display = label.style.display = 'none'; return; } c.style.display = label.style.display = ''; if (now - at < 60) return; at = now; const t = now / 1000;
-    /* the world beneath: heading-up, about 1.5 km around you */
-    const img = tex.image, k = img.width / OW.width_m, yaw = P.yaw + camYaw; mg.setTransform(dpr, 0, 0, dpr, 0, 0); mg.fillStyle = '#0e3346'; mg.fillRect(0, 0, R * 2, R * 2);
-    mg.save(); mg.translate(R, R); mg.rotate(yaw + Math.PI); const W2 = (x, z) => [(x - P.x) / M, (z - P.z) / M], span = 1700;
-    mg.drawImage(img, (P.x - span) * k, (P.z - span) * k, span * 2 * k, span * 2 * k, -span / M, -span / M, span * 2 / M, span * 2 / M);
-    mg.lineCap = 'round'; mg.strokeStyle = 'rgba(255,240,210,.6)'; mg.lineWidth = 1.4;
-    for (const r of OW.roads) { const p0 = r.pts[0], pn = r.pts[r.pts.length - 1]; if (Math.min(Math.hypot(p0[0] - P.x, p0[2] - P.z), Math.hypot(pn[0] - P.x, pn[2] - P.z)) > 9000) continue; mg.beginPath(); r.pts.forEach((q, i) => { const [x, y] = W2(q[0], q[2]); i ? mg.lineTo(x, y) : mg.moveTo(x, y); }); mg.stroke(); }
-    mg.strokeStyle = '#ffd27a'; mg.lineWidth = 3; for (const b of OW.bridges) { mg.beginPath(); b.pts.forEach((q, i) => { const [x, y] = W2(q[0], q[2]); i ? mg.lineTo(x, y) : mg.moveTo(x, y); }); mg.stroke(); }
-    for (const p of OW.places) { const [x, y] = W2(p.x, p.z); if (Math.hypot(x, y) > R + 4) continue; mg.fillStyle = '#fff'; mg.beginPath(); mg.arc(x, y, 2.6, 0, 6.283); mg.fill(); }
-    const w = window.__ow && window.__ow.way && window.__ow.way(); if (w) { mg.strokeStyle = '#5ff2ff'; mg.lineWidth = 2.6; mg.setLineDash([4, 4]); mg.lineDashOffset = -t * 14; mg.beginPath(); w.path.forEach((q, i) => { const [x, y] = W2(q[0], q[1]); i ? mg.lineTo(x, y) : mg.moveTo(x, y); }); mg.lineTo(...W2(w.x, w.z)); mg.stroke(); mg.setLineDash([]);
-      let [tx, ty] = W2(w.x, w.z); const d = Math.hypot(tx, ty); if (d > R - 9) { tx *= (R - 9) / d; ty *= (R - 9) / d; } mg.fillStyle = '#5ff2ff'; mg.beginPath(); mg.arc(tx, ty, 4.5 + Math.sin(t * 4) * 1, 0, 6.283); mg.fill(); }
-    mg.restore();
+  return { draw(now) { if (DIVE.on || SURF) { c.style.display = label.style.display = 'none'; return; } c.style.display = label.style.display = ''; if (now - at < 60) return; at = now; const t = now / 1000;
+    const w = paintMini(mg, R, dpr, t);
     /* the drop: refracted (a lens, so the middle swells and the rim compresses), tinted like water, a meniscus, a glint */
     g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, S2, S2);
     g.save(); blob(t, 1.02); g.shadowColor = 'rgba(0,10,20,.55)'; g.shadowBlur = 12; g.shadowOffsetY = 4; g.fillStyle = 'rgba(8,40,55,.6)'; g.fill(); g.restore();
@@ -662,10 +682,14 @@ window.AhiyaBridge = { version: 1, get canvas() { const A = DIVE.on && abyss(); 
   menu() { const it = (id, label, on, run) => ({ id, group: 'Go', label, value: '', on, run });
     return [it('follow', AUTO.on ? 'stop following' : 'follow the way', AUTO.on, () => { AUTO.on = !AUTO.on; }), it('jump', 'jump', false, () => { OWS.jumpT = .5; }), it('run', 'run', OWS.fast, () => { OWS.fast = !OWS.fast; }), it('ride', 'donkey', P.mode === 'ride', () => setMode(P.mode === 'ride' ? 'walk' : 'ride')),
       it('glide', 'fly', P.mode === 'fly', () => setMode(P.mode === 'fly' ? 'walk' : 'fly')), it('drive', 'drive', P.mode === 'drive', () => setMode(P.mode === 'drive' ? 'walk' : 'drive')), it('boat', 'boat', P.mode === 'boat', () => setMode(P.mode === 'boat' ? 'walk' : 'boat'))]; },
-  chart: { draw() { }, uv() { return null; }, hit() { return null; } } };
+  chart: { draw() { }, uv() { return null; }, hit() { return null; },
+    mini(c) { const g = c.getContext('2d'), R = c.width / 2; paintMini(g, R, 1, performance.now() / 1000); g.setTransform(1, 0, 0, 1, 0, 0);   /* no text, no hard edge: it fades into the drop */
+      const cx = R, yaw = P.yaw + camYaw; g.fillStyle = '#fff'; g.strokeStyle = '#06202b'; g.lineWidth = R * .03; g.beginPath(); g.moveTo(cx, cx - R * .14); g.lineTo(cx + R * .1, cx + R * .1); g.lineTo(cx, cx + R * .05); g.lineTo(cx - R * .1, cx + R * .1); g.closePath(); g.fill(); g.stroke();
+      { const a = yaw + Math.PI, rr = R * .8; g.fillStyle = 'rgba(255,130,100,.9)'; g.beginPath(); g.arc(cx + Math.sin(a) * rr, cx - Math.cos(a) * rr, R * .06, 0, 6.283); g.fill(); }
+      g.globalCompositeOperation = 'destination-in'; const gr = g.createRadialGradient(cx, cx, R * .55, cx, cx, R); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height); g.globalCompositeOperation = 'source-over'; } } };
 if (SURF) { for (const id of ['modes', 'stick', 'enter', 'mini', 'where']) $(id).style.display = 'none';
-  const lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = '../night-post/rain/rain.css?v=1'; document.head.append(lk);
-  const en = document.createElement('script'); en.src = '../night-post/rain/engine.js?v=2'; en.onload = () => { const su = document.createElement('script'); su.src = '../night-post/rain/surface.js?v=ow5'; document.head.append(su); }; document.head.append(en); }
+  const lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = '../night-post/rain/rain.css?v=2'; document.head.append(lk);
+  const en = document.createElement('script'); en.src = '../night-post/rain/engine.js?v=2'; en.onload = () => { const su = document.createElement('script'); su.src = '../night-post/rain/surface.js?v=ow6'; document.head.append(su); }; document.head.append(en); }
 // wait for the ground under you before letting go
 /* settle: never start in the water, on a cliff, or facing nothing. Find the nearest dry and gentle ground, then face the nearest
    door, bridge or water and make it your way, so the corner map shows where to go from the first frame */

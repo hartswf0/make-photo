@@ -24,6 +24,9 @@ canvas{position:fixed;inset:0;display:block;touch-action:none}
 <script>
 (async () => {
 const cv = document.getElementById('c'), g = cv.getContext('2d'), card = document.getElementById('card'), QS = new URLSearchParams(location.search), EMBED = QS.has('embed');
+if (EMBED) {   /* on the glass: the world shows through the map, and the map has no hard edge */
+  document.documentElement.style.background = document.body.style.background = 'transparent';
+  Object.assign(cv.style, { opacity: '.84', webkitMaskImage: 'radial-gradient(ellipse 78% 72% at 50% 50%, #000 58%, rgba(0,0,0,.55) 82%, transparent 100%)', maskImage: 'radial-gradient(ellipse 78% 72% at 50% 50%, #000 58%, rgba(0,0,0,.55) 82%, transparent 100%)' }); }
 const A = await (await fetch('./archipelago.json?v=4')).json();
 const OWJ = await fetch('./ow/world.json?v=4').then(r => r.json()).catch(() => null), km = p => [p[0] / 1000, p[2] / 1000];
 const title = s => s.toLowerCase().replace(/(^|[\s–-])\p{L}/gu, c => c.toUpperCase()), ISL = id => A.islands.find(i => i.id === id);
@@ -108,6 +111,8 @@ function setCard(k, h, p, route, travel, enter) { card.querySelector('.k').textC
   r.style.display = ow ? '' : 'none'; r.onclick = ev => { ev.preventDefault(); ow.setTarget(route); if (ow.follow) ow.follow(true); card.classList.remove('on'); back(); };
   t.onclick = ow ? ev => { ev.preventDefault(); ow.goTo(travel.x, travel.z, travel.yaw, true); card.classList.remove('on'); back(); } : null; t.href = ow ? '#' : `./overworld.html?mx=${travel.x.toFixed(0)}&mz=${travel.z.toFixed(0)}`; t.target = EMBED ? '_top' : '';
   e.style.display = enter ? '' : 'none'; if (enter) { e.href = enter; e.target = EMBED ? '_top' : ''; } card.classList.add('on'); }
+let LANDC = null; function landAt(kx, ky) { if (!img.complete || !img.naturalWidth) return true; if (!LANDC) { LANDC = document.createElement('canvas'); LANDC.width = img.naturalWidth; LANDC.height = img.naturalHeight; LANDC.getContext('2d', { willReadFrequently: true }).drawImage(img, 0, 0); }
+  const px = Math.round(kx / A.width_km * LANDC.width), py = Math.round(ky / A.height_km * LANDC.height), d = LANDC.getContext('2d').getImageData(Math.max(0, px), Math.max(0, py), 1, 1).data; return !(d[2] > d[0] + 35 && d[2] > d[1] - 10); }   /* the painted map's own colour: sea is blue */
 const away = at => ME ? ` · ${Math.hypot(at[0] - ME[0], at[1] - ME[1]).toFixed(1)} km from you` : '';
 function tap(x, y) { let best = null, bd = 26;
   for (const h of HEADS) if (h.hit) { const d = Math.hypot(x - h.hit[0], y - h.hit[1]); if (d < 22 && d < bd) { bd = d; best = h; } }
@@ -115,11 +120,15 @@ function tap(x, y) { let best = null, bd = 26;
     setCard(`${h.kind} · ${(h.len / 1000).toFixed(1)} km${away(h.at)}`, h.label, h.kind === 'bridge' ? `Drive, walk or ride across from ${title(ISL(h.from).name)}.` : `Walk to the end of the pier and sail, or take the boat tied up there.`,
       { x: m[0], z: m[1], kind: h.kind, label: h.label }, { x: m[0] - Math.sin(a) * 40, z: m[1] - Math.cos(a) * 40, yaw: a }, null); return; }
   bd = 26;
-  for (const il of A.islands) for (const p of il.places) if (p.hit && V.s > 30) { const d = Math.hypot(x - p.hit[0], y - p.hit[1]); if (d < bd) { bd = d; best = { il, p }; } }
+  bd = 46; for (const il of A.islands) for (const p of il.places) if (p.hit && V.s > 30) { const d = Math.hypot(x - p.hit[0], y - p.hit[1]); if (d < bd) { bd = d; best = { il, p }; } }   /* a fingertip, not a pixel */
   if (!best) for (const il of A.islands) { const c = P(il.center[0], il.center[1]), hw = il.size[0] * V.s / 2, hh = il.size[1] * V.s / 2; if (hw < W * .3 && Math.abs(x - c[0]) < Math.max(hw, 18) && Math.abs(y - c[1]) < Math.max(hh, 18)) { best = { il }; break; } }
   if (!best) { const kx = V.x + (x - W / 2) / V.s, ky = V.y + (y - H / 2) / V.s; if (kx < 0 || ky < 0 || kx > A.width_km || ky > A.height_km) { card.classList.remove('on'); return; }   /* any spot on the map: go there */
+    /* never into the sea by accident: a tap on blank map goes to the nearest place, and says which and how far */
+    let np = null, nd = 1e9; for (const i2 of A.islands) for (const p2 of i2.places) { const d = Math.hypot(p2.at[0] - kx, p2.at[1] - ky); if (d < nd) { nd = d; np = { il: i2, p: p2 }; } }
+    const wet = !landAt(kx, ky) || nd > 2.5;
+    if (np && (wet || nd < .9)) { const m = [np.p.at[0] * 1000, np.p.at[1] * 1000]; setCard(`${title(np.il.name)} · ${np.p.world}${away(np.p.at)}`, np.p.name, (wet ? 'The nearest place to where you touched. ' : '') + np.il.note, { x: m[0], z: m[1], kind: 'door', label: np.p.name }, { x: m[0], z: m[1] }, np.p.entry || np.il.entry); return; }
     const il = A.islands.find(i => Math.abs(kx - i.center[0]) < i.size[0] / 2 && Math.abs(ky - i.center[1]) < i.size[1] / 2), m = [kx * 1000, ky * 1000];
-    setCard(`${kx.toFixed(1)}, ${ky.toFixed(1)} km${away([kx, ky])}`, il ? `Here on ${title(il.name)}` : 'Here, on the open sea', il ? il.note : 'You arrive in the water; swim, or call the boat from the menu.', { x: m[0], z: m[1], kind: 'door', label: il ? title(il.name) : 'the sea' }, { x: m[0], z: m[1] }, null); return; }
+    setCard(`${kx.toFixed(1)}, ${ky.toFixed(1)} km${away([kx, ky])}`, `Here on ${title(il.name)}`, `${np ? `Near ${np.p.name}, ${nd.toFixed(1)} km. ` : ''}${il.note}`, { x: m[0], z: m[1], kind: 'door', label: title(il.name) }, { x: m[0], z: m[1] }, null); return; }
   const { il, p } = best, at = p ? p.at : (il.places[0] ? il.places[0].at : il.center), m = [at[0] * 1000, at[1] * 1000];
   setCard(p ? `${il.name} · ${p.world}${away(at)}` : il.level, p ? p.name : il.name, il.note, { x: m[0], z: m[1], kind: 'door', label: p ? p.name : title(il.name) }, { x: m[0], z: m[1] }, (p && p.entry) || il.entry);
   if (!p) { follow = false; meBtn(); V.x = il.center[0]; V.y = il.center[1]; V.s = Math.min(W / il.size[0], (H - 170) / il.size[1]) * .85; draw(); } }

@@ -507,3 +507,4 @@
 #rw #drops .liquid.action-drop>.drop-label,#rw #drops .liquid.alert>.drop-label{opacity:1!important;transform:none!important;font-size:21px!important;color:#b8fff4}
 #rw #drops .liquid.alert>.drop-label{color:#ffe2b0!important;font-size:24px!important}
 #rw #menu-ink text{font:italic 21px Georgia,'Iowan Old Style',serif!important;fill:#f2f8f2;stroke:#0b1c22;stroke-width:3px;paint-order:stroke}
+#rw .map-mini{width:128px!important;min-height:128px}#rw .map-mini .drop-label,#rw .map-mini .drop-note,#rw .map-mini .drop-value,#rw .map-mini .drop-kicker{display:none}

@@ -152,7 +152,7 @@ function base() {
 // ONE MAP. Every world in make-photo lives on one liquid atlas (../atlas/). Here it opens at the carrier's real place:
 // Ahiya is the Simien hillside about the Basalt Pump; the western basin is Grand Teton metres about the survey origin.
 let atlasFrame = null, openAtlasMake = null;
-openAtlasMake = () => { atlasFrame = document.createElement('iframe'); atlasFrame.id = 'rw-atlas'; atlasFrame.title = 'World atlas'; Object.assign(atlasFrame.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', border: '0', zIndex: '30', pointerEvents: 'auto', background: '#0a151d' }); world.append(atlasFrame);
+openAtlasMake = () => { atlasFrame = document.createElement('iframe'); atlasFrame.id = 'rw-atlas'; atlasFrame.title = 'World atlas'; Object.assign(atlasFrame.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', border: '0', zIndex: '30', pointerEvents: 'auto', background: 'transparent' }); atlasFrame.allowTransparency = true; world.append(atlasFrame);
   addEventListener('message', e => { if (e.data === 'atlas:back') { ui.scene = 'world'; render(); } }); };
 function myLatLon() { const p = S.pos || { x: 0, z: 0 }; if (p.x < -1180 && p.z > 200) { const dx = p.x + 1460, dz = p.z - 760, a = 10 * Math.PI / 180, ex = dx * Math.cos(a) - dz * Math.sin(a), nz = dx * Math.sin(a) + dz * Math.cos(a), lat = 13.22461 - nz / 110574; return [lat, 38.10454 + ex / (111320 * Math.cos(lat * Math.PI / 180))]; }
   return [43.7541667 - p.z / 110574, -110.6235 + p.x / (111320 * Math.cos(43.7541667 * Math.PI / 180))]; }
@@ -177,6 +177,7 @@ const BUILD = {
     mixSpec();
     exitDrop();
     if ((!open || open === 'primary') && !auto && !(S.water.donkeyDown || S.water.donkey < .3)) liveDrop();   // while something needs you, its act is the only act
+    if (B.chart && B.chart.mini && !open) button('mini', 'a', '', '', () => { ui.mapSel = null; ui.scene = 'map'; render(); }, { className: 'map-mini', viscosity: 3.4, home: [.17, .2] });   // the map is a drop like the others: it carries the way, merges, and opens when pulled
     if (!open || open === 'can') info('can', 'water', '', `${Math.round(S.water.liters)} L`, '', { fill: S.water.liters / 20, className: 'gauge', viscosity: 5, home: [.1, .075] });
     const d = T.donkey, thirsty = S.water.donkeyDown || S.water.donkey < .3, al = !open && !auto && !S.busy ? alertNow() : null;
     if (al) { const hm = RAIL[0];
@@ -640,7 +641,7 @@ function subjectOf(id) {                                              // -> { x,
   const next = on(T.next) ? { x: T.next.x, y: T.next.y, r: clamp(T.next.s * 7, 22, 120) } : null, source = on(T.source) ? { x: T.source.x, y: T.source.y, r: clamp(T.source.s * 1.1, 14, 130) } : null, wagon = on(T.wagon) ? { x: T.wagon.x, y: T.wagon.y, r: clamp(T.wagon.s * 1.7, 16, 160) } : null;
   switch (k) {
     case 'source': case 'pump': case 'fill': return source || can; case 'thirst': return donkey; case 'empty': case 'full': return can; case 'exit': case 'moment': case 'me': return self; case 'steer': return null; case 'voice-current': case 'share': return face || self; case 'filter': case 'stop': case 'tilt': return eye;
-    case 'go': case 'next': case 'route': return next; case 'map': return { img: 'map' }; case 'jump': case 'run': return feet; case 'ride': case 'donkey': return donkey; case 'glide': case 'weather': case 'more': case 'hold': return sky;
+    case 'go': case 'next': case 'route': return next; case 'map': case 'mini': return { img: 'map' }; case 'jump': case 'run': return feet; case 'ride': case 'donkey': return donkey; case 'glide': case 'weather': case 'more': case 'hold': return sky;
     case 'drive': return wagon; case 'water': case 'can': case 'squirt': case 'throw': return can; case 'camera': case 'lens': case 'expose': case 'focus': return eye; case 'cam': case 'all': return { x: W * .5, y: H * .5, r: Math.min(W, H) * .48 };
     case 'rig': case 'sync': case 'plates': return eye; case 'talk': case 'say': case 'people': case 'memory': case 'lang': case 'voice': return face || self; case 'rest': case 'here': return self; case 'sound': case 'tape': case 'radio': return face || sky; default: return null;
   }
@@ -660,7 +661,7 @@ function toneOf(id) { const sp = refs.get(id)?._spec, c = (sp && sp.className) |
 const HAS_MORE = /^menu-(go|water|talk|more|try)$|^menu-[a-z]+-(map|can|donkey|lens|rig|people|sound|weather|all)$/;
 function picTick(now) {
   const W = world.clientWidth, H = world.clientHeight, dpr = Math.min(2, devicePixelRatio || 1), cv = PIC.cv; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => /^keep-/.test(b.id));   // a drop is a word and a colour; only a kept moment holds a picture
+  const g = cv.getContext('2d'), bodies = (field?.getBodies() || []).filter(b => /^keep-|^mini$/.test(b.id));   // a drop is a word and a colour; only a kept moment holds a picture
   if (S.ready && !ui.past && now - (PIC.pre || 0) > 900) { PIC.pre = now;      // keep a view of every subject while it is in frame, so its drop can show it later
     const W2 = Math.round(W * .6), H2 = Math.round(H * .6); if (PIC.snap.width !== W2 || PIC.snap.height !== H2) { PIC.snap.width = W2; PIC.snap.height = H2; } let shot = false;
     for (const id of PRE) { if (bodies.some(b => b.id === id)) continue; const src = subjectOf(id); if (!src || src.img) continue; if (!shot) { try { PIC.snap.getContext('2d').drawImage(B.canvas, 0, 0, W2, H2); } catch { } shot = true; }
@@ -670,7 +671,7 @@ function picTick(now) {
     try { PIC.snap.getContext('2d').drawImage(B.canvas, 0, 0, sw, sh); } catch { }
     for (const b of bodies) { const src = subjectOf(b.id); if (!src) continue; let th = PIC.thumbs.get(b.id); if (!th) { th = document.createElement('canvas'); th.width = th.height = PIC.TH; PIC.thumbs.set(b.id, th); }
       const tg = th.getContext('2d'), k = PIC.snap.width / W;
-      if (src.img === 'map') { const im = drawMap.c; if (im) tg.drawImage(im, 0, 0, im.width, im.height, 0, 0, PIC.TH, PIC.TH); th._ok = true; continue; }
+      if (src.img === 'map') { if (b.id === 'mini') { const c = drawMap.m || (drawMap.m = document.createElement('canvas')); c.width = c.height = PIC.TH * 2; try { B.chart.mini(c); } catch { } tg.clearRect(0, 0, PIC.TH, PIC.TH); tg.drawImage(c, 0, 0, c.width, c.height, 0, 0, PIC.TH, PIC.TH); th._ok = true; continue; } const im = drawMap.c; if (im) tg.drawImage(im, 0, 0, im.width, im.height, 0, 0, PIC.TH, PIC.TH); th._ok = true; continue; }
       tg.drawImage(PIC.snap, (src.x - src.r) * k, (src.y - src.r) * k, src.r * 2 * k, src.r * 2 * k, 0, 0, PIC.TH, PIC.TH); th._ok = true; } }
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H); PIC.dirty = true; PIC.cv.style.opacity = String(1 - .85 * motion);
   for (const b of bodies) { const ck = clipFor(b.id); if (ck) { const c = CLIP.idx[ck], im = CLIP.img[ck], el = refs.get(b.id) || $(b.id), R = clamp(Math.min(b.rx || 34, b.ry || 30) * .78, 22, 44), menu = b.id.startsWith('menu-'), x = menu ? b.x + 38 : b.x, y = b.y - (menu ? 0 : 6);
@@ -678,7 +679,7 @@ function picTick(now) {
       g.save(); g.beginPath(); g.arc(x, y, R, 0, 7); g.clip(); g.drawImage(im, (el ? el._clipF : (c.rest ?? c.n - 1)) * c.size, 0, c.size, c.size, x - R, y - R, R * 2, R * 2);
       const sh = g.createRadialGradient(x - R * .35, y - R * .42, R * .1, x, y, R * 1.05); sh.addColorStop(0, 'rgba(255,255,255,.28)'); sh.addColorStop(.3, 'rgba(255,255,255,0)'); sh.addColorStop(.82, 'rgba(4,20,28,0)'); sh.addColorStop(1, 'rgba(4,20,28,.55)'); g.fillStyle = sh; g.fillRect(x - R, y - R, R * 2, R * 2); g.restore();
       { const tn = toneOf(b.id); g.shadowColor = `rgba(${tn},.8)`; g.shadowBlur = 12; g.lineWidth = 2.6; g.strokeStyle = `rgba(${tn},.5)`; g.beginPath(); g.arc(x, y, R, 0, 7); g.stroke(); g.shadowBlur = 0; } continue; }
-    const th = PIC.thumbs.get(b.id), has = th && th._ok; if (!has && !/^menu-|^alert$/.test(b.id)) continue; const menu = b.id.startsWith('menu-'), R = menu ? 27 : clamp(Math.min(b.rx || 30, b.ry || 26) * .78, 20, 42), x = menu ? b.x + 34 : b.x, y = b.y + (menu ? 0 : -1), wob = Math.sin(now / 900 + x) * 1.2;
+    const th = PIC.thumbs.get(b.id), has = th && th._ok; if (!has && !/^menu-|^alert$/.test(b.id)) continue; const menu = b.id.startsWith('menu-'), R = menu ? 27 : b.id === 'mini' ? clamp(Math.min(W, H) * .15, 46, 70) : clamp(Math.min(b.rx || 30, b.ry || 26) * .78, 20, 42), x = menu ? b.x + 34 : b.x, y = b.y + (menu ? 0 : -1), wob = Math.sin(now / 900 + x) * 1.2;
     g.save(); g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.clip(); g.globalAlpha = .94; if (has) g.drawImage(th, x - R * 1.12, y - R * 1.12, R * 2.24, R * 2.24); else { g.fillStyle = 'rgba(150,225,235,.10)'; g.fillRect(x - R * 1.2, y - R * 1.2, R * 2.4, R * 2.4); }
     const sh = g.createRadialGradient(x - R * .35, y - R * .42, R * .1, x, y, R * 1.1); sh.addColorStop(0, 'rgba(255,255,255,.34)'); sh.addColorStop(.28, 'rgba(255,255,255,0)'); sh.addColorStop(.78, 'rgba(4,20,28,0)'); sh.addColorStop(1, 'rgba(4,20,28,.62)'); g.globalAlpha = 1; g.fillStyle = sh; g.fillRect(x - R * 1.2, y - R * 1.2, R * 2.4, R * 2.4); g.restore();
     { const tn = toneOf(b.id); g.shadowColor = `rgba(${tn},.75)`; g.shadowBlur = 11; g.lineWidth = 2.4; g.strokeStyle = `rgba(${tn},.42)`; g.beginPath(); g.ellipse(x, y, R + wob * .4, R * 1.05 - wob * .4, 0, 0, 7); g.stroke(); g.shadowBlur = 0; }
