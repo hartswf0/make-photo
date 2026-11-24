@@ -168,3 +168,36 @@ The collar arcs are wide curved targets you can grab anywhere, and you keep cont
 *Views (top left):* **split** (output beside the dials) · **rack** (small output, big dials) · **focus** (one big dial plus a strip of all nodes; tap a node in the strip to bring it up) · **out** (big output plus a strip; tap = power, slide up or down = level). Keys 1–4 switch views; [ and ] step through the poems; space plays.
 
 *Cut:* free positioning, meshing by touch, petals, the clear-view tuck.
+
+## Revision 6 · the field
+
+*Obstruction in revision 5:* the rack was tidy but dead. Mixing meant reading dials, not moving things. Each dial crowded four sliders, a waveform and a hub into one circle. Starts, stops and scrubs were cuts, not transitions.
+
+*New way:* **the picture is the mixer.** Each source is a small mass placed on the output. Every pixel takes a share from each source by distance:
+
+```
+f_i(p) = m_i / (1 + d(p, x_i)² / σ_i²)²      σ_i = 0.08 + 0.55 · reach_i      (d with 16:9 aspect)
+w_i(p) = f_i^γ / (VOID^γ + Σ_j f_j^γ)        computed on an 80 × 45 grid, upscaled as soft masks
+```
+
+The `VOID` term stands for black and silence, so a light or distant mass fades instead of being stretched to fill the frame. The **ear** is a second point on the field. The sound mix is the same field read at the ear (`earW`, equal-power gains). Touching empty space sends the ear there.
+
+| Field | γ (picture / sound) | Character |
+|---|---|---|
+| gravity | 1.6 / 1.6 | soft pools that melt into each other |
+| cells | 12 / 5 | sharp territories (near-Voronoi); edges traced by marching squares |
+| veil | 1.6 / 1.6 | the whole frame mixes by the ear (a 2-D crossfader) |
+| tangle | unnormalised | territories overlap and interfere (alternate screen / difference) |
+
+*Feel:*
+- **Bodies.** Nodes and the ear follow the finger on a stiff spring. A flick makes them glide; a finger that stops before release leaves no fling. They bounce at the edges and keep a minimum distance from each other, so they never overlap.
+- **Smoothing.** Mass, reach and the dial pointers are smoothed toward their targets, so every change is a transition.
+- **Motor.** Play and stop are tape-like: speed eases 0 → 1 (about 0.3 s) and back, with pitch free during the ramp. Linked sources share the motor's speed.
+- **Platter.** The hand sets a target time and the platter follows on a spring (`scrubTick`). Gearing depends on radius: at the rim one turn is 8 s, near the centre down to 2 s. Forward motion is heard at hand speed. On release a playing platter spins back to 1×; a stopped one coasts and slows.
+- **Dials.** Each dial is one clean knob with 270° of travel. Turn around it; the farther out the finger, the finer the turn (leverage). Or slide up and down from its centre. A tick every 5 %, a detent at tone 0, double tap to reset. Dials: mass, reach, tone, colour.
+
+*Invariants:* nothing in the deck covers the output (`checkLayout`). The overlay (dots, ear, territory edges) is a separate canvas and is never recorded; it fades to 28 % after 2.5 s idle, and the eye hides it entirely. At most 8 nodes, a fixed grid, and bounded loops over nodes × cells (≤ 8 × 3600).
+
+*Edit list:* picture events give each source's share of the frame; sound events give its share at the ear; the field mode is noted.
+
+*Cut:* the rack of dials, collar sliders, blend modes per node (replaced by the field modes), views split/rack/focus (replaced by deck / big picture).
