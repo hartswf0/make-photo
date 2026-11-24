@@ -1,0 +1,309 @@
+{
+ "source": "MONOLITH-3.html",
+ "frame": {
+  "units": "metres",
+  "origin_lonlat": [
+   -110.6235,
+   43.7541667
+  ],
+  "base_elev_m": 1950,
+  "note": "local x east, z south; a bounds quad [west, east, south, north] spans x west..east and z -north..-south"
+ },
+ "packets": [
+  {
+   "id": "near-height",
+   "kind": "heightfield",
+   "file": "./packets/near-height.png",
+   "bytes": 237605,
+   "bounds": [
+    -2750,
+    1040,
+    -2850,
+    1180
+   ],
+   "shape": [
+    641,
+    681
+   ],
+   "decode": "elev_m = (R*256+G)*0.1 + B*0.02 - 120 + base_elev_m"
+  },
+  {
+   "id": "far-height",
+   "kind": "heightfield",
+   "file": "./packets/far-height.png",
+   "bytes": 1193266,
+   "bounds": [
+    -21600,
+    3000,
+    -14300,
+    24400
+   ],
+   "shape": [
+    801,
+    1281
+   ],
+   "decode": "elev_m = (R*256+G)*0.1 + B*0.02 - 120 + base_elev_m"
+  },
+  {
+   "id": "detail-height",
+   "kind": "heightfield",
+   "file": "./packets/detail-height.png",
+   "bytes": 17864,
+   "bounds": [
+    -250,
+    150,
+    -180,
+    220
+   ],
+   "shape": [
+    201,
+    201
+   ],
+   "decode": "elev_m = (R*256+G)*0.1 + B*0.02 - 120 + base_elev_m"
+  },
+  {
+   "id": "reach-height",
+   "kind": "heightfield",
+   "file": "./packets/reach-height.png",
+   "bytes": 270607,
+   "bounds": [
+    -1719.59375,
+    -245.046875,
+    -283.83823529411757,
+    326.5882352941177
+   ],
+   "decode": "elev_m = (R*256+G)*0.1 + B*0.02 - 120 + base_elev_m"
+  },
+  {
+   "id": "near-surface",
+   "kind": "drape",
+   "file": "./packets/near-surface.webp",
+   "bytes": 863448,
+   "bounds": [
+    -2750,
+    1040,
+    -2850,
+    1180
+   ],
+   "shape": [
+    1400,
+    1488
+   ]
+  },
+  {
+   "id": "far-surface",
+   "kind": "drape",
+   "file": "./packets/far-surface.webp",
+   "bytes": 984322,
+   "bounds": [
+    -21600,
+    3000,
+    -14300,
+    24400
+   ],
+   "shape": [
+    1136,
+    1728
+   ]
+  },
+  {
+   "id": "detail-surface",
+   "kind": "drape",
+   "file": "./packets/detail-surface.webp",
+   "bytes": 55868,
+   "bounds": [
+    -250,
+    150,
+    -180,
+    220
+   ],
+   "shape": [
+    430,
+    430
+   ]
+  },
+  {
+   "id": "sky-plate",
+   "kind": "sky",
+   "file": "./packets/sky-plate.webp",
+   "bytes": 66070
+  },
+  {
+   "id": "flow",
+   "kind": "water",
+   "file": "./packets/flow.webp",
+   "bytes": 264276
+  },
+  {
+   "id": "gravel",
+   "kind": "texture",
+   "file": "./packets/gravel.png",
+   "bytes": 23422
+  },
+  {
+   "id": "cobbles",
+   "kind": "texture",
+   "file": "./packets/cobbles.webp",
+   "bytes": 1228916
+  },
+  {
+   "id": "mountain-relief",
+   "kind": "texture",
+   "file": "./packets/mountain-relief.webp",
+   "bytes": 430220,
+   "bounds": [
+    -17100,
+    -10150,
+    -5100,
+    11700
+   ]
+  },
+  {
+   "id": "canopy",
+   "kind": "texture",
+   "file": "./packets/canopy.webp",
+   "bytes": 459652
+  },
+  {
+   "id": "geology",
+   "kind": "texture",
+   "file": "./packets/geology.webp",
+   "bytes": 385270
+  },
+  {
+   "id": "rock",
+   "kind": "texture",
+   "file": "./packets/rock.webp",
+   "bytes": 989824
+  },
+  {
+   "id": "ground",
+   "kind": "texture",
+   "file": "./packets/ground.webp",
+   "bytes": 1311610
+  },
+  {
+   "id": "scree",
+   "kind": "texture",
+   "file": "./packets/scree.webp",
+   "bytes": 967620
+  },
+  {
+   "id": "crowns",
+   "kind": "texture",
+   "file": "./packets/crowns.webp",
+   "bytes": 501744
+  },
+  {
+   "id": "flow-coordinates",
+   "kind": "water",
+   "file": "./packets/flow-coordinates.bin",
+   "bytes": 938051
+  },
+  {
+   "id": "river-level",
+   "kind": "water",
+   "file": "./packets/river-level.f32",
+   "bytes": 251604,
+   "layout": "float32 water level per cell",
+   "grid": [
+    241,
+    261
+   ],
+   "bounds": [
+    -3120.0,
+    120.0,
+    -2010.0,
+    1490.0
+   ],
+   "source": "USGS NHD"
+  },
+  {
+   "id": "crown-positions",
+   "kind": "canopy",
+   "file": "./packets/crown-positions.f32",
+   "bytes": 188560,
+   "layout": "x,y,z,height,cover per crown (float32)",
+   "count": 9428,
+   "bounds": [
+    -2700.0,
+    150.0,
+    -1700.0,
+    1950.0
+   ],
+   "source": "USGS 3DEP WY GrandTetonNP 1 D22"
+  },
+  {
+   "id": "terrain-data",
+   "kind": "frame",
+   "file": "./packets/terrain-data.json",
+   "bytes": 1186
+  },
+  {
+   "id": "half-survey",
+   "kind": "heightfield",
+   "file": "./packets/half-survey.json",
+   "bytes": 1406763
+  },
+  {
+   "id": "half-ground",
+   "kind": "texture",
+   "file": "./packets/half-ground.webp",
+   "bytes": 900290
+  },
+  {
+   "id": "half-relief",
+   "kind": "texture",
+   "file": "./packets/half-relief.webp",
+   "bytes": 155424
+  },
+  {
+   "id": "terrain-still",
+   "kind": "reference",
+   "file": "./packets/terrain-still.webp",
+   "bytes": 550034
+  },
+  {
+   "id": "prop-rock",
+   "kind": "texture",
+   "file": "./packets/prop-rock.webp",
+   "bytes": 136646
+  },
+  {
+   "id": "prop-ground",
+   "kind": "texture",
+   "file": "./packets/prop-ground.webp",
+   "bytes": 144430
+  },
+  {
+   "id": "coat-side",
+   "kind": "body-texture",
+   "file": "./packets/coat-side.jpg",
+   "bytes": 60162
+  },
+  {
+   "id": "coat-top",
+   "kind": "body-texture",
+   "file": "./packets/coat-top.jpg",
+   "bytes": 59011
+  },
+  {
+   "id": "coat-front",
+   "kind": "body-texture",
+   "file": "./packets/coat-front.jpg",
+   "bytes": 39070
+  },
+  {
+   "id": "coat-rear",
+   "kind": "body-texture",
+   "file": "./packets/coat-rear.jpg",
+   "bytes": 39783
+  },
+  {
+   "id": "coat-head",
+   "kind": "body-texture",
+   "file": "./packets/coat-head.jpg",
+   "bytes": 45919
+  }
+ ]
+}

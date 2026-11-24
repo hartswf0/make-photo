@@ -81,7 +81,7 @@
     // ground@1: the can is laid out in metres from its island's corner, at true scale, on the trough's ground; it returns blockers, rooms and landmarks
     async 'ground@1'(ctx, isl, can) { const ox = isl.center[0] - isl.size[0] / 2, oz = isl.center[1] - isl.size[1] / 2, Wp = p => [p[0] + ox, p[1] + oz];
       await ctx.ensureGround(ox, oz, ox + isl.size[0], oz + isl.size[1]);
-      const live = await window[can.entry.global][can.entry.call](ctx.T, { H: (x, z) => ctx.groundAt(ox + x, oz + z), sunDir: ctx.sunDir, maxAnisotropy: ctx.maxAnisotropy }); live.root.position.set(ox, 0, oz); ctx.scene.add(live.root); if (ctx.shade) ctx.shade(live.root); const lampOff = live.lamps && ctx.addLamps ? ctx.addLamps(live.lamps.map(l => ({ ...l, x: l.x + ox, z: l.z + oz }))) : null;
+      const live = await window[can.entry.global][can.entry.call](ctx.T, { H: (x, z) => ctx.groundAt(ox + x, oz + z), low: ctx.lowAt ? (x, z) => ctx.lowAt(ox + x, oz + z) : null, sunDir: ctx.sunDir, maxAnisotropy: ctx.maxAnisotropy, origin: [ox, oz], datum: isl.datum }); live.root.position.set(ox, 0, oz); ctx.scene.add(live.root); if (ctx.shade) ctx.shade(live.root); const farOff = live.farRect && ctx.holeGround ? ctx.holeGround([live.farRect[0] + ox, live.farRect[1] + oz, live.farRect[2] + ox, live.farRect[3] + oz]) : null; const hOff = live.heights && ctx.addHeights ? ctx.addHeights([live.heights.rect[0] + ox, live.heights.rect[1] + oz, live.heights.rect[2] + ox, live.heights.rect[3] + oz], (x, z) => live.heights.at(x - ox, z - oz)) : null; const holeOff = live.floraHole && ctx.addFloraHole ? ctx.addFloraHole([live.floraHole[0] + ox, live.floraHole[1] + oz, live.floraHole[2] + ox, live.floraHole[3] + oz]) : null; const lampOff = live.lamps && ctx.addLamps ? ctx.addLamps(live.lamps.map(l => ({ ...l, x: l.x + ox, z: l.z + oz }))) : null;
       const gm = live.materials && live.materials.ground, gOff = gm && ctx.setGround ? ctx.setGround(isl.id, { material: gm.material, uv: gm.uv && ((x, z, y) => gm.uv(x - ox, z - oz, y)), color: gm.color && ((x, z, y) => gm.color(x - ox, z - oz, y)) }) : null;
       const regs = []; if (ctx.addBlockers) { if (live.blockers) regs.push(ctx.addBlockers(live.blockers.map(pl => pl.map(Wp)))); if (live.walls) regs.push(ctx.addBlockers(live.walls.map(pl => pl.map(Wp)))); }
       let doorOff = null; const door = () => { if (!live.door || !ctx.addBlockers) return; if (!live.doorOpen && !doorOff) doorOff = ctx.addBlockers([live.door.map(Wp)]); if (live.doorOpen && doorOff) { doorOff(); doorOff = null; } }; door();
@@ -90,7 +90,7 @@
       return { marks, live,
         apply(v) { if ('door' in v) { live.setDoor(v.door === 'open'); door(); } if (v.flood) live.setFlood(true); },
         toggle() { live.setDoor(!live.doorOpen); door(); return live.doorOpen; },
-        update(dt, t) { live.update(dt, t); }, dispose() { if (gOff) gOff(); if (lampOff) lampOff(); for (const o of regs) o(); if (doorOff) doorOff(); ctx.scene.remove(live.root); live.dispose(); } }; },
+        update(dt, t) { live.update(dt, t); }, dispose() { if (gOff) gOff(); if (lampOff) lampOff(); if (holeOff) holeOff(); if (hOff) hOff(); if (farOff) farOff(); for (const o of regs) o(); if (doorOff) doorOff(); ctx.scene.remove(live.root); live.dispose(); } }; },
     // terrain@1: the can builds on the trough's ground at true scale. Its own coordinates were squeezed into frame.span; landmarks spread back out.
     async 'terrain@1'(ctx, isl, can, site) {
       const man = await json(abs(can.url, can.frame.manifest)), r = man.regions[site.region]; if (!r) throw new Error('no region ' + site.region);
@@ -157,7 +157,7 @@
     create(ctx) { const live = new Map(), busy = new Set(), failed = new Map(), SITES = new Map(); let shelf = null;   // a pour that fails waits 30 s before trying again
       const ready = json(ctx.shelf || './cans.json').then(async s => { await Promise.all((s.kits || []).map(u => loadKit(abs(location.href, u)).catch(e => console.warn('kit', u, e))));
         shelf = await Promise.all(s.cans.map(async u => ({ ...(await json(abs(location.href, u))), url: abs(location.href, u) })));
-        for (const can of shelf) for (const site of can.sites || []) SITES.set(site.island, { can, site }); if (ctx.onShelf) ctx.onShelf([...SITES.keys()]); }).catch(e => console.warn('shelf', e));
+        for (const can of shelf) for (const site of can.sites || []) SITES.set(site.island, { can, site }); if (ctx.onShelf) ctx.onShelf([...SITES.entries()].map(([id, x]) => ({ id, keep: !!x.can.keepTroughFlora }))); }).catch(e => console.warn('shelf', e));
       const edge = (isl, x, z) => Math.hypot(Math.max(0, Math.abs(x - isl.center[0]) - isl.size[0] / 2), Math.max(0, Math.abs(z - isl.center[1]) - isl.size[1] / 2));
       return { live, ready, sites: SITES,
         tick(x, z) { if (!shelf) return; for (const isl of ctx.islands) { const s = SITES.get(isl.id); if (!s) continue; const d = edge(isl, x, z), B = s.can.bands || { scent: 7000, pour: 2600, drain: 5200 };

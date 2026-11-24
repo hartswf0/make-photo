@@ -361,3 +361,45 @@ Gheralta's distance rose for a reason the metric can't separate. The pack's true
 - MONOLITH's planar reflections;
 - Donkey Water's cyan lamps (it is not a can yet);
 - the level's own street-lamp placements in the city (lamp posts here are derived from the street data).
+
+---
+
+## 8. Carrying all of a level's details: Grand Teton
+
+**Why Teton looked bad.** The archipelago build took only MONOLITH-3's far heightmap, resampled to 20 m. Everything else that makes Teton itself stayed inside `MONOLITH-3.html` as about 19 MB of `<script type="text/plain">` blobs addressed by DOM id:
+- the finer near and detail heights;
+- the NAIP aerial imagery;
+- the 9,428 surveyed tree crowns;
+- the Snake River;
+- the crown atlas;
+- the mountain relief and the sky.
+
+**Extraction.** `monolith3/extract_packets.py` pours every blob out into a typed packet file, 33 packets and 15 MB in `monolith3/packets/`. `monolith3/packets.json` records each packet's kind, frame (bounds, grid shape), encoding and source. The level's private three.js build is the only blob left out, because the trough has its own.
+
+**The can.** `monolith3/teton-can.js`, labelled by `monolith3/can.json`, carries each detail as itself:
+
+| Packet | What it is | How it pours |
+|---|---|---|
+| `far-height` + `far-surface` | 801 × 1281 heights (about 30 m), NAIP imagery 1136 × 1728 | The can's own far range, out to the horizon: it fades in where the trough's streamed tiles end, and eases into the island's coast. The trough's horizon layer steps aside (`holeGround`) |
+| `near-height` + `near-surface` | 5.9 m heights and 2.7 m imagery around the overlook and river | The can's own fine terrain. The trough's walking ground samples it (`addHeights`), so you walk on the level's own ground |
+| `detail-height` + `detail-surface` | 2.15 m heights and 1 m imagery at the overlook | As above, the finest layer |
+| `crown-positions` + `crowns` | 9,428 crowns (USGS 3DEP) and a 12-species × 4-variant atlas | Planted as MONOLITH-3 plants them: its seeded stream (77269) picks species by height, its exclusions keep the road and the overlook clearing open, and its own billboard shader draws them (with the model matrix added, since here the can sits at its island's corner). The trough's procedural conifers step aside inside the surveyed area (`addFloraHole`) |
+| `river-level` | 241 × 261 water levels (USGS NHD) | The Snake River, wherever its level stands above the fine ground. Under the house standard it burns cyan |
+| `mountain-relief` | Gully relief for the range | MONOLITH-3's own snow rule (its terrain shader, lines 1907–1948): the snow line, wash, aspect and exposure terms, relief gullies, slope cutoff |
+| `terrain-data` → `camera` | The level's own eye: Adams's frame | `__ow.setEye()` puts the trough's camera there, so level and trough are compared from the same eye |
+
+The look packet now also carries MONOLITH-3's haze, which pulls distant terrain toward a dark grey by at most 48%, never toward white.
+
+**Measured from the level's own eye** (sheet: `atlas/looks/evidence-teton.jpg`):
+- With colour removed, the distance falls from 1.29 to **0.94**. Luminance goes from 0.57 to 0.43, against the level's 0.30; contrast from 0.09 to 0.11, against 0.16. The "before" frame was not shot from the level's eye, so this before/after is indicative only.
+- With colour, the number rises, because the house law turns the Snake River cyan where the level keeps it silver.
+
+**Not yet poured from MONOLITH-3:**
+- its triplanar rock, scree, gravel and cobble texturing;
+- the flow textures that animate the river;
+- the storm sky plate and its moving light window;
+- `film()` and `paper()`, which the house standard currently approximates;
+- Mistletoe's coat photographs;
+- the Half Dome survey (that is MONOLITH's can).
+
+These are already packet files, so they wait only for their bindings.

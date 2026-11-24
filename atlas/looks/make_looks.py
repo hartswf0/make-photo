@@ -66,7 +66,8 @@ json.dump({'look':1,'source':'city/island/island.js:87-166, :461-506, :2429-2451
 
 # ---------- the trough's own islands ----------
 MONO_SKY=[tohex([.10+.75*.12]*3),tohex([.55]*3),tohex([.78,.775,.76]),tohex([.70,.695,.68])]
-TETON={'toning_exposure':.62,'light':{'dir':[.45,.83,.34],'box':80,'map':2048,'glow':'#ffffff','disc':.9},'sky':MONO_SKY,'fog':{'color':tohex([.66,.655,.64]),'near':1200,'far':16000},'hemi':{'sky':'#f2f0e9','ground':'#414140','i':1.3},'sun':{'color':'#fffaf0','i':2.0},'aces':0,
+TETON={'toning_exposure':.62,'light':{'dir':[.45,.83,.34],'box':80,'map':2048,'glow':'#ffffff','disc':.9},'sky':[tohex([.20]*3),tohex([.36]*3),tohex([.55]*3),tohex([.48]*3)],'fog':{'color':tohex([.48]*3),'near':0,'far':33000},   # MONOLITH-3 haze: toward film(.20) by (1-exp(-d*.00018))*.48, never white
+ 'hemi':{'sky':'#f2f0e9','ground':'#414140','i':1.3},'sun':{'color':'#fffaf0','i':2.0},'aces':0,
  'water':{'color':'#235f8f','specular':'#e8f4ff'},
  'exposure':.62,'grade':{**CAT['jerikan']['grade'],'contrast':1.38,'vignette':.2,'grain':.03},'offers':ALL,   # film(): gamma .44 with a toe; an Adams print is dark and steep
  'looks':{'Yellow #8':{'grade':{'filter':[1.14,1.05,.42]}},'Orange #15':{'grade':{'filter':[1.26,.88,.24]}},'Red #25':{'grade':{'filter':[1.45,.44,.18]},'sky':[tohex([.04]*3),tohex([.23]*3),tohex([.56]*3),tohex([.5]*3)]},

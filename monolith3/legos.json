@@ -1,0 +1,44 @@
+{
+ "legos": 1.1,
+ "can": "grand-teton",
+ "L": [
+  {
+   "id": "overlook",
+   "name": "Snake River Overlook",
+   "at": "overlook",
+   "zone_ring": "center",
+   "offers": [
+    "expose"
+   ]
+  },
+  {
+   "id": "river",
+   "name": "Snake River",
+   "at": "river",
+   "zone_ring": "inner"
+  }
+ ],
+ "E": [
+  {
+   "id": "canopy",
+   "kind": "fixture",
+   "note": "9,428 surveyed crowns",
+   "source": "monolith3/packets/crown-positions.f32"
+  },
+  {
+   "id": "snake_river",
+   "kind": "fixture",
+   "source": "monolith3/packets/river-level.f32"
+  }
+ ],
+ "G": [],
+ "O": [],
+ "S": [],
+ "relations": [
+  [
+   "drains",
+   "snake_river",
+   "overlook"
+  ]
+ ]
+}

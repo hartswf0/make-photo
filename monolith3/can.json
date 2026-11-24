@@ -1,0 +1,57 @@
+{
+ "can": 1,
+ "id": "grand-teton",
+ "name": "Grand Teton (MONOLITH-3)",
+ "version": "2026.11.24",
+ "page": "../MONOLITH-3.html",
+ "entry": {
+  "script": "./teton-can.js?v=6",
+  "global": "TetonCan",
+  "call": "create",
+  "adapter": "ground@1"
+ },
+ "ground": "trough",
+ "frame": {
+  "origin": "island corner = the far grid's north-west",
+  "units": "metres",
+  "scale": "true",
+  "packets": "./packets.json"
+ },
+ "sites": [
+  {
+   "island": "teton",
+   "region": "teton"
+  }
+ ],
+ "bands": {
+  "scent": 7000,
+  "pour": 2600,
+  "drain": 5200
+ },
+ "budget": {
+  "js_kb": 8,
+  "data_kb": 2900,
+  "build_ms": 2000
+ },
+ "materials": [
+  {
+   "bind": "ground",
+   "from": "entry",
+   "note": "NAIP imagery from far-surface (21.6 m), near-surface (2.7 m) and detail-surface (1 m), blended at their seams"
+  },
+  {
+   "bind": "water",
+   "from": "entry",
+   "note": "the Snake River from river-level (USGS NHD, 241x261), wherever its level stands above the ground"
+  },
+  {
+   "bind": "props",
+   "from": "entry",
+   "note": "9,428 crowns from crown-positions (USGS 3DEP), at their own height and cover"
+  }
+ ],
+ "packets": "./packets.json",
+ "look": "../atlas/looks.json",
+ "legos": "./legos.json",
+ "keepTroughFlora": true
+}
