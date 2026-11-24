@@ -219,3 +219,41 @@ The `VOID` term stands for black and silence, so a light or distant mass fades i
   6. **veil**: the worlds fade into the void, the reader alone, a final tape stop.
 
   Live, ghost hands drive the tool; touching anything hands control back. Offline, `DEMO.renderAt(t)` puts every source at exactly that frame's time, waits for the pictures, and renders through the same shader. The sound is rebuilt from the same clock at 48 kHz with the gains the field computed at the ear for each frame (`demo_audio.py`), so the film is the tool's own output, frame for frame.
+
+## Revision 8 · his voice first, and a score instead of a pattern
+
+*Obstruction in revision 7:*
+- Every world reel carries his voice from another take, and the reels were stretched over the poem. So the mix held several out-of-sync copies of him, and you could not make out the words.
+- The performance moved things by geometry (orbits, rows, sweeps), not by meaning.
+
+*Voice:*
+- The reading is the spoken word. It plays dry at full level, never mixed by the ear; it fades only when the reader's mass is near zero.
+- World reels are **silent by default**. Opening a reel's sound brings in his voice from that take as a **distant echo**: 0.32 s late, 250–1800 Hz, in a 2.4 s room (`makeDistance`). The ear sets how much.
+- The two Foley beds (line sounds, rooms) are mixed by the ear and **duck under every spoken word**: −60 % with an 80 ms attack and 350 ms release. `duckAt` is a pure function of the reading's clock and its word timings.
+- His words sit in a steady reading line at the bottom. No other node's words are shown unless you open them.
+
+*Sync by meaning:*
+- Each reel was transcribed and aligned word by word to the reading (`tools/reelsync.py`, `data/world-sync.json`). `fromClock` and `toClock` now interpolate those anchors, so a reel shows the moment he is speaking about.
+- Matched words: grey 85 %, cel and magic-ride 47 % (their takes end at about 53 s), greyfig 28 % (ends at about 33 s).
+- A reel **fades out where its take ends** (`inTake`) instead of freezing.
+
+*The performance is a score* (`SCORE`): cues keyed to the times of his words. Each cue glides one value — position, mass, reach, hue, tint, echo, ear, or the field's gamma / veil / tangle — over a phrase, the way a bow moves. The reading plays untouched at 1×; the score follows its clock, live and when rendered.
+
+| Words | Gesture |
+|---|---|
+| I wasn't looking for a *ride*, but *here you are* | he alone; the bike under the lamp blooms in from the right |
+| both the *dark* and the *light* worlds | two takes split the frame, one cooled, one warmed; he narrows to the seam |
+| I *rub* my aggressions into your *steel* coverings and *hop on* | tangle friction with the LiDAR street; released as the ride begins |
+| *Loneliness* … with *no one to tell* | he shrinks to a corner of a vast empty road; the beds thin; "no one to tell" answers from far away |
+| being *everywhere* | every take at once as sharp cells, him small among them |
+| *wide-eyed* and *stone* … *wandering with no clear end* | he opens; the edges harden; then fog and no edge at all |
+| the *noise* block the *noise* … *swag* … *eyes turn, heads twist* | interference and street roar; the lantern street slides in; the worlds turn around him |
+| that *magic* still exists | everything melts warm; the far voice repeats it |
+| *darkness* I no longer desire | the worlds sink into the dark |
+| the *moon* settles … distant *stars* | night water and stars, cool |
+| I can see a *morning ahead* | the colour turns to dawn; he steps aside for the road ahead |
+| *loss* and *life* … *deceptively warm* | a breath out and in; warmth, a cold flicker, warmth |
+| *spring out of the night* | birds in the beds; he springs out of the night |
+| blissful and oddly *innocent* | the opening composition again, in rhyme |
+| *double-click* | the field snaps twice |
+| the *magic* still *exists* | the far voice answers; the world goes; he is last |
