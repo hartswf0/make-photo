@@ -201,3 +201,21 @@ The `VOID` term stands for black and silence, so a light or distant mass fades i
 *Edit list:* picture events give each source's share of the frame; sound events give its share at the ear; the field mode is noted.
 
 *Cut:* the rack of dials, collar sliders, blend modes per node (replaced by the field modes), views split/rack/focus (replaced by deck / big picture).
+
+## Revision 7 · the field on the GPU, and a performance
+
+*Obstruction in revision 6:* on a large screen the picture was small and the 2-D compositor redrew five full layers and masks every frame (about 38 ms in a software browser). The field modes were four separate settings, so switching between them was a cut.
+
+*New way:*
+- **One shader pass** computes every pixel's share from every source, exactly rather than on a grid, and applies tint, veil and tangle. Shares are worked out in log space so a sharp gamma never underflows. It took about 6 ms per frame in the same software browser. The 80 × 45 grid remains for the territory edges, the frame shares and a 2-D fallback when WebGL is missing.
+- **The field is a continuous space** (`FMP = {G, veil, tang}`). The four buttons are targets, and the field glides between them in about 0.3 s: gravity morphs into cells by sharpening gamma, cells dissolve into tangle.
+- **Bigger desktop picture:** 74 % of the width above 1100 px (60 % below). Words get their own layer; the recording composites picture + words (`compose`).
+- **A performance (✦).** One 64-second choreography on poem 10, written as a pure function of time (`demoState(t)`, `demoClock(t)`), in six scenes with 1.6 s morphs between them:
+  1. **veil**: the ear crossfades portrait → world → world.
+  2. **gravity**: four worlds orbit the reader while their reach breathes. A tape stop.
+  3. **cells**: a rotating mosaic of territories with tinted worlds. The ear tours each cell, so you hear each source in turn. A two-second scratch.
+  4. **tangle**: the worlds spin in a tight interfering ring, hues drifting. A four-times stutter on one phrase.
+  5. **bands**: all seven sources in a row that waves, while the ear sweeps across them. A half-speed dip.
+  6. **veil**: the worlds fade into the void, the reader alone, a final tape stop.
+
+  Live, ghost hands drive the tool; touching anything hands control back. Offline, `DEMO.renderAt(t)` puts every source at exactly that frame's time, waits for the pictures, and renders through the same shader. The sound is rebuilt from the same clock at 48 kHz with the gains the field computed at the ear for each frame (`demo_audio.py`), so the film is the tool's own output, frame for frame.
