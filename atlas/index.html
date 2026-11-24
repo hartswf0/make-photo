@@ -20,12 +20,12 @@ canvas{position:fixed;inset:0;display:block;touch-action:none}
 <button id="back">‹ Back to the world</button>
 <div id="legend"><span><i style="background:#ffc35a"></i>bridge</span><span><i style="background:#5fe6f2"></i>ferry</span><span><i style="background:#fff;border:2px solid #1b2a33;width:6px;height:6px"></i>way in</span></div>
 <button id="me" aria-label="Back to me">◎</button>
-<div id="card" role="dialog" aria-live="polite"><button class="x" aria-label="Close">×</button><div class="k"></div><h2></h2><p></p><div class="row"><a href="#" id="route">Route</a><a href="#" id="travel" class="b">Go there</a><a href="#" id="go" class="q">Enter level</a></div></div>
+<div id="card" role="dialog" aria-live="polite"><button class="x" aria-label="Close">×</button><div class="k"></div><h2></h2><p></p><div class="row"><a href="#" id="route">Lead me there</a><a href="#" id="travel" class="b">Go there</a><a href="#" id="go" class="q">Enter level</a></div></div>
 <script>
 (async () => {
 const cv = document.getElementById('c'), g = cv.getContext('2d'), card = document.getElementById('card'), QS = new URLSearchParams(location.search), EMBED = QS.has('embed');
-const A = await (await fetch('./archipelago.json?v=3')).json();
-const OWJ = await fetch('./ow/world.json?v=3').then(r => r.json()).catch(() => null), km = p => [p[0] / 1000, p[2] / 1000];
+const A = await (await fetch('./archipelago.json?v=4')).json();
+const OWJ = await fetch('./ow/world.json?v=4').then(r => r.json()).catch(() => null), km = p => [p[0] / 1000, p[2] / 1000];
 const title = s => s.toLowerCase().replace(/(^|[\s–-])\p{L}/gu, c => c.toUpperCase()), ISL = id => A.islands.find(i => i.id === id);
 const BR = OWJ ? OWJ.bridges.map(b => ({ b, line: b.pts.map(km) })) : [], FE = OWJ ? OWJ.ferries.map(f => ({ f, lane: f.lane.map(km), piers: f.piers.map(pr => pr.map(km)) })) : [];
 const HEADS = [];   // every end of every crossing, as you would walk up to it
@@ -105,7 +105,7 @@ function clampV() { V.x = Math.max(0, Math.min(A.width_km, V.x)); V.y = Math.max
 const back = () => parent.postMessage('atlas:back', '*');
 function setCard(k, h, p, route, travel, enter) { card.querySelector('.k').textContent = k; card.querySelector('h2').textContent = h; card.querySelector('p').textContent = p;
   const r = document.getElementById('route'), t = document.getElementById('travel'), e = document.getElementById('go'), ow = OWP();
-  r.style.display = ow ? '' : 'none'; r.onclick = ev => { ev.preventDefault(); ow.setTarget(route); card.classList.remove('on'); back(); };
+  r.style.display = ow ? '' : 'none'; r.onclick = ev => { ev.preventDefault(); ow.setTarget(route); if (ow.follow) ow.follow(true); card.classList.remove('on'); back(); };
   t.onclick = ow ? ev => { ev.preventDefault(); ow.goTo(travel.x, travel.z, travel.yaw, true); card.classList.remove('on'); back(); } : null; t.href = ow ? '#' : `./overworld.html?mx=${travel.x.toFixed(0)}&mz=${travel.z.toFixed(0)}`; t.target = EMBED ? '_top' : '';
   e.style.display = enter ? '' : 'none'; if (enter) { e.href = enter; e.target = EMBED ? '_top' : ''; } card.classList.add('on'); }
 const away = at => ME ? ` · ${Math.hypot(at[0] - ME[0], at[1] - ME[1]).toFixed(1)} km from you` : '';

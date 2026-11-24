@@ -232,10 +232,17 @@ Image.fromarray(img.astype(np.uint8)).save(R / 'atlas' / 'archipelago.jpg', qual
 Image.fromarray(img.astype(np.uint8)).resize((PW // 4, PH // 4), Image.LANCZOS).save(R / 'atlas' / 'archipelago-small.jpg', quality=80)
 # ---------- vector layer in map km ----------
 def km(i, uv): return [round(i['cx'] - i['w'] / 2 + uv[0] * i['w'], 4), round(i['cy'] - i['hgt'] / 2 + uv[1] * i['hgt'], 4)]
+LANDKD = {}
+def on_ground(i, at):                     # a place stands on its own island's ground, never in the sea: snap to the nearest land above 3 m
+    x, z = at[0] * 1000, at[1] * 1000
+    if Hs(np.array([x]), np.array([z]))[0] > 3: return at
+    k = I.index(i)
+    if k not in LANDKD: ys_, xs_ = np.nonzero((OWN == k) & (Hmap > 3)); LANDKD[k] = (cKDTree(np.stack([xs_, ys_], 1) * MPP), np.stack([xs_, ys_], 1) * MPP)
+    kd, pts = LANDKD[k]; _, j = kd.query([x, z]); q = pts[j] + MPP / 2; return [round(float(q[0]) / 1000, 4), round(float(q[1]) / 1000, 4)]
 out = dict(width_km=W_KM, height_km=H_KM, mpp=MPP, image='./archipelago.jpg', preview='./archipelago-small.jpg', islands=[])
 for i in I:
     out['islands'].append(dict(id=i['id'], name=i['name'], level=i['level'], entry=i['entry'], note=i.get('note', ''), center=[i['cx'], i['cy']], size=[i['w'], i['hgt']], small=i.get('small', False), frame=i.get('frame'), detail=i.get('detail'), detail_px=i['h'].shape[1],
-      places=[dict(name=p['name'], at=km(i, p['uv']), world=p['world'], entry=p['entry']) for p in i['places'] if 0 <= p['uv'][0] <= 1 and 0 <= p['uv'][1] <= 1],
+      places=[dict(name=p['name'], at=on_ground(i, km(i, p['uv'])), world=p['world'], entry=p['entry']) for p in i['places'] if 0 <= p['uv'][0] <= 1 and 0 <= p['uv'][1] <= 1],
       roads=[dict(kind=r_['kind'], pts=[km(i, q) for q in r_['uv']]) for r_ in i['roads'] if len(r_['uv']) > 1],
       streets=[[km(i, q) for q in s_] for s_ in i.get('streets', [])]))
 json.dump(out, open(R / 'atlas' / 'archipelago.json', 'w'), separators=(',', ':'))

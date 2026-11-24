@@ -8,6 +8,6 @@
   const hide = (me.dataset.hide || '').split(',').map(s => s.trim()).filter(Boolean);
   if (hide.length) { const st = document.createElement('style'); st.textContent = hide.join(',') + '{display:none!important}'; document.head.append(st); }
   const lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = base + 'rain.css?v=1'; document.head.append(lk);
-  const go = () => { const en = document.createElement('script'); en.src = base + 'engine.js?v=2'; en.onload = () => { const su = document.createElement('script'); su.src = base + 'surface.js?v=ow2'; document.head.append(su); }; document.head.append(en); };
+  const go = () => { const en = document.createElement('script'); en.src = base + 'engine.js?v=2'; en.onload = () => { const su = document.createElement('script'); su.src = base + 'surface.js?v=ow5'; document.head.append(su); }; document.head.append(en); };
   (function wait() { if (window.AhiyaBridge && window.AhiyaBridge.canvas) go(); else setTimeout(wait, 200); })();
 })();

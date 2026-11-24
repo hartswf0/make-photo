@@ -2,7 +2,7 @@
 // steering on a phone (the page had keys only), the same carry and the same way back to the archipelago as every other level.
 (async () => {
   const I = await new Promise(ok => (function t() { const w = window.__island; if (w && w.state && w.keys && window.DWBridge) ok(w); else setTimeout(t, 250); })());
-  const ARCH = await fetch('../../atlas/archipelago.json?v=3').then(r => r.json()).catch(() => null), isl = ARCH && ARCH.islands.find(i => i.id === 'wygwyl');
+  const ARCH = await fetch('../../atlas/archipelago.json?v=4').then(r => r.json()).catch(() => null), isl = ARCH && ARCH.islands.find(i => i.id === 'wygwyl');
   const S = I.state, K = I.keys, tap = k => { dispatchEvent(new KeyboardEvent('keydown', { key: k })); setTimeout(() => dispatchEvent(new KeyboardEvent('keyup', { key: k })), 140); };
   window.DWBridge({ THREE: I.THREE, canvas: document.getElementById('gl'), camera: () => I.camera,
     me: () => ({ x: S.px, y: S.py, z: S.pz, speed: Math.abs(S.moveSpeed || 0) }), donkey: () => null, water: () => null,

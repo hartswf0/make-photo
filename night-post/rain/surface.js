@@ -104,7 +104,7 @@ function alertCurrent() {                                             // every a
 }
 // the rail: acts live where the thumb is, never over the road. A thread of droplets runs from an act to what it acts on.
 let motion = 0;
-const RAIL = [[.8, .86], [.6, .89], [.42, .9]], RAIL2 = [[.8, .73], [.6, .89], [.42, .9]];   // RAIL2: what a touch offers, beside the act already there
+const RAIL = [[.8, .86], [.6, .89], [.42, .9]], RAIL2 = [[.8, .73], [.6, .89], [.42, .9], [.8, .62]];   // RAIL2: what a touch offers, beside the act already there
 const snapNow = () => ({ liters: S.water.liters, donkey: S.water.donkey, x: S.pos.x, z: S.pos.z, yaw: S.pos.yaw, place: S.place.name });
 let stable = null, worm = null;
 function watchGame() {
@@ -196,7 +196,7 @@ const BUILD = {
     if (ui.touch && performance.now() - ui.touch.at > 7000) ui.touch = null;
     if (ui.touch && !open && !S.busy) { const t = ui.touch, L = S.live, mi = id => menuItems().find(x => x.id === id), list = [];
       const act = (id, word, run, cls = 'acts') => list.push([id, word, run, cls]), it = (id, word) => { const m = mi(id); if (m) act(id, word, () => m.run()); };
-      if (t.kind === 'donkey') { const al2 = alertNow(); if (al2) act('water', al2.word, () => doAlert(), 'action-drop'); else if (S.water.liters >= .5 && S.water.donkey < .95) act('water', 'Water', () => { const T3 = S.things || {}; auto = { kind: 'donkey', left: 8, before: snapNow(), moved: 0, t: 0 }; if (T3.donkey && T3.donkey.dist > 4.5) { B.act.warp(T3.donkey.wx + 1.7, T3.donkey.wz + 1.9); } }, 'action-drop'); it('ride', S.mode === 'ride' ? 'Down' : 'Ride'); it('drive', 'Wagon'); }
+      if (t.kind === 'donkey') { const al2 = alertNow(); if (al2) act('water', al2.word, () => doAlert(), 'action-drop'); else if (S.water.liters >= .5 && S.water.donkey < .95) act('water', 'Water', () => { const T3 = S.things || {}; auto = { kind: 'donkey', left: 8, before: snapNow(), moved: 0, t: 0 }; if (T3.donkey && T3.donkey.dist > 4.5) { B.act.warp(T3.donkey.wx + 1.7, T3.donkey.wz + 1.9); } }, 'action-drop'); it('ride', S.mode === 'ride' ? 'Down' : 'Ride'); it('glide', 'Fly'); it('drive', 'Wagon'); }
       else if (t.kind === 'source') { if (L && L.kind === 'draw') act('draw', 'Draw', () => B.act.live(false), 'action-drop'); }
       else if (t.kind === 'person') { if (L && L.kind === 'talk') act('ask', 'Ask', () => B.act.live(false), 'action-drop'); if (L && L.id === 'share') act('share', 'Share', () => B.act.live(false), 'action-drop'); act('say', 'Say', () => { ui.scene = 'people'; ui.say = true; render(); $('say-text').focus(); }); }
       else if (t.kind === 'wagon') it('drive', S.mode === 'drive' ? 'Park' : 'Drive');
@@ -204,7 +204,7 @@ const BUILD = {
       else if (t.kind === 'sky') { it('glide', S.mode === 'glide' ? 'Land' : 'Glide'); act('weather', 'Weather', () => { ui.scene = 'weather'; }); }
       else if (t.kind === 'next') act('map', 'Map', () => { ui.mapSel = null; ui.scene = 'map'; });
       if (!list.length) ui.touch = null;
-      list.slice(0, 3).forEach(([id, word, run, cls], i) => { const hm = RAIL2[i];
+      list.slice(0, 4).forEach(([id, word, run, cls], i) => { const hm = RAIL2[i];
         if (run) button('aff-' + id, 'a', word, '', live(() => { run(); ui.touch = null; }), { className: cls + ' quick', viscosity: .7 + i * .3, home: hm, critical: true }); else info('aff-' + id, 'a', '', '', '', { label: word, className: cls + ' quick', viscosity: 2, home: hm, critical: true }); }); }
     { const now = performance.now(); for (const k of keeps.slice()) { k.life = 1 - (now - k.born) / k.ttl; if (k.life <= 0) dropKeep0(k.id); } }
     for (const k of keeps) button(k.id, 'a', null, null, () => restoreKeep(k), { value: k.label, fill: k.life, className: 'keep ' + (k.kind === 'act' ? '' : 'amber'), viscosity: 4.5, home: [.3 + keeps.indexOf(k) * .13, .07], keep: true });
@@ -384,7 +384,7 @@ const mItem = id => menuItems().find(x => x.id === id);
 const runItem = id => () => { const it = mItem(id); if (!it || ui.past) return; it.run(); closeMenu(); S = B.state(); render(); };
 const closeMenu = () => { ui.menu = false; ui.menuGroup = null; };
 const GROUPS = {
-  go: () => [['map', 'Map', go('map')], ['jump', 'Jump', runItem('jump')], ['run', mItem('run')?.on ? 'Walk' : 'Run', runItem('run')], ['ride', S.mode === 'ride' ? 'Get down' : 'Ride', runItem('ride')], ['glide', S.mode === 'glide' ? 'Land' : 'Glide', runItem('glide')], ['drive', S.mode === 'drive' ? 'Park' : 'Wagon', runItem('drive')], ['boat', S.mode === 'boat' ? 'Ashore' : 'Boat', runItem('boat')], ...(B.act.overworld ? [['overworld', 'Archipelago', () => { closeMenu(); B.act.overworld(); }]] : [])],
+  go: () => [['map', 'Map', go('map')], ...(mItem('follow') ? [['follow', mItem('follow').on ? 'Stop following' : 'Follow the way', runItem('follow')]] : []), ['jump', 'Jump', runItem('jump')], ['run', mItem('run')?.on ? 'Walk' : 'Run', runItem('run')], ['ride', S.mode === 'ride' ? 'Get down' : 'Ride', runItem('ride')], ['glide', S.mode === 'glide' ? 'Land' : 'Fly', runItem('glide')], ['drive', S.mode === 'drive' ? 'Park' : 'Wagon', runItem('drive')], ['boat', S.mode === 'boat' ? 'Ashore' : 'Boat', runItem('boat')], ...(B.act.overworld ? [['overworld', 'Archipelago', () => { closeMenu(); B.act.overworld(); }]] : [])],
   water: () => [['can', 'Can', go('water')], ['donkey', 'Donkey', go('donkey')], ['squirt', 'Squirt', runItem('squirt')], ['throw', 'Throw', runItem('throw')]],
   camera: () => [['expose', 'Expose', () => { if (ui.past) return; B.act.expose(); cause = 'A plate was exposed.'; closeMenu(); render(); }], ['lens', 'Lens', go('lens')], ['rig', 'Rig', go('rig')], ['cam', 'View', runItem('cam')]],
   talk: () => [['say', 'Say', () => { returnNow(false); Object.assign(ui, { scene: 'people', say: true, menu: false, menuGroup: null }); render(); $('say-text').focus(); }], ['memory', 'Voices', () => { stopSteer(); returnNow(false); ui.memory = true; ui.recallIndex = 0; closeMenu(); render(); }], ['people', 'People', go('people')], ['lang', 'Language', () => { mItem('lang')?.run(); render(); announce('Language: ' + (B.state().lang || 'en')); }]],
