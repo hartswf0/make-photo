@@ -1,0 +1,16 @@
+{
+ "can": 1,
+ "id": "abyss",
+ "name": "Abyssal Garden · the reef",
+ "version": "2026.11.24",
+ "page": "./reef.html",
+ "entry": { "page": "./reef.html?embed=1", "global": "__abyss", "adapter": "layer@1" },
+ "ground": "own",
+ "frame": { "span": "reef radius 78 m, water surface at SY = 26 m", "scale": "true", "origin": "where you dive: the reef's offset from its dive site is added to where you went under" },
+ "sites": [ { "sea": "any water deeper than 6 m" } ],
+ "bands": { "scent": "when you start swimming (the reef loads hidden)", "pour": "Dive (the live act over deep water)", "drain": "Surface, or swim up to the top" },
+ "carries": [ "its own WebGL2 renderer, untouched: sun shadows, volumetric light shafts, caustics, kelp (45k to 220k blades by detail), coral, sponges, rocks, pebbles",
+   "its life: fish schools, mantas, jellies, a whale; the wreck, the coral arch, the trench", "its six dive sites (chance by place picks one, so the same water gives the same reef)", "its own swim physics and collision; its sound" ],
+ "controls": "the trough's surface: the stick swims (sideways turns), dragging looks and pitches, Jump lifts you, the exit drop surfaces you",
+ "note": "layer@1: a can that cannot share the trough's renderer is poured as a layer with its own canvas. The trough stops drawing, hands its controls and the rain glass to the layer, and takes the pose back when you surface."
+}

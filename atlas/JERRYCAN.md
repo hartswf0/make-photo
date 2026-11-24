@@ -403,3 +403,14 @@ The look packet now also carries MONOLITH-3's haze, which pulls distant terrain 
 - the Half Dome survey (that is MONOLITH's can).
 
 These are already packet files, so they wait only for their bindings.
+
+## 9. layer@1: a can with its own renderer (the reef)
+
+Some levels cannot share the trough's renderer without being rebuilt, and rebuilding loses what makes them themselves. `abyss/` (the Abyssal Garden field studio) is raw WebGL2: its own sun shadows, light shafts, caustics, 45k–220k kelp blades, fish, mantas, jellies, a whale, a wreck. It is poured as a **layer**:
+
+- **scent**: the moment you start swimming, `abyss/reef.html?embed=1` loads hidden behind the trough and builds its reef.
+- **pour**: over water deeper than 6 m the live drop says **Dive**. A burst of bubbles; the layer fades in over the trough; the trough stops drawing. Chance by place (a hash of where you went under) picks one of the reef's six sites, so the same water always gives the same reef.
+- **controls**: the trough's surface steers the layer through `window.__abyss` (`steer`, `look`, `lift`). The stick swims and sideways turns, dragging looks and pitches, Jump lifts you. The rain glass refracts the reef's own canvas (`AhiyaBridge.canvas` is a getter).
+- **drain**: the exit drop (**Swim up**, **Surface** at the top), or lifting at the surface. You come up where the swim took you: the reef pose's offset from its site is added to where you dove.
+
+`abyss/can.json` records the contract. The reef page itself is the upload, untouched except for the embed hook at its end and the CSS that hides its own UI.

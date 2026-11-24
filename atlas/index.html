@@ -106,7 +106,7 @@ const back = () => parent.postMessage('atlas:back', '*');
 function setCard(k, h, p, route, travel, enter) { card.querySelector('.k').textContent = k; card.querySelector('h2').textContent = h; card.querySelector('p').textContent = p;
   const r = document.getElementById('route'), t = document.getElementById('travel'), e = document.getElementById('go'), ow = OWP();
   r.style.display = ow ? '' : 'none'; r.onclick = ev => { ev.preventDefault(); ow.setTarget(route); card.classList.remove('on'); back(); };
-  t.onclick = ow ? ev => { ev.preventDefault(); ow.goTo(travel.x, travel.z, travel.yaw); card.classList.remove('on'); back(); } : null; t.href = ow ? '#' : `./overworld.html?mx=${travel.x.toFixed(0)}&mz=${travel.z.toFixed(0)}`; t.target = EMBED ? '_top' : '';
+  t.onclick = ow ? ev => { ev.preventDefault(); ow.goTo(travel.x, travel.z, travel.yaw, true); card.classList.remove('on'); back(); } : null; t.href = ow ? '#' : `./overworld.html?mx=${travel.x.toFixed(0)}&mz=${travel.z.toFixed(0)}`; t.target = EMBED ? '_top' : '';
   e.style.display = enter ? '' : 'none'; if (enter) { e.href = enter; e.target = EMBED ? '_top' : ''; } card.classList.add('on'); }
 const away = at => ME ? ` · ${Math.hypot(at[0] - ME[0], at[1] - ME[1]).toFixed(1)} km from you` : '';
 function tap(x, y) { let best = null, bd = 26;

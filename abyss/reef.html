@@ -1,0 +1,3936 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#08171b">
+<title>Abyssal Garden · 8×10 Field Studio</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --water: #08171b;
+    --line: rgba(203, 234, 225, .27);
+    --ink: #f3f7ec;
+    --muted: #c0d3ce;
+    --mint: #d6f0d2;
+    --edge: clamp(14px, 3vw, 42px);
+    --top: max(12px, env(safe-area-inset-top));
+    --bottom: max(12px, env(safe-area-inset-bottom));
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    font: 16px/1.4 Inter, Arial, system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; min-height: 100%; background: var(--water); color: var(--ink); }
+  body { overflow: hidden; }
+  button, select, input { font: inherit; }
+  button, select {
+    min-height: 44px; border: 1px solid var(--line); border-radius: 5px;
+    color: var(--ink); background: #0d2125ed; padding: .5rem .8rem;
+  }
+  button { cursor: pointer; touch-action: manipulation; }
+  button:hover, select:hover { border-color: var(--mint); background: #1c373a; }
+  button.primary { background: var(--mint); color: #132724; border-color: transparent; font-weight: 700; }
+  button.primary:hover { background: #ecf9e5; }
+  button[aria-expanded="true"] { border-color: var(--mint); }
+  button:disabled { opacity: .5; cursor: default; }
+  :focus-visible { outline: 2px solid #ffe4a0; outline-offset: 3px; }
+  h1, h2, p { margin: 0; }
+  .mono, output { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .quiet { color: var(--muted); font-size: .86rem; }
+  noscript { position: absolute; z-index: 5; top: var(--top); left: var(--edge); }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  #app { position: relative; width: 100%; height: 100vh; height: 100dvh; isolation: isolate; }
+  #view-box, #stage, #glCanvas { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+  body[data-mode='fault'] #view-box { visibility: hidden; }
+  #glCanvas { display: block; width: 100%; height: 100%; }
+  #stage { touch-action: none; }
+  body[data-mode="dive"] #stage, body[data-mode="camera"] #stage { cursor: grab; }
+  #stage:active { cursor: grabbing; }
+  #field-header {
+    position: absolute; z-index: 2; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: start; gap: .55rem;
+    padding: var(--top) var(--edge) 1rem;
+    background: linear-gradient(#041116e8, #041116a6 63%, transparent);
+    pointer-events: none;
+  }
+  #field-header button { pointer-events: auto; }
+  .readings { min-width: 0; padding-top: .15rem; text-shadow: 0 1px 3px #000; }
+  .readings h2 { font-size: clamp(.98rem, 2vw, 1.22rem); font-weight: 650; letter-spacing: -.02em; }
+  .readings .mono { color: var(--mint); font-size: .76rem; }
+  .header-actions, .inline { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; }
+  .header-actions { justify-content: flex-end; flex: 0 0 auto; }
+
+  .scrim {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, #051519ef, #05151998 39%, transparent 82%),
+                linear-gradient(0deg, #051519b3, transparent 64%);
+    pointer-events: none;
+  }
+  .landing {
+    position: absolute; bottom: max(9vh, 4rem); left: var(--edge);
+    left: max(var(--edge), env(safe-area-inset-left)); right: var(--edge);
+    width: min(37rem, calc(100% - var(--edge) * 2)); z-index: 1;
+  }
+  .landing h1 {
+    font-family: 'Instrument Serif', Georgia, serif; font-weight: 400;
+    font-size: clamp(3.6rem, 10vw, 7.1rem); line-height: .88; letter-spacing: -.067em;
+    text-wrap: balance; padding-bottom: .11em;
+  }
+  .landing p { color: var(--muted); font-size: clamp(1rem, 1.6vw, 1.2rem); margin: 1rem 0 1.35rem; }
+  .landing button { min-width: 8.5rem; }
+  .landing progress { width: min(100%, 16rem); accent-color: var(--mint); }
+  #fault { background: #0a1e22; padding: 1.25rem; border: 1px solid var(--line); }
+  #fault h2, dialog h2 { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 1.8rem; }
+
+  #dive-actions {
+    position: absolute; z-index: 2; bottom: var(--bottom); left: var(--edge);
+    display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+    max-width: calc(100% - var(--edge) * 2);
+  }
+  #dive-status {
+    position: absolute; z-index: 2; bottom: calc(var(--bottom) + 54px); left: var(--edge);
+    margin: 0; max-width: calc(100% - 2 * var(--edge)); background: #061519df;
+    border-radius: 4px; padding: .3rem .55rem; font-size: .83rem;
+    pointer-events: none;
+  }
+  #dive-status:empty, #camera-note:empty { display: none; }
+  #touch-kit { position: absolute; left: var(--edge); right: var(--edge); bottom: calc(var(--bottom) + 63px); justify-content: space-between; align-items: end; pointer-events: none; display: none; z-index: 1; }
+  @media (any-pointer: coarse) {
+    body[data-mode="dive"]:not([data-drift="true"]) #touch-kit { display: flex; }
+    #dive-status { bottom: calc(var(--bottom) + 174px); }
+  }
+  #stick {
+    position: relative; width: 104px; height: 104px; padding: 0;
+    border-radius: 50%; background: #07171a80; pointer-events: auto; touch-action: none;
+  }
+  #stick::before, #stick::after { content: ''; position: absolute; left: 24%; right: 24%; top: 50%; border-top: 1px solid var(--line); }
+  #stick::after { transform: rotate(90deg); }
+  #stick-knob {
+    position: absolute; top: calc(50% - 19px); left: calc(50% - 19px); width: 38px; height: 38px;
+    border: 1px solid #d6f0d2b0; border-radius: 50%; background: #cbe8d230; z-index: 1;
+  }
+  .vertical { display: grid; gap: 6px; pointer-events: auto; touch-action: none; }
+  .vertical button { min-height: 48px; min-width: 72px; font-size: .83rem; background: #091d21d9; touch-action: none; }
+  [data-held="true"] { background: #2a4b48 !important; }
+
+  body[data-mode="camera"] #app {
+    display: grid; grid-template: "header" auto "finder" minmax(0, 1fr) "tray" auto / minmax(0, 1fr);
+    background: radial-gradient(ellipse at 50% 35%, #162b2c, var(--water) 74%);
+  }
+  body[data-mode="camera"] #field-header { grid-area: header; position: relative; padding-bottom: .5rem; background: none; }
+  body[data-mode="camera"] #view-box {
+    grid-area: finder; position: relative; container-type: size; display: grid; place-items: center;
+    margin-inline: var(--edge); min-height: 0;
+  }
+  body[data-mode="camera"] #stage {
+    position: relative; width: var(--finder-width, 100%); height: var(--finder-height, 100%);
+    outline: 1px solid #859f90; outline-offset: 2px; background: #071417; box-shadow: 0 10px 45px #0007;
+  }
+  body[data-mode="camera"] #stage:focus-visible { outline: 2px solid #ffe4a0; }
+  #finder-marks {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; --spot-x: 50%; --spot-y: 50%;
+    background:
+      linear-gradient(to right, transparent calc(100% - 1px), #f3f7ec3c calc(100% - 1px)) 0 0 / 33.333% 100% repeat-x,
+      linear-gradient(to bottom, transparent calc(100% - 1px), #f3f7ec3c calc(100% - 1px)) 0 0 / 100% 33.333% repeat-y;
+  }
+  #reticle {
+    width: 16px; height: 16px; transform: translate(-50%, -50%); border: 1px solid #f3d58e;
+    border-radius: 50%; box-shadow: 0 0 0 1px #151c1c; background: radial-gradient(circle, #f3d58e 0 1px, transparent 2px);
+    position: absolute; top: var(--spot-y); left: var(--spot-x);
+  }
+  #camera-controls {
+    grid-area: tray; display: grid; gap: .35rem; width: min(100%, 49rem); justify-self: center;
+    padding: .55rem var(--edge) var(--bottom); min-height: 0; max-height: 61vh; max-height: 61dvh;
+    overflow: auto; overscroll-behavior: contain;
+  }
+  .tray-row { display: flex; align-items: center; gap: .45rem; justify-content: space-between; }
+  .tray-row button { flex-shrink: 0; }
+  #plate-settings, #meter-readout { font-size: .78rem; }
+  #optics-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .25rem .7rem; padding-block: .3rem; }
+  #optics-panel label { display: grid; gap: .2rem; min-width: 0; font-size: .8rem; color: var(--muted); }
+  #optics-panel select, #optics-panel input { width: 100%; min-width: 0; }
+  input[type="range"] { min-height: 30px; accent-color: var(--mint); }
+  #camera-note { color: #f4dda6; font-size: .81rem; }
+  #exposure-progress { width: 100%; accent-color: var(--mint); margin: .45rem 0; display: block; }
+  #working-row p { font-size: .88rem; }
+  @media (min-width: 660px) {
+    #optics-panel { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  @media (min-width: 750px) and (min-aspect-ratio: 7/5), (orientation: landscape) and (max-height: 540px) {
+    body[data-mode="camera"] #app {
+      grid-template: "header header" auto "finder tray" minmax(0, 1fr) / minmax(0, 1fr) clamp(238px, 29vw, 360px);
+      padding-bottom: var(--bottom);
+    }
+    body[data-mode="camera"] #view-box { margin-right: 7px; }
+    #camera-controls { align-self: center; max-height: 100%; padding: .5rem var(--edge) .5rem .5rem; }
+    #optics-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tray-row { flex-wrap: wrap; }
+  }
+
+  dialog {
+    width: min(35rem, calc(100% - 2 * var(--edge))); max-height: calc(100vh - 28px); max-height: calc(100dvh - 28px);
+    overflow: auto; padding: clamp(14px, 3vw, 24px); background: #102326; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 16px 70px #0009;
+  }
+  dialog::backdrop { background: #051316b3; }
+  .dialog-header, .dialog-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .6rem; }
+  .dialog-header { margin-bottom: .85rem; }
+  .dialog-footer { margin-top: .9rem; }
+  .menu-block { border-top: 1px solid var(--line); padding-top: .85rem; margin-top: .85rem; }
+  .menu-block label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: .25rem; }
+  #site-select, #quality { min-width: 0; max-width: 100%; }
+  details summary { cursor: pointer; padding-block: .4rem; }
+  details p { padding: .35rem 0; }
+  #proof {
+    width: min(44rem, calc(100% - 2 * var(--edge))); background: #1b2320; border-color: #5c6557;
+  }
+  #proof-photo { display: block; width: 100%; height: auto; max-height: 65vh; max-height: 65dvh; object-fit: contain; }
+  #proof-audit { margin-top: .65rem; }
+  #proof-save-note { color: #f4dda6; margin-top: .35rem; }
+  @media (max-width: 400px) {
+    #camera-controls { gap: .25rem; }
+    #meter-actions { gap: .25rem; }
+    #meter-actions button { padding-inline: .5rem; font-size: .85rem; }
+    #plate-row { align-items: start; }
+    #plate-row > .inline { justify-content: flex-end; }
+    #dive-actions button { padding-inline: .63rem; font-size: .88rem; }
+  }
+
+/* poured into the trough (?embed): only the water is shown; the trough's surface carries every control */
+body.embed{background:#03141c}
+body.embed *{visibility:hidden!important}
+body.embed #stage,body.embed #stage>canvas{visibility:visible!important}
+body.embed #stage{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;border:0!important;border-radius:0!important;max-width:none!important;max-height:none!important;aspect-ratio:auto!important;transform:none!important}
+body.embed #stage>canvas{width:100%!important;height:100%!important}
+</style>
+</head>
+<body data-mode="boot">
+<main id="app">
+  <div id="view-box">
+    <div id="stage" role="group" aria-label="Underwater view" tabindex="-1">
+      <canvas id="glCanvas" aria-hidden="true"></canvas>
+      <div id="finder-marks" aria-hidden="true" hidden><div id="reticle"></div></div>
+    </div>
+  </div>
+
+  <header id="field-header" hidden>
+    <div class="readings">
+      <h2 id="field-title" tabindex="-1">Whale Fluke Sanctuary</h2>
+      <p class="mono" id="depthReadout"></p>
+    </div>
+    <div class="header-actions">
+      <button id="pause-dive">Pause</button>
+      <button id="back-water" hidden>Back to dive</button>
+    </div>
+  </header>
+
+  <div id="landing-scrim" class="scrim" aria-hidden="true"></div>
+  <section class="landing" id="landing" aria-labelledby="title">
+    <h1 id="title">Abyssal Garden</h1>
+    <p id="landing-text">Dive the reef with an 8×10 glass-plate camera.</p>
+    <div id="boot-progress">
+      <progress id="boot-bar" max="100" aria-label="Preparing the reef"></progress>
+      <div id="boot-stage" class="quiet" role="status">Starting the renderer…</div>
+    </div>
+    <div class="inline" id="landing-actions" hidden>
+      <button id="begin" class="primary">Begin dive</button>
+      <button id="landing-plates" hidden>Plates</button>
+    </div>
+  </section>
+
+  <section class="landing" id="fault" aria-labelledby="fault-title" hidden>
+    <h2 id="fault-title" tabindex="-1">Dive interrupted</h2>
+    <p id="fault-reason" role="status"></p>
+    <div class="inline">
+      <button id="retry" class="primary">Retry</button>
+      <button id="fault-plates" hidden>Plates</button>
+      <button id="fault-exit">End dive</button>
+    </div>
+  </section>
+
+  <p id="dive-status" role="status" hidden></p>
+  <div id="touch-kit" role="group" aria-label="Touch swim controls">
+    <div id="stick" aria-hidden="true"><span id="stick-knob"></span></div>
+    <div class="vertical">
+      <button id="rise" aria-label="Swim up">Rise</button>
+      <button id="sink" aria-label="Swim down">Sink</button>
+    </div>
+  </div>
+  <div id="dive-actions" hidden>
+    <button id="dive-primary" class="primary">Set 8×10 camera</button>
+    <button id="pack" hidden>Pack camera</button>
+    <button id="undo-nav" hidden>Undo move</button>
+  </div>
+
+  <section id="camera-controls" aria-label="Camera controls" hidden>
+    <div class="tray-row" id="camera-settings">
+      <span id="plate-settings" class="mono"></span>
+      <button id="optics-toggle" aria-expanded="false" aria-controls="optics-panel">Optics</button>
+    </div>
+    <div id="optics-panel" hidden>
+      <label for="bellows">Bellows draw <output id="bellows-value"></output><input id="bellows" type="range" min="110" max="420" step="5" value="240"></label>
+      <label for="pan">Pan <output id="pan-value"></output><input id="pan" type="range" min="-120" max="120" step="1" value="0"></label>
+      <label for="tilt">Front tilt <output id="tilt-value"></output><input id="tilt" type="range" min="-24" max="28" step="1" value="0"></label>
+      <label for="aperture">Aperture<select id="aperture"></select></label>
+      <label for="shutter">Shutter<select id="shutter"></select></label>
+      <label for="filter">Wratten filter<select id="filter"></select></label>
+      <label for="developer">Developer<select id="developer"></select></label>
+    </div>
+    <div class="tray-row" id="meter-row">
+      <span class="mono" id="meter-readout"></span>
+      <div class="inline" id="meter-actions">
+        <button id="meter">Meter Zone V</button>
+        <button id="undo-meter" hidden>Undo</button>
+      </div>
+    </div>
+    <p class="quiet" id="finder-help">Drag to aim. Click or tap to meter.<span class="sr-only"> In the finder, the arrow keys move the spot.</span></p>
+    <div class="tray-row" id="plate-row">
+      <div>
+        <div id="plate-state" class="quiet"></div>
+        <div id="camera-note" role="status"></div>
+      </div>
+      <div class="inline">
+        <button id="insert-slide" hidden>Insert slide</button>
+        <button id="plate-action" class="primary">Pull dark slide</button>
+      </div>
+    </div>
+    <div id="working-row" hidden>
+      <p id="working-text" role="status"></p>
+      <progress id="exposure-progress" max="1" value="0" aria-label="Shutter progress"></progress>
+      <button id="stop-exposure" class="primary">Stop exposure</button>
+    </div>
+  </section>
+
+  <dialog id="dive-menu" aria-labelledby="menu-title">
+    <div class="dialog-header">
+      <h2 id="menu-title">Dive paused</h2>
+      <button id="resume" class="primary" autofocus>Resume dive</button>
+    </div>
+    <div class="menu-block">
+      <label for="site-select">Dive site</label>
+      <div class="inline"><select id="site-select"></select><button id="visit">Go to site</button></div>
+      <div class="inline" style="margin-top:.45rem"><button id="guided">Start guided drift</button><button id="menu-plates" hidden>Plates</button></div>
+    </div>
+    <div class="menu-block">
+      <label for="quality">Reef detail</label>
+      <div class="inline">
+        <select id="quality"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select>
+        <button id="audio" aria-pressed="false">Sound</button>
+      </div>
+      <p id="quality-status" class="quiet" role="status"></p>
+    </div>
+    <details class="menu-block">
+      <summary>Swim and camera controls</summary>
+      <p class="quiet">Drag the scene to look. On keyboards, swim with WASD or the arrow keys. Space rises and Shift sinks. J and L turn, and I and K look up and down.</p>
+      <p class="quiet">On touch screens, drag the stick to swim and hold Rise or Sink to change depth. In the finder, drag to pan and aim. Optics has keyboard controls for bellows, pan and front tilt.</p>
+      <p class="quiet">Escape pauses the dive or returns from the finder. Set the camera at your current depth. You can swim away while it stays deployed.</p>
+    </details>
+    <div class="dialog-footer">
+      <button id="end-dive">End dive</button>
+    </div>
+  </dialog>
+
+  <dialog id="proof" aria-labelledby="proof-title">
+    <div class="dialog-header">
+      <h2 id="proof-title">8×10 contact proof</h2>
+      <button id="close-proof" autofocus>Close</button>
+    </div>
+    <img id="proof-photo" alt="Developed black-and-white underwater plate" width="1000" height="852">
+    <p id="proof-audit" class="quiet"></p>
+    <p id="proof-save-note" class="quiet" hidden></p>
+    <div class="dialog-footer">
+      <div class="inline">
+        <button id="prev-proof" hidden>Previous</button>
+        <button id="next-proof" hidden>Next</button>
+      </div>
+      <button id="download-proof" class="primary">Download PNG</button>
+    </div>
+  </dialog>
+  <noscript><p>This simulator needs JavaScript and WebGL 2.</p></noscript>
+</main>
+<script>
+(function () {
+  'use strict';
+
+  if (window.AudioNode) {
+    OscillatorNode.prototype.fExp = BiquadFilterNode.prototype.fExp = function (v, t) {
+      this.frequency.exponentialRampToValueAtTime(v, t);
+    };
+    OscillatorNode.prototype.fSet = BiquadFilterNode.prototype.fSet = function (v, t) {
+      this.frequency.setValueAtTime(v, t);
+    };
+    GainNode.prototype.gExp = function (v, t) {
+      this.gain.exponentialRampToValueAtTime(v, t);
+    };
+    GainNode.prototype.gLin = function (v, t) {
+      this.gain.linearRampToValueAtTime(v, t);
+    };
+    GainNode.prototype.gSet = function (v, t) {
+      this.gain.setValueAtTime(v, t);
+    };
+  }
+  // Abyssal Garden's procedural terrain, geometry, water shaders, fauna and swim simulation.
+  const F32 = Float32Array;
+  const {
+    sin,
+    cos,
+    tan,
+    atan2,
+    sqrt,
+    hypot,
+    pow,
+    exp,
+    abs,
+    min,
+    max,
+    floor,
+    round,
+    PI,
+    random,
+    sign,
+    imul
+  } = Math;
+  const $id = id => document.getElementById(id);
+  const TAU = PI * 2;
+  const clamp = (x, a, b) => x < a ? a : x > b ? b : x;
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const smoothstep = (e0, e1, x) => {
+    const t = clamp((x - e0) / (e1 - e0), 0, 1);
+    return t * t * (3 - 2 * t);
+  };
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a |= 0;
+      a = a + 0x6D2B79F5 | 0;
+      let t = imul(a ^ a >>> 15, 1 | a);
+      t = t + imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  const PERM = new Uint8Array(512);
+  (function initNoise() {
+    const rng = mulberry32(0xAB155A1);
+    const p = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) p[i] = i;
+    for (let i = 255; i > 0; i--) {
+      const j = rng() * (i + 1) | 0;
+      const tmp = p[i];
+      p[i] = p[j];
+      p[j] = tmp;
+    }
+    for (let i = 0; i < 512; i++) PERM[i] = p[i & 255];
+  })();
+  function grad3(hash, x, y, z) {
+    const h = hash & 15;
+    const u = h < 8 ? x : y;
+    const v = h < 4 ? y : h === 12 || h === 14 ? x : z;
+    return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+  }
+  function noise3(x, y, z) {
+    const X = floor(x) & 255,
+      Y = floor(y) & 255,
+      Z = floor(z) & 255;
+    x -= floor(x);
+    y -= floor(y);
+    z -= floor(z);
+    const u = x * x * x * (x * (x * 6 - 15) + 10);
+    const v = y * y * y * (y * (y * 6 - 15) + 10);
+    const w = z * z * z * (z * (z * 6 - 15) + 10);
+    const A = PERM[X] + Y,
+      AA = PERM[A] + Z,
+      AB = PERM[A + 1] + Z;
+    const B = PERM[X + 1] + Y,
+      BA = PERM[B] + Z,
+      BB = PERM[B + 1] + Z;
+    return lerp(lerp(lerp(grad3(PERM[AA], x, y, z), grad3(PERM[BA], x - 1, y, z), u), lerp(grad3(PERM[AB], x, y - 1, z), grad3(PERM[BB], x - 1, y - 1, z), u), v), lerp(lerp(grad3(PERM[AA + 1], x, y, z - 1), grad3(PERM[BA + 1], x - 1, y, z - 1), u), lerp(grad3(PERM[AB + 1], x, y - 1, z - 1), grad3(PERM[BB + 1], x - 1, y - 1, z - 1), u), v), w);
+  }
+  function fbm2(x, z, octaves) {
+    let sum = 0,
+      amp = 0.5,
+      freq = 1.0,
+      norm = 0;
+    for (let i = 0; i < octaves; i++) {
+      sum += amp * noise3(x * freq, 0.37 + i * 3.1, z * freq);
+      norm += amp;
+      freq *= 2.03;
+      amp *= 0.5;
+    }
+    return sum / norm;
+  }
+  function fbm3(x, y, z, octaves) {
+    let sum = 0,
+      amp = 0.5,
+      freq = 1.0,
+      norm = 0;
+    for (let i = 0; i < octaves; i++) {
+      sum += amp * noise3(x * freq, y * freq, z * freq);
+      norm += amp;
+      freq *= 2.07;
+      amp *= 0.5;
+    }
+    return sum / norm;
+  }
+  const M4 = {
+    create: () => new F32(16),
+    identity(out) {
+      out.fill(0);
+      out[0] = out[5] = out[10] = out[15] = 1;
+      return out;
+    },
+    perspective(out, fovy, aspect, near, far) {
+      const f = 1.0 / tan(fovy * 0.5),
+        nf = 1 / (near - far);
+      out.fill(0);
+      out[0] = f / aspect;
+      out[5] = f;
+      out[10] = (far + near) * nf;
+      out[11] = -1;
+      out[14] = 2 * far * near * nf;
+      return out;
+    },
+    ortho(out, l, r, b, t, n, f) {
+      const lr = 1 / (l - r),
+        bt = 1 / (b - t),
+        nf = 1 / (n - f);
+      out.fill(0);
+      out[0] = -2 * lr;
+      out[5] = -2 * bt;
+      out[10] = 2 * nf;
+      out[12] = (l + r) * lr;
+      out[13] = (t + b) * bt;
+      out[14] = (f + n) * nf;
+      out[15] = 1;
+      return out;
+    },
+    lookAt(out, eye, center, up) {
+      let zx = eye[0] - center[0],
+        zy = eye[1] - center[1],
+        zz = eye[2] - center[2];
+      let len = hypot(zx, zy, zz) || 1;
+      zx /= len;
+      zy /= len;
+      zz /= len;
+      let xx = up[1] * zz - up[2] * zy,
+        xy = up[2] * zx - up[0] * zz,
+        xz = up[0] * zy - up[1] * zx;
+      len = hypot(xx, xy, xz) || 1;
+      xx /= len;
+      xy /= len;
+      xz /= len;
+      const yx = zy * xz - zz * xy,
+        yy = zz * xx - zx * xz,
+        yz = zx * xy - zy * xx;
+      out[0] = xx;
+      out[1] = yx;
+      out[2] = zx;
+      out[3] = 0;
+      out[4] = xy;
+      out[5] = yy;
+      out[6] = zy;
+      out[7] = 0;
+      out[8] = xz;
+      out[9] = yz;
+      out[10] = zz;
+      out[11] = 0;
+      out[12] = -(xx * eye[0] + xy * eye[1] + xz * eye[2]);
+      out[13] = -(yx * eye[0] + yy * eye[1] + yz * eye[2]);
+      out[14] = -(zx * eye[0] + zy * eye[1] + zz * eye[2]);
+      out[15] = 1;
+      return out;
+    },
+    mul(out, a, b) {
+      const r = new F32(16);
+      for (let c = 0; c < 4; c++) {
+        for (let row = 0; row < 4; row++) {
+          r[c * 4 + row] = a[0 * 4 + row] * b[c * 4 + 0] + a[1 * 4 + row] * b[c * 4 + 1] + a[2 * 4 + row] * b[c * 4 + 2] + a[3 * 4 + row] * b[c * 4 + 3];
+        }
+      }
+      out.set(r);
+      return out;
+    },
+    invert(out, m) {
+      const a = new F32(16),
+        v = new F32(16);
+      a.set(m);
+      M4.identity(v);
+      for (let i = 0; i < 4; i++) {
+        let p = i;
+        for (let r = i + 1; r < 4; r++) if (abs(a[i * 4 + r]) > abs(a[i * 4 + p])) p = r;
+        if (abs(a[i * 4 + p]) < 1e-12) return M4.identity(out);
+        if (p !== i) for (let c = 0; c < 4; c++) {
+          let t = a[c * 4 + i];
+          a[c * 4 + i] = a[c * 4 + p];
+          a[c * 4 + p] = t;
+          t = v[c * 4 + i];
+          v[c * 4 + i] = v[c * 4 + p];
+          v[c * 4 + p] = t;
+        }
+        const d = 1 / a[i * 4 + i];
+        for (let c = 0; c < 4; c++) {
+          a[c * 4 + i] *= d;
+          v[c * 4 + i] *= d;
+        }
+        for (let r = 0; r < 4; r++) if (r !== i) {
+          const f = a[i * 4 + r];
+          for (let c = 0; c < 4; c++) {
+            a[c * 4 + r] -= f * a[c * 4 + i];
+            v[c * 4 + r] -= f * v[c * 4 + i];
+          }
+        }
+      }
+      out.set(v);
+      return out;
+    }
+  };
+  const SY = 26.0;
+  const WORLD_HALF = 92.0;
+  const SD = function () {
+    const v = [-0.26, 0.91, -0.32];
+    const l = hypot(v[0], v[1], v[2]);
+    return new F32([v[0] / l, v[1] / l, v[2] / l]);
+  }();
+  const QP = {
+    low: {
+      label: 'Low',
+      desc: 'Low: fast load, 45k kelp blades, lightweight rays for mobile GPUs',
+      terrainSegs: 112,
+      kPlt: 260,
+      bPm: 8,
+      rCnt: 950,
+      pebbleCount: 1800,
+      cCnt: 950,
+      fishCount: 750,
+      mCnt: 1400,
+      shadowSize: 512,
+      raySteps: 8,
+      mxS: 0.78,
+      drawDist: 72.0
+    },
+    medium: {
+      label: 'Medium',
+      desc: 'Medium: balanced 110k kelp blades, soft shadows & volumetric shafts',
+      terrainSegs: 148,
+      kPlt: 520,
+      bPm: 12,
+      rCnt: 1900,
+      pebbleCount: 4000,
+      cCnt: 2100,
+      fishCount: 1650,
+      mCnt: 3000,
+      shadowSize: 1024,
+      raySteps: 12,
+      mxS: 0.92,
+      drawDist: 86.0
+    },
+    high: {
+      label: 'High',
+      desc: 'High: ~220k kelp blades, 2K sun shadows, rich reef & full volumetric rays',
+      terrainSegs: 184,
+      kPlt: 820,
+      bPm: 15,
+      rCnt: 3200,
+      pebbleCount: 7500,
+      cCnt: 3600,
+      fishCount: 2800,
+      mCnt: 5200,
+      shadowSize: 2048,
+      raySteps: 16,
+      mxS: 1.0,
+      drawDist: 102.0
+    }
+  };
+  const CP = [{
+    name: 'Whale Fluke Sanctuary',
+    pos: [2.4, 3.55, 15.8],
+    yaw: -2.93,
+    pitch: 0.10
+  }, {
+    name: 'Sunken Galleon Ridge',
+    pos: [-4.2, 13.4, -13.5],
+    yaw: -2.44,
+    pitch: -0.06
+  }, {
+    name: 'Cathedral Kelp Canopy',
+    pos: [0.5, 3.4, 9.2],
+    yaw: 2.75,
+    pitch: 0.52
+  }, {
+    name: 'Coral Canyon Arch',
+    pos: [18.0, 3.9, 5.2],
+    yaw: 3.14,
+    pitch: 0.08
+  }, {
+    name: 'Manta Ray Glide',
+    pos: [-1.5, 12.6, 5.5],
+    yaw: -2.78,
+    pitch: 0.12
+  }, {
+    name: 'Abyssal Biolume Trench',
+    pos: [8.5, 2.2, -26.5],
+    yaw: -2.92,
+    pitch: -0.16
+  }];
+  const STORAGE_KEY = 'abyssal_field_studio_preferences_v1';
+  function loadPrefs() {
+    const fallback = {
+      quality: window.innerWidth < 800 ? 'low' : 'medium',
+      aGov: !0,
+      audioOn: false
+    };
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return fallback;
+      const parsed = JSON.parse(raw);
+      return {
+        quality: Object.prototype.hasOwnProperty.call(QP, parsed.quality) ? parsed.quality : fallback.quality,
+        aGov: typeof parsed.aGov === 'boolean' ? parsed.aGov : !0,
+        audioOn: typeof parsed.audioOn === 'boolean' ? parsed.audioOn : false
+      };
+    } catch (_) {
+      return fallback;
+    }
+  }
+  function savePrefs(prf) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(prf));
+    } catch (_) {}
+  }
+  const prf = loadPrefs();
+  function sbH(x, z) {
+    let h = fbm2(x * 0.018, z * 0.018, 4) * 9.5 + fbm2(x * 0.055 + 5.2, z * 0.055 - 3.1, 3) * 2.4;
+    const dxSanct = (x + 1.2) / 14.5,
+      dzSanct = (z - 6.0) / 15.5;
+    const sanctMask = exp(-(dxSanct * dxSanct + dzSanct * dzSanct));
+    const sandRipples = sin(x * 1.45 + z * 0.65 + noise3(x * 0.25, 0.2, z * 0.25) * 2.2) * 0.07;
+    h = lerp(h, 0.25 + sandRipples, sanctMask * 0.88);
+    const leftBank = exp(-pow((x + 10.5) / 6.5, 2) - pow((z - 4.0) / 16.0, 2));
+    const rightBank = exp(-pow((x - 10.2) / 7.0, 2) - pow((z - 3.0) / 17.0, 2));
+    h += (leftBank * 3.1 + rightBank * 2.8) * (0.7 + 0.6 * noise3(x * 0.14, 1.1, z * 0.14));
+    const dxShip = (x + 12.0) / 14.5,
+      dzShip = (z + 25.5) / 13.0;
+    const shipShelf = exp(-(dxShip * dxShip + dzShip * dzShip));
+    h = lerp(h, 10.6 + fbm2(x * 0.09, z * 0.09, 2) * 1.3, shipShelf * 0.92);
+    const dxArch = (x - 18.0) / 6.2,
+      dzArch = (z + 5.5) / 14.0;
+    const canyonFloor = exp(-(dxArch * dxArch + dzArch * dzArch));
+    h = lerp(h, 0.4 + sandRipples, canyonFloor * 0.82);
+    const canyonWalls = exp(-pow((abs(x - 18.0) - 6.8) / 3.2, 2) - pow((z + 5.5) / 11.0, 2));
+    h += canyonWalls * 6.4;
+    const trenchT = smoothstep(-26.0, -52.0, z) * smoothstep(-8.0, 22.0, x + 8.0);
+    h -= trenchT * 12.5;
+    const edgeR = hypot(x, z);
+    h += smoothstep(56.0, 90.0, edgeR) * 10.5;
+    return h;
+  }
+  function sbN(x, z, out) {
+    const e = 0.35;
+    const hL = sbH(x - e, z);
+    const hR = sbH(x + e, z);
+    const hD = sbH(x, z - e);
+    const hU = sbH(x, z + e);
+    let nx = hL - hR,
+      ny = 2 * e,
+      nz = hD - hU;
+    const l = hypot(nx, ny, nz) || 1;
+    out[0] = nx / l;
+    out[1] = ny / l;
+    out[2] = nz / l;
+    return out;
+  }
+  class MB {
+    constructor() {
+      this.pos = [];
+      this.norm = [];
+      this.mat = [];
+      this.idx = [];
+    }
+    vtx(px, py, pz, nx, ny, nz, r, g, b, m) {
+      const i = this.pos.length / 3 | 0;
+      this.pos.push(px, py, pz);
+      const l = hypot(nx, ny, nz) || 1;
+      this.norm.push(nx / l, ny / l, nz / l);
+      this.mat.push(r, g, b, m);
+      return i;
+    }
+    tri(a, b, c) {
+      this.idx.push(a, b, c);
+    }
+    qd(a, b, c, d) {
+      this.idx.push(a, b, c, a, c, d);
+    }
+    tb(pts, radii, sides, colFn, matId, capEnds) {
+      const rings = pts.length;
+      const bRng = [];
+      let upX = 0,
+        upY = 1,
+        upZ = 0;
+      for (let i = 0; i < rings; i++) {
+        const p = pts[i];
+        const pPrev = pts[max(0, i - 1)];
+        const pNext = pts[min(rings - 1, i + 1)];
+        let tx = pNext[0] - pPrev[0],
+          ty = pNext[1] - pPrev[1],
+          tz = pNext[2] - pPrev[2];
+        let tl = hypot(tx, ty, tz) || 1;
+        tx /= tl;
+        ty /= tl;
+        tz /= tl;
+        if (abs(tx * upX + ty * upY + tz * upZ) > 0.92) {
+          upX = 1;
+          upY = 0;
+          upZ = 0;
+        }
+        let bx = ty * upZ - tz * upY,
+          by = tz * upX - tx * upZ,
+          bz = tx * upY - ty * upX;
+        let bl = hypot(bx, by, bz) || 1;
+        bx /= bl;
+        by /= bl;
+        bz /= bl;
+        const nx0 = by * tz - bz * ty,
+          ny0 = bz * tx - bx * tz,
+          nz0 = bx * ty - by * tx;
+        const rx = Array.isArray(radii[i]) ? radii[i][0] : radii[i];
+        const ry = Array.isArray(radii[i]) ? radii[i][1] : radii[i];
+        const vFrac = i / max(1, rings - 1);
+        const ringIdx = [];
+        for (let s = 0; s < sides; s++) {
+          const ang = s / sides * TAU;
+          const ca = cos(ang),
+            sa = sin(ang);
+          const ox = bx * ca * rx + nx0 * sa * ry;
+          const oy = by * ca * rx + ny0 * sa * ry;
+          const oz = bz * ca * rx + nz0 * sa * ry;
+          const nrx = bx * ca / max(0.02, rx) + nx0 * sa / max(0.02, ry);
+          const nry = by * ca / max(0.02, rx) + ny0 * sa / max(0.02, ry);
+          const nrz = bz * ca / max(0.02, rx) + nz0 * sa / max(0.02, ry);
+          const c = colFn(vFrac, ang, p[0] + ox, p[1] + oy, p[2] + oz);
+          ringIdx.push(this.vtx(p[0] + ox, p[1] + oy, p[2] + oz, nrx, nry, nrz, c[0], c[1], c[2], matId));
+        }
+        bRng.push(ringIdx);
+      }
+      for (let i = 0; i < rings - 1; i++) {
+        for (let s = 0; s < sides; s++) {
+          const ns = (s + 1) % sides;
+          this.qd(bRng[i][s], bRng[i][ns], bRng[i + 1][ns], bRng[i + 1][s]);
+        }
+      }
+      if (capEnds && rings >= 2) {
+        const p0 = pts[0],
+          pN = pts[rings - 1];
+        const c0 = colFn(0, 0, p0[0], p0[1], p0[2]);
+        const cN = colFn(1, 0, pN[0], pN[1], pN[2]);
+        const iStart = this.vtx(p0[0], p0[1], p0[2], 0, -1, 0, c0[0], c0[1], c0[2], matId);
+        const iEnd = this.vtx(pN[0], pN[1], pN[2], 0, 1, 0, cN[0], cN[1], cN[2], matId);
+        for (let s = 0; s < sides; s++) {
+          const ns = (s + 1) % sides;
+          this.tri(iStart, bRng[0][ns], bRng[0][s]);
+          this.tri(iEnd, bRng[rings - 1][s], bRng[rings - 1][ns]);
+        }
+      }
+    }
+    bx(cx, cy, cz, sx, sy, sz, rx, ry, rz, col, matId) {
+      const cr = cos(rx),
+        sr = sin(rx);
+      const cp = cos(ry),
+        sp = sin(ry);
+      const cyw = cos(rz),
+        syw = sin(rz);
+      const rot = (x, y, z) => {
+        let y1 = y * cr - z * sr,
+          z1 = y * sr + z * cr;
+        let x2 = x * cp + z1 * sp,
+          z2 = -x * sp + z1 * cp;
+        let x3 = x2 * cyw - y1 * syw,
+          y3 = x2 * syw + y1 * cyw;
+        return [x3, y3, z2];
+      };
+      const faces = [[[1, -1, -1], [1, 1, -1], [1, 1, 1], [1, -1, 1], [1, 0, 0]], [[-1, -1, 1], [-1, 1, 1], [-1, 1, -1], [-1, -1, -1], [-1, 0, 0]], [[-1, 1, -1], [-1, 1, 1], [1, 1, 1], [1, 1, -1], [0, 1, 0]], [[-1, -1, 1], [-1, -1, -1], [1, -1, -1], [1, -1, 1], [0, -1, 0]], [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1], [0, 0, 1]], [[1, -1, -1], [-1, -1, -1], [-1, 1, -1], [1, 1, -1], [0, 0, -1]]];
+      for (const f of faces) {
+        const n = rot(f[4][0], f[4][1], f[4][2]);
+        const vi = [];
+        for (let k = 0; k < 4; k++) {
+          const p = rot(f[k][0] * sx * 0.5, f[k][1] * sy * 0.5, f[k][2] * sz * 0.5);
+          const nVar = 0.92 + 0.16 * noise3((cx + p[0]) * 1.4, (cy + p[1]) * 1.4, (cz + p[2]) * 1.4);
+          vi.push(this.vtx(cx + p[0], cy + p[1], cz + p[2], n[0], n[1], n[2], col[0] * nVar, col[1] * nVar, col[2] * nVar, matId));
+        }
+        this.qd(vi[0], vi[1], vi[2], vi[3]);
+      }
+    }
+    calcN() {
+      const n = new F32(this.pos.length);
+      const p = this.pos,
+        idx = this.idx;
+      for (let i = 0; i < idx.length; i += 3) {
+        const ia = idx[i] * 3,
+          ib = idx[i + 1] * 3,
+          ic = idx[i + 2] * 3;
+        const abx = p[ib] - p[ia],
+          aby = p[ib + 1] - p[ia + 1],
+          abz = p[ib + 2] - p[ia + 2];
+        const acx = p[ic] - p[ia],
+          acy = p[ic + 1] - p[ia + 1],
+          acz = p[ic + 2] - p[ia + 2];
+        const nx = aby * acz - abz * acy,
+          ny = abz * acx - abx * acz,
+          nz = abx * acy - aby * acx;
+        n[ia] += nx;
+        n[ia + 1] += ny;
+        n[ia + 2] += nz;
+        n[ib] += nx;
+        n[ib + 1] += ny;
+        n[ib + 2] += nz;
+        n[ic] += nx;
+        n[ic + 1] += ny;
+        n[ic + 2] += nz;
+      }
+      for (let i = 0; i < n.length; i += 3) {
+        const l = hypot(n[i], n[i + 1], n[i + 2]) || 1;
+        this.norm[i] = n[i] / l;
+        this.norm[i + 1] = n[i + 1] / l;
+        this.norm[i + 2] = n[i + 2] / l;
+      }
+    }
+  }
+  function mkWhale(cList) {
+    const mb = new MB();
+    const stalkSteps = 26;
+    const stalkPts = [],
+      stalkRadii = [];
+    for (let i = 0; i <= stalkSteps; i++) {
+      const t = i / stalkSteps;
+      const x = -0.9 - 2.65 * pow(t, 1.08);
+      const y = -0.6 + 6.45 * t;
+      const z = 4.2 - 1.85 * t + sin(t * 2.2) * 0.25;
+      stalkPts.push([x, y, z]);
+      const rx = lerp(1.42, 0.62, pow(t, 0.72));
+      const ry = lerp(1.18, 0.44, pow(t, 0.78));
+      stalkRadii.push([rx, ry]);
+      if (i % 3 === 0) {
+        cList.push({
+          x,
+          y,
+          z,
+          r: max(rx, ry) * 1.05
+        });
+      }
+    }
+    const stoneCol = (vf, ang, wx, wy, wz) => {
+      const strata = fbm3(wx * 0.55, wy * 0.95, wz * 0.55, 3);
+      const moss = smoothstep(0.0, 2.2, 2.2 - wy) * 0.35 + clamp(strata * 0.5 + 0.15, 0, 0.35);
+      const base = 0.62 + strata * 0.22;
+      return [lerp(base * 0.84, 0.24, moss), lerp(base * 0.91, 0.46, moss), lerp(base * 0.94, 0.44, moss)];
+    };
+    mb.tb(stalkPts, stalkRadii, 24, stoneCol, 1.0, !0);
+    for (let i = 0; i < mb.pos.length; i += 3) {
+      const px = mb.pos[i],
+        py = mb.pos[i + 1],
+        pz = mb.pos[i + 2];
+      const disp = fbm3(px * 0.85, py * 0.85, pz * 0.85, 3) * 0.22;
+      mb.pos[i] += mb.norm[i] * disp;
+      mb.pos[i + 1] += mb.norm[i + 1] * disp;
+      mb.pos[i + 2] += mb.norm[i + 2] * disp;
+    }
+    const junc = [-3.65, 5.65, 2.35];
+    const spanSteps = 36,
+      chStp = 18;
+    const tiltYaw = 0.26,
+      tiltPitch = 0.62,
+      tiltRoll = -0.28;
+    const cy = cos(tiltYaw),
+      sy = sin(tiltYaw);
+    const cp = cos(tiltPitch),
+      sp = sin(tiltPitch);
+    const cr = cos(tiltRoll),
+      sr = sin(tiltRoll);
+    function flukeWorld(lx, ly, lz) {
+      let x1 = lx * cr - ly * sr,
+        y1 = lx * sr + ly * cr,
+        z1 = lz;
+      let x2 = x1,
+        y2 = y1 * cp - z1 * sp,
+        z2 = y1 * sp + z1 * cp;
+      let x3 = x2 * cy + z2 * sy,
+        y3 = y2,
+        z3 = -x2 * sy + z2 * cy;
+      return [junc[0] + x3, junc[1] + y3, junc[2] + z3];
+    }
+    const halfSpan = 5.45;
+    const grid = [];
+    for (let is = -spanSteps; is <= spanSteps; is++) {
+      const s = is / spanSteps;
+      const absS = abs(s);
+      const lxBase = s * halfSpan;
+      const leadY = 1.05 * (1.0 - pow(absS, 1.45)) + 1.85 * pow(absS, 1.15);
+      const notch = 0.58 * exp(-pow(s / 0.11, 2));
+      const trailY = -0.65 + 2.05 * pow(absS, 1.38) + notch + sin(absS * 26.0) * 0.045 * smoothstep(0.15, 0.85, absS);
+      const chord = max(0.22, leadY - trailY);
+      const archZ = -pow(absS, 1.7) * 0.85;
+      const thickMax = lerp(0.52, 0.075, pow(absS, 0.82)) * (1.0 - 0.35 * exp(-pow(s / 0.09, 2)));
+      if (is % 6 === 0) {
+        const cpW = flukeWorld(lxBase, (leadY + trailY) * 0.5, archZ);
+        cList.push({
+          x: cpW[0],
+          y: cpW[1],
+          z: cpW[2],
+          r: max(0.55, chord * 0.42)
+        });
+      }
+      const ring = [];
+      for (let ic = 0; ic < chStp * 2; ic++) {
+        const upper = ic < chStp;
+        const u = upper ? ic / (chStp - 1) : 1.0 - (ic - chStp) / (chStp - 1);
+        const profile = 1.48 * (0.2969 * sqrt(max(0.001, u)) - 0.126 * u - 0.3516 * u * u + 0.2843 * u * u * u - 0.1015 * u * u * u * u);
+        const localY = lerp(leadY, trailY, u);
+        const signZ = upper ? 1 : -1;
+        const localZ = archZ + signZ * profile * thickMax;
+        const wp = flukeWorld(lxBase, localY, localZ);
+        const rockDisp = fbm3(wp[0] * 0.9, wp[1] * 0.9, wp[2] * 0.9, 3) * 0.14 * (1.0 - 0.5 * u);
+        const wn = flukeWorld(0, 0, signZ);
+        const nl = hypot(wn[0] - junc[0], wn[1] - junc[1], wn[2] - junc[2]) || 1;
+        const nx = (wn[0] - junc[0]) / nl,
+          ny = (wn[1] - junc[1]) / nl,
+          nz = (wn[2] - junc[2]) / nl;
+        const px = wp[0] + nx * rockDisp,
+          py = wp[1] + ny * rockDisp,
+          pz = wp[2] + nz * rockDisp;
+        const c = stoneCol(absS, u, px, py, pz);
+        const barnacle = smoothstep(0.55, 0.98, absS) * (1.0 - u) * 0.18;
+        ring.push(mb.vtx(px, py, pz, nx, ny, nz, c[0] + barnacle, c[1] + barnacle, c[2] + barnacle * 0.9, 1.0));
+      }
+      grid.push(ring);
+    }
+    const ringLen = chStp * 2;
+    for (let i = 0; i < grid.length - 1; i++) {
+      for (let j = 0; j < ringLen; j++) {
+        const nj = (j + 1) % ringLen;
+        mb.qd(grid[i][j], grid[i + 1][j], grid[i + 1][nj], grid[i][nj]);
+      }
+    }
+    const rng = mulberry32(0x774A1E);
+    const baseY = sbH(-0.9, 4.2);
+    for (let b = 0; b < 16; b++) {
+      const ang = b / 16 * TAU + rng() * 0.35;
+      const dist = 0.95 + rng() * 1.85;
+      const bx = -1.0 + cos(ang) * dist;
+      const bz = 4.1 + sin(ang) * dist;
+      const rad = 0.55 + rng() * 0.85;
+      const by = sbH(bx, bz) - rad * 0.32;
+      addRockBlob(mb, bx, by, bz, rad * 1.35, rad * (0.48 + rng() * 0.32), rad * 1.15, 11.0 + b * 4.7, [0.28, 0.38, 0.42], 1.0);
+    }
+    cList.push({
+      x: -1.1,
+      y: baseY + 0.9,
+      z: 4.1,
+      r: 2.1
+    });
+    mb.calcN();
+    return mb;
+  }
+  function addRockBlob(mb, cx, cy, cz, rx, ry, rz, seed, tint, matId) {
+    const lat = 9,
+      lon = 14;
+    const rings = [];
+    for (let i = 0; i <= lat; i++) {
+      const v = i / lat;
+      const phi = v * PI;
+      const sp = sin(phi),
+        cp = cos(phi);
+      const row = [];
+      for (let j = 0; j < lon; j++) {
+        const theta = j / lon * TAU;
+        const dx = sp * cos(theta),
+          dy = cp,
+          dz = sp * sin(theta);
+        const n = fbm3(dx * 1.6 + seed, dy * 1.6 - seed * 0.5, dz * 1.6 + seed * 0.3, 3);
+        const strata = sin(dy * 7.0 + n * 4.0) * 0.06;
+        const scale = 1.0 + n * 0.38 + strata;
+        const px = cx + dx * rx * scale;
+        const py = cy + dy * ry * scale;
+        const pz = cz + dz * rz * scale;
+        const shade = 0.88 + n * 0.25;
+        row.push(mb.vtx(px, py, pz, dx, dy, dz, tint[0] * shade, tint[1] * shade, tint[2] * shade, matId));
+      }
+      rings.push(row);
+    }
+    for (let i = 0; i < lat; i++) {
+      for (let j = 0; j < lon; j++) {
+        const nj = (j + 1) % lon;
+        mb.qd(rings[i][j], rings[i + 1][j], rings[i + 1][nj], rings[i][nj]);
+      }
+    }
+  }
+  function mkShip(cList) {
+    const local = new MB();
+    const wDrk = [0.22, 0.16, 0.11];
+    const wMid = [0.30, 0.22, 0.15];
+    const woodMoss = [0.18, 0.27, 0.20];
+    const zSteps = 24,
+      profSteps = 14;
+    const pGrd = [],
+      sGrd = [];
+    for (let iz = 0; iz <= zSteps; iz++) {
+      const t = iz / zSteps;
+      const z = lerp(-9.2, 10.2, t);
+      const beam = sin(pow(clamp(t * 1.06, 0, 1), 0.68) * PI) * 3.45 + (1 - t) * 0.85;
+      const sheerY = pow(abs(t - 0.42), 2.0) * 2.8 + (t < 0.22 ? (0.22 - t) * 5.2 : 0);
+      const keelY = -2.35 + smoothstep(0.75, 1.0, t) * 1.55;
+      const pCol = [],
+        sCol = [];
+      for (let ip = 0; ip <= profSteps; ip++) {
+        const u = ip / profSteps;
+        const inBreach = t > 0.38 && t < 0.62 && u > 0.35;
+        const flare = sin(u * PI * 0.62);
+        const x = flare * beam * (inBreach ? 0.86 : 1.0);
+        const y = lerp(keelY, 1.65 + sheerY, pow(u, 0.86));
+        const algae = smoothstep(1.2, -2.0, y) * 0.55;
+        const plank = 0.9 + 0.1 * sin(u * 38.0);
+        const c = [lerp(wMid[0], woodMoss[0], algae) * plank, lerp(wMid[1], woodMoss[1], algae) * plank, lerp(wMid[2], woodMoss[2], algae) * plank];
+        pCol.push(local.vtx(-x, y, z, -flare - 0.2, u - 0.5, 0, c[0], c[1], c[2], 2.0));
+        sCol.push(local.vtx(x, y, z, flare + 0.2, u - 0.5, 0, c[0], c[1], c[2], 2.0));
+      }
+      pGrd.push(pCol);
+      sGrd.push(sCol);
+    }
+    for (let iz = 0; iz < zSteps; iz++) {
+      for (let ip = 0; ip < profSteps; ip++) {
+        local.qd(pGrd[iz][ip], pGrd[iz + 1][ip], pGrd[iz + 1][ip + 1], pGrd[iz][ip + 1]);
+        local.qd(pGrd[iz][ip], pGrd[iz][ip + 1], pGrd[iz + 1][ip + 1], pGrd[iz + 1][ip]);
+        const skipStar = iz >= 9 && iz <= 14 && ip >= 6;
+        if (!skipStar) {
+          local.qd(sGrd[iz][ip], sGrd[iz][ip + 1], sGrd[iz + 1][ip + 1], sGrd[iz + 1][ip]);
+          local.qd(sGrd[iz][ip], sGrd[iz + 1][ip], sGrd[iz + 1][ip + 1], sGrd[iz][ip + 1]);
+        }
+      }
+    }
+    local.bx(0, -2.45, 0.3, 0.42, 0.55, 19.2, 0, 0, 0, wDrk, 2.0);
+    for (let r = 0; r < 15; r++) {
+      const t = (r + 0.5) / 15;
+      const z = lerp(-8.6, 9.2, t);
+      const beam = sin(pow(clamp(t * 1.06, 0, 1), 0.68) * PI) * 3.38 + (1 - t) * 0.8;
+      const pts = [];
+      for (let k = -8; k <= 8; k++) {
+        const u = abs(k) / 8;
+        const sx = sign(k) * sin(u * PI * 0.62) * beam;
+        const sy = lerp(-2.25, 1.75 + pow(abs(t - 0.42), 2.0) * 2.5, pow(u, 0.86));
+        pts.push([sx, sy, z]);
+      }
+      local.tb(pts, new Array(pts.length).fill(0.13), 6, () => wDrk, 2.0, !0);
+      if (r % 2 === 0) {
+        local.bx(0, 1.35 + pow(abs(t - 0.42), 2.0) * 1.6, z, beam * 1.82, 0.18, 0.22, 0, 0, 0, wDrk, 2.0);
+      }
+    }
+    local.bx(0, 1.4, -9.2, 3.6, 3.8, 0.35, -0.18, 0, 0, wMid, 2.0);
+    local.bx(0, 2.9, -7.2, 3.8, 1.8, 3.8, 0, 0, 0, wDrk, 2.0);
+    local.tb([[0, 2.2, 8.8], [0, 3.6, 12.6], [0, 4.7, 15.8]], [0.24, 0.17, 0.09], 8, () => wMid, 2.0, !0);
+    local.tb([[0, -2.1, -0.4], [0.1, 4.8, -0.2], [0.35, 10.6, 0.1]], [0.34, 0.26, 0.16], 10, () => wMid, 2.0, !0);
+    local.tb([[0, -1.9, 5.2], [-0.15, 3.6, 5.4], [-0.3, 7.8, 5.7]], [0.28, 0.21, 0.13], 9, () => wMid, 2.0, !0);
+    local.tb([[-3.8, 7.6, -0.3], [0.2, 8.1, -0.05], [4.1, 7.1, 0.2]], [0.10, 0.15, 0.10], 7, () => wDrk, 2.0, !0);
+    local.tb([[-2.9, 5.7, 5.3], [-0.2, 5.9, 5.5], [2.7, 5.2, 5.8]], [0.09, 0.13, 0.09], 7, () => wDrk, 2.0, !0);
+    local.calcN();
+    const shipPos = [-11.8, 12.6, -25.5];
+    const yaw = 0.68,
+      pitch = -0.16,
+      roll = 0.36;
+    const cy = cos(yaw),
+      sy = sin(yaw);
+    const cp = cos(pitch),
+      sp = sin(pitch);
+    const cr = cos(roll),
+      sr = sin(roll);
+    const xform = (x, y, z) => {
+      let x1 = x * cr - y * sr,
+        y1 = x * sr + y * cr,
+        z1 = z;
+      let x2 = x1,
+        y2 = y1 * cp - z1 * sp,
+        z2 = y1 * sp + z1 * cp;
+      let x3 = x2 * cy + z2 * sy,
+        y3 = y2,
+        z3 = -x2 * sy + z2 * cy;
+      return [x3, y3, z3];
+    };
+    for (let i = 0; i < local.pos.length; i += 3) {
+      const p = xform(local.pos[i], local.pos[i + 1], local.pos[i + 2]);
+      const n = xform(local.norm[i], local.norm[i + 1], local.norm[i + 2]);
+      local.pos[i] = shipPos[0] + p[0];
+      local.pos[i + 1] = shipPos[1] + p[1];
+      local.pos[i + 2] = shipPos[2] + p[2];
+      local.norm[i] = n[0];
+      local.norm[i + 1] = n[1];
+      local.norm[i + 2] = n[2];
+    }
+    for (let s = -8; s <= 9; s += 3.4) {
+      const cpW = xform(0, 0.2, s);
+      cList.push({
+        x: shipPos[0] + cpW[0],
+        y: shipPos[1] + cpW[1],
+        z: shipPos[2] + cpW[2],
+        r: 3.1
+      });
+    }
+    return local;
+  }
+  function mkArch(cList) {
+    const mb = new MB();
+    const steps = 32;
+    const pts = [],
+      radii = [];
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const ang = t * PI;
+      const spanX = 18.0 - cos(ang) * 7.2;
+      const baseH = sbH(spanX, -6.0);
+      const archY = max(baseH - 0.8, 0.2) + sin(ang) * 9.2;
+      const archZ = -6.0 + sin(t * TAU) * 1.15;
+      pts.push([spanX, archY, archZ]);
+      const r = 1.65 - sin(ang) * 0.48 + 0.22 * cos(t * 15.0);
+      radii.push([r * 1.18, r * 0.92]);
+      if (i % 2 === 0) cList.push({
+        x: spanX,
+        y: archY,
+        z: archZ,
+        r: r * 1.02
+      });
+    }
+    mb.tb(pts, radii, 18, (vf, ang, wx, wy, wz) => {
+      const n = fbm3(wx * 0.5, wy * 0.5, wz * 0.5, 3);
+      const coralTint = smoothstep(2.0, 9.0, wy) * 0.22;
+      return [0.34 + n * 0.16 + coralTint, 0.39 + n * 0.15, 0.44 + n * 0.16 + coralTint * 0.7];
+    }, 1.0, !0);
+    for (let i = 0; i < mb.pos.length; i += 3) {
+      const px = mb.pos[i],
+        py = mb.pos[i + 1],
+        pz = mb.pos[i + 2];
+      const d = fbm3(px * 0.75, py * 0.75, pz * 0.75, 3) * 0.45;
+      mb.pos[i] += mb.norm[i] * d;
+      mb.pos[i + 1] += mb.norm[i + 1] * d;
+      mb.pos[i + 2] += mb.norm[i + 2] * d;
+    }
+    mb.calcN();
+    return mb;
+  }
+  function mkRockP(seed) {
+    const mb = new MB();
+    addRockBlob(mb, 0, 0, 0, 1, 1, 1, seed, [1, 1, 1], 1.0);
+    mb.calcN();
+    return mb;
+  }
+  function mkBladeP() {
+    const mb = new MB();
+    const bLat = 4,
+      bLon = 6;
+    const bRings = [];
+    for (let i = 0; i <= bLat; i++) {
+      const phi = i / bLat * PI;
+      const uBulb = (1 - cos(phi)) * 0.055;
+      const rBulb = sin(phi) * 0.038 * (1 + 0.3 * cos(phi));
+      const row = [];
+      for (let j = 0; j < bLon; j++) {
+        const th = j / bLon * TAU;
+        row.push(mb.vtx(uBulb, sin(th) * rBulb, cos(th) * rBulb, 0, sin(th), cos(th), 0.56, 0.66, 0.20, 0.0));
+      }
+      bRings.push(row);
+    }
+    for (let i = 0; i < bLat; i++) {
+      for (let j = 0; j < bLon; j++) {
+        mb.qd(bRings[i][j], bRings[i + 1][j], bRings[i + 1][(j + 1) % bLon], bRings[i][(j + 1) % bLon]);
+      }
+    }
+    const uSteps = 7,
+      vSteps = 2;
+    const grid = [];
+    for (let iu = 0; iu <= uSteps; iu++) {
+      const u = iu / uSteps;
+      const x = 0.04 + u * 0.96;
+      const halfW = sin(pow(u, 0.58) * PI) * 0.118 * (1.0 - 0.22 * u);
+      const row = [];
+      for (let iv = -vSteps; iv <= vSteps; iv++) {
+        const v = iv / vSteps;
+        const serrate = abs(iv) === vSteps ? 1.0 + 0.12 * sin(u * 22.0) : 1.0;
+        const z = v * halfW * serrate;
+        const ruffleY = sin(u * 14.0 + abs(v) * 2.6) * 0.022 * abs(v);
+        row.push(mb.vtx(x, ruffleY, z, 0, 1, v * 0.28, 0.36 + 0.18 * u, 0.54 + 0.16 * u, 0.16 + 0.05 * (1 - u), u));
+      }
+      grid.push(row);
+    }
+    for (let iu = 0; iu < uSteps; iu++) {
+      for (let iv = 0; iv < vSteps * 2; iv++) {
+        mb.qd(grid[iu][iv], grid[iu + 1][iv], grid[iu + 1][iv + 1], grid[iu][iv + 1]);
+      }
+    }
+    return mb;
+  }
+  function mkCoralP() {
+    const mb = new MB();
+    const branches = [[[0, 0, 0], [0.01, 0.28, 0.0], [-0.14, 0.62, 0.03], [-0.28, 0.96, 0.05], [-0.36, 1.18, 0.06]], [[0.01, 0.24, 0], [0.16, 0.58, -0.02], [0.32, 0.92, -0.05], [0.42, 1.14, -0.06]], [[-0.09, 0.48, 0.02], [-0.03, 0.82, -0.06], [0.03, 1.12, -0.09]], [[0.11, 0.46, -0.01], [0.08, 0.80, 0.08], [0.14, 1.08, 0.12]], [[0, 0.16, 0], [-0.20, 0.44, -0.08], [-0.38, 0.74, -0.12], [-0.46, 0.96, -0.14]], [[0, 0.18, 0], [0.20, 0.42, 0.09], [0.36, 0.70, 0.14], [0.44, 0.92, 0.16]], [[-0.20, 0.68, 0.04], [-0.24, 0.98, -0.06]], [[0.22, 0.66, -0.03], [0.25, 0.96, 0.07]]];
+    for (const br of branches) {
+      const rads = br.map((_, idx) => lerp(0.046, 0.014, idx / (br.length - 1)));
+      mb.tb(br, rads, 5, vf => [0.68 + 0.32 * vf, 0.62 + 0.35 * vf, 0.72 + 0.28 * vf], 0.5, !0);
+    }
+    for (let i = 0; i < mb.pos.length / 3; i++) {
+      mb.mat[i * 4 + 3] = clamp(mb.pos[i * 3 + 1], 0, 1.2);
+    }
+    return mb;
+  }
+  function mkSpongeP() {
+    const mb = new MB();
+    const tubes = [{
+      ox: 0,
+      oz: 0,
+      h: 1.0,
+      r: 0.22,
+      leanX: 0.06,
+      leanZ: 0.02
+    }, {
+      ox: 0.24,
+      oz: 0.14,
+      h: 0.74,
+      r: 0.16,
+      leanX: 0.14,
+      leanZ: 0.08
+    }, {
+      ox: -0.20,
+      oz: 0.16,
+      h: 0.62,
+      r: 0.15,
+      leanX: -0.12,
+      leanZ: 0.10
+    }];
+    for (const tb of tubes) {
+      const pts = [],
+        rads = [];
+      for (let k = 0; k <= 5; k++) {
+        const t = k / 5;
+        pts.push([tb.ox + tb.leanX * t * t, t * tb.h, tb.oz + tb.leanZ * t * t]);
+        const swell = sin(t * PI * 0.82) * 0.35 + 0.75;
+        rads.push(tb.r * swell * (k === 5 ? 0.78 : 1.0));
+      }
+      mb.tb(pts, rads, 9, vf => [0.85 + 0.15 * vf, 0.78 + 0.20 * vf, 0.82 + 0.18 * vf], 0.0, !0);
+    }
+    for (let i = 0; i < mb.pos.length / 3; i++) {
+      mb.mat[i * 4 + 3] = clamp(mb.pos[i * 3 + 1] * 0.5, 0, 1.0);
+    }
+    return mb;
+  }
+  function mkMantaP() {
+    const mb = new MB();
+    const sxSteps = 18,
+      szStp = 14;
+    const gTop = [],
+      gBot = [];
+    for (let ix = -sxSteps; ix <= sxSteps; ix++) {
+      const s = ix / sxSteps;
+      const a = abs(s);
+      const zFront = 0.88 * pow(1.0 - a, 0.72) - 0.32 * a;
+      const zBack = -0.85 * (1.0 - pow(a, 0.65)) - 0.36 * a;
+      const thick = 0.15 * pow(1.0 - a, 1.35) + 0.014;
+      const topRow = [],
+        botRow = [];
+      for (let iz = 0; iz <= szStp; iz++) {
+        const u = iz / szStp;
+        const z = lerp(zFront, zBack, u);
+        const x = s * 1.85;
+        const foil = sin(pow(u, 0.65) * PI) * thick;
+        const chevron = smoothstep(0.12, 0.35, a) * (1.0 - smoothstep(0.38, 0.62, a)) * smoothstep(0.55, 0.18, u) * 0.52;
+        const dR = lerp(0.08, 0.68, chevron),
+          dG = lerp(0.13, 0.78, chevron),
+          dB = lerp(0.22, 0.84, chevron);
+        topRow.push(mb.vtx(x, foil, z, s * 0.15, 1, (0.3 - u) * 0.2, dR, dG, dB, a));
+        botRow.push(mb.vtx(x, -foil * 0.62, z, s * 0.1, -1, 0, 0.76, 0.84, 0.88, a));
+      }
+      gTop.push(topRow);
+      gBot.push(botRow);
+    }
+    for (let ix = 0; ix < sxSteps * 2; ix++) {
+      for (let iz = 0; iz < szStp; iz++) {
+        mb.qd(gTop[ix][iz], gTop[ix + 1][iz], gTop[ix + 1][iz + 1], gTop[ix][iz + 1]);
+        mb.qd(gBot[ix][iz], gBot[ix][iz + 1], gBot[ix + 1][iz + 1], gBot[ix + 1][iz]);
+      }
+      mb.qd(gTop[ix][0], gBot[ix][0], gBot[ix + 1][0], gTop[ix + 1][0]);
+      mb.qd(gTop[ix][szStp], gTop[ix + 1][szStp], gBot[ix + 1][szStp], gBot[ix][szStp]);
+    }
+    for (const side of [-1, 1]) {
+      mb.tb([[side * 0.24, 0.0, 0.72], [side * 0.28, -0.03, 1.05], [side * 0.20, -0.05, 1.30]], [0.08, 0.055, 0.02], 6, () => [0.14, 0.22, 0.32], 0.15, !0);
+    }
+    mb.tb([[0, 0.0, -0.78], [0, -0.02, -1.55], [0, -0.04, -2.45]], [0.045, 0.022, 0.007], 5, () => [0.09, 0.14, 0.22], 0.25, !0);
+    return mb;
+  }
+  function mkFishP() {
+    const mb = new MB();
+    const zPts = [0.52, 0.36, 0.12, -0.16, -0.36, -0.56];
+    const hRad = [0.02, 0.11, 0.155, 0.12, 0.045, 0.135];
+    const wRad = [0.015, 0.055, 0.072, 0.05, 0.018, 0.012];
+    const rings = [];
+    const sides = 8;
+    for (let i = 0; i < zPts.length; i++) {
+      const z = zPts[i];
+      const row = [];
+      for (let s = 0; s < sides; s++) {
+        const a = s / sides * TAU;
+        const nx = cos(a),
+          ny = sin(a);
+        const shade = 0.65 + 0.35 * (ny * 0.5 + 0.5);
+        const flex = smoothstep(0.25, -0.56, z);
+        row.push(mb.vtx(nx * wRad[i], ny * hRad[i], z, nx, ny, 0.1, shade, shade, shade, flex));
+      }
+      rings.push(row);
+    }
+    for (let i = 0; i < zPts.length - 1; i++) {
+      for (let s = 0; s < sides; s++) {
+        const ns = (s + 1) % sides;
+        mb.qd(rings[i][s], rings[i][ns], rings[i + 1][ns], rings[i + 1][s]);
+      }
+    }
+    const tip = mb.vtx(0, 0, 0.60, 0, 0, 1, 0.9, 0.9, 0.95, 0.0);
+    for (let s = 0; s < sides; s++) mb.tri(tip, rings[0][(s + 1) % sides], rings[0][s]);
+    const d0 = mb.vtx(0, 0.14, 0.18, 1, 0.2, 0, 0.95, 0.95, 1.0, 0.15);
+    const d1 = mb.vtx(0, 0.25, -0.08, 1, 0.2, 0, 0.95, 0.95, 1.0, 0.42);
+    const d2 = mb.vtx(0, 0.10, -0.22, 1, 0.2, 0, 0.95, 0.95, 1.0, 0.55);
+    mb.tri(d0, d1, d2);
+    mb.tri(d0, d2, d1);
+    return mb;
+  }
+  function mkJellyP() {
+    const mb = new MB();
+    const lat = 7,
+      lon = 14;
+    const rings = [];
+    for (let i = 0; i <= lat; i++) {
+      const v = i / lat;
+      const ang = v * PI * 0.58;
+      const r = sin(ang) * 0.52 * (1.0 + 0.08 * sin(v * 9.0));
+      const y = cos(ang) * 0.42;
+      const row = [];
+      for (let j = 0; j < lon; j++) {
+        const th = j / lon * TAU;
+        const scallop = i === lat ? sin(th * 7.0) * 0.025 : 0;
+        row.push(mb.vtx(cos(th) * r, y + scallop, sin(th) * r, cos(th) * sin(ang), cos(ang), sin(th) * sin(ang), 0.55, 0.88, 1.0, v));
+      }
+      rings.push(row);
+    }
+    for (let i = 0; i < lat; i++) {
+      for (let j = 0; j < lon; j++) {
+        const nj = (j + 1) % lon;
+        mb.qd(rings[i][j], rings[i + 1][j], rings[i + 1][nj], rings[i][nj]);
+      }
+    }
+    for (let t = 0; t < 6; t++) {
+      const a = t / 6 * TAU;
+      const rx = cos(a) * 0.18,
+        rz = sin(a) * 0.18;
+      const pts = [[rx * 0.5, 0.15, rz * 0.5], [rx, -0.22, rz], [rx * 1.15, -0.68, rz * 1.15], [rx * 0.9, -1.18, rz * 0.9]];
+      mb.tb(pts, [0.032, 0.024, 0.016, 0.007], 4, () => [0.78, 0.62, 1.0], 1.35, !1);
+    }
+    return mb;
+  }
+  const GL_C = `float h12(vec2 p){vec3 p3=fract(vec3(p.xyx)*0.1031);p3+=dot(p3,p3.yzx+33.33);return fract((p3.x+p3.y)*p3.z);}float h13(vec3 p3){p3=fract(p3*0.1031);p3+=dot(p3,p3.zyx+31.32);return fract((p3.x+p3.y)*p3.z);}float vn3(vec3 x){vec3 i=floor(x);vec3 f=fract(x);f=f*f*(3.0-2.0*f);return mix(mix(mix(h13(i+vec3(0,0,0)),h13(i+vec3(1,0,0)),f.x),mix(h13(i+vec3(0,1,0)),h13(i+vec3(1,1,0)),f.x),f.y),mix(mix(h13(i+vec3(0,0,1)),h13(i+vec3(1,0,1)),f.x),mix(h13(i+vec3(0,1,1)),h13(i+vec3(1,1,1)),f.x),f.y),f.z);}float caustP(vec2 p,float t){mat2 m1=mat2(0.80,-0.60,0.60,0.80);mat2 m2=mat2(-0.55,0.835,-0.835,-0.55);vec2 uv1=m1*p*0.34+vec2(t*0.16,-t*0.11);vec2 uv2=m2*p*0.43+vec2(-t*0.13,t*0.19);vec2 s1=sin(uv1*3.14159+cos(uv1.yx*2.7+t*0.8));vec2 s2=sin(uv2*3.14159+sin(uv2.yx*3.1-t*0.7));float w=abs(s1.x*s1.y+s2.x*s2.y)*0.5;float ridge=pow(clamp(1.0-abs(w-0.32)*3.1,0.0,1.0),3.4);float fine=pow(clamp(1.0-abs(sin(uv1.x*5.2-uv2.y*4.8+t*1.1)),0.0,1.0),6.0);return ridge*0.85+fine*0.42;}vec3 ocBg(vec3 rd,vec3 sunDir){float up=clamp(rd.y*0.5+0.5,0.0,1.0);vec3 deepCol=vec3(0.006,0.036,0.088);vec3 midCol=vec3(0.018,0.165,0.268);vec3 highCol=vec3(0.115,0.545,0.680);vec3 col=mix(deepCol,midCol,smoothstep(0.14,0.52,up));col=mix(col,highCol,smoothstep(0.50,0.94,up));float mu=max(dot(rd,sunDir),0.0);col+=vec3(0.15,0.42,0.48)*pow(mu,4.5)*smoothstep(-0.15,0.58,rd.y);col+=vec3(0.54,0.82,0.78)*pow(mu,22.0)*smoothstep(0.05,0.88,rd.y);return col;}vec3 uwOpt(vec3 surfCol,vec3 worldPos,vec3 camPos,vec3 sunDir,float surfaceY){vec3 viewVec=worldPos-camPos;float dist=length(viewVec);vec3 rd=viewVec/max(dist,0.0001);float avgDepth=clamp((surfaceY-0.5*(worldPos.y+camPos.y))/32.0,0.0,1.4);vec3 absorb=exp(-dist*vec3(0.095,0.032,0.022)*(0.78+0.35*avgDepth));vec3 scatterTarget=ocBg(rd,sunDir)*mix(1.02,0.54,clamp(avgDepth*0.75,0.0,1.0));float scatterAmt=1.0-exp(-dist*0.028);return surfCol*absorb+scatterTarget*scatterAmt;}vec3 kSpine(vec3 root,float height,float hFr,float phase,vec2 lean,float time){float y=hFr*height;float bend=pow(hFr,1.38);float swX=sin(time*0.66+phase+hFr*2.25)*1.12+sin(time*1.52+phase*1.9-hFr*4.8)*0.18*hFr;float swZ=cos(time*0.52+phase*1.31+hFr*1.85)*0.86+cos(time*1.35+phase*2.3-hFr*4.2)*0.14*hFr;vec2 disp=lean*(height*0.11*bend)+vec2(swX,swZ)*bend*(0.42+0.042*height);return root+vec3(disp.x,y-dot(disp,disp)*0.018,disp.y);}`;
+  const VS_QUAD = `#version 300 es
+precision highp float;const vec2 P[3]=vec2[3](vec2(-1.0,-1.0),vec2(3.0,-1.0),vec2(-1.0,3.0));out vec2 vUV;void main(){vUV=P[gl_VertexID]*0.5+0.5;gl_Position=vec4(P[gl_VertexID],0.9999,1.0);}`;
+  const FS_BG = `#version 300 es
+precision highp float;in vec2 vUV;uniform mat4 uIVP;uniform vec3 uCP;uniform vec3 uSL;uniform float uHS;out vec4 fC;${GL_C}void main(){vec4 clip=vec4(vUV*2.0-1.0,1.0,1.0);vec4 w=uIVP*clip;vec3 rd=normalize(w.xyz/w.w-uCP);vec3 col=ocBg(rd,uSL);fC=vec4(col*uHS,1.0);}`;
+  const VS_SHADOW_STATIC = `#version 300 es
+precision highp float;layout(location=0)in vec3 aPos;uniform mat4 uLVP;void main(){gl_Position=uLVP*vec4(aPos,1.0);}`;
+  const VS_SHADOW_INST = `#version 300 es
+precision highp float;layout(location=0)in vec3 aPos;layout(location=2)in vec4 aMat;layout(location=3)in vec4 iPS;layout(location=4)in vec4 iRS;layout(location=5)in vec4 iColor;uniform mat4 uLVP;uniform float uTm;void main(){float cy=cos(iRS.x),sy=sin(iRS.x);float cx=cos(iRS.y),sx=sin(iRS.y);vec3 p=aPos*iPS.w;p=vec3(p.x,p.y*cx-p.z*sx,p.y*sx+p.z*cx);p=vec3(p.x*cy+p.z*sy,p.y,-p.x*sy+p.z*cy);float sway=iColor.w*aMat.w;p.x+=sin(uTm*1.15+iRS.w)*0.16*sway;p.z+=cos(uTm*0.95+iRS.w*1.3)*0.14*sway;gl_Position=uLVP*vec4(iPS.xyz+p,1.0);}`;
+  const VS_SHADOW_KELP = `#version 300 es
+precision highp float;layout(location=0)in vec3 aPos;layout(location=2)in vec4 aMat;layout(location=3)in vec4 iRoot;layout(location=4)in vec4 iBl;uniform mat4 uLVP;uniform float uTm;${GL_C}void main(){float hFr=iBl.x;float az=iBl.y+sin(uTm*0.7+iBl.w)*0.25;float bLen=iBl.z;float phase=iBl.w;vec2 lean=vec2(sin(phase*3.7),cos(phase*2.9))*0.65;vec3 attach=kSpine(iRoot.xyz,iRoot.w,hFr,phase,lean,uTm);float u=aMat.w;vec3 dir=normalize(vec3(cos(az),0.18-0.46*u,sin(az)));vec3 side=normalize(cross(vec3(0.0,1.0,0.0),dir));vec3 up=cross(dir,side);float wave=sin(uTm*2.25-u*4.4+phase*5.1)*0.14*u;vec3 wp=attach+dir*(aPos.x*bLen)+up*((aPos.y+wave)*bLen)+side*(aPos.z*bLen);gl_Position=uLVP*vec4(wp,1.0);}`;
+  const FS_SHADOW = `#version 300 es
+precision highp float;void main(){}`;
+  const VS_WORLD = `#version 300 es
+precision highp float;layout(location=0)in vec3 aPos;layout(location=1)in vec3 aNorm;layout(location=2)in vec4 aMat;uniform mat4 uVP;uniform mat4 uLVP;out vec3 vWP;out vec3 vN;out vec4 vMat;out vec4 vSC;void main(){vWP=aPos;vN=aNorm;vMat=aMat;vSC=uLVP*vec4(aPos,1.0);gl_Position=uVP*vec4(aPos,1.0);}`;
+  const VS_INSTANCED = `#version 300 es
+precision highp float;layout(location=0)in vec3 aPos;layout(location=1)in vec3 aNorm;layout(location=2)in vec4 aMat;layout(location=3)in vec4 iPS;layout(location=4)in vec4 iRS;layout(location=5)in vec4 iColor;uniform mat4 uVP;uniform mat4 uLVP;uniform vec3 uCP;uniform float uTm;uniform float uDD;out vec3 vWP;out vec3 vN;out vec4 vMat;out vec4 vSC;void main(){float dCam=distance(iPS.xyz,uCP);float cullScale=1.0-smoothstep(uDD*0.86,uDD,dCam);if(iPS.w>1.35)cullScale=1.0;float cy=cos(iRS.x),sy=sin(iRS.x);float cx=cos(iRS.y),sx=sin(iRS.y);float cz=cos(iRS.z),sz=sin(iRS.z);vec3 p=aPos*(iPS.w*cullScale);vec3 n=aNorm;p=vec3(p.x,p.y*cx-p.z*sx,p.y*sx+p.z*cx);n=vec3(n.x,n.y*cx-n.z*sx,n.y*sx+n.z*cx);p=vec3(p.x*cz-p.y*sz,p.x*sz+p.y*cz,p.z);n=vec3(n.x*cz-n.y*sz,n.x*sz+n.y*cz,n.z);p=vec3(p.x*cy+p.z*sy,p.y,-p.x*sy+p.z*cy);n=vec3(n.x*cy+n.z*sy,n.y,-n.x*sy+n.z*cy);float sway=iColor.w*aMat.w;if(sway>0.001){p.x+=sin(uTm*1.25+iRS.w+aPos.y*1.7)*0.16*sway;p.z+=cos(uTm*1.02+iRS.w*1.4+aPos.y*1.5)*0.14*sway;}vec3 wp=iPS.xyz+p;vWP=wp;vN=normalize(n);vMat=vec4(aMat.rgb*iColor.rgb,iColor.w>0.05?3.0:1.2);vSC=uLVP*vec4(wp,1.0);gl_Position=uVP*vec4(wp,1.0);}`;
+  const FS_WORLD = `#version 300 es
+precision highp float;precision highp sampler2DShadow;in vec3 vWP;in vec3 vN;in vec4 vMat;in vec4 vSC;uniform sampler2DShadow uSM;uniform vec3 uCP;uniform vec3 uSL;uniform float uTm;uniform float uSY;uniform float uHS;out vec4 fC;${GL_C}float sunShad(vec4 sc){vec3 proj=sc.xyz/sc.w*0.5+0.5;if(proj.x<=0.01 || proj.x>=0.99 || proj.y<=0.01 || proj.y>=0.99 || proj.z>=0.999)return 1.0;float bias=0.0022;float sum=0.0;vec2 texel=vec2(1.0/1024.0);sum+=texture(uSM,vec3(proj.xy+vec2(-0.7,-0.3)*texel,proj.z-bias));sum+=texture(uSM,vec3(proj.xy+vec2(0.6,-0.5)*texel,proj.z-bias));sum+=texture(uSM,vec3(proj.xy+vec2(-0.3,0.7)*texel,proj.z-bias));sum+=texture(uSM,vec3(proj.xy+vec2(0.5,0.6)*texel,proj.z-bias));return sum*0.25;}void main(){vec3 N=normalize(vN);if(!gl_FrontFacing)N=-N;vec3 V=normalize(uCP-vWP);float matId=vMat.w;float n1=vn3(vWP*1.65);float n2=vn3(vWP*5.4);vec3 bCol=vMat.rgb;if(matId<0.5){float slope=clamp(1.0-N.y,0.0,1.0);float sandMask=smoothstep(0.36,0.08,slope);float ripple=sin(vWP.x*3.4+vWP.z*1.7+n1*3.2)*0.5+0.5;vec3 sandCol=mix(vec3(0.24,0.36,0.39),vec3(0.44,0.56,0.56),ripple*0.55+n2*0.25);vec3 cliffCol=vec3(0.11,0.18,0.22)*(0.72+0.55*n1);bCol=mix(cliffCol,sandCol,sandMask);N=normalize(N+vec3((n2-0.5)*0.22,0.0,(n1-0.5)*0.22));}else if(matId<1.6){float sandDust=smoothstep(0.58,0.92,N.y)*smoothstep(9.0,1.5,vWP.y)*0.42;bCol*=(0.82+0.34*n1+0.14*n2);bCol=mix(bCol,vec3(0.52,0.65,0.64),sandDust);N=normalize(N+vec3(n2-0.5,(n1-0.5)*0.5,n1-0.5)*0.26);}else if(matId<2.5){float grain=sin(vWP.y*14.0+n1*6.0)*0.08;bCol=bCol*(0.86+0.26*n1)+vec3(grain*0.4);}float shadow=sunShad(vSC);float ndl=max(dot(N,uSL),0.0);float dBel=max(0.5,uSY-vWP.y);vec2 sHt=vWP.xz+uSL.xz*(dBel/max(0.2,uSL.y));float caust=caustP(sHt,uTm);float cFd=exp(-dBel*0.042)*smoothstep(-0.05,0.55,N.y)*(0.28+0.72*shadow);vec3 ambSky=vec3(0.065,0.26,0.36)*(0.58+0.42*N.y);vec3 ambBounce=vec3(0.055,0.18,0.22)*max(0.2,-N.y+0.55);vec3 sunCol=vec3(0.82,0.98,0.95)*exp(-dBel*vec3(0.042,0.014,0.010));vec3 lit=bCol*(ambSky+ambBounce+sunCol*ndl*(0.25+0.75*shadow));lit+=(bCol*0.65+vec3(0.24,0.38,0.40))*sunCol*caust*cFd*1.85;if(matId>2.5){float backLight=pow(clamp(dot(V,-uSL)*0.5+0.5,0.0,1.0),2.4);float rim=pow(1.0-max(dot(N,V),0.0),2.2);lit+=bCol*vec3(0.62,0.75,0.78)*(backLight*0.42+rim*0.36);float deepGlow=smoothstep(-1.5,-9.5,vWP.y);lit+=bCol*deepGlow*0.48;}else{vec3 H=normalize(uSL+V);float spec=pow(max(dot(N,H),0.0),28.0)*shadow*cFd;lit+=vec3(0.26,0.45,0.48)*spec*0.45;}vec3 finalCol=uwOpt(lit,vWP,uCP,uSL,uSY);fC=vec4(finalCol*uHS,1.0);}`;
+  const VS_KELP_STIPE = `#version 300 es
+precision highp float;layout(location=0)in vec3 aPos;layout(location=1)in vec3 aNorm;layout(location=3)in vec4 iRoot;layout(location=4)in vec4 iStipe;uniform mat4 uVP;uniform vec3 uCP;uniform float uTm;uniform float uDD;out vec3 vWP;out vec3 vN;out float vHFrac;${GL_C}void main(){float dCam=distance(iRoot.xyz,uCP);float vis=1.0-smoothstep(uDD*0.88,uDD,dCam);float hFr=clamp(aPos.y,0.0,1.0);vec2 lean=iStipe.zw;vec3 c0=kSpine(iRoot.xyz,iRoot.w,hFr,iStipe.y,lean,uTm);vec3 c1=kSpine(iRoot.xyz,iRoot.w,min(1.0,hFr+0.04),iStipe.y,lean,uTm);vec3 tang=normalize(c1-c0+vec3(0.0,0.001,0.0));vec3 bx=normalize(cross(tang,vec3(0.0,0.0,1.0)));vec3 bz=cross(bx,tang);float rad=iStipe.x*mix(1.25,0.42,hFr)*vis;vec3 offset=(bx*aPos.x+bz*aPos.z)*rad;vWP=c0+offset;vN=normalize(bx*aNorm.x+bz*aNorm.z);vHFrac=hFr;gl_Position=uVP*vec4(vWP,1.0);}`;
+  const FS_KELP_STIPE = `#version 300 es
+precision highp float;in vec3 vWP;in vec3 vN;in float vHFrac;uniform vec3 uCP;uniform vec3 uSL;uniform float uSY;uniform float uHS;out vec4 fC;${GL_C}void main(){vec3 N=normalize(vN);vec3 base=mix(vec3(0.11,0.22,0.11),vec3(0.28,0.44,0.16),vHFrac);float ndl=max(dot(N,uSL),0.0)*0.65+0.35;float surfLight=exp(-max(0.0,uSY-vWP.y)*0.035);vec3 lit=base*(vec3(0.14,0.36,0.40)+vec3(0.75,0.88,0.65)*ndl*surfLight);vec3 col=uwOpt(lit,vWP,uCP,uSL,uSY);fC=vec4(col*uHS,1.0);}`;
+  const VS_KELP_BLADE = `#version 300 es
+precision highp float;layout(location=0)in vec3 aPos;layout(location=1)in vec3 aNorm;layout(location=2)in vec4 aMat;layout(location=3)in vec4 iRoot;layout(location=4)in vec4 iBl;uniform mat4 uVP;uniform mat4 uLVP;uniform vec3 uCP;uniform float uTm;uniform float uDD;out vec3 vWP;out vec3 vN;out vec4 vCU;out vec4 vSC;${GL_C}void main(){float dCam=distance(iRoot.xyz,uCP);float lodFade=1.0-smoothstep(uDD*0.80,uDD,dCam);float hFr=iBl.x;float phase=iBl.w;vec2 lean=vec2(sin(phase*3.7),cos(phase*2.9))*0.65;vec3 attach=kSpine(iRoot.xyz,iRoot.w,hFr,phase,lean,uTm);float u=aMat.w;float az=iBl.y+sin(uTm*0.72+phase+hFr*3.1)*0.28;float bLen=iBl.z*lodFade;float droop=0.24-0.54*pow(u,1.15)+0.14*hFr;vec3 dir=normalize(vec3(cos(az),droop,sin(az)));vec3 side=normalize(cross(vec3(0.0,1.0,0.0),dir));vec3 up=cross(dir,side);float flutter=sin(uTm*2.35-u*4.8+phase*6.1)*0.14*u;float twist=sin(u*3.2+phase*2.4+uTm*1.1)*0.32*u;vec3 lUp=normalize(up*cos(twist)+side*sin(twist));vec3 lSd=cross(dir,lUp);vec3 wp=attach+dir*(aPos.x*bLen)+lUp*((aPos.y+flutter)*bLen)+lSd*(aPos.z*bLen);vec3 wn=normalize(lUp*aNorm.y+lSd*aNorm.z+dir*0.15);vWP=wp;vN=wn;float cWm=smoothstep(0.32,0.96,hFr);vec3 tint=mix(vec3(0.085,0.22,0.115),vec3(0.34,0.46,0.14),cWm);tint*=(0.78+0.38*fract(phase*17.3))*(0.82+0.28*u);vCU=vec4(tint*aMat.rgb*1.72,u);vSC=uLVP*vec4(wp,1.0);gl_Position=uVP*vec4(wp,1.0);}`;
+  const FS_KELP_BLADE = `#version 300 es
+precision highp float;precision highp sampler2DShadow;in vec3 vWP;in vec3 vN;in vec4 vCU;in vec4 vSC;uniform sampler2DShadow uSM;uniform vec3 uCP;uniform vec3 uSL;uniform float uTm;uniform float uSY;uniform float uHS;out vec4 fC;${GL_C}void main(){vec3 N=normalize(vN);if(!gl_FrontFacing)N=-N;vec3 V=normalize(uCP-vWP);vec3 proj=vSC.xyz/vSC.w*0.5+0.5;float sh=1.0;if(proj.x>0.01 && proj.x<0.99 && proj.y>0.01 && proj.y<0.99 && proj.z<0.999){sh=texture(uSM,vec3(proj.xy,proj.z-0.0028));}float dBel=max(0.3,uSY-vWP.y);float dLt=exp(-dBel*0.036);float ndl=abs(dot(N,uSL));float bSc=pow(clamp(dot(V,-uSL)*0.6+0.4,0.0,1.0),2.4);float vein=0.90+0.10*sin(vCU.w*42.0);vec3 base=vCU.rgb*vein;vec3 amb=vec3(0.09,0.33,0.39)*(0.55+0.45*(N.y*0.5+0.5));vec3 direct=vec3(0.86,0.98,0.78)*ndl*(0.30+0.70*sh)*dLt;vec3 sss=vec3(0.58,0.82,0.24)*bSc*(0.35+0.65*sh)*dLt*0.95;vec3 lit=base*(amb+direct)+base*sss;vec3 col=uwOpt(lit,vWP,uCP,uSL,uSY);fC=vec4(col*uHS,1.0);}`;
+  const VS_FAUNA = `#version 300 es
+precision highp float;layout(location=0)in vec3 aPos;layout(location=1)in vec3 aNorm;layout(location=2)in vec4 aMat;layout(location=3)in vec4 iTransform;layout(location=4)in vec4 iOr;layout(location=5)in vec4 iTint;uniform mat4 uVP;uniform float uTm;out vec3 vWP;out vec3 vN;out vec4 vTM;void main(){vec3 p=aPos;vec3 n=aNorm;float mode=iTint.w;float phase=iOr.w;if(mode<0.5){float span=aMat.w;float wave=sin(phase-span*2.55-p.z*0.95)*pow(span,1.45)*0.52;float deriv=-2.55*cos(phase-span*2.55-p.z*0.95)*pow(max(0.05,span),1.2)*0.35*sign(p.x);p.y+=wave;n=normalize(vec3(n.x-deriv,n.y,n.z));}else if(mode<1.5){float flex=aMat.w;float sw=sin(phase-p.z*5.8)*flex*0.16;p.x+=sw;}else{float v=aMat.w;if(v<=1.05){float pulse=1.0+sin(phase)*0.16*v;p.xz*=pulse;p.y*=(1.0-sin(phase)*0.08*v);}else{p.x+=sin(phase*0.8+p.y*3.1)*0.12;p.z+=cos(phase*0.7+p.y*2.8)*0.12;}}p*=iTransform.w;float cy=cos(iOr.x),sy=sin(iOr.x);float cp=cos(iOr.y),sp=sin(iOr.y);float cr=cos(iOr.z),sr=sin(iOr.z);p=vec3(p.x*cr-p.y*sr,p.x*sr+p.y*cr,p.z);n=vec3(n.x*cr-n.y*sr,n.x*sr+n.y*cr,n.z);p=vec3(p.x,p.y*cp-p.z*sp,p.y*sp+p.z*cp);n=vec3(n.x,n.y*cp-n.z*sp,n.y*sp+n.z*cp);p=vec3(p.x*cy+p.z*sy,p.y,-p.x*sy+p.z*cy);n=vec3(n.x*cy+n.z*sy,n.y,-n.x*sy+n.z*cy);vWP=iTransform.xyz+p;vN=normalize(n);vTM=vec4(aMat.rgb*iTint.rgb,mode);gl_Position=uVP*vec4(vWP,1.0);}`;
+  const FS_FAUNA = `#version 300 es
+precision highp float;in vec3 vWP;in vec3 vN;in vec4 vTM;uniform vec3 uCP;uniform vec3 uSL;uniform float uTm;uniform float uSY;uniform float uHS;out vec4 fC;${GL_C}void main(){vec3 N=normalize(vN);vec3 V=normalize(uCP-vWP);float mode=vTM.w;float dBel=max(0.5,uSY-vWP.y);if(mode>1.5){float fres=pow(1.0-abs(dot(N,V)),2.1);vec3 glow=vTM.rgb*(0.45+1.55*fres);vec3 col=uwOpt(glow,vWP,uCP,uSL,uSY);fC=vec4(col*uHS,clamp(0.28+fres*0.65,0.0,0.92));return;}float ndl=max(dot(N,uSL),0.0);vec2 sHt=vWP.xz+uSL.xz*(dBel/max(0.2,uSL.y));float caust=caustP(sHt,uTm)*smoothstep(0.0,0.65,N.y)*exp(-dBel*0.045);vec3 H=normalize(uSL+V);float irid=pow(max(dot(N,H),0.0),mode>0.5?42.0:22.0);vec3 lit=vTM.rgb*(vec3(0.14,0.40,0.48)+vec3(0.85,0.96,0.94)*ndl*0.85);lit+=vTM.rgb*caust*0.95+vec3(0.55,0.88,0.95)*irid*(mode>0.5?0.85:0.30);vec3 col=uwOpt(lit,vWP,uCP,uSL,uSY);fC=vec4(col*uHS,1.0);}`;
+  const VS_SURFACE = `#version 300 es
+precision highp float;layout(location=0)in vec3 aPos;uniform mat4 uVP;uniform vec3 uCP;uniform float uTm;uniform float uSY;out vec3 vWP;out vec3 vSurfNorm;void main(){vec3 wp=vec3(aPos.x+uCP.x,uSY,aPos.z+uCP.z);float w1=sin(wp.x*0.42+uTm*1.15)*cos(wp.z*0.36-uTm*0.85)*0.28;float w2=sin((wp.x*0.85-wp.z*0.62)+uTm*1.75)*0.11;wp.y+=w1+w2;float dx=0.42*cos(wp.x*0.42+uTm*1.15)*0.28+0.85*cos((wp.x*0.85-wp.z*0.62)+uTm*1.75)*0.11;float dz=-0.36*sin(wp.z*0.36-uTm*0.85)*0.28-0.62*cos((wp.x*0.85-wp.z*0.62)+uTm*1.75)*0.11;vSurfNorm=normalize(vec3(dx,-1.0,dz));vWP=wp;gl_Position=uVP*vec4(wp,1.0);}`;
+  const FS_SURFACE = `#version 300 es
+precision highp float;in vec3 vWP;in vec3 vSurfNorm;uniform vec3 uCP;uniform vec3 uSL;uniform float uTm;uniform float uSY;uniform float uHS;out vec4 fC;${GL_C}void main(){vec3 I=normalize(vWP-uCP);vec2 rip=vec2(sin(vWP.x*2.3+uTm*2.1)+cos(vWP.z*2.9-uTm*1.8),cos(vWP.x*2.7-uTm*1.9)+sin(vWP.z*2.1+uTm*2.3))*0.045;vec3 N=normalize(vSurfNorm+vec3(rip.x,0.0,rip.y));float cosTheta=max(dot(-I,N),0.0);float snell=smoothstep(0.56,0.75,cosTheta);vec3 refracted=refract(I,N,1.333);vec3 skyCol=mix(vec3(0.32,0.82,0.94),vec3(0.75,0.96,1.0),clamp(refracted.y,0.0,1.0));float sunSpot=pow(max(dot(normalize(refracted+vec3(0.0,0.001,0.0)),uSL),0.0),36.0);skyCol+=vec3(1.25,1.18,0.92)*sunSpot*1.35;vec3 tirCol=vec3(0.06,0.34,0.44)+caustP(vWP.xz*0.85,uTm)*vec3(0.16,0.44,0.50);vec3 surf=mix(tirCol,skyCol,snell);vec3 col=uwOpt(surf,vWP,uCP,uSL,uSY);fC=vec4(col*uHS,1.0);}`;
+  const VS_PARTICLES = `#version 300 es
+precision highp float;layout(location=0)in vec4 aParticle;uniform mat4 uVP;uniform vec3 uCP;uniform float uTm;uniform float uViewportH;out float vType;out float vAlpha;out vec3 vWP;void main(){float isBubble=step(1.0,aParticle.w);float seed=fract(aParticle.w);vec3 box=vec3(44.0,28.0,44.0);vec3 drift=isBubble>0.5?vec3(sin(uTm*1.8+seed*40.0)*0.45,uTm*(1.8+seed*1.4),cos(uTm*1.6+seed*32.0)*0.45):vec3(sin(uTm*0.35+seed*25.0)*1.4+uTm*0.22,sin(uTm*0.28+seed*19.0)*0.8-uTm*0.08,cos(uTm*0.31+seed*21.0)*1.4);vec3 rel=mod(aParticle.xyz+drift-uCP+box*0.5,box)-box*0.5;vec3 wp=uCP+rel;wp.y=min(wp.y,25.4);float dist=length(rel);vAlpha=(1.0-smoothstep(14.0,22.0,dist))*smoothstep(0.6,2.2,dist);vType=isBubble;vWP=wp;gl_Position=uVP*vec4(wp,1.0);float sz=isBubble>0.5?(3.2+seed*4.2):(1.5+seed*2.1);gl_PointSize=clamp(sz*(uViewportH/720.0)*(9.5/max(1.5,dist)),1.2,18.0);}`;
+  const FS_PARTICLES = `#version 300 es
+precision highp float;in float vType;in float vAlpha;in vec3 vWP;uniform float uSY;uniform float uHS;out vec4 fC;void main(){vec2 d=gl_PointCoord*2.0-1.0;float r2=dot(d,d);if(r2>1.0)discard;float depthFade=exp(-max(0.0,uSY-vWP.y)*0.035);if(vType>0.5){float rim=smoothstep(0.32,0.92,sqrt(r2))*(1.0-smoothstep(0.92,1.0,sqrt(r2)));float spec=exp(-dot(d-vec2(-0.32,-0.34),d-vec2(-0.32,-0.34))*11.0);vec3 bCol=vec3(0.62,0.94,1.0)*(rim*0.75+spec*1.35)*(0.45+0.55*depthFade);fC=vec4(bCol*uHS,clamp((rim*0.55+spec*0.85)*vAlpha,0.0,0.9));}else{float soft=exp(-r2*3.2);vec3 mCol=vec3(0.54,0.88,0.90)*(0.35+0.65*depthFade);fC=vec4(mCol*uHS,soft*vAlpha*0.46);}}`;
+  const FS_VOLUMETRIC = `#version 300 es
+precision highp float;precision highp sampler2DShadow;in vec2 vUV;uniform sampler2D uSC;uniform sampler2D uSD;uniform sampler2DShadow uSM;uniform mat4 uIVP;uniform mat4 uLVP;uniform vec3 uCP;uniform vec3 uSL;uniform float uTm;uniform float uSY;uniform int uRaySteps;uniform float uHS;out vec4 fC;${GL_C}void main(){float zSample=texture(uSD,vUV).r;vec4 clip=vec4(vUV*2.0-1.0,zSample*2.0-1.0,1.0);vec4 worldH=uIVP*clip;vec3 worldHit=worldH.xyz/worldH.w;vec3 viewVec=worldHit-uCP;float hitDist=(zSample>=0.9999)?46.0:min(length(viewVec),46.0);vec3 rd=normalize(viewVec);float jitter=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(0.06711056,0.00583715))));int steps=uRaySteps;float dt=hitDist/float(steps);float mu=max(dot(rd,uSL),0.0);float phase=0.26+0.95*pow(mu,3.2);vec3 volAccum=vec3(0.0);for(int i=0;i<20;i++){if(i>=steps)break;float t=(float(i)+jitter)*dt;vec3 p=uCP+rd*t;if(p.y>uSY)continue;vec4 sc=uLVP*vec4(p,1.0);vec3 proj=sc.xyz/sc.w*0.5+0.5;float shV=1.0;if(proj.x>0.01 && proj.x<0.99 && proj.y>0.01 && proj.y<0.99 && proj.z<0.999){shV=texture(uSM,vec3(proj.xy,proj.z-0.0025));}float dBel=max(0.2,uSY-p.y);vec2 surfPt=p.xz+uSL.xz*(dBel/max(0.2,uSL.y));float bmC=pow(caustP(surfPt*0.56,uTm*0.82),1.25);float atten=exp(-dBel*0.042)*exp(-t*0.031);volAccum+=vec3(0.32,0.88,0.94)*shV*(0.12+1.85*bmC)*atten*dt;}volAccum*=phase*0.088;vec2 texel=vec2(1.0)/vec2(textureSize(uSC,0));vec3 c0=texture(uSC,vUV).rgb/uHS;vec3 c1=texture(uSC,vUV+vec2(2.2,1.2)*texel).rgb/uHS;vec3 c2=texture(uSC,vUV+vec2(-2.2,1.2)*texel).rgb/uHS;vec3 c3=texture(uSC,vUV+vec2(1.2,-2.2)*texel).rgb/uHS;vec3 c4=texture(uSC,vUV+vec2(-1.2,-2.2)*texel).rgb/uHS;vec3 avg=(c0*2.0+c1+c2+c3+c4)/6.0;float lum=dot(avg,vec3(0.2126,0.7152,0.0722));vec3 bloom=avg*smoothstep(0.62,1.45,lum)*0.35;fC=vec4((volAccum+bloom)*uHS,1.0);}`;
+  const FS_COMPOSITE = `#version 300 es
+precision highp float;
+in vec2 vUV;
+uniform sampler2D uSC;
+uniform sampler2D uVB;
+uniform sampler2D uDepth;
+uniform float uHS;
+uniform vec4 uFilm;
+uniform vec3 uLens;
+out vec4 fC;
+
+vec3 toneMap(vec3 x) {
+  return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14),0.0,1.0);
+}
+vec3 waterLight(vec2 uv) {
+  vec2 e = vec2(1.25) / vec2(textureSize(uVB, 0));
+  vec3 core = texture(uVB, uv).rgb * 4.0;
+  vec3 axis = texture(uVB, uv+vec2(e.x,0)).rgb + texture(uVB, uv-vec2(e.x,0)).rgb
+    + texture(uVB, uv+vec2(0,e.y)).rgb + texture(uVB, uv-vec2(0,e.y)).rgb;
+  vec3 corners = texture(uVB, uv+e).rgb + texture(uVB, uv-e).rgb
+    + texture(uVB, uv+vec2(-e.x,e.y)).rgb + texture(uVB, uv+vec2(e.x,-e.y)).rgb;
+  return (core + axis*2.0 + corners) / (16.0*uHS);
+}
+float focusBlur(vec2 uv) {
+  float z = texture(uDepth, uv).r * 2.0 - 1.0;
+  float distanceM = (2.0*0.22*165.0) / (165.0 + 0.22 - z*(165.0 - 0.22));
+  float tiltedPlane = uLens.y * exp2((uv.y-0.5)*uLens.z*3.0);
+  float offset = abs(log2(max(distanceM,0.22)/tiltedPlane));
+  return smoothstep(0.17,2.5,offset) * (64.0/uLens.x - 1.0) * 0.45;
+}
+void main() {
+  vec2 centered = vUV - 0.5;
+  float r2 = dot(centered, centered);
+  vec3 scene = texture(uSC, vUV).rgb;
+  if (uFilm.w > 0.0) {
+    float blur = focusBlur(vUV);
+    vec2 e = vec2(blur, blur*0.5) / vec2(textureSize(uSC, 0));
+    scene = (scene*2.0 + texture(uSC, vUV+e).rgb + texture(uSC, vUV-e).rgb) * 0.25;
+  } else {
+    scene.r = texture(uSC, vUV-centered*r2*0.0045).r;
+  }
+  vec3 rgb = (scene/uHS + waterLight(vUV)) * (1.0-r2*0.24)*1.16;
+  rgb = pow(toneMap(rgb),vec3(1.0/2.2));
+  if (uFilm.w > 0.0) {
+    float gray = clamp((dot(rgb,uFilm.rgb) - 0.5)*uFilm.w + 0.5,0.0,1.0);
+    rgb = vec3(gray) * max(0.72,1.0-r2*0.52);
+  }
+  fC = vec4(rgb, 1.0);
+}`;
+  const canvas = $id('glCanvas');
+  const gl = canvas.getContext('webgl2', {
+    alpha: !1,
+    antialias: !1,
+    depth: !1,
+    stencil: !1,
+    preserveDrawingBuffer: !0
+  });
+  function checkRenderer() {
+    let hasSaved = !1;
+    try {
+      hasSaved = !!localStorage.getItem(STORAGE_KEY);
+    } catch (_) {}
+    try {
+        const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+        const rnd = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER));
+      softwareRenderer = /SwiftShader|llvmpipe|Software|Basic Render/i.test(rnd);
+      if (softwareRenderer && !hasSaved) prf.quality = 'low';
+    } catch (_) {}
+  }
+  let hasFloatFBO = false;
+  let HS = 0.45;
+  function mkSh(type, src, label) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+      const log = gl.getShaderInfoLog(sh);
+      console.error('Shader compile error [' + label + ']:', log);
+      throw new Error('Shader compile failed [' + label + ']: ' + log);
+    }
+    return sh;
+  }
+  function mkProg(vsSrc, fsSrc, label) {
+    const prog = gl.createProgram();
+    const vs = mkSh(gl.VERTEX_SHADER, vsSrc, label + '_VS');
+    const fs = mkSh(gl.FRAGMENT_SHADER, fsSrc, label + '_FS');
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+    gl.deleteShader(vs);
+    gl.deleteShader(fs);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      const log = gl.getProgramInfoLog(prog);
+      console.error('Program link error [' + label + ']:', log);
+      throw new Error('Program link failed [' + label + ']: ' + log);
+    }
+    const uniforms = {};
+    const nU = gl.getProgramParameter(prog, gl.ACTIVE_UNIFORMS);
+    for (let i = 0; i < nU; i++) {
+      const info = gl.getActiveUniform(prog, i);
+      const clean = info.name.replace(/\[0\]$/, '');
+      uniforms[clean] = gl.getUniformLocation(prog, clean);
+    }
+    return {
+      prog,
+      u: uniforms
+    };
+  }
+  function makePrograms() {
+    return {
+    bg: mkProg(VS_QUAD, FS_BG, 'bg'),
+    shSt: mkProg(VS_SHADOW_STATIC, FS_SHADOW, 'shadowStatic'),
+    shIn: mkProg(VS_SHADOW_INST, FS_SHADOW, 'shadowInst'),
+    shKp: mkProg(VS_SHADOW_KELP, FS_SHADOW, 'shadowKelp'),
+    world: mkProg(VS_WORLD, FS_WORLD, 'world'),
+    instanced: mkProg(VS_INSTANCED, FS_WORLD, 'instanced'),
+    kelpStipe: mkProg(VS_KELP_STIPE, FS_KELP_STIPE, 'kelpStipe'),
+    kelpBlade: mkProg(VS_KELP_BLADE, FS_KELP_BLADE, 'kelpBlade'),
+    fauna: mkProg(VS_FAUNA, FS_FAUNA, 'fauna'),
+    surface: mkProg(VS_SURFACE, FS_SURFACE, 'surface'),
+    ptc: mkProg(VS_PARTICLES, FS_PARTICLES, 'particles'),
+    volP: mkProg(VS_QUAD, FS_VOLUMETRIC, 'volumetric'),
+    composite: mkProg(VS_QUAD, FS_COMPOSITE, 'composite')
+    };
+  }
+  let PR, emptyVAO;
+  const UM4 = (l, v) => gl.uniformMatrix4fv(l, !1, v),
+    U3f = (l, v) => gl.uniform3fv(l, v),
+    U1f = (l, v) => gl.uniform1f(l, v),
+    U1i = (l, v) => gl.uniform1i(l, v),
+    T2D = gl?.TEXTURE_2D,
+    ABUF = gl?.ARRAY_BUFFER,
+    FBUF = gl?.FRAMEBUFFER,
+    CTE = gl?.CLAMP_TO_EDGE,
+    SDRAW = gl?.STATIC_DRAW,
+    TMIN = gl?.TEXTURE_MIN_FILTER,
+    TMAG = gl?.TEXTURE_MAG_FILTER,
+    UP = p => gl.useProgram(p),
+    BFB = f => gl.bindFramebuffer(FBUF, f),
+    BT = t => gl.bindTexture(T2D, t),
+    BAB = b => gl.bindBuffer(ABUF, b),
+    TP = (p, v) => gl.texParameteri(T2D, p, v),
+    BVA = v => gl.bindVertexArray(v),
+    EVA = i => gl.enableVertexAttribArray(i),
+    VAP = (i, s, t, n, st, o) => gl.vertexAttribPointer(i, s, t, n, st, o),
+    DEI = (c, t, o, n) => gl.drawElementsInstanced(gl.TRIANGLES, c, t, o, n),
+    DE = (c, t, o) => gl.drawElements(gl.TRIANGLES, c, t, o);
+  function mkVAO(mb) {
+    const vao = gl.createVertexArray();
+    BVA(vao);
+    const bPos = gl.createBuffer();
+    BAB(bPos);
+    gl.bufferData(ABUF, new F32(mb.pos), SDRAW);
+    EVA(0);
+    VAP(0, 3, gl.FLOAT, !1, 0, 0);
+    const bNorm = gl.createBuffer();
+    BAB(bNorm);
+    gl.bufferData(ABUF, new F32(mb.norm), SDRAW);
+    EVA(1);
+    VAP(1, 3, gl.FLOAT, !1, 0, 0);
+    const bMat = gl.createBuffer();
+    BAB(bMat);
+    gl.bufferData(ABUF, new F32(mb.mat), SDRAW);
+    EVA(2);
+    VAP(2, 4, gl.FLOAT, !1, 0, 0);
+    const use32 = mb.pos.length / 3 > 65530;
+    const bIdx = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bIdx);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, use32 ? new Uint32Array(mb.idx) : new Uint16Array(mb.idx), SDRAW);
+    BVA(null);
+    return {
+      vao,
+      count: mb.idx.length,
+      iTyp: use32 ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT,
+      buffers: [bPos, bNorm, bMat, bIdx]
+    };
+  }
+  function attInst(meshObj, floatData, vec4Count, dynamic) {
+    BVA(meshObj.vao);
+    const iBuf = gl.createBuffer();
+    BAB(iBuf);
+    gl.bufferData(ABUF, floatData, dynamic ? gl.DYNAMIC_DRAW : SDRAW);
+    const stride = vec4Count * 16;
+    for (let k = 0; k < vec4Count; k++) {
+      const loc = 3 + k;
+      EVA(loc);
+      VAP(loc, 4, gl.FLOAT, !1, stride, k * 16);
+      gl.vertexAttribDivisor(loc, 1);
+    }
+    BVA(null);
+    meshObj.instBuf = iBuf;
+    meshObj.inst = floatData.length / (vec4Count * 4) | 0;
+    meshObj.buffers.push(iBuf);
+    return meshObj;
+  }
+  let shFBO = null,
+    shTex = null,
+    shSz = 0;
+  let scFBO = null,
+    scColT = null,
+    scDepT = null;
+  let volFBO = null,
+    volT = null;
+  let fboW = 0,
+    fboH = 0;
+  function ensShFBO(size) {
+    if (shFBO && shSz === size) return;
+    if (shFBO) {
+      gl.deleteFramebuffer(shFBO);
+      gl.deleteTexture(shTex);
+    }
+    shSz = size;
+    shTex = gl.createTexture();
+    BT(shTex);
+    gl.texImage2D(T2D, 0, gl.DEPTH_COMPONENT24, size, size, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
+    TP(TMIN, gl.LINEAR);
+    TP(TMAG, gl.LINEAR);
+    TP(gl.TEXTURE_WRAP_S, CTE);
+    TP(gl.TEXTURE_WRAP_T, CTE);
+    TP(gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
+    TP(gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
+    shFBO = gl.createFramebuffer();
+    BFB(shFBO);
+    gl.framebufferTexture2D(FBUF, gl.DEPTH_ATTACHMENT, T2D, shTex, 0);
+    gl.drawBuffers([gl.NONE]);
+    gl.readBuffer(gl.NONE);
+    assertFramebuffer('shadow map');
+    BFB(null);
+  }
+  function ensScFBO(w, h) {
+    w = max(64, w | 0);
+    h = max(64, h | 0);
+    if (scFBO && fboW === w && fboH === h) return;
+    fboW = w;
+    fboH = h;
+    if (scFBO) {
+      gl.deleteFramebuffer(scFBO);
+      gl.deleteTexture(scColT);
+      gl.deleteTexture(scDepT);
+      gl.deleteFramebuffer(volFBO);
+      gl.deleteTexture(volT);
+    }
+    const internalFmt = hasFloatFBO ? gl.RGBA16F : gl.RGBA8;
+    const typeFmt = hasFloatFBO ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE;
+    scColT = gl.createTexture();
+    BT(scColT);
+    gl.texImage2D(T2D, 0, internalFmt, w, h, 0, gl.RGBA, typeFmt, null);
+    TP(TMIN, gl.LINEAR);
+    TP(TMAG, gl.LINEAR);
+    TP(gl.TEXTURE_WRAP_S, CTE);
+    TP(gl.TEXTURE_WRAP_T, CTE);
+    scDepT = gl.createTexture();
+    BT(scDepT);
+    gl.texImage2D(T2D, 0, gl.DEPTH_COMPONENT24, w, h, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
+    TP(TMIN, gl.NEAREST);
+    TP(TMAG, gl.NEAREST);
+    TP(gl.TEXTURE_WRAP_S, CTE);
+    TP(gl.TEXTURE_WRAP_T, CTE);
+    scFBO = gl.createFramebuffer();
+    BFB(scFBO);
+    gl.framebufferTexture2D(FBUF, gl.COLOR_ATTACHMENT0, T2D, scColT, 0);
+    gl.framebufferTexture2D(FBUF, gl.DEPTH_ATTACHMENT, T2D, scDepT, 0);
+    assertFramebuffer('scene');
+    const vw = max(32, w >> 1),
+      vh = max(32, h >> 1);
+    volT = gl.createTexture();
+    BT(volT);
+    gl.texImage2D(T2D, 0, internalFmt, vw, vh, 0, gl.RGBA, typeFmt, null);
+    TP(TMIN, gl.LINEAR);
+    TP(TMAG, gl.LINEAR);
+    TP(gl.TEXTURE_WRAP_S, CTE);
+    TP(gl.TEXTURE_WRAP_T, CTE);
+    volFBO = gl.createFramebuffer();
+    BFB(volFBO);
+    gl.framebufferTexture2D(FBUF, gl.COLOR_ATTACHMENT0, T2D, volT, 0);
+    assertFramebuffer('water light');
+    BFB(null);
+  }
+  function assertFramebuffer(label) {
+    if (gl.checkFramebufferStatus(FBUF) !== gl.FRAMEBUFFER_COMPLETE) {
+      throw new Error(label + ' framebuffer unavailable');
+    }
+  }
+
+  let W = null;
+  let cList = [];
+  let boids = null;
+  let mantas = [];
+  let jls = [];
+  function freeWorld(world) {
+    if (!world) return;
+    for (const item of Object.values(world)) {
+      if (item && item.vao) {
+        gl.deleteVertexArray(item.vao);
+        for (const b of item.buffers || []) gl.deleteBuffer(b);
+      }
+    }
+  }
+  function mkSurfM() {
+    const mb = new MB();
+    const segs = 68,
+      span = 175.0;
+    const grid = [];
+    for (let iz = 0; iz <= segs; iz++) {
+      const row = [];
+      for (let ix = 0; ix <= segs; ix++) {
+        const x = (ix / segs - 0.5) * span;
+        const z = (iz / segs - 0.5) * span;
+        row.push(mb.vtx(x, 0, z, 0, -1, 0, 1, 1, 1, 0));
+      }
+      grid.push(row);
+    }
+    for (let iz = 0; iz < segs; iz++) {
+      for (let ix = 0; ix < segs; ix++) {
+        mb.qd(grid[iz][ix], grid[iz][ix + 1], grid[iz + 1][ix + 1], grid[iz + 1][ix]);
+      }
+    }
+    return mb;
+  }
+  function mkStipeM() {
+    const mb = new MB();
+    const pts = [],
+      rads = [];
+    const segs = 14;
+    for (let i = 0; i <= segs; i++) {
+      pts.push([0, i / segs, 0]);
+      rads.push(1.0);
+    }
+    mb.tb(pts, rads, 6, () => [1, 1, 1], 0.0, !1);
+    return mb;
+  }
+  async function mkWorld(qualityKey, onProgress, epoch) {
+    const cfg = QP[qualityKey];
+    const nextColliders = [];
+    const stepUI = async (pct, msg) => {
+      if (onProgress) onProgress(pct, msg);
+      await new Promise(resolve => setTimeout(resolve, 12));
+      if (epoch !== graphicsEpoch || gl.isContextLost()) throw new Error('Renderer interrupted');
+    };
+    await stepUI(15, 'Sculpting seabed canyon & stone whale fluke...');
+    const terrainMB = new MB();
+    const N = cfg.terrainSegs;
+    const tGrid = [];
+    const tmpN = [0, 1, 0];
+    for (let iz = 0; iz <= N; iz++) {
+      const z = (iz / N * 2 - 1) * WORLD_HALF;
+      const row = [];
+      for (let ix = 0; ix <= N; ix++) {
+        const x = (ix / N * 2 - 1) * WORLD_HALF;
+        const y = sbH(x, z);
+        sbN(x, z, tmpN);
+        row.push(terrainMB.vtx(x, y, z, tmpN[0], tmpN[1], tmpN[2], 0.5, 0.62, 0.60, 0.0));
+      }
+      tGrid.push(row);
+    }
+    for (let iz = 0; iz < N; iz++) {
+      for (let ix = 0; ix < N; ix++) {
+        terrainMB.qd(tGrid[iz][ix], tGrid[iz + 1][ix], tGrid[iz + 1][ix + 1], tGrid[iz][ix + 1]);
+      }
+    }
+    const whaleMB = mkWhale(nextColliders);
+    const shipMB = mkShip(nextColliders);
+    const archMB = mkArch(nextColliders);
+    await stepUI(42, 'Growing giant Macrocystis kelp canopy...');
+    const rng = mulberry32(0x4E1B2026);
+    const stipeList = [];
+    const bladeList = [];
+    function clrSight(x, z) {
+      for (let i = 0; i < CP.length; i++) {
+        const cp = CP[i].pos;
+        if (hypot(x - cp[0], z - cp[2]) < 5.4) return !0;
+      }
+      if (hypot(x + 1.8, (z - 5.5) * 0.85) < 5.6) return !0;
+      if (hypot(x + 12.5, z + 23.5) < 11.5) return !0;
+      const tLine = clamp(((x - 2.4) * -17.2 + (z - 15.8) * -42.6) / (17.2 * 17.2 + 42.6 * 42.6), 0, 1);
+      if (hypot(x - (2.4 - 17.2 * tLine), z - (15.8 - 42.6 * tLine)) < 4.5) return !0;
+      if (abs(x - 18.0) < 4.2 && abs(z + 4.5) < 9.5) return !0;
+      return !1;
+    }
+    const hAnc = [[-9.5, 9.5], [-8.2, 6.2], [-10.8, 3.0], [-7.4, -2.5], [-11.5, -6.5], [2.6, 5.5], [4.2, 1.8], [6.8, 7.2], [8.5, 3.0], [5.2, -4.8], [9.4, -8.5], [1.8, -11.5], [-2.5, -14.0], [11.5, 9.0], [-6.8, 13.0], [7.2, 12.2]];
+    let planted = 0,
+      attempts = 0;
+    while (planted < cfg.kPlt && attempts < cfg.kPlt * 10) {
+      attempts++;
+      let x, z;
+      if (attempts <= hAnc.length * 5) {
+        const a = hAnc[attempts % hAnc.length];
+        x = a[0] + (rng() - 0.5) * 3.8;
+        z = a[1] + (rng() - 0.5) * 3.8;
+      } else {
+        const r = sqrt(rng()) * 72.0;
+        const th = rng() * TAU;
+        x = cos(th) * r;
+        z = sin(th) * r;
+      }
+      if (clrSight(x, z)) continue;
+      const groveDensity = fbm2(x * 0.06 + 11.3, z * 0.06 - 4.7, 2);
+      if (planted >= hAnc.length * 4 && groveDensity < -0.06) continue;
+      const y = sbH(x, z);
+      if (y < -6.5 || y > 13.5) continue;
+      const maxH = max(5.0, SY - 1.2 - y);
+      const height = clamp(maxH * (0.58 + rng() * 0.44), 5.5, 24.5);
+      const stipesInHoldfast = 1 + (rng() * 2.3 | 0);
+      for (let s = 0; s < stipesInHoldfast; s++) {
+        const sx = x + (rng() - 0.5) * 0.45;
+        const sz = z + (rng() - 0.5) * 0.45;
+        const sy = sbH(sx, sz) - 0.12;
+        const sh = height * (0.84 + rng() * 0.22);
+        const phase = rng() * TAU;
+        const leanX = (rng() - 0.5) * 0.85;
+        const leanZ = (rng() - 0.5) * 0.85;
+        stipeList.push(sx, sy, sz, sh, 0.042 + rng() * 0.022, phase, leanX, leanZ);
+        const numBlades = max(18, round(sh * cfg.bPm));
+        let az = rng() * TAU;
+        for (let b = 0; b < numBlades; b++) {
+          const hFrac = 0.06 + 0.93 * (b / numBlades) + (rng() - 0.5) * 0.012;
+          az += 2.39996 + (rng() - 0.5) * 0.35;
+          const taper = sin(pow(clamp(hFrac, 0, 1), 0.72) * PI * 0.92);
+          const bLen = (0.78 + rng() * 0.62) * (0.45 + 0.85 * taper);
+          bladeList.push(sx, sy, sz, sh, clamp(hFrac, 0.03, 0.995), az, bLen, phase);
+        }
+      }
+      planted++;
+    }
+    await stepUI(68, 'Populating coral gardens, reef rocks & pebbles...');
+    const rockInst = [];
+    const coralInst = [];
+    const spongeInst = [];
+    const tmpNorm = [0, 1, 0];
+    for (let i = 0; i < cfg.rCnt + cfg.pebbleCount; i++) {
+      const isBoulder = i < cfg.rCnt;
+      const rad = sqrt(rng()) * 78.0;
+      const ang = rng() * TAU;
+      const x = cos(ang) * rad;
+      const z = sin(ang) * rad;
+      const inClearing = hypot(x + 0.5, z - 7.5) < 5.6;
+      if (isBoulder && inClearing && rng() < 0.85) continue;
+      const y = sbH(x, z);
+      const scale = isBoulder ? 0.38 + pow(rng(), 2.3) * 2.65 : 0.08 + rng() * 0.20;
+      const shade = 0.72 + rng() * 0.42;
+      const warm = rng() * 0.12;
+      rockInst.push(x, y - scale * 0.48, z, scale, rng() * TAU, (rng() - 0.5) * 0.55, (rng() - 0.5) * 0.55, rng() * 50.0, (0.30 + warm) * shade, 0.38 * shade, (0.41 - warm * 0.4) * shade, 0.0);
+      if (scale > 1.05) {
+        nextColliders.push({
+          x,
+          y: y + scale * 0.18,
+          z,
+          r: scale * 0.92
+        });
+      }
+    }
+    const coralPalette = [[0.36, 0.14, 0.62], [0.64, 0.18, 0.48], [0.78, 0.28, 0.34], [0.20, 0.50, 0.58], [0.74, 0.40, 0.20], [0.30, 0.20, 0.66]];
+    const reefHotspots = [[-6.8, 9.8], [-5.2, 7.6], [-8.4, 11.4], [5.8, 10.6], [7.6, 12.2], [4.4, 8.8], [18.0, -3.5], [15.2, -6.5], [21.0, -6.0], [-12.5, -21.0]];
+    for (let i = 0; i < cfg.cCnt; i++) {
+      let x, z;
+      if (i < cfg.cCnt * 0.36) {
+        const hs = reefHotspots[i % reefHotspots.length];
+        x = hs[0] + (rng() - 0.5) * 6.8;
+        z = hs[1] + (rng() - 0.5) * 6.8;
+      } else {
+        const r = sqrt(rng()) * 70.0;
+        const a = rng() * TAU;
+        x = cos(a) * r;
+        z = sin(a) * r;
+      }
+      if (hypot(x - 0.4, z - 8.2) < 3.4) continue;
+      const y = sbH(x, z);
+      sbN(x, z, tmpNorm);
+      const col = coralPalette[rng() * coralPalette.length | 0];
+      const scale = 0.42 + pow(rng(), 1.5) * 1.18;
+      const arr = rng() < 0.64 ? coralInst : spongeInst;
+      arr.push(x, y - 0.06, z, scale, rng() * TAU, tmpNorm[2] * 0.45, -tmpNorm[0] * 0.45, rng() * TAU, col[0], col[1], col[2], arr === coralInst ? 0.85 : 0.25);
+    }
+    await stepUI(86, 'Spawning manta rays, boid fish schools & marine snow...');
+    const nextMantas = [{
+      cx: -6.0,
+      cy: 13.8,
+      cz: -8.0,
+      rx: 14.5,
+      rz: 12.0,
+      speed: 0.15,
+      phase: 0.4,
+      scale: 1.55
+    }, {
+      cx: -13.5,
+      cy: 16.5,
+      cz: -24.0,
+      rx: 11.0,
+      rz: 10.5,
+      speed: -0.13,
+      phase: 2.3,
+      scale: 1.35
+    }, {
+      cx: 14.0,
+      cy: 11.2,
+      cz: -4.0,
+      rx: 13.0,
+      rz: 14.0,
+      speed: 0.14,
+      phase: 4.1,
+      scale: 1.45
+    }, {
+      cx: 2.0,
+      cy: 18.2,
+      cz: 4.0,
+      rx: 18.0,
+      rz: 15.0,
+      speed: 0.11,
+      phase: 1.2,
+      scale: 1.70
+    }, {
+      cx: 10.0,
+      cy: 5.5,
+      cz: -34.0,
+      rx: 12.0,
+      rz: 11.0,
+      speed: -0.14,
+      phase: 5.0,
+      scale: 1.40
+    }];
+    const sCtrs = [{
+      x: -3.5,
+      y: 7.5,
+      z: -3.5,
+      r: 7.5,
+      col: [0.85, 0.94, 1.0],
+      scale: 0.34
+    }, {
+      x: 4.8,
+      y: 8.8,
+      z: -1.5,
+      r: 8.0,
+      col: [1.0, 0.66, 0.38],
+      scale: 0.28
+    }, {
+      x: -11.5,
+      y: 13.5,
+      z: -20.5,
+      r: 9.0,
+      col: [0.68, 0.92, 0.98],
+      scale: 0.36
+    }, {
+      x: 17.5,
+      y: 5.8,
+      z: -6.0,
+      r: 6.5,
+      col: [0.96, 0.52, 0.74],
+      scale: 0.26
+    }, {
+      x: -6.5,
+      y: 5.2,
+      z: 7.5,
+      r: 6.0,
+      col: [0.98, 0.82, 0.36],
+      scale: 0.27
+    }, {
+      x: 8.5,
+      y: 12.5,
+      z: 6.5,
+      r: 9.0,
+      col: [0.72, 0.95, 0.88],
+      scale: 0.32
+    }];
+    const fCnt = cfg.fishCount;
+    const nextBoids = {
+      count: fCnt,
+      px: new F32(fCnt),
+      py: new F32(fCnt),
+      pz: new F32(fCnt),
+      vx: new F32(fCnt),
+      vy: new F32(fCnt),
+      vz: new F32(fCnt),
+      school: new Uint8Array(fCnt),
+      scale: new F32(fCnt),
+      phase: new F32(fCnt),
+      r: new F32(fCnt),
+      g: new F32(fCnt),
+      b: new F32(fCnt),
+      schools: sCtrs,
+      gpuData: new F32(fCnt * 12)
+    };
+    for (let i = 0; i < fCnt; i++) {
+      const scIdx = i % sCtrs.length;
+      const sc = sCtrs[scIdx];
+      nextBoids.school[i] = scIdx;
+      const a = rng() * TAU,
+        rr = rng() * sc.r;
+      nextBoids.px[i] = sc.x + cos(a) * rr;
+      nextBoids.py[i] = sc.y + (rng() - 0.5) * 4.2;
+      nextBoids.pz[i] = sc.z + sin(a) * rr;
+      const spd = 1.6 + rng() * 1.2;
+      nextBoids.vx[i] = -sin(a) * spd;
+      nextBoids.vy[i] = (rng() - 0.5) * 0.3;
+      nextBoids.vz[i] = cos(a) * spd;
+      nextBoids.scale[i] = sc.scale * (0.78 + rng() * 0.48);
+      nextBoids.phase[i] = rng() * TAU;
+      const vShade = 0.85 + rng() * 0.3;
+      nextBoids.r[i] = sc.col[0] * vShade;
+      nextBoids.g[i] = sc.col[1] * vShade;
+      nextBoids.b[i] = sc.col[2] * vShade;
+    }
+    const nextJellies = [];
+    for (let j = 0; j < 28; j++) {
+      const inTrench = j < 18;
+      const x = inTrench ? -6 + rng() * 32 : (rng() - 0.5) * 52;
+      const z = inTrench ? -24 - rng() * 28 : -10 - rng() * 35;
+      const floorY = sbH(x, z);
+      const y = clamp(floorY + 2.8 + rng() * 9.5, -9.5, 18.0);
+      const hue = rng();
+      nextJellies.push({
+        bx: x,
+        by: y,
+        bz: z,
+        scale: 0.48 + rng() * 0.65,
+        phase: rng() * TAU,
+        col: hue < 0.5 ? [0.42, 0.88, 1.0] : [0.86, 0.52, 1.0]
+      });
+    }
+    const pData = new F32(cfg.mCnt * 4);
+    for (let i = 0; i < cfg.mCnt; i++) {
+      const isBub = i % 9 === 0 ? 1.0 : 0.0;
+      pData[i * 4 + 0] = (rng() - 0.5) * 44.0;
+      pData[i * 4 + 1] = (rng() - 0.5) * 28.0;
+      pData[i * 4 + 2] = (rng() - 0.5) * 44.0;
+      pData[i * 4 + 3] = isBub + rng() * 0.999;
+    }
+    const partVAO = gl.createVertexArray();
+    BVA(partVAO);
+    const partBuf = gl.createBuffer();
+    BAB(partBuf);
+    gl.bufferData(ABUF, pData, SDRAW);
+    EVA(0);
+    VAP(0, 4, gl.FLOAT, !1, 0, 0);
+    BVA(null);
+    const nextWorld = {
+      terrain: mkVAO(terrainMB),
+      whale: mkVAO(whaleMB),
+      ship: mkVAO(shipMB),
+      arch: mkVAO(archMB),
+      surface: mkVAO(mkSurfM()),
+      rocks: attInst(mkVAO(mkRockP(3.7)), new F32(rockInst), 3, !1),
+      corals: attInst(mkVAO(mkCoralP()), new F32(coralInst), 3, !1),
+      sponges: attInst(mkVAO(mkSpongeP()), new F32(spongeInst), 3, !1),
+      kStp: attInst(mkVAO(mkStipeM()), new F32(stipeList), 2, !1),
+      kelpBlades: attInst(mkVAO(mkBladeP()), new F32(bladeList), 2, !1),
+      mantas: attInst(mkVAO(mkMantaP()), new F32(nextMantas.length * 12), 3, !0),
+      fish: attInst(mkVAO(mkFishP()), nextBoids.gpuData, 3, !0),
+      jls: attInst(mkVAO(mkJellyP()), new F32(nextJellies.length * 12), 3, !0),
+      ptc: {
+        vao: partVAO,
+        count: cfg.mCnt,
+        buffers: [partBuf]
+      }
+    };
+    if (gl.getError() !== gl.NO_ERROR) {
+      freeWorld(nextWorld);
+      throw new Error('The GPU could not allocate this reef');
+    }
+    freeWorld(W);
+    W = nextWorld;
+    cList = nextColliders;
+    mantas = nextMantas;
+    boids = nextBoids;
+    jls = nextJellies;
+  }
+  const mUp = new F32(5 * 12);
+  const jUp = new F32(28 * 12);
+  function updFna(time, dt, playerPos) {
+    if (!W) return;
+    for (let i = 0; i < mantas.length; i++) {
+      const m = mantas[i];
+      const th = time * m.speed + m.phase;
+      const x = m.cx + cos(th) * m.rx;
+      const z = m.cz + sin(th) * m.rz;
+      const y = m.cy + sin(th * 2.0 + m.phase) * 1.45;
+      const vx = -sin(th) * m.rx * m.speed;
+      const vz = cos(th) * m.rz * m.speed;
+      const vy = cos(th * 2.0 + m.phase) * 2.0 * m.speed * 1.45;
+      const yaw = atan2(vx, vz);
+      const pitch = -atan2(vy, hypot(vx, vz));
+      const roll = clamp(-m.speed * 1.65 * cos(th), -0.35, 0.35);
+      const o = i * 12;
+      mUp[o + 0] = x;
+      mUp[o + 1] = y;
+      mUp[o + 2] = z;
+      mUp[o + 3] = m.scale;
+      mUp[o + 4] = yaw;
+      mUp[o + 5] = pitch;
+      mUp[o + 6] = roll;
+      mUp[o + 7] = time * 2.55 + m.phase * 3.0;
+      mUp[o + 8] = 1.0;
+      mUp[o + 9] = 1.0;
+      mUp[o + 10] = 1.0;
+      mUp[o + 11] = 0.0;
+    }
+    BAB(W.mantas.instBuf);
+    gl.bufferSubData(ABUF, 0, mUp);
+    const b = boids;
+    const out = b.gpuData;
+    const sDt = min(dt, 0.05);
+    const sTgts = b.schools.map((s, idx) => ({
+      x: s.x + cos(time * 0.28 + idx * 1.7) * s.r * 0.85,
+      y: s.y + sin(time * 0.42 + idx * 2.3) * 1.8,
+      z: s.z + sin(time * 0.25 + idx * 1.9) * s.r * 0.85
+    }));
+    for (let i = 0; i < b.count; i++) {
+      const st = sTgts[b.school[i]];
+      let px = b.px[i],
+        py = b.py[i],
+        pz = b.pz[i];
+      let vx = b.vx[i],
+        vy = b.vy[i],
+        vz = b.vz[i];
+      const dx = st.x - px,
+        dy = st.y - py,
+        dz = st.z - pz;
+      vx += (dx * 0.55 - dz * 0.28) * sDt;
+      vy += dy * 0.65 * sDt;
+      vz += (dz * 0.55 + dx * 0.28) * sDt;
+      const nIdx = (i + 17) % b.count;
+      if (b.school[nIdx] === b.school[i]) {
+        const sx = px - b.px[nIdx],
+          sy = py - b.py[nIdx],
+          sz = pz - b.pz[nIdx];
+        const d2 = sx * sx + sy * sy + sz * sz;
+        if (d2 > 0.001 && d2 < 1.35) {
+          const inv = 1.4 / sqrt(d2);
+          vx += sx * inv * sDt;
+          vy += sy * inv * sDt;
+          vz += sz * inv * sDt;
+        }
+      }
+      const pdx = px - playerPos[0],
+        pdy = py - playerPos[1],
+        pdz = pz - playerPos[2];
+      const pd2 = pdx * pdx + pdy * pdy + pdz * pdz;
+      let panic = 0.0;
+      if (pd2 < 20.0 && pd2 > 0.01) {
+        const invP = (1.0 - sqrt(pd2) / 4.47) * 9.5 / sqrt(pd2);
+        vx += pdx * invP * sDt;
+        vy += pdy * invP * sDt;
+        vz += pdz * invP * sDt;
+        panic = 1.0;
+      }
+      const spd = hypot(vx, vy, vz) || 1.0;
+      const targetSpd = panic > 0 ? 5.2 : 2.35;
+      const clampedSpd = lerp(spd, targetSpd, 3.2 * sDt);
+      vx = vx / spd * clampedSpd;
+      vy = vy / spd * clampedSpd;
+      vz = vz / spd * clampedSpd;
+      px += vx * sDt;
+      py += vy * sDt;
+      pz += vz * sDt;
+      const floorH = sbH(px, pz) + 0.85;
+      if (py < floorH) {
+        py = floorH;
+        vy = abs(vy) * 0.5;
+      }
+      if (py > SY - 1.4) {
+        py = SY - 1.4;
+        vy = -abs(vy) * 0.5;
+      }
+      b.px[i] = px;
+      b.py[i] = py;
+      b.pz[i] = pz;
+      b.vx[i] = vx;
+      b.vy[i] = vy;
+      b.vz[i] = vz;
+      b.phase[i] += sDt * (7.5 + clampedSpd * 3.1);
+      const yaw = atan2(vx, vz);
+      const pitch = -atan2(vy, hypot(vx, vz));
+      const o = i * 12;
+      out[o + 0] = px;
+      out[o + 1] = py;
+      out[o + 2] = pz;
+      out[o + 3] = b.scale[i];
+      out[o + 4] = yaw;
+      out[o + 5] = pitch;
+      out[o + 6] = 0.0;
+      out[o + 7] = b.phase[i];
+      out[o + 8] = b.r[i];
+      out[o + 9] = b.g[i];
+      out[o + 10] = b.b[i];
+      out[o + 11] = 1.0;
+    }
+    BAB(W.fish.instBuf);
+    gl.bufferSubData(ABUF, 0, out);
+    for (let j = 0; j < jls.length; j++) {
+      const jl = jls[j];
+      const ph = time * 1.65 + jl.phase;
+      const x = jl.bx + sin(time * 0.25 + jl.phase) * 0.85;
+      const y = jl.by + sin(time * 0.45 + jl.phase * 1.4) * 0.95 - cos(ph) * 0.14;
+      const z = jl.bz + cos(time * 0.22 + jl.phase) * 0.85;
+      const o = j * 12;
+      jUp[o + 0] = x;
+      jUp[o + 1] = y;
+      jUp[o + 2] = z;
+      jUp[o + 3] = jl.scale;
+      jUp[o + 4] = jl.phase;
+      jUp[o + 5] = sin(time * 0.4 + jl.phase) * 0.14;
+      jUp[o + 6] = 0.0;
+      jUp[o + 7] = ph;
+      jUp[o + 8] = jl.col[0];
+      jUp[o + 9] = jl.col[1];
+      jUp[o + 10] = jl.col[2];
+      jUp[o + 11] = 2.0;
+    }
+    BAB(W.jls.instBuf);
+    gl.bufferSubData(ABUF, 0, jUp);
+  }
+  const snd = function () {
+    let ctx = null,
+      master = null,
+      swFlt = null,
+      sGn = null,
+      timerId = null;
+    let enabled = prf.audioOn;
+    let running = false;
+    let quiet = true;
+    function init() {
+      if (ctx) {
+        if (ctx.state === 'suspended' && enabled) ctx.resume().catch(() => {});
+        return;
+      }
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      ctx = new AudioCtx();
+      master = ctx.createGain();
+      master.gain.value = enabled && !quiet ? 0.42 : 0.0;
+      master.connect(ctx.destination);
+      const len = ctx.sampleRate * 4;
+      const noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const ch = noiseBuf.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        const white = random() * 2 - 1;
+        last = (last + 0.025 * white) / 1.025;
+        ch[i] = last * 3.1;
+      }
+      const fade = 2048;
+      for (let i = 0; i < fade; i++) {
+        const t = i / fade;
+        ch[i] = ch[i] * t + ch[len - fade + i] * (1 - t);
+      }
+      const ambSrc = ctx.createBufferSource();
+      ambSrc.buffer = noiseBuf;
+      ambSrc.loop = !0;
+      const aFlt = ctx.createBiquadFilter();
+      aFlt.type = 'lowpass';
+      aFlt.frequency.value = 135;
+      aFlt.Q.value = 1.8;
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = 0.09;
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 52;
+      lfo.connect(lfoGain);
+      lfoGain.connect(aFlt.frequency);
+      const ambGain = ctx.createGain();
+      ambGain.gain.value = 0.55;
+      ambSrc.connect(aFlt);
+      aFlt.connect(ambGain);
+      ambGain.connect(master);
+      ambSrc.start();
+      lfo.start();
+      const swSrc = ctx.createBufferSource();
+      swSrc.buffer = noiseBuf;
+      swSrc.loop = !0;
+      swFlt = ctx.createBiquadFilter();
+      swFlt.type = 'bandpass';
+      swFlt.frequency.value = 240;
+      swFlt.Q.value = 1.1;
+      sGn = ctx.createGain();
+      sGn.gain.value = 0.02;
+      swSrc.connect(swFlt);
+      swFlt.connect(sGn);
+      sGn.connect(master);
+      swSrc.start();
+      const delayL = ctx.createDelay(1.5),
+        delayR = ctx.createDelay(1.5);
+      delayL.delayTime.value = 0.42;
+      delayR.delayTime.value = 0.67;
+      const fb = ctx.createGain();
+      fb.gain.value = 0.36;
+      const echoLP = ctx.createBiquadFilter();
+      echoLP.type = 'lowpass';
+      echoLP.frequency.value = 680;
+      delayL.connect(delayR);
+      delayR.connect(echoLP);
+      echoLP.connect(fb);
+      fb.connect(delayL);
+      delayL.connect(master);
+      delayR.connect(master);
+      function spBub(intensity) {
+        if (!ctx || !enabled || ctx.state !== 'running') return;
+        const count = 2 + (random() * 4 * intensity | 0);
+        const now = ctx.currentTime;
+        for (let i = 0; i < count; i++) {
+          const t0 = now + i * (0.045 + random() * 0.07);
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          const f0 = 260 + random() * 340;
+          osc.type = 'sine';
+          osc.fSet(f0, t0);
+          osc.fExp(f0 * (1.85 + random() * 0.6), t0 + 0.095);
+          g.gSet(0.0001, t0);
+          g.gLin(0.032 * intensity, t0 + 0.012);
+          g.gExp(0.0001, t0 + 0.105);
+          osc.connect(g);
+          g.connect(master);
+          g.connect(delayL);
+          osc.start(t0);
+          osc.stop(t0 + 0.12);
+        }
+      }
+      function spWhale() {
+        if (!ctx || !enabled || ctx.state !== 'running') return;
+        const now = ctx.currentTime + 0.05;
+        const dur = 2.8 + random() * 1.8;
+        const osc = ctx.createOscillator();
+        const sub = ctx.createOscillator();
+        const fMnt = ctx.createBiquadFilter();
+        const env = ctx.createGain();
+        const baseF = 115 + random() * 75;
+        const peakF = baseF * (1.55 + random() * 0.65);
+        osc.type = 'sawtooth';
+        sub.type = 'sine';
+        osc.fSet(baseF, now);
+        osc.fExp(peakF, now + dur * 0.38);
+        osc.fExp(baseF * 0.76, now + dur);
+        sub.fSet(baseF * 0.5, now);
+        sub.fExp(peakF * 0.5, now + dur * 0.38);
+        sub.fExp(baseF * 0.38, now + dur);
+        fMnt.type = 'bandpass';
+        fMnt.fSet(baseF * 2.1, now);
+        fMnt.fExp(peakF * 2.4, now + dur * 0.4);
+        fMnt.fExp(baseF * 1.4, now + dur);
+        fMnt.Q.value = 4.2;
+        env.gSet(0.0001, now);
+        env.gLin(0.065, now + dur * 0.25);
+        env.gExp(0.0001, now + dur);
+        osc.connect(fMnt);
+        sub.connect(fMnt);
+        fMnt.connect(env);
+        env.connect(delayL);
+        env.connect(master);
+        osc.start(now);
+        sub.start(now);
+        osc.stop(now + dur + 0.08);
+        sub.stop(now + dur + 0.08);
+      }
+      let ticks = 0,
+        nextWhaleTick = 45;
+      if (timerId) clearInterval(timerId);
+      timerId = setInterval(() => {
+        if (!enabled || quiet || !ctx || ctx.state !== 'running') return;
+        ticks++;
+        if (random() < 0.08) spBub(0.75);
+        if (ticks >= nextWhaleTick) {
+          spWhale();
+          nextWhaleTick = ticks + 95 + (random() * 85 | 0);
+        }
+      }, 100);
+      snd._burst = spBub;
+      running = !0;
+    }
+    return {
+      unlock() {
+        if (enabled) init();
+      },
+      setQuiet(value) {
+        if (quiet === value) return;
+        quiet = value;
+        if (ctx && master) master.gain.setTargetAtTime(enabled && !quiet ? 0.42 : 0, ctx.currentTime, 0.08);
+      },
+      setEnabled(flag) {
+        enabled = !!flag;
+        prf.audioOn = enabled;
+        savePrefs(prf);
+        if (enabled) init();
+        if (ctx && master) {
+          master.gain.setTargetAtTime(enabled && !quiet ? 0.42 : 0.0, ctx.currentTime, 0.08);
+        }
+      },
+      isEnabled: () => enabled,
+      isRunning: () => running,
+      burstBubbles(amt) {
+        if (snd._burst) snd._burst(amt || 1.0);
+      },
+      updateSwim(speed) {
+        if (!ctx || !sGn || !swFlt || !enabled) return;
+        const norm = clamp(speed / 9.0, 0, 1);
+        sGn.gain.setTargetAtTime(0.015 + norm * 0.16, ctx.currentTime, 0.08);
+        swFlt.frequency.setTargetAtTime(210 + norm * 520, ctx.currentTime, 0.08);
+      }
+    };
+  }();
+  const plr = {
+    pos: new F32(CP[0].pos),
+    vel: new F32(3),
+    yaw: CP[0].yaw,
+    pitch: CP[0].pitch,
+    mode: 'swim'
+  };
+  const keys = Object.create(null);
+  const tSt = {
+    moveX: 0,
+    moveY: 0,
+    up: !1,
+    down: false
+  };
+  function colWorld() {
+    const rPlayer = 0.72;
+    const floorY = sbH(plr.pos[0], plr.pos[2]) + rPlayer;
+    if (plr.pos[1] < floorY) {
+      plr.pos[1] = floorY;
+      if (plr.vel[1] < 0) plr.vel[1] = 0;
+    }
+    if (plr.pos[1] > SY - 0.85) {
+      plr.pos[1] = SY - 0.85;
+      if (plr.vel[1] > 0) plr.vel[1] *= -0.25;
+    }
+    const rad = hypot(plr.pos[0], plr.pos[2]);
+    if (rad > 78.0) {
+      const s = 78.0 / rad;
+      plr.pos[0] *= s;
+      plr.pos[2] *= s;
+    }
+    for (let i = 0; i < cList.length; i++) {
+      const c = cList[i];
+      const dx = plr.pos[0] - c.x,
+        dy = plr.pos[1] - c.y,
+        dz = plr.pos[2] - c.z;
+      const minD = c.r + rPlayer;
+      const d2 = dx * dx + dy * dy + dz * dz;
+      if (d2 < minD * minD && d2 > 0.0001) {
+        const d = sqrt(d2);
+        const nx = dx / d,
+          ny = dy / d,
+          nz = dz / d;
+        const push = minD - d;
+        plr.pos[0] += nx * push;
+        plr.pos[1] += ny * push;
+        plr.pos[2] += nz * push;
+        const vn = plr.vel[0] * nx + plr.vel[1] * ny + plr.vel[2] * nz;
+        if (vn < 0) {
+          plr.vel[0] -= nx * vn;
+          plr.vel[1] -= ny * vn;
+          plr.vel[2] -= nz * vn;
+        }
+      }
+    }
+  }
+  function updPlr(time, dt) {
+    const step = min(dt, 0.05);
+    if (plr.mode === 'guided') {
+      const u = time * 0.075;
+      const tx = sin(u) * 15.5 + cos(u * 2.1) * 4.5;
+      const tz = cos(u) * 17.5 - 5.5;
+      const floor = sbH(tx, tz);
+      const ty = clamp(max(floor + 3.2, 5.2 + sin(u * 1.7) * 3.8), 2.2, 16.5);
+      const nx = sin(u + 0.08) * 15.5 + cos((u + 0.08) * 2.1) * 4.5;
+      const nz = cos(u + 0.08) * 17.5 - 5.5;
+      plr.pos[0] = lerp(plr.pos[0], tx, 2.2 * step);
+      plr.pos[1] = lerp(plr.pos[1], ty, 2.2 * step);
+      plr.pos[2] = lerp(plr.pos[2], tz, 2.2 * step);
+      const desiredYaw = atan2(nx - plr.pos[0], nz - plr.pos[2]);
+      let dYaw = desiredYaw - plr.yaw;
+      while (dYaw > PI) dYaw -= TAU;
+      while (dYaw < -PI) dYaw += TAU;
+      plr.yaw += dYaw * 1.8 * step;
+      plr.pitch = lerp(plr.pitch, 0.06 + sin(u * 1.5) * 0.12, 1.8 * step);
+      colWorld();
+      snd.updateSwim(2.6);
+      return;
+    }
+    const turn = Number(!!keys.KeyJ) - Number(!!keys.KeyL);
+    const look = Number(!!keys.KeyI) - Number(!!keys.KeyK);
+    plr.yaw += turn * 1.5 * step;
+    plr.pitch = clamp(plr.pitch + look * 1.5 * step, -1.4, 1.4);
+    const fwdX = sin(plr.yaw) * cos(plr.pitch);
+    const fwdY = sin(plr.pitch);
+    const fwdZ = cos(plr.yaw) * cos(plr.pitch);
+    const rightX = -cos(plr.yaw),
+      rightZ = sin(plr.yaw);
+    let inFwd = (keys['KeyW'] || keys['ArrowUp'] ? 1 : 0) - (keys['KeyS'] || keys['ArrowDown'] ? 1 : 0) - tSt.moveY;
+    let inStrafe = (keys['KeyD'] || keys['ArrowRight'] ? 1 : 0) - (keys['KeyA'] || keys['ArrowLeft'] ? 1 : 0) + tSt.moveX;
+    let inVert = (keys['Space'] || tSt.up ? 1 : 0) - (keys['ShiftLeft'] || keys['ShiftRight'] || tSt.down ? 1 : 0);
+    const accel = 15.5;
+    let ax = fwdX * inFwd + rightX * inStrafe;
+    let ay = fwdY * inFwd + inVert * 0.92;
+    let az = fwdZ * inFwd + rightZ * inStrafe;
+    const al = hypot(ax, ay, az);
+    if (al > 1.0) {
+      ax /= al;
+      ay /= al;
+      az /= al;
+    }
+    plr.vel[0] += ax * accel * step;
+    plr.vel[1] += ay * accel * step;
+    plr.vel[2] += az * accel * step;
+    const drag = exp(-3.1 * step);
+    plr.vel[0] *= drag;
+    plr.vel[1] *= drag;
+    plr.vel[2] *= drag;
+    plr.pos[0] += plr.vel[0] * step;
+    plr.pos[1] += plr.vel[1] * step;
+    plr.pos[2] += plr.vel[2] * step;
+    colWorld();
+    snd.updateSwim(hypot(plr.vel[0], plr.vel[1], plr.vel[2]));
+  }
+
+  const mP = M4.create();
+  const mV = M4.create();
+  const matVP = M4.create();
+  const mIVP = M4.create();
+  const mLP = M4.create();
+  const mLV = M4.create();
+  const mLVP = M4.create();
+  const eVec = new F32(3);
+  const targetVec = new F32(3);
+  const upVec = new F32([0, 1, 0]);
+  const lightEye = new F32(3);
+  const lCtr = new F32(3);
+  function rndFrm(tSec, dt) {
+    if (!W) return;
+    const cfg = QP[prf.quality];
+    const inFinder = mode === 'camera' && rig !== null;
+    const view = inFinder ? lensView() : plr;
+    const dpr = min(window.devicePixelRatio || 1, softwareRenderer ? 1.0 : 1.4);
+    let dispW = max(80, floor(stage.clientWidth * dpr));
+    let dispH = max(64, floor(stage.clientHeight * dpr));
+    if (inFinder) {
+      const units = max(16, min(190, floor(dispW / 5)));
+      dispW = 5 * units;
+      dispH = 4 * units;
+    }
+    if (canvas.width !== dispW || canvas.height !== dispH) {
+      canvas.width = dispW;
+      canvas.height = dispH;
+    }
+    const pixelBudget = softwareRenderer ? 280000 : 1180000;
+    const resolution = min(gov.rScl, sqrt(pixelBudget / (dispW * dispH)));
+    ensScFBO(floor(dispW * resolution), floor(dispH * resolution));
+
+    if (mode === 'dive') updPlr(tSec, dt);
+    updFna(tSec, dt, plr.pos);
+    const fwdX = sin(view.yaw) * cos(view.pitch);
+    const fwdY = sin(view.pitch);
+    const fwdZ = cos(view.yaw) * cos(view.pitch);
+    eVec.set(view.pos);
+    targetVec[0] = eVec[0] + fwdX;
+    targetVec[1] = eVec[1] + fwdY;
+    targetVec[2] = eVec[2] + fwdZ;
+    const fov = inFinder ? clamp(2 * Math.atan(101.6 / optics.bellows), 0.244, 1.36) : 62 * PI / 180;
+    M4.perspective(mP, fov, dispW / dispH, 0.22, 165.0);
+    M4.lookAt(mV, eVec, targetVec, upVec);
+    M4.mul(matVP, mP, mV);
+    M4.invert(mIVP, matVP);
+    lCtr[0] = eVec[0] + fwdX * 14.0;
+    lCtr[1] = 5.0;
+    lCtr[2] = eVec[2] + fwdZ * 14.0;
+    lightEye[0] = lCtr[0] + SD[0] * 56.0;
+    lightEye[1] = lCtr[1] + SD[1] * 56.0;
+    lightEye[2] = lCtr[2] + SD[2] * 56.0;
+    M4.ortho(mLP, -46, 46, -46, 46, 2.0, 118.0);
+    M4.lookAt(mLV, lightEye, lCtr, upVec);
+    M4.mul(mLVP, mLP, mLV);
+    const aDD = cfg.drawDist * gov.distFactor;
+    BFB(shFBO);
+    gl.viewport(0, 0, shSz, shSz);
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(!0);
+    gl.disable(gl.BLEND);
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    UP(PR.shSt.prog);
+    UM4(PR.shSt.u.uLVP, mLVP);
+    for (const m of [W.whale, W.ship, W.arch]) {
+      BVA(m.vao);
+      DE(m.count, m.iTyp, 0);
+    }
+    UP(PR.shIn.prog);
+    UM4(PR.shIn.u.uLVP, mLVP);
+    U1f(PR.shIn.u.uTm, tSec);
+    BVA(W.rocks.vao);
+    DEI(W.rocks.count, W.rocks.iTyp, 0, min(W.rocks.inst, cfg.rCnt));
+    if (prf.quality !== 'low') {
+      gl.disable(gl.CULL_FACE);
+      UP(PR.shKp.prog);
+      UM4(PR.shKp.u.uLVP, mLVP);
+      U1f(PR.shKp.u.uTm, tSec);
+      BVA(W.kelpBlades.vao);
+      DEI(W.kelpBlades.count, W.kelpBlades.iTyp, 0, W.kelpBlades.inst * 0.65 | 0);
+    }
+    BFB(scFBO);
+    gl.viewport(0, 0, fboW, fboH);
+    gl.clearDepth(1.0);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    gl.disable(gl.DEPTH_TEST);
+    gl.depthMask(!1);
+    UP(PR.bg.prog);
+    UM4(PR.bg.u.uIVP, mIVP);
+    U3f(PR.bg.u.uCP, eVec);
+    U3f(PR.bg.u.uSL, SD);
+    U1f(PR.bg.u.uHS, HS);
+    BVA(emptyVAO);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LEQUAL);
+    gl.depthMask(!0);
+    gl.disable(gl.CULL_FACE);
+    gl.activeTexture(gl.TEXTURE0);
+    BT(shTex);
+    const pW = PR.world;
+    UP(pW.prog);
+    UM4(pW.u.uVP, matVP);
+    UM4(pW.u.uLVP, mLVP);
+    U1i(pW.u.uSM, 0);
+    U3f(pW.u.uCP, eVec);
+    U3f(pW.u.uSL, SD);
+    U1f(pW.u.uTm, tSec);
+    U1f(pW.u.uSY, SY);
+    U1f(pW.u.uHS, HS);
+    for (const m of [W.terrain, W.whale, W.ship, W.arch]) {
+      BVA(m.vao);
+      DE(m.count, m.iTyp, 0);
+    }
+    if (rig && !inFinder && rigMesh) {
+      BVA(rigMesh.vao);
+      DE(rigMesh.count, rigMesh.iTyp, 0);
+    }
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
+    const pI = PR.instanced;
+    UP(pI.prog);
+    UM4(pI.u.uVP, matVP);
+    UM4(pI.u.uLVP, mLVP);
+    U1i(pI.u.uSM, 0);
+    U3f(pI.u.uCP, eVec);
+    U3f(pI.u.uSL, SD);
+    U1f(pI.u.uTm, tSec);
+    U1f(pI.u.uDD, aDD);
+    U1f(pI.u.uSY, SY);
+    U1f(pI.u.uHS, HS);
+    for (const grp of [W.rocks, W.corals, W.sponges]) {
+      BVA(grp.vao);
+      DEI(grp.count, grp.iTyp, 0, grp.inst);
+    }
+    const pKS = PR.kelpStipe;
+    UP(pKS.prog);
+    UM4(pKS.u.uVP, matVP);
+    U3f(pKS.u.uCP, eVec);
+    U3f(pKS.u.uSL, SD);
+    U1f(pKS.u.uTm, tSec);
+    U1f(pKS.u.uDD, aDD);
+    U1f(pKS.u.uSY, SY);
+    U1f(pKS.u.uHS, HS);
+    BVA(W.kStp.vao);
+    DEI(W.kStp.count, W.kStp.iTyp, 0, W.kStp.inst);
+    gl.disable(gl.CULL_FACE);
+    const pKB = PR.kelpBlade;
+    UP(pKB.prog);
+    UM4(pKB.u.uVP, matVP);
+    UM4(pKB.u.uLVP, mLVP);
+    U1i(pKB.u.uSM, 0);
+    U3f(pKB.u.uCP, eVec);
+    U3f(pKB.u.uSL, SD);
+    U1f(pKB.u.uTm, tSec);
+    U1f(pKB.u.uDD, aDD);
+    U1f(pKB.u.uSY, SY);
+    U1f(pKB.u.uHS, HS);
+    BVA(W.kelpBlades.vao);
+    DEI(W.kelpBlades.count, W.kelpBlades.iTyp, 0, W.kelpBlades.inst);
+    const pF = PR.fauna;
+    UP(pF.prog);
+    UM4(pF.u.uVP, matVP);
+    U3f(pF.u.uCP, eVec);
+    U3f(pF.u.uSL, SD);
+    U1f(pF.u.uTm, tSec);
+    U1f(pF.u.uSY, SY);
+    U1f(pF.u.uHS, HS);
+    BVA(W.mantas.vao);
+    DEI(W.mantas.count, W.mantas.iTyp, 0, W.mantas.inst);
+    BVA(W.fish.vao);
+    DEI(W.fish.count, W.fish.iTyp, 0, W.fish.inst);
+    const pS = PR.surface;
+    UP(pS.prog);
+    UM4(pS.u.uVP, matVP);
+    U3f(pS.u.uCP, eVec);
+    U3f(pS.u.uSL, SD);
+    U1f(pS.u.uTm, tSec);
+    U1f(pS.u.uSY, SY);
+    U1f(pS.u.uHS, HS);
+    BVA(W.surface.vao);
+    DE(W.surface.count, W.surface.iTyp, 0);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.depthMask(!1);
+    UP(pF.prog);
+    BVA(W.jls.vao);
+    DEI(W.jls.count, W.jls.iTyp, 0, W.jls.inst);
+    const pP = PR.ptc;
+    UP(pP.prog);
+    UM4(pP.u.uVP, matVP);
+    U3f(pP.u.uCP, eVec);
+    U1f(pP.u.uTm, tSec);
+    U1f(pP.u.uViewportH, fboH);
+    U1f(pP.u.uSY, SY);
+    U1f(pP.u.uHS, HS);
+    BVA(W.ptc.vao);
+    gl.drawArrays(gl.POINTS, 0, W.ptc.count);
+    gl.disable(gl.BLEND);
+    gl.depthMask(!0);
+    BFB(volFBO);
+    gl.viewport(0, 0, max(32, fboW >> 1), max(32, fboH >> 1));
+    gl.disable(gl.DEPTH_TEST);
+    const pV = PR.volP;
+    UP(pV.prog);
+    gl.activeTexture(gl.TEXTURE0);
+    BT(scColT);
+    gl.activeTexture(gl.TEXTURE1);
+    BT(scDepT);
+    gl.activeTexture(gl.TEXTURE2);
+    BT(shTex);
+    U1i(pV.u.uSC, 0);
+    U1i(pV.u.uSD, 1);
+    U1i(pV.u.uSM, 2);
+    UM4(pV.u.uIVP, mIVP);
+    UM4(pV.u.uLVP, mLVP);
+    U3f(pV.u.uCP, eVec);
+    U3f(pV.u.uSL, SD);
+    U1f(pV.u.uTm, tSec);
+    U1f(pV.u.uSY, SY);
+    U1i(pV.u.uRaySteps, cfg.raySteps);
+    U1f(pV.u.uHS, HS);
+    BVA(emptyVAO);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    BFB(null);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    const pC = PR.composite;
+    UP(pC.prog);
+    gl.activeTexture(gl.TEXTURE0);
+    BT(scColT);
+    gl.activeTexture(gl.TEXTURE1);
+    BT(volT);
+    gl.activeTexture(gl.TEXTURE2);
+    BT(scDepT);
+    U1i(pC.u.uSC, 0);
+    U1i(pC.u.uVB, 1);
+    U1i(pC.u.uDepth, 2);
+    const filter = FILTER_FACTORS[optics.filter];
+    gl.uniform4f(pC.u.uFilm, filter.wr, filter.wg, filter.wb, inFinder ? filter.c : 0);
+    const focusM = optics.bellows > 210 ? clamp(0.21 * optics.bellows / (optics.bellows - 210), 0.42, 28) : 28;
+    gl.uniform3f(pC.u.uLens, optics.aperture, focusM, optics.tilt / 28);
+    U1f(pC.u.uHS, HS);
+    BVA(emptyVAO);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  // MAKE-PHOTO field optics and contact development constants.
+  const ROMAN_ZONES = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+  const APERTURES = [8, 16, 32, 64];
+  const SHUTTERS = [
+    { label: '1s', sec: 1.0 },
+    { label: '1/2s', sec: 0.5 },
+    { label: '1/4s', sec: 0.25 },
+    { label: '1/8s', sec: 0.125 },
+    { label: '1/15s', sec: 1 / 15 },
+    { label: '1/30s', sec: 1 / 30 },
+    { label: '1/60s', sec: 1 / 60 },
+    { label: '1/125s', sec: 1 / 125 },
+    { label: '1/250s', sec: 1 / 250 }
+  ];
+  const DEVELOPERS = [
+    { label: 'Dev: D-23 N-1', name: 'Kodak D-23 Water-Bath (N-1 Soft Contraction)', gamma: 0.78 },
+    { label: 'Dev: D-23 N',   name: 'Kodak D-23 Standard (Normal Contrast)',        gamma: 1.04 },
+    { label: 'Dev: Ansco N+1',name: 'Ansco 130 Glycin (N+1 High-Contrast Expansion)',gamma: 1.38 }
+  ];
+  const FILTER_FACTORS = {
+    none: { ev: 0.0, name: 'NO FILTER', wr: 0.30, wg: 0.59, wb: 0.11, c: 1.10 },
+    w8:   { ev: 1.0, name: 'WRATTEN #8 K2 (+1 EV)', wr: 0.46, wg: 0.48, wb: 0.06, c: 1.22 },
+    w15:  { ev: 1.5, name: 'WRATTEN #15 G (+1.5 EV)', wr: 0.66, wg: 0.32, wb: 0.02, c: 1.35 },
+    w25:  { ev: 3.0, name: 'WRATTEN #25 RED (+3 EV)', wr: 0.88, wg: 0.11, wb: 0.01, c: 1.52 },
+    w58:  { ev: 3.0, name: 'WRATTEN #58 GRN (+3 EV)', wr: 0.12, wg: 0.80, wb: 0.08, c: 1.22 }
+  };
+  const stage = $id('stage');
+  const viewBox = $id('view-box');
+  const menu = $id('dive-menu');
+  const proof = $id('proof');
+  const optics = {
+    aperture: 64, shutter: 4, developer: 1, filter: 'none',
+    bellows: 240, pan: 0, tilt: 0, spot: [0.5, 0.5], darkSlideIn: true
+  };
+  const STOCK = 20;
+  const PRINT_W = 640, PRINT_H = 512;
+  const gov = {rScl: 0.78, distFactor: 1, fps: 60, timer: 0};
+
+  let mode = 'boot', returnMode = 'rest', hasDived = false;
+  let graphicsEpoch = 0, worldBusy = false, softwareRenderer = false, graphicsFailed = false;
+  let lastFrame = 0, raf = 0, time = 4.2, readTimer = 0, needsFrame = true;
+  let rig = null, rigMesh = null, captureBuffer = null;
+  let photoJob = null, undoShutter = null, undoPose = null, meterReading = null;
+  let opticsOpen = false, stagePointer = null, stickPointer = null;
+  let nearRig = false, activeSite = 0;
+  let plates = [], stock = STOCK, archive = null, proofIdx = 0, proofURL = '';
+  let openMenuAfterProof = false;
+  let returnTo = null;
+
+  function populateSelect(id, list) {
+    const select = $id(id);
+    select.textContent = '';
+    for (const [value, label] of list) select.add(new Option(label, value));
+  }
+  function getPose() {
+    return {pos: Array.from(plr.pos), yaw: plr.yaw, pitch: plr.pitch, site: activeSite};
+  }
+  function usePose(pose) {
+    plr.pos.set(pose.pos);
+    plr.yaw = pose.yaw;
+    plr.pitch = pose.pitch;
+    plr.vel.fill(0);
+    activeSite = pose.site;
+    colWorld();
+    needsFrame = true;
+  }
+  function siteName() {
+    const reference = CP[activeSite];
+    const distance = p => hypot(...p.pos.map((v, axis) => v - plr.pos[axis]));
+    if (distance(reference) < 8) return reference.name;
+    let best = 'Open water', bestDistance = 14;
+    for (const point of CP) {
+      const toPoint = distance(point);
+      if (toPoint < bestDistance) {
+        best = point.name;
+        bestDistance = toPoint;
+      }
+    }
+    return best;
+  }
+  function depth(pos) {
+    return (SY - pos[1]).toFixed(1) + ' m';
+  }
+  function setText(id, value) {
+    const element = $id(id);
+    if (element.textContent !== value) element.textContent = value;
+  }
+  function setVisible(id, visible) {
+    $id(id).hidden = !visible;
+  }
+
+  function setMode(next) {
+    resetInput();
+    mode = next;
+    document.body.dataset.mode = next;
+    const diving = next === 'dive';
+    const camera = next === 'camera';
+    const landing = next === 'boot' || next === 'rest';
+    setVisible('landing', landing);
+    setVisible('landing-scrim', landing || next === 'fault');
+    setVisible('boot-progress', next === 'boot');
+    setVisible('landing-actions', next === 'rest');
+    setVisible('field-header', diving || camera);
+    setVisible('pause-dive', diving);
+    setVisible('dive-status', diving);
+    setVisible('dive-actions', diving);
+    setVisible('back-water', camera && !photoJob);
+    setVisible('camera-controls', camera);
+    setVisible('finder-marks', camera);
+    setVisible('fault', next === 'fault');
+    stage.tabIndex = diving || camera ? 0 : -1;
+    stage.setAttribute('aria-label', camera ? '8 by 10 ground-glass finder' : 'Underwater view');
+    stage.setAttribute('aria-describedby', camera ? 'finder-help' : '');
+    setText('begin', hasDived ? 'Resume dive' : 'Begin dive');
+    updateAlbumButtons();
+    updateFieldReadings();
+    updateCameraControls();
+    fitFinder();
+    needsFrame = true;
+    if (diving || camera) stage.focus({preventScroll: true});
+    if (next === 'fault') $id('fault-title').focus({preventScroll: true});
+    requestFrame();
+  }
+
+  function fitFinder() {
+    if (mode !== 'camera') return;
+    const width = min(viewBox.clientWidth, viewBox.clientHeight * 1.25, 910);
+    stage.style.setProperty('--finder-width', width + 'px');
+    stage.style.setProperty('--finder-height', width * 0.8 + 'px');
+  }
+  const finderResize = new ResizeObserver(fitFinder);
+  finderResize.observe(viewBox);
+
+  function updateFieldReadings() {
+    const diving = mode === 'dive';
+    document.body.dataset.drift = String(plr.mode === 'guided');
+    if (mode === 'camera' && rig) {
+      setText('field-title', '8×10 ground glass');
+      setText('depthReadout', rig.site + ' · ' + depth(rig.pos));
+      return;
+    }
+    if (!diving) return;
+    setText('field-title', siteName());
+    setText('depthReadout', 'Depth ' + depth(plr.pos));
+    if (plr.mode === 'guided') {
+      setText('dive-primary', 'Stop drift');
+      setVisible('pack', false);
+      setVisible('undo-nav', false);
+      return;
+    }
+    const distance = rig ? hypot(...rig.pos.map((v, i) => v - plr.pos[i])) : Infinity;
+    nearRig = distance <= (nearRig ? 4.7 : 4.3);
+    setText('dive-primary', !rig ? 'Set 8×10 camera' : nearRig ? 'Use 8×10 camera' : 'Return to camera');
+    setVisible('pack', !!rig && nearRig);
+    setVisible('undo-nav', !!undoPose);
+  }
+
+  function rigPartPose(x, y, z, pan, tilt = 0) {
+    const py = cos(tilt) * y + sin(tilt) * z;
+    const pz = cos(tilt) * z - sin(tilt) * y;
+    return [
+      rig.pos[0] + cos(pan) * x + sin(pan) * pz,
+      rig.pos[1] + py,
+      rig.pos[2] - sin(pan) * x + cos(pan) * pz
+    ];
+  }
+  function lensView() {
+    const yaw = rig.yaw + optics.pan * PI / 180;
+    const pitch = clamp(rig.pitch + optics.tilt * PI / 180, -1.44, 1.44);
+    const pos = rigPartPose(0, 0.02, 0.31 + (optics.bellows - 240) * 0.0007, yaw, pitch);
+    return {pos, yaw, pitch};
+  }
+
+  // Adapt the field kit's tripod, mahogany standards, pleated bellows and brass lens
+  // to the same mesh builder and underwater lighting as the rocks and wreck.
+  function buildRigMesh() {
+    const mesh = new MB();
+    const wood = [0.58, 0.27, 0.12];
+    const brass = [0.94, 0.60, 0.25];
+    const cloth = [0.045, 0.09, 0.10];
+    const glass = {
+      none: [0.29, 0.60, 0.65], w8: [0.90, 0.80, 0.25], w15: [0.95, 0.46, 0.14],
+      w25: [0.83, 0.12, 0.13], w58: [0.18, 0.68, 0.35]
+    };
+    const yaw = rig.yaw + optics.pan * PI / 180;
+    const pitch = lensView().pitch;
+    const part = (x, y, z, sx, sy, sz, color) => {
+      const p = rigPartPose(x, y, z, yaw, pitch);
+      mesh.bx(...p, sx, sy, sz, -pitch, yaw, 0, color, 2.1);
+    };
+    for (let leg = 0; leg < 3; leg++) {
+      const az = rig.yaw + leg * TAU / 3;
+      const x = sin(az), z = cos(az);
+      const footX = rig.pos[0] + x * 0.38, footZ = rig.pos[2] + z * 0.38;
+      const foot = [footX, max(sbH(footX, footZ) + 0.07, rig.pos[1] - 0.89), footZ];
+      const crown = [rig.pos[0] + x * 0.06, rig.pos[1] - 0.21, rig.pos[2] + z * 0.06];
+      mesh.tb([foot, crown], [0.032, 0.036], 7, () => wood, 2.1, true);
+      mesh.bx(...foot, 0.13, 0.055, 0.12, 0, az, 0, cloth, 2.1);
+    }
+    const draw = 0.17 + (optics.bellows - 240) * 0.0007;
+    part(0, -0.19, 0, 0.56, 0.06, 0.65, wood);
+    part(0, 0.02, -0.22, 0.49, 0.42, 0.055, wood);
+    part(0, 0.02, -0.25, 0.39, 0.30, 0.020, glass.none);
+    part(0, 0.02, draw, 0.40, 0.34, 0.055, wood);
+    for (let pleat = 0; pleat < 8; pleat++) {
+      const t = (pleat + 1) / 9;
+      const span = lerp(0.42, 0.29, t) - (pleat % 2) * 0.025;
+      part(0, 0.02, lerp(-0.22, draw, t), span, span * 0.80, 0.048, cloth);
+    }
+    const lensFrom = rigPartPose(0, 0.02, draw + 0.024, yaw, pitch);
+    const lensTo = rigPartPose(0, 0.02, draw + 0.118, yaw, pitch);
+    mesh.tb([lensFrom, lensTo], [0.101, 0.092], 18, () => brass, 2.1, true);
+    const glassFrom = rigPartPose(0, 0.02, draw + 0.117, yaw, pitch);
+    const glassTo = rigPartPose(0, 0.02, draw + 0.123, yaw, pitch);
+    mesh.tb([glassFrom, glassTo], [0.078, 0.078], 18, () => glass[optics.filter], 2.1, true);
+    part(0.085, optics.darkSlideIn ? 0.21 : 0.34, -0.265, 0.16, 0.035, 0.03, brass);
+    part(-0.32, -0.13, -0.04, 0.095, 0.15, 0.43, glass.w15);
+    part(0.32, -0.13, -0.04, 0.095, 0.15, 0.43, glass.w15);
+    return mkVAO(mesh);
+  }
+  function refreshRig() {
+    if (!gl || gl.isContextLost()) return;
+    if (rigMesh) freeWorld({rigMesh});
+    rigMesh = rig ? buildRigMesh() : null;
+  }
+
+  function deployCamera() {
+    const view = getPose();
+    const {pos, yaw, pitch} = view;
+    const room = (x, y, z) => y - sbH(x, z) >= 0.56 &&
+      cList.every(c => hypot(c.x - x, c.y - y, c.z - z) > c.r + 0.40);
+    let mount = null;
+    for (const reach of [1.85, 1.2, 0.65, 0]) {
+      for (const angle of [yaw, yaw + 0.66, yaw - 0.66]) {
+        const x = pos[0] + sin(angle) * reach;
+        const z = pos[2] + cos(angle) * reach;
+        const y = clamp(pos[1] - 0.20, sbH(x, z) + 0.80, SY - 0.92);
+        if (room(x, y, z)) {
+          mount = [x, y, z];
+          break;
+        }
+      }
+      if (mount) break;
+    }
+    if (!mount) {
+      setText('dive-status', 'Camera needs more clearance. Swim into open water and try again.');
+      return;
+    }
+    rig = {pos: mount, yaw, pitch, returnPose: view, site: siteName()};
+    nearRig = true;
+    optics.pan = 0;
+    optics.tilt = 0;
+    optics.darkSlideIn = true;
+    updateOptics();
+    enterFinder();
+  }
+  function enterFinder() {
+    plr.vel.fill(0);
+    opticsOpen = false;
+    meterReading = null;
+    meterDirty = true;
+    setText('camera-note', '');
+    setMode('camera');
+  }
+  function leaveFinder() {
+    if (photoJob) return;
+    refreshRig();
+    plr.vel.fill(0);
+    setText('dive-status', 'Camera deployed at ' + depth(rig.pos) + '.');
+    setMode('dive');
+  }
+  function packCamera() {
+    if (!rig || !nearRig) return;
+    rig = null;
+    nearRig = false;
+    optics.darkSlideIn = true;
+    undoShutter = null;
+    refreshRig();
+    setText('dive-status', 'Camera packed.');
+    updateFieldReadings();
+    $id('dive-primary').focus();
+  }
+  function goToPose(pose, note) {
+    undoPose = getPose();
+    usePose(pose);
+    setText('dive-status', note);
+    updateFieldReadings();
+  }
+  function diveAction() {
+    if (plr.mode === 'guided') {
+      plr.mode = 'swim';
+      plr.vel.fill(0);
+      setText('dive-status', 'Guided drift stopped.');
+      updateFieldReadings();
+    } else if (!rig) {
+      deployCamera();
+    } else if (nearRig) {
+      enterFinder();
+    } else {
+      goToPose(rig.returnPose, 'Returned to the camera at ' + depth(rig.pos) + '.');
+    }
+  }
+
+  function updateCameraControls() {
+    const active = mode === 'camera';
+    const ready = active && !photoJob;
+    setVisible('back-water', ready);
+    setVisible('camera-settings', ready);
+    setVisible('optics-panel', ready && opticsOpen);
+    setVisible('finder-help', ready);
+    setVisible('meter-row', ready && stock > 0);
+    setVisible('plate-row', ready);
+    setVisible('working-row', active && !!photoJob);
+    $id('optics-toggle').setAttribute('aria-expanded', String(opticsOpen));
+    setVisible('undo-meter', ready && undoShutter !== null);
+    setVisible('insert-slide', ready && !optics.darkSlideIn && stock > 0);
+    const slide = optics.darkSlideIn ? 'Slide in' : 'Slide pulled';
+    setText('plate-state', stock === 0 ? 'Plate case empty' : slide + ' · ' + stock + (stock === 1 ? ' plate' : ' plates'));
+    setText('plate-action', stock === 0 ? 'Restock 20 plates' : optics.darkSlideIn ? 'Pull dark slide' : 'Expose plate');
+    const factor = FILTER_FACTORS[optics.filter];
+    const filterName = optics.filter === 'none' ? '' : ' · ' + factor.name.split(' (')[0].replace('WRATTEN ', '');
+    setText('plate-settings', optics.bellows + ' mm · f/' + optics.aperture + ' · ' + SHUTTERS[optics.shutter].label + filterName);
+    setText('meter-readout', meterReading === null ? 'Spot meter warming up…' : 'Spot zone ' + ROMAN_ZONES[Math.round(meterReading * 10)]);
+    $id('meter').disabled = meterReading === null;
+  }
+  let meterDirty = true;
+  function updateOptics() {
+    for (const name of ['bellows','pan','tilt','aperture','shutter','filter','developer']) {
+      $id(name).value = optics[name];
+    }
+    setText('bellows-value', optics.bellows + ' mm');
+    setText('pan-value', optics.pan + '°');
+    setText('tilt-value', optics.tilt + '°');
+    $id('finder-marks').style.setProperty('--spot-x', optics.spot[0] * 100 + '%');
+    $id('finder-marks').style.setProperty('--spot-y', optics.spot[1] * 100 + '%');
+    meterDirty = true;
+    updateCameraControls();
+    requestFrame();
+  }
+
+  function readSpot() {
+    const x = clamp(floor(optics.spot[0] * canvas.width), 0, canvas.width - 1);
+    const y = clamp(floor((1 - optics.spot[1]) * canvas.height), 0, canvas.height - 1);
+    const pixel = new Uint8Array(4);
+    gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    if (!gl.isContextLost()) {
+      meterReading = pixel[0] / 255;
+      meterDirty = false;
+      updateCameraControls();
+    }
+  }
+  function bellowsEV() {
+    return Math.max(0, 2 * Math.log2(optics.bellows / 210));
+  }
+  function baseExposure() {
+    return 1 / 15 * Math.pow(optics.aperture / 64, 2) *
+      Math.pow(2, FILTER_FACTORS[optics.filter].ev + bellowsEV());
+  }
+  function meterZoneV() {
+    if (meterReading === null || photoJob) return;
+    const ideal = baseExposure() * 0.50 / max(0.08, meterReading);
+    const closest = SHUTTERS.reduce((best, shutter, index) =>
+      abs(Math.log2(shutter.sec / ideal)) < abs(Math.log2(SHUTTERS[best].sec / ideal)) ? index : best, 0);
+    if (closest === optics.shutter) {
+      const limit = ideal > SHUTTERS[0].sec || ideal < SHUTTERS[SHUTTERS.length - 1].sec;
+      setText('camera-note', (limit ? 'Shutter limit · ' : 'Zone V meter holds at ') + SHUTTERS[closest].label + '.');
+      return;
+    }
+    undoShutter = optics.shutter;
+    optics.shutter = closest;
+    const limit = ideal > SHUTTERS[0].sec || ideal < SHUTTERS[SHUTTERS.length - 1].sec;
+    setText('camera-note', (limit ? 'Shutter limit · ' : 'Zone V meter set ') +
+      SHUTTERS[undoShutter].label + ' → ' + SHUTTERS[closest].label + '.');
+    updateOptics();
+  }
+
+  function newCaptureBuffer() {
+    const texture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    BT(texture);
+    gl.texImage2D(T2D, 0, gl.RGBA8, PRINT_W, PRINT_H, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    TP(TMIN, gl.LINEAR);
+    TP(TMAG, gl.LINEAR);
+    const fbo = gl.createFramebuffer();
+    BFB(fbo);
+    gl.framebufferTexture2D(FBUF, gl.COLOR_ATTACHMENT0, T2D, texture, 0);
+    assertFramebuffer('8×10 plate');
+    BFB(null);
+    return {fbo, texture, pixels: new Uint8Array(PRINT_W * PRINT_H * 4)};
+  }
+  function samplePlate(job) {
+    if (!captureBuffer) captureBuffer = newCaptureBuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, captureBuffer.fbo);
+    gl.blitFramebuffer(0, 0, canvas.width, canvas.height, 0, 0, PRINT_W, PRINT_H, gl.COLOR_BUFFER_BIT, gl.LINEAR);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, captureBuffer.fbo);
+    gl.readPixels(0, 0, PRINT_W, PRINT_H, gl.RGBA, gl.UNSIGNED_BYTE, captureBuffer.pixels);
+    BFB(null);
+    if (gl.getError() !== gl.NO_ERROR || gl.isContextLost()) throw new Error('The finder could not read the plate');
+    for (let i = 0; i < job.light.length; i++) job.light[i] += captureBuffer.pixels[i * 4];
+    job.samples++;
+  }
+  function exposePlate() {
+    if (!rig || photoJob || stock <= 0 || optics.darkSlideIn) return;
+    photoJob = {
+      start: null, duration: SHUTTERS[optics.shutter].sec * 1000,
+      samples: 0, light: new Uint16Array(PRINT_W * PRINT_H), phase: 'exposing',
+      site: rig.site, depth: depth(rig.pos), aperture: optics.aperture, shutter: SHUTTERS[optics.shutter].label,
+      bellows: optics.bellows, filter: optics.filter, method: DEVELOPERS[optics.developer],
+      ev: Math.log2(SHUTTERS[optics.shutter].sec / baseExposure())
+    };
+    setText('camera-note', '');
+    updateCameraControls();
+    setText('working-text', 'Exposing 8×10 plate · ' + photoJob.shutter);
+    $id('exposure-progress').value = 0;
+    setVisible('exposure-progress', true);
+    setText('stop-exposure', 'Stop exposure');
+    setVisible('stop-exposure', true);
+    $id('stop-exposure').focus();
+    requestFrame();
+  }
+  function stepExposure(timestamp) {
+    const job = photoJob;
+    if (!job || job.phase !== 'exposing') return;
+    if (job.start === null) job.start = timestamp;
+    const elapsed = timestamp - job.start;
+    const longExposure = job.duration > 34;
+    const finished = !longExposure || elapsed >= job.duration;
+    if (job.samples < 5 && (job.samples === 0 || finished || elapsed >= job.samples * job.duration / 4)) {
+      samplePlate(job);
+    }
+    $id('exposure-progress').value = finished ? 1 : elapsed / job.duration;
+    if (finished) {
+      job.phase = 'developing';
+      setText('working-text', 'Developing the contact proof…');
+      setVisible('exposure-progress', false);
+      setText('stop-exposure', 'Cancel development');
+      developPlate(job);
+    }
+  }
+  function stopExposure(message = 'Capture stopped · plate intact.') {
+    if (!photoJob || photoJob.phase === 'committing') return;
+    photoJob = null;
+    setText('camera-note', message);
+    updateCameraControls();
+    if (mode === 'camera' && !document.hidden) $id('plate-action').focus();
+  }
+
+  async function drawProof(job) {
+    const image = document.createElement('canvas');
+    image.width = PRINT_W;
+    image.height = PRINT_H;
+    const ic = image.getContext('2d');
+    const pixels = ic.createImageData(PRINT_W, PRINT_H);
+    const exposureGain = Math.pow(2, job.ev * 0.45);
+    for (let y = 0; y < PRINT_H; y++) {
+      const row = y * PRINT_W;
+      const sourceRow = (PRINT_H - 1 - y) * PRINT_W;
+      for (let x = 0; x < PRINT_W; x++) {
+        const norm = job.light[sourceRow + x] / (job.samples * 255) * exposureGain;
+        const print = clamp(Math.pow(norm / (norm + 0.42), job.method.gamma) * 1.38, 0, 1);
+        const index = (row + x) * 4;
+        pixels.data[index] = round(print * 255);
+        pixels.data[index + 1] = round(print * 251);
+        pixels.data[index + 2] = round(print * 244);
+        pixels.data[index + 3] = 255;
+      }
+    }
+    ic.putImageData(pixels, 0, 0);
+    const contact = document.createElement('canvas');
+    contact.width = 1000;
+    contact.height = 852;
+    const paper = contact.getContext('2d');
+    paper.fillStyle = '#efede4';
+    paper.fillRect(0, 0, contact.width, contact.height);
+    paper.fillStyle = '#181b18';
+    paper.fillRect(35, 32, 930, 746);
+    paper.drawImage(image, 40, 37, 920, 736);
+    paper.beginPath();
+    paper.arc(924, 37, 6, 0, PI);
+    paper.arc(941, 37, 6, 0, PI);
+    paper.fill();
+    paper.font = 'italic 24px Georgia, serif';
+    paper.fillText(job.site, 40, 810, 600);
+    paper.font = '14px monospace';
+    paper.fillText('ABYSSAL GARDEN  /  8×10  /  ' + job.depth, 40, 832);
+    paper.textAlign = 'right';
+    paper.fillText([job.bellows + ' mm', 'f/' + job.aperture, job.shutter].join('  ·  '), 960, 810);
+    return new Promise((resolve, reject) => contact.toBlob(blob =>
+      blob ? resolve(blob) : reject(new Error('PNG encoding failed')), 'image/png'));
+  }
+
+  async function developPlate(job) {
+    try {
+      // Yield one paint so the development state is visible before the print is processed.
+      await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
+      if (photoJob !== job) return;
+      const blob = await drawProof(job);
+      if (photoJob !== job) return;
+      job.phase = 'committing';
+      setVisible('stop-exposure', false);
+      setText('working-text', 'Recording plate and remaining stock…');
+      const id = 'plate-' + (crypto.randomUUID?.() || Date.now().toString(36) + random().toString(36).slice(2));
+      const item = {
+        id, blob, site: job.site, depth: job.depth, aperture: job.aperture,
+        shutter: job.shutter, method: job.method.name, filter: FILTER_FACTORS[job.filter].name,
+        ev: job.ev, created: Date.now()
+      };
+      await saveSupply(item);
+      photoJob = null;
+      undoShutter = null;
+      optics.darkSlideIn = true;
+      setText('camera-note', stock > 0 ? 'Proof developed. Next plate loaded with slide in.' : 'Proof developed. Plate case empty.');
+      updateCameraControls();
+      showProof(plates.findIndex(plate => plate.id === id), 'plate-action');
+    } catch (error) {
+      if (photoJob !== job) return;
+      photoJob = null;
+      updateCameraControls();
+      setText('camera-note', error.message + '. The plate was kept.');
+      $id('plate-action').focus();
+    }
+  }
+
+  async function plateAction() {
+    if (photoJob || worldBusy) return;
+    if (stock <= 0) {
+      $id('plate-action').disabled = true;
+      try {
+        await saveSupply();
+        optics.darkSlideIn = true;
+        setText('camera-note', '20 fresh plates loaded. Dark slide in.');
+      } catch (error) {
+        setText('camera-note', error.message + '. Try restocking again.');
+      } finally {
+        $id('plate-action').disabled = false;
+        updateCameraControls();
+      }
+    } else if (optics.darkSlideIn) {
+      optics.darkSlideIn = false;
+      setText('camera-note', '');
+      updateCameraControls();
+    } else {
+      exposePlate();
+    }
+  }
+
+  function sortedPlates(items) {
+    return items.filter(item => item.id !== 'supply').sort((a, b) => a.created - b.created);
+  }
+  async function restoreArchive() {
+    if (!window.indexedDB) return;
+    try {
+      const database = await new Promise((resolve, reject) => {
+        const open = indexedDB.open('abyssal-field-studio-v1', 1);
+        open.onupgradeneeded = () => open.result.createObjectStore('journal', {keyPath: 'id'});
+        open.onsuccess = () => resolve(open.result);
+        open.onerror = () => reject(open.error);
+        open.onblocked = () => reject(new Error('Plate archive is busy'));
+      });
+      const records = await new Promise((resolve, reject) => {
+        const read = database.transaction('journal').objectStore('journal').getAll();
+        read.onsuccess = () => resolve(read.result);
+        read.onerror = () => reject(read.error);
+      });
+      plates = sortedPlates(records);
+      stock = records.find(item => item.id === 'supply')?.stock ?? STOCK;
+      archive = database;
+      archive.onversionchange = () => {
+        database.close();
+        archive = null;
+      };
+    } catch (_) {
+      archive = null;
+    }
+    updateAlbumButtons();
+    updateCameraControls();
+  }
+  async function saveSupply(plate = null) {
+    if (archive) {
+      try {
+        const records = await new Promise((resolve, reject) => {
+          const tx = archive.transaction('journal', 'readwrite');
+          const journal = tx.objectStore('journal');
+          const read = journal.getAll();
+          let snapshot, outOfStock = false;
+          read.onsuccess = () => {
+            const existing = read.result.find(item => item.id === 'supply')?.stock ?? STOCK;
+            if (plate && existing <= 0) {
+              outOfStock = true;
+              tx.abort();
+              return;
+            }
+            const supply = {id: 'supply', stock: plate ? existing - 1 : STOCK};
+            journal.put(supply);
+            if (plate) journal.add(plate);
+            snapshot = {plates: sortedPlates(plate ? [...read.result, plate] : read.result), stock: supply.stock};
+          };
+          tx.onabort = () => reject(outOfStock ? new RangeError('The plate case is empty in this browser') : tx.error);
+          tx.oncomplete = () => resolve(snapshot);
+        });
+        stock = records.stock;
+        plates = records.plates;
+        updateAlbumButtons();
+        return;
+      } catch (error) {
+        if (error instanceof RangeError) {
+          stock = 0;
+          throw error;
+        }
+        archive.close();
+        archive = null;
+      }
+    }
+    if (plate && stock <= 0) throw new Error('The plate case is empty');
+    if (plate) plates.push(plate);
+    stock = plate ? stock - 1 : STOCK;
+    updateAlbumButtons();
+  }
+  function updateAlbumButtons() {
+    for (const id of ['landing-plates','menu-plates','fault-plates']) setVisible(id, plates.length > 0);
+  }
+  function renderProof() {
+    const item = plates[proofIdx];
+    if (proofURL) URL.revokeObjectURL(proofURL);
+    proofURL = URL.createObjectURL(item.blob);
+    $id('proof-photo').src = proofURL;
+    $id('proof-photo').alt = 'Black and white 8 by 10 contact proof of ' + item.site + ' at ' + item.depth;
+    setText('proof-title', 'Plate ' + String(proofIdx + 1).padStart(2,'0') + ' · ' + item.site);
+    const ev = (item.ev >= 0 ? '+' : '') + item.ev.toFixed(1) + ' EV';
+    setText('proof-audit', [item.method, item.filter === 'NO FILTER' ? 'Clear' : item.filter, ev].join(' · '));
+    setVisible('proof-save-note', !archive);
+    setText('proof-save-note', 'Plates are held for this session. Download the PNG to keep it.');
+    setVisible('prev-proof', proofIdx > 0);
+    setVisible('next-proof', proofIdx < plates.length - 1);
+  }
+  function showProof(index = plates.length - 1, opener = null) {
+    if (!plates[index]) return;
+    openMenuAfterProof = menu.open;
+    returnTo = opener;
+    if (menu.open) menu.close('plates');
+    proofIdx = index;
+    renderProof();
+    proof.showModal();
+    resetInput();
+    requestFrame();
+  }
+  function downloadProof() {
+    const item = plates[proofIdx];
+    const file = document.createElement('a');
+    const slug = item.site.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+    file.download = 'abyssal-' + slug + '-' + item.id.slice(6, 14) + '.png';
+    file.href = proofURL;
+    document.body.append(file);
+    file.click();
+    file.remove();
+  }
+
+  function resetInput() {
+    for (const key of Object.keys(keys)) delete keys[key];
+    if (stagePointer && stage.hasPointerCapture(stagePointer.id)) stage.releasePointerCapture(stagePointer.id);
+    stagePointer = null;
+    stickPointer = null;
+    tSt.moveX = tSt.moveY = 0;
+    tSt.up = tSt.down = false;
+    $id('stick-knob').style.transform = '';
+    for (const id of ['rise','sink']) $id(id).removeAttribute('data-held');
+  }
+  function openDiveMenu() {
+    if (mode !== 'dive' || menu.open) return;
+    resetInput();
+    plr.vel.fill(0);
+    $id('site-select').value = String(activeSite);
+    setVisible('guided', plr.mode !== 'guided');
+    menu.showModal();
+    requestFrame();
+  }
+  function returnToTitle() {
+    if (menu.open) menu.close('end');
+    plr.mode = 'swim';
+    plr.vel.fill(0);
+    setText('dive-status','');
+    returnMode = 'rest';
+    setMode('rest');
+    $id('begin').focus();
+  }
+  function resumeDive() {
+    hasDived = true;
+    snd.unlock();
+    if (!W || !gl || gl.isContextLost() || graphicsFailed) {
+      buildReef(true, 'low', 'dive');
+      return;
+    }
+    setMode('dive');
+  }
+
+  function setFault(message, target = mode) {
+    graphicsFailed = true;
+    if (mode !== 'fault' && target !== 'boot') returnMode = target;
+    if (target === 'boot') returnMode = 'rest';
+    if (menu.open) menu.close('fault');
+    stopExposure('Capture interrupted · plate intact.');
+    setText('fault-reason', message);
+    setVisible('retry', !!gl);
+    setMode('fault');
+  }
+  async function buildReef(rebuild = false, quality = prf.quality, resumeTo = null) {
+    if (worldBusy) return;
+    if (!gl) {
+      setFault('WebGL 2 is unavailable in this browser.', 'boot');
+      return;
+    }
+    const updating = mode === 'dive' && menu.open;
+    const epoch = ++graphicsEpoch;
+    const target = resumeTo || (mode === 'fault' ? returnMode : mode);
+    worldBusy = true;
+    for (const id of ['quality','visit','guided','resume','end-dive','menu-plates']) $id(id).disabled = true;
+    if (!updating) setMode('boot');
+    const onProgress = (value, message) => {
+      if (updating) setText('quality-status', message);
+      else {
+        $id('boot-bar').value = value;
+        setText('boot-stage', message);
+      }
+    };
+    try {
+      onProgress(4, 'Preparing the renderer…');
+      await new Promise(resolve => setTimeout(resolve, 30));
+      if (graphicsEpoch !== epoch || gl.isContextLost()) throw new Error('The graphics context is still suspended');
+      if (rebuild || !PR) {
+        if (PR) for (const program of Object.values(PR)) gl.deleteProgram(program.prog);
+        if (emptyVAO) gl.deleteVertexArray(emptyVAO);
+        hasFloatFBO = !!(gl.getExtension('EXT_color_buffer_float') && gl.getExtension('OES_texture_float_linear'));
+        HS = hasFloatFBO ? 1 : 0.45;
+        PR = makePrograms();
+        emptyVAO = gl.createVertexArray();
+      }
+      await mkWorld(quality, onProgress, epoch);
+      if (epoch !== graphicsEpoch) return;
+      prf.quality = quality;
+      gov.rScl = QP[quality].mxS;
+      gov.distFactor = 1;
+      gov.fps = 60;
+      gov.timer = 0;
+      refreshRig();
+      if (updating || rebuild) savePrefs(prf);
+      graphicsFailed = false;
+      needsFrame = true;
+      if (updating) setText('quality-status', 'Reef detail set to ' + QP[quality].label.toLowerCase() + '.');
+      else setMode(target === 'boot' || target === 'fault' ? 'rest' : target);
+    } catch (error) {
+      if (epoch !== graphicsEpoch) return;
+      console.error(error);
+      if (updating && W && !gl.isContextLost()) {
+        setText('quality-status', 'Could not apply that detail level. The previous reef is still in use.');
+      } else {
+        const message = gl.isContextLost()
+          ? 'The graphics context is suspended. Retry when it is available.'
+          : 'The reef renderer could not start. Retry with low reef detail.';
+        setFault(message, target);
+      }
+    } finally {
+      if (epoch === graphicsEpoch) {
+        worldBusy = false;
+        $id('quality').value = prf.quality;
+        for (const id of ['quality','visit','guided','resume','end-dive','menu-plates']) $id(id).disabled = false;
+        requestFrame();
+      }
+    }
+  }
+
+  function renderPaused() {
+    return document.hidden || menu.open || proof.open || worldBusy || graphicsFailed || mode === 'boot' || mode === 'fault';
+  }
+  function requestFrame() {
+    const paused = renderPaused();
+    snd.setQuiet(paused || mode === 'rest');
+    if (paused) {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+      lastFrame = 0;
+    } else if (!raf && (mode !== 'rest' || needsFrame)) {
+      raf = requestAnimationFrame(tick);
+    }
+  }
+  function tick(timestamp) {
+    raf = 0;
+    if (renderPaused() || !W) return;
+    const dt = lastFrame ? min((timestamp - lastFrame) / 1000, 0.08) : 0.016;
+    lastFrame = timestamp;
+    needsFrame = false;
+    time += mode === 'rest' ? 0 : dt;
+    try {
+      ensShFBO(QP[prf.quality].shadowSize);
+      rndFrm(time, mode === 'rest' ? 0 : dt);
+    } catch (error) {
+      console.error(error);
+      setFault('The graphics renderer was interrupted. Your developed plates are available.', mode);
+      return;
+    }
+    if (photoJob?.phase === 'exposing') {
+      try {
+        stepExposure(timestamp);
+      } catch (error) {
+        stopExposure(error.message + '. The plate was kept.');
+      }
+    }
+    readTimer += dt;
+    if (readTimer >= 0.24 || mode === 'camera' && meterDirty) {
+      readTimer = 0;
+      updateFieldReadings();
+      if (mode === 'camera' && !photoJob) readSpot();
+    }
+    gov.fps = lerp(gov.fps, 1 / max(dt, .004), .08);
+    gov.timer += dt;
+    if (prf.aGov && gov.timer > 1) {
+      gov.timer = 0;
+      if (gov.fps < 40) {
+        gov.rScl = max(0.46, gov.rScl - 0.085);
+        gov.distFactor = max(0.68, gov.distFactor - 0.045);
+      } else if (gov.fps > 56) {
+        gov.rScl = min(QP[prf.quality].mxS, gov.rScl + 0.035);
+        gov.distFactor = min(1, gov.distFactor + 0.04);
+      }
+    }
+    requestFrame();
+  }
+
+  function on(id, event, handler) { $id(id).addEventListener(event, handler); }
+  populateSelect('site-select', CP.map((site, i) => [i, site.name]));
+  populateSelect('aperture', APERTURES.map(value => [value, 'f/' + value]));
+  populateSelect('shutter', SHUTTERS.map((value, i) => [i, value.label]));
+  populateSelect('filter', Object.entries(FILTER_FACTORS).map(([key, value]) => [key, key === 'none' ? 'Clear' : value.name.replace('WRATTEN ', '')]));
+  populateSelect('developer', DEVELOPERS.map((value, i) => [i, value.label.replace('Dev: ', '')]));
+  on('begin','click', resumeDive);
+  on('retry','click', () => buildReef(true, 'low'));
+  on('fault-exit','click', returnToTitle);
+  on('pause-dive','click', openDiveMenu);
+  on('resume','click', () => menu.close());
+  on('end-dive','click', returnToTitle);
+  on('dive-primary','click', diveAction);
+  on('pack','click', packCamera);
+  on('back-water','click', leaveFinder);
+  on('undo-nav','click', () => {
+    if (!undoPose) return;
+    usePose(undoPose);
+    undoPose = null;
+    setText('dive-status', 'Returned to your previous position.');
+    updateFieldReadings();
+    stage.focus();
+  });
+  on('visit','click', () => {
+    const site = Number($id('site-select').value);
+    plr.mode = 'swim';
+    menu.close('navigate');
+    goToPose({...CP[site], site}, 'Moved to ' + CP[site].name + '.');
+  });
+  on('guided','click', () => {
+    plr.mode = 'guided';
+    setText('dive-status', 'Guided drift active.');
+    updateFieldReadings();
+    menu.close('navigate');
+  });
+  on('audio','click', () => {
+    snd.setEnabled(!snd.isEnabled());
+    updateSoundButton();
+  });
+  on('quality','change', () => {
+    if ($id('quality').value !== prf.quality) buildReef(false, $id('quality').value);
+  });
+  menu.addEventListener('cancel', event => {
+    if (worldBusy) event.preventDefault();
+  });
+  menu.addEventListener('close', () => {
+    if (mode === 'dive' && !proof.open) stage.focus({preventScroll: true});
+    requestFrame();
+  });
+  for (const id of ['landing-plates','menu-plates','fault-plates']) on(id, 'click', () => showProof(plates.length - 1, id));
+  on('close-proof','click', () => proof.close());
+  on('prev-proof','click', () => {
+    if (proofIdx > 0) proofIdx--;
+    renderProof();
+    if ($id('prev-proof').hidden) $id('next-proof').focus();
+  });
+  on('next-proof','click', () => {
+    if (proofIdx < plates.length - 1) proofIdx++;
+    renderProof();
+    if ($id('next-proof').hidden) $id('prev-proof').focus();
+  });
+  on('download-proof','click', downloadProof);
+  proof.addEventListener('close', () => {
+    if (proofURL) URL.revokeObjectURL(proofURL);
+    proofURL = '';
+    $id('proof-photo').removeAttribute('src');
+    if (openMenuAfterProof && mode === 'dive') menu.showModal();
+    if (returnTo && !$id(returnTo).hidden && $id(returnTo).getClientRects().length) $id(returnTo).focus({preventScroll: true});
+    openMenuAfterProof = false;
+    returnTo = null;
+    requestFrame();
+  });
+  on('optics-toggle','click', () => {
+    opticsOpen = !opticsOpen;
+    updateCameraControls();
+  });
+  for (const name of ['bellows','pan','tilt','aperture','shutter','filter','developer']) {
+    on(name, 'input', () => {
+      if (photoJob) return;
+      optics[name] = name === 'filter' ? $id(name).value : Number($id(name).value);
+      if (name === 'shutter') {
+        undoShutter = null;
+        setText('camera-note','');
+      }
+      updateOptics();
+    });
+  }
+  on('meter','click', meterZoneV);
+  on('undo-meter','click', () => {
+    if (undoShutter === null) return;
+    optics.shutter = undoShutter;
+    undoShutter = null;
+    setText('camera-note', 'Shutter restored to ' + SHUTTERS[optics.shutter].label + '.');
+    updateOptics();
+    $id('meter').focus();
+  });
+  on('plate-action','click', plateAction);
+  on('insert-slide','click', () => {
+    optics.darkSlideIn = true;
+    updateCameraControls();
+    $id('plate-action').focus();
+  });
+  on('stop-exposure','click', () => stopExposure());
+
+  function canLook() {
+    return !menu.open && !proof.open && (mode === 'camera' && !photoJob || mode === 'dive' && plr.mode === 'swim');
+  }
+  stage.addEventListener('pointerdown', event => {
+    if (!canLook() || stagePointer || event.button !== 0) return;
+    stage.setPointerCapture(event.pointerId);
+    stage.focus({preventScroll: true});
+    stagePointer = {id: event.pointerId, x: event.clientX, y: event.clientY, distance: 0, pan: optics.pan, tilt: optics.tilt};
+  });
+  stage.addEventListener('pointermove', event => {
+    if (!canLook() || stagePointer?.id !== event.pointerId) return;
+    const dx = event.clientX - stagePointer.x;
+    const dy = event.clientY - stagePointer.y;
+    stagePointer.distance += hypot(dx, dy);
+    stagePointer.x = event.clientX;
+    stagePointer.y = event.clientY;
+    if (stagePointer.distance < 5) return;
+    if (mode === 'camera') {
+      stagePointer.pan = clamp(stagePointer.pan - dx * .21, -120, 120);
+      stagePointer.tilt = clamp(stagePointer.tilt - dy * .18, -24, 28);
+      optics.pan = round(stagePointer.pan);
+      optics.tilt = round(stagePointer.tilt);
+      updateOptics();
+    } else {
+      plr.yaw -= dx * .0041;
+      plr.pitch = clamp(plr.pitch - dy * .0041, -1.40, 1.40);
+    }
+  });
+  stage.addEventListener('pointerup', event => {
+    if (stagePointer?.id !== event.pointerId) return;
+    if (mode === 'camera' && canLook() && stagePointer.distance < 5) {
+      const rect = stage.getBoundingClientRect();
+      optics.spot = [clamp((event.clientX - rect.left) / rect.width, .02, .98),
+        clamp((event.clientY - rect.top) / rect.height, .02, .98)];
+      updateOptics();
+    }
+    stagePointer = null;
+  });
+  for (const event of ['pointercancel','lostpointercapture']) stage.addEventListener(event, () => stagePointer = null);
+  stage.addEventListener('keydown', event => {
+    if (mode !== 'camera' || photoJob || !event.key.startsWith('Arrow')) return;
+    event.preventDefault();
+    const dx = Number(event.key === 'ArrowRight') - Number(event.key === 'ArrowLeft');
+    const dy = Number(event.key === 'ArrowDown') - Number(event.key === 'ArrowUp');
+    optics.spot = [clamp(optics.spot[0] + dx * .025, .02, .98), clamp(optics.spot[1] + dy * .025, .02, .98)];
+    updateOptics();
+  });
+
+  const stick = $id('stick');
+  function moveStick(event) {
+    if (stickPointer !== event.pointerId) return;
+    const rect = stick.getBoundingClientRect();
+    const x = event.clientX - rect.left - rect.width / 2;
+    const y = event.clientY - rect.top - rect.height / 2;
+    const radius = rect.width * .34;
+    const distance = max(hypot(x, y), radius);
+    tSt.moveX = x / distance;
+    tSt.moveY = y / distance;
+    $id('stick-knob').style.transform = 'translate(' + tSt.moveX * radius + 'px,' + tSt.moveY * radius + 'px)';
+  }
+  stick.addEventListener('pointerdown', event => {
+    if (stickPointer !== null || mode !== 'dive' || !canLook()) return;
+    stickPointer = event.pointerId;
+    stick.setPointerCapture(stickPointer);
+    moveStick(event);
+  });
+  stick.addEventListener('pointermove', moveStick);
+  for (const name of ['pointerup','pointercancel','lostpointercapture']) {
+    stick.addEventListener(name, event => {
+      if (stickPointer !== event.pointerId) return;
+      stickPointer = null;
+      tSt.moveX = tSt.moveY = 0;
+      $id('stick-knob').style.transform = '';
+    });
+  }
+  for (const [id, direction] of [['rise','up'],['sink','down']]) {
+    const button = $id(id);
+    button.addEventListener('pointerdown', event => {
+      if (mode !== 'dive' || !canLook()) return;
+      button.setPointerCapture(event.pointerId);
+      button.dataset.held = 'true';
+      tSt[direction] = true;
+    });
+    for (const name of ['pointerup','pointercancel','lostpointercapture','blur']) {
+      button.addEventListener(name, () => {
+        tSt[direction] = false;
+        button.removeAttribute('data-held');
+      });
+    }
+  }
+  const INPUT_KEYS = new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
+    'Space','ShiftLeft','ShiftRight','KeyI','KeyJ','KeyK','KeyL']);
+  window.addEventListener('keydown', event => {
+    if (menu.open || proof.open || event.defaultPrevented) return;
+    if (event.key === 'Escape') {
+      if (mode === 'camera') {
+        if (photoJob) stopExposure();
+        else leaveFinder();
+      } else if (mode === 'dive') openDiveMenu();
+      return;
+    }
+    if (mode !== 'dive' || plr.mode !== 'swim' || !INPUT_KEYS.has(event.code)) return;
+    if (event.target.closest?.('button,select,input,summary,a') || event.ctrlKey || event.metaKey || event.altKey) return;
+    event.preventDefault();
+    keys[event.code] = true;
+  });
+  window.addEventListener('keyup', event => delete keys[event.code]);
+  window.addEventListener('blur', resetInput);
+  window.addEventListener('resize', () => {
+    needsFrame = true;
+    requestFrame();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      resetInput();
+      stopExposure('Capture paused when the page was hidden · plate intact.');
+    }
+    requestFrame();
+  });
+
+  canvas.addEventListener('webglcontextlost', event => {
+    event.preventDefault();
+    graphicsEpoch++;
+    worldBusy = false;
+    W = PR = emptyVAO = rigMesh = captureBuffer = null;
+    shFBO = shTex = scFBO = scColT = scDepT = volFBO = volT = null;
+    shSz = fboW = fboH = 0;
+    setFault('The graphics context was lost. Your position, camera and developed plates are held.', mode);
+  });
+  canvas.addEventListener('webglcontextrestored', () => {
+    if (mode === 'fault') {
+      setText('fault-reason', 'Graphics are available again. Retry to return to your position.');
+    }
+  });
+
+  function updateSoundButton() {
+    setText('audio', snd.isEnabled() ? 'Sound on' : 'Sound off');
+    $id('audio').setAttribute('aria-pressed', String(snd.isEnabled()));
+  }
+  updateSoundButton();
+  updateOptics();
+  if (gl) checkRenderer();
+  // Read the plate journal before a new exposure can consume stock.
+  restoreArchive().then(() => buildReef(false, prf.quality));
+
+  // ---- the trough's hand (atlas/overworld.html pours this reef as a jerry can, layer@1): it steers, looks and lifts through the
+  //      one game surface, reads the pose back, and surfaces you where you dove. Nothing here is imitated: this is the reef itself. ----
+  if (new URLSearchParams(location.search).has('embed')) {
+    document.body.classList.add('embed');
+    const ST = { x: 0, y: 0, lift: 0 }; let lastT = performance.now();
+    (function steerLoop(now) { const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
+      if (mode === 'dive') { if (Math.abs(ST.x) > .12) plr.yaw -= Math.sign(ST.x) * (Math.abs(ST.x) - .12) * 1.7 * dt; tSt.moveY = Math.abs(ST.y) > .12 ? ST.y : 0; tSt.up = ST.lift > 0; ST.lift = Math.max(0, ST.lift - dt); requestFrame(); }
+      requestAnimationFrame(steerLoop); })(lastT);
+    window.__abyss = {
+      sites: CP.map(c => c.name), SY,
+      get ready() { return !!W && !worldBusy && !graphicsFailed && (mode === 'rest' || mode === 'dive'); },
+      get diving() { return mode === 'dive'; },
+      canvas,
+      begin(site, yaw) { const k = Number.isFinite(site) ? ((site % CP.length) + CP.length) % CP.length : activeSite; usePose({ pos: CP[k].pos.slice(), yaw: Number.isFinite(yaw) ? yaw : CP[k].yaw, pitch: CP[k].pitch, site: k }); plr.vel.fill(0); resumeDive(); },
+      pause() { if (mode === 'dive') { resetInput(); setMode('rest'); } },
+      steer(x, y, active) { ST.x = active ? x : 0; ST.y = active ? y : 0; },
+      look(dx, dy) { plr.yaw -= dx * .005; plr.pitch = clamp(plr.pitch - dy * .004, -1.4, 1.4); requestFrame(); },
+      lift() { ST.lift = .6; },
+      sink(on) { tSt.down = !!on; },
+      pose() { return { x: plr.pos[0], y: plr.pos[1], z: plr.pos[2], yaw: plr.yaw, pitch: plr.pitch, depth: SY - plr.pos[1], site: CP[activeSite].name, speed: hypot(plr.vel[0], plr.vel[1], plr.vel[2]), atSurface: plr.pos[1] >= SY - 1.0 }; }
+    };
+  }
+
+})();
+</script>
+</body>
+</html>
