@@ -348,7 +348,7 @@ function render() {
   const canSteer = S.ready && !ui.past && !ui.rest && !ui.memory && !ui.menu && !ui.say && ui.scene !== 'map';
   $('steer').hidden = !canSteer; $('say-form').hidden = !ui.say || ui.scene !== 'people' || ui.past; $('menu-toggle').hidden = !S.ready;
   field?.setErosion?.(weather.erosion); glass.setErosion?.(weather.erosion); memory.setErosion(weather.erosion); ink.setErosion(weather.erosion);
-  glass.setMode(weather.material); field?.setMaterial(weather.material); glass.setIntensity(weather.rain); glass.setActivity(!!S.busy && !ui.past);
+  glass.setMode(weather.material); field?.setMaterial(weather.material); glass.setIntensity(Math.max(weather.rain, (S.weather && S.weather.storm) || 0));   // the world can bring a storm onto the glass glass.setActivity(!!S.busy && !ui.past);
   syncField(); ink.setTrails(field?.getTrails() || []);
   if (pendingFocus) { const el = $(pendingFocus); if (el) { el.focus({ preventScroll: true }); pendingFocus = null; } }
 }

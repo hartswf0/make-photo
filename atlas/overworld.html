@@ -31,7 +31,7 @@ canvas{display:block;touch-action:none}
 <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
 <script src="../abyssinian-highlands/habitus-kits.js"></script>
 <script src="../donkey/vehicles.js?v=1"></script>
-<script src="./regions.js?v=1"></script>
+<script src="./regions.js?v=2"></script>
 <script>
 (async () => {
 const T = THREE, QS = new URLSearchParams(location.search), $ = id => document.getElementById(id);
@@ -39,10 +39,13 @@ const OW = await (await fetch('./ow/world.json?v=2')).json(), TS = OW.tile * OW.
 // ---------- renderer, sky, light ----------
 const renderer = new T.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); /* the rain glass refracts this canvas */ renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1)); renderer.setSize(innerWidth, innerHeight); document.body.prepend(renderer.domElement);
 renderer.outputColorSpace = T.SRGBColorSpace;
-const scene = new T.Scene(), SKY = new T.Color('#b4c9d6'); scene.fog = new T.Fog(SKY, 900, 24000);
-{ const c = document.createElement('canvas'); c.width = 4; c.height = 256; const x = c.getContext('2d'), gr = x.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, '#5f8fbf'); gr.addColorStop(.55, '#a9c4d8'); gr.addColorStop(.75, '#c9d6dc'); gr.addColorStop(1, '#b4c9d6'); x.fillStyle = gr; x.fillRect(0, 0, 4, 256); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; scene.background = t; }
+const scene = new T.Scene(), SKY = new T.Color('#b4c9d6'); scene.fog = new T.Fog(SKY.clone(), 900, 24000);
+const skyC = document.createElement('canvas'); skyC.width = 4; skyC.height = 256; const skyX = skyC.getContext('2d'), skyT = new T.CanvasTexture(skyC); skyT.colorSpace = T.SRGBColorSpace; scene.background = skyT;
+const CLEAR_SKY = ['#5f8fbf', '#a9c4d8', '#c9d6dc', '#b4c9d6'].map(c => new T.Color(c)), STORM_SKY = ['#3a4550', '#5d6873', '#6c767e', '#69737b'].map(c => new T.Color(c)), _c = new T.Color();
+function paintSky(v) { const gr = skyX.createLinearGradient(0, 0, 0, 256); [0, .55, .75, 1].forEach((s, k) => gr.addColorStop(s, '#' + _c.copy(CLEAR_SKY[k]).lerp(STORM_SKY[k], v).getHexString())); skyX.fillStyle = gr; skyX.fillRect(0, 0, 4, 256); skyT.needsUpdate = true; }
+paintSky(0);
 const camera = new T.PerspectiveCamera(60, innerWidth / innerHeight, .5, 70000);
-scene.add(new T.HemisphereLight('#dfefff', '#4a5a3a', 1.1)); const sun = new T.DirectionalLight('#fff4dc', 1.6); sun.position.set(-1, 2, -.6); scene.add(sun);
+const hemi = new T.HemisphereLight('#dfefff', '#4a5a3a', 1.1); scene.add(hemi); const sun = new T.DirectionalLight('#fff4dc', 1.6); sun.position.set(-1, 2, -.6); scene.add(sun);
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 // ---------- the painted map drapes every piece of ground ----------
 const tex = await new Promise(ok => new T.TextureLoader().load(OW.texture + '?v=2', ok)); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 8; tex.generateMipmaps = true;
@@ -105,7 +108,10 @@ function stream() { const ahead = P.mode === 'ferry' ? 0 : Math.min(9000, Math.a
 // ---------- region packs: each level's own life, mounted on this ground as you near its island ----------
 async function ensureGround(x0, z0, x1, z1) { const ks = []; for (let j = Math.floor(z0 / TS); j <= Math.floor(z1 / TS); j++) for (let i = Math.floor(x0 / TS); i <= Math.floor(x1 / TS); i++) { const k = i + '_' + j; if (have.has(k)) ks.push(fetchTile(k)); } await Promise.all(ks); }
 const MOUNTS = [];
-const REG = window.DWRegions ? window.DWRegions.create({ T, scene, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, onMount: (isl, r, ms) => MOUNTS.push({ id: isl.id, ms: Math.round(ms), at: [Math.round(P.x), Math.round(P.z)] }) }) : null;
+// a region arrives inside a passing squall: the fog closes, the rain thickens on the glass, and when it clears the island is alive
+const STORM = { v: 0, want: 0, hold: 0, pending: 0, flash: 0 };
+const REG = window.DWRegions ? window.DWRegions.create({ T, scene, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, onStart: () => { STORM.pending++; STORM.want = 1; },
+  onMount: (isl, r, ms) => { MOUNTS.push({ id: isl.id, ms: Math.round(ms), at: [Math.round(P.x), Math.round(P.z)] }); STORM.pending = Math.max(0, STORM.pending - 1); STORM.until = performance.now() + 2500; } }) : null;
 // ---------- ground height: streamed tiles, then bridge decks on top ----------
 function terrain(x, z) { const ti = Math.floor(x / TS), tj = Math.floor(z / TS), f = data.get(ti + '_' + tj); if (!f) return -40; const n = OW.tile + 1, u = (x - ti * TS) / OW.mpp, v = (z - tj * TS) / OW.mpp, i = Math.min(n - 2, Math.floor(u)), j = Math.min(n - 2, Math.floor(v)), a = u - i, b = v - j;
   return f[j * n + i] * (1 - a) * (1 - b) + f[j * n + i + 1] * a * (1 - b) + f[(j + 1) * n + i] * (1 - a) * b + f[(j + 1) * n + i + 1] * a * b; }
@@ -281,6 +287,9 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
   water.position.x = P.x; water.position.z = P.z;
   OWS.dk = Math.max(0, OWS.dk - dt * .0025); if (OWS.jumpT > 0) { OWS.jumpT -= dt; walker.position.y += Math.sin((.5 - OWS.jumpT) / .5 * Math.PI) * 1.1; }
   if (REG) REG.update(dt, now / 1000, P, donkey && donkey.group.position);
+  { if (STORM.until && now > STORM.until && !STORM.pending) { STORM.want = 0; STORM.until = 0; } const sdt = Math.min(.25, (now - (STORM.t || now)) / 1000); STORM.t = now; const prev = STORM.v; STORM.v += (STORM.want - STORM.v) * Math.min(1, sdt * (STORM.want > STORM.v ? .9 : .35));   // wall-clock, so a slow device clears on time
+    if (Math.abs(STORM.v - prev) > .002 || STORM.v > .01) { const v = STORM.v, e = v * v * (3 - 2 * v); scene.fog.near = 900 - 820 * e; scene.fog.far = 24000 - 21800 * e; scene.fog.color.copy(SKY).lerp(STORM_SKY[3], e); paintSky(e);
+      if (v > .7 && Math.random() < dt * .35) STORM.flash = .18; STORM.flash = Math.max(0, STORM.flash - sdt); hemi.intensity = 1.1 - .45 * e + (STORM.flash > .09 ? 2.2 : STORM.flash > 0 ? .8 : 0); sun.intensity = 1.6 * (1 - .7 * e); } }
   if (now - streamAt > 250) { streamAt = now; stream(); if (REG) REG.tick(P.x, P.z); if (!SURF) hud(); }
   if (!ready && tiles.size) { ready = true; $('load').style.opacity = 0; setTimeout(() => $('load').remove(), 700); }
   renderer.render(scene, camera); requestAnimationFrame(frame); }
@@ -315,7 +324,7 @@ window.AhiyaBridge = { version: 1, canvas: renderer.domElement,
   state() { const isl = OW.islands.find(i => Math.abs(P.x - i.center[0]) < i.size[0] / 2 && Math.abs(P.z - i.center[1]) < i.size[1] / 2), n = nearest(OW.places), dg = donkey ? donkey.group.position : null;
     const me = proj(P.x, P.y + 1, P.z), meS = scaleAt(P.x, P.y, P.z), w = nearest(WELLS);
     return { ready, clock: performance.now() / 1000, lang: 'en',
-      water: { liters: OWS.liters, capacity: 20, reserve: 4, donkey: OWS.dk, donkeyDown: OWS.dk < .05 },
+      water: { liters: OWS.liters, capacity: 20, reserve: 4, donkey: OWS.dk, donkeyDown: OWS.dk < .05 }, weather: { storm: STORM.v },
       place: { id: isl ? isl.id : 'sea', name: deckAt(P.x, P.z) && P.mode !== 'fly' ? 'the bridge' : isl ? isl.name : 'the open sea', next: null, visited: [] }, signal: 1,
       mode: { fly: 'glide', boat: 'drive', ferry: 'walk' }[P.mode] || P.mode, speed: Math.abs(P.speed), exit: MODE_OUT[P.mode] ? { id: 'down', label: MODE_OUT[P.mode] } : null,
       live: liveAct(), busy: P.mode === 'ferry', speech: null, said: null,
@@ -339,13 +348,13 @@ window.AhiyaBridge = { version: 1, canvas: renderer.domElement,
   chart: { draw() { }, uv() { return null; }, hit() { return null; } } };
 if (SURF) { for (const id of ['modes', 'stick', 'enter', 'mini', 'where']) $(id).style.display = 'none';
   const lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = '../night-post/rain/rain.css?v=1'; document.head.append(lk);
-  const en = document.createElement('script'); en.src = '../night-post/rain/engine.js?v=2'; en.onload = () => { const su = document.createElement('script'); su.src = '../night-post/rain/surface.js?v=ow1'; document.head.append(su); }; document.head.append(en); }
+  const en = document.createElement('script'); en.src = '../night-post/rain/engine.js?v=2'; en.onload = () => { const su = document.createElement('script'); su.src = '../night-post/rain/surface.js?v=ow2'; document.head.append(su); }; document.head.append(en); }
 // wait for the ground under you before letting go
 { const k = Math.floor(P.x / TS) + '_' + Math.floor(P.z / TS); await fetchTile(k); P.y = groundAt(P.x, P.z); if (donkey) placeDk(P.x + Math.sin(P.yaw) * 2 - Math.cos(P.yaw) * 1.8, P.z + Math.cos(P.yaw) * 2 + Math.sin(P.yaw) * 1.8, P.yaw, (x, z) => groundAt(x, z)); }
 camera.position.set(P.x, P.y + 40, P.z + 60); requestAnimationFrame(frame);
 async function goTo(x, z, yaw) { const k = Math.floor(x / TS) + '_' + Math.floor(z / TS); await fetchTile(k); if (P.mode === 'ferry') { P.ferry = null; P.mode = 'walk'; } if (P.mode === 'boat' && !wet(x, z)) setMode('walk'); P.x = x; P.z = z; P.y = groundAt(x, z); if (Number.isFinite(yaw)) P.yaw = yaw; if (P.mode === 'fly') P.alt = Math.max(P.y, 0) + 60; P.speed = 0;
   if (donkey) placeDk(P.x - Math.sin(P.yaw) * 3, P.z - Math.cos(P.yaw) * 3, P.yaw, (x, z) => groundAt(x, z)); camera.position.set(P.x - Math.sin(P.yaw) * 20, P.y + 12, P.z - Math.cos(P.yaw) * 20); }
-window.__ow = { P, OW, tiles, data, setMode, groundAt, deckAt, terrain, ferries, board, nearPier, wet, woody, rogallo, CROSS, MOORED, goTo, donkey, parked, PARK, REG, MOUNTS,
+window.__ow = { P, OW, tiles, data, setMode, groundAt, deckAt, terrain, ferries, board, nearPier, wet, woody, rogallo, CROSS, MOORED, goTo, donkey, parked, PARK, REG, MOUNTS, STORM,
   setTarget(t) { TARGET = t ? { x: t.x, z: t.z, kind: t.kind || 'door', label: t.label || '' } : null; }, way() { if (!WAY) return null; const path = [[P.x, P.z]]; for (const c of ROUTE) path.push([c.x, c.z], c.far); if (TARGET) path.push([TARGET.x, TARGET.z]); else path.push([WAY.x, WAY.z]);
     return { x: WAY.x, z: WAY.z, kind: WAY.kind, label: WAY.label, chosen: !!TARGET, goal: TARGET && TARGET.label, path }; } };
 })();

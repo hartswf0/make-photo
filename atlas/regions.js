@@ -39,7 +39,7 @@
       return { live,
         tick(x, z) { for (const isl of ctx.islands) { const f = KINDS[isl.id]; if (!f) continue; const d = edge(isl, x, z);
             if (d < WARM && f === ethiopia) { script(ETH + 'endemic-fauna.js?v=1'); json(ETH + 'terrain-pack/manifest.json'); }
-            if (d < MOUNT && !live.has(isl.id) && !busy.has(isl.id)) { busy.add(isl.id); const t0 = performance.now();
+            if (d < MOUNT && !live.has(isl.id) && !busy.has(isl.id)) { busy.add(isl.id); const t0 = performance.now(); if (ctx.onStart) ctx.onStart(isl);
               f(ctx, isl).then(r => { live.set(isl.id, r); if (ctx.onMount) ctx.onMount(isl, r, performance.now() - t0); }).catch(e => console.warn('region', isl.id, e)).finally(() => busy.delete(isl.id)); }
             else if (d > DROP && live.has(isl.id)) { try { live.get(isl.id).dispose(); } catch { } live.delete(isl.id); } } },
         update(dt, t, pl, dk) { for (const r of live.values()) try { r.update(dt, t, pl, dk); } catch (e) { } } }; } };
