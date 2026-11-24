@@ -95,11 +95,47 @@ crd = [dict(kind='highway', uv=[cl(*p) for p in h['pts']]) for h in roads['highw
 streets = [[cl(*p) for p in s_['pts']] for s_ in roads['streets'][:2500] if 'pts' in s_]
 island('wygwyl', 'WYGWYL', np.minimum(np.where(city > 0, city + 6, city - 30), islandize(np.maximum(city, 0), .22)), hg['W'] / 1000, hg['H'] / 1000, 52, 48.5, 'City suite · Atlantis · Nolli block', '../city/island/index.html',
   places=[dict(name=g['name'], uv=cl(g['x'], g['y']), world='WYGWYL island', entry='../city/island/index.html') for g in meta['regions']], roads=crd, streets=streets, note='six real places rotated into one island, 9.6 by 6.4 km')
+# ---------- arrange: a tight archipelago; where a bridge crosses, the strait is a few hundred metres ----------
+from scipy.spatial import cKDTree
+PAIRS = [('teton', 'corridor'), ('teton', 'gerd_belaya_escarpment'), ('corridor', 'halfdome'), ('corridor', 'blue_nile_gorge'), ('halfdome', 'simien_imet_gogo'),   # one chain that joins every island
+         ('simien_imet_gogo', 'gheralta_spires'), ('simien_imet_gogo', 'ahiya'), ('blue_nile_gorge', 'wygwyl')]
+GAP, CLEAR, MARGIN = 420.0, 1400.0, 3000.0
+for i in I:
+    pw, ph = max(2, int(i['w'] * 1000 / MPP)), max(2, int(i['hgt'] * 1000 / MPP))
+    a_ = np.asarray(Image.fromarray(i['h'].astype(np.float32)).resize((pw, ph), Image.BILINEAR), dtype=np.float64); i['ras'] = a_
+    m_ = a_ > 2; e_ = m_ & ~(np.roll(m_, 1, 0) & np.roll(m_, -1, 0) & np.roll(m_, 1, 1) & np.roll(m_, -1, 1)); e_[0, :] = e_[-1, :] = e_[:, 0] = e_[:, -1] = False
+    ys_, xs_ = np.nonzero(e_); pts = np.stack([xs_ * MPP - pw * MPP / 2, ys_ * MPP - ph * MPP / 2], 1).astype(float); i['cl'] = pts[:: max(1, len(pts) // 900)]; i['kd'] = cKDTree(i['cl'])
+    i['pos'] = np.array([i['cx'] * 1000.0, i['cy'] * 1000.0])
+ID = {i['id']: i for i in I}; ah_off = ID['ahiya']['pos'] - ID['simien_imet_gogo']['pos']
+EDGES = list(PAIRS); MOV = list(I)
+def on_land(i, pw_):
+    r_ = i['ras']; loc = (pw_ - i['pos']) / MPP + np.array([r_.shape[1] / 2, r_.shape[0] / 2]); x = loc[:, 0].astype(int); y = loc[:, 1].astype(int)
+    ok = (x >= 0) & (y >= 0) & (x < r_.shape[1]) & (y < r_.shape[0]); o = np.zeros(len(pw_), bool); o[ok] = r_[y[ok], x[ok]] > 0; return o
+def gap(A, B):                                                   # nearest coast to coast, and the way from A to B; negative when they overlap
+    pb = B['cl'] + B['pos']; d, k = A['kd'].query(pb - A['pos']); j = int(np.argmin(d)); u = pb[j] - (A['cl'][k[j]] + A['pos']); u = u / max(np.hypot(*u), 1e-6)
+    ov = on_land(A, pb).mean() + on_land(B, A['cl'] + A['pos']).mean()
+    if ov > 0: c = B['pos'] - A['pos']; return -min(3000.0, 400 + ov * 6000), c / np.hypot(*c)
+    return float(d[j]), u
+for it in range(500):
+    k_ = .55 if it < 350 else .25
+    for a_, b_ in EDGES:
+        A, B = ID[a_], ID[b_]; d, u = gap(A, B); st = (d - GAP) * .5 * k_; A['pos'] += u * st; B['pos'] -= u * st
+    for x in range(len(MOV)):
+        for y in range(x + 1, len(MOV)):
+            A, B = MOV[x], MOV[y]
+            if (A['id'], B['id']) in EDGES or (B['id'], A['id']) in EDGES: continue
+            d, u = gap(A, B)
+            if d < CLEAR: st = (CLEAR - d) * .5 * k_; A['pos'] -= u * st; B['pos'] += u * st
+print('straits', [(a_[:6], b_[:6], round(gap(ID[a_], ID[b_])[0])) for a_, b_ in PAIRS])
+lo = np.min([i['pos'] - np.array([i['w'], i['hgt']]) * 500 for i in I], 0) - MARGIN; hi = np.max([i['pos'] + np.array([i['w'], i['hgt']]) * 500 for i in I], 0) + MARGIN
+for i in I: i['pos'] -= lo; i['cx'], i['cy'] = i['pos'][0] / 1000, i['pos'][1] / 1000
+W_KM, H_KM = math.ceil((hi[0] - lo[0]) / 2000) * 2.0, math.ceil((hi[1] - lo[1]) / 2000) * 2.0; PW, PH = int(W_KM * 1000 / MPP), int(H_KM * 1000 / MPP)
+if ID['teton'].get('frame'): pass
+print('sea', W_KM, 'by', H_KM, 'km')
 # ---------- compose ----------
 Hmap = np.full((PH, PW), -400.0); OWN = np.full((PH, PW), -1, np.int16)
 for i in I:
-    pw, ph = max(2, int(i['w'] * 1000 / MPP)), max(2, int(i['hgt'] * 1000 / MPP)); x0p = int((i['cx'] - i['w'] / 2) * 1000 / MPP); y0p = int((i['cy'] - i['hgt'] / 2) * 1000 / MPP)
-    a_ = np.asarray(Image.fromarray(i['h'].astype(np.float32)).resize((pw, ph), Image.BILINEAR), dtype=np.float64)
+    a_ = i['ras']; ph, pw = a_.shape; x0p = int(round((i['cx'] - i['w'] / 2) * 1000 / MPP)); y0p = int(round((i['cy'] - i['hgt'] / 2) * 1000 / MPP))
     ys, xs = slice(max(0, y0p), min(PH, y0p + ph)), slice(max(0, x0p), min(PW, x0p + pw))
     sub = a_[ys.start - y0p: ys.stop - y0p, xs.start - x0p: xs.stop - x0p]; win = sub > Hmap[ys, xs]; Hmap[ys, xs] = np.where(win, sub, Hmap[ys, xs]); OWN[ys, xs] = np.where(win & (sub > 0), I.index(i), OWN[ys, xs])
     i['px'] = [x0p, y0p, pw, ph]
@@ -145,7 +181,6 @@ json.dump(out, open(R / 'atlas' / 'archipelago.json', 'w'), separators=(',', ':'
 print('islands', [(i['id'], round(i['w'], 1), round(i['hgt'], 1)) for i in I], 'land %', round(land.mean() * 100, 1), 'px', PW, PH)
 
 # ================= the overworld: streamed terrain tiles, bridges, roads in 3D =================
-from scipy.spatial import cKDTree
 OW = R / 'atlas' / 'ow'; (OW / 't').mkdir(parents=True, exist_ok=True)
 T = 100                                                                       # samples per tile edge: 2 km tiles at 20 m
 def Hm(x, z):                                                                 # metres -> height, bilinear
@@ -165,21 +200,24 @@ for k, i in enumerate(I):
     m_ = (OWN == k) & land_
     edge = m_ & ~(np.roll(m_, 1, 0) & np.roll(m_, -1, 0) & np.roll(m_, 1, 1) & np.roll(m_, -1, 1))
     ys_, xs_ = np.nonzero(edge); pts = np.stack([xs_, ys_], 1)[:: max(1, len(xs_) // 4000)] * MPP; coast[i['id']] = pts
-PAIRS = [('teton', 'corridor'), ('teton', 'gerd_belaya_escarpment'), ('corridor', 'halfdome'), ('corridor', 'blue_nile_gorge'), ('halfdome', 'simien_imet_gogo'),   # one chain that joins every island
-         ('simien_imet_gogo', 'gheralta_spires'), ('simien_imet_gogo', 'ahiya'), ('blue_nile_gorge', 'wygwyl')]
 bridges = []
 for a_, b_ in PAIRS:
     A_, B_ = coast[a_], coast[b_]
     if not len(A_) or not len(B_): continue
-    d, idx = cKDTree(B_).query(A_); k = int(np.argmin(d)); p0, p1 = A_[k].astype(float), B_[idx[k]].astype(float); L = float(d[k])
-    dirv = (p1 - p0) / max(L, 1); p0 = p0 - dirv * 160; p1 = p1 + dirv * 160; L = float(np.hypot(*(p1 - p0)))   # land a little way inland on both shores
+    d, idx = cKDTree(B_).query(A_); best = None
+    for k in np.argsort(d)[:700]:                                                  # short, and landing on low shore at both ends
+        q0, q1 = A_[k].astype(float), B_[idx[k]].astype(float); L0 = float(d[k]); dv = (q1 - q0) / max(L0, 1); q0 = q0 - dv * 160; q1 = q1 + dv * 160
+        h0, h1 = (float(Hm(np.array([q[0]]), np.array([q[1]]))[0]) for q in (q0, q1)); sc = L0 + 6 * max(h0, h1, 0) + 3 * abs(h0 - h1)
+        if best is None or sc < best[0]: best = (sc, q0, q1)
+    p0, p1 = best[1], best[2]; L = float(np.hypot(*(p1 - p0)))
     n = max(4, int(L / 40)); xs_ = np.linspace(p0[0], p1[0], n + 1); zs_ = np.linspace(p0[1], p1[1], n + 1); ground = Hm(xs_, zs_)
     e0, e1 = max(ground[0], 1) + 1.5, max(ground[-1], 1) + 1.5; t = np.linspace(0, 1, n + 1)
     deck = e0 * (1 - t) + e1 * t + np.sin(t * np.pi) * min(60, 14 + L / 120)       # a gentle arch over the channel
     deck = np.maximum(deck, ground + 1.2)
     bridges.append(dict(a=a_, b=b_, length_m=round(L), pts=[[round(x, 1), round(y, 2), round(z, 1)] for x, y, z in zip(xs_, deck, zs_)]))
 # ferries: sea lanes between islands no bridge joins; a pier reaches out from each shore
-FERRY = [('teton', 'halfdome'), ('gerd_belaya_escarpment', 'wygwyl'), ('blue_nile_gorge', 'gheralta_spires'), ('corridor', 'gerd_belaya_escarpment'), ('teton', 'wygwyl')]
+NEAR = sorted((gap(A, B)[0], A['id'], B['id']) for x, A in enumerate(I) for B in I[x + 1:] if (A['id'], B['id']) not in PAIRS and (B['id'], A['id']) not in PAIRS)
+FERRY = [(a_, b_) for d_, a_, b_ in NEAR if 1000 < d_ < 4000][:5]                  # ferries across the next-narrowest straits no bridge takes
 ferries = []
 for a_, b_ in FERRY:
     A_, B_ = coast[a_], coast[b_]; d, idx = cKDTree(B_).query(A_); order = np.argsort(d)
@@ -212,4 +250,4 @@ LOW = 10; lowh = Hmap[::LOW, ::LOW]; (OW / 'low.bin').write_bytes(np.clip(np.rou
 json.dump(dict(ferries=ferries, tile=T, mpp=MPP, tiles=tiles, low=dict(step=LOW * MPP, w=lowh.shape[1], h=lowh.shape[0]), width_m=PW * MPP, height_m=PH * MPP, encode='(h+1000)*10 uint16 LE, rows south-increasing z', bridges=bridges, roads=roads3, places=places3,
                islands=[dict(id=i['id'], name=i['name'], level=i['level'], entry=i['entry'], center=[i['center'][0] * 1000, i['center'][1] * 1000], size=[i['size'][0] * 1000, i['size'][1] * 1000], frame=i['frame']) for i in out['islands']],
                texture='./archipelago.jpg'), open(OW / 'world.json', 'w'), separators=(',', ':'))
-print('ferries', [(f['a'][:6], f['b'][:6], f['length_m']) for f in ferries]); print('overworld', len(tiles), 'tiles', len(bridges), 'bridges', [(b['a'][:6], b['b'][:6], b['length_m']) for b in bridges], len(roads3), 'roads')
+print('ends', [(b['a'][:6], b['b'][:6], b['pts'][0][1], b['pts'][-1][1]) for b in bridges]); print('ferries', [(f['a'][:6], f['b'][:6], f['length_m']) for f in ferries]); print('overworld', len(tiles), 'tiles', len(bridges), 'bridges', [(b['a'][:6], b['b'][:6], b['length_m']) for b in bridges], len(roads3), 'roads')

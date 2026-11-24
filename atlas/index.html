@@ -24,8 +24,8 @@ canvas{position:fixed;inset:0;display:block;touch-action:none}
 <script>
 (async () => {
 const cv = document.getElementById('c'), g = cv.getContext('2d'), card = document.getElementById('card'), QS = new URLSearchParams(location.search), EMBED = QS.has('embed');
-const A = await (await fetch('./archipelago.json?v=1')).json();
-const OWJ = await fetch('./ow/world.json?v=1').then(r => r.json()).catch(() => null), km = p => [p[0] / 1000, p[2] / 1000];
+const A = await (await fetch('./archipelago.json?v=2')).json();
+const OWJ = await fetch('./ow/world.json?v=2').then(r => r.json()).catch(() => null), km = p => [p[0] / 1000, p[2] / 1000];
 const title = s => s.toLowerCase().replace(/(^|[\s–-])\p{L}/gu, c => c.toUpperCase()), ISL = id => A.islands.find(i => i.id === id);
 const BR = OWJ ? OWJ.bridges.map(b => ({ b, line: b.pts.map(km) })) : [], FE = OWJ ? OWJ.ferries.map(f => ({ f, lane: f.lane.map(km), piers: f.piers.map(pr => pr.map(km)) })) : [];
 const HEADS = [];   // every end of every crossing, as you would walk up to it
@@ -56,7 +56,7 @@ function draw() {
   g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(src, x0, y0, x1 - x0, y1 - y0);
   for (const il of A.islands) { if (!il.detail) continue; const [ix, iy] = P(il.center[0] - il.size[0] / 2, il.center[1] - il.size[1] / 2), iw = il.size[0] * V.s, ih = il.size[1] * V.s;   // each island sharp when it is large on screen
     if (iw < A.mpp / 1000 * V.s * 0 + il.size[0] * 1000 / A.mpp * 1.1 || ix > W || iy > H || ix + iw < 0 || iy + ih < 0) continue;
-    if (!il._img) { il._img = new Image(); il._img.onload = draw; il._img.src = il.detail + '?v=1'; } if (il._img.complete && il._img.naturalWidth) g.drawImage(il._img, ix, iy, iw, ih); }
+    if (!il._img) { il._img = new Image(); il._img.onload = draw; il._img.src = il.detail + '?v=2'; } if (il._img.complete && il._img.naturalWidth) g.drawImage(il._img, ix, iy, iw, ih); }
   const k = V.s, zoomed = k > 30, close = k > 110;
   g.lineCap = g.lineJoin = 'round';
   for (const il of A.islands) {
@@ -130,8 +130,8 @@ setInterval(() => { const ow = OWP(); if (!ow || document.hidden) return; const 
 if (EMBED) { const b = document.getElementById('back'); b.style.display = 'block'; b.onclick = () => parent.postMessage('atlas:back', '*'); }
 addEventListener('resize', size);
 cv.width = W * dpr; cv.height = H * dpr;
-img.onload = () => { ready = true; start(); draw(); }; img.src = A.preview + '?v=1';
-big.onload = () => draw(); big.src = A.image + '?v=1';
+img.onload = () => { ready = true; start(); draw(); }; img.src = A.preview + '?v=2';
+big.onload = () => draw(); big.src = A.image + '?v=2';
 window.__arch = { A, V, draw };
 })();
 </script></body></html>

@@ -34,7 +34,7 @@ canvas{display:block;touch-action:none}
 <script>
 (async () => {
 const T = THREE, QS = new URLSearchParams(location.search), $ = id => document.getElementById(id);
-const OW = await (await fetch('./ow/world.json?v=1')).json(), TS = OW.tile * OW.mpp;          // a tile is 2 km
+const OW = await (await fetch('./ow/world.json?v=2')).json(), TS = OW.tile * OW.mpp;          // a tile is 2 km
 // ---------- renderer, sky, light ----------
 const renderer = new T.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); /* the rain glass refracts this canvas */ renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1)); renderer.setSize(innerWidth, innerHeight); document.body.prepend(renderer.domElement);
 renderer.outputColorSpace = T.SRGBColorSpace;
@@ -44,7 +44,7 @@ const camera = new T.PerspectiveCamera(60, innerWidth / innerHeight, .5, 70000);
 scene.add(new T.HemisphereLight('#dfefff', '#4a5a3a', 1.1)); const sun = new T.DirectionalLight('#fff4dc', 1.6); sun.position.set(-1, 2, -.6); scene.add(sun);
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 // ---------- the painted map drapes every piece of ground ----------
-const tex = await new Promise(ok => new T.TextureLoader().load(OW.texture + '?v=1', ok)); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 8; tex.generateMipmaps = true;
+const tex = await new Promise(ok => new T.TextureLoader().load(OW.texture + '?v=2', ok)); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 8; tex.generateMipmaps = true;
 const groundMat = new T.MeshLambertMaterial({ map: tex });
 { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'), im = x.createImageData(256, 256); for (let i = 0; i < 256 * 256; i++) { const v = 150 + Math.random() * 80 + Math.sin(i * .013) * 10; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; } x.putImageData(im, 0, 0);
   x.globalAlpha = .35; for (let k = 0; k < 900; k++) { x.fillStyle = Math.random() < .5 ? '#555' : '#fff'; x.beginPath(); x.arc(Math.random() * 256, Math.random() * 256, Math.random() * 3 + .5, 0, 7); x.fill(); }
@@ -67,13 +67,13 @@ function gridMesh(cols, rows, x0, z0, step, hAt, mat) {
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals(); return new T.Mesh(g, mat);
 }
 // the whole archipelago, coarse, so far islands stand on the horizon
-const LOWB = new Uint16Array(await (await fetch('./ow/low.bin?v=1')).arrayBuffer()), lowAt = (x, z) => { const L = OW.low, u = Math.max(0, Math.min(L.w - 1.001, x / L.step)), v = Math.max(0, Math.min(L.h - 1.001, z / L.step)), i = Math.floor(u), j = Math.floor(v), a = u - i, b = v - j, H = (i, j) => LOWB[j * L.w + i] / 10 - 1000;
+const LOWB = new Uint16Array(await (await fetch('./ow/low.bin?v=2')).arrayBuffer()), lowAt = (x, z) => { const L = OW.low, u = Math.max(0, Math.min(L.w - 1.001, x / L.step)), v = Math.max(0, Math.min(L.h - 1.001, z / L.step)), i = Math.floor(u), j = Math.floor(v), a = u - i, b = v - j, H = (i, j) => LOWB[j * L.w + i] / 10 - 1000;
   return H(i, j) * (1 - a) * (1 - b) + H(i + 1, j) * a * (1 - b) + H(i, j + 1) * (1 - a) * b + H(i + 1, j + 1) * a * b; };
 { const buf = LOWB, L = OW.low, m = gridMesh(L.w, L.h, 0, 0, L.step, (i, j) => Math.max(-60, buf[j * L.w + i] / 10 - 1000) - 3, groundMat); scene.add(m); }
 const water = new T.Mesh(new T.PlaneGeometry(140000, 140000), new T.MeshPhongMaterial({ color: '#235f8f', specular: '#d8eefc', shininess: 90, transparent: true, opacity: .93 })); water.rotation.x = -Math.PI / 2; water.position.y = 0; scene.add(water);
 // ---------- streaming: 2 km tiles near you at full detail, further ones coarser ----------
 const have = new Set(OW.tiles.map(([i, j]) => i + '_' + j)), tiles = new Map(), data = new Map(), loading = new Set();
-async function fetchTile(key) { if (data.has(key) || loading.has(key)) return; loading.add(key); try { const b = new Uint16Array(await (await fetch(`./ow/t/${key}.bin?v=1`)).arrayBuffer()), f = new Float32Array(b.length); for (let k = 0; k < b.length; k++) f[k] = b[k] / 10 - 1000; data.set(key, f); } catch { } loading.delete(key); }
+async function fetchTile(key) { if (data.has(key) || loading.has(key)) return; loading.add(key); try { const b = new Uint16Array(await (await fetch(`./ow/t/${key}.bin?v=2`)).arrayBuffer()), f = new Float32Array(b.length); for (let k = 0; k < b.length; k++) f[k] = b[k] / 10 - 1000; data.set(key, f); } catch { } loading.delete(key); }
 // ---------- forests: conifers on the American islands, acacia and eucalyptus on the Ethiopian ones; none in the city ----------
 const TREE = (() => { const lam = c => new T.MeshLambertMaterial({ color: '#ffffff', vertexColors: false }), crownC = new T.ConeGeometry(1, 3.2, 7); crownC.translate(0, 2.6, 0); const trunk = new T.CylinderGeometry(.12, .18, 1.4, 5); trunk.translate(0, .7, 0);
   const crownA = new T.SphereGeometry(1, 9, 5); crownA.scale(1.7, .42, 1.7); crownA.translate(0, 2.7, 0); const trunkA = new T.CylinderGeometry(.08, .14, 2.6, 5); trunkA.translate(0, 1.3, 0);
