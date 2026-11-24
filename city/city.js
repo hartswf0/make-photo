@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { CARTRIDGES, TIME_PRESETS } from './cartridges.js';
+import { createHeroOrCastV9, evolveHeroPhenotype } from './hero-build/anny-hero-v9.js';
 import {
   ALL_CITY_LOOKS,
   SUITE_TIME_PRESETS,
@@ -15,6 +17,7 @@ import {
 } from './shader-suite-bar.js';
 
 const gltfLoader = new GLTFLoader();
+gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 const wygwylAssets = {
   island: null,
   world: null,
@@ -1097,11 +1100,24 @@ const worldRig = createWorldPortalAndTripod({
 });
 
 // ---------------------------------------------------------------------------
-// Persistent Anny V8 Cast (Makeda, Bekele, June)
+// Exact Visual Surface Elevation Helper (Street, Sidewalk Apron, Shop, Stairs, Roof)
+// ---------------------------------------------------------------------------
+function getExactVisualSurfaceY(x, z, floorY) {
+  if (floorY > 8.8) return Math.max(floorY, 9.24);
+  if (floorY > 4.35 && floorY < 4.85) return 4.62;
+  if (floorY > 0.25) return floorY;
+  if (Math.abs(x) < 8.8 && Math.abs(z) < 6.8) return 0.18;
+  if (Math.abs(x) < 13.0 && z > -9.0 && z < 13.0) return 0.16;
+  if (x > -20.0 && x < -8.0 && z > -24.0 && z < -4.0) return 0.16;
+  return 0.0;
+}
+
+// ---------------------------------------------------------------------------
+// Persistent Anny V9 Cast (Makeda, Bekele, June) + Biomechanical Role Suites
 // ---------------------------------------------------------------------------
 const residents = [];
 const residentHitMeshes = [];
-const v8Cache = new Map();
+const v9ResidentCache = new Map();
 
 function createArticulatedResident(def) {
   const root = new THREE.Group();
@@ -1143,6 +1159,7 @@ function createArticulatedResident(def) {
   residentHitMeshes.push(hitMesh);
 
   const st0 = def.stations[0];
+  const initSurfaceY = getExactVisualSurfaceY(st0.x, st0.z, st0.y);
   root.position.set(st0.x, st0.y, st0.z);
   scene.add(root);
 
@@ -1156,54 +1173,61 @@ function createArticulatedResident(def) {
     legL,
     legR,
     v8: null,
+    v9: null,
     currentClip: 'idle',
     speechText: '',
     speechTimer: 0,
     speechDur: 0,
     stationIdx: 0,
-    dwellTimer: 4 + Math.random() * 4,
+    dwellTimer: 5 + Math.random() * 4,
+    greetTimer: 0,
+    wasNearPlayer: false,
     walkPhase: Math.random() * 6,
   };
 
   const arch = def.archetype || 'adult_f';
-  if (typeof window !== 'undefined' && window.AnnyHumanV7 && window.AnnyHumanV7.createCharacter) {
-    let prom = v8Cache.get(arch);
-    if (!prom) {
-      prom = window.AnnyHumanV7.createCharacter({
-        THREE,
-        loader: gltfLoader,
-        archetype: arch,
-        assetBaseUrl: '../abyssinian-highlands/human-forge/assets',
-        clipsBaseUrl: '../motion-pipeline/mesh2motion/clips',
-        clothed: true,
-        groundY: 0,
-        preloadClips: ['idle', 'walk', 'talk'],
-        initialClip: 'idle',
-      }).catch((err) => {
-        console.warn('Anny V8 load fallback:', arch, err);
-        return null;
-      });
-      v8Cache.set(arch, prom);
-    }
-    prom.then((v8Inst) => {
-      if (!v8Inst) return;
-      if (v8Inst.root.parent) v8Inst.root.parent.remove(v8Inst.root);
-      v8Inst.root.position.set(0, 0, 0);
-      v8Inst.root.rotation.set(0, 0, 0);
-      resObj.root.add(v8Inst.root);
-      resObj.fallbackGroup.visible = false;
-      resObj.v8 = v8Inst;
-      v8Inst.setGroundY(0);
+  const cacheKey = `${def.id}:${arch}`;
+  let prom = v9ResidentCache.get(cacheKey);
+  if (!prom) {
+    const seedMap = { makeda: 101, bekele: 202, june: 303 };
+    const initClipMap = { makeda: 'pump', bekele: 'listen', june: 'idle' };
+    prom = createHeroOrCastV9({
+      THREE,
+      loader: gltfLoader,
+      role: def.id,
+      archetype: arch,
+      groundY: initSurfaceY,
+      initialClip: initClipMap[def.id] || 'idle',
+      prop: 'none',
+      glasses: false,
+      wingsMode: 'off',
+      seed: seedMap[def.id] || 77,
+    }).catch((err) => {
+      console.warn('Anny V9 cast fallback:', def.id, err);
+      return null;
     });
+    v9ResidentCache.set(cacheKey, prom);
   }
+  prom.then((v9Inst) => {
+    if (!v9Inst) return;
+    if (v9Inst.root.parent) v9Inst.root.parent.remove(v9Inst.root);
+    v9Inst.root.position.set(0, 0, 0);
+    v9Inst.root.rotation.set(0, 0, 0);
+    resObj.root.add(v9Inst.root);
+    resObj.fallbackGroup.visible = false;
+    resObj.v9 = v9Inst;
+    resObj.v8 = v9Inst;
+    const curSurfY = getExactVisualSurfaceY(resObj.root.position.x, resObj.root.position.z, resObj.root.position.y);
+    v9Inst.setGroundY(curSurfY);
+  });
 
   return resObj;
 }
 
 function rebuildResidentsForCartridge(cart) {
   residents.forEach((r) => {
-    if (r.v8 && r.v8.root && r.v8.root.parent === r.root) {
-      r.root.remove(r.v8.root);
+    if (r.v9 && r.v9.root && r.v9.root.parent === r.root) {
+      r.root.remove(r.v9.root);
     }
     scene.remove(r.root);
   });
@@ -1212,6 +1236,314 @@ function rebuildResidentsForCartridge(cart) {
   cart.residents.forEach((def) => {
     residents.push(createArticulatedResident(def));
   });
+}
+
+// ---------------------------------------------------------------------------
+// 3D Coat-Stand & Cheval Mirror + Playable V9 Poet Hero + P06-S01 Marble Winged Portal Arch
+// ---------------------------------------------------------------------------
+const HERO_HOME_POS = new THREE.Vector3(-2.15, 0.16, 11.35);
+const HERO_HOME_YAW = 0.22;
+
+const coatStandMirrorGroup = new THREE.Group();
+coatStandMirrorGroup.position.set(-3.28, 0.16, 10.75);
+coatStandMirrorGroup.rotation.y = 0.36;
+scene.add(coatStandMirrorGroup);
+
+{
+  // Full-length Brass-Framed Cheval Mirror tilted gracefully toward the Poet Hero & street
+  const mirrorStand = new THREE.Group();
+  mirrorStand.position.set(-0.36, 0, -0.08);
+  mirrorStand.rotation.y = 0.22;
+
+  for (const sx of [-0.42, 0.42]) {
+    const upright = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.028, 1.72, 10), mats.oakDoor);
+    upright.position.set(sx, 0.86, 0);
+    upright.castShadow = true;
+    mirrorStand.add(upright);
+
+    const footSplay = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.56), mats.brass);
+    footSplay.position.set(sx, 0.025, 0);
+    mirrorStand.add(footSplay);
+
+    const finial = new THREE.Mesh(new THREE.SphereGeometry(0.042, 12, 10), mats.brass);
+    finial.position.set(sx, 1.75, 0);
+    mirrorStand.add(finial);
+  }
+
+  const mirrorPivot = new THREE.Group();
+  mirrorPivot.position.set(0, 0.96, 0);
+  mirrorPivot.rotation.x = -0.07;
+
+  const brassFrame = new THREE.Mesh(new THREE.BoxGeometry(0.76, 1.56, 0.045), mats.brass);
+  brassFrame.castShadow = true;
+  mirrorPivot.add(brassFrame);
+
+  const silverGlassMat = new THREE.MeshStandardMaterial({
+    color: '#d9eefc',
+    emissive: '#10354f',
+    emissiveIntensity: 0.28,
+    roughness: 0.06,
+    metalness: 0.94,
+  });
+  const silverGlass = new THREE.Mesh(new THREE.PlaneGeometry(0.66, 1.46), silverGlassMat);
+  silverGlass.position.z = 0.026;
+  mirrorPivot.add(silverGlass);
+
+  const archCrown = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.024, 8, 24, Math.PI), mats.brass);
+  archCrown.position.set(0, 0.78, 0);
+  mirrorPivot.add(archCrown);
+
+  mirrorStand.add(mirrorPivot);
+  coatStandMirrorGroup.add(mirrorStand);
+
+  // Turned Mahogany & Brass Coat-Stand with Draped Spare Trench Collar & Cyan Camera Strap
+  const standPost = new THREE.Group();
+  standPost.position.set(0.42, 0, 0.14);
+
+  const baseDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.28, 0.05, 16), mats.brass);
+  baseDisc.position.y = 0.025;
+  standPost.add(baseDisc);
+
+  const column = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.042, 1.84, 12), mats.oakDoor);
+  column.position.y = 0.94;
+  column.castShadow = true;
+  standPost.add(column);
+
+  const collarRing = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.012, 8, 16), mats.brass);
+  collarRing.rotation.x = Math.PI / 2;
+  collarRing.position.y = 1.66;
+  standPost.add(collarRing);
+
+  for (let hIdx = 0; hIdx < 4; hIdx++) {
+    const a = (hIdx / 4) * Math.PI * 2 + 0.4;
+    const hook = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.011, 8, 14, Math.PI * 1.1), mats.brass);
+    hook.position.set(Math.cos(a) * 0.08, 1.72, Math.sin(a) * 0.08);
+    hook.rotation.y = -a;
+    standPost.add(hook);
+  }
+
+  // Spare dark indigo Poet trench-coat & crimson piping draped on hook
+  const drapedCoatMat = new THREE.MeshStandardMaterial({ color: '#1b2236', roughness: 0.68 });
+  const drapedTrimMat = new THREE.MeshStandardMaterial({ color: '#d63c34', roughness: 0.45 });
+  const drapedCoat = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.88, 10, 1, true), drapedCoatMat);
+  drapedCoat.position.set(-0.08, 1.24, 0.06);
+  drapedCoat.rotation.z = 0.08;
+  drapedCoat.castShadow = true;
+  standPost.add(drapedCoat);
+
+  const drapedPiping = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.84, 0.022), drapedTrimMat);
+  drapedPiping.position.set(-0.08, 1.24, 0.19);
+  standPost.add(drapedPiping);
+
+  const cyanStrap = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 8, 18), mats.cyanActive);
+  cyanStrap.position.set(0.09, 1.54, 0.04);
+  cyanStrap.rotation.y = 0.6;
+  standPost.add(cyanStrap);
+
+  coatStandMirrorGroup.add(standPost);
+}
+
+// Spawn V9 Poet Hero standing beside the 3D Coat-Stand / Cheval Mirror
+const poetHeroRoot = new THREE.Group();
+poetHeroRoot.position.copy(HERO_HOME_POS);
+poetHeroRoot.rotation.y = HERO_HOME_YAW;
+scene.add(poetHeroRoot);
+
+const poetHeroShadow = new THREE.Mesh(
+  new THREE.CircleGeometry(0.38, 20),
+  new THREE.MeshBasicMaterial({ color: '#05080d', transparent: true, opacity: 0.48, depthWrite: false })
+);
+poetHeroShadow.rotation.x = -Math.PI / 2;
+poetHeroShadow.position.y = 0.01;
+poetHeroRoot.add(poetHeroShadow);
+
+const poetHeroFallback = new THREE.Group();
+{
+  const fbJacket = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.19, 0.24, 0.86, 12),
+    new THREE.MeshStandardMaterial({ color: '#181d2c', roughness: 0.65 })
+  );
+  fbJacket.position.y = 1.1;
+  fbJacket.castShadow = true;
+  const fbHead = new THREE.Mesh(
+    new THREE.SphereGeometry(0.14, 12, 10),
+    new THREE.MeshStandardMaterial({ color: '#613d2b', roughness: 0.6 })
+  );
+  fbHead.position.y = 1.65;
+  poetHeroFallback.add(fbJacket, fbHead);
+}
+poetHeroRoot.add(poetHeroFallback);
+
+const poetHeroState = {
+  root: poetHeroRoot,
+  v9: null,
+  embodied: false,
+  facingYaw: HERO_HOME_YAW,
+  prevYaw: HERO_HOME_YAW,
+  evoSeed: 6,
+  greetTimer: 0,
+};
+
+createHeroOrCastV9({
+  THREE,
+  loader: gltfLoader,
+  role: 'poet_hero',
+  wingsMode: 'marble',
+  glasses: true,
+  prop: 'camera',
+  groundY: HERO_HOME_POS.y,
+  initialClip: 'idle',
+  seed: 6,
+})
+  .then((inst) => {
+    if (!inst) return;
+    inst.root.position.set(0, 0, 0);
+    inst.root.rotation.set(0, 0, 0);
+    poetHeroRoot.add(inst.root);
+    poetHeroFallback.visible = false;
+    poetHeroState.v9 = inst;
+    inst.setGroundY(poetHeroRoot.position.y);
+  })
+  .catch((err) => {
+    console.warn('Poet Hero V9 spawn warning:', err);
+  });
+
+// Build 3D Marble Winged Portal Arch leading directly to ./stage/#P06-S01
+const wingedPortalGroup = new THREE.Group();
+wingedPortalGroup.position.set(-8.4, 0.16, 13.0);
+wingedPortalGroup.rotation.y = 0.36;
+scene.add(wingedPortalGroup);
+
+const wingedPortalState = {
+  group: wingedPortalGroup,
+  wingPivotL: null,
+  wingPivotR: null,
+  veilMat: null,
+  armedForWalk: false,
+  navigating: false,
+};
+
+{
+  const carraraMat = new THREE.MeshStandardMaterial({
+    color: '#f2eee6',
+    roughness: 0.34,
+    metalness: 0.06,
+  });
+  const kintsugiGoldMat = new THREE.MeshStandardMaterial({
+    color: '#e2b65e',
+    emissive: '#4d350c',
+    emissiveIntensity: 0.26,
+    roughness: 0.24,
+    metalness: 0.88,
+  });
+  const portalVeilMat = new THREE.MeshBasicMaterial({
+    color: '#24c8ff',
+    transparent: true,
+    opacity: 0.17,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  wingedPortalState.veilMat = portalVeilMat;
+
+  // Stepped marble plinth
+  const plinthA = new THREE.Mesh(new THREE.BoxGeometry(3.25, 0.14, 0.96), carraraMat);
+  plinthA.position.y = 0.07;
+  plinthA.receiveShadow = true;
+  wingedPortalGroup.add(plinthA);
+
+  const plinthB = new THREE.Mesh(new THREE.BoxGeometry(2.85, 0.12, 0.78), carraraMat);
+  plinthB.position.y = 0.20;
+  plinthB.receiveShadow = true;
+  wingedPortalGroup.add(plinthB);
+
+  // Fluted Carrara marble columns + kintsugi gold collar rings
+  for (const sx of [-1.14, 1.14]) {
+    const colBase = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.24, 0.46), carraraMat);
+    colBase.position.set(sx, 0.38, 0);
+    wingedPortalGroup.add(colBase);
+
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.20, 2.75, 16), carraraMat);
+    shaft.position.set(sx, 1.88, 0);
+    shaft.castShadow = true;
+    wingedPortalGroup.add(shaft);
+
+    for (const ry of [1.15, 2.25]) {
+      const goldSeam = new THREE.Mesh(new THREE.TorusGeometry(0.195, 0.016, 8, 22), kintsugiGoldMat);
+      goldSeam.rotation.x = Math.PI / 2;
+      goldSeam.position.set(sx, ry, 0);
+      wingedPortalGroup.add(goldSeam);
+    }
+
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(0.50, 0.22, 0.50), carraraMat);
+    cap.position.set(sx, 3.36, 0);
+    wingedPortalGroup.add(cap);
+  }
+
+  // Marble architrave + vaulted arch + kintsugi keystone
+  const architrave = new THREE.Mesh(new THREE.BoxGeometry(3.05, 0.26, 0.56), carraraMat);
+  architrave.position.set(0, 3.60, 0);
+  architrave.castShadow = true;
+  wingedPortalGroup.add(architrave);
+
+  const marbleArch = new THREE.Mesh(new THREE.TorusGeometry(1.14, 0.17, 12, 36, Math.PI), carraraMat);
+  marbleArch.position.set(0, 3.62, 0);
+  marbleArch.castShadow = true;
+  wingedPortalGroup.add(marbleArch);
+
+  const goldArchRib = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.026, 8, 36, Math.PI), kintsugiGoldMat);
+  goldArchRib.position.set(0, 3.62, 0.16);
+  wingedPortalGroup.add(goldArchRib);
+
+  const keystone = new THREE.Mesh(new THREE.OctahedronGeometry(0.18, 0), kintsugiGoldMat);
+  keystone.position.set(0, 4.82, 0.08);
+  wingedPortalGroup.add(keystone);
+
+  // Shimmering cyan threshold veil inside the marble arch
+  const veil = new THREE.Mesh(new THREE.PlaneGeometry(1.94, 3.18), portalVeilMat);
+  veil.position.set(0, 1.85, 0);
+  wingedPortalGroup.add(veil);
+
+  // Sculpted P06-S01 Evolutionary Marble & Angel Feather Wings crowning left/right shoulders
+  const wingTexLoader = new THREE.TextureLoader();
+  const wingTexL = wingTexLoader.load('./hero-build/assets/wings/08.cast.angel.wings__p07.png');
+  const wingTexR = wingTexLoader.load('./hero-build/assets/wings/08.cast.angel.wings__p08.png');
+  wingTexL.colorSpace = THREE.SRGBColorSpace;
+  wingTexR.colorSpace = THREE.SRGBColorSpace;
+
+  const buildArchWing = (sx, wTex) => {
+    const piv = new THREE.Group();
+    piv.position.set(sx * 1.18, 3.68, -0.04);
+
+    const cardMat = new THREE.MeshStandardMaterial({
+      map: wTex,
+      transparent: true,
+      alphaTest: 0.06,
+      roughness: 0.48,
+      side: THREE.DoubleSide,
+    });
+    const wingCard = new THREE.Mesh(new THREE.PlaneGeometry(1.65, 1.22), cardMat);
+    wingCard.position.set(sx * 0.78, 0.42, -0.03);
+    if (sx < 0) wingCard.scale.x = -1;
+    piv.add(wingCard);
+
+    for (let f = 0; f < 6; f++) {
+      const frac = f / 5;
+      const feather = new THREE.Mesh(
+        new THREE.ConeGeometry(0.075, 0.96 - frac * 0.18, 5),
+        f === 0 ? kintsugiGoldMat : carraraMat
+      );
+      feather.position.set(sx * (0.24 + frac * 0.95), 0.28 + frac * 0.16, 0.02);
+      feather.rotation.z = sx * (-0.52 - frac * 0.56);
+      feather.scale.set(1.0, 1.0, 0.28);
+      feather.castShadow = true;
+      piv.add(feather);
+    }
+    wingedPortalGroup.add(piv);
+    return piv;
+  };
+
+  wingedPortalState.wingPivotL = buildArchWing(-1, wingTexR);
+  wingedPortalState.wingPivotR = buildArchWing(1, wingTexL);
 }
 
 // ---------------------------------------------------------------------------
@@ -1606,11 +1938,11 @@ function triggerResidentSpeech(res, text, expr = 'warm') {
   res.speechText = text;
   res.speechDur = Math.max(2.6, Math.min(7.5, text.length * 0.055));
   res.speechTimer = res.speechDur;
-  if (res.v8) {
-    res.v8.setExpression(expr);
-    if (res.v8.hasClip('talk') && res.currentClip !== 'talk') {
-      res.currentClip = 'talk';
-      res.v8.crossFadeTo('talk', 0.25);
+  if (res.v9) {
+    res.v9.setExpression(expr);
+    if (res.currentClip !== 'idle-talking') {
+      res.currentClip = 'idle-talking';
+      res.v9.playAction('idle-talking', 0.22);
     }
   }
   audio.speakDuet(res.def.name, text, res.def.id === 'bekele' ? 0.88 : 1.05);
@@ -2018,6 +2350,115 @@ registerWorldProp({
   },
 });
 
+// 8. 3D Coat-Stand & Cheval Mirror + Playable V9 Poet Hero + P06-S01 Marble Winged Arch
+function navigateToHeroStageP06() {
+  if (wingedPortalState.navigating) return;
+  wingedPortalState.navigating = true;
+  audio.playDoorTransition?.(true);
+  window.location.href = './stage/#P06-S01';
+}
+
+function togglePoetHeroEmbodiment() {
+  poetHeroState.embodied = !poetHeroState.embodied;
+  if (poetHeroState.embodied) {
+    // Step smoothly into 3rd-person Poet Hero embodiment
+    const curSurfY = getExactVisualSurfaceY(player.pos.x, player.pos.z, player.floorY);
+    poetHeroRoot.position.set(player.pos.x, curSurfY, player.pos.z);
+    poetHeroState.facingYaw = player.yaw + Math.PI;
+    poetHeroRoot.rotation.y = poetHeroState.facingYaw;
+    if (poetHeroState.v9) {
+      poetHeroState.v9.setGroundY(curSurfY);
+      poetHeroState.v9.playAction('greet', 0.22);
+      poetHeroState.greetTimer = 1.4;
+    }
+    setPropWhisper(
+      new THREE.Vector3(player.pos.x, curSurfY + 2.02, player.pos.z),
+      'Embodied V9 Poet Hero (3rd-Person) — WASD walk stairs & rooftop · G evolve wings & glasses · V 1st-person',
+      2800
+    );
+  } else {
+    // Return to 1st-person street lens & station Poet Hero back at the Coat-Stand / Mirror
+    poetHeroRoot.position.copy(HERO_HOME_POS);
+    poetHeroState.facingYaw = HERO_HOME_YAW;
+    poetHeroRoot.rotation.y = HERO_HOME_YAW;
+    if (poetHeroState.v9) {
+      poetHeroState.v9.setGroundY(HERO_HOME_POS.y);
+      poetHeroState.v9.setMoveSpeed(0);
+      poetHeroState.v9.playAction('idle', 0.25);
+    }
+    syncWorldVisualsFromLedger();
+    setPropWhisper(
+      HERO_HOME_POS.clone().add(new THREE.Vector3(0, 2.05, 0)),
+      '1st-Person View Restored — V9 Poet Hero stationed by Coat-Stand & Mirror',
+      2400
+    );
+  }
+}
+
+function cyclePoetHeroWardrobe() {
+  if (!poetHeroState.v9) return;
+  poetHeroState.evoSeed += 1;
+  const tp = TIME_PRESETS[ledger.timeOfDay] || TIME_PRESETS.bluehour;
+  const bgLum = ledger.timeOfDay === 'midday' ? 0.68 : (ledger.timeOfDay === 'dawn' ? 0.48 : 0.22);
+  const pheno = evolveHeroPhenotype(poetHeroState.v9, {
+    poem: String(((poetHeroState.evoSeed - 1) % 14) + 1).padStart(2, '0'),
+    shotKind: ledger.carriedWaterL > 0.05 ? 'water' : (player.floorY > 4.5 ? 'gate-glide' : 'street'),
+    bgLuminance: bgLum,
+    seed: poetHeroState.evoSeed * 13 + (tp ? 3 : 0),
+  });
+  const anchor = poetHeroRoot.position.clone().add(new THREE.Vector3(0, 2.05, 0));
+  setPropWhisper(
+    anchor,
+    `Poet Hero Gen ${pheno.generation} · Wings: ${pheno.wingsMode} · Glasses: ${String(pheno.glasses)} · Prop: ${pheno.prop}`,
+    2600
+  );
+}
+
+const coatMirrorHit = new THREE.Mesh(new THREE.BoxGeometry(1.45, 1.95, 0.85), mats.hitInvisible);
+coatMirrorHit.position.set(-3.28, 1.12, 10.75);
+scene.add(coatMirrorHit);
+
+registerWorldProp({
+  mesh: coatMirrorHit,
+  anchorPos: new THREE.Vector3(-3.28, 2.18, 10.75),
+  interactRadius: 4.5,
+  getWhisper: () => '3D Coat-Stand & Cheval Mirror — click to evolve Poet Hero wings, sunglasses & coat (G)',
+  onActivate: () => cyclePoetHeroWardrobe(),
+});
+
+const poetHeroHit = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 1.96, 12), mats.hitInvisible);
+poetHeroHit.position.y = 0.98;
+poetHeroRoot.add(poetHeroHit);
+
+const poetHeroPropEntry = registerWorldProp({
+  mesh: poetHeroHit,
+  anchorPos: HERO_HOME_POS.clone().add(new THREE.Vector3(0, 2.04, 0)),
+  interactRadius: 4.6,
+  getWhisper: () =>
+    poetHeroState.embodied
+      ? 'V9 Poet Hero (3rd-Person) — click or press G to cycle wings & sunglasses · press V for 1st-person'
+      : 'V9 Poet Hero (P06-S01 Wings & Sunglasses) — click or press V to embody 3rd-person',
+  onActivate: () => {
+    if (poetHeroState.embodied) {
+      cyclePoetHeroWardrobe();
+    } else {
+      togglePoetHeroEmbodiment();
+    }
+  },
+});
+
+const wingedPortalHit = new THREE.Mesh(new THREE.BoxGeometry(3.15, 4.45, 1.1), mats.hitInvisible);
+wingedPortalHit.position.set(0, 2.22, 0);
+wingedPortalGroup.add(wingedPortalHit);
+
+registerWorldProp({
+  mesh: wingedPortalHit,
+  anchorPos: new THREE.Vector3(-8.4, 5.15, 13.0),
+  interactRadius: 5.2,
+  getWhisper: () => 'P06-S01 Marble Winged Portal Arch -> Hero Stage — click or walk through',
+  onActivate: () => navigateToHeroStageP06(),
+});
+
 // ---------------------------------------------------------------------------
 // Inverse Tomology X-Ray & Silent Background Keyboard Shortcuts
 // ---------------------------------------------------------------------------
@@ -2050,6 +2491,14 @@ window.addEventListener('keydown', (e) => {
       camState.active = false;
       updateCameraLensState();
     }
+    return;
+  }
+  if (k === 'v' && !e.repeat) {
+    togglePoetHeroEmbodiment();
+    return;
+  }
+  if (k === 'g' && !e.repeat) {
+    cyclePoetHeroWardrobe();
     return;
   }
   if (k === 'c' && !e.repeat) {
@@ -2202,7 +2651,11 @@ window.addEventListener('pointerup', (e) => {
   if (propDist < 42) {
     const propEntry = propHits[0].object.userData.propEntry;
     if (propEntry && typeof propEntry.onActivate === 'function') {
-      propEntry.onActivate();
+      if (e.shiftKey && propEntry === poetHeroPropEntry) {
+        cyclePoetHeroWardrobe();
+      } else {
+        propEntry.onActivate();
+      }
       return;
     }
   }
@@ -2274,6 +2727,8 @@ if (urlParams.get('xray') === '1') {
   player.floorY = 0;
   player.yaw = 0.0;
   player.pitch = -0.02;
+} else if (urlParams.get('embody') === '1') {
+  poetHeroState.embodied = true;
 }
 
 // ---------------------------------------------------------------------------
@@ -2281,6 +2736,14 @@ if (urlParams.get('xray') === '1') {
 // ---------------------------------------------------------------------------
 const clock = new THREE.Clock();
 const headWorldScratch = new THREE.Vector3();
+const playerGazeTarget = new THREE.Vector3();
+const thirdPersonTargetScratch = new THREE.Vector3();
+
+function shortestAngleDelta(fromRad, toRad) {
+  let d = ((toRad - fromRad + Math.PI) % (Math.PI * 2)) - Math.PI;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return d;
+}
 
 function updateWorldOverlays() {
   const now = performance.now();
@@ -2323,6 +2786,7 @@ function updateWorldOverlays() {
     } else if (playerHasWalked && !activeDialogueResident) {
       let bestDist = 4.6;
       for (const p of worldPropEntries) {
+        if (poetHeroState.embodied && p === poetHeroPropEntry) continue;
         const d = player.pos.distanceTo(p.anchorPos);
         if (d < bestDist) {
           const prj = projectWorldLabel(camera, p.anchorPos, renderer.domElement);
@@ -2360,6 +2824,31 @@ function animate() {
   doorLeafL.pivot.rotation.y = THREE.MathUtils.lerp(doorLeafL.pivot.rotation.y, targetDoorL, Math.min(1, dt * 8.5));
   doorLeafR.pivot.rotation.y = THREE.MathUtils.lerp(doorLeafR.pivot.rotation.y, targetDoorR, Math.min(1, dt * 8.5));
 
+  // Animate P06-S01 Marble Winged Portal Arch wings & walk-through trigger
+  if (wingedPortalState.wingPivotL && wingedPortalState.wingPivotR) {
+    const flap = Math.sin(elapsed * 1.65) * 0.075;
+    wingedPortalState.wingPivotL.rotation.set(0.04, -0.18 - flap, 0.08 + flap * 0.6);
+    wingedPortalState.wingPivotR.rotation.set(0.04, 0.18 + flap, -0.08 - flap * 0.6);
+  }
+  const distToWingedPortal = Math.hypot(
+    player.pos.x - wingedPortalGroup.position.x,
+    player.pos.z - wingedPortalGroup.position.z
+  );
+  if (wingedPortalState.veilMat) {
+    const nearBoost = distToWingedPortal < 6.5 ? (1 - distToWingedPortal / 6.5) * 0.16 : 0;
+    wingedPortalState.veilMat.opacity = 0.15 + nearBoost + Math.sin(elapsed * 2.3) * 0.025;
+  }
+  if (distToWingedPortal > 2.3) {
+    wingedPortalState.armedForWalk = true;
+  } else if (
+    wingedPortalState.armedForWalk &&
+    playerHasWalked &&
+    distToWingedPortal < 1.35 &&
+    Math.abs(player.floorY - 0) < 1.8
+  ) {
+    navigateToHeroStageP06();
+  }
+
   // Player Movement (WASD / Arrows)
   let moving = false;
   let fwd = 0;
@@ -2369,14 +2858,23 @@ function animate() {
   if (keys['a'] || keys['arrowleft']) strafe -= 1;
   if (keys['d'] || keys['arrowright']) strafe += 1;
 
+  const prevX = player.pos.x;
+  const prevZ = player.pos.z;
+  let moveDirX = 0;
+  let moveDirZ = 0;
+
   if (fwd !== 0 || strafe !== 0) {
     moving = true;
     playerHasWalked = true;
-    const spd = (keys['shift'] ? 8.8 : player.speed) * dt;
+    const baseMoveRate = poetHeroState.embodied ? (keys['shift'] ? 5.2 : 2.85) : (keys['shift'] ? 8.8 : player.speed);
+    const lenInput = Math.hypot(fwd, strafe) || 1;
     const sinY = Math.sin(player.yaw);
     const cosY = Math.cos(player.yaw);
-    const vx = (-sinY * fwd + cosY * strafe) * spd;
-    const vz = (-cosY * fwd - sinY * strafe) * spd;
+    moveDirX = (-sinY * (fwd / lenInput) + cosY * (strafe / lenInput));
+    moveDirZ = (-cosY * (fwd / lenInput) - sinY * (strafe / lenInput));
+
+    const vx = moveDirX * baseMoveRate * dt;
+    const vz = moveDirZ * baseMoveRate * dt;
 
     const nx = THREE.MathUtils.clamp(player.pos.x + vx, -44, 44);
     const nz = THREE.MathUtils.clamp(player.pos.z + vz, -44, 44);
@@ -2389,8 +2887,10 @@ function animate() {
 
   player.pos.y = THREE.MathUtils.lerp(player.pos.y, player.floorY, Math.min(1, dt * 12));
   player.isInside = Math.abs(player.pos.x) < 8.8 && Math.abs(player.pos.z) < 6.8 && player.floorY < 8.6;
+  const actualHorizMps = Math.hypot(player.pos.x - prevX, player.pos.z - prevZ) / Math.max(0.001, dt);
 
-  // Subtle physical bob on carried 3D Cyan Jerrycan at hip
+  // Subtle physical bob on carried 3D Cyan Jerrycan in 1st-person (hidden in 3rd-person where Hero holds it!)
+  playerJerrycan.visible = !poetHeroState.embodied && ledger.carriedWaterL > 0.05;
   if (playerJerrycan.visible) {
     player.walkBob += dt * (moving ? 9.5 : 1.8);
     const bobAmt = moving ? 0.016 : 0.004;
@@ -2409,43 +2909,173 @@ function animate() {
     }
   }
 
-  // Camera transform
-  camera.position.set(player.pos.x, player.pos.y + player.eyeHeight, player.pos.z);
-  const euler = new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ');
-  camera.quaternion.setFromEuler(euler);
+  // Update V9 Poet Hero (Playable 3rd-Person Embodiment OR Coat-Stand / Mirror Sentinel)
+  const playerSurfaceY = getExactVisualSurfaceY(player.pos.x, player.pos.z, player.pos.y);
+  playerGazeTarget.set(player.pos.x, playerSurfaceY + 1.62, player.pos.z);
+
+  if (poetHeroState.embodied) {
+    poetHeroRoot.visible = !camState.active;
+    poetHeroRoot.position.set(player.pos.x, playerSurfaceY, player.pos.z);
+    poetHeroPropEntry.anchorPos.set(player.pos.x, playerSurfaceY + 2.04, player.pos.z);
+
+    if (moving && (Math.abs(moveDirX) > 0.01 || Math.abs(moveDirZ) > 0.01)) {
+      const wantYaw = Math.atan2(moveDirX, moveDirZ);
+      const dYaw = shortestAngleDelta(poetHeroState.facingYaw, wantYaw);
+      poetHeroState.facingYaw += dYaw * Math.min(1, dt * 10.5);
+    }
+    poetHeroRoot.rotation.y = poetHeroState.facingYaw;
+    const yawRate = shortestAngleDelta(poetHeroState.prevYaw, poetHeroState.facingYaw) / Math.max(0.001, dt);
+    poetHeroState.prevYaw = poetHeroState.facingYaw;
+
+    if (poetHeroState.v9) {
+      poetHeroState.v9.setGroundY(playerSurfaceY);
+      if (ledger.carriedWaterL > 0.05 && poetHeroState.v9.getProp() !== 'jerikan') {
+        poetHeroState.v9.setProp('jerikan');
+      } else if (ledger.carriedWaterL <= 0.05 && poetHeroState.v9.getProp() === 'jerikan') {
+        poetHeroState.v9.setProp('camera');
+      }
+      if (poetHeroState.greetTimer > 0 && !moving) {
+        poetHeroState.greetTimer = Math.max(0, poetHeroState.greetTimer - dt);
+        poetHeroState.v9.update(dt, {
+          autoLocomotion: false,
+          moveSpeed: 0,
+          turnRate: yawRate,
+          wingFlapBoost: player.floorY >= 8.5 ? 0.55 : 0.15,
+        });
+      } else {
+        poetHeroState.greetTimer = 0;
+        poetHeroState.v9.update(dt, {
+          moveSpeed: moving ? actualHorizMps : 0,
+          turnRate: yawRate,
+          wingFlapBoost: (player.floorY >= 8.5 ? 0.65 : 0.0) + (moving && keys['shift'] ? 0.55 : 0.0),
+        });
+      }
+    }
+
+    // Collision-safe 3rd-Person Follow Camera (switches cleanly to 1st-person lens if C viewfinder is active)
+    if (camState.active) {
+      camera.position.set(player.pos.x, playerSurfaceY + player.eyeHeight, player.pos.z);
+      const euler = new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ');
+      camera.quaternion.setFromEuler(euler);
+    } else {
+      const desiredDist = player.isInside ? 2.25 : 3.45;
+      const backX = Math.sin(player.yaw);
+      const backZ = Math.cos(player.yaw);
+      let safeDist = desiredDist;
+      for (let sIdx = 1; sIdx <= 6; sIdx++) {
+        const testD = (desiredDist * sIdx) / 6;
+        const tx = player.pos.x + backX * testD;
+        const tz = player.pos.z + backZ * testD;
+        if (collidesAt(tx, playerSurfaceY, tz)) {
+          safeDist = Math.max(0.95, ((sIdx - 1) / 6) * desiredDist);
+          break;
+        }
+      }
+      const camLift = 1.56 - Math.sin(player.pitch) * safeDist * 0.46;
+      camera.position.set(
+        player.pos.x + backX * safeDist,
+        Math.max(playerSurfaceY + 0.45, playerSurfaceY + camLift),
+        player.pos.z + backZ * safeDist
+      );
+      thirdPersonTargetScratch.set(
+        player.pos.x - backX * 0.55,
+        playerSurfaceY + 1.46 + Math.sin(player.pitch) * 0.85,
+        player.pos.z - backZ * 0.55
+      );
+      camera.lookAt(thirdPersonTargetScratch);
+    }
+  } else {
+    // Unembodied 1st-Person Camera + Living V9 Poet Hero by the Coat-Stand & Mirror
+    poetHeroRoot.visible = true;
+    poetHeroPropEntry.anchorPos.copy(HERO_HOME_POS).add(new THREE.Vector3(0, 2.04, 0));
+    camera.position.set(player.pos.x, playerSurfaceY + player.eyeHeight, player.pos.z);
+    const euler = new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ');
+    camera.quaternion.setFromEuler(euler);
+
+    if (poetHeroState.v9) {
+      const dHero = player.pos.distanceTo(poetHeroRoot.position);
+      let heroAction = 'idle';
+      if (dHero < 5.5 && player.floorY < 1.5) {
+        const faceAng = Math.atan2(player.pos.x - poetHeroRoot.position.x, player.pos.z - poetHeroRoot.position.z);
+        poetHeroRoot.rotation.y += shortestAngleDelta(poetHeroRoot.rotation.y, faceAng) * Math.min(1, dt * 4.5);
+        heroAction = Math.floor(elapsed * 0.22) % 2 === 0 ? 'greet' : 'listen';
+      } else {
+        poetHeroRoot.rotation.y += shortestAngleDelta(poetHeroRoot.rotation.y, HERO_HOME_YAW) * Math.min(1, dt * 3.0);
+        heroAction = Math.floor(elapsed * 0.16) % 2 === 0 ? 'idle' : 'fold-arms';
+      }
+      if (poetHeroState.v9.getCurrentAction() !== heroAction && poetHeroState.v9.hasClip(heroAction)) {
+        poetHeroState.v9.playAction(heroAction, 0.30);
+      }
+      poetHeroState.v9.setGroundY(HERO_HOME_POS.y);
+      poetHeroState.v9.update(dt, {
+        autoLocomotion: false,
+        moveSpeed: 0,
+        lookTargetVec3: camera.position,
+        wingFlapBoost: dHero < 5.5 ? 0.28 : 0.05,
+      });
+    }
+  }
 
   // Update 3D Tripod & Portal Thresholds (walk-in travel + world whispers)
   worldRig.update({ x: player.pos.x, y: player.floorY, z: player.pos.z });
   updateWorldOverlays();
 
-  // Persistent Anny V8 Resident Jobs, Clip Crossfades & FACS Lip-Sync
+  // Persistent Anny V9 Resident Jobs, Velocity-Matched Walking, Gaze, Blink & Role Clips
+  const projectorWetNow = ledger.projectorTankL >= 5.0;
   for (const r of residents) {
     const targetSt = r.def.stations[r.stationIdx];
     const targetVec = new THREE.Vector3(targetSt.x, targetSt.y, targetSt.z);
     const toT = targetVec.clone().sub(r.root.position);
     const dist = toT.length();
     const distToPlayer = r.root.position.distanceTo(player.pos);
+    const nearPlayer = activeDialogueResident === r || (distToPlayer < 4.5 && Math.abs(r.root.position.y - player.floorY) < 2.0);
     let desiredClip = 'idle';
+    let resMoveSpeed = 0;
 
-    if (activeDialogueResident === r || (distToPlayer < 4.5 && Math.abs(r.root.position.y - player.floorY) < 2.0)) {
+    if (nearPlayer && !r.wasNearPlayer) {
+      r.greetTimer = 2.6;
+    }
+    r.wasNearPlayer = nearPlayer;
+    if (r.greetTimer > 0) {
+      r.greetTimer = Math.max(0, r.greetTimer - dt);
+    }
+
+    if (nearPlayer) {
       const ang = Math.atan2(player.pos.x - r.root.position.x, player.pos.z - r.root.position.z);
-      r.root.rotation.y = THREE.MathUtils.lerp(r.root.rotation.y, ang, dt * 5);
+      r.root.rotation.y += shortestAngleDelta(r.root.rotation.y, ang) * Math.min(1, dt * 5.5);
       r.armL.rotation.x = THREE.MathUtils.lerp(r.armL.rotation.x, 0, dt * 6);
       r.armR.rotation.x = THREE.MathUtils.lerp(r.armR.rotation.x, 0, dt * 6);
       r.legL.rotation.x = THREE.MathUtils.lerp(r.legL.rotation.x, 0, dt * 6);
       r.legR.rotation.x = THREE.MathUtils.lerp(r.legR.rotation.x, 0, dt * 6);
-      desiredClip = r.speechTimer > 0 ? 'talk' : 'idle';
+
+      if (r.speechTimer > 0) {
+        desiredClip = 'idle-talking';
+      } else if (r.id === 'june' && projectorWetNow) {
+        desiredClip = Math.floor(elapsed * 0.28) % 2 === 0 ? 'victory' : 'greet';
+      } else if (r.greetTimer > 0) {
+        desiredClip = 'greet';
+      } else {
+        desiredClip = r.id === 'bekele' ? 'listen' : 'idle';
+      }
     } else if (dist > 0.35) {
+      resMoveSpeed = 1.38;
       toT.normalize();
-      r.root.position.addScaledVector(toT, dt * 1.45);
-      r.root.rotation.y = Math.atan2(toT.x, toT.z);
+      r.root.position.addScaledVector(toT, dt * resMoveSpeed);
+      const walkYaw = Math.atan2(toT.x, toT.z);
+      r.root.rotation.y += shortestAngleDelta(r.root.rotation.y, walkYaw) * Math.min(1, dt * 7.5);
       r.walkPhase += dt * 5.2;
       const swing = Math.sin(r.walkPhase) * 0.32;
       r.armL.rotation.x = swing;
       r.armR.rotation.x = -swing;
       r.legL.rotation.x = -swing * 1.1;
       r.legR.rotation.x = swing * 1.1;
-      desiredClip = 'walk';
+
+      if (r.id === 'makeda') {
+        desiredClip = r.stationIdx === 1 ? 'carry' : 'walk';
+        if (r.v9) r.v9.setProp(r.stationIdx === 1 ? 'jerikan' : 'none');
+      } else {
+        desiredClip = 'walk';
+      }
     } else {
       r.armL.rotation.x = THREE.MathUtils.lerp(r.armL.rotation.x, 0.04 * Math.sin(elapsed * 2), dt * 4);
       r.armR.rotation.x = THREE.MathUtils.lerp(r.armR.rotation.x, -0.04 * Math.sin(elapsed * 2), dt * 4);
@@ -2454,31 +3084,58 @@ function animate() {
       r.dwellTimer -= dt;
       if (r.dwellTimer <= 0) {
         r.stationIdx = (r.stationIdx + 1) % r.def.stations.length;
-        r.dwellTimer = 6 + Math.random() * 6;
+        r.dwellTimer = 7 + Math.random() * 5;
       }
-      desiredClip = r.speechTimer > 0 ? 'talk' : 'idle';
+
+      if (r.speechTimer > 0) {
+        desiredClip = 'idle-talking';
+      } else if (r.id === 'makeda') {
+        if (r.stationIdx === 0) {
+          const isWatering = Math.floor(elapsed * 0.22) % 2 === 1;
+          desiredClip = isWatering ? 'water' : 'pump';
+          if (r.v9) r.v9.setProp(isWatering ? 'jerikan' : 'none');
+        } else {
+          desiredClip = 'water';
+          if (r.v9) r.v9.setProp('jerikan');
+        }
+      } else if (r.id === 'bekele') {
+        if (r.stationIdx === 0) {
+          desiredClip = Math.floor(elapsed * 0.20) % 3 === 0 ? 'greet' : 'idle-talking';
+        } else {
+          desiredClip = Math.floor(elapsed * 0.18) % 2 === 0 ? 'listen' : 'fold-arms';
+        }
+      } else if (r.id === 'june') {
+        if (projectorWetNow) {
+          desiredClip = Math.floor(elapsed * 0.24) % 2 === 0 ? 'victory' : 'clap';
+        } else {
+          desiredClip = Math.floor(elapsed * 0.20) % 3 === 0 ? 'greet' : 'idle';
+        }
+      }
     }
 
-    if (r.v8) {
-      if (r.currentClip !== desiredClip && r.v8.hasClip(desiredClip)) {
+    if (r.v9) {
+      const surfY = getExactVisualSurfaceY(r.root.position.x, r.root.position.z, r.root.position.y);
+      r.v9.setGroundY(surfY);
+      if (r.currentClip !== desiredClip) {
         r.currentClip = desiredClip;
-        r.v8.crossFadeTo(desiredClip, 0.28);
+        r.v9.playAction(desiredClip, 0.28);
       }
-      if (r.speechTimer > 0) {
+      let talkProg = 0;
+      const isSpeaking = r.speechTimer > 0;
+      if (isSpeaking) {
         r.speechTimer = Math.max(0, r.speechTimer - dt);
-        const prog = 1 - r.speechTimer / Math.max(0.1, r.speechDur);
-        r.v8.setLyricSpeech(r.speechText, prog, 0.85);
+        talkProg = 1 - r.speechTimer / Math.max(0.1, r.speechDur);
       } else {
-        r.v8.setJawOpenness(0);
+        r.v9.setJawOpenness(0);
       }
-      r.v8.update(dt);
-      if (!r.v8.hasClip(r.currentClip) && r.v8.bonesByNorm) {
-        const uL = r.v8.bonesByNorm.get('upperarm01l') || r.v8.bonesByNorm.get('upperarm01.l');
-        const uR = r.v8.bonesByNorm.get('upperarm01r') || r.v8.bonesByNorm.get('upperarm01.r');
-        const walkSwing = desiredClip === 'walk' ? Math.sin(r.walkPhase) * 0.28 : 0.03 * Math.sin(elapsed * 1.8);
-        if (uL) { uL.rotation.z = -0.62; uL.rotation.x = walkSwing; }
-        if (uR) { uR.rotation.z = 0.62; uR.rotation.x = -walkSwing; }
-      }
+      r.v9.update(dt, {
+        autoLocomotion: false,
+        moveSpeed: resMoveSpeed,
+        lookTargetVec3: distToPlayer < 16.0 ? playerGazeTarget : null,
+        speaking: isSpeaking,
+        talkText: isSpeaking ? r.speechText : '',
+        talkProgress: talkProg,
+      });
     }
   }
 
@@ -2523,11 +3180,15 @@ window.__CITY__ = {
   ledger,
   player,
   residents,
+  poetHero: poetHeroState,
+  wingedPortal: wingedPortalState,
   camState,
   suite,
   worldRig,
   get doorOpen() { return doorOpen; },
   setSevernDoor,
+  togglePoetHeroEmbodiment,
+  cyclePoetHeroWardrobe,
   toggleXray,
   capturePlate,
   applyCartridgeAndTime,

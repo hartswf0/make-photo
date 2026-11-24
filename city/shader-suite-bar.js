@@ -38,6 +38,8 @@ export const NOLLI_LEDGER_KEY = 'make_photo_city_nolli_v1';
 export const SUITE_DESTINATIONS = [
   { id: 'design-room', label: 'Design Room', verb: 'Enter & inspect nine briefs', rel: './design-room/' },
   { id: 'nolli', label: 'Nolli Block', verb: 'Walk street, shop & screening hall', rel: './' },
+  { id: 'stage', label: 'Hero Stage', href: '../stage/#P06-S01', verb: 'Stage P06-S01 Atlantis gate & Poet Hero', rel: './stage/', fixedHash: '#P06-S01' },
+  { id: 'inverse-forge', label: 'Inverse Forge', href: '../inverse-forge/', verb: 'Optimize 60 inverse shots & co-evolve hero', rel: './inverse-forge/' },
   { id: 'foundry', label: 'Foundry + Inverse', verb: 'Evolve exterior & interior rooms', rel: './foundry/' },
   { id: 'heroes', label: 'Hero Inspector', verb: 'Audit six hero buildings & light', rel: './heroes/' },
   { id: 'island', label: 'Island GTA', verb: 'Traverse multi-district harbor city', rel: './island/' },
@@ -744,7 +746,8 @@ function getOrCreateSharedSuite(initOpts = {}) {
         if (dest.id === activeDestId) a.setAttribute('aria-current', 'page');
         a.dataset.destId = dest.id;
         a.dataset.baseHref = new URL(dest.rel, import.meta.url).pathname;
-        a.href = a.dataset.baseHref + formatPilotHash(hydratedPilot);
+        if (dest.fixedHash) a.dataset.fixedHash = dest.fixedHash;
+        a.href = a.dataset.baseHref + (dest.fixedHash || formatPilotHash(hydratedPilot));
         a.textContent = dest.label;
         a.title = `${dest.label}: ${dest.verb}`;
         linksWrap.appendChild(a);
@@ -765,7 +768,7 @@ function getOrCreateSharedSuite(initOpts = {}) {
       routesBtn.type = 'button';
       routesBtn.className = 'mp-suite-toggle-btn';
       routesBtn.setAttribute('aria-expanded', 'false');
-      routesBtn.textContent = 'Routes (10)';
+      routesBtn.textContent = `Routes (${SUITE_DESTINATIONS.length})`;
       rightWrap.appendChild(routesBtn);
 
       const quietBtn = document.createElement('button');
@@ -801,7 +804,8 @@ function getOrCreateSharedSuite(initOpts = {}) {
         card.className = 'mp-route-card';
         if (dest.id === activeDestId) card.setAttribute('aria-current', 'page');
         card.dataset.baseHref = new URL(dest.rel, import.meta.url).pathname;
-        card.href = card.dataset.baseHref + formatPilotHash(hydratedPilot);
+        if (dest.fixedHash) card.dataset.fixedHash = dest.fixedHash;
+        card.href = card.dataset.baseHref + (dest.fixedHash || formatPilotHash(hydratedPilot));
         card.innerHTML = `<strong>${dest.label}</strong><span>${dest.verb}</span>`;
         routeGrid.appendChild(card);
         cardAnchors.push(card);
@@ -1272,7 +1276,7 @@ function getOrCreateSharedSuite(initOpts = {}) {
       if (controller.ui.routeAnchors) {
         const hashStr = formatPilotHash(pilotState);
         controller.ui.routeAnchors.forEach((a) => {
-          a.href = a.dataset.baseHref + hashStr;
+          a.href = a.dataset.baseHref + (a.dataset.fixedHash || hashStr);
         });
       }
 
@@ -1812,6 +1816,8 @@ function resolveSuitePortalPath(rawHref, fallbackId = '') {
   const cleanId = String(fallbackId || '').trim().toLowerCase();
   const knownSlugs = new Set([
     'design-room',
+    'stage',
+    'inverse-forge',
     'foundry',
     'heroes',
     'island',
@@ -1838,7 +1844,7 @@ function resolveSuitePortalPath(rawHref, fallbackId = '') {
     return cityRootPath;
   }
 
-  const slugMatch = noHash.match(/^(?:\.\.\/|\.\/)?(design-room|foundry|heroes|island|maps|weave|pointcloud|atlantis|worldtext)\/?$/i);
+  const slugMatch = noHash.match(/^(?:\.\.\/|\.\/)?(design-room|stage|inverse-forge|foundry|heroes|island|maps|weave|pointcloud|atlantis|worldtext)\/?$/i);
   if (slugMatch) {
     return `${cityRootPath}${slugMatch[1].toLowerCase()}/`;
   }
@@ -2117,8 +2123,12 @@ export function createWorldPortalAndTripod({
     veil.position.set(0, 1.54, 0);
     pGroup.add(veil);
 
+    const rawPortalHref = String(pDef.href || pDef.url || pDef.rel || pDef.to || pDef.target || '').trim();
+    const hashIdx = rawPortalHref.indexOf('#');
+    const rawHashPart = hashIdx >= 0 ? rawPortalHref.slice(hashIdx) : '';
+    const explicitAnchorHash = rawHashPart && !rawHashPart.includes('=') ? rawHashPart : '';
     const resolvedBaseHref = resolveSuitePortalPath(
-      pDef.href || pDef.url || pDef.rel || pDef.to || pDef.target,
+      rawPortalHref,
       pDef.destId || pDef.id || pDef.name
     );
     const rawTitle = pDef.label || pDef.title || pDef.name || 'Enter Threshold';
@@ -2131,6 +2141,7 @@ export function createWorldPortalAndTripod({
       veilMat,
       cyanArchMat,
       resolvedBaseHref,
+      explicitAnchorHash,
       walkRadius: Number(pDef.walkRadius ?? pDef.radius ?? 1.45),
       armed: false,
       anchorLocal: new THREE.Vector3(0, 3.48, 0),
@@ -2180,7 +2191,7 @@ export function createWorldPortalAndTripod({
       portalEntry.def.onSelect(portalEntry);
       return;
     }
-    const fullHref = portalEntry.resolvedBaseHref + formatPilotHash(loadPilotState());
+    const fullHref = portalEntry.resolvedBaseHref + (portalEntry.explicitAnchorHash || formatPilotHash(loadPilotState()));
     if (typeof onNavigate === 'function') {
       const handled = onNavigate(portalEntry.def, fullHref);
       if (handled === true) return;

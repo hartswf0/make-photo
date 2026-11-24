@@ -3,6 +3,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { ALL_CITY_LOOKS } from '../shaders.js';
 import { mountWebGLShaderSuite, projectWorldLabel } from '../shader-suite-bar.js';
+import { createHeroOrCastV9, evolveHeroPhenotype } from '../hero-build/anny-hero-v9.js';
+import { createArticulated31CutoutRig, evolveCutoutPhenotype } from '../hero-build/cutout-31-rig.js';
 
 // Zero-dependency damped spherical Orbit + Pan + Dolly controller (vendor/three/addons has no OrbitControls.js)
 class StageOrbitControls {
@@ -619,16 +621,17 @@ parcelMesh.add(parcelBox, parcelStrap);
 scene.add(parcelMesh);
 
 // ---------------------------------------------------------------------------
-// Live 104-Bone Skinned Anny V8 Cast in P2 Multiplane Slot
+// Live 104-Bone Skinned Anny V9 Cast + True-Scale 31-Part Brass-Pivot Cutout Hero
 // ---------------------------------------------------------------------------
 const gltfLoader = new GLTFLoader();
 gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 const cast = {
   courier: null,
   bekele: null,
+  cutoutHero: null,
 };
 
-function createCastActor({ id, archetype, coatHex, skinHex, pos, rotY }) {
+function createCastActor({ id, role, archetype, coatHex, skinHex, pos, rotY, initialClip = 'idle', seed = 1 }) {
   const root = new THREE.Group();
   root.position.set(...pos);
   root.rotation.y = rotY;
@@ -665,50 +668,109 @@ function createCastActor({ id, archetype, coatHex, skinHex, pos, rotY }) {
   root.add(proxy);
   scene.add(root);
 
-  const actor = { id, root, proxy, v8: null, clip: 'idle' };
+  const actor = {
+    id,
+    root,
+    proxy,
+    v8: null,
+    v9: null,
+    clip: initialClip,
+    moveSpeed: 0,
+    groundY: pos[1],
+  };
 
-  if (window.AnnyHumanV7 && window.AnnyHumanV7.createCharacter) {
-    window.AnnyHumanV7.createCharacter({
-      THREE,
-      loader: gltfLoader,
-      archetype,
-      assetBaseUrl: '../../abyssinian-highlands/human-forge/assets',
-      clipsBaseUrl: '../../motion-pipeline/mesh2motion/clips',
-      clothed: true,
-      groundY: 0,
-      preloadClips: ['idle', 'walk', 'idle-talking'],
-      initialClip: 'idle',
+  createHeroOrCastV9({
+    THREE,
+    loader: gltfLoader,
+    role,
+    archetype,
+    prop: 'none',
+    glasses: false,
+    wingsMode: 'off',
+    groundY: pos[1],
+    initialClip,
+    seed,
+  })
+    .then((inst) => {
+      if (!inst) return;
+      inst.playClip = inst.playAction;
+      inst.root.position.set(0, 0, 0);
+      inst.root.rotation.set(0, 0, 0);
+      root.add(inst.root);
+      proxy.visible = false;
+      actor.v9 = inst;
+      actor.v8 = inst;
+      inst.setGroundY(pos[1]);
     })
-      .then((inst) => {
-        if (!inst) return;
-        inst.root.position.set(0, 0, 0);
-        root.add(inst.root);
-        proxy.visible = false;
-        actor.v8 = inst;
-        inst.setGroundY(0);
-      })
-      .catch(() => {});
-  }
+    .catch(() => {});
+
   return actor;
 }
 
 cast.courier = createCastActor({
   id: 'player',
+  role: 'courier',
   archetype: 'adult_f',
   coatHex: '#2c6294',
   skinHex: '#8d5b3e',
   pos: [-0.85, 0, -5.25],
   rotY: 0.65,
+  initialClip: 'greet',
+  seed: 11,
 });
 
 cast.bekele = createCastActor({
   id: 'bekele',
+  role: 'bekele',
   archetype: 'adult_m',
   coatHex: '#9c623e',
   skinHex: '#734830',
   pos: [1.02, 0.32, -6.08],
   rotY: -0.52,
+  initialClip: 'listen',
+  seed: 22,
 });
+
+// Place True-Scale 1.72m 31-Part Brass-Pivot Cutout Hero in the Multiplane FG/MG Registration Slot
+{
+  const cutoutSlotGroup = new THREE.Group();
+  cutoutSlotGroup.position.set(2.46, 0, -4.85);
+  cutoutSlotGroup.rotation.y = -0.26;
+
+  const cutoutShadow = new THREE.Mesh(
+    new THREE.CircleGeometry(0.42, 22),
+    new THREE.MeshBasicMaterial({ color: '#05070a', transparent: true, opacity: 0.54, depthWrite: false })
+  );
+  cutoutShadow.rotation.x = -Math.PI / 2;
+  cutoutShadow.position.y = 0.014;
+  cutoutSlotGroup.add(cutoutShadow);
+
+  const regMarkRing = new THREE.Mesh(new THREE.RingGeometry(0.34, 0.39, 28), brassRailMat);
+  regMarkRing.rotation.x = -Math.PI / 2;
+  regMarkRing.position.y = 0.017;
+  cutoutSlotGroup.add(regMarkRing);
+
+  const cutoutRig = createArticulated31CutoutRig({
+    THREE,
+    variant: 'poet_tracksuit_31',
+    showBrassPivots: true,
+    wingsMode: 'angel',
+    glasses: true,
+    prop: 'camera',
+    groundY: 0,
+    seed: 6,
+  });
+  cutoutRig.playAction('greet');
+  cutoutSlotGroup.add(cutoutRig.root);
+  scene.add(cutoutSlotGroup);
+
+  cast.cutoutHero = {
+    id: 'cutout_hero',
+    root: cutoutSlotGroup,
+    rig: cutoutRig,
+    evoSeed: 6,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Multiplane Registered Depth-Slice Shader (BG / MG / FG)
@@ -1120,7 +1182,7 @@ function renderLedgerAndPlanesUI() {
     .map((p) => {
       const isP2 = p.id === 'P2';
       const detail = isP2
-        ? 'Live 3D Anny V8 Cast + Severn Doorway + Wet Puddles'
+        ? 'Live 31-Part Brass-Pivot Cutout Hero + 104-Bone Anny V9 Cast + Severn Doorway'
         : p.contents?.length
         ? p.contents.join(', ')
         : 'Registered depth slice';
@@ -1476,10 +1538,20 @@ $('#btn-play-encounter').addEventListener('click', async () => {
   $('#btn-play-encounter').classList.toggle('on', encounterAnim.active);
   if (encounterAnim.active) {
     savePilotState({ doorOpen: true, parcelHolder: 'player', room: 'street-curb' });
-    if (cast.courier?.v8) cast.courier.v8.playClip('walk', 0.2);
+    if (cast.courier?.v9) {
+      cast.courier.v9.playAction('carry', 0.2);
+      cast.courier.v9.setMoveSpeed(0.82);
+    }
+    if (cast.bekele?.v9) cast.bekele.v9.playAction('greet', 0.24);
+    if (cast.cutoutHero?.rig) cast.cutoutHero.rig.playAction('greet');
     showToast('Encounter: Courier approaches Severn stoop -> hands parcel to Bekele -> crosses threshold');
-  } else if (cast.courier?.v8) {
-    cast.courier.v8.playClip('idle', 0.25);
+  } else {
+    if (cast.courier?.v9) {
+      cast.courier.v9.setMoveSpeed(0);
+      cast.courier.v9.playAction('idle', 0.25);
+    }
+    if (cast.bekele?.v9) cast.bekele.v9.playAction('listen', 0.25);
+    if (cast.cutoutHero?.rig) cast.cutoutHero.rig.playAction('idle');
   }
 });
 
@@ -2062,6 +2134,22 @@ attachActorHitCapsule(
   () => `Bekele at Severn Stoop — Click to Play Handoff Encounter · Shift+Click Pass Parcel`
 );
 
+if (cast.cutoutHero) {
+  const cutoutHit = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.42, 0.44, 1.84, 12),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  cutoutHit.position.y = 0.92;
+  cast.cutoutHero.root.add(cutoutHit);
+  registerPickable(cutoutHit, {
+    kind: 'cutout-hero',
+    anchorObj: cast.cutoutHero.root,
+    anchorOffset: new THREE.Vector3(0, 1.92, 0),
+    getWhisper: () =>
+      `31-Part Brass-Pivot Cutout Hero (1.72m Registered · Wings: ${cast.cutoutHero.rig.getWingsMode()}) — Click to Evolve · Shift+Click Brass Pivots`,
+  });
+}
+
 registerPickable(parcelBox, {
   kind: 'parcel-cycle',
   anchorObj: parcelMesh,
@@ -2103,7 +2191,12 @@ function runEncounterInWorld() {
   encounterAnim.t = 0;
   $('#btn-play-encounter')?.classList.add('on');
   savePilotState({ doorOpen: true, parcelHolder: 'player', room: 'street-curb' });
-  if (cast.courier?.v8) cast.courier.v8.playClip('walk', 0.2);
+  if (cast.courier?.v9) {
+    cast.courier.v9.playAction('carry', 0.2);
+    cast.courier.v9.setMoveSpeed(0.82);
+  }
+  if (cast.bekele?.v9) cast.bekele.v9.playAction('greet', 0.24);
+  if (cast.cutoutHero?.rig) cast.cutoutHero.rig.playAction('greet');
   showToast('Courier approaches Severn stoop -> hands parcel to Bekele -> closes threshold door');
 }
 
@@ -2243,6 +2336,24 @@ renderer.domElement.addEventListener('pointerup', async (e) => {
       }
       break;
     }
+    case 'cutout-hero': {
+      if (cast.cutoutHero?.rig) {
+        if (e.shiftKey) {
+          const pivOn = cast.cutoutHero.rig.setBrassPivots('toggle');
+          showToast(`31-Part Brass Pivot Rivets: ${pivOn ? 'Visible' : 'Hidden'}`);
+        } else {
+          cast.cutoutHero.evoSeed += 1;
+          const pheno = evolveCutoutPhenotype(cast.cutoutHero.rig, {
+            poem: pilot.poem || '06',
+            shotKind: encounterAnim.active ? 'handoff' : '',
+            bgLuminance: pilot.rawDaylight ? 0.65 : 0.24,
+            seed: cast.cutoutHero.evoSeed * 13,
+          });
+          showToast(`31-Part Cutout Hero Gen ${pheno.generation} · Wings: ${pheno.wingsMode} · Clip: ${pheno.clip}`);
+        }
+      }
+      break;
+    }
     case 'parcel-cycle': {
       const order = ['player', 'bekele', 'table'];
       const next = order[(order.indexOf(pilot.parcelHolder || 'player') + 1) % order.length];
@@ -2334,13 +2445,16 @@ function initShaderSuite() {
 // Main Render Loop & Viewing Cone Check
 // ---------------------------------------------------------------------------
 let lastTime = performance.now() * 0.001;
+const courierHeadGaze = new THREE.Vector3();
+const bekeleHeadGaze = new THREE.Vector3();
+const parcelGazeTarget = new THREE.Vector3();
 
 function updateEncounter(dt) {
   if (!encounterAnim.active || !cast.courier || !cast.bekele) return;
   encounterAnim.t += dt;
   const t = encounterAnim.t;
 
-  // Phase 1 (0..3.6s): Courier walks from left foreground (-2.2, 0, -4.4) behind FG occlusion to Severn stoop (0.35, 0, -5.45)
+  // Phase 1 (0..3.6s): Courier walks from left foreground (-2.35, 0, -4.35) behind FG occlusion to Severn stoop (0.32, 0, -5.45)
   if (t < 3.6) {
     const u = t / 3.6;
     cast.courier.root.position.set(
@@ -2349,6 +2463,10 @@ function updateEncounter(dt) {
       THREE.MathUtils.lerp(-4.35, -5.45, u)
     );
     cast.courier.root.rotation.y = 0.95;
+    cast.courier.moveSpeed = 0.82;
+    if (cast.courier.v9 && cast.courier.v9.getCurrentAction() !== 'walk-carry') {
+      cast.courier.v9.playAction('carry', 0.22);
+    }
     parcelMesh.position.set(
       cast.courier.root.position.x + 0.22,
       1.02,
@@ -2356,10 +2474,12 @@ function updateEncounter(dt) {
     );
   } else if (t < 5.6) {
     // Phase 2 (3.6..5.6s): Handoff parcel to Bekele at threshold
+    cast.courier.moveSpeed = 0;
     if (pilot.parcelHolder !== 'bekele') {
       savePilotState({ parcelHolder: 'bekele', room: 'vestibule' });
-      if (cast.courier.v8) cast.courier.v8.playClip('idle-talking', 0.25);
-      if (cast.bekele.v8) cast.bekele.v8.playClip('idle-talking', 0.25);
+      if (cast.courier.v9) cast.courier.v9.playAction('greet', 0.24);
+      if (cast.bekele.v9) cast.bekele.v9.playAction('idle-talking', 0.24);
+      if (cast.cutoutHero?.rig) cast.cutoutHero.rig.playAction('idle-talking');
     }
     const u = (t - 3.6) / 2.0;
     parcelMesh.position.set(
@@ -2369,15 +2489,21 @@ function updateEncounter(dt) {
     );
   } else if (t < 8.0) {
     // Phase 3 (5.6..8.0s): Threshold crossing & door closes cleanly, changing light and acoustic transmission
+    cast.courier.moveSpeed = 0;
     if (pilot.doorOpen) {
       savePilotState({ doorOpen: false });
+      if (cast.courier.v9) cast.courier.v9.playAction('listen', 0.26);
+      if (cast.bekele.v9) cast.bekele.v9.playAction('yes', 0.26);
+      if (cast.cutoutHero?.rig) cast.cutoutHero.rig.playAction('greet');
       showToast('Threshold crossed: Severn door closed, warm light & street sound muffled');
     }
   } else {
     encounterAnim.active = false;
+    cast.courier.moveSpeed = 0;
     $('#btn-play-encounter')?.classList.remove('on');
-    if (cast.courier.v8) cast.courier.v8.playClip('idle', 0.25);
-    if (cast.bekele.v8) cast.bekele.v8.playClip('idle', 0.25);
+    if (cast.courier.v9) cast.courier.v9.playAction('idle', 0.25);
+    if (cast.bekele.v9) cast.bekele.v9.playAction('listen', 0.25);
+    if (cast.cutoutHero?.rig) cast.cutoutHero.rig.playAction('idle');
   }
 }
 
@@ -2443,8 +2569,64 @@ function renderFrameOnce(nowSec) {
 
   if (hoveredPickMeta) updateWhisperProjection();
 
-  if (cast.courier?.v8) cast.courier.v8.update(dt);
-  if (cast.bekele?.v8) cast.bekele.v8.update(dt);
+  // Biomechanical updates for 104-Bone V9 Cast + 31-Part Brass-Pivot Cutout Hero
+  if (cast.courier) {
+    courierHeadGaze.set(cast.courier.root.position.x, cast.courier.root.position.y + 1.60, cast.courier.root.position.z);
+  }
+  if (cast.bekele) {
+    bekeleHeadGaze.set(cast.bekele.root.position.x, cast.bekele.root.position.y + 1.60, cast.bekele.root.position.z);
+  }
+  parcelGazeTarget.set(parcelMesh.position.x, parcelMesh.position.y + 0.35, parcelMesh.position.z);
+
+  if (!encounterAnim.active) {
+    if (cast.courier?.v9) {
+      const wantCourier = Math.floor(nowSec * 0.16) % 3 === 0 ? 'greet' : 'idle';
+      if (cast.courier.clip !== wantCourier) {
+        cast.courier.clip = wantCourier;
+        cast.courier.v9.playAction(wantCourier, 0.30);
+      }
+      cast.courier.moveSpeed = 0;
+    }
+    if (cast.bekele?.v9) {
+      const wantBekele = Math.floor(nowSec * 0.18 + 1) % 3 === 0 ? 'idle-talking' : 'listen';
+      if (cast.bekele.clip !== wantBekele) {
+        cast.bekele.clip = wantBekele;
+        cast.bekele.v9.playAction(wantBekele, 0.30);
+      }
+    }
+  }
+
+  const scoreLineTxt = scoreState.playing ? ($('#spoken-line-text')?.textContent || '') : '';
+  if (cast.courier?.v9) {
+    cast.courier.v9.setGroundY(cast.courier.root.position.y);
+    cast.courier.v9.update(dt, {
+      autoLocomotion: false,
+      moveSpeed: cast.courier.moveSpeed || 0,
+      lookTargetVec3: bekeleHeadGaze,
+      speaking: encounterAnim.active && encounterAnim.t >= 3.6 && encounterAnim.t < 5.6,
+    });
+  }
+  if (cast.bekele?.v9) {
+    cast.bekele.v9.setGroundY(cast.bekele.root.position.y);
+    cast.bekele.v9.update(dt, {
+      autoLocomotion: false,
+      moveSpeed: 0,
+      lookTargetVec3: courierHeadGaze,
+      speaking: (encounterAnim.active && encounterAnim.t >= 3.6 && encounterAnim.t < 5.6) || Boolean(scoreLineTxt),
+      talkText: scoreLineTxt,
+    });
+  }
+  if (cast.cutoutHero?.rig) {
+    cast.cutoutHero.rig.setGroundY(0);
+    cast.cutoutHero.rig.update(dt, {
+      autoLocomotion: false,
+      moveSpeed: 0,
+      lookTargetVec3: encounterAnim.active ? parcelGazeTarget : camera.position,
+      speaking: Boolean(scoreLineTxt),
+      talkText: scoreLineTxt,
+      wingFlapBoost: encounterAnim.active ? 0.35 : 0.08,
+    });
+  }
 
   for (const m of [matBG, matMG, matFG]) {
     m.uniforms.uTime.value = nowSec;
@@ -2475,6 +2657,16 @@ function animate() {
   requestAnimationFrame(animate);
   renderFrameOnce(performance.now() * 0.001);
 }
+
+window.__WEAVE__ = {
+  cast,
+  get activeEntry() { return activeEntry; },
+  get cameraMode() { return cameraMode; },
+  runEncounterInWorld,
+  recoverSourceCamera,
+  toggleReverseAngle,
+  toggleExplodeStack,
+};
 
 // ---------------------------------------------------------------------------
 // Boot

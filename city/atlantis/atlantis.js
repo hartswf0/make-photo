@@ -18,6 +18,7 @@ import {
   NOLLI_LEDGER_KEY,
 } from '../shader-suite-bar.js';
 import { buildObject } from '../worldtext/kit.js';
+import { createHeroOrCastV9, evolveHeroPhenotype } from '../hero-build/anny-hero-v9.js';
 
 // ---------------------------------------------------------------------------
 // 1. Hydrate Severn Pilot State (Brief 9)
@@ -1062,17 +1063,160 @@ screenFrame.add(screenSheet);
 courtyardInteractMeshes.push(screenSheet);
 
 // ---------------------------------------------------------------------------
-// 7. 5 Clothed Anny V8 Chorus / Spectators + Shared Parcel
+// 7. 5 Clothed Anny V9 Chorus / Spectators + V9 Winged Poet Hero + P06-S01 Winged Gate Portal
 // ---------------------------------------------------------------------------
 const CAST_DEFS = [
-  { id: 'poet', archetype: 'adult_m', name: 'The Poet', role: 'Dry Voice Spine', skin: '#613d2b', coat: '#182430', x: -2.6, z: -3.1, ry: 0.44 },
-  { id: 'carrier', archetype: 'adult_f', name: 'Codex Carrier', role: 'Twin Sung Voice', skin: '#543525', coat: '#243c4c', x: 2.6, z: -3.1, ry: -0.44 },
-  { id: 'bekele', archetype: 'elder', name: 'Bekele', role: 'Archive Keeper', skin: '#68432f', coat: '#3c3428', x: -2.8, z: 3.7, ry: 3.0 },
-  { id: 'maren', archetype: 'adult_f', name: 'Maren', role: 'Severn 2A Witness', skin: '#7a523c', coat: '#2e4652', x: 2.8, z: 3.7, ry: -3.0 },
-  { id: 'june', archetype: 'child7', name: 'June', role: 'Oulipo Projectionist', skin: '#4f3122', coat: '#1e3240', x: 1.35, z: 2.05, ry: 2.95 },
+  { id: 'poet', v9Role: 'chorus', archetype: 'adult_m', postureClip: 'idle-talking', name: 'The Poet', role: 'Dry Voice Spine', skin: '#613d2b', coat: '#182430', x: -2.6, z: -3.1, ry: 0.44 },
+  { id: 'carrier', v9Role: 'imani', archetype: 'adult_f', postureClip: 'pray', name: 'Codex Carrier', role: 'Twin Sung Voice', skin: '#543525', coat: '#243c4c', x: 2.6, z: -3.1, ry: -0.44 },
+  { id: 'bekele', v9Role: 'bekele', archetype: 'elder', postureClip: 'sit-talk', name: 'Bekele', role: 'Archive Keeper', skin: '#68432f', coat: '#3c3428', x: -3.2, z: 4.35, ry: 0.14 },
+  { id: 'maren', v9Role: 'maren', archetype: 'adult_f', postureClip: 'listen', name: 'Maren', role: 'Severn 2A Witness', skin: '#7a523c', coat: '#2e4652', x: 3.1, z: 3.85, ry: -2.85 },
+  { id: 'june', v9Role: 'june', archetype: 'child7', postureClip: 'greet', name: 'June', role: 'Oulipo Projectionist', skin: '#4f3122', coat: '#1e3240', x: 1.35, z: 2.05, ry: 2.95 },
 ];
 
+const castKeyLight = new THREE.PointLight('#ffe2b8', 24, 24, 1.4);
+castKeyLight.position.set(-1.2, FLOOR_Y + 4.8, 2.8);
+abyssGroup.add(castKeyLight);
+
 const castActors = [];
+let poetHeroActor = null;
+const wingedGatePivots = [];
+
+function buildWingedGatePortalMesh(scaleFactor = 1.0) {
+  const grp = new THREE.Group();
+  grp.scale.setScalar(scaleFactor);
+
+  const marbleMat = new THREE.MeshStandardMaterial({ color: '#f3efe6', roughness: 0.34, metalness: 0.06 });
+  const goldMat = new THREE.MeshStandardMaterial({
+    color: '#e3b760',
+    emissive: '#4d350c',
+    emissiveIntensity: 0.28,
+    roughness: 0.22,
+    metalness: 0.88,
+  });
+  const veilMat = new THREE.MeshBasicMaterial({
+    color: '#24d4ff',
+    transparent: true,
+    opacity: 0.18,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.22, 0.96), marbleMat);
+  plinth.position.y = 0.11;
+  plinth.receiveShadow = true;
+  grp.add(plinth);
+
+  for (const sx of [-1.2, 1.2]) {
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.23, 3.4, 16), marbleMat);
+    col.position.set(sx, 1.92, 0);
+    col.castShadow = true;
+    grp.add(col);
+
+    for (const sy of [1.25, 2.55]) {
+      const seam = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.02, 8, 22), goldMat);
+      seam.rotation.x = Math.PI / 2;
+      seam.position.set(sx, sy, 0);
+      grp.add(seam);
+    }
+
+    const cap = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.24, 0.54), marbleMat);
+    cap.position.set(sx, 3.74, 0);
+    grp.add(cap);
+  }
+
+  const lintelBar = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.28, 0.6), marbleMat);
+  lintelBar.position.set(0, 4.0, 0);
+  grp.add(lintelBar);
+
+  const archCrown = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.18, 12, 36, Math.PI), marbleMat);
+  archCrown.position.set(0, 4.02, 0);
+  grp.add(archCrown);
+
+  const goldSeamArch = new THREE.Mesh(new THREE.TorusGeometry(1.22, 0.03, 8, 36, Math.PI), goldMat);
+  goldSeamArch.position.set(0, 4.02, 0.16);
+  grp.add(goldSeamArch);
+
+  const veil = new THREE.Mesh(new THREE.PlaneGeometry(2.05, 3.55), veilMat);
+  veil.position.set(0, 2.0, 0);
+  grp.add(veil);
+
+  const texLoader = new THREE.TextureLoader();
+  const wingTexL = texLoader.load('../hero-build/assets/wings/08.cast.angel.wings__p07.png');
+  const wingTexR = texLoader.load('../hero-build/assets/wings/08.cast.angel.wings__p08.png');
+  wingTexL.colorSpace = THREE.SRGBColorSpace;
+  wingTexR.colorSpace = THREE.SRGBColorSpace;
+
+  const makeShoulderWing = (sx, wTex) => {
+    const piv = new THREE.Group();
+    piv.position.set(sx * 1.24, 4.06, -0.04);
+
+    const card = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.85, 1.35),
+      new THREE.MeshStandardMaterial({
+        map: wTex,
+        transparent: true,
+        alphaTest: 0.06,
+        roughness: 0.45,
+        side: THREE.DoubleSide,
+      })
+    );
+    card.position.set(sx * 0.86, 0.46, -0.03);
+    if (sx < 0) card.scale.x = -1;
+    piv.add(card);
+
+    for (let f = 0; f < 6; f++) {
+      const frac = f / 5;
+      const blade = new THREE.Mesh(
+        new THREE.ConeGeometry(0.08, 1.05 - frac * 0.18, 5),
+        f === 0 ? goldMat : marbleMat
+      );
+      blade.position.set(sx * (0.25 + frac * 1.02), 0.30 + frac * 0.18, 0.02);
+      blade.rotation.z = sx * (-0.50 - frac * 0.56);
+      blade.scale.set(1.0, 1.0, 0.28);
+      piv.add(blade);
+    }
+    grp.add(piv);
+    return piv;
+  };
+
+  const pivL = makeShoulderWing(-1, wingTexR);
+  const pivR = makeShoulderWing(1, wingTexL);
+  wingedGatePivots.push({ pivL, pivR, veilMat });
+
+  return grp;
+}
+
+// 1) Submerged Kintsugi Courtyard 3D Marble Winged Gate Portal -> ../stage/#P06-S01
+const subWingedGate = buildWingedGatePortalMesh(1.0);
+subWingedGate.position.set(-9.4, FLOOR_Y, -4.6);
+subWingedGate.rotation.y = 0.84;
+abyssGroup.add(subWingedGate);
+
+const subWingedGateHit = new THREE.Mesh(new THREE.BoxGeometry(3.6, 5.4, 1.6), hitColliderMat);
+subWingedGateHit.position.set(0, 2.7, 0);
+subWingedGateHit.userData.interact = {
+  kind: 'winged-stage-portal',
+  anchor: new THREE.Vector3(-9.4, FLOOR_Y + 5.6, -4.6),
+  getWhisper: () => ['P06-S01 Marble Winged Gate', 'Click to Enter Hero Stage (../stage/#P06-S01)'],
+};
+subWingedGate.add(subWingedGateHit);
+courtyardInteractMeshes.push(subWingedGateHit);
+
+// 2) Surface Plato Ring Quay 3D Marble Winged Gate Portal -> ../stage/#P06-S01
+const surfWingedGate = buildWingedGatePortalMesh(0.92);
+surfWingedGate.position.set(-5.2, 0.35, 24.8);
+surfWingedGate.rotation.y = 0.34;
+severnGroup.add(surfWingedGate);
+
+const surfWingedGateHit = new THREE.Mesh(new THREE.BoxGeometry(3.6, 5.2, 1.6), hitColliderMat);
+surfWingedGateHit.position.set(0, 2.6, 0);
+surfWingedGateHit.userData.interact = {
+  kind: 'winged-stage-portal',
+  anchor: new THREE.Vector3(-5.2, 5.3, 24.8),
+  getWhisper: () => ['P06-S01 Marble Winged Gate', 'Click to Enter Hero Stage (../stage/#P06-S01)'],
+};
+surfWingedGate.add(surfWingedGateHit);
+surfaceInteractMeshes.push(surfWingedGateHit);
 
 const parcelMesh = new THREE.Mesh(
   new THREE.BoxGeometry(0.36, 0.24, 0.28),
@@ -1119,7 +1263,18 @@ function spawnCast() {
     });
     root.add(proxy);
 
-    const actor = { id: def.id, def, root, proxy, v8: null, hScale, phase: idx * 1.3 };
+    const actor = {
+      id: def.id,
+      def,
+      root,
+      proxy,
+      v8: null,
+      v9: null,
+      postureClip: def.postureClip,
+      currentClip: def.postureClip,
+      hScale,
+      phase: idx * 1.3,
+    };
     castActors.push(actor);
 
     const hitCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 1.95 * hScale, 10), hitColliderMat);
@@ -1136,30 +1291,111 @@ function spawnCast() {
     root.add(hitCyl);
     courtyardInteractMeshes.push(hitCyl);
 
-    if (typeof window !== 'undefined' && window.AnnyHumanV7 && window.AnnyHumanV7.createCharacter) {
-      window.AnnyHumanV7.createCharacter({
-        THREE,
-        loader: gltfLoader,
-        archetype: def.archetype,
-        assetBaseUrl: '../../abyssinian-highlands/human-forge/assets',
-        clipsBaseUrl: '../../motion-pipeline/mesh2motion/clips',
-        clothed: true,
-        groundY: FLOOR_Y,
-        preloadClips: ['idle', 'idle-talking'],
-        initialClip: 'idle',
+    createHeroOrCastV9({
+      THREE,
+      loader: gltfLoader,
+      role: def.v9Role,
+      archetype: def.archetype,
+      groundY: FLOOR_Y,
+      initialClip: def.postureClip,
+      glasses: false,
+      wingsMode: 'off',
+      prop: 'none',
+      seed: 40 + idx * 17,
+    })
+      .then((inst) => {
+        if (!inst) return;
+        inst.root.position.set(0, 0, 0);
+        inst.root.rotation.set(0, 0, 0);
+        root.add(inst.root);
+        proxy.visible = false;
+        actor.v9 = inst;
+        actor.v8 = inst;
+        inst.setGroundY(FLOOR_Y);
+        inst.playAction(def.postureClip, 0.25);
       })
-        .then((inst) => {
-          if (!inst) return;
-          inst.root.position.set(0, 0, 0);
-          inst.root.rotation.set(0, 0, 0);
-          root.add(inst.root);
-          proxy.visible = false;
-          actor.v8 = inst;
-          inst.setGroundY(FLOOR_Y);
-        })
-        .catch(() => {});
-    }
+      .catch(() => {});
   });
+
+  // Spawn V9 Poet Hero (with P06-S01 Marble/Angel Evolutionary Wings!) at the Kintsugi Courtyard Threshold
+  const heroDef = {
+    id: 'poet_hero',
+    name: 'Atlantis Poet Hero',
+    role: 'P06-S01 Marble Winged Threshold',
+    x: -5.45,
+    z: -3.75,
+    ry: 0.58,
+  };
+  const heroRoot = new THREE.Group();
+  heroRoot.position.set(heroDef.x, FLOOR_Y, heroDef.z);
+  heroRoot.rotation.y = heroDef.ry;
+  abyssGroup.add(heroRoot);
+
+  const heroProxy = new THREE.Group();
+  const hpTorso = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.19, 0.25, 0.86, 12),
+    new THREE.MeshStandardMaterial({ color: '#181d2c', roughness: 0.65 })
+  );
+  hpTorso.position.y = 1.08;
+  const hpHead = new THREE.Mesh(
+    new THREE.SphereGeometry(0.14, 12, 10),
+    new THREE.MeshStandardMaterial({ color: '#613d2b', roughness: 0.6 })
+  );
+  hpHead.position.y = 1.64;
+  heroProxy.add(hpTorso, hpHead);
+  heroRoot.add(heroProxy);
+
+  poetHeroActor = {
+    id: heroDef.id,
+    def: heroDef,
+    root: heroRoot,
+    proxy: heroProxy,
+    v8: null,
+    v9: null,
+    postureClip: 'greet',
+    currentClip: 'greet',
+    hScale: 1.0,
+    evoSeed: 6,
+  };
+  castActors.push(poetHeroActor);
+
+  const heroHit = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 2.02, 12), hitColliderMat);
+  heroHit.position.y = 1.01;
+  heroHit.userData.interact = {
+    kind: 'poet-hero',
+    actor: poetHeroActor,
+    anchor: new THREE.Vector3(heroDef.x, FLOOR_Y + 2.08, heroDef.z),
+    getWhisper: () => [
+      `V9 Poet Hero · Wings: ${poetHeroActor.v9 ? poetHeroActor.v9.getWingsMode() : 'marble'}`,
+      'Click to Sing P06 Duet & Evolve Marble / Angel Wings',
+    ],
+  };
+  heroRoot.add(heroHit);
+  courtyardInteractMeshes.push(heroHit);
+
+  createHeroOrCastV9({
+    THREE,
+    loader: gltfLoader,
+    role: 'poet_hero',
+    wingsMode: 'marble',
+    glasses: true,
+    prop: 'lantern',
+    groundY: FLOOR_Y,
+    initialClip: 'greet',
+    bgLuminance: 0.18,
+    seed: 606,
+  })
+    .then((inst) => {
+      if (!inst) return;
+      inst.root.position.set(0, 0, 0);
+      inst.root.rotation.set(0, 0, 0);
+      heroRoot.add(inst.root);
+      heroProxy.visible = false;
+      poetHeroActor.v9 = inst;
+      poetHeroActor.v8 = inst;
+      inst.setGroundY(FLOOR_Y);
+    })
+    .catch(() => {});
 }
 spawnCast();
 
@@ -1865,6 +2101,10 @@ function updateRaycastHover() {
 
 function handleWorldInteract(info, shiftKey) {
   if (!info) return;
+  if (info.kind === 'winged-stage-portal') {
+    window.location.href = '../stage/#P06-S01';
+    return;
+  }
   if (info.kind === 'severn-door') {
     const next = !pilot.doorOpen;
     savePilotState({ doorOpen: next });
@@ -1898,6 +2138,29 @@ function handleWorldInteract(info, shiftKey) {
     const nxt = order[(order.indexOf(pilot.parcelHolder || 'player') + 1) % order.length];
     savePilotState({ parcelHolder: nxt });
     applyPilotToScene(loadPilotState());
+    return;
+  }
+  if (info.kind === 'poet-hero') {
+    const heroAc = info.actor;
+    if (heroAc && heroAc.v9) {
+      heroAc.evoSeed = (heroAc.evoSeed || 6) + 1;
+      const wingModes = ['marble', 'angel', 'raven', 'folded'];
+      const nextWings = wingModes[heroAc.evoSeed % wingModes.length];
+      evolveHeroPhenotype(heroAc.v9, {
+        poem: '06',
+        shotKind: 'submerged',
+        wingsMode: nextWings,
+        bgLuminance: 0.16,
+        seed: heroAc.evoSeed * 19,
+      });
+    }
+    state.selectedPoem = '06';
+    const poem06 = state.codexByPoem['06'];
+    const lines = (poem06 && poem06.lines) || [];
+    const chosen = lines.length
+      ? lines[state.duetsLineCursor++ % lines.length]
+      : { text: 'The gates open with wings gifted from evolution, and made of marble stones.' };
+    duetEngine.playDuetForClickedActor(heroAc, chosen);
     return;
   }
   if (info.kind === 'chorus-actor') {
@@ -2025,6 +2288,7 @@ window.addEventListener('resize', () => {
 // ---------------------------------------------------------------------------
 let prevT = performance.now() * 0.001;
 let lastScreenBucket = -1;
+const singerGazeTarget = new THREE.Vector3();
 
 function animate() {
   requestAnimationFrame(animate);
@@ -2079,11 +2343,19 @@ function animate() {
   );
   camera.lookAt(lookTarget);
 
-  // Animate Verne's Nautilus Spotlight & 35mm Projector Reels
+  // Animate Verne's Nautilus Spotlight, 35mm Projector Reels & P06-S01 Winged Gate Portals
   nautilusGroup.position.y = -17.2 + Math.sin(now * 0.55) * 0.65;
   nautilusBeam.rotation.y = Math.sin(now * 0.42) * 0.34;
   projReelFront.rotation.x = now * 1.8;
   projReelRear.rotation.x = now * 1.8;
+
+  for (let wIdx = 0; wIdx < wingedGatePivots.length; wIdx++) {
+    const wg = wingedGatePivots[wIdx];
+    const flap = Math.sin(now * 1.55 + wIdx * 0.9) * 0.08;
+    wg.pivL.rotation.set(0.04, -0.16 - flap, 0.08 + flap * 0.6);
+    wg.pivR.rotation.set(0.04, 0.16 + flap, -0.08 - flap * 0.6);
+    wg.veilMat.opacity = 0.16 + Math.sin(now * 2.2 + wIdx) * 0.035;
+  }
 
   // Drift bioluminescent pelagic silt upward
   const pArr = siltParticles.geometry.attributes.position.array;
@@ -2093,23 +2365,45 @@ function animate() {
   }
   siltParticles.geometry.attributes.position.needsUpdate = true;
 
-  // Update Anny V8 Cast + Floating 3D Speaker Lyric
+  // Determine gaze target: whoever is singing the Codex Duet, else the visitor's camera
+  const activeSinger = duetEngine.speakingActor;
+  if (activeSinger) {
+    singerGazeTarget.set(
+      activeSinger.root.position.x,
+      FLOOR_Y + 1.62 * activeSinger.hScale,
+      activeSinger.root.position.z
+    );
+  } else {
+    singerGazeTarget.copy(camera.position);
+  }
+
+  // Update Anny V9 Chorus / Spectators + Winged V9 Poet Hero + Floating 3D Speaker Lyric
   castActors.forEach((ac) => {
-    const isSpeaker = duetEngine.speakingActor === ac;
-    if (ac.v8) {
-      if (typeof ac.v8.crossFadeTo === 'function') {
-        const want = isSpeaker ? 'idle-talking' : 'idle';
-        if (ac.currentClip !== want) {
-          ac.currentClip = want;
-          ac.v8.crossFadeTo(want, 0.25);
-        }
+    const isSpeaker = activeSinger === ac;
+    if (ac.v9) {
+      ac.v9.setGroundY(FLOOR_Y);
+      let wantClip = ac.postureClip || 'listen';
+      if (isSpeaker) {
+        wantClip = 'idle-talking';
+      } else if (ac.id === 'poet_hero') {
+        wantClip = Math.floor(now * 0.18) % 2 === 0 ? 'greet' : 'listen';
       }
-      if (typeof ac.v8.setJawOpenness === 'function') {
-        ac.v8.setJawOpenness(isSpeaker ? 0.35 + 0.3 * Math.abs(Math.sin(now * 9.5)) : 0);
+      if (ac.currentClip !== wantClip) {
+        ac.currentClip = wantClip;
+        ac.v9.playAction(wantClip, 0.28);
       }
-      if (typeof ac.v8.update === 'function') {
-        ac.v8.update(dt);
+      if (!isSpeaker) {
+        ac.v9.setJawOpenness(0);
       }
+      ac.v9.update(dt, {
+        autoLocomotion: false,
+        moveSpeed: 0,
+        lookTargetVec3: isSpeaker ? camera.position : singerGazeTarget,
+        speaking: isSpeaker,
+        talkText: isSpeaker ? duetEngine.currentLyric : '',
+        talkProgress: isSpeaker ? ((now * 0.34) % 1) : 0,
+        wingFlapBoost: ac.id === 'poet_hero' ? (isSpeaker ? 0.55 : 0.18) : 0,
+      });
     } else {
       ac.proxy.position.y = isSpeaker ? Math.abs(Math.sin(now * 7.5)) * 0.04 : 0;
     }
@@ -2165,5 +2459,19 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-setDepthProgress(0.0);
+const atlantisParams = new URLSearchParams(window.location.search);
+const initDepthParam = atlantisParams.get('depth');
+setDepthProgress(initDepthParam !== null ? Number(initDepthParam) : 0.0);
+
+window.__ATLANTIS__ = {
+  state,
+  castActors,
+  get poetHero() { return poetHeroActor; },
+  subWingedGate,
+  surfWingedGate,
+  startDiveTo,
+  setDepthProgress,
+  duetEngine,
+};
+
 animate();

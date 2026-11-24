@@ -14,6 +14,10 @@ import {
   applyPilotUrlHash,
   formatPilotHash,
 } from '../design-room/pilot-state.js';
+import {
+  createHeroOrCastV9,
+  evolveHeroPhenotype,
+} from '../hero-build/anny-hero-v9.js';
 
 const $ = (id) => document.getElementById(id);
 const gltfLoader = new GLTFLoader();
@@ -1817,12 +1821,162 @@ for (let i = 1; i < 4; i++) {
 }
 
 // ---------------------------------------------------------------------------
-// 11. Playable Anny V8 Human + Persistent Anny V8 Regional Cast
+// 11. Playable V9 Poet Hero + Upgraded Biomechanical V9 Regional Cast
+//     + Atlantis Centro 3D Marble Winged Portal -> ../stage/#P06-S01
 // ---------------------------------------------------------------------------
-function spawnAnnyActor({ archetype, skinHex, coatHex, x, y, z, ry = 0, initialClip = 'idle' }) {
+function shortestAngleDelta(from, to) {
+  let d = ((to - from + Math.PI) % (Math.PI * 2)) - Math.PI;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return d;
+}
+
+function buildAtlantisMarbleWingedPortal() {
+  const px = 6710.2;
+  const pz = 2271.2;
+  const py = Math.max(hAt(px, pz), 0.35);
+  const rotY = Math.atan2(6716 - px, 2278 - pz);
+
+  const g = new THREE.Group();
+  g.name = 'atlantis-marble-winged-portal';
+  g.position.set(px, py, pz);
+  g.rotation.y = rotY;
+
+  const carraraMat = new THREE.MeshStandardMaterial({
+    color: '#f2ede3',
+    roughness: 0.34,
+    metalness: 0.08,
+  });
+  const kintsugiMat = new THREE.MeshStandardMaterial({
+    color: '#e5be6b',
+    emissive: '#6a4b12',
+    emissiveIntensity: 0.45,
+    roughness: 0.22,
+    metalness: 0.88,
+  });
+  const veilMat = new THREE.MeshBasicMaterial({
+    color: '#18b4ff',
+    transparent: true,
+    opacity: 0.18,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+
+  // Stepped Carrara marble threshold plinth + kintsugi gold seam
+  g.add(makePart(new THREE.BoxGeometry(4.2, 0.22, 1.35), carraraMat, 0, 0.11, 0));
+  g.add(makePart(new THREE.BoxGeometry(3.6, 0.16, 1.05), carraraMat, 0, 0.28, 0));
+  g.add(makePart(new THREE.BoxGeometry(3.64, 0.04, 1.08), kintsugiMat, 0, 0.21, 0));
+
+  // Twin fluted marble piers + kintsugi inlays
+  for (const sx of [-1.42, 1.42]) {
+    g.add(makePart(new THREE.CylinderGeometry(0.24, 0.29, 3.65, 14), carraraMat, sx, 2.12, 0));
+    g.add(makePart(new THREE.BoxGeometry(0.64, 0.26, 0.64), carraraMat, sx, 4.02, 0));
+    g.add(makePart(new THREE.BoxGeometry(0.06, 3.4, 0.52), kintsugiMat, sx, 2.12, 0));
+  }
+
+  // Sculpted marble entablature + cyan tide arch slit + shimmering threshold veil
+  g.add(makePart(new THREE.BoxGeometry(3.85, 0.44, 0.78), carraraMat, 0, 4.35, 0));
+  g.add(makePart(new THREE.BoxGeometry(2.95, 0.09, 0.82), matCyanRelay, 0, 4.08, 0));
+  const veilMesh = makePart(new THREE.PlaneGeometry(2.38, 3.65), veilMat, 0, 2.18, 0);
+  g.add(veilMesh);
+
+  // Articulated 3D Sculpted Marble Evolutionary Wings crowning the portal arch
+  const wingPivots = [];
+  const featherGeo = new THREE.ConeGeometry(0.13, 1.55, 5);
+  for (const sx of [-1, 1]) {
+    const shoulder = new THREE.Group();
+    shoulder.position.set(sx * 0.95, 4.52, 0.08);
+    const midSpan = new THREE.Group();
+    midSpan.position.set(sx * 1.15, 0.48, 0);
+    shoulder.add(midSpan);
+
+    for (let f = 0; f < 6; f++) {
+      const frac = f / 5;
+      const blade = new THREE.Mesh(featherGeo, f === 0 ? kintsugiMat : carraraMat);
+      blade.position.set(sx * (0.22 + frac * 0.92), 0.18 - frac * 0.14, -0.02 * f);
+      blade.rotation.z = sx * (-0.55 - frac * 0.48);
+      blade.scale.set(1.0, 0.82 + frac * 0.34, 0.32);
+      shoulder.add(blade);
+    }
+    for (let f = 0; f < 5; f++) {
+      const frac = f / 4;
+      const tipBlade = new THREE.Mesh(featherGeo, f === 4 ? kintsugiMat : carraraMat);
+      tipBlade.position.set(sx * (0.16 + frac * 0.88), 0.08 - frac * 0.16, -0.02 * f);
+      tipBlade.rotation.z = sx * (-0.88 - frac * 0.42);
+      tipBlade.scale.set(0.86, 0.95 + frac * 0.25, 0.26);
+      midSpan.add(tipBlade);
+    }
+    g.add(shoulder);
+    wingPivots.push({ sx, shoulder, midSpan });
+  }
+
+  const portalLight = new THREE.PointLight('#18b4ff', 2.4, 18, 1.5);
+  portalLight.position.set(0, 3.2, 0.8);
+  g.add(portalLight);
+
+  const enterStage = () => {
+    savePilotState({ poem: '06', district: 'atlantis-centro' });
+    if (shaderSuite?.audio) shaderSuite.audio.playDoorTransition?.(true);
+    window.location.href = '../stage/#P06-S01';
+  };
+
+  const hitBox = makePart(new THREE.BoxGeometry(3.6, 4.8, 1.5), matHitProxy, 0, 2.4, 0);
+  addDiegeticTarget(hitBox, {
+    kind: 'stage-portal',
+    onEnter: enterStage,
+    getAnchor: () => new THREE.Vector3(px, py + 5.1, pz),
+    getWhisper: () => 'P06-S01 Marble Winged Portal - Click or Walk Through to Hero Stage',
+  });
+  g.add(hitBox);
+
+  interactiveNodes.push({
+    id: 'centro-stage-portal',
+    kind: 'portal',
+    label: 'Enter P06-S01 Atlantis Hero Stage',
+    x: px,
+    y: py,
+    z: pz,
+    radius: 4.8,
+    provenance: 'inferred',
+    onAct: enterStage,
+  });
+
+  scene.add(g);
+  return {
+    group: g,
+    px,
+    py,
+    pz,
+    veilMat,
+    wingPivots,
+    armed: false,
+    enterStage,
+  };
+}
+
+const atlantisStagePortal = buildAtlantisMarbleWingedPortal();
+
+function spawnV9Actor({
+  role,
+  archetype,
+  skinHex,
+  coatHex,
+  x,
+  y,
+  z,
+  ry = 0,
+  initialClip = 'idle',
+  wingsMode = 'off',
+  glasses = false,
+  prop = 'none',
+  seed = 1,
+}) {
   const root = new THREE.Group();
   root.position.set(x, y, z);
   root.rotation.y = ry;
+
+  // Sub-group for subtle turn banking & glide pitch without disturbing ground-pinned Y
+  const tiltGroup = new THREE.Group();
+  root.add(tiltGroup);
 
   // Articulated proxy while GLB streams
   const proxy = new THREE.Group();
@@ -1834,55 +1988,139 @@ function spawnAnnyActor({ archetype, skinHex, coatHex, x, y, z, ry = 0, initialC
   const legL = makePart(new THREE.CylinderGeometry(0.06, 0.05, 0.66, 8), legMat, -0.1, 0.33, 0);
   const legR = makePart(new THREE.CylinderGeometry(0.06, 0.05, 0.66, 8), legMat, 0.1, 0.33, 0);
   proxy.add(legL, legR);
-  root.add(proxy);
+  tiltGroup.add(proxy);
 
   const carried = createParcelBundle();
-  carried.position.set(0.24, 1.02, -0.26);
+  carried.position.set(0.24, 1.02, 0.26);
   carried.visible = false;
-  root.add(carried);
+  tiltGroup.add(carried);
 
   scene.add(root);
 
-  const actor = { root, proxy, legL, legR, carried, v8: null, clip: initialClip, phase: Math.random() * 6 };
+  const actor = {
+    root,
+    tiltGroup,
+    proxy,
+    legL,
+    legR,
+    carried,
+    v9: null,
+    v8: null,
+    clip: initialClip,
+    phase: Math.random() * 6,
+    groundY: y,
+  };
 
-  if (typeof window !== 'undefined' && window.AnnyHumanV7 && window.AnnyHumanV7.createCharacter) {
-    window.AnnyHumanV7.createCharacter({
-      THREE,
-      loader: gltfLoader,
-      archetype,
-      assetBaseUrl: '../../abyssinian-highlands/human-forge/assets',
-      clipsBaseUrl: '../../motion-pipeline/mesh2motion/clips',
-      clothed: true,
-      groundY: y,
-      preloadClips: ['idle', 'walk', 'idle-talking'],
-      initialClip,
+  createHeroOrCastV9({
+    THREE,
+    loader: gltfLoader,
+    role,
+    archetype,
+    wingsMode,
+    glasses,
+    prop,
+    groundY: y,
+    seed,
+    initialClip,
+  })
+    .then((inst) => {
+      if (!inst) return;
+      inst.root.position.set(0, 0, 0);
+      inst.root.rotation.set(0, 0, 0);
+      tiltGroup.add(inst.root);
+      proxy.visible = false;
+      actor.v9 = inst;
+      actor.v8 = inst;
+      inst.setGroundY(actor.groundY);
     })
-      .then((inst) => {
-        if (!inst) return;
-        inst.root.position.set(0, 0, 0);
-        inst.root.rotation.set(0, Math.PI, 0);
-        root.add(inst.root);
-        proxy.visible = false;
-        actor.v8 = inst;
-        inst.setGroundY(root.position.y);
-      })
-      .catch(() => {});
-  }
+    .catch((err) => {
+      console.warn('V9 character load warning:', err);
+    });
+
   return actor;
 }
 
-const playerActor = spawnAnnyActor({
-  archetype: 'adult_f',
+const playerActor = spawnV9Actor({
+  role: 'poet_hero',
+  archetype: 'adult_m',
   skinHex: '#8d5b3e',
-  coatHex: '#255a7a',
+  coatHex: '#181d2c',
   x: severnState.thresholdX,
   y: severnState.y0,
   z: severnState.thresholdZ,
+  initialClip: 'idle',
+  wingsMode: 'marble',
+  glasses: true,
+  prop: (pilot.parcelHolder || 'player') === 'player' ? 'parcel' : 'none',
+  seed: 1,
 });
+
+// Diegetic click-on-self hitbox to toggle sunglasses & P06-S01 wings (or Shift+Click to co-evolve)
+{
+  const selfHit = makePart(new THREE.CylinderGeometry(0.56, 0.56, 1.92, 10), matHitProxy, 0, 0.96, 0);
+  addDiegeticTarget(selfHit, {
+    kind: 'player-self',
+    getAnchor: () => new THREE.Vector3(playerActor.root.position.x, playerActor.root.position.y + 2.08, playerActor.root.position.z),
+    getWhisper: () => {
+      const wMode = playerActor.v9?.getWingsMode ? playerActor.v9.getWingsMode() : 'marble';
+      const gState = playerActor.v9?.getGlasses ? playerActor.v9.getGlasses() : true;
+      const gLabel = gState === 'up' ? 'Hinged Up' : gState ? 'On' : 'Off';
+      return `Poet Hero V9 (Glasses: ${gLabel}, Wings: ${wMode}) - Click or Press G to Cycle | V Evolve`;
+    },
+  });
+  playerActor.root.add(selfHit);
+}
+
+const HERO_GEAR_PRESETS = [
+  { glasses: true, wings: 'marble', label: 'Brass Sunglasses On + Sculpted P06 Marble Wings' },
+  { glasses: true, wings: 'angel', label: 'Brass Sunglasses On + P06 Angel Cutout Wings' },
+  { glasses: 'up', wings: 'raven', label: 'Sunglasses Hinged Up + Nevermore Raven Wings' },
+  { glasses: true, wings: 'folded', label: 'Brass Sunglasses On + Folded Marble Wings' },
+  { glasses: false, wings: 'off', label: 'Bare Eyes + Street Tracksuit Silhouette (Wings Off)' },
+];
+let heroGearIdx = 0;
+let heroEvoSeed = 11;
+
+function cycleHeroGear() {
+  heroGearIdx = (heroGearIdx + 1) % HERO_GEAR_PRESETS.length;
+  const preset = HERO_GEAR_PRESETS[heroGearIdx];
+  if (playerActor.v9) {
+    playerActor.v9.setGlasses(preset.glasses);
+    playerActor.v9.setWingsMode(preset.wings);
+  }
+  if (shaderSuite?.audio) shaderSuite.audio.playShutter?.();
+  setWorldSpeech(
+    new THREE.Vector3(state.px, state.py + state.jumpY + 2.15, state.pz),
+    'POET HERO V9 GEAR',
+    preset.label,
+    2600
+  );
+}
+
+function evolvePlayerHero() {
+  if (!playerActor.v9) return;
+  const pheno = evolveHeroPhenotype(playerActor.v9, {
+    poem: pilot.poem || '06',
+    shotKind: state.jumpY > 0.08 ? 'gate-glide' : 'street',
+    bgLuminance: 0.26,
+    seed: heroEvoSeed++,
+  });
+  syncPilotVisuals();
+  if (shaderSuite?.audio) shaderSuite.audio.playShutter?.();
+  if (pheno) {
+    setWorldSpeech(
+      new THREE.Vector3(state.px, state.py + state.jumpY + 2.15, state.pz),
+      `HERO PHENOTYPE GEN ${pheno.generation}`,
+      `Poem ${pheno.poem} - Wings: ${pheno.wingsMode}, Glasses: ${String(pheno.glasses)}, Clip: ${pheno.clip}`,
+      3000
+    );
+  }
+}
 
 const castDefs = [
   {
     id: 'bekele',
+    role: 'bekele',
     name: 'Bekele · Severn Steward',
     archetype: 'adult_m',
     skinHex: '#7a4b32',
@@ -1890,11 +2128,15 @@ const castDefs = [
     x: severnState.bekelePos.x,
     y: severnState.bekelePos.y,
     z: severnState.bekelePos.z,
-    ry: 0.4,
+    ry: Math.atan2(severnState.thresholdX - severnState.bekelePos.x, severnState.thresholdZ - severnState.bekelePos.z),
+    homeClip: 'listen',
+    altClip: 'fold-arms',
+    seed: 2,
     line: 'Welcome to 701 Cathedral St. Hand me the Severn parcel or close the vestibule door to hear the street quiet down.',
   },
   {
     id: 'hiwot',
+    role: 'hiwot',
     name: 'Hiwot · Inner Harbor Warden',
     archetype: 'adult_f',
     skinHex: '#8c5a3e',
@@ -1902,11 +2144,15 @@ const castDefs = [
     x: 2394,
     y: Math.max(hAt(2394, 3388), 0.5),
     z: 3388,
-    ry: -0.8,
+    ry: Math.atan2(2402 - 2394, 3398 - 3388),
+    homeClip: 'water',
+    altClip: 'listen',
+    seed: 3,
     line: 'The white temple stands on the chapel stones; every cyan standpipe feeds the harbor darkroom.',
   },
   {
     id: 'dawit',
+    role: 'dawit',
     name: 'Dawit · Atlantis Archivist',
     archetype: 'elder',
     skinHex: '#7d523a',
@@ -1914,11 +2160,15 @@ const castDefs = [
     x: 6706,
     y: Math.max(hAt(6706, 2268), 0.5),
     z: 2268,
-    ry: 1.2,
+    ry: Math.atan2(6716 - 6706, 2278 - 2268),
+    homeClip: 'fold-arms',
+    altClip: 'listen',
+    seed: 4,
     line: 'At the Light Gates of Centro, +4 metres marks the Fall salt line across every older facade.',
   },
   {
     id: 'selam',
+    role: 'selam',
     name: 'Selam · Condesa Courier',
     archetype: 'child7',
     skinHex: '#916043',
@@ -1926,14 +2176,31 @@ const castDefs = [
     x: 6550,
     y: Math.max(hAt(6550, 3644), 0.5),
     z: 3644,
-    ry: 0.2,
+    ry: Math.atan2(6558 - 6550, 3652 - 3644),
+    homeClip: 'carry',
+    altClip: 'listen',
+    seed: 5,
     line: 'Jacarandas only take root in the sidewalk soil pits here in Condesa.',
   },
 ];
 
 const residents = castDefs.map((d) => {
-  const actor = spawnAnnyActor(d);
-  const resRec = { ...d, actor };
+  const actor = spawnV9Actor({
+    ...d,
+    initialClip: d.homeClip,
+    prop: (pilot.parcelHolder || 'player') === d.id ? 'parcel' : (d.id === 'selam' ? 'jerikan' : 'none'),
+  });
+  const resRec = {
+    ...d,
+    actor,
+    baseRy: d.ry,
+    greetedNear: false,
+    greetUntil: 0,
+    speakUntil: 0,
+    speakStart: 0,
+    spokenText: '',
+    activeRoleClip: d.homeClip,
+  };
   const npcHit = makePart(new THREE.CylinderGeometry(0.78, 0.78, 2.1, 10), matHitProxy, 0, 1.05, 0);
   addDiegeticTarget(npcHit, {
     kind: 'resident',
@@ -1978,6 +2245,13 @@ const state = {
   pz: severnState.cz + severnState.uz * 7.6 - severnState.vz * 1.4,
   py: severnState.y0,
   phd: Math.atan2(-severnState.ux - severnState.vx * 0.56, severnState.uz + severnState.vz * 0.56),
+  moveSpeed: 0,
+  turnRate: 0,
+  smoothBank: 0,
+  smoothLean: 0,
+  jumpY: 0,
+  jumpVy: 0,
+  gliding: false,
   cx: severnState.curbX,
   cz: severnState.curbZ,
   cy: severnState.y0,
@@ -2025,9 +2299,21 @@ function showSpeech(speaker, text, anchorVec3 = null) {
 
 function syncPilotVisuals() {
   const holder = pilot.parcelHolder || 'player';
-  playerActor.carried.visible = holder === 'player' && state.mode === 'walk';
+  const playerHoldsParcel = holder === 'player' && state.mode === 'walk';
+  if (playerActor.v9) {
+    playerActor.v9.setProp(playerHoldsParcel ? 'parcel' : 'none');
+    playerActor.carried.visible = false;
+  } else {
+    playerActor.carried.visible = playerHoldsParcel;
+  }
   for (const r of residents) {
-    r.actor.carried.visible = holder === r.id;
+    const npcHas = holder === r.id;
+    if (r.actor.v9) {
+      r.actor.v9.setProp(npcHas ? 'parcel' : (r.id === 'selam' ? 'jerikan' : 'none'));
+      r.actor.carried.visible = false;
+    } else {
+      r.actor.carried.visible = npcHas;
+    }
   }
   cruiser.userData.parcelCargo.visible = holder === 'cruiser' || (holder === 'player' && state.mode === 'drive');
 
@@ -2094,19 +2380,22 @@ function handoffWithResident(res) {
   pilot = { ...pilot, parcelHolder: next };
   syncPilotVisuals();
 
-  if (res?.actor?.v8 && typeof res.actor.v8.playClip === 'function') {
-    res.actor.v8.playClip('idle-talking', 0.2);
-    setTimeout(() => {
-      if (res.actor.v8 && typeof res.actor.v8.playClip === 'function') {
-        res.actor.v8.playClip('idle', 0.3);
-      }
-    }, 3600);
-  }
-  if (shaderSuite?.audio) shaderSuite.audio.playPour?.();
   const spoken =
     next === targetId
       ? `${res.line} Parcel and 5L cyan jerrycan received.`
       : 'Parcel and 5L cyan jerrycan handed back to you for the road.';
+  const nowMs = performance.now();
+  if (res) {
+    res.speakStart = nowMs;
+    res.speakUntil = nowMs + 4200;
+    res.spokenText = spoken;
+    res.activeRoleClip = 'idle-talking';
+    res.actor.v9?.playAction('idle-talking', 0.2);
+  }
+  if (playerActor.v9 && state.moveSpeed < 0.15) {
+    playerActor.v9.playAction('greet', 0.22);
+  }
+  if (shaderSuite?.audio) shaderSuite.audio.playPour?.();
   if (shaderSuite?.speakLine) {
     shaderSuite.speakLine(res.name, spoken, targetId === 'bekele' ? 0.94 : 1.04);
   }
@@ -2389,7 +2678,7 @@ let worldRig = null;
 function placeCurbTripodForPreset(key) {
   if (!worldRig || !worldRig.tripodGroup) return;
   if (key === 'severn') {
-    const [tx, tz] = severnState.toW(5.6, 2.7);
+    const [tx, tz] = severnState.toW(4.8, 4.1);
     const ty = Math.max(hAt(tx, tz), severnState.y0);
     worldRig.tripodGroup.position.set(tx, ty + 0.06, tz);
     worldRig.tripodGroup.rotation.y = severnState.rotY + Math.PI;
@@ -2844,6 +3133,15 @@ window.addEventListener('pointerup', (e) => {
       toggleSevernDoor(true);
       return;
     }
+    if (picked.kind === 'player-self') {
+      if (e.shiftKey) evolvePlayerHero();
+      else cycleHeroGear();
+      return;
+    }
+    if (picked.kind === 'stage-portal') {
+      picked.onEnter();
+      return;
+    }
     if (picked.kind === 'resident') {
       handoffWithResident(picked.resident);
       return;
@@ -3069,9 +3367,30 @@ $('btn-context-act').addEventListener('click', () => {
 
 window.addEventListener('keydown', (e) => {
   if (e.target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
-  const k = e.key.toLowerCase();
+  const k = e.key === ' ' ? 'space' : e.key.toLowerCase();
   keys[k] = true;
-  if (k === 'f') toggleDriveWalk();
+  if (k === 'space' && state.mode === 'walk') {
+    e.preventDefault();
+    if (state.jumpY <= 0.04) {
+      const wMode = playerActor.v9?.getWingsMode ? playerActor.v9.getWingsMode() : 'marble';
+      const hasWings = wMode !== 'off';
+      state.jumpVy = hasWings ? 6.8 : 5.4;
+      state.jumpY = 0.05;
+      state.gliding = hasWings;
+      playerActor.v9?.playAction('jump', 0.14);
+      if (shaderSuite?.audio) shaderSuite.audio.playDoorTransition?.(true);
+    } else {
+      const wMode = playerActor.v9?.getWingsMode ? playerActor.v9.getWingsMode() : 'marble';
+      if (wMode === 'off' || wMode === 'folded') {
+        playerActor.v9?.setWingsMode('marble');
+      }
+      state.gliding = true;
+    }
+  } else if (k === 'g') {
+    cycleHeroGear();
+  } else if (k === 'v') {
+    evolvePlayerHero();
+  } else if (k === 'f') toggleDriveWalk();
   else if (k === 'o') toggleSevernDoor();
   else if (k === 'e') {
     if (activeContextNode && activeContextNode.onAct) activeContextNode.onAct();
@@ -3083,8 +3402,12 @@ window.addEventListener('keydown', (e) => {
 });
 
 window.addEventListener('keyup', (e) => {
-  keys[e.key.toLowerCase()] = false;
+  const k = e.key === ' ' ? 'space' : e.key.toLowerCase();
+  keys[k] = false;
 });
+
+const _playerHeadTarget = new THREE.Vector3();
+const _npcHeadTarget = new THREE.Vector3();
 
 function updateSimulation(dt, elapsed) {
   skyUniforms.uTime.value = elapsed;
@@ -3095,6 +3418,26 @@ function updateSimulation(dt, elapsed) {
   severnState.doorAngle += (targetDoorAng - severnState.doorAngle) * Math.min(1, dt * 8.5);
   if (severnState.doorPivot) {
     severnState.doorPivot.rotation.y = severnState.rotY + severnState.doorAngle;
+  }
+
+  // Animate Atlantis Centro P06-S01 Marble Winged Portal & armed walk-through
+  if (atlantisStagePortal) {
+    const dPortal = Math.hypot(state.px - atlantisStagePortal.px, state.pz - atlantisStagePortal.pz);
+    const near01 = THREE.MathUtils.clamp(1 - dPortal / 22, 0, 1);
+    atlantisStagePortal.veilMat.opacity = 0.14 + near01 * 0.22 + Math.sin(elapsed * 2.6) * 0.03;
+    const flap = Math.sin(elapsed * (1.8 + near01 * 1.4)) * (0.09 + near01 * 0.18);
+    for (const wp of atlantisStagePortal.wingPivots) {
+      wp.shoulder.rotation.z = wp.sx * (0.12 + near01 * 0.22 + flap);
+      wp.shoulder.rotation.y = wp.sx * (-0.18 + flap * 0.65);
+      wp.midSpan.rotation.z = wp.sx * (0.08 + Math.sin(elapsed * 2.2 - 0.6) * (0.08 + near01 * 0.16));
+    }
+    if (dPortal > 4.2) {
+      atlantisStagePortal.armed = true;
+    } else if (atlantisStagePortal.armed && state.mode === 'walk' && !state.glideAnim && dPortal < 1.85) {
+      atlantisStagePortal.armed = false;
+      atlantisStagePortal.enterStage();
+      return;
+    }
   }
 
   // Smooth organic growth spring on Curb Tree-Pits & Sky-High Beacon shimmer
@@ -3129,6 +3472,8 @@ function updateSimulation(dt, elapsed) {
     state.pz = THREE.MathUtils.lerp(ga.z0, ga.z1, k);
     const brY = onBridgeDeck(state.px, state.pz);
     state.py = Math.max(brY != null ? brY : hAt(state.px, state.pz), 0.32);
+    state.jumpY = 0;
+    state.jumpVy = 0;
 
     state.cx = THREE.MathUtils.lerp(ga.cx0, ga.cx1, k);
     state.cz = THREE.MathUtils.lerp(ga.cz0, ga.cz1, k);
@@ -3146,28 +3491,64 @@ function updateSimulation(dt, elapsed) {
     if (u >= 1) {
       state.glideAnim = null;
     }
-    playerActor.root.position.set(state.px, state.py, state.pz);
+    const worldHeroY = state.py + glideArcLift * 0.18;
+    playerActor.groundY = worldHeroY;
+    playerActor.root.position.set(state.px, worldHeroY, state.pz);
     playerActor.root.rotation.y = -state.phd + Math.PI;
-    if (playerActor.v8 && typeof playerActor.v8.update === 'function') {
-      playerActor.v8.setGroundY(state.py);
-      playerActor.v8.update(dt);
+    if (playerActor.v9) {
+      playerActor.v9.setGroundY(worldHeroY);
+      playerActor.v9.update(dt, {
+        moveSpeed: glideArcLift > 1.5 ? 0 : 3.2,
+        wingFlapBoost: glideArcLift > 1.5 ? 1.5 : 0.35,
+      });
     }
   } else if (state.mode === 'walk') {
     const fwd = (keys['w'] || keys['arrowup'] ? 1 : 0) - (keys['s'] || keys['arrowdown'] ? 1 : 0);
     const str = (keys['d'] || keys['arrowright'] ? 1 : 0) - (keys['a'] || keys['arrowleft'] ? 1 : 0);
     const len = Math.hypot(fwd, str);
+    const wMode = playerActor.v9?.getWingsMode ? playerActor.v9.getWingsMode() : 'marble';
+    const wingsOut = wMode !== 'off' && wMode !== 'folded';
+    const airborne = state.jumpY > 0.005 || state.jumpVy > 0.01;
+    const wingGliding = airborne && (keys['space'] || (wingsOut && state.jumpVy < 0.6));
+
+    // Velocity-matched target speed: idle (0) -> walk (1.55) -> jog (3.45) -> sprint (6.45) -> wing-glide (8.2)
+    let targetSpeed = 0;
     if (len > 0.05) {
+      if (wingGliding) targetSpeed = 8.2;
+      else if (keys['shift']) targetSpeed = 6.45;
+      else if (keys['alt'] || keys['control']) targetSpeed = 1.55;
+      else targetSpeed = 3.45;
+    } else if (wingGliding && keys['space']) {
+      targetSpeed = 4.6;
+    }
+
+    const accel = targetSpeed > state.moveSpeed ? 9.8 : 13.5;
+    state.moveSpeed += THREE.MathUtils.clamp(targetSpeed - state.moveSpeed, -accel * dt, accel * dt);
+    if (state.moveSpeed < 0.03 && targetSpeed === 0) state.moveSpeed = 0;
+
+    let stepVx = 0;
+    let stepVz = 0;
+    if (state.moveSpeed > 0.04) {
       moving = true;
       state.reverseAngle = false;
-      const spd = (keys['shift'] ? 7.6 : 3.6) * dt;
-      const fx = Math.sin(state.camYaw);
-      const fz = -Math.cos(state.camYaw);
-      const mx = ((fx * fwd - fz * str) / len) * spd;
-      const mz = ((fz * fwd + fx * str) / len) * spd;
-      state.phd = Math.atan2(mx, -mz);
+      let wantHd = state.phd;
+      if (len > 0.05) {
+        const fx = Math.sin(state.camYaw);
+        const fz = -Math.cos(state.camYaw);
+        const dirX = (fx * fwd - fz * str) / len;
+        const dirZ = (fz * fwd + fx * str) / len;
+        wantHd = Math.atan2(dirX, -dirZ);
+      }
+      const dHd = shortestAngleDelta(state.phd, wantHd);
+      const turnAlpha = 1 - Math.exp(-11.5 * dt);
+      const appliedTurn = dHd * turnAlpha;
+      state.turnRate = THREE.MathUtils.clamp(appliedTurn / Math.max(dt, 0.004), -4.0, 4.0);
+      state.phd += appliedTurn;
 
-      const nx = state.px + mx;
-      const nz = state.pz + mz;
+      stepVx = Math.sin(state.phd) * state.moveSpeed;
+      stepVz = -Math.cos(state.phd) * state.moveSpeed;
+      const nx = state.px + stepVx * dt;
+      const nz = state.pz + stepVz * dt;
       const brY = onBridgeDeck(nx, nz);
       const gy = brY != null ? brY : hAt(nx, nz);
 
@@ -3176,24 +3557,74 @@ function updateSimulation(dt, elapsed) {
         state.pz = nz;
         state.py = Math.max(gy, 0.25);
       }
+    } else {
+      state.turnRate *= Math.exp(-10 * dt);
     }
 
-    playerActor.root.position.set(state.px, state.py, state.pz);
-    playerActor.root.rotation.y = -state.phd + Math.PI;
-    if (playerActor.v8) {
-      playerActor.v8.setGroundY(state.py);
-      const want = moving ? 'walk' : 'idle';
-      if (playerActor.clip !== want && typeof playerActor.v8.playClip === 'function') {
-        playerActor.clip = want;
-        playerActor.v8.playClip(want, 0.2);
+    // Vertical Jump & P06-S01 Wing-Assisted Glide Physics
+    if (airborne) {
+      const gravity = wingGliding ? 3.35 : 15.2;
+      state.jumpVy -= gravity * dt;
+      if (wingGliding) {
+        state.jumpVy = Math.max(state.jumpVy, -1.85);
       }
-      if (typeof playerActor.v8.update === 'function') playerActor.v8.update(dt);
+      state.jumpY += state.jumpVy * dt;
+      if (state.jumpY <= 0) {
+        state.jumpY = 0;
+        state.jumpVy = 0;
+        state.gliding = false;
+        if (playerActor.v9) {
+          playerActor.v9.playAction(state.moveSpeed > 2.05 ? 'jog' : state.moveSpeed > 0.1 ? 'walk' : 'idle', 0.2);
+        }
+      }
+    }
+
+    // Subtle body lean into turns & forward sprint / wing-glide pitch
+    const targetBank = THREE.MathUtils.clamp(-state.turnRate * (0.045 + state.moveSpeed * 0.008), -0.22, 0.22);
+    const targetPitch = wingGliding
+      ? 0.22
+      : THREE.MathUtils.clamp((state.moveSpeed - 1.2) * 0.018, 0, 0.09);
+    state.smoothBank += (targetBank - state.smoothBank) * (1 - Math.exp(-9.0 * dt));
+    state.smoothLean += (targetPitch - state.smoothLean) * (1 - Math.exp(-8.5 * dt));
+    playerActor.tiltGroup.rotation.z = state.smoothBank;
+    playerActor.tiltGroup.rotation.x = state.smoothLean;
+
+    const heroGroundY = state.py + state.jumpY;
+    playerActor.groundY = heroGroundY;
+    playerActor.root.position.set(state.px, heroGroundY, state.pz);
+    playerActor.root.rotation.y = -state.phd + Math.PI;
+
+    // Gaze toward closest nearby resident when strolling/idling near them
+    let heroLookTarget = null;
+    let nearestD = 12.5;
+    for (const r of residents) {
+      const d = Math.hypot(state.px - r.actor.root.position.x, state.pz - r.actor.root.position.z);
+      if (d < nearestD) {
+        nearestD = d;
+        _npcHeadTarget.set(r.actor.root.position.x, r.actor.root.position.y + 1.62, r.actor.root.position.z);
+        heroLookTarget = _npcHeadTarget;
+      }
+    }
+
+    if (playerActor.v9) {
+      playerActor.v9.setGroundY(heroGroundY);
+      playerActor.v9.setWind(-stepVx * 0.55, -stepVz * 0.55);
+      playerActor.v9.update(dt, {
+        moveSpeed: airborne ? 0 : state.moveSpeed,
+        autoLocomotion: !airborne,
+        turnRate: state.turnRate,
+        lookTargetVec3: heroLookTarget,
+        wingFlapBoost: wingGliding ? 1.75 : (airborne ? 1.15 : (state.moveSpeed > 4.2 ? 0.55 : 0.0)),
+      });
     } else {
       playerActor.phase += dt * (moving ? 9 : 2);
       playerActor.legL.rotation.x = moving ? Math.sin(playerActor.phase) * 0.45 : 0;
       playerActor.legR.rotation.x = moving ? -Math.sin(playerActor.phase) * 0.45 : 0;
     }
   } else {
+    state.moveSpeed = 0;
+    state.jumpY = 0;
+    state.jumpVy = 0;
     const gas = keys['w'] || keys['arrowup'];
     const brake = keys['s'] || keys['arrowdown'];
     const steer = (keys['a'] || keys['arrowleft'] ? -1 : 0) + (keys['d'] || keys['arrowright'] ? 1 : 0);
@@ -3233,10 +3664,58 @@ function updateSimulation(dt, elapsed) {
     w.rotation.x -= state.cv * dt * 1.8;
   }
 
+  // Update V9 Regional Cast: approach greeting, distinct living role clips, FACS lip-sync & head/eye gaze tracking
+  const nowMs = performance.now();
+  _playerHeadTarget.set(state.px, state.py + state.jumpY + 1.62, state.pz);
   for (const r of residents) {
-    if (r.actor.v8 && typeof r.actor.v8.update === 'function') {
-      r.actor.v8.setGroundY(r.actor.root.position.y);
-      r.actor.v8.update(dt);
+    const rx = r.actor.root.position.x;
+    const ry = r.actor.root.position.y;
+    const rz = r.actor.root.position.z;
+    const distToPlayer = Math.hypot(state.px - rx, state.pz - rz);
+    const isClose = distToPlayer < 18.0;
+    const holder = pilot.parcelHolder || 'player';
+    const holdsParcel = holder === r.id;
+
+    // Smoothly turn resident slightly toward player when close
+    const wantRy = distToPlayer < 9.5
+      ? Math.atan2(state.px - rx, state.pz - rz)
+      : r.baseRy;
+    r.actor.root.rotation.y += shortestAngleDelta(r.actor.root.rotation.y, wantRy) * (1 - Math.exp(-5.0 * dt));
+
+    // Trigger natural 'greet' wave when player walks near
+    if (distToPlayer < 7.8 && !r.greetedNear && nowMs > r.speakUntil) {
+      r.greetedNear = true;
+      r.greetUntil = nowMs + 2800;
+    } else if (distToPlayer > 11.5) {
+      r.greetedNear = false;
+    }
+
+    const isSpeaking = nowMs < r.speakUntil;
+    let wantClip = holdsParcel ? 'carry' : r.homeClip;
+    if (isSpeaking) {
+      wantClip = 'idle-talking';
+    } else if (nowMs < r.greetUntil) {
+      wantClip = 'greet';
+    } else if (!holdsParcel && ((Math.floor(elapsed * 0.14 + r.seed) % 3) === 2)) {
+      wantClip = r.altClip || 'listen';
+    }
+
+    if (r.actor.v9) {
+      if (r.activeRoleClip !== wantClip) {
+        r.activeRoleClip = wantClip;
+        r.actor.v9.playAction(wantClip, 0.28);
+      }
+      r.actor.v9.setGroundY(ry);
+      const talkProg = isSpeaking
+        ? THREE.MathUtils.clamp((nowMs - r.speakStart) / Math.max(1, r.speakUntil - r.speakStart), 0, 1)
+        : undefined;
+      r.actor.v9.update(dt, {
+        autoLocomotion: false,
+        lookTargetVec3: isClose ? _playerHeadTarget : null,
+        speaking: isSpeaking,
+        talkText: isSpeaking ? r.spokenText : undefined,
+        talkProgress: talkProg,
+      });
     }
   }
 
@@ -3250,7 +3729,7 @@ function updateSimulation(dt, elapsed) {
   } else if (state.mode === 'walk') {
     const dist = 9.2;
     const tx = state.px;
-    const ty = state.py + 1.65 + glideArcLift * 0.35;
+    const ty = state.py + state.jumpY * 0.85 + 1.65 + glideArcLift * 0.35;
     const tz = state.pz;
     camera.position.set(
       tx - Math.sin(state.camYaw) * Math.cos(state.camPitch) * dist,
@@ -3388,7 +3867,7 @@ shaderSuite = mountWebGLShaderSuite({
 });
 
 {
-  const [tripX, tripZ] = severnState.toW(5.6, 3.1);
+  const [tripX, tripZ] = severnState.toW(4.8, 4.1);
   const tripY = Math.max(hAt(tripX, tripZ), severnState.y0) + 0.06;
   const [portMapsX, portMapsZ] = severnState.toW(14.0, 9.6);
   const [portNolliX, portNolliZ] = severnState.toW(14.0, -9.8);
@@ -3449,3 +3928,19 @@ renderer.setAnimationLoop(() => {
   updateSimulation(dt, elapsed);
   shaderSuite.render(scene, camera);
 });
+
+window.__island = {
+  state,
+  playerActor,
+  residents,
+  atlantisStagePortal,
+  jumpToPreset: (k, instant = false) => glideToPreset(k, instant),
+  cycleHeroGear,
+  evolvePlayerHero,
+  toggleSevernDoor,
+  cycleParcelHandoff,
+  getHeroBones: () => (playerActor.v9 ? playerActor.v9.getWorldBonePositions() : null),
+  camera,
+  scene,
+  shaderSuite,
+};
