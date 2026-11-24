@@ -3705,6 +3705,8 @@ renderer.setAnimationLoop(() => {
 
 window.__island = {
   state,
+  keys,   // the game surface steers through these (surface-bridge.js)
+  THREE,   // the bridge kit projects with it (the page is a module, so there is no global)
   playerActor,
   residents,
   atlantisStagePortal,

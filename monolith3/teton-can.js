@@ -18,8 +18,17 @@
       const b = pk.bounds, [x0, z0] = toC(b[0], -b[3]), [x1, z1] = toC(b[1], -b[2]);
       return { w, h, H, x0, z0, x1, z1, at(x, z) { const u = (x - x0) / (x1 - x0) * (w - 1), v = (z - z0) / (z1 - z0) * (h - 1); if (u < 0 || v < 0 || u > w - 1 || v > h - 1) return null; const i = Math.min(w - 2, Math.floor(u)), j = Math.min(h - 2, Math.floor(v)), a = u - i, q = v - j;
         return H[j * w + i] * (1 - a) * (1 - q) + H[j * w + i + 1] * a * (1 - q) + H[(j + 1) * w + i] * (1 - a) * q + H[(j + 1) * w + i + 1] * a * q; } }; };
-    const [gNear, gDetail] = await Promise.all([grid('near-height'), grid('detail-height')]);
-    const fine = (x, z) => { const d = gDetail.at(x, z); return d !== null ? d : gNear.at(x, z); };
+    const [gNear, gDetail, gFar] = await Promise.all([grid('near-height'), grid('detail-height'), grid('far-height')]);
+    // the far grid, eased into the trough's island shape at the coast: one height for what is drawn and what is walked outside the near grid
+    const farAt = (x, z) => { const real = gFar.at(x, z); if (real === null) return null; const lo = g.low ? g.low(x, z) : real, t = Math.min(1, Math.max(0, (lo - 2) / 60)), v = lo * (1 - t) + real * t;
+      if (!g.low) return v; const d = Math.min(x - gFar.x0, gFar.x1 - x, z - gFar.z0, gFar.z1 - z), e = Math.min(1, Math.max(0, d / 1500)), w = e * e * (3 - 2 * e);   /* and into the trough's ground at its outer edge, so the cut-out meets it */
+      return w >= 1 ? v : lo + (v - lo) * w; };
+    const farEdge = (x, z) => { const d = Math.min(x - gFar.x0, gFar.x1 - x, z - gFar.z0, gFar.z1 - z), e = Math.min(1, Math.max(0, d / 1500)); return e * e * (3 - 2 * e); };
+    // feather each finer grid into the ground around it, so there is no wall or drop at its edge: near into the trough's coarse ground over 150 m, detail into near over 25 m
+    const feather = (G, edge, outer) => { for (let j = 0; j < G.h; j++) for (let i = 0; i < G.w; i++) { const x = G.x0 + i / (G.w - 1) * (G.x1 - G.x0), z = G.z0 + j / (G.h - 1) * (G.z1 - G.z0), d = Math.min(x - G.x0, G.x1 - x, z - G.z0, G.z1 - z), t = Math.min(1, d / edge), w = t * t * (3 - 2 * t);
+        if (w < 1) { const o = outer(x, z); if (o !== null && o !== undefined) G.H[j * G.w + i] = o + (G.H[j * G.w + i] - o) * w; } } };
+    feather(gNear, 150, (x, z) => farAt(x, z) ?? (g.coarse ? g.coarse(x, z) : null)); feather(gDetail, 25, (x, z) => gNear.at(x, z));
+    const fine = (x, z) => { const d = gDetail.at(x, z); if (d !== null) return d; const n = gNear.at(x, z); return n !== null ? n : farAt(x, z); };
     const fineMesh = (G, tex, stride, holeRect) => { const cw = Math.floor((G.w - 1) / stride) + 1, ch = Math.floor((G.h - 1) / stride) + 1, pos = new Float32Array(cw * ch * 3), uv = new Float32Array(cw * ch * 2), idx = [];
       for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++) { const k = j * cw + i, gi = Math.min(G.w - 1, i * stride), gj = Math.min(G.h - 1, j * stride), x = G.x0 + gi / (G.w - 1) * (G.x1 - G.x0), z = G.z0 + gj / (G.h - 1) * (G.z1 - G.z0);
         pos[k * 3] = x; pos[k * 3 + 1] = G.H[gj * G.w + gi]; pos[k * 3 + 2] = z; uv[k * 2] = gi / (G.w - 1); uv[k * 2 + 1] = 1 - gj / (G.h - 1); }
@@ -28,16 +37,16 @@
       const mat = new T.MeshLambertMaterial({ map: tex }); if (holeRect) { const hr = new T.Vector4(...holeRect); mat.onBeforeCompile = sh => { sh.uniforms.uHole = { value: hr }; sh.vertexShader = 'varying vec2 vLx;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vLx = position.xz;'); sh.fragmentShader = 'uniform vec4 uHole; varying vec2 vLx;\n' + sh.fragmentShader.replace('void main() {', 'void main() { if (vLx.x > uHole.x && vLx.x < uHole.z && vLx.y > uHole.y && vLx.y < uHole.w) discard;'); }; }
       const m = new T.Mesh(geo, mat); m.receiveShadow = m.castShadow = true; return m; };
     root.add(fineMesh(gNear, tNear, 2, [gDetail.x0 + 1, gDetail.z0 + 1, gDetail.x1 - 1, gDetail.z1 - 1]), fineMesh(gDetail, tDetail, 1));
-    // ---------- the far grid (801 x 1281, about 30 m): Teton's own range out to the horizon, with its own imagery. It fades in where the
-    //            trough's streamed tiles end, and eases into the trough's island shape at the coast so it never stands as a cliff over the sea ----------
-    const gFar = await grid('far-height'), FS = 3, fw = Math.floor((gFar.w - 1) / FS) + 1, fh = Math.floor((gFar.h - 1) / FS) + 1, fpos = new Float32Array(fw * fh * 3), fuv = new Float32Array(fw * fh * 2), fidx = [];
+    // ---------- the far grid (801 x 1281, about 30 m): Teton's own range out to the horizon, with its own imagery. It owns all of its rect
+    //            outside the near grid (the trough's ground is cut out there), and eases into the trough's island shape at the coast so it never stands as a cliff over the sea ----------
+    const FS = 3, fw = Math.floor((gFar.w - 1) / FS) + 1, fh = Math.floor((gFar.h - 1) / FS) + 1, fpos = new Float32Array(fw * fh * 3), fedge = new Float32Array(fw * fh), fuv = new Float32Array(fw * fh * 2), fidx = [];
     for (let j = 0; j < fh; j++) for (let i = 0; i < fw; i++) { const k = j * fw + i, gi = Math.min(gFar.w - 1, i * FS), gj = Math.min(gFar.h - 1, j * FS), x = gFar.x0 + gi / (gFar.w - 1) * (gFar.x1 - gFar.x0), z = gFar.z0 + gj / (gFar.h - 1) * (gFar.z1 - gFar.z0);
-      const real = gFar.H[gj * gFar.w + gi], lo = g.low ? g.low(x, z) : real, t = Math.min(1, Math.max(0, (lo - 2) / 60)); fpos[k * 3] = x; fpos[k * 3 + 1] = lo * (1 - t) + real * t - 1.5; fpos[k * 3 + 2] = z; fuv[k * 2] = gi / (gFar.w - 1); fuv[k * 2 + 1] = 1 - gj / (gFar.h - 1); }
+      fpos[k * 3] = x; fpos[k * 3 + 1] = farAt(x, z) - .3; fedge[k] = farEdge(x, z); fpos[k * 3 + 2] = z; fuv[k * 2] = gi / (gFar.w - 1); fuv[k * 2 + 1] = 1 - gj / (gFar.h - 1); }
     for (let j = 0; j < fh - 1; j++) for (let i = 0; i < fw - 1; i++) { const a = j * fw + i; fidx.push(a, a + fw, a + 1, a + 1, a + fw, a + fw + 1); }
-    { const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(fpos, 3)); geo.setAttribute('uv', new T.BufferAttribute(fuv, 2)); geo.setIndex(fidx); geo.computeVertexNormals();
+    { const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(fpos, 3)); geo.setAttribute('uv', new T.BufferAttribute(fuv, 2)); geo.setAttribute('aEdge', new T.BufferAttribute(fedge, 1)); geo.setIndex(fidx); geo.computeVertexNormals();
       const mat = new T.MeshLambertMaterial({ map: tFar }), nr = new T.Vector4(gNear.x0 + g.origin[0], gNear.z0 + g.origin[1], gNear.x1 + g.origin[0], gNear.z1 + g.origin[1]);
-      mat.onBeforeCompile = sh => { sh.uniforms.uNearR = { value: nr }; Object.assign(sh.uniforms, SNOW_U); sh.vertexShader = 'varying vec3 vFw;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n vFw = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-        sh.fragmentShader = SNOW_GLSL + 'uniform vec4 uNearR; varying vec3 vFw;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.93, .94, .95), tetonSnow(vFw));').replace('void main() {', 'void main() { if (distance(vFw.xz, cameraPosition.xz) < 6200.0) discard; if (vFw.x > uNearR.x && vFw.x < uNearR.z && vFw.z > uNearR.y && vFw.z < uNearR.w) discard;'); };
+      mat.onBeforeCompile = sh => { sh.uniforms.uNearR = { value: nr }; Object.assign(sh.uniforms, SNOW_U); sh.vertexShader = 'attribute float aEdge; varying float vEdge; varying vec3 vFw;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n vFw = (modelMatrix * vec4(transformed, 1.0)).xyz; vEdge = aEdge;');
+        sh.fragmentShader = SNOW_GLSL + 'uniform vec4 uNearR; varying vec3 vFw; varying float vEdge;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n diffuseColor.rgb = mix(vec3(.30, .30, .29), diffuseColor.rgb, vEdge); diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.93, .94, .95), tetonSnow(vFw));').replace('void main() {', 'void main() { if (vFw.x > uNearR.x && vFw.x < uNearR.z && vFw.z > uNearR.y && vFw.z < uNearR.w) discard;'); };
       const farMesh = new T.Mesh(geo, mat); farMesh.receiveShadow = true; farMesh.name = 'teton-far'; root.add(farMesh); }
     g.fine = fine;
     // ---------- MONOLITH-3's snow on the range (its terrain shader, :1907-1948): a snow line about 920 m above its base, shifted by wash,
@@ -112,7 +121,7 @@
     if (cam) { const [cx, cz] = toC(cam.eye[0], cam.eye[2]); landmarks.levelCamera = { x: cx, z: cz, y: cam.eye[1] + lift, heading: cam.heading, pitch: cam.pitch, fov: cam.fov }; }
     const cb = P('crown-positions').bounds, [hx0, hz0] = toC(cb[0], -cb[3]), [hx1, hz1] = toC(cb[1], -cb[2]);
     const nr = [gNear.x0, gNear.z0, gNear.x1, gNear.z1];
-    return { root, landmarks, farRect: [gFar.x0, gFar.z0, gFar.x1, gFar.z1], heights: { rect: nr, at: fine }, floraHole: [hx0, hz0, hx1, hz1], materials: { ground: { material: ground } }, update(dt, t) { const fm = root.userData.forestMat; if (fm) { fm.uniforms.uTime.value = t || 0; if (g.sunDir) fm.uniforms.uSun.value.copy(g.sunDir()); } }, dispose() { root.traverse(o => { if (o.geometry) o.geometry.dispose(); }); for (const t of [tFar, tNear, tDetail]) if (t) t.dispose(); } };
+    return { root, landmarks, farRect: [gFar.x0, gFar.z0, gFar.x1, gFar.z1], heights: { rect: [gFar.x0, gFar.z0, gFar.x1, gFar.z1], at: fine }, floraHole: [hx0, hz0, hx1, hz1], materials: { ground: { material: ground } }, update(dt, t) { const fm = root.userData.forestMat; if (fm) { fm.uniforms.uTime.value = t || 0; if (g.sunDir) fm.uniforms.uSun.value.copy(g.sunDir()); } }, dispose() { root.traverse(o => { if (o.geometry) o.geometry.dispose(); }); for (const t of [tFar, tNear, tDetail]) if (t) t.dispose(); } };
   }
   window.TetonCan = { create };
 })();

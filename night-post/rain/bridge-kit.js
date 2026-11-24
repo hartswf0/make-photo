@@ -1,3 +1,4 @@
+const KIT_BASE = (document.currentScript && document.currentScript.src) || location.href;
 // The standard bridge between a world and the one game surface. A world describes itself; the kit supplies the shared
 // rules: the 20 L can with its 4 L chalk, Mistletoe's thirst, a draw at the world's water, the carry between worlds,
 // and the way back out to the archipelago at the place you stand.
@@ -5,13 +6,13 @@
 //              place() -> {id, name}, mode() -> 'walk'|'ride'|'drive'|'glide', exit() -> label|null, leave(),
 //              steer(x,y,active), look(dx,dy), jump(), menu() -> [{id,label,on,run}], atlas() -> {mx,mz}|null })
 window.DWBridge = function (W) {
-  const T = window.THREE, V = new T.Vector3(), carry = window.DW && window.DW.carry;
+  const T = W.THREE || window.THREE, V = new T.Vector3(), carry = window.DW && window.DW.carry;
   const S = { liters: carry && Number.isFinite(carry.liters) ? carry.liters : 12, dk: carry && Number.isFinite(carry.donkey) ? carry.donkey : .8, t: performance.now() };
   setInterval(() => { const now = performance.now(); S.dk = Math.max(0, S.dk - (now - S.t) / 1000 * .0025); S.t = now; }, 500);
   const proj = (x, y, z) => { V.set(x, y, z).project(W.camera()); return { x: (V.x * .5 + .5) * innerWidth, y: (-V.y * .5 + .5) * innerHeight, front: V.z < 1 }; };
   const sc = (x, y, z) => Math.abs(proj(x, y, z).y - proj(x, y + 1, z).y);
   const near = (a, b) => a && b ? Math.hypot(a.x - b.x, a.z - b.z) : 1e9;
-  const out = () => { const a = W.atlas && W.atlas(); return `../atlas/overworld.html${a ? `?mx=${Math.round(a.mx)}&mz=${Math.round(a.mz)}` : ''}`; };
+  const out = () => { const a = W.atlas && W.atlas(); return new URL(`../../atlas/overworld.html${a ? `?mx=${Math.round(a.mx)}&mz=${Math.round(a.mz)}` : ''}`, KIT_BASE).href; };   // from the kit's own folder, so a level at any depth finds its way home
   window.AhiyaBridge = { version: 1, canvas: W.canvas,
     state() { const me = W.me(), d = W.donkey && W.donkey(), w = W.water && W.water(), wd = near(me, w), pl = W.place(), ex = W.exit && W.exit();
       const live = W.mode() === 'walk' && w && wd < 16 && S.liters < 19.9 ? { kind: 'draw', id: 'draw', label: 'Draw', delta: 20 - S.liters, ...proj(w.x, w.y + 1.5, w.z) } : null;
