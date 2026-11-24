@@ -1,0 +1,41 @@
+{
+  "legos": 1,
+  "can": "ethiopia-highlands",
+  "L": [
+    { "id": "standpipe", "name": "Cyan standpipe", "at": "relayPos", "keeper": "makeda", "offers": ["draw"],
+      "variants": {
+        "probable": { "flowing": true, "note": "the line from the spring is running" },
+        "plausible": { "flowing": false, "note": "dry today; the spring line is shut upstream" },
+        "preposterous": { "flowing": true, "weather": { "storm": 0.45 }, "note": "the cloud sea has risen over the rim" } } },
+    { "id": "church", "name": "Rock-hewn church", "at": "churchPos", "keeper": "berhanu", "offers": ["give", "listen"] },
+    { "id": "hamlet", "name": "Tukul hamlet", "at": "hamletPos", "offers": ["ask"] },
+    { "id": "lookout", "name": "Lookout", "at": "primaryLookout", "offers": ["glide"] }
+  ],
+  "E": [
+    { "id": "gelada", "kind": "creature", "states": ["forage_sit", "quad_walk", "watch_visitor"], "source": "endemic-fauna.js:2537" },
+    { "id": "walia_ibex", "kind": "creature", "states": ["ledge_bound", "sentinel_perch"], "source": "endemic-fauna.js:2537" },
+    { "id": "ethiopian_wolf", "kind": "creature", "states": ["trot_patrol", "mole_rat_stalk"], "source": "endemic-fauna.js:2537" },
+    { "id": "nyala", "kind": "creature", "states": ["browse", "walk", "freeze_listen"], "source": "endemic-fauna.js:2537" },
+    { "id": "flora", "kind": "fixture", "note": "giant lobelia, acacia, heather guilds as InstancedMesh", "source": "endemic-fauna.js:814" },
+    { "id": "church", "kind": "fixture", "source": "endemic-fauna.js:1092" },
+    { "id": "standpipe", "kind": "fixture", "affords": ["draw"], "source": "endemic-fauna.js:1092" },
+    { "id": "makeda", "kind": "walker", "cast": "makeda", "status": "not yet poured" },
+    { "id": "berhanu", "kind": "walker", "cast": "elder", "status": "not yet poured" }
+  ],
+  "G": [
+    { "id": "fill-at-standpipe", "want": "fill the can at the cyan standpipe", "status": "live" },
+    { "id": "water-the-church", "want": "carry 5 L from the standpipe to the church keeper", "status": "proposed" }
+  ],
+  "O": [
+    { "id": "cliff", "rule": "slope above 0.66 cannot be walked", "source": "ethiopia-world.js:1168" },
+    { "id": "dry-line", "rule": "a dry standpipe gives nothing; draw at another source", "from": "standpipe.plausible" },
+    { "id": "thirst", "rule": "Mistletoe's thirst falls 0.0025 a second", "source": "night-post/rain/bridge-kit.js" }
+  ],
+  "S": [
+    { "id": "draw", "verb": "draw", "at": "standpipe", "needs": { "flowing": true }, "gives": { "litres": "to 20" }, "consequence": "standpipe.drawn += litres" },
+    { "id": "glide-down", "verb": "glide", "at": "lookout", "meets": "cliff" }
+  ],
+  "chance": { "key": ["can", "island", "visit"], "weights": { "probable": 0.72, "plausible": 0.23, "preposterous": 0.05 },
+    "memory": "every 20 L drawn at a standpipe moves 0.1 of its weight from probable to plausible next visit" },
+  "memory": { "store": "dw.ledger", "keeps": ["visits", "variant", "drawn"] }
+}

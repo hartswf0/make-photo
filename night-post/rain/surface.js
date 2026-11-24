@@ -135,8 +135,8 @@ function doUndo() { if (ui.past) return; const u = undo.pop(); if (!u) return; u
 function liveDrop(slot = 'primary') {
   const L = S.live; if (!L || S.busy) return false;
   const home = ui.scene === 'world' ? RAIL[0] : null;
-  const note = L.kind === 'draw' ? 'from the source to your can' : L.kind === 'give' ? 'pour from your can' : 'pull their voice';
-  button('primary', slot, L.kind === 'enter' ? 'Enter' : L.kind === 'sail' ? 'Sail' : L.kind === 'draw' ? 'Draw' : L.kind === 'give' ? 'Give' : 'Ask', note, live(() => B.act.live(false)), { className: 'action-drop', viscosity: 1.15, home, flow: true });
+  const known = ['enter', 'sail', 'draw', 'give', 'talk'].includes(L.kind), note = L.note || (L.kind === 'draw' ? 'from the source to your can' : L.kind === 'give' ? 'pour from your can' : known ? 'pull their voice' : '');
+  button('primary', slot, L.kind === 'enter' ? 'Enter' : L.kind === 'sail' ? 'Sail' : L.kind === 'draw' ? 'Draw' : L.kind === 'give' ? 'Give' : L.kind === 'talk' || !L.label ? 'Ask' : L.label.split(' ').slice(0, 2).join(' '), note, live(() => B.act.live(false)), { className: 'action-drop', viscosity: 1.15, home, flow: true });
   return true;
 }
 function exitDrop() { if (S.exit) button('exit', 'recovery', S.exit.label, 'back to your feet', live(() => B.act.exit()), { critical: true, className: 'amber', viscosity: 3, home: ui.scene === 'world' ? [.5, .86] : null }); }

@@ -1,0 +1,20 @@
+{
+  "can": 1,
+  "id": "ethiopia-highlands",
+  "name": "Ethiopia Highlands",
+  "version": "2026.11.24",
+  "page": "../ethiopia-highlands/index.html",
+  "entry": { "script": "../ethiopia-highlands/endemic-fauna.js?v=1", "global": "EthiopiaEndemicFauna", "call": "createEndemicWorld", "adapter": "terrain@1" },
+  "ground": "trough",
+  "frame": { "manifest": "../ethiopia-highlands/terrain-pack/manifest.json", "span": "worldSpanM", "scale": "true-to-island" },
+  "sites": [
+    { "island": "simien_imet_gogo", "region": "simien_imet_gogo" },
+    { "island": "gheralta_spires", "region": "gheralta_spires" },
+    { "island": "blue_nile_gorge", "region": "blue_nile_gorge" },
+    { "island": "gerd_belaya_escarpment", "region": "gerd_belaya_escarpment" }
+  ],
+  "bands": { "scent": 7000, "pour": 2600, "drain": 5200 },
+  "budget": { "js_kb": 135, "data_kb": 20, "build_ms": 1500 },
+  "packets": ["kinds", "places", "life"],
+  "legos": "../ethiopia-highlands/legos.json"
+}

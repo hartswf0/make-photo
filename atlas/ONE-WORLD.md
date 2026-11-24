@@ -36,3 +36,5 @@ Each level page stays as a thin wrapper for working on its region alone. In orde
 3. **Night Post / Ahiya**: 29 MB.
 4. **Highland Exposure**: 61 MB.
 5. **MONOLITH**: 733 MB. Its assets need a diet first.
+
+The container format each region ships in, the jerry can, is specified in `atlas/JERRYCAN.md`, along with a taxonomy of every level.
