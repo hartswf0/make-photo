@@ -38,7 +38,8 @@ const OW = await (await fetch('./ow/world.json?v=1')).json(), TS = OW.tile * OW.
 // ---------- renderer, sky, light ----------
 const renderer = new T.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); /* the rain glass refracts this canvas */ renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1)); renderer.setSize(innerWidth, innerHeight); document.body.prepend(renderer.domElement);
 renderer.outputColorSpace = T.SRGBColorSpace;
-const scene = new T.Scene(), SKY = new T.Color('#9cc0de'); scene.background = SKY; scene.fog = new T.Fog(SKY, 1500, 26000);
+const scene = new T.Scene(), SKY = new T.Color('#b4c9d6'); scene.fog = new T.Fog(SKY, 900, 24000);
+{ const c = document.createElement('canvas'); c.width = 4; c.height = 256; const x = c.getContext('2d'), gr = x.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, '#5f8fbf'); gr.addColorStop(.55, '#a9c4d8'); gr.addColorStop(.75, '#c9d6dc'); gr.addColorStop(1, '#b4c9d6'); x.fillStyle = gr; x.fillRect(0, 0, 4, 256); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; scene.background = t; }
 const camera = new T.PerspectiveCamera(60, innerWidth / innerHeight, .5, 70000);
 scene.add(new T.HemisphereLight('#dfefff', '#4a5a3a', 1.1)); const sun = new T.DirectionalLight('#fff4dc', 1.6); sun.position.set(-1, 2, -.6); scene.add(sun);
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
@@ -48,8 +49,16 @@ const groundMat = new T.MeshLambertMaterial({ map: tex });
 { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'), im = x.createImageData(256, 256); for (let i = 0; i < 256 * 256; i++) { const v = 150 + Math.random() * 80 + Math.sin(i * .013) * 10; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; } x.putImageData(im, 0, 0);
   x.globalAlpha = .35; for (let k = 0; k < 900; k++) { x.fillStyle = Math.random() < .5 ? '#555' : '#fff'; x.beginPath(); x.arc(Math.random() * 256, Math.random() * 256, Math.random() * 3 + .5, 0, 7); x.fill(); }
   const grain = new T.CanvasTexture(c); grain.wrapS = grain.wrapT = T.RepeatWrapping; grain.generateMipmaps = true;
-  groundMat.onBeforeCompile = sh => { sh.uniforms.grain = { value: grain }; sh.vertexShader = 'varying vec3 vWp;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-    sh.fragmentShader = 'uniform sampler2D grain; varying vec3 vWp;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\nfloat gd = clamp(1.0 - length(vWp - cameraPosition) / 900.0, 0.0, 1.0); float g1 = texture2D(grain, vWp.xz / 7.0).r, g2 = texture2D(grain, vWp.xz / 41.0).g; diffuseColor.rgb *= mix(1.0, (g1 * 0.6 + g2 * 0.4) / 0.72, gd * 0.55);'); }; }
+  groundMat.onBeforeCompile = sh => { sh.uniforms.grain = { value: grain }; sh.vertexShader = 'varying vec3 vWp; varying float vUp;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz; vUp = normalize(mat3(modelMatrix) * objectNormal).y;');
+    sh.fragmentShader = 'uniform sampler2D grain; varying vec3 vWp; varying float vUp;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+      float gd = clamp(1.0 - length(vWp - cameraPosition) / 1400.0, 0.0, 1.0); float g1 = texture2D(grain, vWp.xz / 7.0).r / .75, g2 = texture2D(grain, vWp.xz / 41.0).g / .75, g3 = texture2D(grain, vWp.xz / 260.0).b / .75;
+      float sl = 1.0 - vUp, h = vWp.y; vec3 painted = diffuseColor.rgb; float lum = dot(painted, vec3(.3, .59, .11));
+      vec3 grass = mix(vec3(.20, .30, .14), vec3(.46, .50, .26), clamp(g3 * 1.4 - .55 + lum * .5 + (g2 - .5) * .5, 0.0, 1.0));      // meadow, darker in the hollows
+      vec3 c = mix(painted, grass, .62);
+      vec3 rock = mix(vec3(.36, .34, .32), vec3(.55, .51, .46), g2 * .7) ; c = mix(c, rock, smoothstep(.22, .48, sl));                       // cliffs where it is steep
+      c = mix(vec3(.74, .69, .55), c, smoothstep(1.5, 7.0, h));                                                                                // a shore of sand
+      c = mix(c, vec3(.93, .95, .97), smoothstep(2350.0, 2800.0, h + g3 * 120.0) * (1.0 - smoothstep(.45, .7, sl)));                         // snow on the high ground
+      diffuseColor.rgb = c * mix(1.0, g1 * .55 + g2 * .45, gd * .5);`); }; }
 const W = OW.width_m, H = OW.height_m;
 function gridMesh(cols, rows, x0, z0, step, hAt, mat) {
   const pos = new Float32Array(cols * rows * 3), uv = new Float32Array(cols * rows * 2), idx = [];
@@ -58,13 +67,32 @@ function gridMesh(cols, rows, x0, z0, step, hAt, mat) {
   const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals(); return new T.Mesh(g, mat);
 }
 // the whole archipelago, coarse, so far islands stand on the horizon
-{ const buf = new Uint16Array(await (await fetch('./ow/low.bin?v=1')).arrayBuffer()), L = OW.low, m = gridMesh(L.w, L.h, 0, 0, L.step, (i, j) => Math.max(-60, buf[j * L.w + i] / 10 - 1000) - 3, groundMat); scene.add(m); }
-const water = new T.Mesh(new T.PlaneGeometry(140000, 140000), new T.MeshPhongMaterial({ color: '#2f6fb2', specular: '#bfe3ff', shininess: 60, transparent: true, opacity: .9 })); water.rotation.x = -Math.PI / 2; water.position.y = 0; scene.add(water);
+const LOWB = new Uint16Array(await (await fetch('./ow/low.bin?v=1')).arrayBuffer()), lowAt = (x, z) => { const L = OW.low, u = Math.max(0, Math.min(L.w - 1.001, x / L.step)), v = Math.max(0, Math.min(L.h - 1.001, z / L.step)), i = Math.floor(u), j = Math.floor(v), a = u - i, b = v - j, H = (i, j) => LOWB[j * L.w + i] / 10 - 1000;
+  return H(i, j) * (1 - a) * (1 - b) + H(i + 1, j) * a * (1 - b) + H(i, j + 1) * (1 - a) * b + H(i + 1, j + 1) * a * b; };
+{ const buf = LOWB, L = OW.low, m = gridMesh(L.w, L.h, 0, 0, L.step, (i, j) => Math.max(-60, buf[j * L.w + i] / 10 - 1000) - 3, groundMat); scene.add(m); }
+const water = new T.Mesh(new T.PlaneGeometry(140000, 140000), new T.MeshPhongMaterial({ color: '#235f8f', specular: '#d8eefc', shininess: 90, transparent: true, opacity: .93 })); water.rotation.x = -Math.PI / 2; water.position.y = 0; scene.add(water);
 // ---------- streaming: 2 km tiles near you at full detail, further ones coarser ----------
 const have = new Set(OW.tiles.map(([i, j]) => i + '_' + j)), tiles = new Map(), data = new Map(), loading = new Set();
 async function fetchTile(key) { if (data.has(key) || loading.has(key)) return; loading.add(key); try { const b = new Uint16Array(await (await fetch(`./ow/t/${key}.bin?v=1`)).arrayBuffer()), f = new Float32Array(b.length); for (let k = 0; k < b.length; k++) f[k] = b[k] / 10 - 1000; data.set(key, f); } catch { } loading.delete(key); }
+// ---------- forests: conifers on the American islands, acacia and eucalyptus on the Ethiopian ones; none in the city ----------
+const TREE = (() => { const lam = c => new T.MeshLambertMaterial({ color: '#ffffff', vertexColors: false }), crownC = new T.ConeGeometry(1, 3.2, 7); crownC.translate(0, 2.6, 0); const trunk = new T.CylinderGeometry(.12, .18, 1.4, 5); trunk.translate(0, .7, 0);
+  const crownA = new T.SphereGeometry(1, 9, 5); crownA.scale(1.7, .42, 1.7); crownA.translate(0, 2.7, 0); const trunkA = new T.CylinderGeometry(.08, .14, 2.6, 5); trunkA.translate(0, 1.3, 0);
+  return { conifer: [crownC, trunk, ['#2e4a2c', '#3a5530', '#24402a']], acacia: [crownA, trunkA, ['#55642e', '#6b7236', '#4a5a2a']], crownM: lam(), trunkM: new T.MeshLambertMaterial({ color: '#4a3826' }) }; })();
+const KIND = { teton: 'conifer', halfdome: 'conifer', wygwyl: null };
+const treeCache = new Map();
+function treesFor(key) { if (treeCache.has(key)) return treeCache.get(key); const [ti, tj] = key.split('_').map(Number), f = data.get(key), n = OW.tile + 1, out = [];
+  let seed = (ti * 73856093 ^ tj * 19349663) >>> 0; const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+  for (let k = 0; k < 2000; k++) { const i = 1 + Math.floor(rnd() * (n - 2)), j = 1 + Math.floor(rnd() * (n - 2)), h = f[j * n + i]; if (h < 4 || h > 2350) continue;
+    const sl = Math.max(Math.abs(f[j * n + i + 1] - f[j * n + i - 1]), Math.abs(f[(j + 1) * n + i] - f[(j - 1) * n + i])) / (2 * OW.mpp); if (sl > .55) continue;
+    const x = ti * TS + (i + rnd() - .5) * OW.mpp, z = tj * TS + (j + rnd() - .5) * OW.mpp, grove = Math.sin(x * .0023 + 1.3) * Math.sin(z * .0019 - .7) + Math.sin(x * .0007 - z * .0006) * .6; if (grove < .05 + h / 4000) continue;
+    if (deckAt(x, z)) continue; out.push([x, h - .3, z, .6 + rnd() * .5, rnd() * 6.3, rnd()]); }
+  treeCache.set(key, out); return out; }
+function forest(key, mesh) { const isl = islandAt(...key.split('_').map((v, k) => (+v + .5) * TS)), kind = isl in KIND ? KIND[isl] : 'acacia'; if (!kind) return; const pts = treesFor(key); if (!pts.length) return;
+  const [cg, tg, cols] = TREE[kind], crown = new T.InstancedMesh(cg, TREE.crownM, pts.length), trunk = new T.InstancedMesh(tg, TREE.trunkM, pts.length), M = new T.Matrix4(), Q = new T.Quaternion(), S = new T.Vector3(), V = new T.Vector3(), Y = new T.Vector3(0, 1, 0), C = new T.Color();
+  pts.forEach(([x, y, z, sc, r, c], k) => { const s = sc * (kind === 'conifer' ? 6 : 4.2); Q.setFromAxisAngle(Y, r); S.set(s, s * (kind === 'conifer' ? 1 + c * .5 : 1), s); V.set(x, y, z); M.compose(V, Q, S); crown.setMatrixAt(k, M); trunk.setMatrixAt(k, M); crown.setColorAt(k, C.set(cols[Math.floor(c * 3)])); });
+  crown.instanceMatrix.needsUpdate = trunk.instanceMatrix.needsUpdate = true; if (crown.instanceColor) crown.instanceColor.needsUpdate = true; mesh.add(crown, trunk); }
 function buildTile(key, stride) { const [ti, tj] = key.split('_').map(Number), f = data.get(key), n = OW.tile + 1, c = Math.floor((n - 1) / stride) + 1;
-  const m = gridMesh(c, c, ti * TS, tj * TS, OW.mpp * stride, (i, j) => f[(j * stride) * n + i * stride], groundMat); m.userData.stride = stride; return m; }
+  const m = gridMesh(c, c, ti * TS, tj * TS, OW.mpp * stride, (i, j) => f[(j * stride) * n + i * stride], groundMat); m.userData.stride = stride; if (stride <= 2) forest(key, m); return m; }
 function stream() { const ahead = P.mode === 'ferry' ? 0 : Math.min(9000, Math.abs(P.speed) * 8), cx = P.x + Math.sin(P.yaw) * ahead, cz = P.z + Math.cos(P.yaw) * ahead; const pi = Math.floor(cx / TS), pj = Math.floor(cz / TS), R = P.mode === 'fly' ? 5 : 4, want = new Map();
   for (let dj = -R; dj <= R; dj++) for (let di = -R; di <= R; di++) { const key = (pi + di) + '_' + (pj + dj); if (!have.has(key)) continue; const d = Math.max(Math.abs(di), Math.abs(dj)); want.set(key, d <= 1 ? 1 : d <= 2 ? 2 : 5); }
   { const me = Math.floor(P.x / TS) + '_' + Math.floor(P.z / TS); if (have.has(me) && !want.has(me)) want.set(me, 1); }      // loading ahead never drops the ground you stand on
@@ -76,6 +104,9 @@ function stream() { const ahead = P.mode === 'ferry' ? 0 : Math.min(9000, Math.a
 // ---------- ground height: streamed tiles, then bridge decks on top ----------
 function terrain(x, z) { const ti = Math.floor(x / TS), tj = Math.floor(z / TS), f = data.get(ti + '_' + tj); if (!f) return -40; const n = OW.tile + 1, u = (x - ti * TS) / OW.mpp, v = (z - tj * TS) / OW.mpp, i = Math.min(n - 2, Math.floor(u)), j = Math.min(n - 2, Math.floor(v)), a = u - i, b = v - j;
   return f[j * n + i] * (1 - a) * (1 - b) + f[j * n + i + 1] * a * (1 - b) + f[(j + 1) * n + i] * (1 - a) * b + f[(j + 1) * n + i + 1] * a * b; }
+for (const b of OW.bridges) for (const atStart of [true, false]) { const P0 = atStart ? b.pts[0] : b.pts[b.pts.length - 1], P1 = atStart ? b.pts[2] : b.pts[b.pts.length - 3], L = Math.hypot(P0[0] - P1[0], P0[2] - P1[2]), ux = (P0[0] - P1[0]) / L, uz = (P0[2] - P1[2]) / L, ramp = [];
+  for (let s = 15; s < 1200; s += 15) { const x = P0[0] + ux * s, z = P0[2] + uz * s, y = P0[1] - s * .075, g = lowAt(x, z); ramp.push([x, Math.max(y, g - 3), z]); if (y < g - 3) break; }
+  if (atStart) b.pts = ramp.reverse().concat(b.pts); else b.pts = b.pts.concat(ramp); }
 const decks = OW.bridges.map(b => b.pts);
 function deckAt(x, z) { let best = null; for (let bi = 0; bi < decks.length; bi++) { const pts = decks[bi]; for (let k = 0; k < pts.length - 1; k++) { const [ax, ay, az] = pts[k], [bx, by, bz] = pts[k + 1], dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz, t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2));
     const d = Math.hypot(x - (ax + dx * t), z - (az + dz * t)); if (d < 7.5 && (!best || d < best.d)) best = { d, y: ay + (by - ay) * t, bi }; } } return best; }
@@ -121,6 +152,7 @@ let woody = null, rogallo = null;
 try { if (window.DWVehicles) { woody = window.DWVehicles.wagon(T); car.children.forEach(c => c.visible = false); woody.group.position.set(0, 0, 0); woody.group.rotation.set(0, 0, 0); car.add(woody.group);
   rogallo = window.DWVehicles.rogallo(T); glider.children.forEach(c => c.visible = false); rogallo.root.position.set(0, 0, 0); rogallo.root.visible = true; glider.add(rogallo.root);
   for (const b of OW.bridges) for (const end of [b.pts[1], b.pts[b.pts.length - 2]]) { const tk = window.DWVehicles.truck(T); if (!tk) break; const k = end === b.pts[1] ? 1 : b.pts.length - 2, nb = b.pts[k === 1 ? 4 : k - 3]; tk.position.set(end[0] + 9, end[1] - .2, end[2]); tk.rotation.y = Math.atan2(nb[0] - end[0], nb[2] - end[2]); scene.add(tk); } } } catch (e) { console.warn('vehicles', e); }
+let parked = null; const PARK = { x: 0, z: 0, yaw: 0 }; try { if (window.DWVehicles) { parked = window.DWVehicles.wagon(T); scene.add(parked.group); } } catch (e) { }
 const skiff = makeBoat('#d9d2bf', .8); scene.add(skiff); skiff.visible = false;
 // ---------- the way across: every bridgehead and ferry pier is a light you can see from anywhere ----------
 const ISL = id => OW.islands.find(i => i.id === id), title = s => s.toLowerCase().replace(/(^|[\s–-])\p{L}/gu, c => c.toUpperCase());
@@ -160,13 +192,15 @@ function nextWay() { ROUTE = [];
   let best = null, bd = 1e12; for (const c of CROSS) { const d = Math.hypot(c.x - P.x, c.z - P.z); if (d > 45 && d < bd) { bd = d; best = c; } } return best; }
 let WAY = null;
 let donkey = null; try { donkey = window.makeDonkey({ assetPath: '../donkey/', shells: 8 }); scene.add(donkey.group); } catch (e) { console.warn('no donkey', e); }
+const placeDk = (x, z, h, f) => { donkey.place(x, z, h, f); try { donkey.update(.016, { throttle: 0, steer: 0, pace: 0 }, f); } catch { } };   // place() moves her state; one step moves her body there too
 // ---------- start: where the game or the map sent you, otherwise the Overlook ----------
 { const isl = OW.islands.find(i => i.id === QS.get('island')), x = parseFloat(QS.get('x')), z = parseFloat(QS.get('z')); let sx, sz;
   if (isl && isl.frame && Number.isFinite(x) && Number.isFinite(z)) { const f = isl.frame; sx = isl.center[0] - isl.size[0] / 2 + (x - f.x0) / f.w * isl.size[0]; sz = isl.center[1] - isl.size[1] / 2 + (z - f.z0) / f.h * isl.size[1]; }
   else if (Number.isFinite(parseFloat(QS.get('mx')))) { sx = parseFloat(QS.get('mx')); sz = parseFloat(QS.get('mz')); }
   else if (isl) { const p = OW.places.find(p => p.island === isl.id) || { x: isl.center[0], z: isl.center[1] }; sx = p.x; sz = p.z; }
   else { const c = CROSS.find(c => c.kind === 'bridge' && c.from === 'teton' && c.to === 'corridor'), a = Math.atan2(c.far[0] - c.x, c.far[1] - c.z); sx = c.x - Math.sin(a) * 70; sz = c.z - Math.cos(a) * 70; P.yaw = a; P.startYaw = a; }
-  P.x = sx; P.z = sz; if (P.startYaw === undefined) P.yaw = Math.PI; }
+  P.x = sx; P.z = sz; if (P.startYaw === undefined) P.yaw = Math.PI;
+  PARK.x = P.x + Math.cos(P.yaw) * 3.4 + Math.sin(P.yaw) * 9; PARK.z = P.z - Math.sin(P.yaw) * 3.4 + Math.cos(P.yaw) * 9; PARK.yaw = P.yaw; }   // the wagon waits beside you
 // ---------- controls: stick on the left half, look on the right, keys ----------
 const EXT = { x: 0, y: 0 }, SURF = !QS.has('legacy');   // the game surface steers through EXT
 const keys = {}, stick = { x: 0, y: 0, id: null, ox: 0, oy: 0 }, look = { id: null, x: 0, y: 0 }; let camYaw = 0, camPitch = .26;
@@ -184,8 +218,10 @@ function nearLand(r = 80) { for (let d = 3; d <= r; d += 3) for (let a = 0; a < 
 function setMode(m) { if (m === 'ride' && !donkey) m = 'walk'; const was = P.mode;
   if (m === 'boat' && was !== 'boat') { const w = wet(P.x, P.z) ? [P.x, P.z] : nearWater(); if (!w) return false; P.x = w[0]; P.z = w[1]; P.speed = 0; }
   if (was === 'boat' && m !== 'boat' && m !== 'fly') { const l = nearLand(); if (!l) return false; P.x = l[0]; P.z = l[1]; P.y = groundAt(P.x, P.z); }
-  if (was === 'ferry' && m !== 'ferry') return false; P.mode = m; for (const b of document.querySelectorAll('#modes button')) b.classList.toggle('on', b.dataset.m === m);
-  if (m === 'fly' && was !== 'fly') { P.alt = Math.max(P.y, 0) + 60; P.speed = SPEED.fly * .6; } if (m === 'ride' && donkey) { const g = donkey.group.position; if (Math.hypot(g.x - P.x, g.z - P.z) > 30) donkey.place(P.x, P.z, P.yaw, (x, z) => groundAt(x, z)); } if (m === 'walk' && was !== 'walk' && was !== 'ride' && donkey) donkey.place(P.x - Math.sin(P.yaw) * 3, P.z - Math.cos(P.yaw) * 3, P.yaw, (x, z) => groundAt(x, z)); }
+  if (was === 'ferry' && m !== 'ferry') return false;
+  if (was === 'drive' && m !== 'drive') { PARK.x = P.x; PARK.z = P.z; PARK.yaw = P.yaw; P.x -= Math.cos(P.yaw) * 2.6; P.z += Math.sin(P.yaw) * 2.6; P.y = groundAt(P.x, P.z, P.y); }   // step out beside it
+  if (m === 'drive' && was !== 'drive' && Math.hypot(PARK.x - P.x, PARK.z - P.z) < 60) { P.x = PARK.x; P.z = PARK.z; P.yaw = PARK.yaw; P.y = groundAt(P.x, P.z, P.y); } P.mode = m; for (const b of document.querySelectorAll('#modes button')) b.classList.toggle('on', b.dataset.m === m);
+  if (m === 'fly' && was !== 'fly') { P.alt = Math.max(P.y, 0) + 60; P.speed = SPEED.fly * .6; } if (m === 'ride' && donkey) { const g = donkey.group.position; if (Math.hypot(g.x - P.x, g.z - P.z) > 30) placeDk(P.x, P.z, P.yaw, (x, z) => groundAt(x, z)); } if (m === 'walk' && was !== 'walk' && was !== 'ride' && donkey) placeDk(P.x - Math.sin(P.yaw) * 3, P.z - Math.cos(P.yaw) * 3, P.yaw, (x, z) => groundAt(x, z)); }
 for (const b of document.querySelectorAll('#modes button')) b.onclick = () => setMode(b.dataset.m);
 setMode(QS.get('mode') || 'walk');
 // ---------- the loop ----------
@@ -202,14 +238,15 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
     const want = fwd * top; P.speed += (want - P.speed) * Math.min(1, dt * (m === 'drive' ? 1.2 : m === 'fly' ? .6 : 6)); if (m === 'fly') P.speed = Math.max(P.speed, 22);
     const nx = P.x + Math.sin(P.yaw) * P.speed * dt, nz = P.z + Math.cos(P.yaw) * P.speed * dt;
     if (m === 'fly') { P.x = nx; P.z = nz; const lift = (keys.Space || keys.KeyE ? 1 : 0) - (keys.KeyQ || keys.KeyC ? 1 : 0) - (stick.id !== null ? 0 : 0); P.alt += (lift * 30 - 2) * dt; const gnd = Math.max(0, groundAt(P.x, P.z)); P.alt = Math.max(gnd + 4, P.alt); P.y = P.alt; if (P.alt - gnd < 4.5 && fwd < 0) setMode('walk'); }
-    else { const gy = groundAt(nx, nz, P.y); if (gy < -0.6) P.speed = 0; else { const slope = (gy - P.y) / Math.max(.1, Math.hypot(nx - P.x, nz - P.z)); if (m === 'drive' || slope < 1.4) { P.x = nx; P.z = nz; } else P.speed *= .5; } P.y = Math.max(groundAt(P.x, P.z, P.y), -0.6); }
+    else { const gy = groundAt(nx, nz, P.y); if (gy < -0.6) P.speed = 0; else { const slope = (gy - P.y) / Math.max(.1, Math.hypot(nx - P.x, nz - P.z)); if (m === 'drive' || slope < 1.4 || deckAt(nx, nz)) { P.x = nx; P.z = nz; } else P.speed *= .5; } P.y = Math.max(groundAt(P.x, P.z, P.y), -0.6); }
   }
   if (motion) { try { motion.setActorLocomotion('imani', { speedMps: m === 'walk' ? Math.abs(P.speed) : 0, carrying: true, sitting: m === 'ride', blend: 1 }); motion.update(dt); } catch { } }
   if (donkey && m === 'walk') {                                                // Mistletoe keeps to your side on foot
-    const bx = P.x - Math.sin(P.yaw) * 3 + Math.cos(P.yaw) * 1.6, bz = P.z - Math.cos(P.yaw) * 3 - Math.sin(P.yaw) * 1.6, g = donkey.group.position, dx = bx - g.x, dz = bz - g.z, d = Math.hypot(dx, dz);
-    if (d > 60) donkey.place(bx, bz, P.yaw, (x, z) => groundAt(x, z));
+    const bx = P.x + Math.sin(P.yaw) * 1.2 - Math.cos(P.yaw) * 1.9, bz = P.z + Math.cos(P.yaw) * 1.2 + Math.sin(P.yaw) * 1.9, g = donkey.group.position, dx = bx - g.x, dz = bz - g.z, d = Math.hypot(dx, dz);
+    if (d > 60) placeDk(bx, bz, P.yaw, (x, z) => groundAt(x, z));
     else { const want = Math.atan2(dx, dz); let dh = want - donkey.group.rotation.y; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); donkey.update(dt, { throttle: d > 2.2 ? Math.min(1, d / 6) : 0, steer: Math.max(-1, Math.min(1, dh * 2)), pace: d > 12 ? 2 : 0 }, (x, z) => groundAt(x, z)); } }
   if (m !== 'boat') for (const mb of MOORED) mb.boat.visible = true;
+  if (parked) { parked.group.visible = m !== 'drive'; if (m !== 'drive') { parked.group.position.set(PARK.x, groundAt(PARK.x, PARK.z, P.y), PARK.z); parked.group.rotation.y = PARK.yaw; } }
   skiff.visible = m === 'boat'; if (m === 'boat') { skiff.position.set(P.x, P.y, P.z); skiff.rotation.y = P.yaw; skiff.rotation.z = Math.sin(now / 700) * .04; }
   for (const fe of ferries) if (!(P.ferry && P.ferry.fe === fe)) { fe.t += dt * 12 / fe.len * fe.dir; if (fe.t >= 1 || fe.t <= 0) { fe.t = Math.max(0, Math.min(1, fe.t)); fe.wait += dt; if (fe.wait > 20) { fe.dir *= -1; fe.wait = 0; } } const q = laneAt(fe, fe.t); fe.boat.position.set(q[0], .2 + Math.sin(now / 800 + fe.len) * .1, q[1]); fe.boat.rotation.y = q[2] + (fe.dir > 0 ? 0 : Math.PI); }
   walker.visible = m === 'walk' || m === 'ride' || m === 'boat' || m === 'ferry'; if (m === 'boat' || m === 'ferry') { walker.position.set(P.x, P.y + (m === 'ferry' ? 1.6 : .8), P.z); } car.visible = m === 'drive'; glider.visible = m === 'fly'; if (donkey) donkey.group.visible = m === 'ride' || m === 'walk';
@@ -221,7 +258,7 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
   // the lights across the sea keep a steady width on screen; names come up only for the few nearest
   const ranked = CROSS.map(c => [Math.hypot(c.x - P.x, c.z - P.z), c]).sort((a, b) => a[0] - b[0]);
   const farSide = c => Math.hypot(c.far[0] - P.x, c.far[1] - P.z) < Math.hypot(c.x - P.x, c.z - P.z);   // the other end of a crossing is not where you start it
-  let shown = 0; ranked.forEach(([d, c]) => { const w = Math.max(1.5, d / 260); c.beam.scale.set(w, c.beam.userData.h * Math.max(1, d / 2500), w); c.beam.material.opacity = .42 * Math.max(.12, Math.min(1, (d - 40) / 500));
+  let shown = 0; ranked.forEach(([d, c]) => { const w = Math.max(1.5, d / 260); c.beam.scale.set(w, c.beam.userData.h * Math.max(1, d / 2500), w); c.beam.material.opacity = .42 * Math.max(0, Math.min(1, (d - 180) / 900)); c.beam.visible = d > 180;
     c.tag.visible = !farSide(c) && shown < 3 && d > 40 && d < 9000 && P.mode !== 'ferry'; if (c.tag.visible) shown++; if (c.tag.visible) { const sc = .042; c.tag.scale.set(sc * c.tag.userData.k, sc, 1); c.tag.position.y = c.y + 26 + d / 40; } });
   for (const D of DOORS) { const d = Math.hypot(D.p.x - P.x, D.p.z - P.z), on = d < 1600 && P.mode !== 'fly'; D.ring.visible = on; D.beam.visible = on && d > 45; if (on) { const gy = groundAt(D.p.x, D.p.z); D.ring.position.set(D.p.x, gy + .25, D.p.z); D.beam.position.y = gy; D.beam.material.opacity = .22 * Math.min(1, (d - 45) / 300); D.ring.material.opacity = d < 30 ? .95 : .55 + Math.sin(now / 500) * .15; } }
   WAY = nextWay(); const wd = WAY ? Math.hypot(WAY.x - P.x, WAY.z - P.z) : 0; guide.visible = !!WAY && wd > 30 && m !== 'ferry';
@@ -258,6 +295,7 @@ setInterval(() => { const n = nearest(OW.places); if (n && n.d < 500 && window.D
 function liveAct() { if (P.mode === 'ferry' || P.mode === 'fly') return null;
   const pier = nearPier(); if (pier) { const pr = pier.fe.f.piers[pier.dir > 0 ? 0 : 1][0], sp = proj(pr[0], pr[1] + 2, pr[2]); return { kind: 'sail', id: 'sail', label: 'Ferry to ' + OW.islands.find(i => i.id === pier.to).name, x: sp.x, y: sp.y, pier }; }
   const w = nearest(WELLS); if (w && w.d < 30 && OWS.liters < 19.9) { const sp = proj(w.p.x, P.y + 1.5, w.p.z); return { kind: 'draw', id: 'draw', label: 'Draw', delta: 20 - OWS.liters, x: sp.x, y: sp.y }; }
+  if (P.mode === 'walk' && Math.hypot(PARK.x - P.x, PARK.z - P.z) < 7) { const sp = proj(PARK.x, P.y + 1.5, PARK.z); return { kind: 'drive', id: 'drive', label: 'Drive', x: sp.x, y: sp.y }; }
   for (const mb of MOORED) if (P.mode === 'walk' && Math.hypot(mb.x - P.x, mb.z - P.z) < 16) { const sp = proj(mb.x, 1.5, mb.z); return { kind: 'boat', id: 'boat', label: 'Take the boat', x: sp.x, y: sp.y, mb }; }
   const n = nearest(OW.places); if (n && n.d < 30) { const sp = proj(n.p.x, P.y + 2, n.p.z); return { kind: 'enter', id: 'enter', label: 'Enter ' + n.p.world, x: sp.x, y: sp.y, entry: n.p.entry, person: n.p.world }; }
   return null; }
@@ -276,7 +314,7 @@ window.AhiyaBridge = { version: 1, canvas: renderer.domElement,
         source: w ? { ...proj(w.p.x, P.y + 1, w.p.z), s: scaleAt(w.p.x, P.y, w.p.z), dist: w.d, wx: w.p.x, wz: w.p.z } : null, people: [], next: WAY ? { ...proj(WAY.x, (WAY.y || P.y) + 8, WAY.z), s: 1, dist: Math.hypot(WAY.x - P.x, WAY.z - P.z), name: WAY.label } : null, wagon: null },
       pos: { x: P.x, z: P.z, yaw: P.yaw }, atlas: { mx: P.x, mz: P.z }, sound: { voices: false, tape: false, radio: false } }; },
   act: {
-    live() { const L = liveAct(); if (!L) return false; if (L.kind === 'enter') { if (window.DW) window.DW.go(L.entry, { mode: 'walk', door: true }); else location.href = L.entry; } else if (L.kind === 'sail') board(L.pier); else if (L.kind === 'boat') { L.mb.boat.visible = false; P.x = L.mb.x; P.z = L.mb.z; P.yaw = L.mb.yaw; P.mode = 'walk'; setMode('boat'); } else if (L.kind === 'draw') OWS.liters = 20; return true; },
+    live() { const L = liveAct(); if (!L) return false; if (L.kind === 'enter') { if (window.DW) window.DW.go(L.entry, { mode: 'walk', door: true }); else location.href = L.entry; } else if (L.kind === 'sail') board(L.pier); else if (L.kind === 'drive') setMode('drive'); else if (L.kind === 'boat') { L.mb.boat.visible = false; P.x = L.mb.x; P.z = L.mb.z; P.yaw = L.mb.yaw; P.mode = 'walk'; setMode('boat'); } else if (L.kind === 'draw') OWS.liters = 20; return true; },
     exit() { setMode('walk'); }, steer(x, y, active) { EXT.x = active ? x : 0; EXT.y = active ? y : 0; }, look(dx, dy) { camYaw -= dx * .006; camPitch = Math.max(-.2, Math.min(1.2, camPitch + dy * .004)); },
     jump() { if (P.mode === 'walk') OWS.jumpT = .5; }, say() { }, focus() { }, set() { }, lang() { }, expose() { }, lastPlate() { return null; }, begin() { },
     lean(kind, litres) { if (kind === 'draw') { const w = nearest(WELLS); if (!w || w.d > 30) return 0; const a = Math.min(litres, 20 - OWS.liters); OWS.liters += a; return a; }
@@ -292,11 +330,11 @@ if (SURF) { for (const id of ['modes', 'stick', 'enter', 'mini', 'where']) $(id)
   const lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = '../night-post/rain/rain.css?v=1'; document.head.append(lk);
   const en = document.createElement('script'); en.src = '../night-post/rain/engine.js?v=2'; en.onload = () => { const su = document.createElement('script'); su.src = '../night-post/rain/surface.js?v=ow1'; document.head.append(su); }; document.head.append(en); }
 // wait for the ground under you before letting go
-{ const k = Math.floor(P.x / TS) + '_' + Math.floor(P.z / TS); await fetchTile(k); P.y = groundAt(P.x, P.z); if (donkey) donkey.place(P.x, P.z, P.yaw, (x, z) => groundAt(x, z)); }
+{ const k = Math.floor(P.x / TS) + '_' + Math.floor(P.z / TS); await fetchTile(k); P.y = groundAt(P.x, P.z); if (donkey) placeDk(P.x + Math.sin(P.yaw) * 2 - Math.cos(P.yaw) * 1.8, P.z + Math.cos(P.yaw) * 2 + Math.sin(P.yaw) * 1.8, P.yaw, (x, z) => groundAt(x, z)); }
 camera.position.set(P.x, P.y + 40, P.z + 60); requestAnimationFrame(frame);
 async function goTo(x, z, yaw) { const k = Math.floor(x / TS) + '_' + Math.floor(z / TS); await fetchTile(k); if (P.mode === 'ferry') { P.ferry = null; P.mode = 'walk'; } if (P.mode === 'boat' && !wet(x, z)) setMode('walk'); P.x = x; P.z = z; P.y = groundAt(x, z); if (Number.isFinite(yaw)) P.yaw = yaw; if (P.mode === 'fly') P.alt = Math.max(P.y, 0) + 60; P.speed = 0;
-  if (donkey) donkey.place(P.x - Math.sin(P.yaw) * 3, P.z - Math.cos(P.yaw) * 3, P.yaw, (x, z) => groundAt(x, z)); camera.position.set(P.x - Math.sin(P.yaw) * 20, P.y + 12, P.z - Math.cos(P.yaw) * 20); }
-window.__ow = { P, OW, tiles, data, setMode, groundAt, ferries, board, nearPier, wet, woody, rogallo, CROSS, MOORED, goTo,
+  if (donkey) placeDk(P.x - Math.sin(P.yaw) * 3, P.z - Math.cos(P.yaw) * 3, P.yaw, (x, z) => groundAt(x, z)); camera.position.set(P.x - Math.sin(P.yaw) * 20, P.y + 12, P.z - Math.cos(P.yaw) * 20); }
+window.__ow = { P, OW, tiles, data, setMode, groundAt, deckAt, terrain, ferries, board, nearPier, wet, woody, rogallo, CROSS, MOORED, goTo, donkey, parked, PARK,
   setTarget(t) { TARGET = t ? { x: t.x, z: t.z, kind: t.kind || 'door', label: t.label || '' } : null; }, way() { if (!WAY) return null; const path = [[P.x, P.z]]; for (const c of ROUTE) path.push([c.x, c.z], c.far); if (TARGET) path.push([TARGET.x, TARGET.z]); else path.push([WAY.x, WAY.z]);
     return { x: WAY.x, z: WAY.z, kind: WAY.kind, label: WAY.label, chosen: !!TARGET, goal: TARGET && TARGET.label, path }; } };
 })();
