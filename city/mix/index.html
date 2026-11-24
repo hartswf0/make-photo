@@ -3,381 +3,271 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>html,body{margin:0}</style>
 <title>Mix Discs</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-/* Layout: DECKS view = disc A | preview + crossfader | disc B, poem numbers underneath. MIX view = preview + clip controls over the three lanes.
-   Built for a phone held sideways; portrait and desktop reflow the same pieces. Single deep-blue look by choice. */
-:root{--bg:#0a17a6;--bg2:#050c6b;--ink:#eef3ff;--dim:rgba(220,230,255,.62);--faint:rgba(220,230,255,.22);--ring:rgba(200,225,255,.5);
-  --a:#7fd8ff;--b:#ffb35c;--pic:#7fd8ff;--snd:#ffb35c;--txt:#d8c9ff;--rec:#ff5a6e;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--sans:"IBM Plex Sans",system-ui,sans-serif;color-scheme:dark}
+/* Layout: the output fills the screen; the discs float on it as gears. A few icon buttons sit at the edges. Single dark look by choice. */
+:root{--ink:#eef3ff;--dim:rgba(220,230,255,.6);--ring:rgba(200,225,255,.5);--rec:#ff5a6e;color-scheme:dark}
 [hidden]{display:none!important}
-html,body{height:100%;overflow:hidden}
-body{background:radial-gradient(120% 100% at 50% 35%,#1426c4 0%,var(--bg) 42%,var(--bg2) 100%);color:var(--ink);font-family:var(--sans);font-size:13px;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
-button{font:500 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink);background:rgba(10,20,120,.35);border:1px solid var(--ring);border-radius:999px;cursor:pointer;padding:0 12px;min-height:34px}
-button:disabled{opacity:.3;cursor:default}
-button.on{background:#fff;color:#081388;border-color:#fff}
-button:focus-visible{outline:2px solid #fff;outline-offset:2px}
-.app{height:100%;box-sizing:border-box;display:grid;grid-template-rows:auto minmax(0,1fr);gap:6px;padding-block:6px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.top{display:flex;align-items:center;gap:10px;min-width:0}
-.top h1{margin:0;font:500 12px var(--mono);letter-spacing:.3em;white-space:nowrap}
-.top .sp{flex:1}
-.top button{min-height:28px;padding:0 11px;font-size:10px}
-.tabs{display:flex;border:1px solid var(--ring);border-radius:999px;overflow:hidden}
-.tabs button{border:0;border-radius:0;min-height:28px;background:transparent}
-.tabs button.on{background:#fff;color:#081388}
-/* DECKS view */
-.decks{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,1.05fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;gap:6px 14px;min-height:0}
-.deck{display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:5px;min-height:0;min-width:0;justify-items:center}
-.deck.a{--c:var(--a)}.deck.b{--c:var(--b)}
-.dname{max-width:100%;min-height:26px;padding:0 10px;font-size:10px;letter-spacing:.06em;text-transform:none;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-color:var(--c)}
-.dname b{color:var(--c);font-weight:600;margin-right:6px}
-.disc{position:relative;aspect-ratio:1;height:100%;max-width:100%;min-height:0;border-radius:50%;touch-action:none;cursor:grab}
-.disc video{position:absolute;inset:9%;width:82%;height:82%;border-radius:50%;object-fit:cover;background:#030840;pointer-events:none}
-.disc canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.drow{display:flex;gap:5px;align-items:center;justify-content:center}
-.drow .r{width:34px;min-width:34px;height:34px;padding:0;display:grid;place-items:center;font-size:12px;letter-spacing:0}
-.drow .r.big{width:40px;height:40px;font-size:14px;border-color:var(--c)}
-.route{display:flex;gap:4px;align-items:center}
-.route button{width:30px;min-width:30px;height:26px;min-height:26px;padding:0;letter-spacing:0;border-radius:8px;color:var(--dim)}
-.route button.on{background:var(--k);border-color:var(--k);color:#06106a}
-.route button[data-c="txt"]{--k:var(--txt)}.route button[data-c="pic"]{--k:var(--pic)}.route button[data-c="snd"]{--k:var(--snd)}
-.send{min-height:26px;padding:0 10px;font-size:10px;border-color:var(--c);color:var(--c)}
-.center{display:grid;grid-template-rows:minmax(0,1fr) auto auto;gap:6px;min-height:0;min-width:0}
-.screen{position:relative;min-height:0;min-width:0;overflow:hidden}
-.screen canvas{position:absolute;inset:0;margin:auto;max-width:100%;max-height:100%;width:auto;height:auto;border-radius:10px;box-shadow:0 0 0 1px var(--ring),0 0 50px rgba(90,170,255,.22);background:#000}
-.xrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center}
-.xrow b{font:600 13px var(--mono)}.xrow .ab-a{color:var(--a)}.xrow .ab-b{color:var(--b)}
-.xf{position:relative;height:34px;touch-action:none;cursor:ew-resize}
-.xf canvas{position:absolute;inset:0;width:100%;height:100%}
-.crow{display:flex;gap:6px;align-items:center;justify-content:center}
-.crow .tc{font:500 11px var(--mono);color:var(--dim);font-variant-numeric:tabular-nums;min-width:9ch;text-align:center}
-#recB{color:var(--rec);border-color:var(--rec)}#recB.on{background:var(--rec);color:#fff}
-.dots{grid-column:1/4;display:flex;gap:6px;justify-content:center;align-items:center}
-.dots button{width:30px;min-width:30px;height:30px;padding:0;letter-spacing:0;font-size:9.5px}
-/* MIX view */
-.mix{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.8fr);grid-template-rows:minmax(0,1fr) auto;gap:8px 14px;min-height:0}
-.side{display:grid;align-content:center;gap:10px;min-width:0}
-.side .tc{font:500 12px var(--mono);color:var(--dim);font-variant-numeric:tabular-nums;text-align:center}
-.side .row{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-.side .r{width:44px;min-width:44px;height:44px;padding:0;display:grid;place-items:center;font-size:15px;letter-spacing:0}
-.what{font:500 11.5px/1.45 var(--mono);color:var(--dim);text-align:center;min-height:3em}
-.what b{color:var(--ink);font-weight:500}
-.side label{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;font:500 10px var(--mono);letter-spacing:.14em;color:var(--dim)}
-.side input[type=range]{width:100%;accent-color:#fff}
-.tl{grid-column:1/3;position:relative;height:clamp(96px,30vh,170px);border-radius:10px;background:rgba(3,8,70,.45);box-shadow:inset 0 0 0 1px var(--faint);touch-action:none}
-.tl canvas{position:absolute;inset:0;width:100%;height:100%}
-/* portrait: stack the same pieces */
-@media (orientation:portrait) and (max-width:820px){
-  .decks{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"c c" "a b" "d d"}
-  .center{grid-area:c;grid-template-rows:auto auto auto}.deck.a{grid-area:a}.deck.b{grid-area:b}.dots{grid-area:d;flex-wrap:wrap}
-  .screen{height:min(28vh,calc((100vw - 32px)*.5625))}
-  .disc{height:auto;width:100%;max-height:100%}
-  .deck{grid-template-rows:auto auto auto auto;align-content:start}
-  .drow{gap:3px}.drow .r{width:29px;min-width:29px;height:30px;font-size:11px}.drow .r.big{width:34px;height:34px}
-  .route button{width:25px;min-width:25px}.send{padding:0 7px}
-  .mix{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr)}.tl{grid-column:1;height:auto;min-height:120px}
-}
-.turn{display:none;position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);transform:translateX(-50%);font:500 10px var(--mono);letter-spacing:.14em;color:var(--dim);pointer-events:none;white-space:nowrap}
-/* sheets and toasts */
-.sheet{position:fixed;inset:0;z-index:10;background:rgba(4,9,70,.97);display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 12px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 12px) max(16px,env(safe-area-inset-left,0px))}
-.sh{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sh h2{margin:0 6px;font:500 13px var(--mono);letter-spacing:.22em;font-weight:500}
-.sb{overflow:auto;min-height:0;user-select:text;-webkit-user-select:text}
-.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
-.shelf button{display:grid;grid-template-columns:46px minmax(0,1fr);gap:10px;align-items:center;text-align:left;text-transform:none;letter-spacing:0;font:500 13px var(--sans);min-height:56px;border-radius:14px;padding:5px 10px}
-.shelf i{width:46px;height:46px;border-radius:50%;background:#0a1690 center/cover no-repeat;box-shadow:0 0 0 1px var(--faint)}
-.shelf small{display:block;font:500 10px var(--mono);color:var(--dim);margin-top:2px}
-pre{font:500 11.5px/1.5 var(--mono);margin:0;white-space:pre}
-.help{max-width:68ch;font:400 14.5px/1.6 var(--sans)}.help b{font-weight:600}
-.sb video{max-width:100%;max-height:58vh;border-radius:10px}
-.toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 40px);z-index:20;background:#0b1890;border:1px solid var(--ring);border-radius:12px;padding:8px 12px;font:500 12px var(--sans);display:flex;gap:10px;align-items:center;max-width:min(92vw,560px)}
-.toast button{min-height:24px}
+html,body{height:100%;overflow:hidden;margin:0}
+body{background:#020418;color:var(--ink);font:500 13px/1.4 ui-monospace,"IBM Plex Mono",Menlo,monospace;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;touch-action:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#out{z-index:0}#rig{z-index:1}
+.ic{position:fixed;z-index:3;width:44px;height:44px;border-radius:50%;border:1px solid var(--ring);background:rgba(4,10,60,.45);color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.ic svg{width:20px;height:20px}
+.ic:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.ic.on{background:var(--rec);border-color:var(--rec)}
+#add{top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(max(16px,env(safe-area-inset-right,0px)) + 56px)}
+#rec{top:calc(env(safe-area-inset-top,0px) + 12px);right:max(16px,env(safe-area-inset-right,0px))}
+#help{top:calc(env(safe-area-inset-top,0px) + 12px);left:max(16px,env(safe-area-inset-left,0px));width:36px;height:36px}
+.poems{position:fixed;z-index:3;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;gap:6px;max-width:calc(100vw - 32px);overflow-x:auto;scrollbar-width:none}
+.poems button{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid rgba(200,225,255,.35);background:rgba(4,10,60,.4);color:var(--dim);font:500 9px ui-monospace,monospace;padding:0;cursor:pointer}
+.poems button.on{background:#fff;color:#06106a;border-color:#fff}
+.rt{position:fixed;z-index:3;top:calc(env(safe-area-inset-top,0px) + 18px);left:50%;transform:translateX(-50%);font:600 12px ui-monospace,monospace;color:var(--rec);text-shadow:0 0 6px #000;pointer-events:none}
+.sheet{position:fixed;inset:0;z-index:10;background:rgba(2,5,40,.94);display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;padding:calc(env(safe-area-inset-top,0px) + 12px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 12px) max(16px,env(safe-area-inset-left,0px));backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.sh{display:flex;gap:10px;align-items:center}
+.sh .ic{position:static}
+.sb{overflow:auto;min-height:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px}
+.grid button{aspect-ratio:1;border-radius:50%;border:1.5px solid rgba(200,225,255,.3);background:#0a1690 center/cover no-repeat;position:relative;cursor:pointer;padding:0;color:#fff}
+.grid button span{position:absolute;inset:auto 0 6px;font:600 10px ui-monospace,monospace;text-shadow:0 0 4px #000,0 0 2px #000}
+.grid button i{position:absolute;top:7px;left:0;right:0;display:flex;gap:3px;justify-content:center}
+.grid button i b{width:6px;height:6px;border-radius:50%}
+.grid button.cur{border-color:#fff;box-shadow:0 0 0 2px #fff}
+.tabsk{display:flex;gap:6px}
+.tabsk button{width:40px;height:40px;border-radius:50%;border:1px solid var(--ring);background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
+.tabsk button.on{background:#fff;color:#06106a}
+.tabsk svg{width:18px;height:18px}
+.take video{max-width:100%;max-height:62vh;border-radius:12px;display:block;margin:0 auto}
+.row{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.howto{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;max-width:980px}
+.howto div{display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;align-items:center;font:400 14px/1.45 system-ui,sans-serif;color:var(--ink)}
+.howto svg{width:52px;height:52px}
+.toast{position:fixed;z-index:20;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 64px);background:rgba(8,16,90,.92);border:1px solid var(--ring);border-radius:22px;padding:7px 8px 7px 14px;display:flex;gap:10px;align-items:center;font:500 12px system-ui,sans-serif}
+.toast button{border:1px solid var(--ring);background:transparent;color:var(--ink);border-radius:16px;min-height:28px;padding:0 10px;font:600 10px ui-monospace,monospace;cursor:pointer}
 </style>
 
-<div class="app">
-  <div class="top">
-    <h1>FOURTEEN POEMS</h1>
-    <div class="tabs" role="tablist"><button type="button" id="tDecks" class="on">DECKS</button><button type="button" id="tMix">MIX</button></div>
-    <span class="sp"></span>
-    <button type="button" id="exp">EXPORT</button><button type="button" id="help" aria-label="How it works">?</button>
-  </div>
-
-  <section class="decks" id="vDecks" aria-label="Decks">
-    <div class="deck a" id="deckA"></div>
-    <div class="center">
-      <div class="screen"><canvas class="pgm" width="1280" height="720"></canvas></div>
-      <div class="xrow"><b class="ab-a">A</b><div class="xf" id="xf" role="slider" tabindex="0" aria-label="Crossfader"><canvas></canvas></div><b class="ab-b">B</b></div>
-      <div class="crow"><button type="button" id="mode" title="DISSOLVE blends the pictures; CUT shows only the side the crossfader favours">DISSOLVE</button><button type="button" id="recB" title="Lay the live output down into the mix while decks play">● REC</button><span class="tc" id="recTc"></span></div>
-    </div>
-    <div class="deck b" id="deckB"></div>
-    <div class="dots" id="dots" aria-label="Load a poem"></div>
-  </section>
-
-  <section class="mix" id="vMix" hidden aria-label="Mix">
-    <div class="screen"><canvas class="pgm" width="1280" height="720"></canvas></div>
-    <div class="side">
-      <div class="tc" id="mTc">0:00.0 / 0:00.0</div>
-      <div class="row"><button class="r" type="button" id="mStart" aria-label="Back to start">⏮</button><button class="r" type="button" id="mPlay" aria-label="Play the mix">▶</button></div>
-      <div class="what" id="what"></div>
-      <label id="lvlL" hidden><span id="lvlN">LEVEL</span><input id="lvl" type="range" min="0" max="1" step=".01"></label>
-      <div class="row" id="selRow" hidden><button type="button" id="cDeck">TO DECK</button><button type="button" id="cDel">DELETE</button></div>
-      <div class="row"><button type="button" id="undo">UNDO</button><button type="button" id="newMix">NEW MIX</button><button type="button" id="film">RECORD FILM</button></div>
-    </div>
-    <div class="tl" id="tl" aria-label="Lanes: picture, sound, words"><canvas></canvas></div>
-  </section>
-</div>
-<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true"><div class="sh" id="shH"></div><div class="sb" id="shB"></div><div class="sh" id="shF"></div></div>
+<canvas id="out" aria-label="The output"></canvas>
+<canvas id="rig" aria-label="Discs. Tap a centre to play, turn a ring to move in time, drag a centre to move a disc, push two discs together to link them."></canvas>
+<button class="ic" id="help" type="button" aria-label="How to play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1.9-1.1 1.8M12 17h.01"/></svg></button>
+<button class="ic" id="add" type="button" aria-label="Add a disc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/></svg></button>
+<button class="ic" id="rec" type="button" aria-label="Record"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg></button>
+<div class="rt" id="rt" hidden></div>
+<div class="poems" id="poems" aria-label="Poems"></div>
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true"><div class="sh" id="shH"></div><div class="sb" id="shB"></div></div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
 'use strict';
-/* ===== constants and helpers ===== */
+/* ===== constants ===== */
 const BASE=/\/city\/mix\/?/.test(location.pathname)?'../decks/':'';
-const FPS=23.976,TB=24,LIM={clips:200,undo:100,rows:4,players:24};
-const LANES=[{k:'pic',n:'PICTURE',c:'#7fd8ff'},{k:'snd',n:'SOUND',c:'#ffb35c'},{k:'txt',n:'WORDS',c:'#d8c9ff'}];
+const FPS=23.976,TB=24,TURN=8,TEETH=40,MAXD=4,SNAP=26;   // one ring turn = 8 s; at most 4 discs
+const KCOL={reading:'#7fd8ff',world:'#9ff0c4',sounds:'#ffb35c',layers:'#d6a8ff'};
 const $=id=>document.getElementById(id),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const fmt=t=>{t=Math.max(0,t||0);return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0')+'.'+Math.floor(t%1*10)};
 const tcf=f=>{f=Math.max(0,Math.round(f));return[Math.floor(f/(3600*TB)),Math.floor(f/(60*TB))%60,Math.floor(f/TB)%60,f%TB].map(x=>String(x).padStart(2,'0')).join(':')};
-const tc=t=>tcf(t*FPS),DPR=Math.min(2,devicePixelRatio||1);
-function fit(c){const r=c.getBoundingClientRect(),w=Math.max(1,Math.round(r.width*DPR)),h=Math.max(1,Math.round(r.height*DPR));if(c.width!==w||c.height!==h){c.width=w;c.height=h}return[w,h]}
-function toast(m,act,fn){const e=$('toast');e.innerHTML=`<span>${esc(m)}</span>`+(act?`<button type="button">${act}</button>`:'');e.hidden=false;if(act)e.querySelector('button').onclick=()=>{fn();e.hidden=true};clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,act?6000:3200)}
-/* ===== <disc>: one shape for every source ===== */
-const DISC=[],DK={};let SRCNAME='';
-function lineWords(p,t){if(t<p.speech[0]-.3||t>p.speech[1]+.6)return null;let li=0;for(let i=0;i<p.lines.length;i++)if(p.lines[i].s<=t)li=i;const L=p.lines[li];
-  const ws=p.words.filter(w=>w[0]>=L.s-.3&&w[0]<L.e);return ws.length?ws.map(w=>({w:w[2],on:w[0]<=t})):L.text.split(' ').map(w=>({w,on:true}))}
-function lastBefore(list,t,key){let r=null;for(let i=0;i<list.length;i++){if(list[i][key]<=t)r=list[i];else break}return r}
-function addDisc(d){DISC.push(d);DK[d.key]=d}
-function buildDiscs(su,dk,ly){SRCNAME=su.source.name;const P=n=>su.poems.find(p=>p.num===n);
-  su.poems.forEach(p=>addDisc({key:'R'+p.num,kind:'reading',num:p.num,title:p.title,thumb:'thumbs/'+p.num+'.jpg',dur:p.clip.dur,files:[p.clip.file],video:true,pic:1,snd:1,txt:1,base:p.clip.src_in,reel:'WYGWYL',
-    span:[Math.max(0,p.speech[0]-.4),Math.min(p.clip.dur,p.speech[1]+1)],marks:p.lines.map(l=>l.s),words:t=>lineWords(p,t)}));
-  dk.world.forEach(w=>addDisc({key:'W'+w.key,kind:'world',num:w.poem,title:w.title,thumb:w.thumb,dur:w.dur,files:[w.file],video:true,pic:1,snd:1,txt:0,base:0,reel:w.key.replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase(),span:[0,w.dur],marks:[0,...w.cuts]}));
-  dk.sounds.forEach(s=>{const p=P(s.num);addDisc({key:'S'+s.num,kind:'sounds',num:s.num,title:'Line sounds · '+p.title,dur:s.dur,files:[s.file],video:false,pic:0,snd:1,txt:1,base:0,reel:'FS'+s.num,
-    span:[Math.max(0,p.speech[0]-.4),Math.min(s.dur,p.speech[1]+2)],marks:s.cues.map(c=>c.t),words:t=>{const c=lastBefore(s.cues,t,'t');return c&&t-c.t<6?[{w:'♪ '+c.title,on:true},{w:'— '+c.author,on:false}]:null}})});
-  ly.poems.forEach(x=>{const p=P(x.num);addDisc({key:'X'+x.num,kind:'layers',num:x.num,title:'Rooms · '+p.title,dur:x.dur,files:x.stems.map(s=>s.file),video:false,pic:0,snd:1,txt:1,base:0,reel:'MP'+x.num,
-    span:[Math.max(0,p.speech[0]-.4),Math.min(x.dur,p.speech[1]+2)],marks:x.lines.map(l=>l.t),xl:x.lines,words:t=>{const L=lastBefore(x.lines,t,'t');return L?[{w:L.beat,on:true}]:null}})})}
-const KIND={reading:'READING',world:'WORLD',sounds:'LINE SOUNDS',layers:'ROOMS'};
-/* ===== audio graph (created on the first tap) ===== */
-const G={xf:.5,mode:'mix',view:'decks'};let AC=null,master=null,mDest=null,noiseBuf=null;
-function ensureAC(){if(AC){AC.resume().catch(()=>{});return}AC=new (window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.connect(AC.destination);
-  try{mDest=AC.createMediaStreamDestination();master.connect(mDest)}catch(e){mDest=null}
-  noiseBuf=AC.createBuffer(1,AC.sampleRate>>2,AC.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
-  DECK.forEach(k=>k.pl&&k.pl.wire());MIX.clips.forEach(c=>c.pl&&c.pl.wire())}
-function scratch(v){if(!AC||v<.01)return;const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=noiseBuf;f.type='bandpass';f.frequency.value=400+Math.min(1,v)*2600;g.gain.setValueAtTime(.12,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.06);s.connect(f);f.connect(g);g.connect(master);s.start();s.stop(AC.currentTime+.07)}
-/* <player>: the synced media elements of one disc (1 element, or 5 for rooms). Picture players are muted. */
-function makePlayer(d,muted,first){const els=d.files.map((f,i)=>{const e=(i===0&&first)?first:(d.video&&i===0?document.createElement('video'):new Audio());e.preload='auto';e.playsInline=true;e.muted=!!muted;e.src=BASE+f;return e});
-  return{d,els,g:null,muted,
-    wire(){if(this.g||!AC||this.muted)return;this.g=AC.createGain();this.g.gain.value=0;this.g.connect(master);for(const e of this.els){let n=e._node;if(!n){try{n=e._node=AC.createMediaElementSource(e)}catch(x){continue}}try{n.disconnect()}catch(x){}n.connect(this.g)}},
-    t(){return this.els[0].currentTime||0},paused(){return this.els[0].paused},
-    seek(t){for(const e of this.els){try{e.currentTime=t}catch(x){}}},
-    play(){this.wire();for(const e of this.els)e.play().catch(()=>{})},
-    pause(){for(const e of this.els)e.pause()},
-    sync(){const t=this.t(),p=this.paused();for(let i=1;i<this.els.length;i++){const e=this.els[i];if(Math.abs(e.currentTime-t)>.08)e.currentTime=t;if(e.paused!==p)p?e.pause():e.play().catch(()=>{})}},
-    vol(v){if(this.g)this.g.gain.setTargetAtTime(v,AC.currentTime,.03)},
-    release(){for(const e of this.els){if(e.tagName==='VIDEO'&&e.isConnected)continue;e.pause();e.removeAttribute('src');e.load()}if(this.g){try{this.g.disconnect()}catch(x){}}}}}
-/* ===== <deck> ×2 ===== */
-if(matchMedia('(orientation:portrait) and (max-width:820px)').matches)setTimeout(()=>toast('Turn the phone sideways: the decks get much more room.'),1200);
-const DECK=[{id:'A',col:'#7fd8ff'},{id:'B',col:'#ffb35c'}].map(k=>Object.assign(k,{d:null,pl:null,in:0,out:0,route:{pic:true,snd:true,txt:true},scr:null,err:false}));
-const otherDeck=k=>k===DECK[0]?DECK[1]:DECK[0];
-function deckHTML(k){return`<button class="dname" type="button" id="nm${k.id}" title="Load another disc on deck ${k.id}"><b>${k.id}</b><span id="nt${k.id}">—</span> ▾</button>
-  <div class="disc" id="ds${k.id}" title="Drag along the ring to jump; drag inside to nudge"><video playsinline preload="auto" id="v${k.id}"></video><canvas></canvas></div>
-  <div class="drow"><button class="r" type="button" id="pv${k.id}" title="Previous line">|◀</button><button class="r" type="button" id="mi${k.id}" title="Mark IN">[</button><button class="r big" type="button" id="pl${k.id}" aria-label="Play deck ${k.id}">▶</button><button class="r" type="button" id="mo${k.id}" title="Mark OUT">]</button><button class="r" type="button" id="nx${k.id}" title="Next line">▶|</button></div>
-  <div class="drow"><div class="route" id="rt${k.id}"><button type="button" data-c="txt" title="Words reach the output">T</button><button type="button" data-c="pic" title="Picture reaches the output">V</button><button type="button" data-c="snd" title="Sound reaches the output">A</button></div><button class="send" type="button" id="sd${k.id}">SEND</button></div>`}
-function deckT(k){return k.scr?k.scr.t:(k.pl?k.pl.t():0)}
-function loadDeck(i,key){const k=DECK[i],d=DK[key];if(!d)return false;if(k.pl){k.pl.pause();k.pl.release()}k.d=d;k.err=false;
-  const v=$('v'+k.id);v.style.visibility=d.video?'visible':'hidden';if(!d.video){v.pause();v.removeAttribute('src');v.load()}
-  k.pl=makePlayer(d,false,d.video?v:null);if(AC)k.pl.wire();k.pl.els[0].onerror=()=>{k.err=true};
-  k.in=d.span[0];k.out=d.span[1];k.route={pic:!!d.pic,snd:!!d.snd,txt:!!d.txt};k.pl.els[0].addEventListener('loadedmetadata',()=>k.pl.seek(k.in),{once:true});
-  $('nt'+k.id).textContent=(d.kind==='reading'?d.num+' ':'')+d.title;routeUI(k);save();return true}
-function routeUI(k){$('rt'+k.id).querySelectorAll('button').forEach(b=>{const c=b.dataset.c,ok=k.d&&k.d[c];b.disabled=!ok;b.classList.toggle('on',!!(ok&&k.route[c]))});
-  $('sd'+k.id).disabled=!k.d||!['pic','snd','txt'].some(c=>k.d[c]&&k.route[c])||k.out-k.in<.2}
-function deckPlay(k){if(!k.pl)return;ensureAC();if(MIX.playing)mixStop();if(k.pl.paused()){if(deckT(k)>=k.d.dur-.1)k.pl.seek(0);k.pl.play()}else k.pl.pause()}
-function jumpLine(k,dir){if(!k.d)return;const t=deckT(k),m=k.d.marks;let tgt;if(dir>0){tgt=m.find(x=>x>t+.25);if(tgt==null)tgt=Math.min(k.d.dur-.1,t+5)}else{const before=m.filter(x=>x<t-.6);tgt=before.length?before[before.length-1]:0}k.pl.seek(clamp(tgt,0,k.d.dur))}
-/* scrubbing a disc: the ring jumps (absolute), the inside nudges (relative, one turn = 8 s) */
-function scrubStart(k,e){if(!k.pl)return;ensureAC();const el=$('ds'+k.id),r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dist=Math.hypot(e.clientX-cx,e.clientY-cy)/(r.width/2);
-  k.scr={ring:dist>.8,was:!k.pl.paused(),a:Math.atan2(e.clientY-cy,e.clientX-cx),t:deckT(k),cx,cy};k.pl.pause();el.setPointerCapture(e.pointerId);scrubMove(k,e)}
-function scrubMove(k,e){const s=k.scr;if(!s)return;const a=Math.atan2(e.clientY-s.cy,e.clientX-s.cx);let nt;
-  if(s.ring){let f=(a+Math.PI/2)/(Math.PI*2);if(f<0)f+=1;nt=f*k.d.dur}else{let da=a-s.a;if(da>Math.PI)da-=2*Math.PI;if(da<-Math.PI)da+=2*Math.PI;nt=s.t+da/(Math.PI*2)*8}
-  s.a=a;nt=clamp(nt,0,k.d.dur-.05);scratch(Math.abs(nt-s.t)*2);s.t=nt;k.pl.seek(nt)}
-function scrubEnd(k){const s=k.scr;if(!s)return;k.scr=null;k.pl.seek(s.t);if(s.was)k.pl.play()}
-/* live routing: what each deck contributes to the output, from the crossfader */
-function liveWeights(){const x=G.xf;if(G.mode==='cut')return x<=.5?[1,0]:[0,1];return[Math.cos(x*Math.PI/2),Math.cos((1-x)*Math.PI/2)]}
-function applyLive(){if(!AC)return;const w=liveWeights();DECK.forEach((k,i)=>{if(k.pl)k.pl.vol(!MIX.playing&&k.route.snd?w[i]:0)})}
-/* ===== <mix> ===== */
-const MIX={clips:[],undo:[],sel:null,PT:0,playing:false,p0:0,pt0:0,uid:1};
-const len=c=>c.out-c.in,mixDur=()=>{let m=0;for(const c of MIX.clips)m=Math.max(m,c.at+len(c));return m};
-function validClip(c){const d=DK[c&&c.key];return!!(d&&['pic','snd','txt'].includes(c.lane)&&d[c.lane]&&c.in>=0&&c.out>c.in&&c.out<=d.dur+.05&&c.at>=0&&c.row>=0&&c.row<LIM.rows&&c.lvl>=0&&c.lvl<=1)}
-function snap(){MIX.undo.push(JSON.stringify(MIX.clips.map(({pl,rec,...c})=>c)));if(MIX.undo.length>LIM.undo)MIX.undo.shift()}
-function setClips(arr){MIX.clips.forEach(c=>c.pl&&c.pl.release());MIX.clips=arr.filter(validClip).slice(0,LIM.clips).map(c=>({...c,pl:null}));MIX.sel=null;MIX.uid=MIX.clips.reduce((m,c)=>Math.max(m,c.id),0)+1;mixSync(true);sideUI();save()}
-function undo(){if(!MIX.undo.length)return toast('Nothing to undo.');setClips(JSON.parse(MIX.undo.pop()))}
-function rowBusy(lane,r,at,end){for(const c of MIX.clips){if(c.lane!==lane||c.row!==r)continue;const ce=c.rec?Infinity:c.at+len(c);if(c.at<end-.01&&ce>at+.01)return true}return false}
-function freeRow(lane,at,end,pref){if(pref!=null&&!rowBusy(lane,pref,at,end))return pref;for(let r=0;r<LIM.rows;r++)if(!rowBusy(lane,r,at,end))return r;return LIM.rows-1}
-function addClip(c){if(MIX.clips.length>=LIM.clips){toast(`The mix holds ${LIM.clips} clips. Delete some to add more.`);return null}c.id=MIX.uid++;c.row=freeRow(c.lane,c.at,c.at+len(c),c.pref);delete c.pref;c.pl=null;if(!validClip(c))return null;MIX.clips.push(c);return c}
-function send(k){if(!k.d)return;const chs=['pic','snd','txt'].filter(c=>k.d[c]&&k.route[c]);if(!chs.length)return;snap();const at=MIX.PT,w=liveWeights()[DECK.indexOf(k)];let n=0;
-  for(const lane of chs)if(addClip({lane,key:k.d.key,in:k.in,out:k.out,at,lvl:lane==='txt'?1:Math.max(.3,Math.round(w*100)/100)}))n++;
-  if(!n){MIX.undo.pop();return}MIX.PT=at+(k.out-k.in);mixSync(true);sideUI();save();
-  toast(`Deck ${k.id}: ${chs.map(c=>LANES.find(l=>l.k===c).n.toLowerCase()).join(' + ')} sent to the mix at ${fmt(at)}.`,'UNDO',undo)}
-/* each clip owns at most one player; far clips release theirs (bounded memory) */
-function playerFor(c){if(!c.pl){let live=0;for(const x of MIX.clips)if(x.pl)live++;if(live>=LIM.players)releaseFar(true);c.pl=makePlayer(DK[c.key],c.lane==='pic');if(AC)c.pl.wire()}return c.pl}
-function releaseFar(force){const T=MIX.PT;for(const c of MIX.clips){if(!c.pl)continue;const far=T<c.at-6||T>c.at+len(c)+2;if(far||(force&&(T<c.at-1||T>c.at+len(c)))){c.pl.release();c.pl=null}}}
-function mixSync(force){const T=MIX.PT;for(const c of MIX.clips){if(c.lane==='txt')continue;const a=c.at,b=a+len(c),on=T>=a&&T<b;
-    if(!(T>=a-2.5&&T<b)){if(c.pl&&!c.pl.paused())c.pl.pause();continue}
-    const p=playerFor(c),tgt=c.in+(T-a);
-    if(!on){if(!p.paused())p.pause();if(Math.abs(p.t()-c.in)>.2)p.seek(c.in);continue}
-    if(MIX.playing){if(p.paused()){p.seek(tgt);p.play()}else if(Math.abs(p.t()-tgt)>.18)p.seek(tgt);p.sync()}else{if(!p.paused())p.pause();if(force||Math.abs(p.t()-tgt)>.05)p.seek(tgt)}
-    if(c.lane==='snd')p.vol(MIX.playing?c.lvl*c.lvl:0)}}
-function mixPlay(){if(!MIX.clips.length)return toast('The mix is empty. SEND a cut from a deck, or press ● REC and play.');ensureAC();DECK.forEach(k=>k.pl&&k.pl.pause());if(REC.on)recStop();
-  if(MIX.PT>=mixDur()-.05)MIX.PT=0;MIX.playing=true;MIX.p0=performance.now();MIX.pt0=MIX.PT;mixSync(true);applyLive()}
-function mixStop(){MIX.playing=false;for(const c of MIX.clips)if(c.pl)c.pl.pause();applyLive();if(FILM.on&&FILM.mr&&FILM.mr.state==='recording')FILM.mr.stop()}
-/* ===== REC: lay the live output down as clips ===== */
-const REC={on:false,t0:0,base:0,open:{}};
-function recStart(){if(MIX.playing)mixStop();snap();REC.on=true;REC.t0=performance.now();REC.base=MIX.PT;REC.open={};toast('Recording. Whatever plays and is routed is laid into the mix. Press ■ STOP REC to stop.')}
-function recStop(){REC.on=false;Object.keys(REC.open).forEach(closeSeg);const end=REC.base+(performance.now()-REC.t0)/1000;MIX.PT=Math.min(end,Math.max(REC.base,mixDur()));sideUI();save();toast(`Recording stopped. The mix has ${MIX.clips.length} clips, ${fmt(mixDur())}.`,'UNDO',undo)}
-function recNow(){return REC.base+(performance.now()-REC.t0)/1000}
-function closeSeg(key){const c=REC.open[key];delete REC.open[key];if(c)delete c.rec;if(c&&len(c)<.2)MIX.clips=MIX.clips.filter(x=>x!==c)}
-function recTick(){if(!REC.on)return;const w=liveWeights(),T=recNow();
-  for(let i=0;i<DECK.length;i++){const k=DECK[i];for(const lane of ['pic','snd','txt']){const key=k.id+lane,c=REC.open[key];
-    const lvl=lane==='txt'?1:Math.round(w[i]*100)/100,live=!!(k.d&&k.d[lane]&&k.route[lane]&&k.pl&&!k.pl.paused()&&!k.scr&&(lane==='txt'||lvl>.1));
-    if(!live){if(c)closeSeg(key);continue}const t=k.pl.t();
-    if(c&&(c.key!==k.d.key||Math.abs(t-c.out)>.35||Math.abs(lvl-c.lvl)>.15))closeSeg(key);
-    if(!REC.open[key]){const n=addClip({lane,key:k.d.key,in:t,out:Math.min(k.d.dur,t+.04),at:T,lvl:Math.max(.1,lvl),pref:i});if(n){n.rec=true;REC.open[key]=n}else{recStop();return}}else REC.open[key].out=Math.min(k.d.dur,t)}}}
-/* ===== drawing ===== */
-function drawDisc(k){const c=$('ds'+k.id).querySelector('canvas'),[W,H]=fit(c),g=c.getContext('2d');g.clearRect(0,0,W,H);const R=Math.min(W,H)/2-3*DPR,ox=W/2,oy=H/2;if(R<20)return;
-  if(!k.d){g.strokeStyle='rgba(200,225,255,.35)';g.lineWidth=1.2*DPR;g.beginPath();g.arc(ox,oy,R,0,7);g.stroke();return}
-  const d=k.d,t=deckT(k),A=x=>-Math.PI/2+x/d.dur*Math.PI*2;
-  if(!d.video){const gr=g.createRadialGradient(ox,oy,0,ox,oy,R);gr.addColorStop(0,'#1d35d6');gr.addColorStop(1,'#071080');g.fillStyle=gr;g.beginPath();g.arc(ox,oy,R*.82,0,7);g.fill();
-    g.textAlign='center';g.textBaseline='middle';g.fillStyle='rgba(255,255,255,.55)';g.font=`500 ${9*DPR}px IBM Plex Mono`;g.fillText(KIND[d.kind],ox,oy-R*.42);
-    const ws=d.words&&d.words(t);g.fillStyle='#fff';g.font=`500 ${Math.max(10,R/8.5)}px "IBM Plex Sans"`;wrapC(g,ws?ws.map(x=>x.w).join(' '):d.title,ox,oy,R*1.3,Math.max(12,R/7),3)}
-  g.lineWidth=1.2*DPR;g.strokeStyle='rgba(200,225,255,.4)';g.beginPath();g.arc(ox,oy,R,0,7);g.stroke();
-  g.fillStyle='rgba(255,255,255,.4)';for(const m of d.marks){const a=A(m);g.fillRect(ox+Math.cos(a)*(R-4*DPR)-DPR,oy+Math.sin(a)*(R-4*DPR)-DPR,2*DPR,2*DPR)}
-  g.lineWidth=4*DPR;g.strokeStyle=k.col;g.beginPath();g.arc(ox,oy,R,A(k.in),A(k.out));g.stroke();
-  const dot=(x,r,col)=>{g.fillStyle=col;g.beginPath();g.arc(ox+Math.cos(A(x))*R,oy+Math.sin(A(x))*R,r*DPR,0,7);g.fill()};dot(k.in,4,k.col);dot(k.out,4,k.col);dot(t,6,'#fff');
-  if(k.scr||k.err){g.fillStyle='rgba(3,8,60,.72)';g.beginPath();g.arc(ox,oy,R*.38,0,7);g.fill();g.fillStyle='#fff';g.textAlign='center';g.textBaseline='middle';g.font=`600 ${12*DPR}px IBM Plex Mono`;g.fillText(k.err?'COULD NOT LOAD':fmt(t),ox,oy-6*DPR);
-    if(!k.err){g.font=`500 ${8*DPR}px IBM Plex Mono`;g.fillStyle='rgba(255,255,255,.7)';g.fillText(k.scr.ring?'JUMP':'NUDGE',ox,oy+9*DPR)}}}
-function wrapC(g,text,x,y,w,lh,max){const ws=String(text).split(' ');let line='',lines=[];for(const v of ws){const t2=line?line+' '+v:v;if(g.measureText(t2).width>w&&line){lines.push(line);line=v}else line=t2}lines.push(line);lines=lines.slice(0,max);const y0=y-(lines.length-1)*lh/2;lines.forEach((l,i)=>g.fillText(l,x,y0+i*lh))}
-function drawXF(){const c=$('xf').querySelector('canvas'),[W,H]=fit(c),g=c.getContext('2d');g.clearRect(0,0,W,H);const x0=14*DPR,x1=W-14*DPR,y=H/2,X=x0+G.xf*(x1-x0);
-  const gr=g.createLinearGradient(x0,0,x1,0);gr.addColorStop(0,'#7fd8ff');gr.addColorStop(.5,'rgba(255,255,255,.3)');gr.addColorStop(1,'#ffb35c');g.fillStyle=gr;g.fillRect(x0,y-1.5*DPR,x1-x0,3*DPR);
-  g.fillStyle='rgba(255,255,255,.5)';g.fillRect(x0+(x1-x0)/2-1,y-6*DPR,2,12*DPR);g.fillStyle='#fff';g.beginPath();g.arc(X,y,11*DPR,0,7);g.fill()}
-function drawOut(cv){const W=cv.width,H=cv.height,g=cv.getContext('2d');g.globalAlpha=1;g.fillStyle='#000';g.fillRect(0,0,W,H);
-  const put=(v,a)=>{if(!v||a<=.01||v.readyState<2||!v.videoWidth)return;const s=Math.max(W/v.videoWidth,H/v.videoHeight);g.globalAlpha=a;g.drawImage(v,(W-v.videoWidth*s)/2,(H-v.videoHeight*s)/2,v.videoWidth*s,v.videoHeight*s);g.globalAlpha=1};
-  const caps=[];let label;
-  if(G.view==='mix'){const T=MIX.PT;const act=MIX.clips.filter(c=>T>=c.at&&T<c.at+len(c));act.filter(c=>c.lane==='pic').sort((a,b)=>a.row-b.row).forEach(c=>put(c.pl&&c.pl.els[0],c.lvl));
-    act.filter(c=>c.lane==='txt').sort((a,b)=>a.row-b.row).forEach(c=>{const ws=DK[c.key].words&&DK[c.key].words(c.in+(T-c.at));if(ws)caps.push({ws,a:c.lvl})});
-    label=MIX.clips.length?`MIX ${fmt(T)}`:'MIX · EMPTY';if(!act.some(c=>c.lane==='pic')&&MIX.clips.length)hint(g,W,H,act.length?'SOUND AND WORDS ONLY HERE':'NOTHING ON THE LANES HERE')}
-  else{const w=liveWeights(),pics=DECK.filter(k=>k.d&&k.d.pic&&k.route.pic);
-    if(pics.length===2){if(G.mode==='cut')put(pics[w[0]>=w[1]?0:1].pl.els[0],1);else{put(pics[0].pl.els[0],1);put(pics[1].pl.els[0],G.xf)}}else if(pics.length===1)put(pics[0].pl.els[0],w[DECK.indexOf(pics[0])]>.01?1:0);
-    DECK.map((k,i)=>({k,w:w[i]})).sort((a,b)=>b.w-a.w).forEach(({k,w:wt})=>{if(k.d&&k.d.txt&&k.route.txt&&wt>.05){const ws=k.d.words(deckT(k));if(ws)caps.push({ws,a:G.mode==='cut'?1:Math.max(.35,wt)})}});
-    label=`LIVE · ${G.mode==='cut'?(G.xf<=.5?'A':'B'):(G.xf<.03?'A':G.xf>.97?'B':'A + B')}`;if(!pics.length)hint(g,W,H,DECK.some(k=>k.d)?'NO PICTURE ROUTED · TURN ON V':'LOAD A DISC')}
-  let y=H-44;caps.slice(0,2).forEach((cp,i)=>{g.globalAlpha=cp.a;g.textAlign='center';g.textBaseline='middle';g.font=`500 ${i?28:38}px "IBM Plex Sans"`;g.shadowColor='rgba(0,0,0,.85)';g.shadowBlur=8;
-    let lines=[],line='';for(const w of cp.ws){const t2=line?line+' '+w.w:w.w;if(g.measureText(t2).width>W*.86&&line){lines.push(line);line=w.w}else line=t2}lines.push(line);lines=lines.slice(-2).reverse();
-    lines.forEach((l,j)=>{g.fillStyle='#fff';g.fillText(l,W/2,y-j*(i?34:46))});y-=lines.length*(i?34:46)+12;g.shadowBlur=0});g.globalAlpha=1;
-  g.font='600 20px IBM Plex Mono';g.textAlign='left';g.textBaseline='top';g.fillStyle=REC.on?'#ff5a6e':'rgba(255,255,255,.75)';g.fillText((REC.on?'● REC  ':'')+label,22,18)}
-function hint(g,W,H,t){g.fillStyle='rgba(140,165,255,.35)';g.font='500 22px IBM Plex Mono';g.textAlign='center';g.textBaseline='middle';g.fillText(t,W/2,H/2)}
-/* lanes */
-let TLX=null;
-function drawTL(){const c=$('tl').querySelector('canvas'),[W,H]=fit(c),g=c.getContext('2d');g.clearRect(0,0,W,H);const lw=70*DPR,tot=Math.max(30,mixDur()*1.12,MIX.PT+5),X=t=>lw+t/tot*(W-lw-10*DPR),ry=16*DPR,lh=(H-ry-4*DPR)/3;
-  g.font=`500 ${9*DPR}px IBM Plex Mono`;g.textBaseline='middle';g.textAlign='left';g.fillStyle='rgba(220,230,255,.45)';const pxs=(W-lw)/tot,step=[1,2,5,10,15,30,60,120,300].find(v=>v*pxs>=46*DPR)||600;
-  for(let s=0;s<=tot;s+=step){g.fillRect(X(s),ry-5*DPR,1,4*DPR);g.fillText(fmt(s).slice(0,-2),X(s)+3*DPR,ry-9*DPR)}
-  LANES.forEach((L,i)=>{const y=ry+i*lh;g.fillStyle='rgba(255,255,255,.04)';g.fillRect(lw,y+1,W-lw,lh-2);g.fillStyle=L.c;g.fillText(L.n,8*DPR,y+lh/2);
-    let rows=1;for(const x of MIX.clips)if(x.lane===L.k)rows=Math.max(rows,x.row+1);const rh=(lh-4*DPR)/rows;
-    for(const x of MIX.clips){if(x.lane!==L.k)continue;const x0=X(x.at),w=Math.max(3,X(x.at+len(x))-x0),yy=y+2*DPR+x.row*rh,d=DK[x.key];g.globalAlpha=.25+.75*x.lvl;g.fillStyle=L.c;g.fillRect(x0,yy,w,rh-2*DPR);g.globalAlpha=1;
-      if(x.id===MIX.sel){g.strokeStyle='#fff';g.lineWidth=2*DPR;g.strokeRect(x0+1,yy+1,w-2,rh-4*DPR)}
-      if(w>30*DPR){g.save();g.beginPath();g.rect(x0,yy,w,rh);g.clip();g.fillStyle='#06106a';g.fillText(`${d.num||''} ${d.kind==='reading'?d.title:KIND[d.kind].toLowerCase()}`,x0+5*DPR,yy+rh/2-DPR);g.restore()}}});
-  g.fillStyle=REC.on?'#ff5a6e':'#fff';const ph=REC.on?recNow():MIX.PT;g.fillRect(X(ph)-DPR,4*DPR,2*DPR,H-8*DPR);TLX={lw,tot,ry,lh,W}}
-function tlHit(e){const el=$('tl'),r=el.getBoundingClientRect(),x=(e.clientX-r.left)*DPR,y=(e.clientY-r.top)*DPR,{lw,tot,ry,lh,W}=TLX,t=(x-lw)/(W-lw-10*DPR)*tot,li=clamp(Math.floor((y-ry)/lh),0,2),lane=LANES[li].k;
-  let rows=1;for(const c of MIX.clips)if(c.lane===lane)rows=Math.max(rows,c.row+1);const rh=(lh-4*DPR)/rows,row=Math.floor((y-ry-li*lh-2*DPR)/rh);
-  const c=MIX.clips.find(c=>c.lane===lane&&c.row===row&&t>=c.at&&t<=c.at+len(c));return{t,lane,row,c,px:tot/(W-lw)*10*DPR,x}}
-let tlDrag=null;
-function tlDown(e){if(!TLX||REC.on)return;$('tl').setPointerCapture(e.pointerId);const h=tlHit(e);if(h.x<TLX.lw)return;
-  if(h.c){MIX.sel=h.c.id;snap();const c=h.c;tlDrag={c,mode:h.t-c.at<h.px&&len(c)>3*h.px?'in':c.at+len(c)-h.t<h.px?'out':'move',t:h.t,moved:false}}else{MIX.sel=null;tlDrag={mode:'head'};MIX.PT=Math.max(0,h.t);mixSync(true)}sideUI()}
-function tlMove(e){if(!tlDrag||!$('tl').hasPointerCapture(e.pointerId))return;const h=tlHit(e);if(tlDrag.mode==='head'){MIX.PT=Math.max(0,h.t);mixSync(true);return}
-  const c=tlDrag.c,dT=h.t-tlDrag.t,d=DK[c.key];tlDrag.t=h.t;tlDrag.moved=true;
-  if(tlDrag.mode==='move'){c.at=Math.max(0,c.at+dT);if(h.lane===c.lane&&h.row>=0&&h.row<LIM.rows)c.row=h.row}else if(tlDrag.mode==='in'){const ni=clamp(c.in+dT,0,c.out-.2);c.at=Math.max(0,c.at+ni-c.in);c.in=ni}else c.out=clamp(c.out+dT,c.in+.2,d.dur);mixSync(true);sideUI()}
-function tlUp(){if(tlDrag&&tlDrag.c){if(!tlDrag.moved)MIX.undo.pop();else save()}tlDrag=null}
-function sideUI(){const c=MIX.clips.find(x=>x.id===MIX.sel);$('lvlL').hidden=!c;$('selRow').hidden=!c;
-  if(!c){$('what').innerHTML=MIX.clips.length?`<b>${MIX.clips.length}</b> clips · ${fmt(mixDur())}<br>Tap a clip to adjust it · drag to move · drag an edge to trim`:'The mix is empty.<br>On DECKS: mark <b>[</b> <b>]</b> and SEND, or press <b>● REC</b> and play.';return}
-  const d=DK[c.key],L=LANES.find(l=>l.k===c.lane);$('what').innerHTML=`<b style="color:${L.c}">${L.n}</b> · ${esc(d.title)}<br>${fmt(c.in)}–${fmt(c.out)} · starts <b>${fmt(c.at)}</b>`;$('lvlN').textContent=c.lane==='snd'?'VOLUME':'OPACITY';$('lvl').value=c.lvl}
-/* ===== views, shelf, export ===== */
-function view(v){G.view=v;$('vDecks').hidden=v!=='decks';$('vMix').hidden=v!=='mix';$('tDecks').classList.toggle('on',v==='decks');$('tMix').classList.toggle('on',v==='mix');if(v==='decks'&&MIX.playing)mixStop();if(v==='mix'){DECK.forEach(k=>k.pl&&k.pl.pause());mixSync(true);sideUI()}applyLive()}
-function sheet(h,b,f){$('shH').innerHTML=h;$('shB').innerHTML=b;$('shF').innerHTML=f||'';$('sheet').hidden=false;$('shB').scrollTop=0}
-function closeSheet(){$('sheet').hidden=true}
-let SHELF='reading';
-function shelf(i){const k=DECK[i];sheet(`<button type="button" onclick="closeSheet()">← BACK</button><h2>LOAD DECK <span style="color:${k.col}">${k.id}</span></h2>${Object.keys(KIND).map(x=>`<button type="button" data-f="${x}" class="${SHELF===x?'on':''}">${KIND[x]}</button>`).join('')}`,
-  `<div class="shelf">${DISC.filter(d=>d.kind===SHELF).map(d=>`<button type="button" data-k="${d.key}"><i style="${d.thumb?`background-image:url(${BASE+d.thumb})`:`background:radial-gradient(circle at 40% 35%,${d.kind==='layers'?'#2ad1c4':'#ffb35c'}66,#0a1690 70%)`}"></i><span>${esc(d.title)}<small>${fmt(d.dur).slice(0,-2)} · ${['T','V','A'].filter((x,j)=>d[['txt','pic','snd'][j]]).join(' ')}${otherDeck(k).d===d?' · on '+otherDeck(k).id:''}</small></span></button>`).join('')}</div>`);
-  $('shH').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{SHELF=b.dataset.f;shelf(i)});$('shB').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{closeSheet();loadDeck(i,b.dataset.k);dotUI()})}
-function poemDots(){$('dots').innerHTML=DISC.filter(d=>d.kind==='reading').map(d=>`<button type="button" data-n="${d.num}" title="${esc(d.title)}: reading on A, its world or rooms on B">${d.num}</button>`).join('');
-  $('dots').querySelectorAll('button').forEach(b=>b.onclick=()=>{const n=b.dataset.n,w=DISC.find(d=>d.kind==='world'&&d.num===n);loadDeck(0,'R'+n);loadDeck(1,w?w.key:'X'+n);dotUI()})}
-function dotUI(){const n=DECK[0].d&&DECK[0].d.kind==='reading'?DECK[0].d.num:null;$('dots').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.n===n))}
-function cmx(){const tracks=[];['pic','snd'].forEach(l=>{const rows=[...new Set(MIX.clips.filter(c=>c.lane===l).map(c=>c.row))].sort();rows.forEach((r,i)=>tracks.push({l,r,name:(l==='pic'?'V':'A')+(i+1)}))});
-  let o='TITLE: WYGWYL MIX\nFCM: NON-DROP FRAME\n\n',n=0;tracks.forEach(tk=>{o+=`* ---- TRACK ${tk.name} (${tk.l==='pic'?'picture':'sound'}) ----\n\n`;
-    MIX.clips.filter(c=>c.lane===tk.l&&c.row===tk.r).sort((a,b)=>a.at-b.at).forEach(c=>{const d=DK[c.key],ch=tk.l==='pic'?'V    ':(tk.name==='A1'?'A    ':tk.name.padEnd(5));
-      o+=`${String(++n).padStart(3,'0')}  ${d.reel.padEnd(8)} ${ch} C        ${tc(d.base+c.in)} ${tc(d.base+c.out)} ${tcf(86400+c.at*FPS)} ${tcf(86400+(c.at+len(c))*FPS)}\n* FROM CLIP NAME: ${d.kind==='reading'?SRCNAME:d.files.map(f=>f.split('/').pop()).join(' + ')}\n* ${d.title} · ${tk.l==='pic'?'OPACITY':'LEVEL'} ${Math.round(c.lvl*100)}%\n\n`})});
-  const tx=MIX.clips.filter(c=>c.lane==='txt').sort((a,b)=>a.at-b.at);if(tx.length){o+='* ---- WORDS (titles) ----\n';tx.forEach(c=>{const d=DK[c.key];o+=`* TEXT ${tcf(86400+c.at*FPS)} → ${tcf(86400+(c.at+len(c))*FPS)} from ${d.title} ${tc(d.base+c.in)}–${tc(d.base+c.out)} · opacity ${Math.round(c.lvl*100)}%\n`})}return o}
-function projJSON(){return JSON.stringify({version:2,source:SRCNAME,fps:FPS,clips:MIX.clips.map(({pl,...c})=>({...c,disc:DK[c.key].title,reel:DK[c.key].reel,src_in_tc:tc(DK[c.key].base+c.in),src_out_tc:tc(DK[c.key].base+c.out),rec_in_tc:tcf(86400+c.at*FPS)}))},null,1)}
-let DL=null;const dlReady=(window.claude&&claude.use?claude.use('downloads'):Promise.resolve(null)).then(d=>{DL=d}).catch(()=>{DL=null});
-async function saveFile(name,data){await dlReady;if(DL){try{await DL.save({filename:name,data});toast('Saved '+name+'.')}catch(e){toast(e&&e.code==='declined'?'Not saved.':'Saving is not available here.')}return}
+const tc=t=>tcf(t*FPS),fmt=t=>{t=Math.max(0,t||0);return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0')};
+const DPR=Math.min(2,devicePixelRatio||1),buzz=p=>{if(!TOUCHED)return;try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}};let TOUCHED=false;
+const ICON={pic:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 16 5-5 4 4 3-3 6 6"/>',snd:'<path d="M4 12h2M8 8v8M12 5v14M16 9v6M20 11v2"/>',txt:'<path d="M5 7h14M5 12h14M5 17h9"/>',
+  reading:'<circle cx="12" cy="8" r="3"/><path d="M6 20c1-4 3.5-6 6-6s5 2 6 6"/>',world:'<path d="M3 18l6-8 4 5 3-3 5 6z"/><circle cx="17" cy="7" r="2"/>',sounds:'<path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/>',layers:'<path d="m12 3 9 5-9 5-9-5zM3 13l9 5 9-5"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',back:'<path d="M15 5l-7 7 7 7"/>',save:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/>',film:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"/>'};
+const svg=(k,w=1.7)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
+function toast(m,act,fn){const e=$('toast');e.innerHTML=`<span>${esc(m)}</span>`+(act?`<button type="button">${act}</button>`:'');e.hidden=false;if(act)e.querySelector('button').onclick=()=>{fn();e.hidden=true};clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,act?5000:2400)}
+/* ===== sources: every disc is one of these ===== */
+const SRC=[],SK={};let SRCNAME='';
+const dec=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+function wav(w){return w?{rate:w.rate,lo:dec(w.lo),mid:dec(w.mid),hi:dec(w.hi)}:null}
+function lastBefore(list,t,k){let r=null;for(let i=0;i<list.length;i++){if(list[i][k]<=t)r=list[i];else break}return r}
+function lineWords(p,t){if(t<p.speech[0]-.3||t>p.speech[1]+.6)return null;let L=p.lines[0];for(const l of p.lines){if(l.s<=t)L=l;else break}const ws=p.words.filter(w=>w[0]>=L.s-.3&&w[0]<L.e);return ws.length?ws.map(w=>({w:w[2],on:w[0]<=t})):[{w:L.text,on:true}]}
+function addSrc(s){SRC.push(s);SK[s.key]=s}
+function build(su,dk,ly){SRCNAME=su.source.name;const P=n=>su.poems.find(p=>p.num===n);
+  su.poems.forEach(p=>addSrc({key:'R'+p.num,kind:'reading',num:p.num,title:p.title,thumb:'thumbs/'+p.num+'.jpg',dur:p.clip.dur,files:[p.clip.file],video:true,pic:1,snd:1,txt:1,base:p.clip.src_in,reel:'WYGWYL',start:Math.max(0,p.speech[0]-.4),marks:p.lines.map(l=>l.s),wave:wav(p.wave),words:t=>lineWords(p,t),speech:p.speech}));
+  dk.world.forEach(w=>{const p=w.poem&&P(w.poem);addSrc({key:'W'+w.key,kind:'world',num:w.poem,title:w.title,thumb:w.thumb,dur:w.dur,files:[w.file],video:true,pic:1,snd:1,txt:0,base:0,reel:w.key.replace(/[^A-Za-z0-9]/g,'').slice(0,8).toUpperCase(),start:0,marks:[0,...w.cuts],wave:wav(w.wave),speech:p?p.speech:null})});
+  dk.sounds.forEach(s=>{const p=P(s.num);addSrc({key:'S'+s.num,kind:'sounds',num:s.num,title:'Line sounds · '+p.title,dur:s.dur,files:[s.file],video:false,pic:0,snd:1,txt:1,base:0,reel:'FS'+s.num,start:Math.max(0,p.speech[0]-.4),marks:s.cues.map(c=>c.t),wave:wav(s.wave),speech:p.speech,
+    words:t=>{const c=lastBefore(s.cues,t,'t');return c&&t-c.t<6?[{w:'♪ '+c.title,on:true}]:null}})});
+  ly.poems.forEach(x=>{const p=P(x.num);addSrc({key:'X'+x.num,kind:'layers',num:x.num,title:'Rooms · '+p.title,dur:x.dur,files:x.stems.map(s=>s.file),video:false,pic:0,snd:1,txt:1,base:0,reel:'MP'+x.num,start:Math.max(0,p.speech[0]-.4),marks:x.lines.map(l=>l.t),wave:wav(x.wave),speech:p.speech,
+    words:t=>{const L=lastBefore(x.lines,t,'t');return L?[{w:L.layers.map(y=>y.label).slice(3).join(' · '),on:true}]:null}})})}
+/* poem time: a world reel is stretched over the reading of its poem, so meshed discs of one poem keep the words together */
+function toClock(s,t){if(s.kind==='world'&&s.speech){const[a,b]=s.speech;return a+t/s.dur*(b-a)}return t}
+function fromClock(s,c){if(s.kind==='world'&&s.speech){const[a,b]=s.speech;return(c-a)/(b-a)*s.dur}return c}
+function rateOf(s){if(s.kind==='world'&&s.speech){const[a,b]=s.speech;return s.dur/(b-a)}return 1}
+/* ===== audio ===== */
+let AC=null,master=null,mDest=null,noise=null;
+function ensureAC(){if(AC){AC.resume().catch(()=>{});return}AC=new (window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.connect(AC.destination);try{mDest=AC.createMediaStreamDestination();master.connect(mDest)}catch(e){mDest=null}
+  noise=AC.createBuffer(1,AC.sampleRate>>3,AC.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;DISCS.forEach(k=>wire(k))}
+function tick(v,f){if(!AC||v<=0)return;const s=AC.createBufferSource(),b=AC.createBiquadFilter(),g=AC.createGain();s.buffer=noise;b.type='bandpass';b.frequency.value=f||1800;b.Q.value=4;g.gain.setValueAtTime(v,AC.currentTime);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+.04);s.connect(b);b.connect(g);g.connect(master);s.start();s.stop(AC.currentTime+.05)}
+function wire(k){if(!AC||k.g)return;k.g=AC.createGain();k.g.gain.value=0;k.g.connect(master);for(const e of k.els){let n=e._n;if(!n){try{n=e._n=AC.createMediaElementSource(e)}catch(x){continue}}try{n.disconnect()}catch(x){}n.connect(k.g)}}
+/* ===== discs (gears) ===== */
+const DISCS=[];let uid=1;
+function makeDisc(key,x,y){const s=SK[key];if(!s||DISCS.length>=MAXD)return null;
+  const els=s.files.map((f,i)=>{const e=s.video&&i===0?document.createElement('video'):new Audio();e.preload='auto';e.playsInline=true;e.muted=false;e.loop=false;e.src=BASE+f;return e});
+  const k={id:uid++,s,els,g:null,x,y,route:{pic:!!s.pic,snd:!!s.snd,txt:s.kind==='reading'},dir:1,phase:0,loop:null,level:0,err:false,hold:null};
+  els[0].onerror=()=>{k.err=true};els[0].addEventListener('loadedmetadata',()=>seekD(k,s.start),{once:true});wire(k);DISCS.push(k);return k}
+function removeDisc(k){for(const e of k.els){e.pause();e.removeAttribute('src');e.load()}if(k.g)try{k.g.disconnect()}catch(e){}DISCS.splice(DISCS.indexOf(k),1)}
+const tD=k=>k.els[0].currentTime||0,playing=k=>!k.els[0].paused;
+function seekD(k,t){t=clamp(t,0,k.s.dur-.05);for(const e of k.els){try{e.currentTime=t}catch(x){}}}
+function playD(k,on){if(on){ensureAC();wire(k);if(tD(k)>=k.s.dur-.1)seekD(k,0);for(const e of k.els)e.play().catch(()=>{})}else for(const e of k.els)e.pause()}
+/* geometry: discs live in screen space; size follows the screen */
+let W=0,H=0;
+function radius(){const m=Math.min(W,H);return clamp(m*(DISCS.length>2?.2:.24),54,190)}
+const pos=k=>({x:k.x*W,y:k.y*H});
+/* level comes from position: the nearer the centre, the stronger in the output */
+function levelOf(k){const p=pos(k),d=Math.hypot(p.x-W/2,p.y-H/2)/(Math.min(W,H)*.62);return clamp(1.15-d,0,1)}
+/* ===== meshing: discs whose rims touch are linked like gears ===== */
+let MESH=new Set(),GROUP=new Map(),ANCHOR=new Map();
+const pairKey=(a,b)=>a.id<b.id?a.id+'-'+b.id:b.id+'-'+a.id;
+function computeMesh(){const r=radius(),next=new Set();for(let i=0;i<DISCS.length;i++)for(let j=i+1;j<DISCS.length;j++){const a=DISCS[i],b=DISCS[j],pa=pos(a),pb=pos(b),d=Math.hypot(pa.x-pb.x,pa.y-pb.y);
+    const was=MESH.has(pairKey(a,b));if(d<2*r+(was?SNAP*1.6:SNAP))next.add(pairKey(a,b))}
+  for(const p of next)if(!MESH.has(p))onMesh(p,true);for(const p of MESH)if(!next.has(p))onMesh(p,false);MESH=next;groups()}
+function groups(){GROUP=new Map();let gid=0;for(const k of DISCS){if(GROUP.has(k.id))continue;gid++;const stack=[k];GROUP.set(k.id,gid);k.dir=1;let guard=0;
+    while(stack.length&&guard++<MAXD*4){const c=stack.pop();for(const o of DISCS){if(GROUP.has(o.id)||!MESH.has(pairKey(c,o)))continue;GROUP.set(o.id,gid);o.dir=-c.dir;stack.push(o)}}}}
+const groupOf=k=>DISCS.filter(o=>GROUP.get(o.id)===GROUP.get(k.id));
+function onMesh(p,on){const[a,b]=p.split('-').map(Number).map(id=>DISCS.find(k=>k.id===id));if(!a||!b)return;buzz(on?[18,40,18]:12);tick(on?.5:.25,on?900:2400);
+  FLASH.push({x:(pos(a).x+pos(b).x)/2,y:(pos(a).y+pos(b).y)/2,t:performance.now(),on});if(FLASH.length>8)FLASH.shift();if(on)anchor(a)}
+/* the anchor of a group is the disc last touched; the others keep the time offset they had when it became the anchor */
+function anchor(k){const g=groupOf(k),c=toClock(k.s,tD(k));for(const o of g){o.off=toClock(o.s,tD(o))-c}ANCHOR.set(GROUP.get(k.id),k)}
+function follow(){for(const k of DISCS){const a=ANCHOR.get(GROUP.get(k.id));if(!a||a===k||!DISCS.includes(a))continue;if(k.off==null)k.off=0;
+    const tgt=fromClock(k.s,toClock(a.s,tD(a))+k.off-(a.off||0)),inR=tgt>=0&&tgt<k.s.dur-.05,want=playing(a)&&!a.hold&&inR;
+    if(want&&!playing(k)){seekD(k,tgt);playD(k,true)}else if(!want&&playing(k))playD(k,false);
+    for(const e of k.els)e.playbackRate=clamp(a.els[0].playbackRate*rateOf(k.s)/rateOf(a.s),.25,4);
+    if(inR&&Math.abs(tD(k)-tgt)>(playing(k)?.25:.04))seekD(k,tgt)}}
+/* ===== touch: hub = play / move; ring = turn time; hold the hub = swap; double-tap the hub = loop the line ===== */
+const PTR=new Map();
+function hit(x,y){const r=radius();let best=null;for(let i=DISCS.length-1;i>=0;i--){const k=DISCS[i],p=pos(k),d=Math.hypot(x-p.x,y-p.y);if(d<=r*1.08){best={k,zone:d<r*.42?'hub':'ring',d};break}}
+  if(!best){for(const k of DISCS){const p=pos(k);const ch=chanAt(k,x,y);if(ch)return{k,zone:'chan',ch}}}return best}
+function chanSpots(k){const r=radius(),p=pos(k),out=[];['txt','pic','snd'].forEach((c,i)=>{if(!k.s[c])return;const a=-Math.PI/2+(i-1)*.42;out.push({c,x:p.x+Math.cos(a)*(r+20),y:p.y+Math.sin(a)*(r+20)})});return out}
+function chanAt(k,x,y){for(const s of chanSpots(k))if(Math.hypot(x-s.x,y-s.y)<17)return s.c;return null}
+function down(e){TOUCHED=true;const x=e.clientX,y=e.clientY,h=hit(x,y);if(!h)return;e.preventDefault();ensureAC();rig.setPointerCapture(e.pointerId);
+  if(h.zone==='chan'){h.k.route[h.ch]=!h.k.route[h.ch];buzz(8);tick(.2,3200);return}
+  const k=h.k,p=pos(k);DISCS.push(DISCS.splice(DISCS.indexOf(k),1)[0]);anchor(k);
+  const st={k,zone:h.zone,x0:x,y0:y,ox:p.x-x,oy:p.y-y,a:Math.atan2(y-p.y,x-p.x),t:tD(k),was:playing(k),moved:0,t0:performance.now(),last:0,vel:0};
+  if(h.zone==='ring'){k.hold=st;for(const e of k.els)e.pause()}
+  else st.timer=setTimeout(()=>{if(st.moved<8){st.long=true;buzz(30);picker(k)}},560);
+  PTR.set(e.pointerId,st)}
+function move(e){const st=PTR.get(e.pointerId);if(!st)return;const k=st.k,x=e.clientX,y=e.clientY;st.moved=Math.max(st.moved,Math.hypot(x-st.x0,y-st.y0));
+  if(st.zone==='hub'){if(st.moved<8)return;clearTimeout(st.timer);const rr=radius()*1.15;k.x=clamp((x+st.ox)/W,rr/W,1-rr/W);k.y=clamp((y+st.oy)/H,(rr+40)/H,1-(rr+30)/H);computeMesh();return}
+  const p=pos(k),a=Math.atan2(y-p.y,x-p.x);let da=a-st.a;if(da>Math.PI)da-=2*Math.PI;if(da<-Math.PI)da+=2*Math.PI;st.a=a;
+  const dt=da*k.dir/(Math.PI*2)*TURN,nt=clamp(st.t+dt,0,k.s.dur-.05),now=performance.now();st.vel=dt/Math.max(1,now-(st.lastT||now))*1000;st.lastT=now;
+  const toothA=Math.floor(nt/TURN*TEETH),toothB=Math.floor(st.t/TURN*TEETH);if(toothA!==toothB){buzz(4);tick(.16,1400+Math.min(2,Math.abs(st.vel))*900)}
+  st.t=nt;seekD(k,nt);for(const o of groupOf(k))if(o!==k){o.hold=st;const tgt=fromClock(o.s,toClock(k.s,nt)+o.off-(k.off||0));if(tgt>=0&&tgt<o.s.dur)seekD(o,tgt);for(const e of o.els)e.pause()}}
+function up(e){const st=PTR.get(e.pointerId);if(!st)return;PTR.delete(e.pointerId);const k=st.k;clearTimeout(st.timer);
+  if(st.zone==='hub'){if(st.long)return;if(st.moved<8){const now=performance.now();if(now-(k.lastTap||0)<320){toggleLoop(k);k.lastTap=0;return}k.lastTap=now;setTimeout(()=>{if(k.lastTap===now){const on=!playing(k);for(const o of groupOf(k))if(o===k)playD(o,on);buzz(10)}},330)}else{const o=snapMesh(k);computeMesh();phaseFor(k,o);save()}return}
+  k.hold=null;for(const o of groupOf(k))o.hold=null;if(st.was)playD(k,true);save()}
+/* releasing a disc near another pulls it onto its rim so the teeth meet */
+function snapMesh(k){const r=radius(),p=pos(k);for(const o of DISCS){if(o===k)continue;const q=pos(o),d=Math.hypot(p.x-q.x,p.y-q.y);if(d<2*r+SNAP&&d>1){const ux=(p.x-q.x)/d,uy=(p.y-q.y)/d;k.x=(q.x+ux*2*r)/W;k.y=(q.y+uy*2*r)/H;return o}}return null}
+/* teeth interlock: put a gap of k where o has a tooth at the point of contact */
+function phaseFor(k,o){if(!o)return;const step=Math.PI*2/TEETH,p=pos(k),q=pos(o),ang=Math.atan2(p.y-q.y,p.x-q.x),thO=o.dir*tD(o)/TURN*Math.PI*2+o.phase,thK=k.dir*tD(k)/TURN*Math.PI*2;
+  const qo=((ang-thO)%step+step)%step;k.phase=(ang+Math.PI)-thK+qo+step/2}
+function toggleLoop(k){if(k.loop){k.loop=null;buzz(10);return}const t=tD(k),m=k.s.marks;let a=0,b=null;for(const x of m){if(x<=t)a=x;else{b=x;break}}if(b==null||b-a<.8)b=Math.min(k.s.dur-.05,a+4);if(b-a>12)b=a+8;k.loop={a,b};buzz([10,30,10]);tick(.3,600)}
+/* ===== drawing: the output (recorded) ===== */
+const out=$('out'),rig=$('rig'),FLASH=[];
+function cover(g,v,a,w,h){if(!v||a<=.01||v.readyState<2||!v.videoWidth)return;const s=Math.max(w/v.videoWidth,h/v.videoHeight);g.globalAlpha=a;g.drawImage(v,(w-v.videoWidth*s)/2,(h-v.videoHeight*s)/2,v.videoWidth*s,v.videoHeight*s);g.globalAlpha=1}
+function drawOut(){const w=out.width,h=out.height,g=out.getContext('2d');g.fillStyle='#020418';g.fillRect(0,0,w,h);
+  const pics=DISCS.filter(k=>k.s.pic&&k.route.pic&&k.level>.01).sort((a,b)=>b.level-a.level);
+  pics.forEach((k,i)=>cover(g,k.els[0],i===0?Math.min(1,k.level*1.4):k.level*.85,w,h));
+  const words=DISCS.filter(k=>k.s.txt&&k.route.txt&&k.level>.08).sort((a,b)=>b.level-a.level).slice(0,2);const m=Math.min(w,h);let y=h-Math.max(m*.16,64*DPR);
+  words.forEach((k,i)=>{const ws=k.s.words(tD(k));if(!ws)return;const fs=Math.round(m*(i?.042:.06));g.font=`500 ${fs}px system-ui,sans-serif`;g.textAlign='center';g.textBaseline='middle';g.shadowColor='rgba(0,0,0,.9)';g.shadowBlur=fs*.3;
+    let lines=[],line='';for(const x of ws){const t2=line?line+' '+x.w:x.w;if(g.measureText(t2).width>w*.84&&line){lines.push(line);line=x.w}else line=t2}lines.push(line);lines=lines.slice(-2).reverse();
+    g.globalAlpha=clamp(k.level*1.3,.35,1);lines.forEach((l,j)=>{g.fillStyle='#fff';g.fillText(l,w/2,y-j*fs*1.25)});y-=lines.length*fs*1.25+fs*.5;g.globalAlpha=1;g.shadowBlur=0})}
+/* ===== drawing: the discs ===== */
+function drawRig(now){const g=rig.getContext('2d');g.setTransform(DPR,0,0,DPR,0,0);g.clearRect(0,0,W,H);const r=radius();
+  // the centre: where a disc is at its strongest
+  g.strokeStyle='rgba(200,225,255,.12)';g.lineWidth=1;g.beginPath();g.arc(W/2,H/2,Math.min(W,H)*.06,0,7);g.stroke();
+  for(const p of MESH){const[a,b]=p.split('-').map(Number).map(id=>DISCS.find(k=>k.id===id));if(!a||!b)continue;const pa=pos(a),pb=pos(b);g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=2;g.setLineDash([2,5]);g.beginPath();g.moveTo(pa.x,pa.y);g.lineTo(pb.x,pb.y);g.stroke();g.setLineDash([])}
+  for(const k of DISCS)drawDisc(g,k,r);
+  for(let i=FLASH.length-1;i>=0;i--){const f=FLASH[i],a=(now-f.t)/450;if(a>1){FLASH.splice(i,1);continue}g.strokeStyle=f.on?`rgba(255,255,255,${1-a})`:`rgba(255,120,140,${1-a})`;g.lineWidth=3;g.beginPath();g.arc(f.x,f.y,8+a*40,0,7);g.stroke()}}
+function drawDisc(g,k,r){const p=pos(k),s=k.s,t=tD(k),col=KCOL[s.kind],lv=k.level,th=k.dir*t/TURN*Math.PI*2+k.phase;
+  // body
+  g.save();g.beginPath();g.arc(p.x,p.y,r,0,7);g.fillStyle=`rgba(4,10,60,${.55-lv*.25})`;g.fill();g.restore();
+  // waveform groove: eight seconds around the ring, the needle at the top is now
+  if(s.wave){const n=s.wave.lo.length,R0=r*.5,R1=r*.9,N=120;g.lineWidth=Math.max(1.2,r*.018);for(let i=0;i<N;i++){const f=i/N,tt=t+(f<.5?f:f-1)*TURN,ix=Math.floor(tt*s.wave.rate);if(ix<0||ix>=n)continue;
+      const amp=(s.wave.lo[ix]*.6+s.wave.mid[ix]*.8+s.wave.hi[ix]*.5)/(255*1.9),a=-Math.PI/2+f*Math.PI*2*k.dir,rr=R0+(R1-R0)*.5,h2=(R1-R0)*.5*clamp(amp,.05,1);
+      g.strokeStyle=f<.5?`rgba(255,255,255,${.25+.55*(1-f*2)})`:'rgba(200,215,255,.18)';g.beginPath();g.moveTo(p.x+Math.cos(a)*(rr-h2),p.y+Math.sin(a)*(rr-h2));g.lineTo(p.x+Math.cos(a)*(rr+h2),p.y+Math.sin(a)*(rr+h2));g.stroke()}}
+  // gear teeth on the rim, turning with time; meshed neighbours turn the other way
+  g.fillStyle=col;g.globalAlpha=.35+.65*lv;const step=Math.PI*2/TEETH;for(let i=0;i<TEETH;i++){const a=th+i*step;g.save();g.translate(p.x+Math.cos(a)*r,p.y+Math.sin(a)*r);g.rotate(a);g.fillRect(-2,-r*.035,r*.07,r*.07);g.restore()}g.globalAlpha=1;
+  g.strokeStyle=col;g.lineWidth=1.5+lv*3;g.beginPath();g.arc(p.x,p.y,r*.97,0,7);g.stroke();
+  // where in the whole source: a thin arc
+  g.strokeStyle='rgba(255,255,255,.85)';g.lineWidth=2;g.beginPath();g.arc(p.x,p.y,r*1.12,-Math.PI/2,-Math.PI/2+Math.PI*2*t/s.dur);g.stroke();
+  if(k.loop){g.strokeStyle='#ffd166';g.lineWidth=3;g.beginPath();g.arc(p.x,p.y,r*1.12,-Math.PI/2+Math.PI*2*k.loop.a/s.dur,-Math.PI/2+Math.PI*2*k.loop.b/s.dur);g.stroke()}
+  // needle
+  g.fillStyle='#fff';g.fillRect(p.x-1.5,p.y-r*.94,3,r*.5-r*.0);
+  // hub: the picture itself, or the source's icon
+  const hr=r*.42;g.save();g.beginPath();g.arc(p.x,p.y,hr,0,7);g.clip();if(s.video&&k.els[0].readyState>=2&&k.els[0].videoWidth)cover2(g,k.els[0],p.x-hr,p.y-hr,hr*2,hr*2);else{g.fillStyle='#0b1aa8';g.fillRect(p.x-hr,p.y-hr,hr*2,hr*2)}g.restore();
+  g.strokeStyle=playing(k)?'#fff':'rgba(255,255,255,.4)';g.lineWidth=playing(k)?2.5:1.5;g.beginPath();g.arc(p.x,p.y,hr,0,7);g.stroke();
+  if(!s.video)drawIcon(g,s.kind,p.x,p.y,hr*.9,'#fff');
+  if(!playing(k)){g.fillStyle='rgba(255,255,255,.85)';g.beginPath();g.moveTo(p.x-hr*.18,p.y-hr*.26);g.lineTo(p.x+hr*.28,p.y);g.lineTo(p.x-hr*.18,p.y+hr*.26);g.fill()}
+  if(k.err){g.strokeStyle='#ff5a6e';g.lineWidth=3;g.beginPath();g.moveTo(p.x-hr*.4,p.y-hr*.4);g.lineTo(p.x+hr*.4,p.y+hr*.4);g.stroke()}
+  if(s.num){g.fillStyle='rgba(255,255,255,.7)';g.font=`600 ${Math.max(9,r*.09)}px ui-monospace,monospace`;g.textAlign='center';g.textBaseline='middle';g.fillText(s.num,p.x,p.y+r*.72)}
+  // the three channels, as switches above the disc
+  for(const c of chanSpots(k)){const on=k.route[c.c];g.fillStyle=on?(c.c==='pic'?'#7fd8ff':c.c==='snd'?'#ffb35c':'#d8c9ff'):'rgba(4,10,60,.6)';g.strokeStyle='rgba(255,255,255,.5)';g.lineWidth=1;g.beginPath();g.arc(c.x,c.y,13,0,7);g.fill();g.stroke();drawIcon(g,c.c,c.x,c.y,15,on?'#06106a':'rgba(255,255,255,.55)')}}
+function cover2(g,v,x,y,w,h){const s=Math.max(w/v.videoWidth,h/v.videoHeight),vw=v.videoWidth*s,vh=v.videoHeight*s;g.drawImage(v,x+(w-vw)/2,y+(h-vh)/2,vw,vh)}
+const PATHS={};
+function drawIcon(g,k,x,y,size,col){if(!PATHS[k]){const m=ICON[k].match(/d="([^"]+)"/g)||[];PATHS[k]={paths:m.map(s=>new Path2D(s.slice(3,-1))),rects:[...ICON[k].matchAll(/<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)].map(a=>a.slice(1).map(Number)),circles:[...ICON[k].matchAll(/<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"/g)].map(a=>a.slice(1).map(Number))}}
+  const P=PATHS[k],sc=size/24;g.save();g.translate(x-size/2,y-size/2);g.scale(sc,sc);g.strokeStyle=col;g.lineWidth=1.8;g.lineCap='round';g.lineJoin='round';P.paths.forEach(p=>g.stroke(p));P.rects.forEach(r=>g.strokeRect(r[0],r[1],r[2],r[3]));P.circles.forEach(c=>{g.beginPath();g.arc(c[0],c[1],c[2],0,7);g.stroke()});g.restore()}
+/* ===== the jam: levels, loops, recording ===== */
+function applyLevels(){for(const k of DISCS){k.level=levelOf(k);if(k.g&&AC)k.g.gain.setTargetAtTime(k.route.snd&&k.s.snd?Math.sin(k.level*Math.PI/2):0,AC.currentTime,.04)}}
+function loops(){for(const k of DISCS)if(k.loop&&playing(k)&&!k.hold&&tD(k)>=k.loop.b)seekD(k,k.loop.a)}
+function syncStems(){for(const k of DISCS){if(k.els.length<2)continue;const t=tD(k),p=!playing(k);for(let i=1;i<k.els.length;i++){const e=k.els[i];if(Math.abs(e.currentTime-t)>.08)e.currentTime=t;if(e.paused!==p)p?e.pause():e.play().catch(()=>{})}}}
+const REC={on:false,mr:null,parts:[],t0:0,log:[],last:0};
+function recToggle(){if(REC.on){REC.mr&&REC.mr.state==='recording'&&REC.mr.stop();return}if(!window.MediaRecorder||!out.captureStream)return toast('Recording is not available in this browser.');ensureAC();
+  const st=out.captureStream(30);if(mDest)mDest.stream.getAudioTracks().forEach(t=>st.addTrack(t));const type=['video/webm;codecs=vp9,opus','video/webm','video/mp4'].find(t=>MediaRecorder.isTypeSupported(t))||'';
+  let mr;try{mr=new MediaRecorder(st,type?{mimeType:type,videoBitsPerSecond:5e6}:{})}catch(e){return toast('Recording could not start.')}
+  REC.parts=[];REC.log=[];REC.t0=performance.now();REC.last=0;mr.ondataavailable=e=>{if(e.data.size&&REC.parts.length<6000)REC.parts.push(e.data)};mr.onstop=takeDone;mr.start(500);REC.mr=mr;REC.on=true;$('rec').classList.add('on');buzz(20)}
+function recSample(now){if(!REC.on||now-REC.last<250)return;REC.last=now;if(REC.log.length>14400)return recToggle();REC.log.push({t:(now-REC.t0)/1000,d:DISCS.map(k=>({key:k.s.key,t:tD(k),lv:k.level,on:playing(k),r:{...k.route}}))})}
+/* the log becomes an edit list: one event per disc, channel and stretch where it was heard or seen */
+function edl(){const ev=[];const open={};const close=(id,end)=>{const e=open[id];if(e){e.recOut=end;if(e.recOut-e.recIn>=.2)ev.push(e);delete open[id]}};
+  REC.log.forEach((s,i)=>{const seen=new Set();s.d.forEach((d,j)=>{const src=SK[d.key];['pic','snd'].forEach(ch=>{if(!src[ch])return;const live=d.on&&d.r[ch]&&d.lv>.1,id=j+ch+d.key;seen.add(id);const e=open[id];
+      if(live&&e&&Math.abs(d.t-e.lastT-(s.t-e.lastS))>.4){close(id,s.t)}if(live&&!open[id])open[id]={src,ch,deck:j,srcIn:d.t,recIn:s.t,lv:[]};if(live){open[id].srcOut=d.t;open[id].lastT=d.t;open[id].lastS=s.t;open[id].lv.push(d.lv)}else close(id,s.t)})});
+    Object.keys(open).forEach(id=>{if(!seen.has(id))close(id,s.t)})});const end=REC.log.length?REC.log[REC.log.length-1].t:0;Object.keys(open).forEach(id=>close(id,end));
+  ev.sort((a,b)=>a.recIn-b.recIn);let o='TITLE: WYGWYL JAM\nFCM: NON-DROP FRAME\n\n';ev.forEach((e,i)=>{const lv=Math.round(e.lv.reduce((a,b)=>a+b,0)/e.lv.length*100);
+    o+=`${String(i+1).padStart(3,'0')}  ${e.src.reel.padEnd(8)} ${e.ch==='pic'?'V    ':'A    '} C        ${tc(e.src.base+e.srcIn)} ${tc(e.src.base+(e.srcOut||e.srcIn))} ${tcf(86400+e.recIn*FPS)} ${tcf(86400+e.recOut*FPS)}\n* FROM CLIP NAME: ${e.src.kind==='reading'?SRCNAME:e.src.files.map(f=>f.split('/').pop()).join(' + ')}\n* DISC ${e.deck+1} · ${e.src.title} · LEVEL ~${lv}%\n\n`});return o}
+async function save2(name,data){let dl=null;try{dl=window.claude&&claude.use?await claude.use('downloads'):null}catch(e){dl=null}
+  if(dl){try{await dl.save({filename:name,data});toast('Saved')}catch(e){toast(e&&e.code==='declined'?'Not saved':'Saving is not available here')}return}
   const b=data instanceof Blob?data:new Blob([data]),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
-function copy(t){navigator.clipboard.writeText(t).then(()=>toast('Copied.')).catch(()=>{const r=document.createRange();r.selectNodeContents($('shB'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('Copying is blocked here. The text is selected.')})}
-function exportSheet(){if(!MIX.clips.length)return toast('The mix is empty.');sheet(`<button type="button" onclick="closeSheet()">← BACK</button><h2>EXPORT</h2>`,`<pre>${esc(cmx())}</pre>`,`<span style="flex:1;color:var(--dim);font:500 10.5px var(--mono)">CMX3600 · V1… picture · A1… sound · words as notes</span><button type="button" id="xC">COPY EDL</button><button type="button" id="xE">SAVE EDL</button><button type="button" id="xJ">SAVE PROJECT</button>`);
-  $('xC').onclick=()=>copy(cmx());$('xE').onclick=()=>saveFile('wygwyl-mix-edl.txt',cmx());$('xJ').onclick=()=>saveFile('wygwyl-mix.json',projJSON())}
-/* RECORD FILM: play the mix once from the start and capture the preview with its sound */
-const FILM={on:false,mr:null};
-function recordFilm(){const cv=$('vMix').querySelector('canvas.pgm');if(!window.MediaRecorder||!cv.captureStream)return toast('This browser cannot record the film.');if(!MIX.clips.length)return toast('The mix is empty.');ensureAC();
-  const st=cv.captureStream(30);if(mDest)mDest.stream.getAudioTracks().forEach(t=>st.addTrack(t));const type=['video/webm;codecs=vp9,opus','video/webm','video/mp4'].find(t=>MediaRecorder.isTypeSupported(t))||'';
-  let mr;try{mr=new MediaRecorder(st,type?{mimeType:type,videoBitsPerSecond:4e6}:{})}catch(e){return toast('Recording could not start.')}const parts=[];mr.ondataavailable=e=>{if(e.data.size&&parts.length<4000)parts.push(e.data)};
-  mr.onstop=()=>{FILM.on=false;const ext=(mr.mimeType||'').includes('mp4')?'mp4':'webm',b=new Blob(parts,{type:mr.mimeType||'video/webm'}),u=URL.createObjectURL(b);
-    sheet(`<button type="button" onclick="closeSheet()">← BACK</button><h2>YOUR FILM</h2>`,`<video src="${u}" controls playsinline></video><p class="help">${(b.size/1e6).toFixed(1)} MB · ${fmt(mixDur())}</p>`,`<button type="button" id="xF">SAVE FILM</button>`);$('xF').onclick=()=>saveFile('wygwyl-mix.'+ext,b)};
-  view('mix');MIX.PT=0;mixStop();mixSync(true);setTimeout(()=>{FILM.on=true;FILM.mr=mr;mr.start(500);mixPlay();toast('Recording the film in real time. Press ■ to stop early.')},600)}
-function helpSheet(){sheet(`<button type="button" onclick="closeSheet()">← BACK</button><h2>HOW IT WORKS</h2>`,`<div class="help">
-<p><b>Two decks.</b> Each disc holds picture, sound or words. Tap a poem number to put its reading on A and its world (or rooms) on B, or tap a deck's name to load any disc.</p>
-<p><b>Scrub.</b> Drag along a disc's ring to jump anywhere; drag inside it to nudge, finely (one turn is eight seconds). |◀ and ▶| jump to the previous or next spoken line.</p>
-<p><b>Route.</b> T · V · A under a deck decide whether its words, picture and sound reach the output. The crossfader blends A and B. DISSOLVE mixes the pictures; CUT shows only the side the crossfader favours.</p>
-<p><b>Lay it down.</b> Mark <b>[</b> IN and <b>]</b> OUT on a deck and SEND: its routed channels go into the mix at the mix playhead, each on its own lane. Or press <b>● REC</b> and play: whatever is routed and playing is laid down as you perform.</p>
-<p><b>Edit.</b> MIX shows the lanes. Tap a clip to set its opacity or volume, delete it, or put it back on a deck; drag to move; drag an edge to trim; UNDO steps back. ▶ plays the mix, exactly as it will be.</p>
-<p><b>Finish.</b> EXPORT gives the edit list and the project. RECORD FILM plays the mix once and records it.</p>
-<p><b>Keys.</b> Space play mix · X / M play A / B · ← → crossfader · R record · Ctrl/⌘-Z undo · Esc close.</p></div>`)}
-/* ===== wiring ===== */
-function wireDeck(k,i){const el=$('ds'+k.id);el.addEventListener('pointerdown',e=>scrubStart(k,e));el.addEventListener('pointermove',e=>scrubMove(k,e));el.addEventListener('pointerup',()=>scrubEnd(k));el.addEventListener('pointercancel',()=>scrubEnd(k));
-  $('nm'+k.id).onclick=()=>{SHELF=k.d?k.d.kind:'reading';shelf(i)};$('pl'+k.id).onclick=()=>deckPlay(k);$('pv'+k.id).onclick=()=>jumpLine(k,-1);$('nx'+k.id).onclick=()=>jumpLine(k,1);
-  $('mi'+k.id).onclick=()=>{if(!k.d)return;k.in=clamp(deckT(k),0,k.out-.2);routeUI(k)};$('mo'+k.id).onclick=()=>{if(!k.d)return;k.out=clamp(deckT(k),k.in+.2,k.d.dur);routeUI(k)};
-  $('rt'+k.id).querySelectorAll('button').forEach(b=>b.onclick=()=>{k.route[b.dataset.c]=!k.route[b.dataset.c];routeUI(k);applyLive()});$('sd'+k.id).onclick=()=>send(k)}
-function wireXF(){const el=$('xf');const set=e=>{const r=el.getBoundingClientRect();G.xf=clamp((e.clientX-r.left-14)/(r.width-28),0,1);if(Math.abs(G.xf-.5)<.03)G.xf=.5;applyLive()};
-  el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);set(e)});el.addEventListener('pointermove',e=>{if(el.hasPointerCapture(e.pointerId))set(e)});el.addEventListener('dblclick',()=>{G.xf=.5;applyLive()});
-  el.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){G.xf=clamp(G.xf+(e.key==='ArrowLeft'?-.05:.05),0,1);applyLive();e.preventDefault();e.stopPropagation()}})}
-let clearArm=0;
-function wireAll(){DECK.forEach((k,i)=>{$('deck'+k.id).innerHTML=deckHTML(k);wireDeck(k,i)});wireXF();poemDots();
-  $('mode').onclick=()=>{G.mode=G.mode==='mix'?'cut':'mix';$('mode').textContent=G.mode==='mix'?'DISSOLVE':'CUT';applyLive()};
-  $('recB').onclick=()=>{REC.on?recStop():recStart()};$('tDecks').onclick=()=>view('decks');$('tMix').onclick=()=>view('mix');
-  $('mPlay').onclick=()=>{MIX.playing?mixStop():mixPlay()};$('mStart').onclick=()=>{MIX.PT=0;mixSync(true)};$('undo').onclick=undo;$('film').onclick=recordFilm;
-  $('newMix').onclick=()=>{if(!MIX.clips.length)return;if(Date.now()-clearArm>2500){clearArm=Date.now();return toast('Press NEW MIX again to clear the whole mix.')}snap();mixStop();setClips([]);MIX.PT=0;toast('Mix cleared.','UNDO',undo)};
-  $('lvl').onpointerdown=()=>snap();$('lvl').oninput=e=>{const c=MIX.clips.find(x=>x.id===MIX.sel);if(c){c.lvl=+e.target.value;mixSync();save()}};
-  $('cDel').onclick=()=>{const c=MIX.clips.find(x=>x.id===MIX.sel);if(!c)return;snap();if(c.pl)c.pl.release();MIX.clips=MIX.clips.filter(x=>x!==c);MIX.sel=null;sideUI();save();toast('Clip deleted.','UNDO',undo)};
-  $('cDeck').onclick=()=>{const c=MIX.clips.find(x=>x.id===MIX.sel);if(!c)return;const i=G.xf<=.5?0:1,k=DECK[i];if(!k.d||k.d.key!==c.key)loadDeck(i,c.key);k.in=c.in;k.out=c.out;setTimeout(()=>k.pl.seek(c.in),250);routeUI(k);view('decks');toast(`Clip put back on deck ${k.id}, with its IN and OUT.`)};
-  const tl=$('tl');tl.addEventListener('pointerdown',tlDown);tl.addEventListener('pointermove',tlMove);tl.addEventListener('pointerup',tlUp);tl.addEventListener('pointercancel',tlUp);
-  $('exp').onclick=exportSheet;$('help').onclick=helpSheet;
-  addEventListener('keydown',e=>{if(!$('sheet').hidden){if(e.key==='Escape')closeSheet();return}if(e.target.closest('input'))return;const K=e.key.toLowerCase();
-    if((e.metaKey||e.ctrlKey)&&K==='z'){e.preventDefault();undo();return}if(e.metaKey||e.ctrlKey)return;
-    if(K===' '){e.preventDefault();$('mPlay').click()}else if(K==='x')deckPlay(DECK[0]);else if(K==='m')deckPlay(DECK[1]);else if(K==='r')$('recB').click();
-    else if((K==='arrowleft'||K==='arrowright')&&!e.target.closest('[role=slider]')){G.xf=clamp(G.xf+(K==='arrowleft'?-.1:.1),0,1);applyLive()}})}
-function save(){try{localStorage.setItem('mixdiscs.v2',JSON.stringify({clips:MIX.clips.map(({pl,...c})=>c),decks:DECK.map(k=>k.d&&k.d.key)}))}catch(e){}}
-function uiTick(){DECK.forEach(k=>{$('pl'+k.id).textContent=k.pl&&!k.pl.paused()?'❚❚':'▶'});$('recB').classList.toggle('on',REC.on);$('recB').textContent=REC.on?'■ STOP REC':'● REC';$('recTc').textContent=REC.on?fmt(recNow()-REC.base):'';
-  $('mPlay').textContent=MIX.playing?'■':'▶';$('mTc').textContent=`${fmt(MIX.PT)} / ${fmt(mixDur())}`}
-/* ===== the one open loop: does nothing while the page is hidden ===== */
-function frame(){if(!document.hidden){try{
-    if(MIX.playing){MIX.PT=MIX.pt0+(performance.now()-MIX.p0)/1000;if(MIX.PT>=mixDur()){MIX.PT=mixDur();mixStop()}}
-    mixSync(false);releaseFar(false);DECK.forEach(k=>k.pl&&k.pl.sync());recTick();applyLive();
-    if(G.view==='decks'){DECK.forEach(drawDisc);drawXF();drawOut($('vDecks').querySelector('canvas.pgm'))}else{drawOut($('vMix').querySelector('canvas.pgm'));drawTL()}uiTick()
-  }catch(e){console.warn(e)}}requestAnimationFrame(frame)}
-/* ===== self test: the invariants hold on sample data ===== */
-function selfTest(){const bad=[],d=DISC[0];if(!d)bad.push('no discs');else{if(!validClip({key:d.key,lane:'pic',in:0,out:1,at:0,row:0,lvl:1}))bad.push('valid clip rejected');if(validClip({key:d.key,lane:'pic',in:2,out:1,at:0,row:0,lvl:1}))bad.push('reversed clip accepted');if(validClip({key:'nope',lane:'pic',in:0,out:1,at:0,row:0,lvl:1}))bad.push('unknown disc accepted');if(DK.S01&&validClip({key:'S01',lane:'pic',in:0,out:1,at:0,row:0,lvl:1}))bad.push('picture accepted from a sound disc')}
-  if(bad.length)console.error('Mix Discs self test failed:',bad);return bad}
-function example(){const R=DK.R06,s0=R.span[0],s1=s0+40;return[{id:1,lane:'pic',key:'W06',in:0,out:40,at:0,row:0,lvl:1},{id:2,lane:'snd',key:'R06',in:s0,out:s1,at:0,row:0,lvl:1},{id:3,lane:'txt',key:'R06',in:s0,out:s1,at:0,row:0,lvl:1},{id:4,lane:'pic',key:'R06',in:s0+14,out:s0+24,at:14,row:1,lvl:.55},{id:5,lane:'snd',key:'X06',in:s0,out:s1,at:0,row:1,lvl:.6}]}
-Promise.all(['suite.json','decks.json','layers.json'].map(u=>fetch(BASE+u).then(r=>{if(!r.ok)throw new Error(u+' '+r.status);return r.json()}))).then(([s,d,x])=>{buildDiscs(s,d,x);wireAll();selfTest();
-  let sv=null;try{sv=JSON.parse(localStorage.getItem('mixdiscs.v2')||'null')}catch(e){sv=null}
-  if(sv&&Array.isArray(sv.clips)&&sv.clips.length){setClips(sv.clips);toast(`Your last mix is back: ${MIX.clips.length} clips.`)}else setClips(example());
-  const dk=sv&&Array.isArray(sv.decks)?sv.decks:[];loadDeck(0,DK[dk[0]]?dk[0]:'R06');loadDeck(1,DK[dk[1]]?dk[1]:'W06');dotUI();view('decks');requestAnimationFrame(frame)})
-  .catch(err=>{document.body.insertAdjacentHTML('beforeend',`<div class="toast">The discs did not load (${esc(err.message)}). Reload the page.</div>`)});
+function takeDone(){REC.on=false;$('rec').classList.remove('on');$('rt').hidden=true;const mr=REC.mr,ext=(mr.mimeType||'').includes('mp4')?'mp4':'webm',b=new Blob(REC.parts,{type:mr.mimeType||'video/webm'}),u=URL.createObjectURL(b),list=edl();
+  sheet(`<button class="ic" type="button" onclick="closeSheet()" aria-label="Back">${svg('back',2)}</button><span style="color:var(--dim)">${fmt(REC.log.length?REC.log[REC.log.length-1].t:0)} · ${(b.size/1e6).toFixed(1)} MB</span>`,
+    `<div class="take"><video src="${u}" controls playsinline></video><div class="row"><button class="ic" style="position:static" type="button" id="sF" aria-label="Save the film">${svg('film')}</button><button class="ic" style="position:static" type="button" id="sE" aria-label="Save the edit list">${svg('save')}</button><button class="ic" style="position:static" type="button" id="cE" aria-label="Copy the edit list">${svg('copy')}</button></div></div>`);
+  $('sF').onclick=()=>save2('wygwyl-jam.'+ext,b);$('sE').onclick=()=>save2('wygwyl-jam-edl.txt',list);$('cE').onclick=()=>navigator.clipboard.writeText(list).then(()=>toast('Copied')).catch(()=>toast('Copying is blocked here'))}
+/* ===== sheets ===== */
+function sheet(h,b){$('shH').innerHTML=h;$('shB').innerHTML=b;$('sheet').hidden=false}
+function closeSheet(){$('sheet').hidden=true}
+let KF='reading';
+function picker(k){const kinds=['reading','world','sounds','layers'];
+  sheet(`<button class="ic" type="button" onclick="closeSheet()" aria-label="Back">${svg('back',2)}</button><div class="tabsk">${kinds.map(x=>`<button type="button" data-f="${x}" class="${KF===x?'on':''}" aria-label="${x}">${svg(x)}</button>`).join('')}</div><span style="flex:1"></span>${k?`<button class="ic" type="button" id="rm" aria-label="Remove this disc" style="position:static">${svg('trash')}</button>`:''}`,
+    `<div class="grid">${SRC.filter(s=>s.kind===KF).map(s=>`<button type="button" data-k="${s.key}" class="${k&&k.s===s?'cur':''}" title="${esc(s.title)}" aria-label="${esc(s.title)}" style="${s.thumb?`background-image:url(${BASE+s.thumb})`:`background:radial-gradient(circle at 40% 35%,${KCOL[s.kind]}88,#0a1690 72%)`}"><i>${['pic','snd','txt'].map(c=>`<b style="background:${s[c]?(c==='pic'?'#7fd8ff':c==='snd'?'#ffb35c':'#d8c9ff'):'rgba(255,255,255,.15)'}"></b>`).join('')}</i><span>${s.num||'·'}</span></button>`).join('')}</div>`);
+  $('shH').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{KF=b.dataset.f;picker(k)});
+  if(k)$('rm').onclick=()=>{closeSheet();const keep={key:k.s.key,x:k.x,y:k.y};removeDisc(k);computeMesh();save();toast('Disc removed','UNDO',()=>{makeDisc(keep.key,keep.x,keep.y);computeMesh();save()})};
+  $('shB').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{closeSheet();if(k){const x=k.x,y=k.y,was=playing(k);removeDisc(k);const n=makeDisc(b.dataset.k,x,y);if(n&&was)setTimeout(()=>playD(n,true),300)}else{const spot=freeSpot();makeDisc(b.dataset.k,spot.x,spot.y)}computeMesh();save();poemUI()})}
+function freeSpot(){const c=[[.5,.28],[.5,.72],[.2,.5],[.8,.5],[.3,.3],[.7,.7]];for(const s of c){if(DISCS.every(k=>Math.hypot((k.x-s[0])*W,(k.y-s[1])*H)>radius()*2.3))return{x:s[0],y:s[1]}}return{x:.5,y:.5}}
+function helpSheet(){const card=(ic,txt)=>`<div>${ic}<span>${txt}</span></div>`,disc=(inner)=>`<svg viewBox="0 0 52 52" fill="none" stroke="#fff" stroke-width="1.6"><circle cx="26" cy="26" r="22" stroke="#7fd8ff"/><circle cx="26" cy="26" r="9"/>${inner}</svg>`;
+  sheet(`<button class="ic" type="button" onclick="closeSheet()" aria-label="Back">${svg('back',2)}</button>`,`<div class="howto">
+  ${card(disc('<path d="M23 22l7 4-7 4z" fill="#fff"/>'),'Tap the centre: play or pause. Tap twice: loop this line.')}
+  ${card(disc('<path d="M40 14a20 20 0 0 1 4 12" stroke="#ffd166" stroke-width="3"/><path d="M44 26l-3-3M44 26l3-3" stroke="#ffd166"/>'),'Turn the ring: move through time. Each tooth clicks.')}
+  ${card(disc('<path d="M26 26l14 14M40 40h-6M40 40v-6" stroke="#ffd166"/>'),'Drag the centre: move the disc. Nearer the middle of the screen, stronger in the picture and the sound.')}
+  ${card('<svg viewBox="0 0 52 52" fill="none" stroke-width="1.6"><circle cx="16" cy="26" r="13" stroke="#7fd8ff"/><circle cx="38" cy="26" r="13" stroke="#ffb35c"/><circle cx="27" cy="26" r="3" fill="#fff"/></svg>','Push two discs together: their teeth mesh and they move as one. Pull apart to let go.')}
+  ${card('<svg viewBox="0 0 52 52" fill="none" stroke="#fff" stroke-width="1.6"><circle cx="14" cy="26" r="8" fill="#d8c9ff" stroke="none"/><circle cx="26" cy="26" r="8" fill="#7fd8ff" stroke="none"/><circle cx="38" cy="26" r="8" fill="#ffb35c" stroke="none"/></svg>','The three dots above a disc: its words, picture and sound. Tap to switch each on or off.')}
+  ${card(disc('<circle cx="26" cy="26" r="4" fill="#fff"/>'),'Hold the centre: swap the disc or remove it.')}
+  ${card('<svg viewBox="0 0 52 52" fill="none" stroke="#fff" stroke-width="2"><circle cx="26" cy="26" r="17"/><path d="M26 19v14M19 26h14"/></svg>','Add a disc (up to four).')}
+  ${card('<svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="17" fill="none" stroke="#ff5a6e" stroke-width="2"/><circle cx="26" cy="26" r="7" fill="#ff5a6e"/></svg>','Record the jam. Stop to watch it, save the film or save its edit list.')}
+  ${card('<svg viewBox="0 0 52 52" fill="none" stroke="#fff" stroke-width="1.4"><circle cx="10" cy="26" r="5"/><circle cx="26" cy="26" r="5" fill="#fff"/><circle cx="42" cy="26" r="5"/></svg>','A number below: load that poem, its reading meshed to its world.')}</div>`)}
+/* ===== poems: one tap loads a reading meshed to its world (or its rooms) ===== */
+function poemDots(){$('poems').innerHTML=SRC.filter(s=>s.kind==='reading').map(s=>`<button type="button" data-n="${s.num}" aria-label="${esc(s.title)}">${s.num}</button>`).join('');$('poems').querySelectorAll('button').forEach(b=>b.onclick=()=>loadPoem(b.dataset.n))}
+function loadPoem(n){while(DISCS.length)removeDisc(DISCS[0]);const w=SRC.find(s=>s.kind==='world'&&s.num===n),r=radius();const a=makeDisc('R'+n,.5-r/W,.5),b=makeDisc(w?w.key:'X'+n,.5+r/W,.5);
+  if(a&&b){a.x=(W/2-r)/W;b.x=(W/2+r)/W;a.y=b.y=.5}computeMesh();if(a&&b)phaseFor(b,a);if(a)anchor(a);poemUI();save()}
+function poemUI(){const r=DISCS.find(k=>k.s.kind==='reading');$('poems').querySelectorAll('button').forEach(b=>b.classList.toggle('on',!!r&&b.dataset.n===r.s.num))}
+/* ===== persistence ===== */
+function save(){try{localStorage.setItem('mixdiscs.jam.v1',JSON.stringify(DISCS.map(k=>({key:k.s.key,x:k.x,y:k.y,route:k.route}))))}catch(e){}}
+function restore(){let sv=null;try{sv=JSON.parse(localStorage.getItem('mixdiscs.jam.v1')||'null')}catch(e){sv=null}if(!Array.isArray(sv)||!sv.length)return false;
+  sv.slice(0,MAXD).forEach(d=>{if(!SK[d.key])return;const k=makeDisc(d.key,clamp(+d.x||.5,.06,.94),clamp(+d.y||.5,.1,.9));if(k&&d.route)Object.assign(k.route,d.route)});return DISCS.length>0}
+/* ===== loop: one open loop; idle while hidden ===== */
+function resize(){W=innerWidth;H=innerHeight;rig.width=Math.round(W*DPR);rig.height=Math.round(H*DPR);const s=Math.min(1,1280/W);out.width=Math.round(W*DPR*s);out.height=Math.round(H*DPR*s);computeMesh()}
+function frame(now){if(!document.hidden){try{follow();loops();syncStems();applyLevels();drawOut();drawRig(now);recSample(now);if(REC.on){$('rt').hidden=false;$('rt').textContent='● '+fmt((now-REC.t0)/1000)}}catch(e){console.warn(e)}}requestAnimationFrame(frame)}
+function selfTest(){const bad=[];if(!SRC.length)bad.push('no sources');const w=SRC.find(s=>s.kind==='world'&&s.speech);if(w){const c=toClock(w,10);if(Math.abs(fromClock(w,c)-10)>1e-6)bad.push('clock round trip')}if(MAXD<2)bad.push('MAXD');if(bad.length)console.error('self test',bad);return bad}
+addEventListener('resize',resize);rig.addEventListener('pointerdown',down);rig.addEventListener('pointermove',move);rig.addEventListener('pointerup',up);rig.addEventListener('pointercancel',up);
+$('add').onclick=()=>{if(DISCS.length>=MAXD)return toast('Four discs at most');picker(null)};$('rec').onclick=recToggle;$('help').onclick=helpSheet;
+addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet();if(e.key===' '&&$('sheet').hidden&&DISCS.length){e.preventDefault();const k=DISCS[DISCS.length-1];playD(k,!playing(k))}if(e.key==='r'&&$('sheet').hidden)recToggle()});
+Promise.all(['suite.json','decks.json','layers.json'].map(u=>fetch(BASE+u).then(r=>{if(!r.ok)throw new Error(u);return r.json()}))).then(([s,d,x])=>{build(s,d,x);resize();poemDots();selfTest();if(!restore())loadPoem('06');else{computeMesh();poemUI()}requestAnimationFrame(frame)})
+  .catch(e=>{document.body.insertAdjacentHTML('beforeend',`<div class="toast">Could not load (${esc(e.message)}). Reload.</div>`)});
 </script>
 
 </html>

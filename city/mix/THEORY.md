@@ -99,3 +99,28 @@ States: REST (no disc) → READY (disc loaded, paused) → WORKING (deck playing
 - Which disc "partners" a poem on deck B (world reel first, else its rooms) is a taste call, not a rule.
 - Line jumps assume the reading's aligned line times are right; poem 06 has two refrain lines whose times are interpolated.
 - The rough cut's timecode is the reference; world reels and sound reels start at 00:00:00:00 in their own files.
+
+---
+
+## Revision 3 · the instrument
+
+*Obstruction found in revision 2:* it was still an operator panel. Titles, tabs, IN/OUT, SEND, lanes, a crossfader and LINK lost along the way all competed with the picture. You read it instead of playing it.
+
+*New way:* the output fills the screen. Discs are gears floating on it.
+
+| Gesture | Operation | Consequence |
+|---|---|---|
+| tap a disc's centre | [play/pause] | the disc and every disc meshed with it start or stop |
+| double-tap the centre | [loop] the current line | gold arc on the rim; the line repeats |
+| turn the ring | [scrub] (one turn = 8 s) | each tooth clicks (sound + haptic); meshed discs turn with it |
+| drag the centre | [move] | the nearer the middle of the screen, the stronger in picture and sound (`levelOf`) |
+| push two discs rim to rim | [mesh] = LINK | teeth interlock, buzz; they turn and play as one, opposite directions like gears; pull apart to let go |
+| tap a dot above a disc | [route] words / picture / sound | that channel joins or leaves the output |
+| hold the centre | [swap/remove] | thumbnail grid, trash with UNDO |
+| + | [add] | up to four discs (`MAXD`) |
+| ● | [rec] | the output and its sound are recorded; stop → watch, save the film, save or copy the edit list built from the 4 Hz log |
+| 01–14 | [load poem] | its reading meshed to its world reel (or rooms) |
+
+*Invariants added:* at most 4 discs; mesh is symmetric and recomputed from positions only (`computeMesh`); group direction alternates by depth (`groups`, bounded by `MAXD*4` steps); the anchor of a group is the last disc touched and the others keep the clock offset they had then (`anchor`, `follow`); the record log is capped at 14 400 samples (one hour), the recorder at 6 000 chunks.
+
+*Cut:* the MIX lanes and clip editing (the edit now comes from the performance), IN/OUT, the crossfader (position is the fader), every title and label except poem numbers.
