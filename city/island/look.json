@@ -1,0 +1,202 @@
+{
+ "look": 1,
+ "source": "city/island/island.js:87-166, :461-506, :2429-2451; city/shader-suite-bar.js:52-126; city/shaders.js:3-205",
+ "islands": {
+  "wygwyl": {
+   "sky": [
+    "#08182e",
+    "#0f2c52",
+    "#2c5278",
+    "#102644"
+   ],
+   "fog": {
+    "color": "#102644",
+    "near": 220,
+    "far": 3800
+   },
+   "hemi": {
+    "sky": "#5c8cc4",
+    "ground": "#1d2430",
+    "i": 1.15
+   },
+   "sun": {
+    "color": "#ffbe7d",
+    "i": 1.55
+   },
+   "fill": {
+    "color": "#18b4ff",
+    "i": 0.32
+   },
+   "exposure": 1.3,
+   "aces": 1,
+   "water": {
+    "color": "#13466e",
+    "specular": "#18b4ff"
+   },
+   "toning": [
+    [
+     0.02,
+     0.03,
+     0.07
+    ],
+    [
+     0.22,
+     0.3,
+     0.45
+    ],
+    [
+     0.8,
+     0.86,
+     0.95
+    ]
+   ],
+   "toning_exposure": 1.25,
+   "ground": {
+    "meadow": [
+     "#2a3631",
+     "#4b5847"
+    ],
+    "rock": "#5a5f66",
+    "sand": "#6b6a66",
+    "snow": "#6b6a66",
+    "snowLine": 99999,
+    "rockSlope": [
+     0.3,
+     0.6
+    ],
+    "paint": 0.15
+   },
+   "grade": {
+    "saturation": 1.05,
+    "contrast": 1.06,
+    "vignette": 0.18,
+    "grain": 0.02,
+    "cyan": 0.3,
+    "cyanLo": [
+     0.12,
+     0.76,
+     1.0
+    ],
+    "cyanHi": [
+     0.4,
+     0.9,
+     1.0
+    ]
+   },
+   "offers": [
+    "weave",
+    "jerikan",
+    "silver",
+    "cyanotype",
+    "woodblock",
+    "inkwash",
+    "watercolour",
+    "risograph",
+    "card",
+    "silhouette",
+    "glass",
+    "cave",
+    "set",
+    "embers",
+    "spray"
+   ],
+   "looks": {
+    "Dawn": {
+     "sky": [
+      "#243a52",
+      "#4f7391",
+      "#d9b18b",
+      "#4f7391"
+     ],
+     "sun": {
+      "color": "#ffd7ad",
+      "i": 2.6
+     },
+     "hemi": {
+      "sky": "#4f7391",
+      "ground": "#4a453f",
+      "i": 1.35
+     },
+     "fog": {
+      "color": "#6a7f90",
+      "near": 300,
+      "far": 3000
+     },
+     "fill": {
+      "i": 0.15
+     }
+    },
+    "Midday": {
+     "sky": [
+      "#4c7294",
+      "#7ea6c4",
+      "#cbd6dc",
+      "#a9bfcc"
+     ],
+     "sun": {
+      "color": "#fff8ec",
+      "i": 3.0
+     },
+     "hemi": {
+      "sky": "#7ea6c4",
+      "ground": "#595752",
+      "i": 1.65
+     },
+     "fog": {
+      "color": "#a9bfcc",
+      "near": 600,
+      "far": 6000
+     },
+     "fill": {
+      "i": 0
+     }
+    },
+    "Blue hour": {
+     "sky": [
+      "#0c1f38",
+      "#2c6294",
+      "#6f93b0",
+      "#2c4a6a"
+     ],
+     "sun": {
+      "color": "#c4daf2",
+      "i": 2.0
+     },
+     "hemi": {
+      "sky": "#2c6294",
+      "ground": "#333b44",
+      "i": 1.25
+     },
+     "fog": {
+      "color": "#2c4a6a",
+      "near": 260,
+      "far": 2600
+     }
+    },
+    "Night": {
+     "sky": [
+      "#08111e",
+      "#162d47",
+      "#2a4158",
+      "#101c2a"
+     ],
+     "sun": {
+      "color": "#90b6db",
+      "i": 0.95
+     },
+     "hemi": {
+      "sky": "#162d47",
+      "ground": "#1e252e",
+      "i": 0.72
+     },
+     "fog": {
+      "color": "#101c2a",
+      "near": 160,
+      "far": 2000
+     },
+     "exposure": 1.0
+    }
+   }
+  }
+ }
+}

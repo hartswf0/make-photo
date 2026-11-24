@@ -47,21 +47,109 @@ paintSky(0);
 const camera = new T.PerspectiveCamera(60, innerWidth / innerHeight, .5, 70000);
 const hemi = new T.HemisphereLight('#dfefff', '#4a5a3a', 1.1); scene.add(hemi); const sun = new T.DirectionalLight('#fff4dc', 1.6); sun.position.set(-1, 2, -.6); scene.add(sun);
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
+// ---------- LOOKS (look@1): every world keeps its own colour. See atlas/LOOKS.md.
+// Ground palettes are applied by place, so an island reads as itself from afar; sky, sun, fog, exposure, tone and grade blend by where you
+// stand (RAGE's timecycle zones); a final grade pass carries each world's own treatment and its named looks (the shared 14-look catalogue) ----------
+const NISL = 12;
+const DEFAULT_LOOK = { sky: ['#5f8fbf', '#a9c4d8', '#c9d6dc', '#b4c9d6'], fog: { color: '#b4c9d6', near: 900, far: 24000 }, hemi: { sky: '#dfefff', ground: '#4a5a3a', i: 1.1 }, sun: { color: '#fff4dc', i: 1.6 }, fill: { color: '#18b4ff', i: 0 },
+  water: { color: '#235f8f', specular: '#d8eefc' }, exposure: 1, aces: 0,
+  ground: { meadow: ['#7c9569', '#b5bc8b'], rock: '#b3ada8', sand: '#dfd8c4', snow: '#f7f9fc', snowLine: 2350, rockSlope: [.22, .48], paint: .38 },
+  grade: { saturation: 1, contrast: 1, lift: [0, 0, 0], gamma: [1, 1, 1], gain: [1, 1, 1], tint: '#ffffff', tintAmt: 0, vignette: .12, grain: .02,
+    filter: [1, 1, 1], ramp: null, rampMix: 0, steps: 0, edge: 0, edgeColor: '#101010', scan: 0, cyan: 0, cyanLo: [0, .50, .96], cyanHi: [.32, .92, 1] } };
+const LOOKS = { default: DEFAULT_LOOK, islands: {}, catalog: {}, standard: null };
+// THE HOUSE STANDARD is Teton's: a silver-gelatin world where only blue-dominant things (water, cans, rain, Wi-Fi) burn cyan. Every world follows it,
+// toned in its own silver and keeping its own sky, fog, light and ground; its original colour stays on the lens as "Its own colour". ?standard=0 turns it off.
+const STANDARD = !/[?&]standard=0/.test(location.search), OWN = 'Its own colour';   // filled from look packets on the shelf
+const lin = h => new T.Color(h);   // three converts hex sRGB to linear working colour
+const GROUND_U = { uDMA: { value: lin(DEFAULT_LOOK.ground.meadow[0]) }, uDMB: { value: lin(DEFAULT_LOOK.ground.meadow[1]) }, uDRK: { value: lin(DEFAULT_LOOK.ground.rock) }, uDSD: { value: lin(DEFAULT_LOOK.ground.sand) }, uDSN: { value: lin(DEFAULT_LOOK.ground.snow) },
+  uDGP: { value: new T.Vector4(DEFAULT_LOOK.ground.snowLine, .22, .48, DEFAULT_LOOK.ground.paint) },
+  uIR: { value: Array.from({ length: NISL }, () => new T.Vector4(0, 0, -1, -1)) }, uMA: { value: Array.from({ length: NISL }, () => new T.Color()) }, uMB: { value: Array.from({ length: NISL }, () => new T.Color()) },
+  uRK: { value: Array.from({ length: NISL }, () => new T.Color()) }, uSD: { value: Array.from({ length: NISL }, () => new T.Color()) }, uSN: { value: Array.from({ length: NISL }, () => new T.Color()) }, uGP: { value: Array.from({ length: NISL }, () => new T.Vector4()) } };
+const GROUND_DECL = `uniform vec3 uDMA, uDMB, uDRK, uDSD, uDSN; uniform vec4 uDGP; uniform vec4 uIR[${NISL}]; uniform vec3 uMA[${NISL}], uMB[${NISL}], uRK[${NISL}], uSD[${NISL}], uSN[${NISL}]; uniform vec4 uGP[${NISL}];\n`;
+function setIslandGround(k, isl, g) { const d = DEFAULT_LOOK.ground, G = { ...d, ...g }, u = GROUND_U; u.uIR.value[k].set(isl.center[0] - isl.size[0] / 2, isl.center[1] - isl.size[1] / 2, isl.center[0] + isl.size[0] / 2, isl.center[1] + isl.size[1] / 2);
+  u.uMA.value[k].set(G.meadow[0]); u.uMB.value[k].set(G.meadow[1]); u.uRK.value[k].set(G.rock); u.uSD.value[k].set(G.sand); u.uSN.value[k].set(G.snow); u.uGP.value[k].set(G.snowLine, G.rockSlope[0], G.rockSlope[1], G.paint); }
+// the grade pass: the scene renders to a buffer; one quad filters, grades, tones, maps through the world's ramp, keeps its cyan, and encodes
+const RT = new T.WebGLRenderTarget(1, 1, { samples: 4, type: T.HalfFloatType }); const sizeRT = () => { const pr = renderer.getPixelRatio(); RT.setSize(Math.round(innerWidth * pr), Math.round(innerHeight * pr)); }; sizeRT(); addEventListener('resize', sizeRT);
+const U = (v) => ({ value: v }), GRADE_U = { tDiffuse: U(RT.texture), uSat: U(1), uCon: U(1), uLift: U(new T.Vector3()), uGam: U(new T.Vector3(1, 1, 1)), uGain: U(new T.Vector3(1, 1, 1)), uTint: U(new T.Color(1, 1, 1)), uTintAmt: U(0),
+  uVig: U(.12), uGrain: U(.02), uExp: U(1), uAces: U(0), uTime: U(0), uRes: U(new T.Vector2(1, 1)), uSpec: U(new T.Vector3(1, 1, 1)), uRamp: U(Array.from({ length: 6 }, () => new T.Color())), uRampMix: U(0), uSteps: U(0),
+  uEdge: U(0), uEdgeCol: U(new T.Color()), uScan: U(0), uCyan: U(0), uCyLo: U(new T.Color()), uCyHi: U(new T.Color()) };
+const gradeScene = new T.Scene(), gradeCam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+gradeScene.add(new T.Mesh(new T.PlaneGeometry(2, 2), new T.ShaderMaterial({ uniforms: GRADE_U, depthTest: false, depthWrite: false, toneMapped: false,
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uSat, uCon, uTintAmt, uVig, uGrain, uExp, uAces, uTime, uRampMix, uSteps, uEdge, uScan, uCyan; uniform vec3 uLift, uGam, uGain, uTint, uSpec, uRamp[6], uEdgeCol, uCyLo, uCyHi; uniform vec2 uRes; varying vec2 vUv;
+    const vec3 R709 = vec3(.2126, .7152, .0722);
+    vec3 aces(vec3 x){ x *= .6; return clamp((x * (2.51 * x + .03)) / (x * (2.43 * x + .59) + .14), 0., 1.); }
+    float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    float lumAt(vec2 o){ return dot(texture2D(tDiffuse, vUv + o / uRes).rgb * uSpec, R709); }
+    vec3 ramp(float t){ t = clamp(t, 0., 1.) * 5.; int k = int(min(4., floor(t))); float f = t - float(k); vec3 a = uRamp[0], b = uRamp[1];
+      for (int i = 0; i < 5; i++) if (i == k) { a = uRamp[i]; b = uRamp[i + 1]; } return mix(a, b, f); }
+    void main(){ vec3 raw = texture2D(tDiffuse, vUv).rgb, c = raw * uExp; c *= mix(vec3(1.), uTint, uTintAmt);
+      float l0 = dot(c, R709); c = mix(vec3(l0), c, uSat); c = .18 * pow(max(c, vec3(0.)) / .18, vec3(uCon));
+      c = mix(clamp(c, 0., 1.), aces(c), uAces);
+      float L = pow(clamp(dot(c * uSpec, R709), 0., 1.), 1. / 2.2); if (uSteps >= 2.) L = floor(L * uSteps) / (uSteps - 1.);       // the world's own treatment: a ramp through its stops, stepped if it is cut
+      c = mix(c, ramp(L), uRampMix);
+      if (uEdge > 0.) { float gx = lumAt(vec2(1., 0.)) - lumAt(vec2(-1., 0.)), gy = lumAt(vec2(0., 1.)) - lumAt(vec2(0., -1.)); c = mix(c, uEdgeCol, clamp(length(vec2(gx, gy)) * 6. * uEdge, 0., 1.)); }
+      if (uCyan > 0.) { float bd = (raw.b - max(raw.r, raw.g)) / max(raw.b, 1e-4), m = smoothstep(.24, .52, bd) * smoothstep(.04, .12, raw.b); c = mix(c, mix(uCyLo, uCyHi, L), m * uCyan); }   // only blue-dominant things burn cyan: water, cans, rain
+      if (uScan > 0.) c *= 1. - uScan * .5 * (.5 + .5 * sin(vUv.y * uRes.y * 2.094));
+      c = pow(max(c * uGain + uLift * (1. - c), vec3(0.)), 1. / uGam);
+      c *= 1. - uVig * smoothstep(.35, .95, length((vUv - .5) * vec2(uRes.x / uRes.y, 1.))); c += (hash(vUv * uRes + uTime) - .5) * uGrain;
+      gl_FragColor = linearToOutputTexel(vec4(c, 1.)); }` })));
+const fill = new T.DirectionalLight('#18b4ff', 0); fill.position.set(.8, .6, 1.2); scene.add(fill);
+// the timecycle: what you see blends by where you stand
+const ATM = { t: 0, acc: null, top: 'default', choice: {} };
+const disp = a => new T.Color().setRGB(a[0], a[1], a[2], T.SRGBColorSpace);          // catalogue colours are display values
+const hexOrArr = v => Array.isArray(v) ? disp(v) : new T.Color(v);
+function stops6(r) { if (!r || !r.length) return null; const C = r.map(hexOrArr); return Array.from({ length: 6 }, (_, k) => { const t = k / 5 * (C.length - 1), i = Math.min(C.length - 2, Math.floor(t)); return C.length === 1 ? C[0].clone() : C[i].clone().lerp(C[i + 1], t - i); }); }
+function lookOf(id) { const D = DEFAULT_LOOK, L = (id && LOOKS.islands[id]) || D, pick = ATM.choice[id], named = pick && pick !== OWN && ((L.looks && L.looks[pick]) || LOOKS.catalog[pick]);
+  let base = { ...D, ...L, grade: { ...D.grade, ...(L.grade || {}) } };
+  if (STANDARD && LOOKS.standard && pick !== OWN) { const S = LOOKS.standard, t = L.toning || S.toning; base = { ...base, std: true, exposure: (L.toning_exposure ?? base.exposure), aces: 0, grade: { ...base.grade, ...S.grade, ramp: t, ...(L.toning_grade || {}) } }; }
+  if (!named) return base;
+  return { ...base, ...named, grade: { ...base.grade, ...(named.grade || {}) } }; }
+function timecycle() { const ws = [], here = islandAt(P.x, P.z); let tot = 0; for (const isl of OW.islands) { if (!LOOKS.islands[isl.id]) continue; const hw = isl.size[0] / 2, hh = isl.size[1] / 2, sN = Math.max(Math.abs(P.x - isl.center[0]) / hw, Math.abs(P.z - isl.center[1]) / hh), o = Math.max(0, sN - .8) * Math.min(hw, hh), w = isl.id === here ? 1 : Math.exp(-o / 300);   /* distance past the island's coast, which the islandize falloff puts near 80% of its half-size */ if (w > .01) { ws.push([isl.id, w]); tot += w; } }   /* the island you stand on owns the look; a neighbour across a strait lends about a quarter */
+  ws.sort((a, b) => b[1] - a[1]); ATM.top = ws[0] && ws[0][1] > .5 ? ws[0][0] : 'default';
+  const parts = [[null, Math.max(0, 1 - (ws[0] ? ws[0][1] : 0))], ...ws], sum = parts.reduce((a, q) => a + q[1], 0) || 1, Z = () => new T.Color(0, 0, 0);
+  const A = { sky: [Z(), Z(), Z(), Z()], fog: Z(), near: 0, far: 0, hs: Z(), hg: Z(), hi: 0, sc: Z(), si: 0, fc: Z(), fi: 0, wc: Z(), wsp: Z(), exp: 0, aces: 0,
+    sat: 0, con: 0, lift: [0, 0, 0], gam: [0, 0, 0], gain: [0, 0, 0], tint: Z(), ta: 0, vig: 0, grain: 0, spec: [0, 0, 0], ramp: [Z(), Z(), Z(), Z(), Z(), Z()], rmix: 0, steps: 0, sw: 0, std: 0, edge: 0, ec: Z(), scan: 0, cyan: 0, cl: Z(), ch: Z() };
+  const add = (col, v, w) => col.add(hexOrArr(v).multiplyScalar(w));
+  for (const [id, w0] of parts) { if (w0 <= 0) continue; const w = w0 / sum, L = lookOf(id), D = DEFAULT_LOOK, fog = { ...D.fog, ...L.fog }, hm = { ...D.hemi, ...L.hemi }, sn = { ...D.sun, ...L.sun }, fl = { ...D.fill, ...L.fill }, wa = { ...D.water, ...L.water }, g = L.grade;
+    (L.sky || D.sky).forEach((h, k) => add(A.sky[k], h, w)); add(A.fog, fog.color, w); A.near += fog.near * w; A.far += fog.far * w; add(A.hs, hm.sky, w); add(A.hg, hm.ground, w); A.hi += hm.i * w; add(A.sc, sn.color, w); A.si += sn.i * w; add(A.fc, fl.color, w); A.fi += fl.i * w;
+    add(A.wc, wa.color, w); add(A.wsp, wa.specular, w); A.exp += (L.exposure ?? 1) * w; A.aces += (L.aces ?? 0) * w;
+    A.sat += g.saturation * w; A.con += g.contrast * w; for (let k = 0; k < 3; k++) { A.lift[k] += g.lift[k] * w; A.gam[k] += g.gamma[k] * w; A.gain[k] += g.gain[k] * w; A.spec[k] += g.filter[k] * w; } add(A.tint, g.tint, w); A.ta += g.tintAmt * w; A.vig += g.vignette * w; A.grain += g.grain * w;
+    const R = stops6(g.ramp); if (R) { R.forEach((c, k) => A.ramp[k].add(c.multiplyScalar(w))); A.rmix += g.rampMix * w; A.sw += w; } if (w > .5) A.steps = g.steps;
+    A.std += (L.std ? 1 : 0) * w; A.edge += g.edge * w; add(A.ec, g.edgeColor, w); A.scan += g.scan * w; A.cyan += g.cyan * w; add(A.cl, g.cyanLo, w); add(A.ch, g.cyanHi, w); }
+  if (A.sw > 0) A.ramp.forEach(c => c.multiplyScalar(1 / A.sw));
+  return A; }
+function applyAtmosphere(A, storm) { const e = storm * storm * (3 - 2 * storm);
+  if (A.std > 0) { const grey = c => { const l = c.r * .2126 + c.g * .7152 + c.b * .0722; c.lerp(new T.Color(l, l, l), A.std); }; [...A.sky, A.fog, A.hs, A.hg, A.sc, A.fc].forEach(grey); }   /* under the standard only blue things keep their blue, so only they burn cyan */
+  const gr = skyX.createLinearGradient(0, 0, 0, 256); [0, .55, .75, 1].forEach((st, k) => gr.addColorStop(st, '#' + A.sky[k].clone().lerp(STORM_SKY[k], e).getHexString(T.SRGBColorSpace))); skyX.fillStyle = gr; skyX.fillRect(0, 0, 4, 256); skyT.needsUpdate = true;
+  scene.fog.color.copy(A.fog).lerp(STORM_SKY[3], e); scene.fog.near = A.near * (1 - .9 * e); scene.fog.far = A.far * (1 - .9 * e);
+  hemi.color.copy(A.hs); hemi.groundColor.copy(A.hg); hemi.intensity = A.hi * (1 - .4 * e) + (STORM.flash > .09 ? 2.2 : STORM.flash > 0 ? .8 : 0); sun.color.copy(A.sc); sun.intensity = A.si * (1 - .7 * e); fill.color.copy(A.fc); fill.intensity = A.fi;
+  water.material.color.copy(A.wc); water.material.specular.copy(A.wsp);
+  const u = GRADE_U; u.uSat.value = A.sat; u.uCon.value = A.con; u.uLift.value.set(...A.lift); u.uGam.value.set(...A.gam); u.uGain.value.set(...A.gain); u.uTint.value.copy(A.tint); u.uTintAmt.value = A.ta; u.uVig.value = A.vig; u.uGrain.value = A.grain;
+  u.uExp.value = A.exp; u.uAces.value = A.aces; u.uSpec.value.set(...A.spec); A.ramp.forEach((c, k) => u.uRamp.value[k].copy(c)); u.uRampMix.value = A.sw > 0 ? A.rmix : 0; u.uSteps.value = A.steps; u.uEdge.value = A.edge; u.uEdgeCol.value.copy(A.ec); u.uScan.value = A.scan; u.uCyan.value = A.cyan; u.uCyLo.value.copy(A.cl); u.uCyHi.value.copy(A.ch); }
+// look packets: the trough's own (atlas/looks.json, the islands no can claims yet), the shared catalogue, and each can's
+function lensLooks() { const id = ATM.top, L = LOOKS.islands[id] || {}, names = ['As it is', ...(STANDARD && LOOKS.standard && L.toning ? [OWN] : []), ...Object.keys(L.looks || {}), ...(L.offers || []).filter(n => LOOKS.catalog[n] && !(L.looks || {})[n])], c = ATM.choice[id]; const k = Math.max(0, names.indexOf(c));
+  return { filter: k, filterName: names[k], filters: names }; }
+async function loadLooks(url) { try { const L = await (await fetch(url)).json(); for (const u of L.packets || []) await loadLooks(new URL(u, new URL(url, location.href)).href); if (L.catalog) Object.assign(LOOKS.catalog, L.catalog); if (L.standard) LOOKS.standard = L.standard; for (const [id, lk] of Object.entries(L.islands || {})) { LOOKS.islands[id] = lk; const k = OW.islands.findIndex(i => i.id === id); if (k >= 0 && lk.ground) setIslandGround(k, OW.islands[k], lk.ground); } } catch (e) { console.warn('looks', url, e); } }
 // ---------- the painted map drapes every piece of ground ----------
 const tex = await new Promise(ok => new T.TextureLoader().load(OW.texture + '?v=2', ok)); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 8; tex.generateMipmaps = true;
 const groundMat = new T.MeshLambertMaterial({ map: tex });
 { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'), im = x.createImageData(256, 256); for (let i = 0; i < 256 * 256; i++) { const v = 150 + Math.random() * 80 + Math.sin(i * .013) * 10; im.data[i * 4] = im.data[i * 4 + 1] = im.data[i * 4 + 2] = v; im.data[i * 4 + 3] = 255; } x.putImageData(im, 0, 0);
   x.globalAlpha = .35; for (let k = 0; k < 900; k++) { x.fillStyle = Math.random() < .5 ? '#555' : '#fff'; x.beginPath(); x.arc(Math.random() * 256, Math.random() * 256, Math.random() * 3 + .5, 0, 7); x.fill(); }
   const grain = new T.CanvasTexture(c); grain.wrapS = grain.wrapT = T.RepeatWrapping; grain.generateMipmaps = true;
-  groundMat.onBeforeCompile = sh => { sh.uniforms.grain = { value: grain }; sh.vertexShader = 'varying vec3 vWp; varying float vUp;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz; vUp = normalize(mat3(modelMatrix) * objectNormal).y;');
-    sh.fragmentShader = 'uniform sampler2D grain; varying vec3 vWp; varying float vUp;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+  groundMat.onBeforeCompile = sh => { sh.uniforms.grain = { value: grain }; Object.assign(sh.uniforms, GROUND_U); sh.vertexShader = 'varying vec3 vWp; varying float vUp;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz; vUp = normalize(mat3(modelMatrix) * objectNormal).y;');
+    sh.fragmentShader = 'uniform sampler2D grain; varying vec3 vWp; varying float vUp;\n' + GROUND_DECL + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+      vec3 MA = uDMA, MB = uDMB, RK = uDRK, SD = uDSD, SN = uDSN; vec4 GP = uDGP; { vec3 aMA = vec3(0.), aMB = vec3(0.), aRK = vec3(0.), aSD = vec3(0.), aSN = vec3(0.); vec4 aGP = vec4(0.); float ws = 0.;
+        for (int i = 0; i < 12; i++) { vec4 r = uIR[i]; if (r.z <= r.x) continue; vec2 dd = max(r.xy - vWp.xz, vWp.xz - r.zw); float w = 1.0 - smoothstep(0.0, 700.0, length(max(dd, vec2(0.0))));
+          if (w <= 0.0) continue; ws += w; aMA += uMA[i] * w; aMB += uMB[i] * w; aRK += uRK[i] * w; aSD += uSD[i] * w; aSN += uSN[i] * w; aGP += uGP[i] * w; }
+        if (ws > 0.0) { float k = min(1.0, ws); MA = mix(MA, aMA / ws, k); MB = mix(MB, aMB / ws, k); RK = mix(RK, aRK / ws, k); SD = mix(SD, aSD / ws, k); SN = mix(SN, aSN / ws, k); GP = mix(GP, aGP / ws, k); } }
       float gd = clamp(1.0 - length(vWp - cameraPosition) / 1400.0, 0.0, 1.0); float g1 = texture2D(grain, vWp.xz / 7.0).r / .75, g2 = texture2D(grain, vWp.xz / 41.0).g / .75, g3 = texture2D(grain, vWp.xz / 260.0).b / .75;
       float sl = 1.0 - vUp, h = vWp.y; vec3 painted = diffuseColor.rgb; float lum = dot(painted, vec3(.3, .59, .11));
-      vec3 grass = mix(vec3(.20, .30, .14), vec3(.46, .50, .26), clamp(g3 * 1.4 - .55 + lum * .5 + (g2 - .5) * .5, 0.0, 1.0));      // meadow, darker in the hollows
-      vec3 c = mix(painted, grass, .62);
-      vec3 rock = mix(vec3(.36, .34, .32), vec3(.55, .51, .46), g2 * .7) ; c = mix(c, rock, smoothstep(.22, .48, sl));                       // cliffs where it is steep
-      c = mix(vec3(.74, .69, .55), c, smoothstep(1.5, 7.0, h));                                                                                // a shore of sand
-      c = mix(c, vec3(.93, .95, .97), smoothstep(2350.0, 2800.0, h + g3 * 120.0) * (1.0 - smoothstep(.45, .7, sl)));                         // snow on the high ground
+      vec3 grass = mix(MA, MB, clamp(g3 * 1.4 - .55 + lum * .5 + (g2 - .5) * .5, 0.0, 1.0));      // this island's meadow, darker in the hollows
+      vec3 c = mix(painted, grass, 1.0 - GP.w);
+      vec3 rock = RK * mix(.78, 1.18, g2 * .7); c = mix(c, rock, smoothstep(GP.y, GP.z, sl));                       // this island's rock where it is steep
+      c = mix(SD, c, smoothstep(1.5, 7.0, h));                                                                                // a shore of sand
+      c = mix(c, SN, smoothstep(GP.x, GP.x + 450.0, h + g3 * 120.0) * (1.0 - smoothstep(.45, .7, sl)));                         // snow on the high ground
       diffuseColor.rgb = c * mix(1.0, g1 * .55 + g2 * .45, gd * .5);`); }; }
 const W = OW.width_m, H = OW.height_m;
 function gridMesh(cols, rows, x0, z0, step, hAt, mat) {
@@ -213,7 +301,7 @@ const DOORS = OW.places.map(p => { const ring = new T.Mesh(new T.RingGeometry(5.
 let TARGET = null;
 const guide = new T.Group(); { const sh = new T.Shape(); sh.moveTo(0, 1.5); sh.lineTo(1.25, -.5); sh.lineTo(0, .05); sh.lineTo(-1.25, -.5); sh.closePath(); const g = new T.ShapeGeometry(sh); g.rotateX(Math.PI / 2);
   for (let k = 0; k < 3; k++) { const m = new T.Mesh(g, new T.MeshBasicMaterial({ color: '#ffc35a', transparent: true, opacity: .85, side: T.DoubleSide, depthWrite: false, fog: false })); m.position.z = k * 2.1; m.renderOrder = 5; guide.add(m); } } scene.add(guide);
-const islandAt = (x, z) => { let best = null, bd = 1e12; for (const i of OW.islands) if (Math.abs(x - i.center[0]) < i.size[0] / 2 + 600 && Math.abs(z - i.center[1]) < i.size[1] / 2 + 600) { const d = Math.hypot(x - i.center[0], z - i.center[1]); if (d < bd) { bd = d; best = i.id; } } return best; };
+const islandAt = (x, z) => { let best = null, bd = 1e12; for (const i of OW.islands) if (Math.abs(x - i.center[0]) < i.size[0] / 2 + 600 && Math.abs(z - i.center[1]) < i.size[1] / 2 + 600) { const d = Math.max(Math.abs(x - i.center[0]) / (i.size[0] / 2), Math.abs(z - i.center[1]) / (i.size[1] / 2)); if (d < bd) { bd = d; best = i.id; } } return best; };
 function hops(from, to, x, z) {               // the shortest way across the islands: which crossings, in order
   const dist = new Map([[from, 0]]), via = new Map(), pos = new Map([[from, [x, z]]]), open = [from];
   while (open.length) { open.sort((a, b) => dist.get(a) - dist.get(b)); const u = open.shift(); if (u === to) break; const [ux, uz] = pos.get(u);
@@ -309,17 +397,17 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
     const col = WAY.kind === 'ferry' ? COL.ferry : WAY.kind === 'door' ? COL.door : COL.bridge; guide.children.forEach((c, k) => { c.material.color.set(col); c.material.opacity = .35 + .5 * Math.max(0, Math.sin(now / 260 - k * .9)); }); }
   // chase camera
   const [dist, up] = INSIDE && m === 'walk' ? [2.6, 1.5] : CAM[m], cy = P.yaw + Math.PI + camYaw, ex = P.x + Math.sin(cy) * dist * Math.cos(camPitch), ez = P.z + Math.cos(cy) * dist * Math.cos(camPitch); let ey = P.y + up + Math.sin(camPitch) * dist;
-  ey = Math.max(ey, groundAt(ex, ez) + 1.5); camera.position.lerp(new T.Vector3(ex, ey, ez), Math.min(1, dt * 6)); camera.lookAt(P.x + Math.sin(P.yaw) * dist * .5, P.y + 1.6 + up * .55, P.z + Math.cos(P.yaw) * dist * .5);   // look past yourself so the horizon, and the lights on it, stay in view if (!look.id && Math.abs(fwd) > .1) camYaw *= Math.pow(.2, dt);
+  ey = Math.max(ey, groundAt(ex, ez) + 1.5); camera.position.lerp(new T.Vector3(ex, ey, ez), Math.min(1, dt * 6)); camera.lookAt(P.x + Math.sin(P.yaw) * dist * .5, P.y + 1.6 + up * .55, P.z + Math.cos(P.yaw) * dist * .5);   /* look past yourself so the horizon, and the lights on it, stay in view */ if (!look.id && Math.abs(fwd) > .1) camYaw *= Math.pow(.2, dt);
   water.position.x = P.x; water.position.z = P.z;
   OWS.dk = Math.max(0, OWS.dk - dt * .0025); if (OWS.jumpT > 0) { OWS.jumpT -= dt; walker.position.y += Math.sin((.5 - OWS.jumpT) / .5 * Math.PI) * 1.1; }
   if (REG) REG.update(dt, now / 1000, P, donkey && donkey.group.position); hearAndHouse();
   { if (STORM.until && now > STORM.until && !STORM.pending) { STORM.want = 0; STORM.until = 0; STORM.t0 = 0; }
     { const fd = Math.min(.5, sdtRaw(now)), slow = fd > .028; STORM.slowT = slow ? (STORM.slowT || 0) + fd : Math.max(0, (STORM.slowT || 0) - fd); STORM.glass = STORM.slowT > 2 ? .35 : STORM.slowT < .5 ? 1 : STORM.glass || 1; } const sdt = Math.min(.25, (now - (STORM.t || now)) / 1000); STORM.t = now; let floor = 0; for (const w of CAN_WEATHER) if (Math.abs(P.x - w.x) < w.hx && Math.abs(P.z - w.z) < w.hz) floor = Math.max(floor, w.storm || 0); const goal = Math.max(STORM.want, floor), prev = STORM.v; STORM.v += (goal - STORM.v) * Math.min(1, sdt * (goal > STORM.v ? .9 : .35));   // wall-clock, so a slow device clears on time
-    if (Math.abs(STORM.v - prev) > .002 || STORM.v > .01) { const v = STORM.v, e = v * v * (3 - 2 * v); scene.fog.near = 900 - 820 * e; scene.fog.far = 24000 - 21800 * e; scene.fog.color.copy(SKY).lerp(STORM_SKY[3], e); paintSky(e);
-      if (v > .7 && Math.random() < dt * .35) STORM.flash = .18; STORM.flash = Math.max(0, STORM.flash - sdt); hemi.intensity = 1.1 - .45 * e + (STORM.flash > .09 ? 2.2 : STORM.flash > 0 ? .8 : 0); sun.intensity = 1.6 * (1 - .7 * e); } }
+    if (STORM.v > .7 && Math.random() < dt * .35) STORM.flash = .18; STORM.flash = Math.max(0, STORM.flash - sdt); }
   if (now - streamAt > 250) { streamAt = now; stream(); if (REG) REG.tick(P.x, P.z); if (!SURF) hud(); }
   if (!ready && tiles.size) { ready = true; $('load').style.opacity = 0; setTimeout(() => $('load').remove(), 700); }
-  renderer.render(scene, camera); requestAnimationFrame(frame); }
+  if (now - (ATM.t || 0) > 120) { ATM.t = now; ATM.acc = timecycle(); } if (ATM.acc) applyAtmosphere(ATM.acc, STORM.v);
+  GRADE_U.uTime.value = (now / 1000) % 100; GRADE_U.uRes.value.set(RT.width, RT.height); renderer.setRenderTarget(RT); renderer.render(scene, camera); renderer.setRenderTarget(null); renderer.render(gradeScene, gradeCam); requestAnimationFrame(frame); }
 // ---------- where you are, and the way into a level ----------
 function hud() { let isl = OW.islands.find(i => Math.abs(P.x - i.center[0]) < i.size[0] / 2 && Math.abs(P.z - i.center[1]) < i.size[1] / 2), onBridge = deckAt(P.x, P.z);
   let near = null, nd = 1e9; for (const p of OW.places) { const d = Math.hypot(P.x - p.x, P.z - p.z); if (d < nd) { nd = d; near = p; } }
@@ -359,7 +447,7 @@ window.AhiyaBridge = { version: 1, canvas: renderer.domElement,
       place: { id: isl ? isl.id : 'sea', name: deckAt(P.x, P.z) && P.mode !== 'fly' ? 'the bridge' : isl ? isl.name : 'the open sea', next: null, visited: [] }, signal: 1,
       mode: { fly: 'glide', boat: 'drive', ferry: 'walk' }[P.mode] || P.mode, speed: Math.abs(P.speed), exit: MODE_OUT[P.mode] ? { id: 'down', label: MODE_OUT[P.mode] } : null,
       live: liveAct(), busy: P.mode === 'ferry', speech: SPEECH && performance.now() - SPEECH.t < 9000 ? (() => { const w = SPEECH.who, h = w ? proj(w.x, w.y + 1.9, w.z) : null; return { seq: SPEECH.seq, name: SPEECH.name, text: SPEECH.text, spoken: SPEECH.text, t: SPEECH.t / 1000, dur: 8, x: h && h.x, y: h && h.y }; })() : null, said: null,
-      lens: { focus: 18, filter: 0, filterName: 'Clear', filters: ['Clear'], stop: 0, stopName: 'f/8', stops: ['f/8'], mode: 0, modeName: '', modes: [''], tilt: 0, guides: false, lidar: false, camera: 'third', plates: 0 },
+      lens: { focus: 18, ...lensLooks(), stop: 0, stopName: 'f/8', stops: ['f/8'], mode: 0, modeName: '', modes: [''], tilt: 0, guides: false, lidar: false, camera: 'third', plates: 0 },
       map: { stops: [], me: [P.x / W, P.z / H], donkey: dg ? [dg.x / W, dg.z / H] : [0, 0], heading: -P.yaw },
       things: { can: { ...me, s: meS, dist: 0 }, donkey: dg && P.mode === 'walk' ? { ...proj(dg.x, dg.y + 1.5, dg.z), s: scaleAt(dg.x, dg.y, dg.z), dist: Math.hypot(dg.x - P.x, dg.z - P.z), wx: dg.x, wz: dg.z } : null,
         source: w ? { ...proj(w.p.x, P.y + 1, w.p.z), s: scaleAt(w.p.x, P.y, w.p.z), dist: w.d, wx: w.p.x, wz: w.p.z } : null, people: PEOPLE.map(q => ({ id: q.id, name: q.name, ...proj(q.x, q.y + 1.9, q.z), dist: Math.hypot(q.x - P.x, q.z - P.z), wx: q.x, wz: q.z })).filter(q => q.dist < 40), next: WAY ? { ...proj(WAY.x, (WAY.y || P.y) + 8, WAY.z), s: 1, dist: Math.hypot(WAY.x - P.x, WAY.z - P.z), name: WAY.label } : null, wagon: null },
@@ -367,7 +455,7 @@ window.AhiyaBridge = { version: 1, canvas: renderer.domElement,
   act: {
     live() { const L = liveAct(); if (!L) return false; if (L.kind === 'enter') { if (window.DW) window.DW.go(L.entry, { mode: 'walk', door: true }); else location.href = L.entry; } else if (L.kind === 'sail') board(L.pier); else if (L.kind === 'drive') setMode('drive'); else if (L.kind === 'boat') { L.mb.boat.visible = false; P.x = L.mb.x; P.z = L.mb.z; P.yaw = L.mb.yaw; P.mode = 'walk'; setMode('boat'); } else if (L.kind === 'draw') { const a = 20 - OWS.liters; OWS.liters = 20; if (L.src && L.src.onDraw) L.src.onDraw(a); } else if (L.kind === 'dry') return false; else if (L.kind === 'switch') L.sw.run(); else if (L.kind === 'give') { OWS.liters -= 5; L.who.onGive(5); } return true; },
     exit() { setMode('walk'); }, steer(x, y, active) { EXT.x = active ? x : 0; EXT.y = active ? y : 0; }, look(dx, dy) { camYaw -= dx * .006; camPitch = Math.max(-.2, Math.min(1.2, camPitch + dy * .004)); },
-    jump() { if (P.mode === 'walk') OWS.jumpT = .5; }, say() { }, focus() { }, set() { }, lang() { }, expose() { }, lastPlate() { return null; }, begin() { },
+    jump() { if (P.mode === 'walk') OWS.jumpT = .5; }, say() { }, focus() { }, set(key, v) { if (key === 'filter') { const n = lensLooks().filters; const id = ATM.top; ATM.choice[id] = v > 0 ? n[v % n.length] : null; ATM.t = 0; } }, lang() { }, expose() { }, lastPlate() { return null; }, begin() { },
     lean(kind, litres) { if (kind === 'draw') { const cs = nearest(CAN_SOURCES.filter(c => c.flowing)), w = cs && cs.d < 14 ? cs : nearest(WELLS); if (!w || w.d > 30) return 0; const a = Math.min(litres, 20 - OWS.liters); OWS.liters += a; if (w.p.onDraw) w.p.onDraw(a); return a; }
       if (kind === 'donkey') { const a = Math.min(litres, OWS.liters, (1 - OWS.dk) * 8); if (a <= 0) return 0; OWS.liters -= a; OWS.dk = Math.min(1, OWS.dk + a / 8); return a; } return 0; },
     restore(sn) { if (!sn) return false; if (Number.isFinite(sn.liters)) OWS.liters = sn.liters; if (Number.isFinite(sn.donkey)) OWS.dk = sn.donkey; if (Number.isFinite(sn.x)) { P.x = sn.x; P.z = sn.z; P.y = groundAt(P.x, P.z); } return true; },
@@ -382,10 +470,11 @@ if (SURF) { for (const id of ['modes', 'stick', 'enter', 'mini', 'where']) $(id)
   const en = document.createElement('script'); en.src = '../night-post/rain/engine.js?v=2'; en.onload = () => { const su = document.createElement('script'); su.src = '../night-post/rain/surface.js?v=ow4'; document.head.append(su); }; document.head.append(en); }
 // wait for the ground under you before letting go
 { const k = Math.floor(P.x / TS) + '_' + Math.floor(P.z / TS); await fetchTile(k); P.y = groundAt(P.x, P.z); if (donkey) placeDk(P.x + Math.sin(P.yaw) * 2 - Math.cos(P.yaw) * 1.8, P.z + Math.cos(P.yaw) * 2 + Math.sin(P.yaw) * 1.8, P.yaw, (x, z) => groundAt(x, z)); }
+await loadLooks('./looks.json?v=1'); await loadLooks('./look-catalog.json?v=1');
 camera.position.set(P.x, P.y + 40, P.z + 60); requestAnimationFrame(frame);
 async function goTo(x, z, yaw) { const k = Math.floor(x / TS) + '_' + Math.floor(z / TS); await fetchTile(k); if (P.mode === 'ferry') { P.ferry = null; P.mode = 'walk'; } if (P.mode === 'boat' && !wet(x, z)) setMode('walk'); P.x = x; P.z = z; P.y = groundAt(x, z); if (Number.isFinite(yaw)) P.yaw = yaw; if (P.mode === 'fly') P.alt = Math.max(P.y, 0) + 60; P.speed = 0;
   if (donkey) placeDk(P.x - Math.sin(P.yaw) * 3, P.z - Math.cos(P.yaw) * 3, P.yaw, (x, z) => groundAt(x, z)); camera.position.set(P.x - Math.sin(P.yaw) * 20, P.y + 12, P.z - Math.cos(P.yaw) * 20); }
-window.__ow = { P, OW, tiles, data, setMode, groundAt, deckAt, terrain, ferries, board, nearPier, wet, woody, rogallo, CROSS, MOORED, goTo, donkey, parked, PARK, REG, MOUNTS, STORM, CAN_SOURCES, PEOPLE, SWITCHES, ROOMS, blocked, get inside() { return INSIDE; }, get speech() { return SPEECH; },
+window.__ow = { P, OW, tiles, data, setMode, groundAt, deckAt, terrain, ferries, board, nearPier, wet, woody, rogallo, CROSS, MOORED, goTo, donkey, parked, PARK, REG, MOUNTS, STORM, LOOKS, ATM, get look() { return ATM.top; }, CAN_SOURCES, PEOPLE, SWITCHES, ROOMS, blocked, get inside() { return INSIDE; }, get speech() { return SPEECH; },
   setTarget(t) { TARGET = t ? { x: t.x, z: t.z, kind: t.kind || 'door', label: t.label || '' } : null; }, way() { if (!WAY) return null; const path = [[P.x, P.z]]; for (const c of ROUTE) path.push([c.x, c.z], c.far); if (TARGET) path.push([TARGET.x, TARGET.z]); else path.push([WAY.x, WAY.z]);
     return { x: WAY.x, z: WAY.z, kind: WAY.kind, label: WAY.label, chosen: !!TARGET, goal: TARGET && TARGET.label, path }; } };
 })();

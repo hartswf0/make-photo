@@ -38,5 +38,6 @@
   "life",
   "voice"
  ],
- "legos": "./legos.json"
+ "legos": "./legos.json",
+ "look": "./look.json"
 }

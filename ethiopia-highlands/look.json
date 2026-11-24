@@ -1,0 +1,478 @@
+{
+ "look": 1,
+ "source": "ethiopia-world.js:516-801, ethiopia-terrain.js:223-680, study/look-audition-mv.js:22-66",
+ "islands": {
+  "simien_imet_gogo": {
+   "sky": [
+    "#95bad8",
+    "#beccd2",
+    "#e6decb",
+    "#cad1d0"
+   ],
+   "fog": {
+    "color": "#cad1d0",
+    "near": 1400,
+    "far": 17000
+   },
+   "hemi": {
+    "sky": "#95bad8",
+    "ground": "#6d543e",
+    "i": 0.8480000000000001
+   },
+   "sun": {
+    "color": "#ffdbb5",
+    "i": 2.394
+   },
+   "exposure": 1.06,
+   "aces": 1,
+   "water": {
+    "color": "#124858",
+    "specular": "#bff5ff"
+   },
+   "grade": {
+    "saturation": 1.0,
+    "contrast": 1.14,
+    "tint": "#ffe1c7",
+    "tintAmt": 0.108,
+    "vignette": 0.1,
+    "grain": 0.012
+   },
+   "offers": [
+    "jerikan",
+    "silver",
+    "woodblock",
+    "cyanotype",
+    "risograph",
+    "inkwash",
+    "silhouette",
+    "set"
+   ],
+   "looks": {
+    "Golden hour": {
+     "sky": [
+      "#273d68",
+      "#c4987d",
+      "#fbc384",
+      "#e8b482"
+     ],
+     "sun": {
+      "color": "#ffaf69",
+      "i": 2.65
+     },
+     "hemi": {
+      "sky": "#c4987d",
+      "ground": "#523828",
+      "i": 0.72
+     },
+     "grade": {
+      "tint": "#ffe7d0",
+      "tintAmt": 0.55
+     }
+    },
+    "Monsoon mist": {
+     "fog": {
+      "color": "#c3cad1",
+      "near": 500,
+      "far": 7500
+     },
+     "sky": [
+      "#28568a",
+      "#95bad8",
+      "#d9e0e8",
+      "#c4c9d1"
+     ],
+     "grade": {
+      "saturation": 0.92
+     }
+    }
+   },
+   "ground": {
+    "meadow": [
+     "#819e6c",
+     "#b1bdaa"
+    ],
+    "rock": "#898e97",
+    "sand": "#b19b84",
+    "snow": "#b1bdaa",
+    "snowLine": 99999,
+    "rockSlope": [
+     0.11,
+     0.38
+    ],
+    "paint": 0.12
+   },
+   "toning": [
+    [
+     0.045,
+     0.055,
+     0.07
+    ],
+    [
+     0.44,
+     0.46,
+     0.48
+    ],
+    [
+     0.92,
+     0.9,
+     0.86
+    ]
+   ],
+   "toning_exposure": 0.9
+  },
+  "gheralta_spires": {
+   "sky": [
+    "#95bad8",
+    "#beccd2",
+    "#e6decb",
+    "#cad1d0"
+   ],
+   "fog": {
+    "color": "#cad1d0",
+    "near": 1400,
+    "far": 17000
+   },
+   "hemi": {
+    "sky": "#95bad8",
+    "ground": "#6d543e",
+    "i": 0.8480000000000001
+   },
+   "sun": {
+    "color": "#ffdbb5",
+    "i": 2.394
+   },
+   "exposure": 1.06,
+   "aces": 1,
+   "water": {
+    "color": "#124858",
+    "specular": "#bff5ff"
+   },
+   "grade": {
+    "saturation": 1.0,
+    "contrast": 1.14,
+    "tint": "#ffe1c7",
+    "tintAmt": 0.108,
+    "vignette": 0.1,
+    "grain": 0.012
+   },
+   "offers": [
+    "jerikan",
+    "silver",
+    "woodblock",
+    "cyanotype",
+    "risograph",
+    "inkwash",
+    "silhouette",
+    "set"
+   ],
+   "looks": {
+    "Golden hour": {
+     "sky": [
+      "#273d68",
+      "#c4987d",
+      "#fbc384",
+      "#e8b482"
+     ],
+     "sun": {
+      "color": "#ffaf69",
+      "i": 2.65
+     },
+     "hemi": {
+      "sky": "#c4987d",
+      "ground": "#523828",
+      "i": 0.72
+     },
+     "grade": {
+      "tint": "#ffe7d0",
+      "tintAmt": 0.55
+     }
+    },
+    "Monsoon mist": {
+     "fog": {
+      "color": "#c3cad1",
+      "near": 500,
+      "far": 7500
+     },
+     "sky": [
+      "#28568a",
+      "#95bad8",
+      "#d9e0e8",
+      "#c4c9d1"
+     ],
+     "grade": {
+      "saturation": 0.92
+     }
+    }
+   },
+   "ground": {
+    "meadow": [
+     "#a8ad7e",
+     "#d8c09e"
+    ],
+    "rock": "#c87e61",
+    "sand": "#e8d0ac",
+    "snow": "#e8d0ac",
+    "snowLine": 99999,
+    "rockSlope": [
+     0.13,
+     0.4
+    ],
+    "paint": 0.12
+   },
+   "toning": [
+    [
+     0.07,
+     0.04,
+     0.03
+    ],
+    [
+     0.52,
+     0.37,
+     0.27
+    ],
+    [
+     0.97,
+     0.9,
+     0.8
+    ]
+   ],
+   "toning_exposure": 0.9
+  },
+  "blue_nile_gorge": {
+   "sky": [
+    "#95bad8",
+    "#beccd2",
+    "#e6decb",
+    "#cad1d0"
+   ],
+   "fog": {
+    "color": "#cad1d0",
+    "near": 1400,
+    "far": 17000
+   },
+   "hemi": {
+    "sky": "#95bad8",
+    "ground": "#6d543e",
+    "i": 0.8480000000000001
+   },
+   "sun": {
+    "color": "#ffdbb5",
+    "i": 2.394
+   },
+   "exposure": 1.06,
+   "aces": 1,
+   "water": {
+    "color": "#124858",
+    "specular": "#bff5ff"
+   },
+   "grade": {
+    "saturation": 1.0,
+    "contrast": 1.14,
+    "tint": "#ffe1c7",
+    "tintAmt": 0.108,
+    "vignette": 0.1,
+    "grain": 0.012
+   },
+   "offers": [
+    "jerikan",
+    "silver",
+    "woodblock",
+    "cyanotype",
+    "risograph",
+    "inkwash",
+    "silhouette",
+    "set"
+   ],
+   "looks": {
+    "Golden hour": {
+     "sky": [
+      "#273d68",
+      "#c4987d",
+      "#fbc384",
+      "#e8b482"
+     ],
+     "sun": {
+      "color": "#ffaf69",
+      "i": 2.65
+     },
+     "hemi": {
+      "sky": "#c4987d",
+      "ground": "#523828",
+      "i": 0.72
+     },
+     "grade": {
+      "tint": "#ffe7d0",
+      "tintAmt": 0.55
+     }
+    },
+    "Monsoon mist": {
+     "fog": {
+      "color": "#c3cad1",
+      "near": 500,
+      "far": 7500
+     },
+     "sky": [
+      "#28568a",
+      "#95bad8",
+      "#d9e0e8",
+      "#c4c9d1"
+     ],
+     "grade": {
+      "saturation": 0.92
+     }
+    }
+   },
+   "ground": {
+    "meadow": [
+     "#97af79",
+     "#cbbf8b"
+    ],
+    "rock": "#dad3c0",
+    "sand": "#cb896c",
+    "snow": "#90959e",
+    "snowLine": 900,
+    "rockSlope": [
+     0.16,
+     0.48
+    ],
+    "paint": 0.12
+   },
+   "toning": [
+    [
+     0.06,
+     0.05,
+     0.05
+    ],
+    [
+     0.5,
+     0.47,
+     0.42
+    ],
+    [
+     0.94,
+     0.92,
+     0.86
+    ]
+   ],
+   "toning_exposure": 0.9
+  },
+  "gerd_belaya_escarpment": {
+   "sky": [
+    "#95bad8",
+    "#beccd2",
+    "#e6decb",
+    "#cad1d0"
+   ],
+   "fog": {
+    "color": "#cad1d0",
+    "near": 1400,
+    "far": 17000
+   },
+   "hemi": {
+    "sky": "#95bad8",
+    "ground": "#6d543e",
+    "i": 0.8480000000000001
+   },
+   "sun": {
+    "color": "#ffdbb5",
+    "i": 2.394
+   },
+   "exposure": 1.06,
+   "aces": 1,
+   "water": {
+    "color": "#124858",
+    "specular": "#bff5ff"
+   },
+   "grade": {
+    "saturation": 1.0,
+    "contrast": 1.14,
+    "tint": "#ffe1c7",
+    "tintAmt": 0.108,
+    "vignette": 0.1,
+    "grain": 0.012
+   },
+   "offers": [
+    "jerikan",
+    "silver",
+    "woodblock",
+    "cyanotype",
+    "risograph",
+    "inkwash",
+    "silhouette",
+    "set"
+   ],
+   "looks": {
+    "Golden hour": {
+     "sky": [
+      "#273d68",
+      "#c4987d",
+      "#fbc384",
+      "#e8b482"
+     ],
+     "sun": {
+      "color": "#ffaf69",
+      "i": 2.65
+     },
+     "hemi": {
+      "sky": "#c4987d",
+      "ground": "#523828",
+      "i": 0.72
+     },
+     "grade": {
+      "tint": "#ffe7d0",
+      "tintAmt": 0.55
+     }
+    },
+    "Monsoon mist": {
+     "fog": {
+      "color": "#c3cad1",
+      "near": 500,
+      "far": 7500
+     },
+     "sky": [
+      "#28568a",
+      "#95bad8",
+      "#d9e0e8",
+      "#c4c9d1"
+     ],
+     "grade": {
+      "saturation": 0.92
+     }
+    }
+   },
+   "ground": {
+    "meadow": [
+     "#6fa06c",
+     "#cec086"
+    ],
+    "rock": "#bfa484",
+    "sand": "#ad9579",
+    "snow": "#8eb376",
+    "snowLine": 99999,
+    "rockSlope": [
+     0.3,
+     0.62
+    ],
+    "paint": 0.12
+   },
+   "toning": [
+    [
+     0.04,
+     0.06,
+     0.05
+    ],
+    [
+     0.4,
+     0.46,
+     0.4
+    ],
+    [
+     0.92,
+     0.94,
+     0.88
+    ]
+   ],
+   "toning_exposure": 0.9
+  }
+ }
+}

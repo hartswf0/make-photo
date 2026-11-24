@@ -271,3 +271,5 @@ A pour that fails now waits 30 s before trying again.
 Cast stand-ins: the city's Bekele, Hiwot and Selam use the shared cast's `ferry_bekele`, `saba` and `alma` bodies under their own names and lines. Dawit is `dawit`.
 
 The city's build is heavy: about 12 s in the software-GL test browser. The squall hides it, but its `build_ms` budget of 2,500 is not yet met there.
+
+Looks (look@1), how each world keeps its colour, and the house standard are documented in `atlas/LOOKS.md`.
