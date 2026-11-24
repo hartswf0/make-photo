@@ -144,3 +144,27 @@ States: REST (no disc) → READY (disc loaded, paused) → WORKING (deck playing
 *Tone:* one biquad per disc, before its gain.
 
 *Bounds:* the petals have 5 entries; the dial has one value; momentum is cleared below 0.25 s/s or at either end; vibration is throttled to one pulse per 28 ms, except mesh, line and menu events.
+
+## Revision 5 · a rack of dials beside the picture
+
+*Obstruction in revision 4:* gears floated on the output and covered it; petals and discs overlapped; a poem opened only two discs; the controls hid behind a long press.
+
+*New way:* the output owns a 16:9 rectangle that nothing is drawn over. Everything else is the **side**, where nodes sit on a computed grid (`layout`, `gridItems`, `stripItems`). Overlap is impossible by construction and is asserted every layout (`checkLayout`: no two items share a pixel, and none touches the output). Sheets open over the side, not over the picture.
+
+| Part of a node | Gesture | Operation |
+|---|---|---|
+| centre (hub, < 0.34 r) | tap · double tap · hold | play/pause (the node becomes the anchor) · loop the line · swap or remove |
+| middle band (0.34–0.64 r) | turn | time; forward heard at hand speed; a flick coasts; teeth and line haptics |
+| outer collar (0.64–1.1 r), four 80° arcs | slide around the edge (relative, clockwise raises) · double tap resets | top **level** · right **tone** (low-pass ↔ high-pass, detent at 0) · bottom **colour** (off → full hue turn) · left **blend** (5 detents) |
+| button row | tap | power · words · picture · sound · link (fixed slots; missing channels are shown dim and inert) |
+| two fingers | pinch | level |
+
+The collar arcs are wide curved targets you can grab anywhere, and you keep control after the finger leaves the arc (pointer capture), which is what Fitts's law asks of a small screen.
+
+*Poems open every node:* reading, each world reel of that poem, line sounds, rooms (at most 8, `MAXN`). All start on and linked. Defaults: reading 0.9, first world 0.75, other worlds 0.35 in screen blend, sounds and rooms 0.5.
+
+*LINK, simplified:* every node that is on and linked runs on one poem clock (`toClock`/`fromClock`), anchored to the last node touched. There are no offsets and no gear ratios. A world reel is stretched over the spoken span, as before.
+
+*Views (top left):* **split** (output beside the dials) · **rack** (small output, big dials) · **focus** (one big dial plus a strip of all nodes; tap a node in the strip to bring it up) · **out** (big output plus a strip; tap = power, slide up or down = level). Keys 1–4 switch views; [ and ] step through the poems; space plays.
+
+*Cut:* free positioning, meshing by touch, petals, the clear-view tuck.
