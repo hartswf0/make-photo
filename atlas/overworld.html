@@ -151,7 +151,7 @@ try { if (window.CAST_2086) { imani = window.CAST_2086.make(T, 'imani'); if (ima
 let woody = null, rogallo = null;
 try { if (window.DWVehicles) { woody = window.DWVehicles.wagon(T); car.children.forEach(c => c.visible = false); woody.group.position.set(0, 0, 0); woody.group.rotation.set(0, 0, 0); car.add(woody.group);
   rogallo = window.DWVehicles.rogallo(T); glider.children.forEach(c => c.visible = false); rogallo.root.position.set(0, 0, 0); rogallo.root.visible = true; glider.add(rogallo.root);
-  for (const b of OW.bridges) for (const end of [b.pts[1], b.pts[b.pts.length - 2]]) { const tk = window.DWVehicles.truck(T); if (!tk) break; const k = end === b.pts[1] ? 1 : b.pts.length - 2, nb = b.pts[k === 1 ? 4 : k - 3]; tk.position.set(end[0] + 9, end[1] - .2, end[2]); tk.rotation.y = Math.atan2(nb[0] - end[0], nb[2] - end[2]); scene.add(tk); } } } catch (e) { console.warn('vehicles', e); }
+  if (QS.has('trucks')) for (const b of OW.bridges) for (const end of [b.pts[1], b.pts[b.pts.length - 2]]) { const tk = window.DWVehicles.truck(T); if (!tk) break; const k = end === b.pts[1] ? 1 : b.pts.length - 2, nb = b.pts[k === 1 ? 4 : k - 3]; tk.position.set(end[0] + 9, end[1] - .2, end[2]); tk.rotation.y = Math.atan2(nb[0] - end[0], nb[2] - end[2]); scene.add(tk); } } } catch (e) { console.warn('vehicles', e); }
 let parked = null; const PARK = { x: 0, z: 0, yaw: 0 }; try { if (window.DWVehicles) { parked = window.DWVehicles.wagon(T); scene.add(parked.group); } } catch (e) { }
 const skiff = makeBoat('#d9d2bf', .8); scene.add(skiff); skiff.visible = false;
 // ---------- the way across: every bridgehead and ferry pier is a light you can see from anywhere ----------
@@ -238,7 +238,9 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
     const want = fwd * top; P.speed += (want - P.speed) * Math.min(1, dt * (m === 'drive' ? 1.2 : m === 'fly' ? .6 : 6)); if (m === 'fly') P.speed = Math.max(P.speed, 22);
     const nx = P.x + Math.sin(P.yaw) * P.speed * dt, nz = P.z + Math.cos(P.yaw) * P.speed * dt;
     if (m === 'fly') { P.x = nx; P.z = nz; const lift = (keys.Space || keys.KeyE ? 1 : 0) - (keys.KeyQ || keys.KeyC ? 1 : 0) - (stick.id !== null ? 0 : 0); P.alt += (lift * 30 - 2) * dt; const gnd = Math.max(0, groundAt(P.x, P.z)); P.alt = Math.max(gnd + 4, P.alt); P.y = P.alt; if (P.alt - gnd < 4.5 && fwd < 0) setMode('walk'); }
-    else { const gy = groundAt(nx, nz, P.y); if (gy < -0.6) P.speed = 0; else { const slope = (gy - P.y) / Math.max(.1, Math.hypot(nx - P.x, nz - P.z)); if (m === 'drive' || slope < 1.4 || deckAt(nx, nz)) { P.x = nx; P.z = nz; } else P.speed *= .5; } P.y = Math.max(groundAt(P.x, P.z, P.y), -0.6); }
+    else { const onD = deckAt(P.x, P.z), nD = deckAt(nx, nz), lim = m === 'drive' ? 4.9 : 6.1; if (onD && (!nD || nD.d > lim) && (!nD || nD.d > onD.d) && terrain(nx, nz) < onD.y - 2.5) { const pts = decks[onD.bi]; let k = 0, bd = 1e12; for (let i = 0; i < pts.length - 1; i++) { const d = Math.hypot(pts[i][0] - P.x, pts[i][2] - P.z); if (d < bd) { bd = d; k = i; } }
+        const a = pts[Math.min(k + 1, pts.length - 1)], b0 = pts[Math.max(0, k - 1)], dyaw = Math.atan2(a[0] - b0[0], a[2] - b0[2]), along = Math.cos(P.yaw - dyaw) >= 0 ? dyaw : dyaw + Math.PI; P.yaw += Math.atan2(Math.sin(along - P.yaw), Math.cos(along - P.yaw)) * .5; P.speed *= .85; }   // the rail turns you back along the deck
+      else { const gy = groundAt(nx, nz, P.y); if (gy < -0.6) P.speed = 0; else { const slope = (gy - P.y) / Math.max(.1, Math.hypot(nx - P.x, nz - P.z)); if ((m === 'drive' && slope < .9) || slope < 1.4 || deckAt(nx, nz)) { P.x = nx; P.z = nz; } else P.speed *= m === 'drive' ? -.2 : .5; } } P.y = Math.max(groundAt(P.x, P.z, P.y), -0.6); }
   }
   if (motion) { try { motion.setActorLocomotion('imani', { speedMps: m === 'walk' ? Math.abs(P.speed) : 0, carrying: true, sitting: m === 'ride', blend: 1 }); motion.update(dt); } catch { } }
   if (donkey && m === 'walk') {                                                // Mistletoe keeps to your side on foot
@@ -246,7 +248,7 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
     if (d > 60) placeDk(bx, bz, P.yaw, (x, z) => groundAt(x, z));
     else { const want = Math.atan2(dx, dz); let dh = want - donkey.group.rotation.y; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); donkey.update(dt, { throttle: d > 2.2 ? Math.min(1, d / 6) : 0, steer: Math.max(-1, Math.min(1, dh * 2)), pace: d > 12 ? 2 : 0 }, (x, z) => groundAt(x, z)); } }
   if (m !== 'boat') for (const mb of MOORED) mb.boat.visible = true;
-  if (parked) { parked.group.visible = m !== 'drive'; if (m !== 'drive') { parked.group.position.set(PARK.x, groundAt(PARK.x, PARK.z, P.y), PARK.z); parked.group.rotation.y = PARK.yaw; } }
+  if (parked) parked.group.visible = m !== 'drive';
   skiff.visible = m === 'boat'; if (m === 'boat') { skiff.position.set(P.x, P.y, P.z); skiff.rotation.y = P.yaw; skiff.rotation.z = Math.sin(now / 700) * .04; }
   for (const fe of ferries) if (!(P.ferry && P.ferry.fe === fe)) { fe.t += dt * 12 / fe.len * fe.dir; if (fe.t >= 1 || fe.t <= 0) { fe.t = Math.max(0, Math.min(1, fe.t)); fe.wait += dt; if (fe.wait > 20) { fe.dir *= -1; fe.wait = 0; } } const q = laneAt(fe, fe.t); fe.boat.position.set(q[0], .2 + Math.sin(now / 800 + fe.len) * .1, q[1]); fe.boat.rotation.y = q[2] + (fe.dir > 0 ? 0 : Math.PI); }
   walker.visible = m === 'walk' || m === 'ride' || m === 'boat' || m === 'ferry'; if (m === 'boat' || m === 'ferry') { walker.position.set(P.x, P.y + (m === 'ferry' ? 1.6 : .8), P.z); } car.visible = m === 'drive'; glider.visible = m === 'fly'; if (donkey) donkey.group.visible = m === 'ride' || m === 'walk';
@@ -254,7 +256,10 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
   if (m !== 'boat' && m !== 'ferry') walker.position.set(P.x, P.y + (m === 'ride' ? 1.05 : 0), P.z); if (m === 'ride' && donkey) { walker.position.copy(donkey.group.position); walker.position.y += 1.05; } walker.rotation.y = P.yaw; car.position.set(P.x, P.y, P.z); car.rotation.y = P.yaw; glider.position.set(P.x, P.y, P.z); glider.rotation.y = P.yaw;
   if (woody && m === 'drive') { for (const w of woody.wheels || []) if (w && w.spin) w.spin.rotation.x += P.speed * dt / .39; }
   if (rogallo && rogallo.updateContrails) try { rogallo.updateContrails(m === 'fly'); } catch { }
-  if (m === 'drive') { const ahead = groundAt(P.x + Math.sin(P.yaw) * 2, P.z + Math.cos(P.yaw) * 2, P.y), behind = groundAt(P.x - Math.sin(P.yaw) * 2, P.z - Math.cos(P.yaw) * 2, P.y); car.rotation.x = -Math.atan2(ahead - behind, 4); }
+  const seat = (obj, x, z, yaw, y0) => { const sx = Math.sin(yaw), cz = Math.cos(yaw), G = (gx, gz) => { const g = groundAt(gx, gz, y0); return Math.abs(g - y0) > 2.5 ? y0 : g; }, f = G(x + sx * 1.6, z + cz * 1.6), b = G(x - sx * 1.6, z - cz * 1.6), l = G(x + cz * .9, z - sx * .9), r = G(x - cz * .9, z + sx * .9), c = (f + b + l + r) / 4;
+    obj.position.set(x, Math.max(c, y0 - .5), z); obj.rotation.order = 'YXZ'; obj.rotation.y = yaw; const px = Math.max(-.35, Math.min(.35, -Math.atan2(f - b, 3.2))), pz = Math.max(-.25, Math.min(.25, Math.atan2(l - r, 1.8))); obj.rotation.x += (px - obj.rotation.x) * .25; obj.rotation.z += (pz - obj.rotation.z) * .25; };
+  if (m === 'drive') seat(car, P.x, P.z, P.yaw, P.y);
+  if (parked && m !== 'drive') seat(parked.group, PARK.x, PARK.z, PARK.yaw, groundAt(PARK.x, PARK.z));
   // the lights across the sea keep a steady width on screen; names come up only for the few nearest
   const ranked = CROSS.map(c => [Math.hypot(c.x - P.x, c.z - P.z), c]).sort((a, b) => a[0] - b[0]);
   const farSide = c => Math.hypot(c.far[0] - P.x, c.far[1] - P.z) < Math.hypot(c.x - P.x, c.z - P.z);   // the other end of a crossing is not where you start it
