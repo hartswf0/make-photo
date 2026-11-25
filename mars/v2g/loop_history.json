@@ -1,0 +1,89 @@
+{
+ "note": "Every run of the loop, as printed. dE76 in CIE Lab between the film's region medians and the game's; lower is closer, under ~2.3 is hard to see.",
+ "runs": [
+  {
+   "run": 1,
+   "what": "first loop: every pixel of a class compared; light and colour corrected together",
+   "mean": [
+    23.6,
+    23.3,
+    27.5,
+    31.5,
+    32.1
+   ],
+   "verdict": "diverged: shadows too bright, so it cut the sky light, everything darkened, materials pushed to white"
+  },
+  {
+   "run": 2,
+   "what": "sun moved to the film's side; storm sprites given their own mask class; light separated from colour; damped",
+   "mean": [
+    18.5,
+    16.9,
+    17.4,
+    17.7,
+    17.6,
+    17.6
+   ],
+   "verdict": "sky, ground and far haze converge; wood, cliffs and spires do not"
+  },
+  {
+   "run": 3,
+   "what": "sunlit faces compared with sunlit faces; spires get their own haze",
+   "mean": [
+    15.4,
+    10.7,
+    9.4,
+    6.8,
+    6.4,
+    6.0
+   ],
+   "verdict": "closes to 6.0; cliffs and wood hit a ceiling: brighter than white needed"
+  },
+  {
+   "run": 4,
+   "what": "the film's opening framing: the open edge of town",
+   "mean": [
+    13.1,
+    12.1,
+    11.5,
+    11.3
+   ],
+   "verdict": "ground within 1, but most wood in view is now shaded"
+  },
+  {
+   "run": 5,
+   "what": "far ring of mesas; wood measured on its brightest faces",
+   "mean": [
+    12.0,
+    11.9,
+    9.7,
+    11.1,
+    9.3
+   ],
+   "verdict": "the loop turned the wood blue-green to satisfy one median: a number met, a look broken"
+  },
+  {
+   "run": 6,
+   "what": "neutral boards, hue guard rail, near mesas at the film's scale",
+   "mean": [
+    10.5,
+    7.9,
+    7.5,
+    7.4,
+    7.3
+   ],
+   "verdict": "kept: sky 0.7, haze 2.8, ground 0.0 / shadow 2.2, spire 6.5; cliffs 24.8 and wood 21.1 are the limit"
+  },
+  {
+   "run": 7,
+   "what": "side light, to light Tex's back as the film does",
+   "mean": [
+    10.8,
+    10.2,
+    10.6,
+    10.0
+   ],
+   "verdict": "rejected: the wood worsened and Tex still read dark"
+  }
+ ]
+}

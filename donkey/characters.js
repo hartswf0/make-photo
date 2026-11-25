@@ -3812,7 +3812,7 @@
       state.moodT += sDt;
 
       // Ground character root transform FIRST so any world-to-local or prop-anchor math uses exact frame
-      if ((surfaceAt || opts.yOffset !== undefined) && group.parent && pose !== "drive") {
+      if ((surfaceAt || opts.yOffset !== undefined) && group.parent && pose !== "drive" && pose !== "ride") {   // a rider is placed on the saddle by the caller
         if (surfaceAt) state.y = surfaceAt(state.x, state.z);
         const effYOff = opts.yOffset !== undefined ? opts.yOffset : (spec.yOffset || 0);
         group.position.set(state.x, state.y + effYOff, state.z);
@@ -4430,6 +4430,28 @@
           autoHandR = "heart_gratitude";
           autoHandL = "relaxed_breathing";
         }
+      } else if (pose === "ride") {
+        // Astride a donkey or horse: pelvis on the saddle, legs either side of the barrel, feet hanging in the stirrups,
+        // hands forward on the reins. opts.rideBob (metres, + up) is the rider's give against the animal's back each stride;
+        // opts.rideLean pitches the spine forward with speed. The caller places the group so the pelvis sits on the saddle.
+        allowBodyAssist = false;
+        const bob = clamp(opts.rideBob || 0, -0.08, 0.08), lean = clamp(opts.rideLean || 0, -0.2, 0.35), barrel = opts.rideBarrel || 0.24;
+        pelDrop = -0.33 + bob;
+        pelFwdZ = -0.02;
+        pelSwayX = (opts.rideSway || 0) * 0.04;
+        fLx =  hipX + barrel; fLy = 0.14 + bob * 0.4; fLz = 0.12;
+        fRx = -hipX - barrel; fRy = 0.14 + bob * 0.4; fRz = 0.12;
+        footPitchL = footPitchR = 0.22;
+        spinePitch = 0.07 + lean - bob * 0.8;
+        spineRoll = -(opts.rideSway || 0) * 0.05;
+        localTargetL.set( hipX * 0.75, 0.86 + bob * 0.5, 0.34 + lean * 0.3);
+        localTargetR.set(-hipX * 0.75, 0.86 + bob * 0.5, 0.34 + lean * 0.3);
+        palmLocalL.set(-0.30, -0.90, 0.30);
+        palmLocalR.set( 0.30, -0.90, 0.30);
+        gripModeL = gripModeR = "wrap";
+        curlL = curlR = 0.72;
+        state.lookPitch = lerp(state.lookPitch, -0.04, 0.5);
+        state.lookYaw = lerp(state.lookYaw, clamp(opts.rideLook || 0, -0.5, 0.5), 0.3);
       } else if (pose === "screenWatch" || pose === "seatedWatch") {
         allowBodyAssist = false;
         const isSeated = pose === "seatedWatch" || Boolean(opts.seated) || spec.id === "old_bride";
@@ -6652,14 +6674,27 @@
     return null;
   };
 
+  // Ethiopia on Mars (mars/): the Tex Lexington western. Not part of BASE_CAST, so no other world spawns them; CAST_2086.make finds them by id.
+  // Their lines are the spoken lines of the El Desierto clips they come from (el-desierto transcripts.json).
+  const MARS_CAST = [
+    { id: "tex", name: "Tex Lexington", role: "Rider · #988 Abyssinian Dust", scale: 1.0, build: 1.06, fem: 0.08, skinHex: 0x3a2418, hair: "feltHat", hatHex: 0x9a7650, beard: true, hairHex: 0x141110,
+      outer: "shamma", coatHex: 0xe9e2d2, shirtHex: 0x5a3b26, trouserHex: 0x2f3c52, tibebTrim: true, pose: "idle" },
+    { id: "almaz_matriarch", name: "Almaz", role: "The Matriarch · #757", scale: 0.97, build: 1.0, fem: 0.86, skinHex: 0x3e2619, hair: "feltHat", hatHex: 0x3a2416, hairHex: 0x161210,
+      outer: "shamma", coatHex: 0x9a2e22, shirtHex: 0x6b2a1e, trouserHex: 0x2a1e18, tibebTrim: true, pose: "idle" },
+    { id: "yared_krar", name: "Yared", role: "Krar Player · #754 Twin Sun Tezeta", scale: 1.0, build: 1.0, fem: 0.12, skinHex: 0x3a2519, hair: "croppedCoily", hairHex: 0x141110,
+      outer: "duster", coatHex: 0x6a4a30, shirtHex: 0xd9cfbd, trouserHex: 0x3a3028, pose: "idle" },
+    { id: "selam_wire", name: "Selam", role: "Telegraph · #474 The Matriarch of Segale", scale: 0.96, build: 0.98, fem: 0.8, skinHex: 0x452e21, hair: "cornrowBraids", hairHex: 0x141210,
+      outer: "shamma", coatHex: 0xf0eadf, shirtHex: 0x6e5948, trouserHex: 0x4a3c32, tibebTrim: true, pose: "idle" }
+  ];
+
   if (typeof window !== "undefined") {
     window.makeExpeditionCharacter = makeExpeditionCharacter;
     window.makeExpeditionCast = makeExpeditionCast;
     // THE ONE CAST. Every world builds its people from these specs, so Imani is the same Imani everywhere.
     // CAST_2086.make(THREE, "imani") -> a character; CAST_2086.specs lists everyone; CAST_2086.get(id) returns a copy of one spec.
     window.CAST_2086 = {
-      specs: BASE_CAST.concat(AHIYA_CAST),
-      get(id) { const s = BASE_CAST.concat(AHIYA_CAST).find(c => c.id === id); return s ? Object.assign({}, s) : null; },
+      specs: BASE_CAST.concat(AHIYA_CAST, MARS_CAST),
+      get(id) { const s = BASE_CAST.concat(AHIYA_CAST, MARS_CAST).find(c => c.id === id); return s ? Object.assign({}, s) : null; },
       make(T, id, extra) { const s = this.get(id); return s ? makeExpeditionCharacter(T, Object.assign({ textureBase: resolveDonkeyBase() }, s, extra || {})) : null; },
       donkey: { name: "Mistletoe", note: "the gray pack donkey: window.makeDonkey({ assetPath: '../donkey/' })" }
     };

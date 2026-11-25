@@ -1,0 +1,299 @@
+{
+ "legos": "1.1",
+ "can": "mars",
+ "L": [
+  {
+   "id": "frontier",
+   "name": "Main Street, Tezeta Frontier",
+   "at": "street",
+   "zone_ring": "center",
+   "keeper": "almaz",
+   "offers": [
+    "listen"
+   ],
+   "variants": {
+    "probable": {
+     "state": "frontier",
+     "note": "a clear afternoon; the storm stands on the horizon and comes when you ride up to the stelae"
+    },
+    "plausible": {
+     "state": "storm",
+     "note": "the storm is already rolling in as you ride into town"
+    },
+    "preposterous": {
+     "state": "future",
+     "note": "you arrive after the storm: the carved city already stands behind the town"
+    }
+   }
+  },
+  {
+   "id": "tank",
+   "name": "Windmill Tank",
+   "at": "tank",
+   "zone_ring": "inner",
+   "keeper": "tex",
+   "offers": [
+    "draw"
+   ],
+   "variants": {
+    "probable": {
+     "flowing": true,
+     "note": "the windmill turns and the tank is full"
+    },
+    "plausible": {
+     "flowing": false,
+     "note": "the wind has dropped; the tank is dry"
+    },
+    "preposterous": {
+     "flowing": true,
+     "note": "the storm filled the tank to the brim"
+    }
+   }
+  },
+  {
+   "id": "telegraph",
+   "name": "Telegraph",
+   "at": "telegraph",
+   "zone_ring": "inner",
+   "keeper": "selam",
+   "offers": [
+    "listen",
+    "give"
+   ]
+  },
+  {
+   "id": "church",
+   "name": "Rock Church",
+   "at": "church",
+   "zone_ring": "outer",
+   "offers": [
+    "enter"
+   ]
+  },
+  {
+   "id": "city",
+   "name": "The Carved City",
+   "at": "city",
+   "zone_ring": "rim",
+   "offers": [
+    "listen"
+   ]
+  }
+ ],
+ "E": [
+  {
+   "id": "tex",
+   "name": "Tex Lexington",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "tex",
+   "at": "gate",
+   "offset": [
+    3,
+    -4
+   ],
+   "zone_ring": "center",
+   "source": 988,
+   "line": "In these highlands, the sun judges everything. I came for his shadow. I'll leave with his dust.",
+   "thanks": "Water for the road. The tank will hold till the wind comes back."
+  },
+  {
+   "id": "almaz",
+   "name": "Almaz",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "almaz_matriarch",
+   "at": "saloon",
+   "offset": [
+    6,
+    0
+   ],
+   "zone_ring": "center",
+   "source": 757,
+   "line": "You rode here to write your names in my dust, but this ground remembers our mother's songs. Listen.",
+   "thanks": "Water in my dust. Now you may stay."
+  },
+  {
+   "id": "yared",
+   "name": "Yared",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "yared_krar",
+   "at": "street",
+   "offset": [
+    -5,
+    8
+   ],
+   "zone_ring": "inner",
+   "source": 754,
+   "line": "Twin suns over the mines. The Empire takes the spice, but not our songs. This is our Tezeta."
+  },
+  {
+   "id": "selam",
+   "name": "Selam",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "selam_wire",
+   "at": "telegraph",
+   "offset": [
+    -4,
+    2
+   ],
+   "zone_ring": "inner",
+   "source": 474,
+   "line": "In Batimayana, news travels faster than a bullet. The line's been cut. They're listening. Then we play louder.",
+   "thanks": "Five litres for the line crew. The wire will sing tonight."
+  },
+  {
+   "id": "mule",
+   "name": "Pack donkey",
+   "body": "beast",
+   "archetype": "pack.donkey",
+   "at": "tank",
+   "offset": [
+    4,
+    3
+   ],
+   "zone_ring": "inner",
+   "skills": [
+    {
+     "name": "drink",
+     "description": "walk to the tank and drink",
+     "when": {
+      "source_flowing": "tank",
+      "thirst_above": 0.35
+     },
+     "score": 0.8
+    },
+    {
+     "name": "approach",
+     "description": "come to the rider",
+     "when": {
+      "player_within": 20,
+      "player_beyond": 4
+     },
+     "score": 0.5
+    },
+    {
+     "name": "graze",
+     "description": "wander the scrub by the tank",
+     "base": 0.3
+    }
+   ]
+  }
+ ],
+ "G": [
+  {
+   "id": "carry_water",
+   "want": "carry the tank's water to Selam and the telegraph",
+   "owner": "selam",
+   "status": "live"
+  },
+  {
+   "id": "listen",
+   "want": "hear the frontier's songs before the storm",
+   "owner": "almaz",
+   "status": "live"
+  },
+  {
+   "id": "see_city",
+   "want": "ride through the storm to the carved city",
+   "owner": "player",
+   "status": "proposed"
+  }
+ ],
+ "O": [
+  {
+   "id": "storm",
+   "rule": "the dust hides everything beyond a few metres; inside it the town changes",
+   "affects": "see_city",
+   "source": "mars-world.js STORM"
+  },
+  {
+   "id": "dry_tank",
+   "rule": "a tank drawn hard runs dry more often (dry bias)",
+   "affects": "carry_water",
+   "source": "atlas/regions.js ledger"
+  }
+ ],
+ "S": [
+  {
+   "id": "draw",
+   "verb": "draw",
+   "at": "tank",
+   "shift": {
+    "causes": [
+     "dry_tank"
+    ],
+    "results_in": "a jerikan of water",
+    "ledger_delta": {
+     "dry_bias_per_litre": 0.012
+    }
+   },
+   "ripple": {
+    "radius": 30,
+    "vector": "GOAL"
+   }
+  },
+  {
+   "id": "give",
+   "verb": "give",
+   "at": "telegraph",
+   "shift": {
+    "causes": [
+     "carry_water"
+    ],
+    "results_in": "the wire sings tonight"
+   }
+  },
+  {
+   "id": "ride_through",
+   "verb": "ride",
+   "at": "frontier",
+   "shift": {
+    "causes": [
+     "storm"
+    ],
+    "results_in": "the carved city stands behind the town"
+   }
+  }
+ ],
+ "relations": [
+  [
+   "keeps",
+   "almaz",
+   "frontier"
+  ],
+  [
+   "keeps",
+   "selam",
+   "telegraph"
+  ],
+  [
+   "drinks_at",
+   "mule",
+   "tank"
+  ],
+  [
+   "reveals",
+   "storm",
+   "city"
+  ]
+ ],
+ "chance": {
+  "key": [
+   "can",
+   "island",
+   "visit"
+  ],
+  "weights": {
+   "probable": 0.72,
+   "plausible": 0.23,
+   "preposterous": 0.05
+  }
+ },
+ "memory": {
+  "ledger": "dw.ledger",
+  "namespace": "mars"
+ }
+}

@@ -1,0 +1,66 @@
+{
+ "film": {
+  "sky_top": "#d8cdcd",
+  "sky_horizon": "#ebdcd4",
+  "mesa_far": "#cdb0ab",
+  "cliff_near": "#c4825e",
+  "ground_light": "#bd7e5a",
+  "ground_shadow": "#4a231a",
+  "wood": "#bc9a78",
+  "spire": "#765649"
+ },
+ "rounds": [
+  {
+   "round": 0,
+   "tune": {
+    "ground": "#f5a689",
+    "mesa": "#ff7748",
+    "wood": "#ffeecc",
+    "spire": "#ce7551",
+    "fog": "#e2cfc6",
+    "fogD": 0.00211,
+    "skyTop": [
+     0.6334,
+     0.6164,
+     0.7127
+    ],
+    "skyHor": [
+     0.9905,
+     0.9242,
+     0.8567
+    ],
+    "sun": 3.204,
+    "hemi": 0.362,
+    "exposure": 1.0,
+    "sunDir": [
+     110,
+     55,
+     -150
+    ],
+    "spireFog": 0.87
+   },
+   "measured": {
+    "sky_top": "#dcd0d0",
+    "sky_horizon": "#edded5",
+    "ground_light": "#be805b",
+    "ground_shadow": "#4b2317",
+    "mesa_far": "#cbb5ac",
+    "cliff_near": "#8b6862",
+    "wood": "#5a3e2a",
+    "spire": "#705953"
+   },
+   "dE": {
+    "sky_top": 1.2,
+    "sky_horizon": 0.9,
+    "mesa_far": 3.6,
+    "cliff_near": 26.1,
+    "ground_light": 0.9,
+    "ground_shadow": 2.2,
+    "wood": 37.5,
+    "spire": 6.4
+   },
+   "mean_dE": 9.9
+  }
+ ],
+ "best_round": 0
+}

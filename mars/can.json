@@ -1,0 +1,61 @@
+{
+ "can": 1,
+ "id": "mars",
+ "name": "Ethiopia on Mars",
+ "version": "2026.11.25",
+ "page": "./index.html",
+ "entry": {
+  "script": "./mars-can.js?v=1",
+  "global": "MarsCan",
+  "call": "create",
+  "adapter": "ground@1",
+  "needs": [
+   "./mars-world.js?v=1"
+  ]
+ },
+ "ground": "trough",
+ "frame": {
+  "origin": "island corner",
+  "units": "metres",
+  "scale": "true",
+  "town": "at the island centre; local -z runs up the street"
+ },
+ "sites": [
+  {
+   "island": "mars",
+   "region": "tezeta_frontier"
+  }
+ ],
+ "bands": {
+  "scent": 7000,
+  "pour": 2600,
+  "drain": 5200
+ },
+ "budget": {
+  "js_kb": 40,
+  "data_kb": 0,
+  "build_ms": 2500
+ },
+ "packets": [
+  "places",
+  "kinds",
+  "life",
+  "voice"
+ ],
+ "legos": "./legos.json",
+ "look": "./look.json",
+ "sources": "./sources.json",
+ "materials": [
+  {
+   "bind": "ground",
+   "from": "entry",
+   "note": "the level's own terracotta ground (mars-world.js groundTex, the loop's colour) laid over the town; the trough's tiles step aside beneath it"
+  },
+  {
+   "bind": "props",
+   "from": "entry",
+   "note": "weathered boards, stelae, the carved Aksum-style spires with their own haze (spireFog), glass domes: the level's own materials"
+  }
+ ],
+ "note": "The Tex Lexington western (mars/index.html), poured into the trough. The trough brings the player and every way of moving; the can brings the place, its people, its water and its storm."
+}

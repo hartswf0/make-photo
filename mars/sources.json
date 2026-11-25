@@ -1,0 +1,233 @@
+{
+ "sources": 1,
+ "note": "video@1: the El Desierto clips this can was compiled from. Each names its final MP4 and contact sheet, what it says, what was taken from it and where that landed in legos.json or look.json.",
+ "clips": [
+  {
+   "video": 1,
+   "clip_id": 988,
+   "title": "Abyssinian Dust and Holy Mount",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v2/988_20260427_022202_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/988_20260427_022202_sheet.jpg",
+    "taxonomizer": "https://hartswf0.github.io/el-desierto/taxonomizer.html"
+   },
+   "said": "In these highlands, the sun judges everything. I came for his shadow. I'll leave with his dust.",
+   "layer": "background",
+   "extract": "terrain, dust and the lone rider's silhouette at sunset",
+   "compile_into": {
+    "E": [
+     "tex"
+    ],
+    "L": [
+     "frontier"
+    ]
+   }
+  },
+  {
+   "video": 1,
+   "clip_id": 757,
+   "title": "The Matriarch's Standoff",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/757_20260426_212430_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/757_20260426_212430_sheet.jpg",
+    "taxonomizer": "https://hartswf0.github.io/el-desierto/taxonomizer.html"
+   },
+   "said": "You rode here to write your names in my dust, but this ground remembers our mother's songs. Listen.",
+   "layer": "foreground",
+   "extract": "the Matriarch: wide hat, red patterned dress, turquoise necklace, krar; a standoff in a western street",
+   "compile_into": {
+    "E": [
+     "almaz"
+    ],
+    "L": [
+     "frontier"
+    ]
+   }
+  },
+  {
+   "video": 1,
+   "clip_id": 754,
+   "title": "Twin Sun Tezeta",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/754_20260426_212052_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/754_20260426_212052_sheet.jpg",
+    "taxonomizer": "https://hartswf0.github.io/el-desierto/taxonomizer.html"
+   },
+   "said": "Twin suns over the mines. The Empire takes the spice, but not our songs. This is our Tezeta.",
+   "layer": "background",
+   "extract": "twin suns over the mines, krar players, the Tezeta saloon",
+   "compile_into": {
+    "E": [
+     "yared"
+    ],
+    "look": [
+     "Twin suns"
+    ]
+   }
+  },
+  {
+   "video": 1,
+   "clip_id": 474,
+   "title": "TheMatriarchOfSegale",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/474_20260423_011152_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/474_20260423_011152_sheet.jpg",
+    "taxonomizer": "https://hartswf0.github.io/el-desierto/taxonomizer.html"
+   },
+   "said": "In Batimayana, news travels faster than a bullet. The line's been cut. They're listening. Then we play louder.",
+   "layer": "middle",
+   "extract": "a telegraph line cut and sung back: communications and resistance",
+   "compile_into": {
+    "E": [
+     "selam"
+    ],
+    "L": [
+     "telegraph"
+    ]
+   }
+  },
+  {
+   "video": 1,
+   "clip_id": 761,
+   "title": "The Monorail Standoff",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/761_20260426_212918_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/761_20260426_212918_sheet.jpg",
+    "taxonomizer": "https://hartswf0.github.io/el-desierto/taxonomizer.html"
+   },
+   "said": "Talia's authority extends to the stars, Emperor. Lay down your crown. This rail belongs to the Three Highlands. The future rides with us.",
+   "layer": "middle",
+   "extract": "an elevated monorail viaduct over a canyon, in black and white",
+   "compile_into": {
+    "L": [
+     "city"
+    ],
+    "look": [
+     "Monorail noir"
+    ]
+   }
+  },
+  {
+   "video": 1,
+   "clip_id": 760,
+   "title": "Neon Tezeta Frontier",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/760_20260426_212803_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/760_20260426_212803_sheet.jpg",
+    "taxonomizer": "https://hartswf0.github.io/el-desierto/taxonomizer.html"
+   },
+   "said": "I KP cry It's the Day indeep",
+   "layer": "background",
+   "extract": "neon Tezeta saloon with an Amharic sign, motorbikes at night",
+   "compile_into": {
+    "look": [
+     "Neon Tezeta"
+    ]
+   }
+  },
+  {
+   "video": 1,
+   "clip_id": 291,
+   "title": "SHOT 1: THE DUST HORIZON (Envi",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/291_20260422_154932_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/291_20260422_154932_sheet.jpg",
+    "taxonomizer": "https://hartswf0.github.io/el-desierto/taxonomizer.html"
+   },
+   "said": null,
+   "layer": "background",
+   "extract": "a monolith spire in orange haze: the storm's horizon",
+   "compile_into": {
+    "O": [
+     "storm"
+    ],
+    "L": [
+     "city"
+    ]
+   }
+  },
+  {
+   "video": 1,
+   "clip_id": 1147,
+   "title": "MESA CHIP: The Cyber-Western M",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/1147_20260427_052746_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/1147_20260427_052746_sheet.jpg",
+    "taxonomizer": "https://hartswf0.github.io/el-desierto/taxonomizer.html"
+   },
+   "said": "This land ain't dust anymore. It's data. And it remembers.",
+   "layer": "background",
+   "extract": "a cyan grid laid over the mesas, the future under the frontier",
+   "compile_into": {
+    "S": [
+     "ride_through"
+    ]
+   }
+  },
+  {
+   "video": 1,
+   "clip_id": 1154,
+   "title": "Ethiopian Retro-Future Living ",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/1154_20260427_053613_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/1154_20260427_053613_sheet.jpg",
+    "taxonomizer": "https://hartswf0.github.io/el-desierto/taxonomizer.html"
+   },
+   "said": "Thanks for watching!",
+   "layer": "middle",
+   "extract": "retro-future Ethiopian interiors: the city behind the storm",
+   "compile_into": {
+    "L": [
+     "city"
+    ]
+   }
+  },
+  {
+   "video": 1,
+   "clip_id": 985,
+   "title": "Rift Valley Grindhouse",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v2/985_20260427_021829_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/985_20260427_021829_sheet.jpg",
+    "taxonomizer": "https://hartswf0.github.io/el-desierto/taxonomizer.html"
+   },
+   "said": "This land remembers.",
+   "layer": "background",
+   "extract": "the Rift Valley western: landscape and grade",
+   "compile_into": {
+    "look": [
+     "mars"
+    ]
+   }
+  },
+  {
+   "video": 1,
+   "clip_id": 1023,
+   "title": "The Apiary After the Fire",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/1023_20260427_030320_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/1023_20260427_030320_sheet.jpg",
+    "taxonomizer": "https://hartswf0.github.io/el-desierto/taxonomizer.html"
+   },
+   "said": "Julian",
+   "layer": "background",
+   "extract": "the apiary after the fire: ecology after the change",
+   "compile_into": {
+    "G": [
+     "see_city"
+    ]
+   }
+  }
+ ]
+}

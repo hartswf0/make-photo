@@ -414,3 +414,45 @@ Some levels cannot share the trough's renderer without being rebuilt, and rebuil
 - **drain**: the exit drop (**Swim up**, **Surface** at the top), or lifting at the surface. You come up where the swim took you: the reef pose's offset from its site is added to where you dove.
 
 `abyss/can.json` records the contract. The reef page itself is the upload, untouched except for the embed hook at its end and the CSS that hides its own UI.
+
+---
+
+## 9. Can 4: Ethiopia on Mars, compiled from video
+
+`mars/can.json` is the first can whose level was made from video. A Genie 4 take became the Tex Lexington level (`mars/index.html`, see `mars/study.html`), and the El Desierto clips it draws on are carried as source packets.
+
+**The island.** `build_archipelago.py` now builds a `mars` island from the level's own ground: a 6 × 6 km red plain with the town plateau at its centre and the level's mesas (the near ones and the far ring, at the same seeded positions as `mars.js`) as real terrain. A 240 m bridge joins it to Gheralta. It is generated with its own seed, so the other islands' coasts are unchanged; only their positions moved as the sea grew to 48 × 50 km. The rebuild also dropped 315 tile files no build referenced.
+
+**One copy of the world.** `mars/mars-world.js` is the level without a renderer, camera, player or loop: ground, town, stelae, domes, the rock church in its pit, the carved city and the storm, each standing on a ground function `Y(x, z)`. The standalone page and the can both use it. The standalone renders pixel-identical to before the split.
+
+**What the can brings, and the trough services it uses:**
+
+| Piece | How it pours |
+|---|---|
+| Fine ground (street, ruts, the church pit) | Laid over the island centre; blends into the trough's ground over 70 m. `holeGround` steps the tiles aside beneath it, and `addHeights` makes walking follow it. It samples the trough through `coarse`, because the walking ground asks the can's heights first, and asking it back would loop. |
+| Walls | Every false front, tukul, stela, the tank and the domes go to `addBlockers`. |
+| People | Four walkers from the one cast (`CAST_2086`, new ids `tex`, `almaz_matriarch`, `yared_krar`, `selam_wire`, kept out of `BASE_CAST` so no other world spawns them). Each says the spoken line of the El Desierto clip they come from. |
+| Beast | A pack donkey that drinks at the tank (SAGA skills). |
+| Water | The Windmill Tank is a `draw` source; drawing raises its dry bias in the ledger. |
+| Variants | `frontier`: **probable**, the storm stands on the horizon and comes when you ride up to the stelae; **plausible**, it is already coming as you ride in; **preposterous**, you arrive after it, with the carved city standing. `tank`: full, dry, or filled by the storm. |
+| The storm | The level's own: a wall of dust up the street, then two dust shells around the player that take the distance away while the near ground stays readable (the near pocket of §4). The town changes inside it. |
+| Look | `mars/look.json`, from the video-to-game loop's measured palette (`mars/v2g/tune.json`), with named looks from the clips: Storm, Twin suns (#754), Neon Tezeta (#760), Monorail noir (#761). |
+
+**`video@1` (proposed, used here):** `mars/sources.json` lists the eleven clips the can was compiled from. Each record gives:
+- the clip's final MP4 and contact sheet;
+- what it says (from `transcripts.json`);
+- its layer (foreground, middle or background);
+- what was taken from it;
+- where that landed: `{E: ["almaz"]}`, `{look: ["Twin suns"]}`, …
+
+**Adapter changes in `regions.js`:**
+- `ground@1` now passes the player to the can's `update` in the can's frame.
+- It hands the can `say`.
+- It applies a variant's `state` through `live.setState`.
+- The WYGWYL can ignores all three, so nothing it does changes.
+
+**Not yet:**
+- Tex is a resident here, not the player. The trough's rider is still Imani on Mistletoe.
+- The storm advances with the trough's frame time, so in the software-GL test browser it crawls.
+- `build_ms` is 14 s in that browser, against a budget of 2,500 ms (the city takes 12 s there).
+- The monorail, the neon saloon and the twin suns exist only as named looks and source records, not as geometry.
