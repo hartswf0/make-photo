@@ -4430,6 +4430,31 @@
           autoHandR = "heart_gratitude";
           autoHandL = "relaxed_breathing";
         }
+      } else if (pose === "aim") {
+        // A revolver held out at arm's length in the right hand, the left relaxed. opts.recoil (0..1) kicks the hand up after a shot.
+        allowBodyAssist = false;
+        const k = clamp(opts.recoil || 0, 0, 1), raise = clamp(opts.raise === undefined ? 1 : opts.raise, 0, 1);
+        localTargetR.set(lerp(-shX - 0.03, -shX * 0.35, raise), lerp(0.86, 1.43 + k * 0.09, raise), lerp(0.06, 0.62 - k * 0.05, raise));
+        palmLocalR.set(0.95, -0.05, 0.1); gripModeR = "wrap"; curlR = 0.86;
+        spinePitch = 0.03 - k * 0.04; spineYaw = -0.06 * raise;
+        state.lookPitch = lerp(state.lookPitch, -0.02, 0.5); state.lookYaw = lerp(state.lookYaw, 0.05 * raise, 0.4);
+      } else if (pose === "smoke") {
+        // Standing, a cigarette in the right hand: opts.puff (0..1) brings it to the lips and back; between puffs it rests at the chest.
+        allowBodyAssist = false;
+        const pf = smooth(0, 1, clamp(opts.puff || 0, 0, 1));
+        localTargetR.set(lerp(-shX + 0.06, -0.035, pf), lerp(1.12, 1.585, pf), lerp(0.2, 0.11, pf));
+        palmLocalR.set(lerp(0.3, 0.2, pf), lerp(0.2, 0.75, pf), -0.6); gripModeR = "flat"; curlR = 0.55;
+        localTargetL.set(shX + 0.03, 0.86, 0.05);
+        spinePitch = 0.02 - pf * 0.03; state.lookPitch = lerp(state.lookPitch, -0.05 - pf * 0.12, 0.5);
+        if (pf > 0.6) { autoEmotion = "neutral"; }
+      } else if (pose === "krar") {
+        // Playing a krar held against the body: the left hand high on the yoke, the right hand plucking at the bowl; opts.pluck (0..1) is the right hand's stroke.
+        allowBodyAssist = false;
+        const pk = clamp(opts.pluck || 0, 0, 1);
+        localTargetL.set(shX + 0.1, 1.36, 0.32); palmLocalL.set(-0.6, 0.1, -0.7); gripModeL = "flat"; curlL = 0.35 + 0.25 * (opts.fret || 0);
+        localTargetR.set(-0.06 + pk * 0.05, 1.0 + pk * 0.05, 0.3 + pk * 0.02); palmLocalR.set(0.3, -0.7, 0.5); gripModeR = "flat"; curlR = 0.25 + pk * 0.3;
+        spinePitch = 0.08; spineRoll = 0.03; state.lookPitch = lerp(state.lookPitch, -0.2, 0.4); state.lookYaw = lerp(state.lookYaw, 0.18, 0.3);
+        autoEmotion = "happy_joy"; autoEmotionIntensity = 0.5;
       } else if (pose === "ride") {
         // Astride a donkey or horse: pelvis on the saddle, legs either side of the barrel, feet hanging in the stirrups,
         // hands forward on the reins. opts.rideBob (metres, + up) is the rider's give against the animal's back each stride;
