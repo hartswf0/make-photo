@@ -97,6 +97,32 @@ crd = [dict(kind='highway', uv=[cl(*p) for p in h['pts']]) for h in roads['highw
 streets = [[cl(*p) for p in s_['pts']] for s_ in roads['streets'][:2500] if 'pts' in s_]
 island('wygwyl', 'WYGWYL', np.minimum(np.where(city > 0, city + 6, city - 30), islandize(np.maximum(city, 0), .22)), hg['W'] / 1000, hg['H'] / 1000, 52, 48.5, 'City suite · Atlantis · Nolli block', '../city/island/index.html',
   places=[dict(name=g['name'], uv=cl(g['x'], g['y']), world='WYGWYL island', entry='../city/island/index.html') for g in meta['regions']], roads=crd, streets=streets, note='six real places rotated into one island, 9.6 by 6.4 km')
+# ---------- Ethiopia on Mars (mars/: the Tex Lexington western, poured as a can). Its own seed, so the other coasts keep theirs. ----------
+def mars_island():
+    global rng
+    keep_rng = rng; rng = np.random.default_rng(1101)
+    n, S = 600, 6000.0                                                         # 10 m cells over 6 km; the town at the centre
+    jh = lambda a, b=0.0: (np.sin(a * 127.1 + b * 311.7) * 43758.5453) % 1.0  # the level's own hash (mars.js), so its mesas stand where the level has them
+    yy, xx = np.mgrid[0:n, 0:n]; lx = (xx + .5) / n * S - S / 2; lz = (yy + .5) / n * S - S / 2
+    h = 40 + (noise(n, n, 6) - .5) * 10 + (noise(n, n, 22) - .5) * 2.5         # a low red plain with dunes
+    town = smooth(np.minimum((340 - np.abs(lx)) / 80, (np.minimum(lz + 520, 180 - lz)) / 80))   # the town and its future, flat
+    h = h * (1 - town) + (40 + (noise(n, n, 30) - .5) * 1.2) * town
+    mesas = [(-250, -190, 60, 60), (-200, -480, 80, 70), (250, -480, 75, 60), (380, -260, 55, 70), (-480, -300, 95, 60), (470, -60, 60, 45), (60, -760, 150, 100), (-400, -700, 110, 90), (400, -700, 90, 85), (300, 160, 70, 40), (-280, 200, 60, 45), (-150, -40, 34, 52)]
+    for i in range(16):
+        b = -1.25 + i / 15 * 2.5 + (jh(i, 40) - .5) * .08; d = 720 + jh(i, 41) * 380
+        mesas.append((math.sin(b) * d, -math.cos(b) * d - 120, 90 + jh(i, 42) * 120, 70 + jh(i, 43) * 90))
+    for k, (mx, mz, r, mh) in enumerate(mesas):
+        r *= 1.15; a = np.arctan2(lz - mz, lx - mx); dist = np.hypot((lx - mx) / 1.25, (lz - mz) / .8)
+        wob = 1 + (np.sin(a * 3 + k) * .12 + np.sin(a * 7 + k * 2) * .06)
+        t1 = smooth((r * wob - dist) / (r * .1)); t2 = smooth((r * .7 * wob - dist) / (r * .08)); skirt = smooth((r * 1.55 - dist) / (r * .6)) * .18
+        h = np.maximum(h, 40 + mh * (skirt + .55 * t1 + .45 * t2) * (1 - town * .9))
+    out = islandize(h, .26); rng = keep_rng; return out
+uvm = lambda x, z: (x / 6000 + .5, z / 6000 + .5)
+island('mars', 'ETHIOPIA ON MARS', mars_island(), 6.0, 6.0, 46, 3, 'Tex Lexington · Ethiopia on Mars', '../mars/index.html',
+  places=[dict(name='Main Street', uv=uvm(0, -30), world='Ethiopia on Mars', entry='../mars/index.html'), dict(name='Windmill Tank', uv=uvm(-8.5, -58), world='Ethiopia on Mars', entry='../mars/index.html'),
+          dict(name='Rock Church', uv=uvm(34, -150), world='Ethiopia on Mars', entry='../mars/index.html'), dict(name='The Stelae', uv=uvm(-8, -112), world='Ethiopia on Mars', entry='../mars/index.html'),
+          dict(name='Carved City', uv=uvm(90, -360), world='Ethiopia on Mars', entry='../mars/study.html')],
+  roads=[dict(kind='trail', uv=[uvm(0, 160), uvm(0, -40), uvm(0, -140)])], note='the Tex Lexington western: a Genie 4 take rebuilt as a level, 6 by 6 km of red plain and its mesas')
 # ---------- focus: an island is the part of its level that matters, not the whole survey. Each big island is cut to its places
 #            (and anything else named to keep, like Teton's peaks) with a margin, and given a new coast. The uncropped frame is kept
 #            as 'full', so every level and can still maps its own coordinates through the frame it was made in. ----------
@@ -138,7 +164,7 @@ focus('gerd_belaya_escarpment', margin_km=2.0)
 # ---------- arrange: a tight archipelago; where a bridge crosses, the strait is a few hundred metres ----------
 from scipy.spatial import cKDTree
 PAIRS = [('teton', 'corridor'), ('teton', 'gerd_belaya_escarpment'), ('corridor', 'halfdome'), ('corridor', 'blue_nile_gorge'), ('halfdome', 'simien_imet_gogo'),   # one chain that joins every island
-         ('simien_imet_gogo', 'gheralta_spires'), ('simien_imet_gogo', 'ahiya'), ('blue_nile_gorge', 'wygwyl')]
+         ('simien_imet_gogo', 'gheralta_spires'), ('simien_imet_gogo', 'ahiya'), ('blue_nile_gorge', 'wygwyl'), ('gheralta_spires', 'mars')]
 GAP, CLEAR, MARGIN = 420.0, 1400.0, 3000.0
 for i in I:
     pw, ph = max(2, int(i['w'] * 1000 / MPP)), max(2, int(i['hgt'] * 1000 / MPP))

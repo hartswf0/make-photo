@@ -6674,14 +6674,27 @@
     return null;
   };
 
+  // Ethiopia on Mars (mars/): the Tex Lexington western. Not part of BASE_CAST, so no other world spawns them; CAST_2086.make finds them by id.
+  // Their lines are the spoken lines of the El Desierto clips they come from (el-desierto transcripts.json).
+  const MARS_CAST = [
+    { id: "tex", name: "Tex Lexington", role: "Rider · #988 Abyssinian Dust", scale: 1.0, build: 1.06, fem: 0.08, skinHex: 0x3a2418, hair: "feltHat", hatHex: 0x9a7650, beard: true, hairHex: 0x141110,
+      outer: "shamma", coatHex: 0xe9e2d2, shirtHex: 0x5a3b26, trouserHex: 0x2f3c52, tibebTrim: true, pose: "idle" },
+    { id: "almaz_matriarch", name: "Almaz", role: "The Matriarch · #757", scale: 0.97, build: 1.0, fem: 0.86, skinHex: 0x3e2619, hair: "feltHat", hatHex: 0x3a2416, hairHex: 0x161210,
+      outer: "shamma", coatHex: 0x9a2e22, shirtHex: 0x6b2a1e, trouserHex: 0x2a1e18, tibebTrim: true, pose: "idle" },
+    { id: "yared_krar", name: "Yared", role: "Krar Player · #754 Twin Sun Tezeta", scale: 1.0, build: 1.0, fem: 0.12, skinHex: 0x3a2519, hair: "croppedCoily", hairHex: 0x141110,
+      outer: "duster", coatHex: 0x6a4a30, shirtHex: 0xd9cfbd, trouserHex: 0x3a3028, pose: "idle" },
+    { id: "selam_wire", name: "Selam", role: "Telegraph · #474 The Matriarch of Segale", scale: 0.96, build: 0.98, fem: 0.8, skinHex: 0x452e21, hair: "cornrowBraids", hairHex: 0x141210,
+      outer: "shamma", coatHex: 0xf0eadf, shirtHex: 0x6e5948, trouserHex: 0x4a3c32, tibebTrim: true, pose: "idle" }
+  ];
+
   if (typeof window !== "undefined") {
     window.makeExpeditionCharacter = makeExpeditionCharacter;
     window.makeExpeditionCast = makeExpeditionCast;
     // THE ONE CAST. Every world builds its people from these specs, so Imani is the same Imani everywhere.
     // CAST_2086.make(THREE, "imani") -> a character; CAST_2086.specs lists everyone; CAST_2086.get(id) returns a copy of one spec.
     window.CAST_2086 = {
-      specs: BASE_CAST.concat(AHIYA_CAST),
-      get(id) { const s = BASE_CAST.concat(AHIYA_CAST).find(c => c.id === id); return s ? Object.assign({}, s) : null; },
+      specs: BASE_CAST.concat(AHIYA_CAST, MARS_CAST),
+      get(id) { const s = BASE_CAST.concat(AHIYA_CAST, MARS_CAST).find(c => c.id === id); return s ? Object.assign({}, s) : null; },
       make(T, id, extra) { const s = this.get(id); return s ? makeExpeditionCharacter(T, Object.assign({ textureBase: resolveDonkeyBase() }, s, extra || {})) : null; },
       donkey: { name: "Mistletoe", note: "the gray pack donkey: window.makeDonkey({ assetPath: '../donkey/' })" }
     };

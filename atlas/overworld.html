@@ -27,15 +27,15 @@ canvas{display:block;touch-action:none}
 <script src="../donkey/donkey.js?v=v6sculpt1"></script>
 <script src="../donkey/scion-eye-globe.js?v=v6sculpt1"></script><script src="../donkey/scion-eyelids.js?v=v6sculpt1"></script><script src="../donkey/scion-neck.js?v=v6sculpt1"></script>
 <script src="../donkey/human-physical-v6.js?v=v6sculpt1"></script><script src="../donkey/human-sculpt-v3.js?v=v6sculpt1"></script><script src="../donkey/expressions-v4.js?v=v6sculpt1"></script>
-<script src="../donkey/scion-groom-garments.js?v=v6sculpt1"></script><script src="../donkey/characters.js?v=cast1"></script>
+<script src="../donkey/scion-groom-garments.js?v=v6sculpt1"></script><script src="../donkey/characters.js?v=cast2"></script>
 <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
 <script src="../abyssinian-highlands/habitus-kits.js"></script>
 <script src="../donkey/vehicles.js?v=1"></script>
-<script src="./regions.js?v=15"></script>
+<script src="./regions.js?v=16"></script>
 <script>
 (async () => {
 const T = THREE, QS = new URLSearchParams(location.search), $ = id => document.getElementById(id);
-const OW = await (await fetch('./ow/world.json?v=5')).json(), TS = OW.tile * OW.mpp;          // a tile is 2 km
+const OW = await (await fetch('./ow/world.json?v=6')).json(), TS = OW.tile * OW.mpp;          // a tile is 2 km
 // ---------- renderer, sky, light ----------
 const renderer = new T.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); /* the rain glass refracts this canvas */ renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1)); renderer.setSize(innerWidth, innerHeight); document.body.prepend(renderer.domElement);
 renderer.outputColorSpace = T.SRGBColorSpace; renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;   /* light@1: shadows, as the levels have them */
@@ -196,7 +196,7 @@ const GROUND_OVR = new Map(), tileIsland = key => { const [ti, tj] = key.split('
 function retile(id) { for (const [k, m] of tiles) if (tileIsland(k) === id) { scene.remove(m); m.geometry.dispose(); tiles.delete(k); } }
 function setGround(id, ov) { GROUND_OVR.set(id, ov); retile(id); return () => { if (GROUND_OVR.get(id) === ov) { GROUND_OVR.delete(id); retile(id); } }; }
 // the whole archipelago, coarse, so far islands stand on the horizon
-const LOWB = new Uint16Array(await (await fetch('./ow/low.bin?v=4')).arrayBuffer()), lowAt = (x, z) => { const L = OW.low, u = Math.max(0, Math.min(L.w - 1.001, x / L.step)), v = Math.max(0, Math.min(L.h - 1.001, z / L.step)), i = Math.floor(u), j = Math.floor(v), a = u - i, b = v - j, H = (i, j) => LOWB[j * L.w + i] / 10 - 1000;
+const LOWB = new Uint16Array(await (await fetch('./ow/low.bin?v=5')).arrayBuffer()), lowAt = (x, z) => { const L = OW.low, u = Math.max(0, Math.min(L.w - 1.001, x / L.step)), v = Math.max(0, Math.min(L.h - 1.001, z / L.step)), i = Math.floor(u), j = Math.floor(v), a = u - i, b = v - j, H = (i, j) => LOWB[j * L.w + i] / 10 - 1000;
   return H(i, j) * (1 - a) * (1 - b) + H(i + 1, j) * a * (1 - b) + H(i, j + 1) * (1 - a) * b + H(i + 1, j + 1) * a * b; };
 { const buf = LOWB, L = OW.low, m = gridMesh(L.w, L.h, 0, 0, L.step, (i, j) => { let lo = 1e9; for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) { const ii = Math.max(0, Math.min(L.w - 1, i + a)), jj = Math.max(0, Math.min(L.h - 1, j + b)); lo = Math.min(lo, buf[jj * L.w + ii]); } return Math.max(-60, lo / 10 - 1000) - 3; }, groundMat);   /* the far ground takes the lowest of its neighbours, so it never rises through the finer ground near you (road cuts, valleys) */ scene.add(m); }
 /* thresholds (build_archipelago.py SHAPES): the causeways and road ramps every crossing is shaped with, so a can's own ground carves the same landings */
@@ -250,7 +250,7 @@ const RANGES = (() => { const cx = OW.width_m / 2, cz = OW.height_m / 2, R0 = Ma
   m.frustumCulled = false; m.renderOrder = -1; scene.add(m); return { m, U }; })();
 // ---------- streaming: 2 km tiles near you at full detail, further ones coarser ----------
 const have = new Set(OW.tiles.map(([i, j]) => i + '_' + j)), tiles = new Map(), data = new Map(), loading = new Set();
-async function fetchTile(key) { if (data.has(key) || loading.has(key)) return; loading.add(key); try { const b = new Uint16Array(await (await fetch(`./ow/t/${key}.bin?v=4`)).arrayBuffer()), f = new Float32Array(b.length); for (let k = 0; k < b.length; k++) f[k] = b[k] / 10 - 1000; data.set(key, f); } catch { } loading.delete(key); }
+async function fetchTile(key) { if (data.has(key) || loading.has(key)) return; loading.add(key); try { const b = new Uint16Array(await (await fetch(`./ow/t/${key}.bin?v=5`)).arrayBuffer()), f = new Float32Array(b.length); for (let k = 0; k < b.length; k++) f[k] = b[k] / 10 - 1000; data.set(key, f); } catch { } loading.delete(key); }
 // ---------- forests: conifers on the American islands, acacia and eucalyptus on the Ethiopian ones; none in the city ----------
 const TREE = (() => { const lam = c => new T.MeshLambertMaterial({ color: '#ffffff', vertexColors: false }), crownC = new T.ConeGeometry(1, 3.2, 7); crownC.translate(0, 2.6, 0); const trunk = new T.CylinderGeometry(.12, .18, 1.4, 5); trunk.translate(0, .7, 0);
   const crownA = new T.SphereGeometry(1, 9, 5); crownA.scale(1.7, .42, 1.7); crownA.translate(0, 2.7, 0); const trunkA = new T.CylinderGeometry(.08, .14, 2.6, 5); trunkA.translate(0, 1.3, 0);
@@ -306,7 +306,7 @@ function hearAndHouse() { INSIDE = null; for (const r of ROOMS) if (inPoly(r.pts
   if (!AUD.ctx) return; const c = AUD.ctx, L = c.listener, f = new T.Vector3(); camera.getWorldDirection(f);
   if (L.positionX) { L.positionX.value = camera.position.x; L.positionY.value = camera.position.y; L.positionZ.value = camera.position.z; L.forwardX.value = f.x; L.forwardY.value = f.y; L.forwardZ.value = f.z; L.upX.value = 0; L.upY.value = 1; L.upZ.value = 0; }
   for (const e of AUD.list) if (e.g) { const d = Math.hypot(e.x - P.x, e.z - P.z), want = d > e.radius * 1.5 ? 0 : e.gain * (e.room ? (INSIDE === e.room ? 1 : 0) : INSIDE ? .18 : 1); e.g.gain.setTargetAtTime(want, c.currentTime, .4); } }
-const REG = window.DWRegions ? window.DWRegions.create({ T, scene, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, shelf: './cans.json?v=7',
+const REG = window.DWRegions ? window.DWRegions.create({ T, scene, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, shelf: './cans.json?v=8',
   addSource: o => reg(CAN_SOURCES, o), addWeather: o => reg(CAN_WEATHER, o), addBlockers, setGround, shade, coarseAt: (x, z) => coarse(x, z), shapeAt: (x, z, h, pad) => shapeAt(x, z, h, pad), lowAt: (x, z) => lowAt(x, z), holeGround: r => { const v = GROUND_U.uHoles.value.find(h => h.z <= h.x); if (!v) return () => { }; v.set(...r); return () => v.set(0, 0, -1, -1); }, addHeights: (r, at) => { const o = { r, at }; HEIGHTS.push(o); return () => { const k = HEIGHTS.indexOf(o); if (k >= 0) HEIGHTS.splice(k, 1); }; }, addFloraHole: r => { FLORA_HOLES.push(r); return () => { const k = FLORA_HOLES.indexOf(r); if (k >= 0) FLORA_HOLES.splice(k, 1); }; }, addLamps: list => { const o = list.map(l => ({ ...l })); LAMPS.push(...o); return () => { for (const l of o) { const k = LAMPS.indexOf(l); if (k >= 0) LAMPS.splice(k, 1); } }; }, sunDir: () => sun.position.clone().normalize(), maxAnisotropy: renderer.capabilities.getMaxAnisotropy(), addInterior: o => reg(ROOMS, o), addSwitch: o => reg(SWITCHES, o), addPerson: o => reg(PEOPLE, o), addSound, say,
   motion: { add: (id, ch) => motion && motion.registerActor(id, ch, { defaultClip: 'idle', blend: 1 }), loco: (id, o) => motion && motion.setActorLocomotion(id, o), drop: id => motion && motion.unregisterActor && motion.unregisterActor(id) }, onShelf: list => { for (const o of list) if (!o.keep) KIND[o.id] = null; },
   onStart: () => { STORM.pending++; STORM.want = 1; STORM.t0 = STORM.t0 || performance.now(); },
@@ -738,7 +738,7 @@ async function settle(keepYaw) { const ks = new Set(); for (let dj = -1; dj <= 1
   const t = cand[0] && cand[0][1]; if (t) { if (!keepYaw) P.yaw = Math.atan2(t.x - P.x, t.z - P.z); if (!TARGET) TARGET = { x: t.x, z: t.z, kind: t.kind, label: t.label }; }
   camYaw = 0; camPitch = .26; P.vy = 0; P.y = Math.max(groundAt(P.x, P.z), (deckAt(P.x, P.z) || { y: -1e9 }).y); }
 { const k = Math.floor(P.x / TS) + '_' + Math.floor(P.z / TS); await fetchTile(k); P.y = groundAt(P.x, P.z); if (donkey) placeDk(P.x + Math.sin(P.yaw) * 2 - Math.cos(P.yaw) * 1.8, P.z + Math.cos(P.yaw) * 2 + Math.sin(P.yaw) * 1.8, P.yaw, (x, z) => groundAt(x, z)); }
-await loadLooks('./looks.json?v=4'); await loadLooks('./look-catalog.json?v=3');
+await loadLooks('./looks.json?v=5'); await loadLooks('./look-catalog.json?v=3');
 for (const o of [walker, car, glider, skiff, ...(donkey ? [donkey.group] : []), ...(parked ? [parked.group] : []), ...MOORED.map(m => m.boat), ...ferries.map(f => f.boat)]) shade(o);
 camera.position.set(P.x, P.y + 40, P.z + 60); requestAnimationFrame(frame);
 async function goTo(x, z, yaw, settleIt) { const k = Math.floor(x / TS) + '_' + Math.floor(z / TS); await fetchTile(k); if (P.mode === 'ferry') { P.ferry = null; P.mode = 'walk'; } if (P.mode === 'boat' && !wet(x, z)) setMode('walk'); P.x = x; P.z = z; P.y = groundAt(x, z); if (Number.isFinite(yaw)) P.yaw = yaw; if (P.mode === 'fly') P.alt = Math.max(P.y, 0) + 60; P.speed = 0;
