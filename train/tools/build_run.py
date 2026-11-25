@@ -105,3 +105,36 @@ sess={"session":2,"name":"The Sealed Line: one empty carriage, then seven doors"
 "cues":[{"n":s['run'],"carriage":s['title'].split('. ',1)[1],"chapters":s['chapters'],"worlds":len(s['worlds']),"when":f"as he opens door {s['run']-1}, with his hand on the handle","send":[s['genie']],"then":s['events'],"check":s['deed'],"reference":f"seeds/{s['id']}.jpg","chars":len(s['genie'])} for s in R[1:]]}
 json.dump(sess,open(os.path.join(HERE,'..','data','session.json'),'w'),indent=1)
 print(tot,[(s['run'],len(s['worlds']),len(s['genie'])) for s in R])
+
+# ---- the hand-off: everything a Genie-enabled agent needs, in one file
+RAW='https://raw.githubusercontent.com/hartswf0/make-photo/main/train/'
+L=["# The Sealed Line: hand-off for a Genie run","",
+"You are being asked to run ONE Genie 3 session and steer it with prompts sent into the running world. Do not start a new session per carriage.","",
+"## The idea","",
+"Bees on a Train. A man walks the length of a train in third person, video-game style. Each time he opens the door to the next carriage, a new prompt is sent, so the change of world is hidden behind the door and the dark gangway between carriages. The first carriage is empty. Each later carriage is packed with one or more chapters of a 228-world corpus (island-ecology, `BEES ON A TRAIN/worlds.json`), placed as physical things in the room, with people doing something to him. Bees go from none, to one, to all of them; the last carriage is the inside of a hive.","",
+"The test is whether (a) the third-person lock and the carriage architecture survive eight rooms, (b) each door's contents visibly arrive, and (c) what happens to him leaves a mark you can see on his body.","",
+"## What to do","",
+"1. Start one session with the seed image and the opening prompt below. Resolution 1280 x 720.",
+"2. Movement is WASD. Hold W so he walks down the aisle. Keep the view third person, behind him.",
+"3. When he reaches the closed door at the far end and opens it, send that door's cue as an in-world prompt. Send it once, at the door, not earlier.",
+"4. While he walks that carriage, send its follow-ups one at a time.",
+"5. Before the next door, check the mark listed under 'Check' is visible on him. Record yes or no.",
+"6. Repeat for all seven doors. Record the whole take as video. Do not cut.","",
+"If a cue is too long for the interface, keep its first sentence (the door), the 'What happens to him' sentence and the final lock paragraph, and send the room description as a second prompt immediately after.","",
+"If the session cannot run long enough for seven doors, run as many doors as fit and report where it ended. Do not restart with a new seed mid-train; if you must restart, say so.","",
+"## Rules that hold for every prompt","",LOCK,"",
+"## The one request","",f"Seed image: `train/seeds/{first['id']}.jpg`  ",f"{RAW}seeds/{first['id']}.jpg","","Opening prompt:","","```",first['genie'],"```","",
+"Follow-ups in the empty carriage: "+" / ".join(first['events']),""]
+for s in R[1:]:
+    L+=[f"## Door {s['run']-1}: {s['title'].split('. ',1)[1]}","",f"Source chapters: {', '.join(s['chapters'])} ({len(s['worlds'])} worlds). Send as he opens the door.","","```",s['genie'],"```","","Follow-ups, one at a time:",""]+[f"- {e}" for e in s['events']]+["",f"Check: {s['deed']}","",f"Room and framing reference only, not an input (it predates these contents): {RAW}seeds/{s['id']}.jpg",""]
+L+=["## What to report back","",
+"- The video of the take, and a still from each carriage about five seconds after its door.",
+"- Per door: did the new carriage arrive behind the door, or was the change visible? Did the lock hold? Which listed contents appeared? Was the mark on him visible?",
+"- How far the session got, and anything that reset him, the camera or the train.",
+"- The exact prompts sent if you had to shorten any.","",
+"## Where this comes from","",
+"- Playable 3D version and rehearsal of this run: `train/index.html?run` in make-photo (the Run button). It shows each cue as its door opens.",
+"- All cues as data: `train/data/session.json`. Seeds, prompts and world lists: `train/seeds.html`.",
+"- The cue text is authored in `train/tools/build_run.py`.",
+"- Prompts describe by role and object. Do not add the names of real people or film titles.",""]
+open(os.path.join(HERE,'..','GENIE-HANDOFF.md'),'w').write("\n".join(L))
