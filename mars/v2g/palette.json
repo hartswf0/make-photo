@@ -1,0 +1,126 @@
+{
+ "source": "Genie 4 take wygwyl/world/tide/full/mars/out-1125-0159/film.mp4 (1280x720)",
+ "note": "median RGB of each box",
+ "regions": {
+  "sky_top": {
+   "frame_s": 26,
+   "box": [
+    300,
+    0,
+    600,
+    60
+   ],
+   "rgb": [
+    216,
+    205,
+    205
+   ],
+   "hex": "#d8cdcd"
+  },
+  "sky_horizon": {
+   "frame_s": 26,
+   "box": [
+    450,
+    150,
+    620,
+    190
+   ],
+   "rgb": [
+    235,
+    220,
+    212
+   ],
+   "hex": "#ebdcd4"
+  },
+  "mesa_far": {
+   "frame_s": 26,
+   "box": [
+    0,
+    160,
+    250,
+    185
+   ],
+   "rgb": [
+    205,
+    176,
+    171
+   ],
+   "hex": "#cdb0ab"
+  },
+  "cliff_near": {
+   "frame_s": 34,
+   "box": [
+    0,
+    100,
+    120,
+    200
+   ],
+   "rgb": [
+    196,
+    130,
+    94
+   ],
+   "hex": "#c4825e"
+  },
+  "ground_light": {
+   "frame_s": 34,
+   "box": [
+    800,
+    450,
+    1200,
+    520
+   ],
+   "rgb": [
+    189,
+    126,
+    90
+   ],
+   "hex": "#bd7e5a"
+  },
+  "ground_shadow": {
+   "frame_s": 1,
+   "box": [
+    700,
+    600,
+    950,
+    680
+   ],
+   "rgb": [
+    74,
+    35,
+    26
+   ],
+   "hex": "#4a231a"
+  },
+  "wood": {
+   "frame_s": 26,
+   "box": [
+    360,
+    230,
+    450,
+    320
+   ],
+   "rgb": [
+    188,
+    154,
+    120
+   ],
+   "hex": "#bc9a78"
+  },
+  "spire": {
+   "frame_s": 26,
+   "box": [
+    850,
+    60,
+    920,
+    200
+   ],
+   "rgb": [
+    118,
+    86,
+    73
+   ],
+   "hex": "#765649"
+  }
+ }
+}

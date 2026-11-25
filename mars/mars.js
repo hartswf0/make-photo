@@ -13,27 +13,31 @@
     return lerp(lerp(hash(xi, yi), hash(xi + 1, yi), u), lerp(hash(xi, yi + 1), hash(xi + 1, yi + 1), u), v); };
   const fbm = (x, y, o = 4) => { let s = 0, a = .5, f = 1; for (let i = 0; i < o; i++) { s += a * vnoise(x * f, y * f); f *= 2.03; a *= .5; } return s; };
 
-  // ---------- renderer, camera, light: low golden sun under a butterscotch-pink sky ----------
+  // ---------- renderer, camera, light: the film's light, a low warm sun from behind-left in a pale rose haze ----------
+  // Every colour below starts from the Genie take, measured region by region (see v2g/palette.json), then corrected by the loop in v2g/loop.py.
+  const TUNE = Object.assign({"ground": "#f5a689", "mesa": "#ff7748", "wood": "#ffeecc", "spire": "#ce7551", "fog": "#e2cfc6", "fogD": 0.00211, "skyTop": [0.6334, 0.6164, 0.7127], "skyHor": [0.9905, 0.9242, 0.8567], "sun": 3.204, "hemi": 0.362, "exposure": 1.0, "sunDir": [110, 55, -150], "spireFog": 0.87}, window.MARS_TUNE || {});
   const canvas = $("c"), renderer = new T.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75)); renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75)); renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = TUNE.exposure;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
-  const scene = new T.Scene(), camera = new T.PerspectiveCamera(52, 1, .1, 2400);
-  const DUST = new T.Color(0xd99a72); scene.fog = new T.FogExp2(DUST.clone(), .0026);
-  const hemi = new T.HemisphereLight(0xffd9c2, 0x6b2c1a, 1.35); scene.add(hemi);
-  const sun = new T.DirectionalLight(0xffd29a, 2.6); sun.position.set(-120, 70, -160); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 10, far: 500 }); scene.add(sun, sun.target);
+  const scene = new T.Scene(), camera = new T.PerspectiveCamera(50, 1, .1, 3000);
+  const HAZE = new T.Color(TUNE.fog), STORMCOL = new T.Color(0xc98a62); let BASE_FOG = TUNE.fogD; scene.fog = new T.FogExp2(HAZE.clone(), TUNE.fogD);
+  const hemi = new T.HemisphereLight(0xf3e4dc, 0x8a5a44, TUNE.hemi); scene.add(hemi);
+  const sun = new T.DirectionalLight(0xffe2bc, TUNE.sun); sun.position.set(-120, 70, -160); sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 10, far: 500 }); sun.shadow.radius = 3; scene.add(sun, sun.target);
 
-  const sky = new T.Mesh(new T.SphereGeometry(1800, 32, 16), new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false,
-    uniforms: { uStorm: { value: 0 }, uSun: { value: new T.Vector3(-.55, .25, -.8).normalize() } },
+  const sky = new T.Mesh(new T.SphereGeometry(2200, 32, 16), new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false,
+    uniforms: { uStorm: { value: 0 }, uSun: { value: new T.Vector3(...TUNE.sunDir).normalize() }, uTop: { value: new T.Vector3(...TUNE.skyTop) }, uHor: { value: new T.Vector3(...TUNE.skyHor) } },
     vertexShader: "varying vec3 vD; void main(){ vD=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }",
-    fragmentShader: `varying vec3 vD; uniform float uStorm; uniform vec3 uSun;
-      void main(){ float h=clamp(vD.y,0.,1.); vec3 hor=vec3(.96,.76,.58), mid=vec3(.86,.6,.56), zen=vec3(.55,.42,.52);
-        vec3 c=mix(hor,mid,smoothstep(0.,.18,h)); c=mix(c,zen,smoothstep(.18,.85,h));
-        float s=max(dot(vD,uSun),0.); c+=vec3(1.,.82,.55)*(pow(s,600.)*3.+pow(s,8.)*.25);
-        c=mix(c,vec3(.85,.6,.45),uStorm); gl_FragColor=vec4(c,1.); }` }));
-  scene.add(sky);
-  const moon = (r, x, y, z) => { const m = new T.Mesh(new T.SphereGeometry(r, 24, 16), new T.MeshBasicMaterial({ color: 0xf3e6dc, fog: false })); m.position.set(x, y, z); scene.add(m); return m; };
-  const moons = [moon(14, -420, 520, -1300), moon(7, 260, 640, -1350)];
+    fragmentShader: `varying vec3 vD; uniform float uStorm; uniform vec3 uSun, uTop, uHor;
+      float hsh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float nz(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(hsh(i),hsh(i+vec2(1,0)),f.x),mix(hsh(i+vec2(0,1)),hsh(i+vec2(1,1)),f.x),f.y); }
+      void main(){ float h=clamp(vD.y,0.,1.); vec3 c=mix(uHor,uTop,smoothstep(0.,.55,h));
+        vec2 q=vD.xz/(vD.y+.18)*1.6; float cl=nz(q)*.6+nz(q*2.3)*.4; c=mix(c,uHor*1.03,smoothstep(.55,.85,cl)*.35*smoothstep(.02,.25,h));
+        float s=max(dot(vD,uSun),0.); c+=vec3(1.,.9,.76)*(pow(s,500.)*1.6+pow(s,10.)*.12);
+        c=mix(c,vec3(.80,.55,.42),uStorm); gl_FragColor=vec4(c,1.); }` }));
+  sky.userData.cls = "sky"; scene.add(sky);
+  const moon = (r, x, y, z) => { const m = new T.Mesh(new T.SphereGeometry(r, 24, 16), new T.MeshBasicMaterial({ color: 0xf6ede8, fog: false, transparent: true, opacity: .85 })); m.position.set(x, y, z); m.userData.cls = "sky"; scene.add(m); return m; };
+  const moons = [moon(16, -300, 700, -1300), moon(8, -520, 560, -1250)];
 
   // ---------- ground: the street is flat, the desert rolls, the rock church is cut down into it ----------
   const CH = { x: 34, z: -150, half: 13, depth: 9 };   // Lalibela-style cross church in its pit
@@ -46,28 +50,51 @@
   }
   function groundTex() {   // red regolith with pebbles and tyre-less wagon ruts
     const c = document.createElement("canvas"); c.width = c.height = 512; const g = c.getContext("2d");
-    g.fillStyle = "#a9472a"; g.fillRect(0, 0, 512, 512);
-    for (let i = 0; i < 9000; i++) { const r = hash(i, 1), x = hash(i, 2) * 512, y = hash(i, 3) * 512; g.fillStyle = r < .5 ? `rgba(70,22,12,${.12 + r * .2})` : `rgba(235,150,105,${(r - .5) * .35})`; g.fillRect(x, y, 1 + r * 2.5, 1 + r * 2.5); }
-    const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(90, 90); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 8; return t;
+    g.fillStyle = "#ffffff"; g.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 14000; i++) { const r = hash(i, 1), x = hash(i, 2) * 512, y = hash(i, 3) * 512; g.fillStyle = r < .55 ? `rgba(90,45,30,${.06 + r * .16})` : `rgba(255,235,215,${(r - .55) * .5})`; g.fillRect(x, y, 1 + r * 2, 1 + r * 2); }
+    for (let i = 0; i < 70; i++) { const x = hash(i, 8) * 512, y = hash(i, 9) * 512, r = 3 + hash(i, 10) * 6; g.fillStyle = "rgba(80,40,25,.18)"; g.beginPath(); g.ellipse(x, y, r, r * .6, hash(i, 11) * 3, 0, 6.3); g.fill(); }
+    const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(120, 120); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 8; return t;
   }
   const G = new T.PlaneGeometry(900, 900, 300, 300); G.rotateX(-Math.PI / 2);
   { const p = G.attributes.position, col = new Float32Array(p.count * 3), c = new T.Color();
     for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i) - 120, y = heightAt(x, z); p.setZ(i, z + 0); p.setY(i, y);
-      const street = 1 - smooth(6, 14, Math.abs(x)); c.setRGB(1, .86 + .14 * fbm(x * .05, z * .05), .8).lerp(new T.Color(1.08, .95, .86), street * .6); if (y < -1) c.multiplyScalar(.62); col.set([c.r, c.g, c.b], i * 3); }
+      const street = 1 - smooth(5, 12, Math.abs(x)), rut = street * (Math.exp(-Math.pow((Math.abs(x) - 1.3) / .35, 2)) * .14), n = fbm(x * .04, z * .04);
+      c.setRGB(1, 1, 1).multiplyScalar(.9 + .16 * n - rut).lerp(new T.Color(1.04, 1.02, 1), street * .4); if (y < -1) c.multiplyScalar(.7); col.set([c.r, c.g, c.b], i * 3); }
     G.setAttribute("color", new T.BufferAttribute(col, 3)); G.computeVertexNormals(); }
-  const ground = new T.Mesh(G, new T.MeshStandardMaterial({ map: groundTex(), vertexColors: true, roughness: .97 })); ground.receiveShadow = true; scene.add(ground);
+  const GROUND = new T.MeshStandardMaterial({ color: TUNE.ground, map: groundTex(), vertexColors: true, roughness: .97 });
+  const ground = new T.Mesh(G, GROUND); ground.receiveShadow = true; ground.userData.cls = "ground"; scene.add(ground);
+  { const far = new T.Mesh(new T.RingGeometry(440, 3000, 64, 1), new T.MeshStandardMaterial({ color: TUNE.ground, roughness: 1 })); far.rotation.x = -Math.PI / 2; far.position.set(0, -1.2, -120); far.userData.cls = "ground"; scene.add(far); GROUND.userData.far = far.material; }   // the plain runs on to the far mesas
+  // scrub and stones, the film's sage tufts along the street and out in the desert
+  { const tuft = new T.ConeGeometry(.45, .5, 7), rock = new T.DodecahedronGeometry(.4, 0), n = 1400;
+    const tm = new T.InstancedMesh(tuft, new T.MeshStandardMaterial({ color: 0xb3ad80, roughness: 1, flatShading: true }), n), rm = new T.InstancedMesh(rock, new T.MeshStandardMaterial({ color: 0xb57a5a, roughness: 1, flatShading: true }), 700);
+    const m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), sc = new T.Vector3(), ps = new T.Vector3(); let k = 0, kr = 0;
+    for (let i = 0; i < 6000 && (k < n || kr < 700); i++) { const x = (hash(i, 21) - .5) * 220, z = 30 - hash(i, 22) * 330; if (Math.abs(x) < 3.2) continue; if (Math.max(Math.abs(x - CH.x), Math.abs(z - CH.z)) < CH.half + 3) continue;
+      const big = Math.abs(x) > 8 || hash(i, 23) < .3, s = .5 + hash(i, 24) * 1.1;
+      if (k < n && big) { e.set(0, hash(i, 25) * 6, 0); q.setFromEuler(e); sc.set(s * 1.2, s * (.6 + hash(i, 26) * .5), s * 1.2); ps.set(x, heightAt(x, z) + sc.y * .3, z); m4.compose(ps, q, sc); tm.setMatrixAt(k++, m4); }
+      else if (kr < 700) { e.set(hash(i, 27) * 3, hash(i, 28) * 6, 0); q.setFromEuler(e); sc.setScalar(.3 + hash(i, 29) * (Math.abs(x) > 14 ? 2.5 : .8)); ps.set(x, heightAt(x, z) + sc.x * .15, z); m4.compose(ps, q, sc); rm.setMatrixAt(kr++, m4); } }
+    tm.count = k; rm.count = kr; tm.receiveShadow = rm.castShadow = rm.receiveShadow = true; tm.userData.cls = "scrub"; rm.userData.cls = "ground"; scene.add(tm, rm); }
 
-  // ---------- mesas: West Texas buttes in Martian red, banded ----------
-  function mesa(x, z, r, h, seed) {
-    const g = new T.CylinderGeometry(r * .82, r, h, 40, 10, false), p = g.attributes.position, col = new Float32Array(p.count * 3), c = new T.Color();
-    for (let i = 0; i < p.count; i++) { const vx = p.getX(i), vy = p.getY(i), vz = p.getZ(i), a = Math.atan2(vz, vx), k = 1 + (fbm(a * 3 + seed, vy * .05 + seed) - .5) * .5;
-      if (Math.abs(vy) < h / 2 - .01) { p.setX(i, vx * k); p.setZ(i, vz * k); }
-      const band = .5 + .5 * Math.sin(vy * .55 + fbm(a * 2, seed) * 3); c.setRGB(.74 + .14 * band, .3 + .1 * band, .18 + .06 * band); col.set([c.r, c.g, c.b], i * 3); }
-    g.setAttribute("color", new T.BufferAttribute(col, 3)); g.computeVertexNormals();
-    const m = new T.Mesh(g, new T.MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: true })); m.position.set(x, h / 2 + heightAt(x, z) - 2, z); m.castShadow = true; scene.add(m); return m;
+  // ---------- mesas: layered sandstone buttes like the film's, vertical walls, stepped tiers, strata, a talus skirt ----------
+  const MESA = new T.MeshStandardMaterial({ color: TUNE.mesa, vertexColors: true, roughness: 1, flatShading: true });
+  function tier(r, h, seed, sides = 28) {
+    const pts = []; for (let i = 0; i < sides; i++) { const a = i / sides * Math.PI * 2, k = .72 + fbm(Math.cos(a) * 1.7 + seed, Math.sin(a) * 1.7 + seed, 3) * .62; pts.push(new T.Vector2(Math.cos(a) * r * k * 1.25, Math.sin(a) * r * k * .8)); }
+    const g = new T.ExtrudeGeometry(new T.Shape(pts), { depth: h, bevelEnabled: false, steps: Math.max(2, Math.round(h / 6)) }); g.rotateX(-Math.PI / 2);
+    const p = g.attributes.position, col = new Float32Array(p.count * 3);
+    for (let i = 0; i < p.count; i++) { const y = p.getY(i), x = p.getX(i), z = p.getZ(i); if (y > .1 && y < h - .1) { const w = (fbm(x * .08 + seed, y * .3 + z * .08) - .5) * 2.4; p.setX(i, x + w); p.setZ(i, z + w * .6); }
+      const band = .5 + .5 * Math.sin(y * .9 + fbm(x * .02, seed) * 4), pale = smooth(h * .55, h, y) * .12; col.set([.9 + .12 * band + pale, .86 + .1 * band + pale, .84 + .08 * band + pale], i * 3); }
+    g.setAttribute("color", new T.BufferAttribute(col, 3)); g.computeVertexNormals(); return g;
   }
-  [[-170, -260, 60, 70], [-60, -420, 90, 95], [120, -380, 70, 60], [260, -250, 55, 85], [-300, -120, 70, 55], [330, -60, 60, 50], [40, -560, 120, 110], [-240, -480, 80, 120], [210, 120, 70, 40], [-200, 160, 60, 45]]
+  function mesa(x, z, r, h, seed) {
+    const g = new T.Group(), y0 = heightAt(x, z) - 3; g.position.set(x, y0, z); g.rotation.y = hash(seed) * 6.28;
+    const skirt = new T.Mesh(new T.CylinderGeometry(r * 1.05, r * 1.6, h * .28, 24, 2), MESA); skirt.position.y = h * .14; g.add(skirt);
+    let y = h * .22, rr = r;
+    for (let t = 0; t < 3 && y < h; t++) { const hh = (h - y) * (t === 2 ? 1 : .45 + hash(seed, t) * .25), m = new T.Mesh(tier(rr, hh, seed + t * 3.1), MESA); m.position.y = y; m.castShadow = m.receiveShadow = true; g.add(m); y += hh; rr *= .72 + hash(seed, t + 5) * .18; }
+    g.traverse(o => o.userData.cls = Math.hypot(x, z) > 650 ? "mesa_far" : "mesa_near"); scene.add(g); return g;
+  }
+  [[-250, -190, 60, 60], [-200, -480, 80, 70], [250, -480, 75, 60], [380, -260, 55, 70], [-480, -300, 95, 60], [470, -60, 60, 45], [60, -760, 150, 100], [-400, -700, 110, 90], [400, -700, 90, 85], [300, 160, 70, 40], [-280, 200, 60, 45], [-150, -40, 34, 52]]
     .forEach(([x, z, r, h], i) => mesa(x, z, r, h, i * 7.3));
+  // the far ring: big buttes 700-1100 m out that the haze turns lavender, as on the film's horizon
+  for (let i = 0; i < 16; i++) { const b = -1.25 + i / 15 * 2.5 + (hash(i, 40) - .5) * .08, d = 720 + hash(i, 41) * 380; mesa(Math.sin(b) * d, -Math.cos(b) * d - 120, 90 + hash(i, 42) * 120, 70 + hash(i, 43) * 90, 50 + i * 3.7); }
 
   // ---------- the frontier town: false fronts, porches, tukuls, a windmill, stelae, domes, the rock church ----------
   const past = new T.Group(), future = new T.Group(); scene.add(past, future); future.visible = false;
@@ -77,10 +104,11 @@
   const sign = (txt) => { const c = document.createElement("canvas"); c.width = 512; c.height = 96; const g = c.getContext("2d"); g.fillStyle = "#3b2416"; g.fillRect(0, 0, 512, 96);
     g.fillStyle = "#f1dcb8"; g.font = "bold 54px Georgia"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(txt, 256, 50); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t; };
   const mk = (geo, mat, x, y, z, parent = past) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; };
-  const WOOD = ["#8a6040", "#7a5236", "#94704e", "#6d4a33", "#a07850"];
+  const WOOD = ["#f2efea", "#e2ded8", "#faf7f2", "#d6d1ca", "#ebe7e0"];   // neutral boards: the colour comes from the material, which the loop sets
+  const WOODMATS = [];
   function falseFront(x, z, side, i, label) {
-    const w = 9 + hash(i) * 3, d = 9, h = 4.6 + hash(i, 2) * 1.5, fh = h + 2.6 + hash(i, 3) * 1.6, y0 = heightAt(x, z), face = side > 0 ? -1 : 1;
-    const tex = planks(WOOD[i % WOOD.length], i), mat = new T.MeshStandardMaterial({ map: tex, roughness: .9 }); tex.repeat.set(w / 6, h / 6);
+    const two = hash(i, 7) > .4, w = 9 + hash(i) * 3, d = 9, h = (two ? 7.2 : 4.6) + hash(i, 2) * 1.2, fh = h + 2.2 + hash(i, 3) * 1.6, y0 = heightAt(x, z), face = side > 0 ? -1 : 1;
+    const tex = planks(WOOD[i % WOOD.length], i), mat = new T.MeshStandardMaterial({ color: TUNE.wood, map: tex, roughness: .9 }); WOODMATS.push(mat); tex.repeat.set(w / 6, h / 6);
     const g = new T.Group(); g.position.set(x, y0, z); g.rotation.y = face * Math.PI / 2; past.add(g);
     const body = new T.Mesh(new T.BoxGeometry(w, h, d), mat); body.position.y = h / 2; body.castShadow = body.receiveShadow = true; g.add(body);
     const front = new T.Mesh(new T.BoxGeometry(w + .4, fh, .35), mat); front.position.set(0, fh / 2, d / 2 + .15); front.castShadow = true; g.add(front);
@@ -88,6 +116,9 @@
     const roof = new T.Mesh(new T.BoxGeometry(w + .4, .18, 2.6), new T.MeshStandardMaterial({ color: 0x5a3a26, roughness: .9 })); roof.position.set(0, 3.2, d / 2 + 1.5); roof.castShadow = true; g.add(roof);
     for (const px of [-w / 2, -w / 6, w / 6, w / 2]) { const p = new T.Mesh(new T.BoxGeometry(.18, 3.2, .18), new T.MeshStandardMaterial({ color: 0x4a2e1e })); p.position.set(px, 1.6, d / 2 + 2.7); p.castShadow = true; g.add(p); }
     const boards = new T.Mesh(new T.BoxGeometry(w + .4, .2, 2.8), new T.MeshStandardMaterial({ color: 0x6b4630 })); boards.position.set(0, .1, d / 2 + 1.4); g.add(boards);
+    if (two) { const bal = new T.Mesh(new T.BoxGeometry(w * .8, .15, 1.4), mat); bal.position.set(0, 4.3, d / 2 + .9); g.add(bal); for (let k = -4; k <= 4; k++) { const r = new T.Mesh(new T.BoxGeometry(.08, 1, .08), mat); r.position.set(k * w * .09, 4.85, d / 2 + 1.55); g.add(r); }
+      const rail = new T.Mesh(new T.BoxGeometry(w * .8, .1, .1), mat); rail.position.set(0, 5.35, d / 2 + 1.55); g.add(rail); for (const wx of [-w / 4, 0, w / 4]) { const win = new T.Mesh(new T.PlaneGeometry(1.1, 1.5), new T.MeshStandardMaterial({ color: 0x2a1a12 })); win.position.set(wx, 5.6, d / 2 + .34); g.add(win); } }
+    g.traverse(o => o.userData.cls = "wood");
     for (const wx of [-w / 4, w / 4]) { const win = new T.Mesh(new T.PlaneGeometry(1.4, 1.6), new T.MeshStandardMaterial({ color: 0x1b0f0a, emissive: 0x5a2a10, emissiveIntensity: .35 })); win.position.set(wx, 1.9, d / 2 + .34); g.add(win); }
   }
   const LABELS = ["SALOON", "LIVERY", "WATER & ICE", "BUNA BET", "ASSAY", "GENERAL STORE", "HOTEL ADDIS", "TELEGRAPH"];
@@ -129,35 +160,47 @@
     for (const [dx, dz, ry] of [[CH.half, 0, Math.PI / 2], [-CH.half, 0, Math.PI / 2], [0, CH.half, 0], [0, -CH.half, 0]]) { const w = mk(new T.PlaneGeometry(CH.half * 2, CH.depth + 1), pitWall, CH.x + dx, -CH.depth / 2 - .3, CH.z + dz); w.rotation.y = ry; } }
 
   // ---------- the future, standing behind the town when the storm clears ----------
-  function windowsTex(seed) { const c = document.createElement("canvas"); c.width = 128; c.height = 512; const g = c.getContext("2d"); g.fillStyle = "#c98a5a"; g.fillRect(0, 0, 128, 512);
-    for (let y = 8; y < 512; y += 18) for (let x = 6; x < 128; x += 14) { const on = hash(x + seed, y) > .45; g.fillStyle = on ? "#fff1c8" : "#4b2a1b"; g.fillRect(x, y, 8, 10); }
-    g.fillStyle = "rgba(255,255,255,.25)"; for (let y = 0; y < 512; y += 72) g.fillRect(0, y, 128, 3); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.wrapS = t.wrapT = T.RepeatWrapping; return t; }
-  const COPPER = i => new T.MeshStandardMaterial({ map: windowsTex(i), emissiveMap: windowsTex(i), emissive: 0xffc890, emissiveIntensity: .55, roughness: .45, metalness: .55, color: 0xffe0c8 });
-  function crossTower(x, z, h, w, i) {   // a tower whose footprint is the cross of the rock churches, stepped like them
-    const m = COPPER(i), y = heightAt(x, z);
-    for (let s = 0; s < 3; s++) { const hh = h * (1 - s * .28), ww = w * (1 - s * .22); mk(new T.BoxGeometry(ww, hh, ww * .36), m, x, y + hh / 2, z, future); mk(new T.BoxGeometry(ww * .36, hh, ww), m, x, y + hh / 2, z, future); }
-    mk(new T.CylinderGeometry(.25, .25, h * .25, 6), new T.MeshStandardMaterial({ color: 0xffe6b0, emissive: 0xffd08a, emissiveIntensity: 1.2 }), x, y + h + h * .12, z, future);
+  // In the film the future is not glass: it is carved sandstone. Monoliths the size of skyscrapers, the colour of the mesas,
+  // cut like Aksum stelae with false doors and window bands and stepped like the rock churches, softened by the haze.
+  function carvedTex(seed) { const c = document.createElement("canvas"); c.width = 256; c.height = 1024; const g = c.getContext("2d"); g.fillStyle = "#ffffff"; g.fillRect(0, 0, 256, 1024);
+    for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${hash(i, seed) < .5 ? "70,45,35" : "255,240,225"},${hash(i, 4 + seed) * .14})`; g.fillRect(hash(i, 1 + seed) * 256, hash(i, 2 + seed) * 1024, 2, 3); }
+    for (let r = 0; r < 14; r++) { const y = 40 + r * 70; g.fillStyle = "rgba(60,38,28,.55)"; g.fillRect(0, y, 256, 7);                                  // the beam ends of Aksum stelae, band by band
+      for (let k = 0; k < 4; k++) { if (hash(r, k + seed) < .25) continue; g.fillStyle = "rgba(45,28,20,.62)"; g.fillRect(22 + k * 58, y + 18, 32, 38); g.fillStyle = "rgba(255,235,210,.18)"; g.fillRect(22 + k * 58, y + 18, 32, 4); } }
+    g.fillStyle = "rgba(40,25,18,.6)"; g.fillRect(100, 930, 56, 94);
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4; return t; }
+  const SPIRES = [], SPIREMATS = [], SPIREFOG = { value: TUNE.spireFog };
+  function spire(x, z, h, w, i) {
+    const mat = new T.MeshStandardMaterial({ color: TUNE.spire, map: carvedTex(i), roughness: .95, flatShading: true }); SPIREMATS.push(mat);
+    mat.onBeforeCompile = sh => { sh.uniforms.uFogK = SPIREFOG; sh.fragmentShader = "uniform float uFogK;\n" + sh.fragmentShader.replace("#include <fog_fragment>",
+      "#ifdef USE_FOG\n float fogFactor = 1.0 - exp( - fogDensity * fogDensity * vFogDepth * vFogDepth );\n gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, fogFactor * uFogK );\n#endif"); };   // the film keeps its spires dark and sharp through the haze
+    const g = new T.Group(), y0 = heightAt(x, z) - 2; g.position.set(x, y0, z); g.rotation.y = (hash(i, 3) - .5) * .5; future.add(g);
+    const base = new T.Mesh(new T.CylinderGeometry(w * 1.1, w * 1.6, h * .18, 10), MESA); base.position.y = h * .09; g.add(base);   // it rises out of its own rock
+    let y = h * .12, ww = w;
+    for (let t = 0; t < 4; t++) { const hh = h * [.42, .24, .16, .1][t], m = new T.Mesh(new T.BoxGeometry(ww, hh, ww * (.62 + hash(i, t) * .2)), mat); m.position.y = y + hh / 2; m.castShadow = true; g.add(m);
+      if (t < 3) { const ledge = new T.Mesh(new T.BoxGeometry(ww * 1.06, hh * .04, ww * .8), mat); ledge.position.y = y + hh; g.add(ledge); } y += hh; ww *= .8; }
+    const cap = new T.Mesh(new T.CylinderGeometry(ww * .5, ww * .5, ww * .62, 16, 1, false, 0, Math.PI), mat); cap.rotation.set(Math.PI / 2, 0, Math.PI / 2); cap.position.y = y; g.add(cap);   // the rounded head of a stele
+    g.traverse(o => o.userData.cls = "spire"); SPIRES.push(g);
   }
-  [[-70, -190, 120, 26], [-30, -250, 160, 30], [25, -230, 135, 24], [75, -200, 105, 22], [-110, -260, 90, 20], [120, -270, 150, 28], [0, -320, 190, 34], [-160, -210, 70, 18], [160, -180, 80, 18]]
-    .forEach(([x, z, h, w], i) => crossTower(x, z, h, w, i));
-  for (let i = 0; i < 6; i++) { const x = -150 + i * 60, z = -170 - hash(i, 7) * 60; dome(x, z, 14 + hash(i, 9) * 10, future);
-    const f = mk(new T.PlaneGeometry(40, 26), new T.MeshStandardMaterial({ color: 0x4d9a3d, roughness: .9 }), x + 20, heightAt(x + 20, z + 25) + .08, z + 25, future); f.rotation.x = -Math.PI / 2; }
-  // a train on tall pylons crossing the plain
-  const RAIL_Z = -150, PY = new T.MeshStandardMaterial({ color: 0xe8e2da, roughness: .4, metalness: .3 });
-  for (let x = -400; x <= 400; x += 26) mk(new T.CylinderGeometry(.7, 1.1, 22, 10), PY, x, heightAt(x, RAIL_Z) + 11, RAIL_Z, future);
-  mk(new T.BoxGeometry(820, 1.2, 2.4), PY, 0, 22.6, RAIL_Z, future);
+  [[60, -330, 210, 34], [105, -300, 170, 28], [150, -360, 240, 40], [25, -420, 150, 26], [215, -300, 150, 26], [-45, -400, 130, 22], [270, -420, 200, 32], [-120, -460, 110, 22]]
+    .forEach(([x, z, h, w], i) => spire(x, z, h, w, i));
+  for (let i = 0; i < 4; i++) { const x = -60 + i * 70, z = -200 - hash(i, 7) * 50; dome(x, z, 12 + hash(i, 9) * 8, future);
+    const f = mk(new T.PlaneGeometry(40, 26), new T.MeshStandardMaterial({ color: 0x77925a, roughness: .9 }), x + 20, heightAt(x + 20, z + 25) + .08, z + 25, future); f.rotation.x = -Math.PI / 2; }
+  // a blue-white train on a long elevated line across the valley, far off on the left as in the film
+  const RAIL_Z = -260, PY = new T.MeshStandardMaterial({ color: 0xe9e4de, roughness: .5, metalness: .2 });
+  for (let x = -520; x <= 120; x += 30) mk(new T.CylinderGeometry(.8, 1.2, 26, 10), PY, x, heightAt(x, RAIL_Z) + 13, RAIL_Z, future);
+  mk(new T.BoxGeometry(660, 1.3, 2.6), PY, -200, 26.6, RAIL_Z, future);
   const train = new T.Group(); future.add(train);
-  for (let k = 0; k < 6; k++) { const car = new T.Mesh(new T.CapsuleGeometry(1.6, 12, 6, 12), new T.MeshStandardMaterial({ color: 0xf6f2ea, emissive: 0xffe2b0, emissiveIntensity: .25, roughness: .25, metalness: .4 })); car.rotation.z = Math.PI / 2; car.position.x = -k * 15; car.position.y = 25; train.add(car); }
+  for (let k = 0; k < 7; k++) { const car = new T.Mesh(new T.CapsuleGeometry(1.7, 13, 6, 12), new T.MeshStandardMaterial({ color: k % 2 ? 0x6e8fd6 : 0xdfe6f2, emissive: 0x8fb4ff, emissiveIntensity: .25, roughness: .3, metalness: .4 })); car.rotation.z = Math.PI / 2; car.position.x = -k * 16; car.position.y = 29; train.add(car); }
   train.position.z = RAIL_Z;
   // wind turbines on the ridge
   const turbines = [];
-  for (let i = 0; i < 5; i++) { const x = -260 + i * 120, z = -340 - hash(i, 3) * 60, y = heightAt(x, z); mk(new T.CylinderGeometry(1, 1.6, 60, 10), PY, x, y + 30, z, future);
-    const hub = new T.Group(); hub.position.set(x, y + 60, z + 2); future.add(hub); for (let k = 0; k < 3; k++) { const b = new T.Mesh(new T.BoxGeometry(1.4, 26, .4), PY); b.position.y = 13; const a = new T.Group(); a.rotation.z = k * Math.PI * 2 / 3; a.add(b); hub.add(a); } turbines.push(hub); }
+  for (let i = 0; i < 5; i++) { const x = -40 + i * 75, z = -280 - hash(i, 3) * 90, y = heightAt(x, z); mk(new T.CylinderGeometry(.6, 1.1, 70, 10), PY, x, y + 35, z, future);
+    const hub = new T.Group(); hub.position.set(x, y + 70, z + 2); future.add(hub); for (let k = 0; k < 3; k++) { const b = new T.Mesh(new T.BoxGeometry(1.4, 26, .4), PY); b.position.y = 13; const a = new T.Group(); a.rotation.z = k * Math.PI * 2 / 3; a.add(b); hub.add(a); } turbines.push(hub); }
   // water drones: four rotors and a yellow 20 L can slung under each
   const drones = [];
   function drone(i) { const g = new T.Group(), dark = new T.MeshStandardMaterial({ color: 0x2b2b2e, roughness: .5, metalness: .6 });
     g.add(new T.Mesh(new T.BoxGeometry(1.4, .3, 1.4), dark)); for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const r = new T.Mesh(new T.CylinderGeometry(.55, .55, .05, 16), new T.MeshBasicMaterial({ color: 0x9fd9ff, transparent: true, opacity: .45 })); r.position.set(a * .9, .2, b * .9); g.add(r); }
-    const can = new T.Mesh(new T.BoxGeometry(.5, .7, .3), new T.MeshStandardMaterial({ color: 0xf0b81c, roughness: .6 })); can.position.y = -1.2; g.add(can);
+    const can = new T.Mesh(new T.BoxGeometry(.6, .8, .6), new T.MeshStandardMaterial({ color: 0xdfe9f2, emissive: 0x9fe8ff, emissiveIntensity: .8, roughness: .4 })); can.position.y = -1.2; g.add(can);   // a lit water can, as in the film
     const lamp = new T.Mesh(new T.SphereGeometry(.12, 8, 6), new T.MeshBasicMaterial({ color: 0x7ff0ff })); lamp.position.y = -.2; g.add(lamp);
     g.userData = { r: 30 + hash(i) * 50, a: hash(i, 2) * 6.28, y: 22 + hash(i, 3) * 18, cz: -90 - hash(i, 4) * 60, s: .12 + hash(i, 5) * .12 }; future.add(g); drones.push(g); }
   for (let i = 0; i < 9; i++) drone(i);
@@ -165,10 +208,10 @@
   // ---------- the storm: a wall of red dust that comes up the street, whites everything out, and passes ----------
   function cloudTex() { const c = document.createElement("canvas"); c.width = c.height = 256; const g = c.getContext("2d"), img = g.createImageData(256, 256);
     for (let y = 0; y < 256; y++) for (let x = 0; x < 256; x++) { const dx = (x - 128) / 128, dy = (y - 128) / 128, r = Math.hypot(dx, dy), n = fbm(x * .03, y * .03, 5), a = Math.pow(clamp((1 - r) * 2.2, 0, 1), 1.2) * clamp(n * 2.2 - .25, 0, 1);
-      const i = (y * 256 + x) * 4; img.data[i] = 150 + n * 90; img.data[i + 1] = 70 + n * 60; img.data[i + 2] = 44 + n * 40; img.data[i + 3] = clamp(a, 0, 1) * 255; }
+      const i = (y * 256 + x) * 4; img.data[i] = 200 + n * 55; img.data[i + 1] = 170 + n * 60; img.data[i + 2] = 140 + n * 60; img.data[i + 3] = clamp(a, 0, 1) * 255; }
     g.putImageData(img, 0, 0); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t; }
   const CLOUD = cloudTex(), puffs = [], wall = new T.Group(); scene.add(wall);
-  for (let i = 0; i < 180; i++) { const m = new T.Sprite(new T.SpriteMaterial({ map: CLOUD, transparent: true, depthWrite: false, fog: false, opacity: .92, color: new T.Color().setHSL(.04, .45, .62 + hash(i, 4) * .2) }));
+  for (let i = 0; i < 180; i++) { const m = new T.Sprite(new T.SpriteMaterial({ map: CLOUD, transparent: true, depthWrite: false, fog: false, opacity: .92, color: new T.Color(0xe2c0a0).multiplyScalar(.86 + hash(i, 4) * .2) }));
     const s = 50 + hash(i, 1) * 110; m.scale.set(s, s * .85, 1); m.position.set((hash(i, 2) - .5) * 700, hash(i, 3) * 170 + s * .2, (hash(i, 5) - .5) * 70); m.userData = { base: m.position.clone(), sp: .3 + hash(i, 6) };
     wall.add(m); puffs.push(m); }
   const STORM = { phase: "far", z: -620, t: 0 };   // far -> coming -> inside -> clearing -> clear
@@ -179,12 +222,21 @@
   // ---------- people: Tex, and the settlers of the colony ----------
   const surfaceAt = (x, z) => heightAt(x, z);
   const make = spec => { try { return window.makeExpeditionCharacter(T, Object.assign({ textureBase: "../donkey/" }, spec)); } catch (e) { console.warn("character", spec.id, e); return null; } };
-  const mount = window.makeDonkey({ assetPath: "../donkey/", shells: 10 }); mount.group.scale.setScalar(1.22); scene.add(mount.group); mount.place(0, 0, Math.PI, heightAt); mount.state.brainOff = true; mount.setLoad(0);
-  let SADDLE = .64;   // the seated body's floor, set so the hips sit on the donkey's back
+  const mount = window.makeDonkey({ assetPath: "../donkey/", shells: 10 }); mount.group.scale.setScalar(1.22); scene.add(mount.group); mount.place(-7, 30, Math.PI - .16, heightAt); mount.state.brainOff = true; mount.setCargo([]); mount.setLoad(0); mount.pack.visible = false;   // start at the film's opening: the open edge of town, desert and tukuls on the left, the street ahead and to the right
+  let SADDLE = .62;   // hip height of the ride pose: the group sits this far below the saddle seat
+  // a saddle: a striped blanket with a tibeb border and a leather seat, carried on the donkey's saddle point
+  const saddle = new T.Group(); scene.add(saddle);
+  { const blanket = new T.Mesh(new T.BoxGeometry(.62, .04, .78), new T.MeshStandardMaterial({ color: 0xb8372a, roughness: .9 })); blanket.position.y = -.05; saddle.add(blanket);
+    const border = new T.Mesh(new T.BoxGeometry(.64, .03, .1), new T.MeshStandardMaterial({ color: 0x2f6b4a, roughness: .9 })); for (const zz of [-.37, .37]) { const b = border.clone(); b.position.set(0, -.03, zz); saddle.add(b); }
+    const seat = new T.Mesh(new T.BoxGeometry(.4, .08, .5), new T.MeshStandardMaterial({ color: 0x5b3a22, roughness: .6 })); seat.position.y = .0; saddle.add(seat);
+    const horn = new T.Mesh(new T.CylinderGeometry(.03, .04, .14, 8), seat.material); horn.position.set(0, .08, .24); saddle.add(horn);
+    for (const sx of [-1, 1]) { const flap = new T.Mesh(new T.BoxGeometry(.02, .26, .3), seat.material); flap.position.set(sx * .3, -.16, .02); saddle.add(flap); }
+    saddle.traverse(o => { if (o.isMesh) o.castShadow = true; }); }
+  const RIDE = { y: 0, v: 0, prevY: null, bob: 0, sway: 0, rock: 0 }, _sp = new T.Vector3(), _sq = new T.Quaternion(), _up = new T.Vector3(), _rq = new T.Quaternion(), _ax = new T.Vector3(1, 0, 0);
   mount.group.traverse(o => { if (o.isMesh) o.castShadow = true; });
   // Tex Lexington: a Black Ethiopian-Texan cowboy in his thirties. Felt cowboy hat, white cotton shamma with a red tibeb border, brown shirt, denim.
   const tex = make({ id: "tex", name: "Tex Lexington", role: "Rider", scale: 1.0, build: 1.06, fem: .08, skinHex: 0x3a2418, hair: "feltHat", hatHex: 0x9a7650, beard: true, hairHex: 0x141110,
-    outer: "shamma", coatHex: 0xe9e2d2, shirtHex: 0x5a3b26, trouserHex: 0x2f3c52, tibebTrim: true, pose: "seatedWatch" });
+    outer: "shamma", coatHex: 0xe9e2d2, shirtHex: 0x5a3b26, trouserHex: 0x2f3c52, tibebTrim: true, pose: "ride" });
   if (tex) { scene.add(tex.group); tex.group.traverse(o => { if (o.isMesh) o.castShadow = true; }); if (tex.label) tex.label.visible = false; tex.group.children.forEach(c => { if (c.isSprite) c.visible = false; }); }
   // settlers: Black Ethiopian men and women in white cotton, walking the street; two lead pack donkeys with yellow 20 L cans
   const SETTLERS = [
@@ -220,7 +272,7 @@
   const say = t => { const el = $("line"); el.textContent = t; el.classList.toggle("on", !!t); };
 
   // ---------- loop ----------
-  const cam = { p: new T.Vector3(0, 4, 8), l: new T.Vector3() }, fwd = new T.Vector3(), tmp = new T.Vector3();
+  const cam = { p: new T.Vector3(0, 4, 8), l: new T.Vector3() }, fwd = new T.Vector3(), tmp = new T.Vector3(), _right = new T.Vector3();
   let last = performance.now(), clock = 0;
   function frame(now) {
     try { frameBody(now); } catch (e) { console.error('frame', e && e.stack || e); }
@@ -231,7 +283,7 @@
     const dt = Math.min(.05, (now - last) / 1000); last = now;
     const w = innerWidth, h = innerHeight; if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) { renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
     if (!window.__mars || !window.__mars.paused) step(dt);
-    renderer.render(scene, camera);
+    if (MASK.on) maskRender(); else renderer.render(scene, camera);
   }
   function step(dt) {
     clock += dt;
@@ -240,7 +292,21 @@
     let pace = keys.shift ? 3 : 1; if (AUTO.on) { thr = AUTO.throttle; st = AUTO.steer; pace = AUTO.pace; }
     mount.update(dt, { throttle: clamp(thr, -1, 1), steer: clamp(st, -1, 1), pace }, heightAt);
     const M = mount.state; fwd.set(Math.sin(M.heading), 0, Math.cos(M.heading));
-    if (tex) { tex.place(M.x - fwd.x * .05, M.z - fwd.z * .05, M.heading, () => (M.y || heightAt(M.x, M.z)) + 1.02 * 1.22 - .55); tex.update(dt, clock, { pose: "seatedWatch", seated: true, lodDist: 3 }); tex.group.position.y = (M.y || 0) + SADDLE; tex.group.rotation.x = -(M.pitch || 0); }
+    if (tex) {   // ride: the seat moves with the donkey's back; the rider's body gives against it on a spring, leans with speed, sways into turns
+      mount.saddleAt(_sp, _sq); saddle.position.copy(_sp); saddle.quaternion.copy(_sq);
+      if (RIDE.prevY === null) { RIDE.y = _sp.y; RIDE.prevY = _sp.y; }
+      const k = 260, c = 22; RIDE.v += ((_sp.y - RIDE.y) * k - RIDE.v * c) * dt; RIDE.y += RIDE.v * dt;
+      // what a rider does on top of the animal's own movement: post at the trot (up every other beat), sit the canter's rocking seat
+      const ph = (M.phase || 0) * Math.PI * 2, trotW = (M.gait || 0) * (1 - (M.g2 || 0)) * (M.moving || 0), canW = (M.g2 || 0) * (M.moving || 0), walkW = (1 - (M.gait || 0)) * (M.moving || 0);
+      const post = trotW * .05 * Math.max(0, Math.sin(ph * 2)) + canW * .035 * Math.cos(ph + .9) + walkW * .012 * Math.cos(ph * 2);
+      RIDE.rock = canW * .09 * Math.sin(ph + .9) + trotW * .03 * Math.sin(ph * 2);
+      RIDE.bob = clamp(RIDE.y - _sp.y + post, -.07, .09);
+      RIDE.sway = lerp(RIDE.sway, clamp(-(M.yawRate || 0) * .6, -1, 1), 1 - Math.exp(-dt * 4));
+      const sp = Math.abs(M.speed || 0), lean = clamp(sp / 9, 0, 1) * .22 + (M.speed < -.1 ? -.08 : 0);
+      _up.set(0, 1, 0).applyQuaternion(_sq); tex.group.quaternion.copy(_sq).multiply(_rq.setFromAxisAngle(_ax, RIDE.rock || 0)); tex.group.position.copy(_sp).addScaledVector(_up, -SADDLE + .04 + Math.max(0, RIDE.bob) * .6);
+      tex.state.x = tex.group.position.x; tex.state.y = tex.group.position.y; tex.state.z = tex.group.position.z; tex.state.heading = M.heading;
+      tex.update(dt, clock, { pose: "ride", rideBob: RIDE.bob, rideLean: lean, rideSway: RIDE.sway, rideBarrel: .26, rideLook: RIDE.sway * .3, lodDist: 3 });
+    }
     // people walk their paths and turn back
     for (const p of people) { const [a, b] = p.s.path, L = Math.hypot(b[0] - a[0], b[1] - a[1]), sp = 1.1 / L; p.u = (p.u + dt * sp) % 2; const k = p.u < 1 ? p.u : 2 - p.u, dir = p.u < 1 ? 1 : -1;
       const x = lerp(a[0], b[0], k), z = lerp(a[1], b[1], k), hd = Math.atan2((b[0] - a[0]) * dir, (b[1] - a[1]) * dir);
@@ -248,16 +314,18 @@
       if (p.d) { p.d.state.x = x + Math.cos(hd) * 1.3 - Math.sin(hd) * 1.4; p.d.state.z = z - Math.sin(hd) * 1.3 - Math.cos(hd) * 1.4; p.d.state.heading = hd; p.d.update(dt, { throttle: .5, steer: 0, pace: 0 }, heightAt); } }
     // windmill, train, turbines, drones
     mill.userData.hub.rotation.z += dt * (1.2 + STORM_W() * 6);
-    if (future.visible) { train.position.x = ((clock * 22) % 900) - 450; turbines.forEach((t, i) => t.rotation.z += dt * (.6 + i * .05));
+    if (future.visible) { train.position.x = ((clock * 18) % 700) - 540; turbines.forEach((t, i) => t.rotation.z += dt * (.6 + i * .05));
       drones.forEach(d => { const u = d.userData; u.a += dt * u.s; d.position.set(Math.cos(u.a) * u.r, u.y + Math.sin(u.a * 2) * 2, u.cz + Math.sin(u.a) * u.r * .5); d.rotation.y = -u.a; }); }
     // storm
     stormStep(dt);
     // camera: locked behind and above, like the Genie take; Wide pulls back to see the street
     const back = wide ? 16 : 6.8, high = wide ? 7.5 : 3.3, ahead = wide ? 18 : 9;
-    tmp.set(M.x, (M.y || 0), M.z); const goal = tmp.clone().addScaledVector(fwd, -back); goal.y = Math.max(heightAt(goal.x, goal.z) + 1.4, tmp.y + high);
+    const right = _right.set(-fwd.z, 0, fwd.x).multiplyScalar(-1), side = wide ? 3 : 1.6;   // the Genie framing: the camera sits off his right shoulder, Tex in the left third
+    tmp.set(M.x, (M.y || 0), M.z); const goal = tmp.clone().addScaledVector(fwd, -back).addScaledVector(right, side); goal.y = Math.max(heightAt(goal.x, goal.z) + 1.4, tmp.y + high);
     cam.p.lerp(goal, 1 - Math.exp(-dt * 4)); cam.l.lerp(tmp.clone().addScaledVector(fwd, ahead).add(new T.Vector3(0, 1.9, 0)), 1 - Math.exp(-dt * 6));
     camera.position.copy(cam.p); camera.lookAt(cam.l);
-    sun.position.set(M.x - 120, 70, M.z - 160); sun.target.position.set(M.x, 0, M.z);
+    const ov = window.__mars && window.__mars.camSide; if (ov) { const r = new T.Vector3(Math.cos(M.heading), 0, -Math.sin(M.heading)); camera.position.set(M.x, (M.y || 0), M.z).addScaledVector(r, ov).add(new T.Vector3(0, 1.5, 0)).addScaledVector(fwd, .6); camera.lookAt(M.x, (M.y || 0) + 1.35, M.z); }
+    sun.position.set(M.x + TUNE.sunDir[0], TUNE.sunDir[1], M.z + TUNE.sunDir[2]); sun.target.position.set(M.x, 0, M.z);   // low, ahead and to the right, as the film's shadows say
     $("where").textContent = STORM.phase === "inside" ? "Ethiopia on Mars · inside the storm" : future.visible ? "Ethiopia on Mars · after the storm" : M.z < -95 ? "Ethiopia on Mars · the stelae" : "Ethiopia on Mars · Main Street";
   }
   function STORM_W() { return STORM.phase === "inside" ? 1 : STORM.phase === "coming" ? clamp((STORM.z + 620) / 600, 0, 1) * .6 : 0; }
@@ -271,10 +339,28 @@
     else if (STORM.phase === "clearing") { STORM.z += dt * 42; say("The storm blows past, and the future is standing behind the town.");
       if (STORM.t > 5) { STORM.phase = "clear"; STORM.t = 0; } }
     else if (STORM.phase === "clear") { if (STORM.t > 5) say(""); STORM.z = Math.min(STORM.z + dt * 42, 400); }
-    wall.position.set(M.x, 0, STORM.z);
+    const side = STORM.phase === "far" ? 300 : STORM.phase === "coming" ? lerp(300, 0, smooth(-620, -200, STORM.z)) : 0;   // in the film the storm stands off to the right before it comes
+    wall.position.set(M.x + side, 0, STORM.z); wall.scale.x = STORM.phase === "far" ? .55 : lerp(.55, 1, smooth(-620, -200, STORM.z));
     for (const p of puffs) { const b = p.userData.base; p.position.x = b.x + Math.sin(STORM.t * p.userData.sp + b.z) * 6; p.material.rotation += dt * .05 * p.userData.sp; }
-    const dens = STORM.phase === "inside" ? lerp(.0026, .09, smooth(0, 1.2, STORM.t)) : STORM.phase === "clearing" ? lerp(.09, .0016, smooth(0, 4.5, STORM.t)) : STORM.phase === "clear" ? .0016 : .0026 + .01 * smooth(-160, -25, STORM.z - M.z);
-    scene.fog.density = dens; sky.material.uniforms.uStorm.value = clamp(dens / .03, 0, 1); hemi.intensity = 1.35 - .5 * clamp(dens / .05, 0, 1); sun.intensity = 2.6 * (1 - clamp(dens / .03, 0, 1) * .8);
+    const B = BASE_FOG, dens = STORM.phase === "inside" ? lerp(B, .09, smooth(0, 1.2, STORM.t)) : STORM.phase === "clearing" ? lerp(.09, B, smooth(0, 4.5, STORM.t)) : STORM.phase === "clear" ? B : B + .01 * smooth(-160, -25, STORM.z - M.z);
+    scene.fog.density = dens; const st = clamp((dens - B) / .03, 0, 1); sky.material.uniforms.uStorm.value = st; scene.fog.color.copy(HAZE).lerp(STORMCOL, st);
+    hemi.intensity = TUNE.hemi * (1 - .35 * clamp((dens - B) / .05, 0, 1)); sun.intensity = TUNE.sun * (1 - st * .8);
+  }
+
+  // ---------- the loop's eyes: a flat class mask, and live tuning of every colour the loop corrects ----------
+  const MASK = { on: false }, CLS = { sky: 0x000000, storm: 0x808080, ground: 0xff0000, scrub: 0x00ff00, mesa_near: 0x0000ff, mesa_far: 0xffff00, wood: 0xff00ff, spire: 0x00ffff, other: 0x808080 }, flat = {};
+  function clsOf(o) { for (let q = o; q; q = q.parent) if (q.userData && q.userData.cls) return q.userData.cls; return "other"; }
+  function maskRender() {
+    const swaps = [], hidden = [], fog = scene.fog, tm = renderer.toneMapping; scene.fog = null; renderer.toneMapping = T.NoToneMapping;
+    scene.traverse(o => { if (o.isSprite) { swaps.push([o, o.material]); o.material = flat.storm = flat.storm || new T.SpriteMaterial({ color: 0x808080, fog: false, transparent: true, map: o.material.map, alphaTest: .25 }); return; }
+      if (o.isMesh) { const c = clsOf(o); flat[c] = flat[c] || new T.MeshBasicMaterial({ color: CLS[c], fog: false, side: c === "sky" ? T.BackSide : T.FrontSide }); swaps.push([o, o.material]); o.material = flat[c]; } });
+    renderer.render(scene, camera); for (const [o, m] of swaps) o.material = m; for (const o of hidden) o.visible = true; scene.fog = fog; renderer.toneMapping = tm;
+  }
+  function tune(o) {
+    Object.assign(TUNE, o);
+    GROUND.color.set(TUNE.ground); if (GROUND.userData.far) GROUND.userData.far.color.set(TUNE.ground); MESA.color.set(TUNE.mesa); WOODMATS.forEach(m => m.color.set(TUNE.wood)); SPIREMATS.forEach(m => m.color.set(TUNE.spire)); SPIREFOG.value = TUNE.spireFog;
+    HAZE.set(TUNE.fog); scene.fog.color.copy(HAZE); BASE_FOG = TUNE.fogD; sky.material.uniforms.uTop.value.set(...TUNE.skyTop); sky.material.uniforms.uHor.value.set(...TUNE.skyHor);
+    sun.intensity = TUNE.sun; hemi.intensity = TUNE.hemi; renderer.toneMappingExposure = TUNE.exposure; return TUNE;
   }
 
   // ---------- boot ----------
@@ -282,5 +368,5 @@
   try { addSettlers(); } catch (e) { console.warn("settlers", e); }
   requestAnimationFrame(t => { last = t; frame(t); setTimeout(done, 300); });
   // hooks for the study and for checks
-  window.__mars = { setSaddle: v => SADDLE = v, paused: false, sim: (sec, ctl) => { if (ctl) Object.assign(AUTO, ctl, { on: true }); for (let t = 0; t < sec; t += .05) step(.05); }, mount, tex, STORM, callStorm, AUTO, setWide, say, future, keys, heightAt, place: (x, z, h) => { mount.place(x, z, h, heightAt); cam.p.set(x, 5, z + 8); } };
+  window.__mars = { mask: v => MASK.on = v, tune, TUNE, setSaddle: v => SADDLE = v, paused: false, sim: (sec, ctl) => { if (ctl) Object.assign(AUTO, ctl, { on: true }); for (let t = 0; t < sec; t += .05) step(.05); }, mount, tex, STORM, callStorm, AUTO, setWide, say, future, keys, heightAt, place: (x, z, h) => { mount.place(x, z, h, heightAt); cam.p.set(x, 5, z + 8); } };
 })();

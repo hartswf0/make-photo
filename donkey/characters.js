@@ -3812,7 +3812,7 @@
       state.moodT += sDt;
 
       // Ground character root transform FIRST so any world-to-local or prop-anchor math uses exact frame
-      if ((surfaceAt || opts.yOffset !== undefined) && group.parent && pose !== "drive") {
+      if ((surfaceAt || opts.yOffset !== undefined) && group.parent && pose !== "drive" && pose !== "ride") {   // a rider is placed on the saddle by the caller
         if (surfaceAt) state.y = surfaceAt(state.x, state.z);
         const effYOff = opts.yOffset !== undefined ? opts.yOffset : (spec.yOffset || 0);
         group.position.set(state.x, state.y + effYOff, state.z);
@@ -4430,6 +4430,28 @@
           autoHandR = "heart_gratitude";
           autoHandL = "relaxed_breathing";
         }
+      } else if (pose === "ride") {
+        // Astride a donkey or horse: pelvis on the saddle, legs either side of the barrel, feet hanging in the stirrups,
+        // hands forward on the reins. opts.rideBob (metres, + up) is the rider's give against the animal's back each stride;
+        // opts.rideLean pitches the spine forward with speed. The caller places the group so the pelvis sits on the saddle.
+        allowBodyAssist = false;
+        const bob = clamp(opts.rideBob || 0, -0.08, 0.08), lean = clamp(opts.rideLean || 0, -0.2, 0.35), barrel = opts.rideBarrel || 0.24;
+        pelDrop = -0.33 + bob;
+        pelFwdZ = -0.02;
+        pelSwayX = (opts.rideSway || 0) * 0.04;
+        fLx =  hipX + barrel; fLy = 0.14 + bob * 0.4; fLz = 0.12;
+        fRx = -hipX - barrel; fRy = 0.14 + bob * 0.4; fRz = 0.12;
+        footPitchL = footPitchR = 0.22;
+        spinePitch = 0.07 + lean - bob * 0.8;
+        spineRoll = -(opts.rideSway || 0) * 0.05;
+        localTargetL.set( hipX * 0.75, 0.86 + bob * 0.5, 0.34 + lean * 0.3);
+        localTargetR.set(-hipX * 0.75, 0.86 + bob * 0.5, 0.34 + lean * 0.3);
+        palmLocalL.set(-0.30, -0.90, 0.30);
+        palmLocalR.set( 0.30, -0.90, 0.30);
+        gripModeL = gripModeR = "wrap";
+        curlL = curlR = 0.72;
+        state.lookPitch = lerp(state.lookPitch, -0.04, 0.5);
+        state.lookYaw = lerp(state.lookYaw, clamp(opts.rideLook || 0, -0.5, 0.5), 0.3);
       } else if (pose === "screenWatch" || pose === "seatedWatch") {
         allowBodyAssist = false;
         const isSeated = pose === "seatedWatch" || Boolean(opts.seated) || spec.id === "old_bride";

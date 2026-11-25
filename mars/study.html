@@ -5,24 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/svg+xml" href="../favicon.svg">
   <title>Tex Lexington · Video to Game</title>
-  <meta name="description" content="A Genie 4 take turned into a playable third-person Mars western, frame by frame.">
+  <meta name="description" content="A Genie 4 take turned into a playable Mars western, a loop that measures the game against the film, and where that loop stops.">
   <style>
-    :root { --ink: #fbeee2; --dim: rgba(251,238,226,.62); --line: rgba(251,238,226,.18); --rust: #c4552c; --stage: #1c0f0b;
+    :root { --ink: #f6ece6; --dim: rgba(246,236,230,.64); --line: rgba(246,236,230,.16); --rust: #c4552c; --stage: #1d1310;
       --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace; --word: "IM Fell English", Georgia, serif; color-scheme: dark; }
-    body { margin: 0; background: var(--stage); color: var(--ink); font: 13px/1.55 var(--mono); }
-    main { max-width: 1100px; margin: 0 auto; padding: 28px 16px 64px; display: grid; gap: 28px; }
-    h1 { margin: 0; font: italic 400 clamp(28px, 5vw, 44px)/1.1 var(--word); }
-    header p { color: var(--dim); max-width: 64ch; margin: 10px 0 0; }
+    body { margin: 0; background: var(--stage); color: var(--ink); font: 13px/1.6 var(--mono); }
+    main { max-width: 1040px; margin: 0 auto; padding: 28px 16px 72px; display: grid; gap: 34px; }
+    h1 { margin: 0; font: italic 400 clamp(28px, 5vw, 44px)/1.1 var(--word); } h2 { margin: 0 0 6px; font: italic 400 26px/1.2 var(--word); } h3 { margin: 0; font: italic 400 21px/1.2 var(--word); }
+    p { margin: 0; color: var(--dim); max-width: 72ch; } header p { margin-top: 10px; }
     .go { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
     .go a { color: var(--ink); text-decoration: none; border: 1px solid var(--line); padding: 10px 12px; font: 600 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
     .go a.play { background: var(--rust); border-color: var(--rust); }
-    video { width: 100%; display: block; background: #000; }
-    article { border-top: 1px solid var(--line); padding-top: 18px; display: grid; gap: 10px; }
-    h3 { margin: 0; font: italic 400 22px/1.2 var(--word); } h3 span { font: 600 11px var(--mono); letter-spacing: .12em; color: var(--dim); margin-right: 8px; }
-    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    figure { margin: 0; position: relative; } img { width: 100%; display: block; aspect-ratio: 16/9; object-fit: cover; background: #2a1712; }
-    figcaption { position: absolute; left: 8px; top: 8px; font: 600 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; background: rgba(28,15,11,.7); padding: 5px 7px; }
-    article p { margin: 0; color: var(--dim); max-width: 80ch; }
+    video, img { width: 100%; display: block; background: #2a1914; }
+    section, article { border-top: 1px solid var(--line); padding-top: 20px; display: grid; gap: 12px; }
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } figure { margin: 0; position: relative; } .pair img { aspect-ratio: 16/9; object-fit: cover; }
+    figcaption { position: absolute; left: 8px; top: 8px; font: 600 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; background: rgba(29,19,16,.72); padding: 5px 7px; }
+    table { border-collapse: collapse; width: 100%; max-width: 720px; font-size: 12px; } td, th { border-bottom: 1px solid var(--line); padding: 7px 8px 7px 0; text-align: left; font-weight: 400; } th { color: var(--dim); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+    td i { display: inline-block; width: 14px; height: 14px; vertical-align: -3px; margin-right: 8px; border: 1px solid var(--line); } td.n { font-variant-numeric: tabular-nums; }
+    .scroll { overflow-x: auto; }
+    svg { width: 100%; max-width: 720px; height: auto; } svg text { fill: var(--dim); font: 10px var(--mono); } .grid line { stroke: var(--line); }
+    polyline { fill: none; stroke: rgba(246,236,230,.42); stroke-width: 1.5; } polyline.kept { stroke: var(--rust); stroke-width: 2.5; }
+    ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: 80ch; } li { color: var(--ink); } li span { color: var(--dim); }
+    .limits { display: grid; gap: 14px; max-width: 80ch; } .limits b { font-weight: 600; color: var(--ink); }
     @media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -30,35 +34,51 @@
   <main>
     <header>
       <h1>Tex Lexington · Ethiopia on Mars</h1>
-      <p>Video to game. A 40-second Genie 4 take, one session steered with W A S D, gave the blocking: a camera locked behind a rider, Texas false fronts beside Ethiopian tukuls, Aksum stelae and glass domes under a pink sky with two moons, a storm on the horizon and a future city behind the town. The game rebuilds it from make-photo's own parts and makes the storm do what the film could not.</p>
-      <div class="go"><a class="play" href="index.html">Play</a><a href="v2g/study.json">Study data</a></div>
+      <p>Video to game, and back. A 40-second Genie 4 take, one session steered with W A S D, became a playable level built from make-photo's own parts. Then a loop measured the level against the film, region by region, and corrected it until it stopped getting closer. Where it stopped is the point of this page.</p>
+      <div class="go"><a class="play" href="index.html">Play</a><a href="v2g/loop.py">The loop</a><a href="v2g/loop_history.json">Every run</a></div>
     </header>
     <video src="v2g/genie_tex.mp4" poster="v2g/genie_seed.jpg" controls playsinline preload="metadata" aria-label="The Genie 4 take, 40 seconds"></video>
-    <article>
-      <h3><span>3 s</span> Main street</h3>
-      <div class="pair"><figure><img src="v2g/genie_3s.jpg" alt="Genie frame at 3 seconds: main street" loading="lazy"><figcaption>Genie</figcaption></figure><figure><img src="v2g/game_street.jpg" alt="Game frame: main street" loading="lazy"><figcaption>Game</figcaption></figure></div>
-      <p>Genie: Tex from behind on a grey horse, saloon fronts and tukuls, stelae, glass domes, the storm on the horizon. Game: the same blocking, rebuilt, with Tex on make-photo's grey donkey and the camera locked at the same height.</p>
-    </article>
-    <article>
-      <h3><span>10 s</span> Settlers on the street</h3>
-      <div class="pair"><figure><img src="v2g/genie_10s.jpg" alt="Genie frame at 10 seconds: settlers on the street" loading="lazy"><figcaption>Genie</figcaption></figure><figure><img src="v2g/game_settlers.jpg" alt="Game frame: settlers on the street" loading="lazy"><figcaption>Game</figcaption></figure></div>
-      <p>Genie drifted the settlers into Texas cowhands in brown dusters. The game holds them: Black Ethiopian men and women in white cotton shamma, two leading pack donkeys with 20 L cans.</p>
-    </article>
-    <article>
-      <h3><span>15 s</span> The storm</h3>
-      <div class="pair"><figure><img src="v2g/genie_15s.jpg" alt="Genie frame at 15 seconds: the storm" loading="lazy"><figcaption>Genie</figcaption></figure><figure><img src="v2g/game_storm.jpg" alt="Game frame: the storm" loading="lazy"><figcaption>Game</figcaption></figure></div>
-      <p>In Genie the storm never left the horizon. In the game it comes up the street, and the mesas go first.</p>
-    </article>
-    <article>
-      <h3><span>21 s</span> Inside the storm</h3>
-      <div class="pair"><figure><img src="v2g/genie_21s.jpg" alt="Genie frame at 21 seconds: inside the storm" loading="lazy"><figcaption>Genie</figcaption></figure><figure><img src="v2g/game_inside.jpg" alt="Game frame: inside the storm" loading="lazy"><figcaption>Game</figcaption></figure></div>
-      <p>The beat Genie could not play: red dust fills everything and only Tex's white shamma shows. The change happens here, where no one can see it.</p>
-    </article>
-    <article>
-      <h3><span>28 s</span> The future behind the town</h3>
-      <div class="pair"><figure><img src="v2g/genie_28s.jpg" alt="Genie frame at 28 seconds: the future behind the town" loading="lazy"><figcaption>Genie</figcaption></figure><figure><img src="v2g/game_future.jpg" alt="Game frame: the future behind the town" loading="lazy"><figcaption>Game</figcaption></figure></div>
-      <p>Genie raised carved towers, wind turbines, a train line and water drones behind the frontier. The game keeps all four, and its towers stand on the cross plan of the rock churches.</p>
-    </article>
+    <article><h3>Opening</h3><div class="pair"><figure><img src="v2g/film_open.jpg" alt="Genie frame: opening" loading="lazy"><figcaption>Genie</figcaption></figure><figure><img src="v2g/game_street.jpg" alt="Game frame: opening" loading="lazy"><figcaption>Game</figcaption></figure></div><p>The film's opening, rebuilt at its own spot: the open edge of town with desert and tukuls on the left and the street ahead. The camera sits off Tex's right shoulder, as Genie's does, and the low sun is ahead and to the right.</p></article>
+    <article><h3>After the storm</h3><div class="pair"><figure><img src="v2g/film_future.jpg" alt="Genie frame: after the storm" loading="lazy"><figcaption>Genie</figcaption></figure><figure><img src="v2g/game_future.jpg" alt="Game frame: after the storm" loading="lazy"><figcaption>Game</figcaption></figure></div><p>The future the film drew is carved sandstone, not glass: monoliths the size of skyscrapers, cut like Aksum stelae, with white wind turbines, a blue-white train on an elevated line and drones carrying lit cans. The game now builds exactly those.</p></article>
+    <article><h3>Riding</h3><img src="v2g/game_ride.jpg" alt="Tex riding the grey donkey, four moments of a trot above four of a canter" loading="lazy">
+      <p>Tex now sits on the saddle point of make-photo's donkey, which moves with its back. On top of that his body gives on a spring, rises every other beat at the trot, rocks with the canter, leans forward with speed and sways into turns. His legs hang either side of the barrel and his hands are forward on the reins: a new <code>ride</code> pose in <code>donkey/characters.js</code>.</p></article>
+    <section>
+      <h2>The loop</h2>
+      <p>Eight regions of the film are measured as median colours. Each round renders the level twice, beside a flat mask that says which pixel is sky, ground, mesa, wood or spire, measures the same regions, and corrects the light or material that owns each one. The distance is CIE Lab ΔE; below about 2 it is hard to see.</p>
+      <div class="scroll"><table><thead><tr><th>Region</th><th>Film</th><th>Game</th><th>ΔE</th></tr></thead><tbody>
+<tr><td>Sky, high</td><td><i style="background:#d8cdcd"></i>#d8cdcd</td><td><i style="background:#dcd0d0"></i>#dcd0d0</td><td class="n">1.2</td></tr>
+<tr><td>Sky at the horizon</td><td><i style="background:#ebdcd4"></i>#ebdcd4</td><td><i style="background:#edded5"></i>#edded5</td><td class="n">0.9</td></tr>
+<tr><td>Far mesas in haze</td><td><i style="background:#cdb0ab"></i>#cdb0ab</td><td><i style="background:#cbb5ac"></i>#cbb5ac</td><td class="n">3.6</td></tr>
+<tr><td>Near cliff, sunlit</td><td><i style="background:#c4825e"></i>#c4825e</td><td><i style="background:#8b6862"></i>#8b6862</td><td class="n">26.1</td></tr>
+<tr><td>Ground in sun</td><td><i style="background:#bd7e5a"></i>#bd7e5a</td><td><i style="background:#be805b"></i>#be805b</td><td class="n">0.9</td></tr>
+<tr><td>Ground in shadow</td><td><i style="background:#4a231a"></i>#4a231a</td><td><i style="background:#4b2317"></i>#4b2317</td><td class="n">2.2</td></tr>
+<tr><td>Weathered wood, sunlit</td><td><i style="background:#bc9a78"></i>#bc9a78</td><td><i style="background:#5a3e2a"></i>#5a3e2a</td><td class="n">37.5</td></tr>
+<tr><td>Carved spire</td><td><i style="background:#765649"></i>#765649</td><td><i style="background:#705953"></i>#705953</td><td class="n">6.4</td></tr>
+      </tbody></table></div>
+      <svg viewBox="0 0 660 224" role="img" aria-label="Mean colour difference per round, for each run of the loop; run 6 is the one kept, ending at 7.3"><g class="grid"><line x1="40" x2="640" y1="200.0" y2="200.0"/><text x="34" y="203.0" text-anchor="end">0</text><line x1="40" x2="640" y1="147.1" y2="147.1"/><text x="34" y="150.1" text-anchor="end">10</text><line x1="40" x2="640" y1="94.1" y2="94.1"/><text x="34" y="97.1" text-anchor="end">20</text><line x1="40" x2="640" y1="41.2" y2="41.2"/><text x="34" y="44.2" text-anchor="end">30</text></g><polyline points="40.0,75.1 55.3,76.6 70.6,54.4 85.9,33.2 101.2,30.1" class="run"/><text x="40.0" y="214">1</text><polyline points="125.7,102.1 141.0,110.5 156.3,107.9 171.6,106.3 186.9,106.8 202.2,106.8" class="run"/><text x="125.7" y="214">2</text><polyline points="226.7,118.5 242.0,143.4 257.3,150.2 272.7,164.0 288.0,166.1 303.3,168.2" class="run"/><text x="226.7" y="214">3</text><polyline points="327.8,130.6 343.1,135.9 358.4,139.1 373.7,140.2" class="run"/><text x="327.8" y="214">4</text><polyline points="398.2,136.5 413.5,137.0 428.8,148.6 444.1,141.2 459.4,150.8" class="run"/><text x="398.2" y="214">5</text><polyline points="483.9,144.4 499.2,158.2 514.5,160.3 529.8,160.8 545.1,161.4" class="kept"/><text x="483.9" y="214">6</text><polyline points="569.6,142.8 584.9,146.0 600.2,143.9 615.5,147.1" class="run"/><text x="569.6" y="214">7</text></svg>
+      <p>Mean ΔE, every round of every run. The orange line is the run that was kept; the final value of 9.9 is measured with the game's own camera, which sits 1.6 m off Tex's shoulder.</p>
+      <ol>
+<li><b>Run 1.</b> First loop: every pixel of a class compared; light and colour corrected together. <span>Diverged: shadows too bright, so it cut the sky light, everything darkened, materials pushed to white.</span></li>
+<li><b>Run 2.</b> Sun moved to the film's side; storm sprites given their own mask class; light separated from colour; damped. <span>Sky, ground and far haze converge; wood, cliffs and spires do not.</span></li>
+<li><b>Run 3.</b> Sunlit faces compared with sunlit faces; spires get their own haze. <span>Closes to 6.0; cliffs and wood hit a ceiling: brighter than white needed.</span></li>
+<li><b>Run 4.</b> The film's opening framing: the open edge of town. <span>Ground within 1, but most wood in view is now shaded.</span></li>
+<li><b>Run 5.</b> Far ring of mesas; wood measured on its brightest faces. <span>The loop turned the wood blue-green to satisfy one median: a number met, a look broken.</span></li>
+<li><b>Run 6.</b> Neutral boards, hue guard rail, near mesas at the film's scale. <span>Kept: sky 0.7, haze 2.8, ground 0.0 / shadow 2.2, spire 6.5; cliffs 24.8 and wood 21.1 are the limit.</span></li>
+<li><b>Run 7.</b> Side light, to light Tex's back as the film does. <span>Rejected: the wood worsened and Tex still read dark.</span></li>
+      </ol>
+    </section>
+    <section>
+      <h2>Where the loop stops</h2>
+      <div class="limits">
+        <p><b>Colour closes; the look does not.</b> Sky, haze and ground now sit within one or two ΔE of the film. Put the frames side by side and they still do not match, because the film's look lives in what a median cannot see: grain, the density of small things (ruts, scrub, stones, harness, people), and soft light that bounces between all of them.</p>
+        <p><b>The film invents light.</b> Its sunlit cliffs and facades are brighter than one sun can make them while also matching its ground: the loop asked for surfaces 1.3 to 1.6 times brighter than white. A generative model paints for beauty, not for one consistent light, and a game engine cannot follow it there.</p>
+        <p><b>Its haze is not physical.</b> One haze cannot make the far mesas pale and keep the spires, at nearly the same distance, dark and sharp. The game gives the spires their own haze amount, set by the loop: a deliberate break from physics to match the film.</p>
+        <p><b>A number met, a look broken.</b> Asked to fix one median, the loop once drove the wood blue-green, cancelling warm boards under a warm sun. It needs guard rails, here a cap on how far hue may move, and it needs someone watching the frames, not only the numbers.</p>
+        <p><b>A game never holds the film's view.</b> Moving the camera 1.6 m changed the wood's score from 21 to 37 because different faces came into view. The comparison only means something at a matched frame, and a player never stays in one.</p>
+        <p><b>What the loop cannot touch.</b> The horse (make-photo has a donkey), the cast drifting into Texas cowhands, the shapes of the future city, and the way Genie redraws the town every second. Those were read off the film by eye and rebuilt by hand. The loop checks colour and light; composition, form and casting stay human work.</p>
+        <p><b>Next.</b> Compare structure as well as colour: silhouettes and edges per region, and depth taken from Atlas reconstructions of the Genie frames, so the mesas and spires stand where the film put them rather than where they were guessed.</p>
+      </div>
+    </section>
   </main>
 </body>
 </html>

@@ -1,0 +1,27 @@
+{
+ "ground": "#d29a76",
+ "mesa": "#cf8f6a",
+ "wood": "#c4a382",
+ "spire": "#a8785f",
+ "fog": "#e2cfc6",
+ "fogD": 0.0024,
+ "skyTop": [
+  0.85,
+  0.8,
+  0.8
+ ],
+ "skyHor": [
+  0.93,
+  0.87,
+  0.84
+ ],
+ "sun": 2.3,
+ "hemi": 1.25,
+ "exposure": 1.0,
+ "sunDir": [
+  110,
+  55,
+  -150
+ ],
+ "spireFog": 1
+}
