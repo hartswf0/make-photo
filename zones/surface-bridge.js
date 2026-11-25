@@ -14,5 +14,5 @@
     leave: () => { const s = st(); if (s.gliding) U.toggleGlide(); else if (s.riding) U.toggleRide(); else if (s.drivingCart) U.toggleCart(); },
     steer: (x, y, a) => U.steer(x, y, a), look: (dx, dy) => U.look(dx, dy), jump: () => U.jump(),
     menu: () => { const s = st(); return [{ id: 'ride', label: 'donkey', on: !!s.riding, run: () => U.toggleRide() }, { id: 'glide', label: 'glide', on: !!s.gliding, run: () => U.toggleGlide() }, { id: 'drive', label: 'wagon', on: !!s.drivingCart, run: () => U.toggleCart() }]; },
-    atlas: () => { if (!teton || !teton.frame) return null; const s = st(), f = teton.frame; return { mx: (teton.center[0] - teton.size[0] / 2 + (s.x - f.x0) / f.w * teton.size[0]) * 1000, mz: (teton.center[1] - teton.size[1] / 2 + (s.z - f.z0) / f.h * teton.size[1]) * 1000 }; } });
+    atlas: () => { if (!teton || !teton.frame) return null; const s = st(), f = teton.frame; const F = teton.full || teton; return { mx: (F.center[0] - F.size[0] / 2 + (s.x - f.x0) / f.w * F.size[0]) * 1000, mz: (F.center[1] - F.size[1] / 2 + (s.z - f.z0) / f.h * F.size[1]) * 1000 }; } });
 })();

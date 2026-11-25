@@ -97,6 +97,44 @@ crd = [dict(kind='highway', uv=[cl(*p) for p in h['pts']]) for h in roads['highw
 streets = [[cl(*p) for p in s_['pts']] for s_ in roads['streets'][:2500] if 'pts' in s_]
 island('wygwyl', 'WYGWYL', np.minimum(np.where(city > 0, city + 6, city - 30), islandize(np.maximum(city, 0), .22)), hg['W'] / 1000, hg['H'] / 1000, 52, 48.5, 'City suite · Atlantis · Nolli block', '../city/island/index.html',
   places=[dict(name=g['name'], uv=cl(g['x'], g['y']), world='WYGWYL island', entry='../city/island/index.html') for g in meta['regions']], roads=crd, streets=streets, note='six real places rotated into one island, 9.6 by 6.4 km')
+# ---------- focus: an island is the part of its level that matters, not the whole survey. Each big island is cut to its places
+#            (and anything else named to keep, like Teton's peaks) with a margin, and given a new coast. The uncropped frame is kept
+#            as 'full', so every level and can still maps its own coordinates through the frame it was made in. ----------
+def focus(id_, keep_uv=(), margin_km=2.5, min_km=5.0):
+    i = next(x for x in I if x['id'] == id_); h = i['h']; H0, W0 = h.shape; fw, fh = i['w'], i['hgt']
+    pts = [p['uv'] for p in i['places']] + list(keep_uv); us = [p[0] for p in pts]; vs = [p[1] for p in pts]
+    mu, mv = margin_km / fw, margin_km / fh; u0, u1, v0, v1 = min(us) - mu, max(us) + mu, min(vs) - mv, max(vs) + mv
+    for lo_, hi_, mn in ((0, 1, min_km / fw), (0, 1, min_km / fh)): pass
+    def grow(a, b, mn): c = (a + b) / 2; half = max((b - a) / 2, mn / 2); return max(0., c - half), min(1., c + half)
+    u0, u1 = grow(u0, u1, min_km / fw); v0, v1 = grow(v0, v1, min_km / fh)
+    x0, x1, y0, y1 = int(u0 * W0), int(math.ceil(u1 * W0)), int(v0 * H0), int(math.ceil(v1 * H0)); u0, u1, v0, v1 = x0 / W0, x1 / W0, y0 / H0, y1 / H0
+    c = h[y0:y1, x0:x1].copy(); Hc, Wc = c.shape
+    yy, xx = np.mgrid[0:Hc, 0:Wc]; kw_, kh_ = fw * (u1 - u0) / Wc, fh * (v1 - v0) / Hc                    # km per cell
+    dk = np.minimum(np.minimum(xx, Wc - 1 - xx) * kw_, np.minimum(yy, Hc - 1 - yy) * kh_) + (noise(Hc, Wc, 3) - .5) * .7 + (noise(Hc, Wc, 9) - .5) * .2   # km to the cut, warped into capes and bays
+    f = smooth((dk - .15) / .9); f[(xx == 0) | (yy == 0) | (xx == Wc - 1) | (yy == Hc - 1)] = 0                   # a coast about a kilometre wide, whatever the island's size
+    i['h'] = np.where(c > 0, c * f - (1 - f) * 380, np.minimum(c, c * f - (1 - f) * 380))   # a new coast where the crop cuts the land
+    i['full'] = dict(w=fw, hgt=fh, u0=u0, v0=v0, u1=u1, v1=v1); i['w'], i['hgt'] = fw * (u1 - u0), fh * (v1 - v0)
+    re_uv = lambda q: ((q[0] - u0) / (u1 - u0), (q[1] - v0) / (v1 - v0))
+    for p in i['places']: p['uv'] = re_uv(p['uv'])
+    def clip(line):
+        out_, cur = [], []
+        for q in line:
+            q2 = re_uv(q)
+            if -.01 <= q2[0] <= 1.01 and -.01 <= q2[1] <= 1.01: cur.append(q2)
+            elif cur: out_.append(cur); cur = []
+        if cur: out_.append(cur)
+        return [l for l in out_ if len(l) > 1]
+    i['roads'] = [dict(r_, uv=l) for r_ in i['roads'] for l in clip(r_['uv'])]
+    if i.get('streets'): i['streets'] = [l for s_ in i['streets'] for l in clip(s_)]
+    print('focus', id_, f'{fw:.1f}x{fh:.1f} -> {i["w"]:.1f}x{i["hgt"]:.1f} km')
+def peak_uv(id_, k=1):
+    i = next(x for x in I if x['id'] == id_); h = i['h']; j = np.unravel_index(np.argmax(h), h.shape); return [(j[1] / h.shape[1], j[0] / h.shape[0])]
+nb = json.loads(blob('terrain-data')).get('near', {}).get('bounds') or [-2750, 1040, -2850, 1180]
+focus('teton', peak_uv('teton') + [tl(nb[0], -nb[3]), tl(nb[1], -nb[2])], margin_km=2.0)   # its peak, and all of the level's near ground
+focus('halfdome', peak_uv('halfdome'), margin_km=2.2)
+focus('corridor', margin_km=2.2)
+focus('blue_nile_gorge', margin_km=2.0)
+focus('gerd_belaya_escarpment', margin_km=2.0)
 # ---------- arrange: a tight archipelago; where a bridge crosses, the strait is a few hundred metres ----------
 from scipy.spatial import cKDTree
 PAIRS = [('teton', 'corridor'), ('teton', 'gerd_belaya_escarpment'), ('corridor', 'halfdome'), ('corridor', 'blue_nile_gorge'), ('halfdome', 'simien_imet_gogo'),   # one chain that joins every island
@@ -239,9 +277,14 @@ def on_ground(i, at):                     # a place stands on its own island's g
     k = I.index(i)
     if k not in LANDKD: ys_, xs_ = np.nonzero((OWN == k) & (Hmap > 3)); LANDKD[k] = (cKDTree(np.stack([xs_, ys_], 1) * MPP), np.stack([xs_, ys_], 1) * MPP)
     kd, pts = LANDKD[k]; _, j = kd.query([x, z]); q = pts[j] + MPP / 2; return [round(float(q[0]) / 1000, 4), round(float(q[1]) / 1000, 4)]
+def fullframe(i):                          # the uncropped island, so a level's own coordinates still land where they belong
+    f = i.get('full')
+    if not f: return dict(center=[i['cx'], i['cy']], size=[i['w'], i['hgt']])
+    x0 = i['cx'] - i['w'] / 2 - f['u0'] * f['w']; y0 = i['cy'] - i['hgt'] / 2 - f['v0'] * f['hgt']
+    return dict(center=[round(x0 + f['w'] / 2, 4), round(y0 + f['hgt'] / 2, 4)], size=[f['w'], f['hgt']])
 out = dict(width_km=W_KM, height_km=H_KM, mpp=MPP, image='./archipelago.jpg', preview='./archipelago-small.jpg', islands=[])
 for i in I:
-    out['islands'].append(dict(id=i['id'], name=i['name'], level=i['level'], entry=i['entry'], note=i.get('note', ''), center=[i['cx'], i['cy']], size=[i['w'], i['hgt']], small=i.get('small', False), frame=i.get('frame'), detail=i.get('detail'), detail_px=i['h'].shape[1],
+    out['islands'].append(dict(id=i['id'], name=i['name'], level=i['level'], entry=i['entry'], note=i.get('note', ''), center=[i['cx'], i['cy']], size=[i['w'], i['hgt']], full=fullframe(i), small=i.get('small', False), frame=i.get('frame'), detail=i.get('detail'), detail_px=i['h'].shape[1],
       places=[dict(name=p['name'], at=on_ground(i, km(i, p['uv'])), world=p['world'], entry=p['entry']) for p in i['places'] if 0 <= p['uv'][0] <= 1 and 0 <= p['uv'][1] <= 1],
       roads=[dict(kind=r_['kind'], pts=[km(i, q) for q in r_['uv']]) for r_ in i['roads'] if len(r_['uv']) > 1],
       streets=[[km(i, q) for q in s_] for s_ in i.get('streets', [])]))
@@ -310,6 +353,6 @@ for b in bridges:
 places3 = [dict(name=p_['name'], island=i['id'], world=p_['world'], entry=p_['entry'], x=round(p_['at'][0] * 1000, 1), z=round(p_['at'][1] * 1000, 1)) for i in out['islands'] for p_ in i['places']]
 LOW = 10; lowh = Hmap[::LOW, ::LOW]; (OW / 'low.bin').write_bytes(np.clip(np.round((lowh + 1000) * 10), 0, 65535).astype('<u2').tobytes())
 json.dump(dict(ferries=ferries, tile=T, mpp=MPP, tiles=tiles, low=dict(step=LOW * MPP, w=lowh.shape[1], h=lowh.shape[0]), width_m=PW * MPP, height_m=PH * MPP, encode='(h+1000)*10 uint16 LE, rows south-increasing z', bridges=bridges, shapes=SHAPES, roads=roads3, places=places3,
-               islands=[dict(id=i['id'], name=i['name'], level=i['level'], entry=i['entry'], center=[i['center'][0] * 1000, i['center'][1] * 1000], size=[i['size'][0] * 1000, i['size'][1] * 1000], frame=i['frame'], datum=ID[i['id']].get('datum')) for i in out['islands']],
+               islands=[dict(id=i['id'], name=i['name'], level=i['level'], entry=i['entry'], center=[i['center'][0] * 1000, i['center'][1] * 1000], size=[i['size'][0] * 1000, i['size'][1] * 1000], full=dict(center=[i['full']['center'][0] * 1000, i['full']['center'][1] * 1000], size=[i['full']['size'][0] * 1000, i['full']['size'][1] * 1000]), frame=i['frame'], datum=ID[i['id']].get('datum')) for i in out['islands']],
                texture='./archipelago.jpg'), open(OW / 'world.json', 'w'), separators=(',', ':'))
 print('ends', [(b['a'][:6], b['b'][:6], b['pts'][0][1], b['pts'][-1][1]) for b in bridges]); print('ferries', [(f['a'][:6], f['b'][:6], f['length_m']) for f in ferries]); print('overworld', len(tiles), 'tiles', len(bridges), 'bridges', [(b['a'][:6], b['b'][:6], b['length_m']) for b in bridges], len(roads3), 'roads')

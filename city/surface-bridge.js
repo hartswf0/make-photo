@@ -2,7 +2,7 @@
 // the same drops and carry, the city's own looks on the lens, and the way back to the archipelago at the WYGWYL coast.
 (async () => {
   const C = await new Promise(ok => (function t() { const w = window.__CITY__; if (w && w.player && w.keys && w.THREE && window.DWBridge) ok(w); else setTimeout(t, 250); })());
-  const ARCH = await fetch('../atlas/archipelago.json?v=4').then(r => r.json()).catch(() => null), isl = ARCH && ARCH.islands.find(i => i.id === 'wygwyl');
+  const ARCH = await fetch('../atlas/archipelago.json?v=5').then(r => r.json()).catch(() => null), isl = ARCH && ARCH.islands.find(i => i.id === 'wygwyl');
   const K = C.keys, pl = C.player, su = C.suite, tap = k => { const code = k === ' ' ? 'Space' : 'Key' + k.toUpperCase(); dispatchEvent(new KeyboardEvent('keydown', { key: k, code })); setTimeout(() => dispatchEvent(new KeyboardEvent('keyup', { key: k, code })), 140); };
   const ST = { x: 0, y: 0 }; let last = performance.now();
   (function turn(now) { const dt = Math.min(.05, (now - last) / 1000); last = now; if (Math.abs(ST.x) > .12) pl.yaw -= Math.sign(ST.x) * (Math.abs(ST.x) - .12) * (pl.isInside ? 1.9 : 2.4) * dt; requestAnimationFrame(turn); })(last);

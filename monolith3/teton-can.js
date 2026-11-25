@@ -20,10 +20,12 @@
         return H[j * w + i] * (1 - a) * (1 - q) + H[j * w + i + 1] * a * (1 - q) + H[(j + 1) * w + i] * (1 - a) * q + H[(j + 1) * w + i + 1] * a * q; } }; };
     const [gNear, gDetail, gFar] = await Promise.all([grid('near-height'), grid('detail-height'), grid('far-height')]);
     // the far grid, eased into the trough's island shape at the coast: one height for what is drawn and what is walked outside the near grid
+    /* the island as the trough has it (focused): the far grid stands only inside it, its edge eases into the trough's ground there */
+    const FR = g.rect ? [Math.max(gFar.x0, g.rect[0]), Math.max(gFar.z0, g.rect[1]), Math.min(gFar.x1, g.rect[2]), Math.min(gFar.z1, g.rect[3])] : [gFar.x0, gFar.z0, gFar.x1, gFar.z1];
     const farAt = (x, z) => { const real = gFar.at(x, z); if (real === null) return null; const lo = g.low ? g.low(x, z) : real, t = Math.min(1, Math.max(0, (lo - 2) / 60)), v = lo * (1 - t) + real * t;
-      if (!g.low) return v; const d = Math.min(x - gFar.x0, gFar.x1 - x, z - gFar.z0, gFar.z1 - z), e = Math.min(1, Math.max(0, d / 1500)), w = e * e * (3 - 2 * e);   /* and into the trough's ground at its outer edge, so the cut-out meets it */
+      if (!g.low) return v; const d = Math.min(x - FR[0], FR[2] - x, z - FR[1], FR[3] - z), e = Math.min(1, Math.max(0, d / 1500)), w = e * e * (3 - 2 * e);   /* and into the trough's ground at its outer edge, so the cut-out meets it */
       const f = w >= 1 ? v : lo + (v - lo) * w; return g.shape ? g.shape(x, z, f, 55) : f; };   /* widened by about one far-grid cell, so its 65 m triangles can hold the road */   /* and the archipelago's landings: causeway and ramp */
-    const farEdge = (x, z) => { const d = Math.min(x - gFar.x0, gFar.x1 - x, z - gFar.z0, gFar.z1 - z), e = Math.min(1, Math.max(0, d / 1500)); return e * e * (3 - 2 * e); };
+    const farEdge = (x, z) => { const d = Math.min(x - FR[0], FR[2] - x, z - FR[1], FR[3] - z), e = Math.min(1, Math.max(0, d / 1500)); return e * e * (3 - 2 * e); };
     // feather each finer grid into the ground around it, so there is no wall or drop at its edge: near into the trough's coarse ground over 150 m, detail into near over 25 m
     const feather = (G, edge, outer) => { for (let j = 0; j < G.h; j++) for (let i = 0; i < G.w; i++) { const x = G.x0 + i / (G.w - 1) * (G.x1 - G.x0), z = G.z0 + j / (G.h - 1) * (G.z1 - G.z0), d = Math.min(x - G.x0, G.x1 - x, z - G.z0, G.z1 - z), t = Math.min(1, d / edge), w = t * t * (3 - 2 * t);
         if (w < 1) { const o = outer(x, z); if (o !== null && o !== undefined) G.H[j * G.w + i] = o + (G.H[j * G.w + i] - o) * w; } } };
@@ -45,8 +47,8 @@
     for (let j = 0; j < fh - 1; j++) for (let i = 0; i < fw - 1; i++) { const a = j * fw + i; fidx.push(a, a + fw, a + 1, a + 1, a + fw, a + fw + 1); }
     { const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(fpos, 3)); geo.setAttribute('uv', new T.BufferAttribute(fuv, 2)); geo.setAttribute('aEdge', new T.BufferAttribute(fedge, 1)); geo.setIndex(fidx); geo.computeVertexNormals();
       const mat = new T.MeshLambertMaterial({ map: tFar }), nr = new T.Vector4(gNear.x0 + g.origin[0], gNear.z0 + g.origin[1], gNear.x1 + g.origin[0], gNear.z1 + g.origin[1]);
-      mat.onBeforeCompile = sh => { sh.uniforms.uNearR = { value: nr }; Object.assign(sh.uniforms, SNOW_U); sh.vertexShader = 'attribute float aEdge; varying float vEdge; varying vec3 vFw;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n vFw = (modelMatrix * vec4(transformed, 1.0)).xyz; vEdge = aEdge;');
-        sh.fragmentShader = SNOW_GLSL + 'uniform vec4 uNearR; varying vec3 vFw; varying float vEdge;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n diffuseColor.rgb = mix(vec3(.30, .30, .29), diffuseColor.rgb, vEdge); diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.93, .94, .95), tetonSnow(vFw));').replace('void main() {', 'void main() { if (vFw.x > uNearR.x && vFw.x < uNearR.z && vFw.z > uNearR.y && vFw.z < uNearR.w) discard;'); };
+      const clip = new T.Vector4(FR[0] + g.origin[0], FR[1] + g.origin[1], FR[2] + g.origin[0], FR[3] + g.origin[1]); mat.onBeforeCompile = sh => { sh.uniforms.uNearR = { value: nr }; sh.uniforms.uClip = { value: clip }; Object.assign(sh.uniforms, SNOW_U); sh.vertexShader = 'attribute float aEdge; varying float vEdge; varying vec3 vFw;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n vFw = (modelMatrix * vec4(transformed, 1.0)).xyz; vEdge = aEdge;');
+        sh.fragmentShader = SNOW_GLSL + 'uniform vec4 uNearR, uClip; varying vec3 vFw; varying float vEdge;\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n diffuseColor.rgb = mix(vec3(.30, .30, .29), diffuseColor.rgb, vEdge); diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.93, .94, .95), tetonSnow(vFw));').replace('void main() {', 'void main() { if (vFw.x < uClip.x || vFw.x > uClip.z || vFw.z < uClip.y || vFw.z > uClip.w) discard; if (vFw.x > uNearR.x && vFw.x < uNearR.z && vFw.z > uNearR.y && vFw.z < uNearR.w) discard;'); };
       const farMesh = new T.Mesh(geo, mat); farMesh.receiveShadow = true; farMesh.name = 'teton-far'; root.add(farMesh); }
     g.fine = fine;
     // ---------- MONOLITH-3's snow on the range (its terrain shader, :1907-1948): a snow line about 920 m above its base, shifted by wash,
@@ -121,7 +123,7 @@
     if (cam) { const [cx, cz] = toC(cam.eye[0], cam.eye[2]); landmarks.levelCamera = { x: cx, z: cz, y: cam.eye[1] + lift, heading: cam.heading, pitch: cam.pitch, fov: cam.fov }; }
     const cb = P('crown-positions').bounds, [hx0, hz0] = toC(cb[0], -cb[3]), [hx1, hz1] = toC(cb[1], -cb[2]);
     const nr = [gNear.x0, gNear.z0, gNear.x1, gNear.z1];
-    return { root, landmarks, farRect: [gFar.x0, gFar.z0, gFar.x1, gFar.z1], heights: { rect: [gFar.x0, gFar.z0, gFar.x1, gFar.z1], at: fine }, floraHole: [hx0, hz0, hx1, hz1], materials: { ground: { material: ground } }, update(dt, t) { const fm = root.userData.forestMat; if (fm) { fm.uniforms.uTime.value = t || 0; if (g.sunDir) fm.uniforms.uSun.value.copy(g.sunDir()); } }, dispose() { root.traverse(o => { if (o.geometry) o.geometry.dispose(); }); for (const t of [tFar, tNear, tDetail]) if (t) t.dispose(); } };
+    return { root, landmarks, farRect: FR, heights: { rect: FR, at: fine }, floraHole: [hx0, hz0, hx1, hz1], materials: { ground: { material: ground } }, update(dt, t) { const fm = root.userData.forestMat; if (fm) { fm.uniforms.uTime.value = t || 0; if (g.sunDir) fm.uniforms.uSun.value.copy(g.sunDir()); } }, dispose() { root.traverse(o => { if (o.geometry) o.geometry.dispose(); }); for (const t of [tFar, tNear, tDetail]) if (t) t.dispose(); } };
   }
   window.TetonCan = { create };
 })();

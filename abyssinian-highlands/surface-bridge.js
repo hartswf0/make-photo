@@ -12,5 +12,5 @@
     look(dx, dy) { A.GC.yaw -= dx * .0055; A.GC.pitch = Math.max(-.1, Math.min(1.45, A.GC.pitch + dy * .0045)); },
     menu: () => [{ id: 'glide', label: A.S.mode === 'walk' ? 'aerial' : 'walk', on: A.S.mode !== 'walk', run: () => A.S.mode === 'walk' ? U.up() : U.walk() },
       { id: 'run', label: 'run', on: !!U.keys().ShiftLeft, run: () => { const k = U.keys(); k.ShiftLeft = !k.ShiftLeft; } }],
-    atlas: () => { const isl = ARCH && ARCH.islands.find(i => i.id === A.S.region), p = me(); return isl ? { mx: (isl.center[0] - isl.size[0] / 2 + (p.x / 2400 + .5) * isl.size[0]) * 1000, mz: (isl.center[1] - isl.size[1] / 2 + (p.z / 2400 + .5) * isl.size[1]) * 1000 } : null; } });
+    atlas: () => { const isl = ARCH && ARCH.islands.find(i => i.id === A.S.region), p = me(); const F = isl && (isl.full || isl); return isl ? { mx: (F.center[0] - F.size[0] / 2 + (p.x / 2400 + .5) * F.size[0]) * 1000, mz: (F.center[1] - F.size[1] / 2 + (p.z / 2400 + .5) * F.size[1]) * 1000 } : null; } });
 })();

@@ -5,7 +5,7 @@
  "version": "2026.11.24",
  "page": "../MONOLITH-3.html",
  "entry": {
-  "script": "./teton-can.js?v=10",
+  "script": "./teton-can.js?v=12",
   "global": "TetonCan",
   "call": "create",
   "adapter": "ground@1"

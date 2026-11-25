@@ -12,5 +12,5 @@
     jump() { E.input.keys.Space = true; setTimeout(() => E.input.keys.Space = false, 120); },
     menu: () => { const s = st(); return [{ id: 'glide', label: 'glide', on: s.mode === 'glider', run: () => E.setMode(s.mode === 'glider' ? 'walk' : 'glider') }, { id: 'cam', label: 'drone', on: s.mode === 'drone', run: () => E.setMode(s.mode === 'drone' ? 'walk' : 'drone') },
       { id: 'jump', label: 'lookout', run: () => E.teleportTo('lookout') }, { id: 'run', label: 'run', on: !!E.input.keys.ShiftLeft, run: () => { E.input.keys.ShiftLeft = !E.input.keys.ShiftLeft; } }]; },
-    atlas: () => { const s = st(), isl = ARCH && ARCH.islands.find(i => i.id === s.regionId), p = me(); return isl ? { mx: (isl.center[0] - isl.size[0] / 2 + (p.x / 2400 + .5) * isl.size[0]) * 1000, mz: (isl.center[1] - isl.size[1] / 2 + (p.z / 2400 + .5) * isl.size[1]) * 1000 } : null; } });
+    atlas: () => { const s = st(), isl = ARCH && ARCH.islands.find(i => i.id === s.regionId), p = me(); const F = isl && (isl.full || isl); return isl ? { mx: (F.center[0] - F.size[0] / 2 + (p.x / 2400 + .5) * F.size[0]) * 1000, mz: (F.center[1] - F.size[1] / 2 + (p.z / 2400 + .5) * F.size[1]) * 1000 } : null; } });
 })();
