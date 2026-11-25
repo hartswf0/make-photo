@@ -1,0 +1,43 @@
+{
+  "id": "bottle",
+  "title": "The bottle world: pick it up, look in, walk in",
+  "model": "genie-4",
+  "duration": 40,
+  "seed": "bottle-seed.jpg",
+  "seed_source": "the hero frame of the Western systems sheet (user upload), cropped to the traveler, the dog, the lift, the monorail and the bottle rack",
+  "gap": 3.5,
+  "impulse": { "repeat": 6, "every_ms": 150 },
+  "operators": ["TRAVERSE", "OPEN", "SHRINK", "ENTER_IMAGE", "RECURSE"],
+  "world": "A lakeside frontier station at dusk after rain, as in the reference image. A traveler in a long brown duster, a wide-brimmed hat and a leather satchel stands on the wet ground, his back to us, with his merle shepherd dog sitting beside him. Behind them: a wooden walkway with people at its rail, a lit glass lift tower, an elevated monorail track where a silver train waits, a misted lake with a town of warm lights and a church spire, and snow mountains. To the right stands a wooden rack of green and amber glass bottles.\n\nThe camera is a third-person cinematic observer about three meters behind the traveler, low and steady, keeping his whole body and the dog in view. It is not his eyes. It can move closer to anything he holds.\n\nOne green bottle on the lowest shelf of the rack is different. Sealed inside its thick, clear glass is a complete miniature of this same place: the lake, the town lights, the glass lift, the monorail, and a tiny traveler with a tiny dog. Its neck is wide and open.\n\nEverything is solid and physical. Nothing morphs, melts, dissolves or cuts. Scale changes only because the camera moves closer. Natural sound only: dripping water, wind, the hum of the train, a far bell, the dog's breath.",
+  "tracks": {
+    "character": [
+      { "t": 2.5, "key": "RIGHT", "ms": 450, "why": "turn toward the bottle rack" },
+      { "t": 3.2, "key": "W", "ms": 3800, "why": "walk to the rack" },
+      { "t": 9.0, "say": "The traveler stops at the rack, reaches out and lifts the green bottle from the lowest shelf with both hands.", "verify": "a bottle is in his hands, off the shelf" },
+      { "t": 13.0, "say": "He raises the bottle to eye level. Inside the thick green glass, the miniature lake, the tiny town lights and the tiny monorail are clearly visible.", "verify": "a miniature landscape is visible inside the glass" }
+    ],
+    "world": [
+      { "t": 4.5, "say": "The dog gets up and trots beside the traveler toward the bottle rack.", "verify": "the dog moves with him" },
+      { "t": 28.0, "say": "Everything here is real and full size: wet ground, the lake, the glass lift and the silver train. High overhead, the sky curves like green glass.", "verify": "a full-size lake landscape under a curved green sky" }
+    ],
+    "camera": [
+      { "t": 17.0, "say": "The camera moves slowly past his shoulder toward the bottle he is holding, until the green glass fills the whole view.", "verify": "the frame is filled by green glass with the miniature inside" },
+      { "t": 17.5, "key": "W", "ms": 4000, "why": "dolly in: forward motion is the only scale change" },
+      { "t": 22.0, "say": "The camera keeps moving forward into the bottle's open neck. The curved green glass surrounds the view like a short tunnel, and the miniature lake valley opens ahead at full size.", "verify": "a continuous push through the neck, no cut, no melt" },
+      { "t": 22.3, "key": "W", "ms": 5000, "why": "through the neck" },
+      { "t": 36.0, "key": "UP", "ms": 900, "why": "look up at the glass sky" }
+    ],
+    "time": [
+      { "t": 32.0, "say": "Ahead on the shore stands a small figure in a brown duster with a dog, his back to us. Above, through the curved glass sky, a giant face under a wide-brimmed hat looks down into the bottle.", "verify": "the recursion: the traveler inside, the traveler outside" },
+      { "t": 32.4, "key": "W", "ms": 3000, "why": "approach the small traveler" }
+    ]
+  },
+  "representations": [
+    { "id": "R01", "container": "green bottle, lowest shelf of the range rack", "represents": "this lakeside station", "scale": "miniature", "temporal_offset": "present", "enterable": true }
+  ],
+  "continuity": {
+    "allow": ["walking", "lifting", "the camera moving closer", "occlusion by glass"],
+    "avoid": ["cuts", "pixel morphing", "dissolves", "teleportation", "the traveler or dog changing appearance"]
+  },
+  "in_the_engine": "The Western (mars/western.js) has the bottles as Rapier bodies on the range rail. The same recursion can be done exactly there: a render-to-texture miniature of the town inside one bottle, and a scale-dolly through its neck. Genie elaborates; the engine keeps the identities."
+}
