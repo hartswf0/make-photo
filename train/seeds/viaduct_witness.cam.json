@@ -1,0 +1,42 @@
+{
+ "camera": {
+  "extrinsics": {
+   "coordinateSystem": "rub",
+   "position": [
+    -52.250379822699344,
+    40.76624464257822,
+    52.00115875572623
+   ],
+   "quaternion": [
+    -0.24738890293597926,
+    -0.3157878264946886,
+    -0.08603365869744939,
+    0.9119621641894051
+   ]
+  },
+  "intrinsics": {
+   "width": 1280,
+   "height": 720,
+   "fx": 1045.515915963296,
+   "fy": 1045.515915963296,
+   "cx": 640,
+   "cy": 360
+  }
+ },
+ "observe": {
+  "t": 9.8,
+  "km": 1.682,
+  "speed": 26,
+  "phase": "run",
+  "car": "quiet",
+  "seated": true,
+  "x": -17.35,
+  "shot": "drone",
+  "take": false,
+  "world": null,
+  "segment": "viaduct",
+  "people": 12,
+  "calls": 295,
+  "tris": 705308
+ }
+}
