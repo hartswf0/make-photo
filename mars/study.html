@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <title>Tex Lexington · Video to Game</title>
+  <meta name="description" content="A Genie 4 take turned into a playable third-person Mars western, frame by frame.">
+  <style>
+    :root { --ink: #fbeee2; --dim: rgba(251,238,226,.62); --line: rgba(251,238,226,.18); --rust: #c4552c; --stage: #1c0f0b;
+      --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace; --word: "IM Fell English", Georgia, serif; color-scheme: dark; }
+    body { margin: 0; background: var(--stage); color: var(--ink); font: 13px/1.55 var(--mono); }
+    main { max-width: 1100px; margin: 0 auto; padding: 28px 16px 64px; display: grid; gap: 28px; }
+    h1 { margin: 0; font: italic 400 clamp(28px, 5vw, 44px)/1.1 var(--word); }
+    header p { color: var(--dim); max-width: 64ch; margin: 10px 0 0; }
+    .go { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .go a { color: var(--ink); text-decoration: none; border: 1px solid var(--line); padding: 10px 12px; font: 600 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    .go a.play { background: var(--rust); border-color: var(--rust); }
+    video { width: 100%; display: block; background: #000; }
+    article { border-top: 1px solid var(--line); padding-top: 18px; display: grid; gap: 10px; }
+    h3 { margin: 0; font: italic 400 22px/1.2 var(--word); } h3 span { font: 600 11px var(--mono); letter-spacing: .12em; color: var(--dim); margin-right: 8px; }
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    figure { margin: 0; position: relative; } img { width: 100%; display: block; aspect-ratio: 16/9; object-fit: cover; background: #2a1712; }
+    figcaption { position: absolute; left: 8px; top: 8px; font: 600 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; background: rgba(28,15,11,.7); padding: 5px 7px; }
+    article p { margin: 0; color: var(--dim); max-width: 80ch; }
+    @media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Tex Lexington · Ethiopia on Mars</h1>
+      <p>Video to game. A 40-second Genie 4 take, one session steered with W A S D, gave the blocking: a camera locked behind a rider, Texas false fronts beside Ethiopian tukuls, Aksum stelae and glass domes under a pink sky with two moons, a storm on the horizon and a future city behind the town. The game rebuilds it from make-photo's own parts and makes the storm do what the film could not.</p>
+      <div class="go"><a class="play" href="index.html">Play</a><a href="v2g/study.json">Study data</a></div>
+    </header>
+    <video src="v2g/genie_tex.mp4" poster="v2g/genie_seed.jpg" controls playsinline preload="metadata" aria-label="The Genie 4 take, 40 seconds"></video>
+    <article>
+      <h3><span>3 s</span> Main street</h3>
+      <div class="pair"><figure><img src="v2g/genie_3s.jpg" alt="Genie frame at 3 seconds: main street" loading="lazy"><figcaption>Genie</figcaption></figure><figure><img src="v2g/game_street.jpg" alt="Game frame: main street" loading="lazy"><figcaption>Game</figcaption></figure></div>
+      <p>Genie: Tex from behind on a grey horse, saloon fronts and tukuls, stelae, glass domes, the storm on the horizon. Game: the same blocking, rebuilt, with Tex on make-photo's grey donkey and the camera locked at the same height.</p>
+    </article>
+    <article>
+      <h3><span>10 s</span> Settlers on the street</h3>
+      <div class="pair"><figure><img src="v2g/genie_10s.jpg" alt="Genie frame at 10 seconds: settlers on the street" loading="lazy"><figcaption>Genie</figcaption></figure><figure><img src="v2g/game_settlers.jpg" alt="Game frame: settlers on the street" loading="lazy"><figcaption>Game</figcaption></figure></div>
+      <p>Genie drifted the settlers into Texas cowhands in brown dusters. The game holds them: Black Ethiopian men and women in white cotton shamma, two leading pack donkeys with 20 L cans.</p>
+    </article>
+    <article>
+      <h3><span>15 s</span> The storm</h3>
+      <div class="pair"><figure><img src="v2g/genie_15s.jpg" alt="Genie frame at 15 seconds: the storm" loading="lazy"><figcaption>Genie</figcaption></figure><figure><img src="v2g/game_storm.jpg" alt="Game frame: the storm" loading="lazy"><figcaption>Game</figcaption></figure></div>
+      <p>In Genie the storm never left the horizon. In the game it comes up the street, and the mesas go first.</p>
+    </article>
+    <article>
+      <h3><span>21 s</span> Inside the storm</h3>
+      <div class="pair"><figure><img src="v2g/genie_21s.jpg" alt="Genie frame at 21 seconds: inside the storm" loading="lazy"><figcaption>Genie</figcaption></figure><figure><img src="v2g/game_inside.jpg" alt="Game frame: inside the storm" loading="lazy"><figcaption>Game</figcaption></figure></div>
+      <p>The beat Genie could not play: red dust fills everything and only Tex's white shamma shows. The change happens here, where no one can see it.</p>
+    </article>
+    <article>
+      <h3><span>28 s</span> The future behind the town</h3>
+      <div class="pair"><figure><img src="v2g/genie_28s.jpg" alt="Genie frame at 28 seconds: the future behind the town" loading="lazy"><figcaption>Genie</figcaption></figure><figure><img src="v2g/game_future.jpg" alt="Game frame: the future behind the town" loading="lazy"><figcaption>Game</figcaption></figure></div>
+      <p>Genie raised carved towers, wind turbines, a train line and water drones behind the frontier. The game keeps all four, and its towers stand on the cross plan of the rock churches.</p>
+    </article>
+  </main>
+</body>
+</html>

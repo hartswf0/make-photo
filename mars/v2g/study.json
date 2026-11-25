@@ -1,0 +1,70 @@
+{
+ "id": "X1",
+ "title": "Tex Lexington · Ethiopia on Mars",
+ "direction": "video to game",
+ "source": {
+  "kind": "Genie 4, one session, 40 s",
+  "spec": "butterfly-halfworld: wygwyl/world/tide/full/mars/mars.json",
+  "video": "v2g/genie_tex.mp4",
+  "seed": "v2g/genie_seed.jpg"
+ },
+ "game": {
+  "page": "index.html",
+  "code": "mars.js",
+  "parts": [
+   "donkey/donkey.js (mount and pack donkeys)",
+   "donkey/characters.js (Tex and the settlers)",
+   "makeWaterWifiCan (the 20 L cans)",
+   "field-plates/three.js"
+  ]
+ },
+ "cast": [
+  {
+   "name": "Tex Lexington",
+   "who": "a Black Ethiopian-Texan man in his thirties",
+   "wears": "tan felt cowboy hat, white cotton shamma with a red tibeb border, brown shirt, denim"
+  },
+  {
+   "name": "settlers",
+   "who": "Black Ethiopian men and women",
+   "wears": "white cotton shamma, some with tibeb borders; head wraps, a turban, braids"
+  }
+ ],
+ "pairs": [
+  {
+   "t": 3,
+   "genie": "v2g/genie_3s.jpg",
+   "game": "v2g/game_street.jpg",
+   "title": "Main street",
+   "note": "Genie: Tex from behind on a grey horse, saloon fronts and tukuls, stelae, glass domes, the storm on the horizon. Game: the same blocking, rebuilt, with Tex on make-photo's grey donkey and the camera locked at the same height."
+  },
+  {
+   "t": 10,
+   "genie": "v2g/genie_10s.jpg",
+   "game": "v2g/game_settlers.jpg",
+   "title": "Settlers on the street",
+   "note": "Genie drifted the settlers into Texas cowhands in brown dusters. The game holds them: Black Ethiopian men and women in white cotton shamma, two leading pack donkeys with 20 L cans."
+  },
+  {
+   "t": 15,
+   "genie": "v2g/genie_15s.jpg",
+   "game": "v2g/game_storm.jpg",
+   "title": "The storm",
+   "note": "In Genie the storm never left the horizon. In the game it comes up the street, and the mesas go first."
+  },
+  {
+   "t": 21,
+   "genie": "v2g/genie_21s.jpg",
+   "game": "v2g/game_inside.jpg",
+   "title": "Inside the storm",
+   "note": "The beat Genie could not play: red dust fills everything and only Tex's white shamma shows. The change happens here, where no one can see it."
+  },
+  {
+   "t": 28,
+   "genie": "v2g/genie_28s.jpg",
+   "game": "v2g/game_future.jpg",
+   "title": "The future behind the town",
+   "note": "Genie raised carved towers, wind turbines, a train line and water drones behind the frontier. The game keeps all four, and its towers stand on the cross plan of the rock churches."
+  }
+ ]
+}
