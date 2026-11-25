@@ -53,6 +53,8 @@
 
     // ---------- the frontier town: false fronts, porches, tukuls, a windmill, stelae, domes, the rock church ----------
     const past = new T.Group(), future = new T.Group(); scene.add(past, future); future.visible = false;
+    const COLL = [], toW = (x, z, r, lx, lz) => [x + lx * Math.cos(r) + lz * Math.sin(r), z - lx * Math.sin(r) + lz * Math.cos(r)];   // static colliders for a physics engine: {box|cyl|ball}
+    const box = (x, y, z, hx, hy, hz, ry = 0, tag) => COLL.push({ type: "box", x, y, z, hx, hy, hz, ry, tag });
     const BLOCK = [], ring = (x, z, r, n = 10) => Array.from({ length: n }, (_, k) => [x + Math.cos(k / n * 6.2832) * r, z + Math.sin(k / n * 6.2832) * r]);   // footprints the trough will not let you walk through
     const rect = (x, z, w, d, rot, dz = 0) => [[-w / 2, -d / 2 + dz], [w / 2, -d / 2 + dz], [w / 2, d / 2 + dz], [-w / 2, d / 2 + dz]].map(([a, b]) => [x + a * Math.cos(rot) + b * Math.sin(rot), z - a * Math.sin(rot) + b * Math.cos(rot)]);
     const planks = (base, seed) => { const c = document.createElement("canvas"); c.width = 256; c.height = 256; const g = c.getContext("2d"); g.fillStyle = base; g.fillRect(0, 0, 256, 256);
@@ -63,25 +65,83 @@
     const mk = (geo, mat, x, y, z, parent = past) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; };
     const WOOD = ["#f2efea", "#e2ded8", "#faf7f2", "#d6d1ca", "#ebe7e0"];   // neutral boards: the colour comes from the material, which the loop sets
     const WOODMATS = [];
+    // ---- the Tezeta saloon: a room you can walk into. Batwing doors, a bar with its bottles, tables, a stage with a krar on its stand ----
+    const SALOON = {};
+    function makeKrar() {   // a krar: a round bowl, two arms rising to a yoke, six strings
+      const k = new T.Group(), wood = new T.MeshStandardMaterial({ color: 0x6b3a1e, roughness: .6 }), skin = new T.MeshStandardMaterial({ color: 0xd8c09a, roughness: .8 });
+      const bowl = new T.Mesh(new T.SphereGeometry(.17, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), wood); bowl.rotation.x = Math.PI; k.add(bowl);
+      const face = new T.Mesh(new T.CircleGeometry(.17, 18), skin); face.rotation.x = -Math.PI / 2; face.position.y = .001; k.add(face);
+      for (const sx of [-1, 1]) { const arm = new T.Mesh(new T.CylinderGeometry(.012, .016, .52, 6), wood); arm.position.set(sx * .12, .25, 0); arm.rotation.z = -sx * .28; k.add(arm); }
+      const yoke = new T.Mesh(new T.CylinderGeometry(.014, .014, .42, 6), wood); yoke.rotation.z = Math.PI / 2; yoke.position.y = .5; k.add(yoke);
+      const str = new T.LineBasicMaterial({ color: 0xf3ead8 }); for (let n = 0; n < 6; n++) { const xx = -.075 + n * .03; const gg = new T.BufferGeometry().setFromPoints([new T.Vector3(xx, 0, 0), new T.Vector3(xx * 1.6, .5, 0)]); k.add(new T.Line(gg, str)); }
+      return k;
+    }
+    function buildSaloon(g, mat, x, z, y0, ry, w0, d0, h0, fh) {
+      const w = 13, d = 11, h = 5.2, t = .22, dw = 2.4, dh = 2.8, wall = (lx, ly, lz, sx, sy, sz) => { const m = new T.Mesh(new T.BoxGeometry(sx, sy, sz), mat); m.position.set(lx, ly, lz); m.castShadow = m.receiveShadow = true; g.add(m);
+        const [wx, wz] = toW(x, z, ry, lx, lz); box(wx, y0 + ly, wz, sx / 2, sy / 2, sz / 2, ry, "saloon"); BLOCK.push(rect(wx, wz, sx, sz, ry)); return m; };
+      wall(0, h / 2, -d / 2, w, h, t); wall(-w / 2, h / 2, 0, t, h, d); wall(w / 2, h / 2, 0, t, h, d);   // back and sides
+      const side = (w - dw) / 2; wall(-(dw / 2 + side / 2), h / 2, d / 2, side, h, t); wall(dw / 2 + side / 2, h / 2, d / 2, side, h, t);   // the front, with its doorway
+      { const lin = new T.Mesh(new T.BoxGeometry(dw, h - dh, t), mat); lin.position.set(0, dh + (h - dh) / 2, d / 2); g.add(lin); }
+      { const roof = new T.Mesh(new T.BoxGeometry(w + .3, .25, d + .3), new T.MeshStandardMaterial({ color: 0x5a3a26, roughness: .9 })); roof.position.y = h + .12; roof.castShadow = true; g.add(roof); }
+      const fs = (w + .4 - dw) / 2;   // the false front, cut for the door
+      for (const sx of [-1, 1]) { const f = new T.Mesh(new T.BoxGeometry(fs, fh, .35), mat); f.position.set(sx * (dw / 2 + fs / 2), fh / 2, d / 2 + .15); f.castShadow = true; g.add(f); }
+      { const f = new T.Mesh(new T.BoxGeometry(dw, fh - dh, .35), mat); f.position.set(0, dh + (fh - dh) / 2, d / 2 + .15); g.add(f); }
+      const floor = new T.Mesh(new T.BoxGeometry(w - t, .08, d - t), new T.MeshStandardMaterial({ color: 0x5b3b25, roughness: .85, map: planks("#8a6a4a", 77) })); floor.position.y = .06; floor.receiveShadow = true; g.add(floor);
+      const ceil = new T.Mesh(new T.PlaneGeometry(w - t, d - t), new T.MeshStandardMaterial({ color: 0x3a2618, side: T.DoubleSide })); ceil.rotation.x = Math.PI / 2; ceil.position.y = h - .02; g.add(ceil);
+      // batwing doors, hinged at the jambs
+      const doors = []; for (const sx of [-1, 1]) { const hinge = new T.Group(); hinge.position.set(sx * dw / 2, 1.0, d / 2 + .02); const leaf = new T.Mesh(new T.BoxGeometry(dw / 2 - .05, 1.1, .05), new T.MeshStandardMaterial({ color: 0x7a5232, roughness: .7 })); leaf.position.x = -sx * (dw / 4); hinge.add(leaf); g.add(hinge); doors.push({ hinge, sx, a: 0, v: 0 }); }
+      // the bar along the left wall, with its shelf of bottles
+      const dark = new T.MeshStandardMaterial({ color: 0x3e2414, roughness: .55 }), brass = new T.MeshStandardMaterial({ color: 0xc8a050, metalness: .8, roughness: .3 });
+      const bar = new T.Mesh(new T.BoxGeometry(.7, 1.12, d - 4), dark); bar.position.set(-w / 2 + 1.6, .56, -1.2); bar.castShadow = true; g.add(bar);
+      { const [bx, bz] = toW(x, z, ry, -w / 2 + 1.6, -1.2); box(bx, y0 + .56, bz, .35, .56, (d - 4) / 2, ry, "bar"); BLOCK.push(rect(bx, bz, .7, d - 4, ry)); }
+      const rail = new T.Mesh(new T.CylinderGeometry(.025, .025, d - 4, 8), brass); rail.rotation.x = Math.PI / 2; rail.position.set(-w / 2 + 2.05, .2, -1.2); g.add(rail);
+      const shelf = new T.Mesh(new T.BoxGeometry(.35, 2.2, d - 3), dark); shelf.position.set(-w / 2 + .3, 1.6, -1); g.add(shelf);
+      { const bot = new T.CylinderGeometry(.035, .04, .26, 8), cols = [0x6a4012, 0x2f5a2a, 0x8a5a18, 0x3a2a40], n = 54, im = new T.InstancedMesh(bot, new T.MeshStandardMaterial({ roughness: .15, metalness: .1, emissive: 0x2a1404 }), n), m4 = new T.Matrix4(), c = new T.Color();
+        for (let k = 0; k < n; k++) { m4.makeTranslation(-w / 2 + .38, 1.0 + Math.floor(k / 18) * .62, -d / 2 + 2 + (k % 18) * .42); im.setMatrixAt(k, m4); im.setColorAt(k, c.set(cols[k % 4])); } g.add(im); }
+      // tables and chairs
+      const tableAt = [[1.4, -1.6], [3.4, 1.4], [.2, 2.6], [-1.6, -.4]];
+      for (const [tx, tz] of tableAt) { const top = new T.Mesh(new T.CylinderGeometry(.55, .55, .05, 18), dark); top.position.set(tx, .78, tz); g.add(top); const leg = new T.Mesh(new T.CylinderGeometry(.06, .12, .76, 8), dark); leg.position.set(tx, .38, tz); g.add(leg);
+        const [ax, az] = toW(x, z, ry, tx, tz); box(ax, y0 + .4, az, .45, .4, .45, ry, "table"); }
+      // the stage at the back, a stool, the krar on its stand
+      const stage = new T.Mesh(new T.BoxGeometry(3.2, .32, 3), dark); stage.position.set(w / 2 - 1.9, .16, -d / 2 + 1.8); g.add(stage);
+      { const [sx2, sz2] = toW(x, z, ry, w / 2 - 1.9, -d / 2 + 1.8); box(sx2, y0 + .16, sz2, 1.6, .16, 1.5, ry, "stage"); }
+      const stool = new T.Mesh(new T.CylinderGeometry(.22, .2, .6, 12), dark); stool.position.set(w / 2 - 1.9, .62, -d / 2 + 1.6); g.add(stool);
+      const krar = makeKrar(); krar.position.set(w / 2 - 1.2, 1.05, -d / 2 + 1.3); krar.rotation.set(-.25, -.6, 0); g.add(krar);
+      // two hanging lamps: the room's only light
+      const lamps = []; for (const [lx, lz] of [[-1, -1.5], [2.5, 1.8]]) { const L = new T.PointLight(0xffb066, 3, 13, 2); L.position.set(lx, h - 1.1, lz); g.add(L); lamps.push(L);
+        const glass = new T.Mesh(new T.SphereGeometry(.16, 12, 8), new T.MeshStandardMaterial({ color: 0xffe0a0, emissive: 0xffa040, emissiveIntensity: 1.6 })); glass.position.copy(L.position); g.add(glass);
+        const cord = new T.Mesh(new T.CylinderGeometry(.01, .01, 1, 4), dark); cord.position.set(lx, h - .55, lz); g.add(cord); }
+      // the neon over the door
+      { const c = document.createElement("canvas"); c.width = 512; c.height = 128; const q = c.getContext("2d"); q.fillStyle = "#000"; q.fillRect(0, 0, 512, 128); q.shadowColor = "#ff3fb4"; q.shadowBlur = 18; q.strokeStyle = "#ff6fc8"; q.lineWidth = 5; q.font = "bold 64px Georgia"; q.textAlign = "center"; q.textBaseline = "middle"; q.strokeText("TEZETA", 256, 66);
+        const tx = new T.CanvasTexture(c); tx.colorSpace = T.SRGBColorSpace; const neon = new T.Mesh(new T.PlaneGeometry(3.2, .8), new T.MeshBasicMaterial({ map: tx, transparent: true, blending: T.AdditiveBlending, depthWrite: false })); neon.position.set(0, dh + .55, d / 2 + .36); g.add(neon); SALOON.neon = neon; }
+      const W2 = (lx, lz) => { const [a, b] = toW(x, z, ry, lx, lz); return { x: a, z: b }; };
+      Object.assign(SALOON, { group: g, ry, y0, w, d, h, doors, lamps, krar, makeKrar,
+        door: W2(0, d / 2), outside: W2(0, d / 2 + 2.2), inside: W2(0, d / 2 - 1.6), stage: W2(w / 2 - 1.9, -d / 2 + 2.2), krarAt: W2(w / 2 - 1.2, -d / 2 + 1.3), bar: W2(-w / 2 + 2.6, -1.2),
+        room: [W2(-w / 2, -d / 2), W2(w / 2, -d / 2), W2(w / 2, d / 2), W2(-w / 2, d / 2)].map(p => [p.x, p.z]), tables: tableAt.map(([a, b]) => W2(a, b)) });
+    }
     function falseFront(x, z, side, i, label) {
       const two = hash(i, 7) > .4, w = 9 + hash(i) * 3, d = 9, h = (two ? 7.2 : 4.6) + hash(i, 2) * 1.2, fh = h + 2.2 + hash(i, 3) * 1.6, y0 = Y(x, z), face = side > 0 ? -1 : 1;
       const tex = planks(WOOD[i % WOOD.length], i), mat = new T.MeshStandardMaterial({ color: TUNE.wood, map: tex, roughness: .9 }); WOODMATS.push(mat); tex.repeat.set(w / 6, h / 6);
-      const g = new T.Group(); g.position.set(x, y0, z); g.rotation.y = face * Math.PI / 2; past.add(g); BLOCK.push(rect(x, z, w, d, g.rotation.y));
-      const body = new T.Mesh(new T.BoxGeometry(w, h, d), mat); body.position.y = h / 2; body.castShadow = body.receiveShadow = true; g.add(body);
-      const front = new T.Mesh(new T.BoxGeometry(w + .4, fh, .35), mat); front.position.set(0, fh / 2, d / 2 + .15); front.castShadow = true; g.add(front);
-      const s = new T.Mesh(new T.PlaneGeometry(w * .7, w * .13), new T.MeshStandardMaterial({ map: sign(label), roughness: .8 })); s.position.set(0, fh - 1.1, d / 2 + .34); g.add(s);
+      const g = new T.Group(); g.position.set(x, y0, z); g.rotation.y = face * Math.PI / 2; past.add(g); const ry = g.rotation.y;
+      if (label === "SALOON") { buildSaloon(g, mat, x, z, y0, ry, w, d, h, fh); }
+      else { BLOCK.push(rect(x, z, w, d, ry)); box(x, y0 + h / 2, z, w / 2, h / 2, d / 2, ry, "front");
+        const body = new T.Mesh(new T.BoxGeometry(w, h, d), mat); body.position.y = h / 2; body.castShadow = body.receiveShadow = true; g.add(body);
+        const front = new T.Mesh(new T.BoxGeometry(w + .4, fh, .35), mat); front.position.set(0, fh / 2, d / 2 + .15); front.castShadow = true; g.add(front); }
+      const s = new T.Mesh(new T.PlaneGeometry(w * .7, w * .13), new T.MeshStandardMaterial({ map: sign(label === "SALOON" ? "TEZETA SALOON" : label), roughness: .8 })); s.position.set(0, fh - 1.1, d / 2 + .34); g.add(s);
       const roof = new T.Mesh(new T.BoxGeometry(w + .4, .18, 2.6), new T.MeshStandardMaterial({ color: 0x5a3a26, roughness: .9 })); roof.position.set(0, 3.2, d / 2 + 1.5); roof.castShadow = true; g.add(roof);
       for (const px of [-w / 2, -w / 6, w / 6, w / 2]) { const p = new T.Mesh(new T.BoxGeometry(.18, 3.2, .18), new T.MeshStandardMaterial({ color: 0x4a2e1e })); p.position.set(px, 1.6, d / 2 + 2.7); p.castShadow = true; g.add(p); }
       const boards = new T.Mesh(new T.BoxGeometry(w + .4, .2, 2.8), new T.MeshStandardMaterial({ color: 0x6b4630 })); boards.position.set(0, .1, d / 2 + 1.4); g.add(boards);
+      { const [bx, bz] = toW(x, z, ry, 0, d / 2 + 1.4); box(bx, y0 + .1, bz, (w + .4) / 2, .1, 1.4, ry, "porch"); PORCHES.push({ x: bx, z: bz, y: y0 + .2, ry, w }); }
       if (two) { const bal = new T.Mesh(new T.BoxGeometry(w * .8, .15, 1.4), mat); bal.position.set(0, 4.3, d / 2 + .9); g.add(bal); for (let k = -4; k <= 4; k++) { const r = new T.Mesh(new T.BoxGeometry(.08, 1, .08), mat); r.position.set(k * w * .09, 4.85, d / 2 + 1.55); g.add(r); }
         const rail = new T.Mesh(new T.BoxGeometry(w * .8, .1, .1), mat); rail.position.set(0, 5.35, d / 2 + 1.55); g.add(rail); for (const wx of [-w / 4, 0, w / 4]) { const win = new T.Mesh(new T.PlaneGeometry(1.1, 1.5), new T.MeshStandardMaterial({ color: 0x2a1a12 })); win.position.set(wx, 5.6, d / 2 + .34); g.add(win); } }
       g.traverse(o => o.userData.cls = "wood");
       for (const wx of [-w / 4, w / 4]) { const win = new T.Mesh(new T.PlaneGeometry(1.4, 1.6), new T.MeshStandardMaterial({ color: 0x1b0f0a, emissive: 0x5a2a10, emissiveIntensity: .35 })); win.position.set(wx, 1.9, d / 2 + .34); g.add(win); }
     }
+    const PORCHES = [];
     const LABELS = ["SALOON", "LIVERY", "WATER & ICE", "BUNA BET", "ASSAY", "GENERAL STORE", "HOTEL ADDIS", "TELEGRAPH"];
     for (let i = 0; i < 8; i++) falseFront(i % 2 ? 17 : -17, -10 - Math.floor(i / 2) * 15 - (i % 2) * 4, i % 2 ? 1 : -1, i, LABELS[i]);
     const STONE = new T.MeshStandardMaterial({ color: 0x9c6a52, roughness: 1, flatShading: true }), THATCH = new T.MeshStandardMaterial({ color: 0xc79a55, roughness: 1, flatShading: true });
-    function tukul(x, z, r = 3.2) { const y = Y(x, z); BLOCK.push(ring(x, z, r)); mk(new T.CylinderGeometry(r, r * 1.04, 2.6, 18), STONE, x, y + 1.3, z); mk(new T.ConeGeometry(r * 1.25, 3.4, 18), THATCH, x, y + 4.3, z);
+    function tukul(x, z, r = 3.2) { const y = Y(x, z); BLOCK.push(ring(x, z, r)); COLL.push({ type: "cyl", x, y: y + 2, z, r, hh: 2, tag: "tukul" }); mk(new T.CylinderGeometry(r, r * 1.04, 2.6, 18), STONE, x, y + 1.3, z); mk(new T.ConeGeometry(r * 1.25, 3.4, 18), THATCH, x, y + 4.3, z);
       mk(new T.BoxGeometry(1, 1.8, .2), new T.MeshStandardMaterial({ color: 0x1a0d08 }), x + (x > 0 ? -r : r) * .98, y + .9, z).rotation.y = Math.PI / 2; }
     [[-27, 6], [-30, -18], [-25, -42], [26, 10], [29, -30], [-33, -70], [31, -66]].forEach(([x, z], i) => tukul(x, z, 2.8 + hash(i) * .8));
     // windmill pump and tank beside the street
@@ -94,16 +154,20 @@
       const vane = new T.Mesh(new T.BoxGeometry(.04, 1.2, 2.6), new T.MeshStandardMaterial({ color: 0xb33a24 })); vane.position.set(0, 12.4, -1.8); mill.add(vane);
       const tank = new T.Mesh(new T.CylinderGeometry(2, 2, 2.4, 20), new T.MeshStandardMaterial({ color: 0x5d4232, roughness: .9 })); tank.position.set(3.5, 1.2, 0); tank.castShadow = true; mill.add(tank);
       mill.userData.hub = hub; } BLOCK.push(ring(-8.5, -58, 2.2));
+    const RANGE = { x: -26, z0: -64, z1: -76, y: Y(-26, -70) + .95 };   // a fence rail by the windmill: bottles and cans stand on it
+    { const post = new T.MeshStandardMaterial({ color: 0x5a3a24, roughness: .9 }); for (const zz of [RANGE.z0, (RANGE.z0 + RANGE.z1) / 2, RANGE.z1]) mk(new T.BoxGeometry(.14, 1, .14), post, RANGE.x, Y(RANGE.x, zz) + .5, zz);
+      mk(new T.BoxGeometry(.16, .06, Math.abs(RANGE.z1 - RANGE.z0) + .4), post, RANGE.x, RANGE.y - .03, (RANGE.z0 + RANGE.z1) / 2);
+      COLL.push({ type: "box", x: RANGE.x, y: RANGE.y - .03, z: (RANGE.z0 + RANGE.z1) / 2, hx: .08, hy: .03, hz: Math.abs(RANGE.z1 - RANGE.z0) / 2 + .2, ry: 0, tag: "rail" }); } COLL.push({ type: "cyl", x: -8.5, y: Y(-8.5, -58) + 1.2, z: -58, r: 2, hh: 1.2, tag: "tank" });
     // Aksum stelae: tall carved granite with false doors and window bands, a rounded head
     function stelaTex() { const c = document.createElement("canvas"); c.width = 128; c.height = 1024; const g = c.getContext("2d"); g.fillStyle = "#8f7a6c"; g.fillRect(0, 0, 128, 1024);
       for (let i = 0; i < 6000; i++) { g.fillStyle = `rgba(${hash(i) < .5 ? "40,30,26" : "220,205,190"},${hash(i, 4) * .18})`; g.fillRect(hash(i, 1) * 128, hash(i, 2) * 1024, 2, 2); }
       g.fillStyle = "rgba(30,22,18,.65)"; g.fillRect(44, 930, 40, 94); for (let r = 0; r < 9; r++) { const y = 100 + r * 92; g.fillRect(10, y, 108, 6); g.fillRect(22, y + 20, 20, 30); g.fillRect(54, y + 20, 20, 30); g.fillRect(86, y + 20, 20, 30); }
       const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t; }
     const STELA = new T.MeshStandardMaterial({ map: stelaTex(), roughness: .85 });
-    [[-14, -104, 19], [-8, -118, 24], [14, -112, 15]].forEach(([x, z, h]) => { const y = Y(x, z); BLOCK.push(rect(x, z, 2.6, 1.6, 0)); mk(new T.BoxGeometry(2.4, h, 1.4), STELA, x, y + h / 2, z); mk(new T.CylinderGeometry(1.2, 1.2, 1.4, 20, 1, false, 0, Math.PI), STELA, x, y + h, z).rotation.set(Math.PI / 2, 0, Math.PI / 2); });
+    [[-14, -104, 19], [-8, -118, 24], [14, -112, 15]].forEach(([x, z, h]) => { const y = Y(x, z); BLOCK.push(rect(x, z, 2.6, 1.6, 0)); box(x, y + h / 2, z, 1.2, h / 2, .7, 0, "stela"); mk(new T.BoxGeometry(2.4, h, 1.4), STELA, x, y + h / 2, z); mk(new T.CylinderGeometry(1.2, 1.2, 1.4, 20, 1, false, 0, Math.PI), STELA, x, y + h, z).rotation.set(Math.PI / 2, 0, Math.PI / 2); });
     // glass greenhouse domes with green rows inside
     const GLASS = new T.MeshPhysicalMaterial({ color: 0xcfeee0, roughness: .08, transmission: .6, transparent: true, opacity: .42, thickness: .4, metalness: 0, side: T.DoubleSide });
-    function dome(x, z, r, parent = past) { const y = Y(x, z); if (parent === past) BLOCK.push(ring(x, z, r * .97, 14)); const d = mk(new T.SphereGeometry(r, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), GLASS, x, y, z, parent); d.castShadow = false;
+    function dome(x, z, r, parent = past) { const y = Y(x, z); if (parent === past) { BLOCK.push(ring(x, z, r * .97, 14)); COLL.push({ type: "ball", x, y, z, r, tag: "dome" }); } const d = mk(new T.SphereGeometry(r, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), GLASS, x, y, z, parent); d.castShadow = false;
       const ribs = new T.Mesh(new T.SphereGeometry(r * 1.002, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), new T.MeshBasicMaterial({ color: 0xe9f2ec, wireframe: true, transparent: true, opacity: .35 })); ribs.position.copy(d.position); parent.add(ribs);
       const crops = new T.Mesh(new T.CircleGeometry(r * .95, 32), new T.MeshStandardMaterial({ color: 0x3f8f3a, emissive: 0x1d5a1b, emissiveIntensity: .45, roughness: .9 })); crops.rotation.x = -Math.PI / 2; crops.position.set(x, y + .06, z); parent.add(crops); }
     dome(40, -96, 9); dome(55, -78, 6.5); dome(-46, -92, 7.5);
@@ -149,6 +213,16 @@
     const train = new T.Group(); future.add(train);
     for (let k = 0; k < 7; k++) { const car = new T.Mesh(new T.CapsuleGeometry(1.7, 13, 6, 12), new T.MeshStandardMaterial({ color: k % 2 ? 0x6e8fd6 : 0xdfe6f2, emissive: 0x8fb4ff, emissiveIntensity: .25, roughness: .3, metalness: .4 })); car.rotation.z = Math.PI / 2; car.position.x = -k * 16; car.position.y = 29; train.add(car); }
     train.position.z = RAIL_Z;
+    // the station: a platform beside the line, and a glass lift down to the plain (#761, the elevated line over the canyon)
+    const STATION = { x: -20, z: RAIL_Z + 3.4, deck: 27.3, dockX: -4 };   // dockX: where the train's front stands when car 2's door is at the platform
+    { mk(new T.BoxGeometry(34, .5, 3.2), PY, STATION.x, STATION.deck - .25, STATION.z, future);
+      COLL.push({ type: "box", x: STATION.x, y: STATION.deck - .25, z: STATION.z, hx: 17, hy: .25, hz: 1.6, ry: 0, tag: "platform", future: true });
+      mk(new T.BoxGeometry(30, .15, 3.6), PY, STATION.x, STATION.deck + 3.2, STATION.z + .2, future);
+      for (const px of [-14, -4, 6, 14]) mk(new T.CylinderGeometry(.08, .08, 3.2, 8), PY, STATION.x + px, STATION.deck + 1.6, STATION.z + 1.4, future);
+      const ly = Y(STATION.x - 17, STATION.z + 3.4); STATION.liftX = STATION.x - 17; STATION.liftZ = STATION.z + 3.4; STATION.ground = ly;
+      const tube = mk(new T.CylinderGeometry(1.4, 1.4, STATION.deck - ly + 3, 20, 1, true), new T.MeshPhysicalMaterial({ color: 0xdff2ee, transparent: true, opacity: .25, roughness: .05, side: T.DoubleSide }), STATION.liftX, ly + (STATION.deck - ly + 3) / 2, STATION.liftZ, future); tube.castShadow = false;
+      STATION.lift = mk(new T.CylinderGeometry(1.25, 1.25, .2, 20), new T.MeshStandardMaterial({ color: 0xc8a050, metalness: .7, roughness: .35 }), STATION.liftX, ly + .1, STATION.liftZ, future);
+      mk(new T.BoxGeometry(3, .3, 2.2), PY, STATION.liftX + 1.5, STATION.deck - .15, STATION.z + 1.6, future); }
     // wind turbines on the ridge
     const turbines = [];
     for (let i = 0; i < 5; i++) { const x = -40 + i * 75, z = -280 - hash(i, 3) * 90, y = Y(x, z); mk(new T.CylinderGeometry(.6, 1.1, 70, 10), PY, x, y + 35, z, future);
@@ -191,7 +265,8 @@
       for (const p of puffs) { const b = p.userData.base; p.position.x = b.x + Math.sin(STORM.t * p.userData.sp + b.z) * 6; p.material.rotation += dt * .05 * p.userData.sp; }
       const amount = STORM.phase === "inside" ? smooth(0, 1.2, STORM.t) : STORM.phase === "clearing" ? 1 - smooth(0, 4.5, STORM.t) : STORM.phase === "coming" ? .12 * smooth(-160, -25, STORM.z - pz) : 0;
       mill.userData.hub.rotation.z += dt * (1.2 + amount * 6);
-      if (future.visible) { train.position.x = ((clock * 18) % 700) - 540; turbines.forEach((h, i) => h.rotation.z += dt * (.6 + i * .05));
+      if (future.visible) { const cyc = 42, u = clock % cyc;   // 22 s running in, 12 s at the platform, 8 s running out
+        train.position.x = u < 22 ? lerp(-560, STATION.dockX, smooth(0, 1, u / 22)) : u < 34 ? STATION.dockX : lerp(STATION.dockX, 180, smooth(0, 1, (u - 34) / 8)); STATION.docked = u >= 22 && u < 34; STATION.departIn = u < 22 ? 0 : 34 - u; turbines.forEach((h, i) => h.rotation.z += dt * (.6 + i * .05));
         drones.forEach(d => { const u = d.userData; u.a += dt * u.s; d.position.set(Math.cos(u.a) * u.r, u.y + Math.sin(u.a * 2) * 2, u.cz + Math.sin(u.a) * u.r * .5); d.rotation.y = -u.a; }); }
       return { amount, line, phase: STORM.phase };
     }
@@ -199,7 +274,7 @@
     // ---- what the trough needs to know: where things are, and what you cannot walk through ----
     const landmarks = { street: { x: 0, z: -30 }, gate: { x: -7, z: 30 }, tank: { x: mill.position.x + 3.5, z: mill.position.z }, church: { x: CH.x, z: CH.z }, stelae: { x: -8, z: -112 }, saloon: { x: -17, z: -10 }, city: { x: 90, z: -360 } };
     function dispose() { root.traverse(x => { if (x.geometry) x.geometry.dispose(); const m = x.material; if (m) [].concat(m).forEach(mm => { if (mm.map) mm.map.dispose(); mm.dispose(); }); }); }
-    return { root, update, dispose, callStorm, setFuture, STORM, future, past, wall, ground, GROUND, MESA, WOODMATS, SPIREMATS, SPIREFOG, mill, train, landmarks, blockers: BLOCK };
+    return { root, update, dispose, callStorm, setFuture, STORM, future, past, wall, ground, GROUND, MESA, WOODMATS, SPIREMATS, SPIREFOG, mill, train, landmarks, blockers: BLOCK, colliders: COLL, saloon: SALOON, station: STATION, porches: PORCHES, makeKrar: SALOON.makeKrar, range: RANGE };
   }
   window.MarsWorld = { create, heightAt, CH };
 })();

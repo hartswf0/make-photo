@@ -33,19 +33,40 @@
     #boot.done { opacity: 0; pointer-events: none; }
     #boot b { display: block; font: italic 400 26px/1.3 var(--word); margin-bottom: 8px; }
     #boot span { color: var(--dim); font-size: 11px; letter-spacing: .08em; }
+    #do { background: var(--rust); border-color: var(--rust); }
+    #do:empty, #do[hidden] { display: none; }
+    .modes { display: flex; } .modes button { border-right-width: 0; } .modes button:last-child { border-right-width: 1px; }
+    #goals { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); top: calc(52px + env(safe-area-inset-top, 0px)); margin: 0; padding: 10px 12px; list-style: none; display: grid; gap: 5px; max-width: 260px;
+      background: rgba(28, 15, 11, .5); border: 1px solid var(--line); font-size: 11px; }
+    #goals li { color: var(--dim); } #goals li.done { color: var(--ink); text-decoration: line-through; text-decoration-color: var(--rust); }
+    #goals li::before { content: "○ "; color: var(--rust); } #goals li.done::before { content: "● "; }
+    .lb { position: fixed; left: 0; right: 0; height: 0; background: #000; pointer-events: none; z-index: 3; transition: height .6s; }
+    .lb.t { top: 0; } .lb.b { bottom: 0; }
+    body.cinema .lb { height: calc((100vh - 100vw / 2.39) / 2); }
+    body.cinema .top, body.cinema #study, body.cinema #goals { opacity: 0; }
+    body.cinema .bar { background: none; z-index: 4; }
+    #rec[aria-pressed="true"] { background: #c42c2c; border-color: #c42c2c; color: #fff; }
     @media (pointer: coarse) { .bar .keys { display: none; } }
   </style>
 </head>
 <body>
-  <canvas id="c" tabindex="0" aria-label="Mars frontier town. W A S D to ride, Shift to gallop. On a phone, the left thumb rides."></canvas>
+  <canvas id="c" tabindex="0" aria-label="Mars frontier town. W A S D to ride or walk, E to do what is here, R to draw, Space to fire, X to smoke. On a phone, the left thumb moves."></canvas>
   <header class="top"><b>Tex Lexington</b><span id="where">Ethiopia on Mars · Main Street</span></header>
   <a id="study" href="study.html">Genie ↔ game</a>
   <div id="line" aria-live="polite"></div>
   <div class="bar">
-    <span class="keys">W A S D ride · Shift gallop · F storm · C camera</span>
-    <button id="storm" type="button" title="Call the dust storm (F)">Storm</button>
-    <button id="cam" type="button" aria-pressed="false" title="Locked behind Tex, or the Genie framing (C)">Genie frame</button>
+    <span class="keys" id="keys">W A S D move · E do · R draw · Space fire · X smoke · Z fall · 1–6 krar · T storm · V cinema</span>
+    <button id="do" type="button" title="Do what is here (E)"></button>
+    <button id="gun" type="button" aria-pressed="false" title="Draw or holster the revolver (R)">Draw</button>
+    <button id="fire" type="button" title="Fire (Space or click)" hidden>Fire</button>
+    <button id="smoke" type="button" aria-pressed="false" title="Light a cigarette (X)">Smoke</button>
+    <button id="storm" type="button" title="Call the dust storm (T)">Storm</button>
+    <div class="modes" role="group" aria-label="How to be here"><button type="button" data-mode="world" aria-pressed="false">World</button><button type="button" data-mode="game" aria-pressed="true">Game</button><button type="button" data-mode="cinema" aria-pressed="false">Cinema</button></div>
+    <button id="rec" type="button" aria-pressed="false" title="Record a take to a video file" hidden>Record</button>
+    <button id="cam" type="button" aria-pressed="false" title="Pull the camera back (C)">Wide</button>
   </div>
+  <ol id="goals" aria-label="What the frontier asks"></ol>
+  <div class="lb t"></div><div class="lb b"></div>
   <div id="stick" hidden><i></i></div>
   <div id="boot" role="status"><div><b>Ethiopia on Mars</b><span id="boot-s">Saddling up…</span></div></div>
 
@@ -58,6 +79,7 @@
   <script src="../donkey/expressions-v4.js"></script>
   <script src="../donkey/characters.js"></script>
   <script src="./mars-world.js"></script>
+  <script src="./western.js"></script>
   <script src="./mars.js"></script>
 </body>
 </html>

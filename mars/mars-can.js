@@ -30,6 +30,7 @@
       root, landmarks: {}, blockers: W.blockers.map(pl => pl.map(([x, z]) => [x + C[0], z + C[1]])),
       heights: { rect: [MESH[0] + C[0], MESH[1] + C[1], MESH[2] + C[0], MESH[3] + C[1]], at: (x, z) => Y(x - C[0], z - C[1]) },
       farRect: [MESH[0] + C[0], MESH[1] + C[1], MESH[2] + C[0], MESH[3] + C[1]],
+      room: { id: "tezeta-saloon", pts: W.saloon.room.map(([x, z]) => [x + C[0], z + C[1]]) },   // the trough's interior service: inside, the rain leaves the glass and the street goes quiet
       setState, world: W,
       get line() { return line; },
       update(dt, t, pl) {

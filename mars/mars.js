@@ -108,7 +108,7 @@
 
   // ---------- control: W A S D ride, Shift gallops; the left thumb on a phone ----------
   const keys = {}, stick = { id: null, x0: 0, y0: 0, dx: 0, dy: 0 };
-  addEventListener("keydown", e => { const k = e.key.toLowerCase(); keys[k] = 1; if (k === "f") callStorm(); if (k === "c") setWide(!wide); if (k.startsWith("arrow") || k === " ") e.preventDefault(); });
+  addEventListener("keydown", e => { const k = e.key.toLowerCase(); keys[k] = 1; if (k === "t") callStorm(); if (k === "c") setWide(!wide); if (k.startsWith("arrow") || k === " ") e.preventDefault(); });
   addEventListener("keyup", e => { keys[e.key.toLowerCase()] = 0; });
   canvas.addEventListener("pointerdown", e => { if (e.pointerType !== "touch" || stick.id !== null) return; Object.assign(stick, { id: e.pointerId, x0: e.clientX, y0: e.clientY, dx: 0, dy: 0 }); const el = $("stick"); el.hidden = false; el.style.left = e.clientX + "px"; el.style.top = e.clientY + "px"; });
   addEventListener("pointermove", e => { if (e.pointerId !== stick.id) return; const dx = e.clientX - stick.x0, dy = e.clientY - stick.y0, r = Math.min(1, Math.hypot(dx, dy) / 50), a = Math.atan2(dy, dx);
@@ -121,6 +121,7 @@
   const say = t => { const el = $("line"); el.textContent = t; el.classList.toggle("on", !!t); };
 
   // ---------- loop ----------
+  const shotP = new T.Vector3(), shotL = new T.Vector3(); let lastShot = null;
   const cam = { p: new T.Vector3(0, 4, 8), l: new T.Vector3() }, fwd = new T.Vector3(), tmp = new T.Vector3(), _right = new T.Vector3();
   let last = performance.now(), clock = 0;
   function frame(now) {
@@ -139,9 +140,14 @@
     // ride
     let thr = (keys.w || keys.arrowup ? 1 : 0) - (keys.s || keys.arrowdown ? 1 : 0) - stick.dy, st = (keys.a || keys.arrowleft ? 1 : 0) - (keys.d || keys.arrowright ? 1 : 0) - stick.dx;
     let pace = keys.shift ? 3 : 1; if (AUTO.on) { thr = AUTO.throttle; st = AUTO.steer; pace = AUTO.pace; }
-    mount.update(dt, { throttle: clamp(thr, -1, 1), steer: clamp(st, -1, 1), pace }, heightAt);
-    const M = mount.state; fwd.set(Math.sin(M.heading), 0, Math.cos(M.heading));
-    if (tex) {   // ride: the seat moves with the donkey's back; the rider's body gives against it on a spring, leans with speed, sways into turns
+    const riding = !WEST || WEST.st.mode === "ride", prevMount = { x: mount.state.x, z: mount.state.z };
+    mount.update(dt, riding ? { throttle: clamp(thr, -1, 1), steer: clamp(st, -1, 1), pace } : { throttle: 0, steer: 0, pace: 0 }, heightAt);
+    const M = mount.state;
+    const WR = WEST ? WEST.step(dt, clock, { prevMount, throttle: clamp(thr, -1, 1), steer: clamp(st, -1, 1), run: !!keys.shift }) : null;
+    if (WR) for (const e of WR.events) if (e.kind === "goal") drawGoals();
+    if (WEST) { const o = WEST.st.label; if ($("do").textContent !== o) $("do").textContent = o; $("gun").setAttribute("aria-pressed", WEST.st.gun); $("fire").hidden = !WEST.st.gun; $("smoke").setAttribute("aria-pressed", WEST.st.smoking); }
+    const F = WR ? WR.focus : { x: M.x, y: M.y || 0, z: M.z, heading: M.heading }; fwd.set(Math.sin(F.heading), 0, Math.cos(F.heading));
+    if (tex && riding) {   // ride: the seat moves with the donkey's back; the rider's body gives against it on a spring, leans with speed, sways into turns
       mount.saddleAt(_sp, _sq); saddle.position.copy(_sp); saddle.quaternion.copy(_sq);
       if (RIDE.prevY === null) { RIDE.y = _sp.y; RIDE.prevY = _sp.y; }
       const k = 260, c = 22; RIDE.v += ((_sp.y - RIDE.y) * k - RIDE.v * c) * dt; RIDE.y += RIDE.v * dt;
@@ -157,21 +163,25 @@
       tex.update(dt, clock, { pose: "ride", rideBob: RIDE.bob, rideLean: lean, rideSway: RIDE.sway, rideBarrel: .26, rideLook: RIDE.sway * .3, lodDist: 3 });
     }
     // people walk their paths and turn back
-    for (const p of people) { const [a, b] = p.s.path, L = Math.hypot(b[0] - a[0], b[1] - a[1]), sp = 1.1 / L; p.u = (p.u + dt * sp) % 2; const k = p.u < 1 ? p.u : 2 - p.u, dir = p.u < 1 ? 1 : -1;
+    for (const p of people) { if (p.ragging) continue; const [a, b] = p.s.path, L = Math.hypot(b[0] - a[0], b[1] - a[1]), sp = 1.1 / L; p.u = (p.u + dt * sp) % 2; const k = p.u < 1 ? p.u : 2 - p.u, dir = p.u < 1 ? 1 : -1;
       const x = lerp(a[0], b[0], k), z = lerp(a[1], b[1], k), hd = Math.atan2((b[0] - a[0]) * dir, (b[1] - a[1]) * dir);
       p.ch.place(x, z, hd, surfaceAt); p.ch.update(dt, clock, { pose: "walk", surfaceAt, lodDist: Math.hypot(camera.position.x - x, camera.position.z - z) });
       if (p.d) { p.d.state.x = x + Math.cos(hd) * 1.3 - Math.sin(hd) * 1.4; p.d.state.z = z - Math.sin(hd) * 1.3 - Math.cos(hd) * 1.4; p.d.state.heading = hd; p.d.update(dt, { throttle: .5, steer: 0, pace: 0 }, heightAt); } }
     // the world: its storm, windmill, train, turbines and drones
-    stormStep(W.update(dt, clock, { x: M.x, z: M.z }));
+    stormStep(W.update(dt, clock, { x: F.x, z: F.z }));
     // camera: locked behind and above, like the Genie take; Wide pulls back to see the street
-    const back = wide ? 16 : 6.8, high = wide ? 7.5 : 3.3, ahead = wide ? 18 : 9;
-    const right = _right.set(-fwd.z, 0, fwd.x).multiplyScalar(-1), side = wide ? 3 : 1.6;   // the Genie framing: the camera sits off his right shoulder, Tex in the left third
-    tmp.set(M.x, (M.y || 0), M.z); const goal = tmp.clone().addScaledVector(fwd, -back).addScaledVector(right, side); goal.y = Math.max(heightAt(goal.x, goal.z) + 1.4, tmp.y + high);
-    cam.p.lerp(goal, 1 - Math.exp(-dt * 4)); cam.l.lerp(tmp.clone().addScaledVector(fwd, ahead).add(new T.Vector3(0, 1.9, 0)), 1 - Math.exp(-dt * 6));
-    camera.position.copy(cam.p); camera.lookAt(cam.l);
+    const foot = WEST && WEST.st.mode !== "ride", back = wide ? 16 : foot ? 3.8 : 6.8, high = wide ? 7.5 : foot ? 1.9 : 3.3, ahead = wide ? 18 : foot ? 6 : 9;
+    const right = _right.set(-fwd.z, 0, fwd.x).multiplyScalar(-1), side = wide ? 3 : foot ? .7 : 1.6;   // the Genie framing: the camera sits off his right shoulder, Tex in the left third
+    tmp.set(F.x, F.y, F.z); const goal = tmp.clone().addScaledVector(fwd, -back).addScaledVector(right, side); goal.y = Math.max(heightAt(goal.x, goal.z) + 1.4, tmp.y + high);
+    cam.p.lerp(goal, 1 - Math.exp(-dt * 4)); cam.l.lerp(tmp.clone().addScaledVector(fwd, ahead).add(new T.Vector3(0, foot ? 1.5 : 1.9, 0)), 1 - Math.exp(-dt * 6));
+    camera.position.copy(cam.p); camera.lookAt(cam.l); let fov = 50;
+    if (WR && WR.cam) { if (WR.cam !== lastShot) { lastShot = WR.cam; } shotP.lerp(WR.cam.pos, WEST.DIR.on ? 1 - Math.exp(-dt * 9) : 1 - Math.exp(-dt * 5)); shotL.lerp(WR.cam.look, 1 - Math.exp(-dt * 9)); if (WEST.DIR.blend < 1) { shotP.copy(WR.cam.pos); shotL.copy(WR.cam.look); WEST.DIR.blend = 1; }   // a cut is a cut
+      camera.position.copy(shotP); camera.lookAt(shotL); fov = WR.cam.fov || 50; cam.p.copy(camera.position); }
+    else { shotP.copy(camera.position); shotL.copy(cam.l); }
+    if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
     const ov = window.__mars && window.__mars.camSide; if (ov) { const r = new T.Vector3(Math.cos(M.heading), 0, -Math.sin(M.heading)); camera.position.set(M.x, (M.y || 0), M.z).addScaledVector(r, ov).add(new T.Vector3(0, 1.5, 0)).addScaledVector(fwd, .6); camera.lookAt(M.x, (M.y || 0) + 1.35, M.z); }
-    sun.position.set(M.x + TUNE.sunDir[0], TUNE.sunDir[1], M.z + TUNE.sunDir[2]); sun.target.position.set(M.x, 0, M.z);   // low, ahead and to the right, as the film's shadows say
-    $("where").textContent = STORM.phase === "inside" ? "Ethiopia on Mars · inside the storm" : future.visible ? "Ethiopia on Mars · after the storm" : M.z < -95 ? "Ethiopia on Mars · the stelae" : "Ethiopia on Mars · Main Street";
+    sun.position.set(F.x + TUNE.sunDir[0], TUNE.sunDir[1], F.z + TUNE.sunDir[2]); sun.target.position.set(F.x, 0, F.z);   // low, ahead and to the right, as the film's shadows say
+    $("where").textContent = STORM.phase === "inside" ? "Ethiopia on Mars · inside the storm" : future.visible ? "Ethiopia on Mars · after the storm" : WEST && WEST.st.inside ? "Ethiopia on Mars · the Tezeta saloon" : WEST && WEST.st.mode === "train" ? "Ethiopia on Mars · the monorail" : F.z < -95 ? "Ethiopia on Mars · the stelae" : "Ethiopia on Mars · Main Street";
   }
   function stormStep(S) {   // the page's share of the storm: its fog, its sky, its light and the line on screen
     say(S.line); const B = BASE_FOG, dens = B + S.amount * (.09 - B), st = clamp((dens - B) / .03, 0, 1);
@@ -198,7 +208,18 @@
   // ---------- boot ----------
   const done = () => { $("boot").classList.add("done"); window.__ready = true; };
   try { addSettlers(); } catch (e) { console.warn("settlers", e); }
-  requestAnimationFrame(t => { last = t; frame(t); setTimeout(done, 300); });
+  // ---------- the Western: physics, verbs, sound, the director (western.js) ----------
+  let WEST = null, MODE = "game";
+  function drawGoals() { const ol = $("goals"); if (!WEST || MODE !== "game") { ol.hidden = true; return; } ol.hidden = false; ol.innerHTML = WEST.goals.map(g => `<li class="${g.done ? "done" : ""}">${g.text}</li>`).join(""); }
+  function setMode(m) { MODE = m; document.querySelectorAll(".modes button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === m)); document.body.classList.toggle("cinema", m === "cinema"); $("rec").hidden = m !== "cinema"; if (WEST) WEST.setCinema(m === "cinema"); drawGoals(); }
+  document.querySelectorAll(".modes button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  const westReady = (window.MarsWestern ? window.MarsWestern.create({ T, scene, camera, renderer, canvas, W, heightAt, tex, mount, people, say,
+      onGoal: (g) => { drawGoals(); say("Done: " + g.text.toLowerCase() + "."); }, onCinema: on => { if (on && MODE !== "cinema") setMode("cinema"); if (!on && MODE === "cinema") setMode("game"); }, onRecord: on => $("rec").setAttribute("aria-pressed", on) })
+    : Promise.reject(new Error("no western.js"))).then(w => { WEST = w; drawGoals();
+      mount.state.onStep = (L, g) => { if (WEST) WEST.S.hoof({ x: mount.state.x, y: mount.state.y, z: mount.state.z }, g); };
+      $("do").onclick = () => { const o = WEST.offer(); if (o && o.verb) WEST.act(o.verb); }; $("gun").onclick = () => WEST.draw(); $("fire").onclick = () => WEST.fire(); $("smoke").onclick = () => WEST.smoke();
+      $("rec").onclick = () => $("rec").setAttribute("aria-pressed", WEST.record()); }).catch(e => console.warn("western", e));
+  requestAnimationFrame(t => { last = t; frame(t); westReady.finally(() => setTimeout(done, 300)); });
   // hooks for the study and for checks
-  window.__mars = { mask: v => MASK.on = v, tune, TUNE, setSaddle: v => SADDLE = v, paused: false, sim: (sec, ctl) => { if (ctl) Object.assign(AUTO, ctl, { on: true }); for (let t = 0; t < sec; t += .05) step(.05); }, mount, tex, STORM, callStorm, AUTO, setWide, say, future, keys, heightAt, place: (x, z, h) => { mount.place(x, z, h, heightAt); cam.p.set(x, 5, z + 8); } };
+  window.__mars = { get west() { return WEST; }, setMode: m => setMode(m), mask: v => MASK.on = v, tune, TUNE, setSaddle: v => SADDLE = v, paused: false, sim: (sec, ctl) => { if (ctl) Object.assign(AUTO, ctl, { on: true }); for (let t = 0; t < sec; t += .05) step(.05); }, mount, tex, STORM, callStorm, AUTO, setWide, say, future, keys, heightAt, place: (x, z, h) => { mount.place(x, z, h, heightAt); cam.p.set(x, 5, z + 8); } };
 })();
