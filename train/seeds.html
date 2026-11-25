@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Sealed Line · Seeds</title>
+<style>
+:root{--ink:#0b0d0c;--paper:#ecdcb6;--brass:#c59a3e;--ox:#7a1f1d;--line:rgba(236,220,182,.2);--serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--ink);color:var(--paper);font:16px/1.55 var(--serif)}
+header{padding:28px 20px 8px;max-width:1180px;margin:0 auto}
+.k{font:600 11px/1 var(--mono);letter-spacing:.26em;text-transform:uppercase;color:var(--brass)}
+h1{font-size:clamp(28px,5vw,46px);font-style:italic;font-weight:400;margin:10px 0 8px;text-wrap:balance}
+header p{max-width:66ch;opacity:.88;margin:6px 0}
+a{color:var(--brass)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 6px}
+button,.pill{font:600 12px/1 var(--mono);letter-spacing:.05em;color:var(--paper);background:rgba(236,220,182,.07);border:1px solid var(--line);border-radius:20px;padding:11px 15px;cursor:pointer;text-decoration:none;display:inline-block}
+button:hover,.pill:hover{border-color:var(--brass)}button.done{background:var(--brass);color:var(--ink)}
+main{max-width:1180px;margin:0 auto;padding:10px 20px 80px;display:grid;gap:34px}
+article{border-top:1px solid var(--line);padding-top:22px;display:grid;gap:14px}
+h2{font-size:26px;font-style:italic;font-weight:400;margin:0}
+.meta{font:11px/1.5 var(--mono);opacity:.7}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pair figure{margin:0;position:relative}.pair img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover;background:#16130f}
+figcaption{position:absolute;left:8px;top:8px;font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;background:rgba(11,13,12,.7);padding:6px 8px}
+.cols{display:grid;grid-template-columns:1.25fr 1fr;gap:22px}
+.prompt{font:13px/1.6 var(--mono);background:rgba(236,220,182,.05);border-left:3px solid var(--ox);padding:12px 14px;white-space:pre-wrap;max-height:210px;overflow:auto}
+ol{margin:0;padding-left:20px}li{margin:5px 0}
+h3{font:600 10px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--brass);margin:0 0 8px}
+details summary{cursor:pointer;color:var(--brass)}details div{margin-top:6px;max-width:100ch}
+.one{border:1px solid var(--brass);padding:14px 16px;margin:14px 0}.one p{margin:6px 0 2px}
+.intro{border-top:1px solid var(--line);padding-top:26px}.intro p{max-width:70ch;margin:8px 0}.lock{font:12px/1.6 var(--mono);opacity:.75}
+.beats{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}.beats dt{font:600 10px/1.9 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--brass);white-space:nowrap}.beats dd{margin:0}
+@media(max-width:760px){.beats{grid-template-columns:1fr}.beats dt{margin-top:6px}}
+@media(max-width:760px){.pair,.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="k">make-photo · the Sealed Line</div>
+  <h1>Seeds for the train that is a world</h1>
+  <p>Each seed is a starting frame for a world-model take. It is composed in the playable train (the traveler, the carriage, the lens and what is passing outside are all real 3D positions), captured with its depth, and then dressed on that same geometry. The left picture is the blocking; the right is the frame to hand over.</p>
+  <p>The run below is the main use: one third-person walk that starts in an empty carriage. A new prompt is issued each time he opens a door, so the change of world hides behind the door and the gangway.</p>
+  <div class="bar"><a class="pill" href="./index.html">Ride the train →</a><a class="pill" href="./TRAIN.md">How it is built</a><a class="pill" href="../atlas/overworld.html">The overworld</a></div>
+</header>
+<main id="list"></main>
+<script type="module">
+const d = await (await fetch('data/seeds.json')).json(), list = document.getElementById('list');
+const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; };
+const copy = (b, text) => b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(text); const o = b.textContent; b.textContent = 'Copied'; b.classList.add('done'); setTimeout(() => { b.textContent = o; b.classList.remove('done'); }, 1400); } catch { } });
+function card(s) {
+  const a = el('article'); a.id = s.id;
+  a.append(el('h2', '', s.title), el('div', 'meta', s.run ? (s.worlds.length ? `${s.chapters.join(' + ')} · ${s.worlds.length} worlds from the file · ${s.genie.length} characters` : 'the one picture that is sent · nothing in it yet') : `${s.id} · ${s.shot} shot · km ${s.km} · 1280 × 720`));
+  if (s.run && s.worlds.length) { const det = el('details', 'meta'); det.append(el('summary', '', 'Worlds poured into this carriage'), el('div', '', s.worlds.map(w => `${w.uid} ${w.name}`).join(' · '))); a.append(det); }
+  const pair = el('div', 'pair');
+  for (const [label, src] of [['3D blocking', `seeds/${s.id}.blockout.jpg`], [s.run > 1 ? 'Reference: what this door should reveal' : 'Seed', `seeds/${s.id}.jpg`]]) { const f = el('figure'), i = el('img'); i.src = src; i.loading = 'lazy'; i.alt = `${label}: ${s.title}`; f.append(i, el('figcaption', '', label)); pair.append(f); }
+  const cols = el('div', 'cols'), left = el('div'), right = el('div');
+  if (s.run) {
+    const dl = el('dl', 'beats');
+    for (const [k, v] of [['At the door', s.door], ['The carriage', s.scene], ['Bees', s.bees], ['People', s.people], ['What happens to him', s.deed], ['Outside', s.window]]) if (v) dl.append(el('dt', '', k), el('dd', '', v));
+    left.append(el('h3', '', s.run === 1 ? 'Opening' : 'Issued as the door opens'), dl);
+  } else left.append(el('h3', '', 'Opening prompt'), el('div', 'prompt', s.genie));
+  const ol = el('ol'); for (const e of s.events) ol.append(el('li', '', e)); right.append(el('h3', '', 'Then, one at a time'), ol);
+  cols.append(left, right);
+  const bar = el('div', 'bar'), b1 = el('button', '', s.run > 1 ? 'Copy door prompt' : 'Copy opening prompt'), b2 = el('button', '', 'Copy events'), l1 = el('a', 'pill', s.run > 1 ? 'Download reference' : 'Download seed'), l2 = el('a', 'pill', 'Stand here in the train →');
+  copy(b1, s.genie); copy(b2, s.events.join('\n')); l1.href = `seeds/${s.id}.jpg`; l1.download = `sealed-line_${s.id}.jpg`; l2.href = `./index.html?seed=${s.id}`;
+  bar.append(b1, b2, l1, l2); a.append(pair, cols, bar); return a;
+}
+const run = d.seeds.filter(s => s.run).sort((a, b) => a.run - b.run), rest = d.seeds.filter(s => !s.run);
+if (run.length) {
+  const h = el('section', 'intro'); h.append(el('div', 'k', 'The run'), el('h2', '', d.run.title), el('p', '', d.run.how), el('p', 'meta', `${d.run.covered} of 228 worlds are in the cues · source: ${d.run.corpus}`), el('p', 'lock', 'Ends every prompt: ' + d.run.lock));
+  const one = el('div', 'one'); one.append(el('h3', '', 'One request'), el('p', '', 'Only the first picture and the opening prompt start the session. Every later prompt is a cue sent into the running session as he opens a door, while you hold W. The other seven pictures show each carriage's room and framing only, not the contents the cues pour in: use them to check the lock and the architecture of a take; do not send them.'));
+  const ob = el('div', 'bar'), o1 = el('a', 'pill', 'Download the one seed'), o2 = el('button', '', 'Copy the opening prompt'), o3 = el('a', 'pill', 'session.json'), o4 = el('a', 'pill', 'Rehearse it in 3D →');
+  o1.href = `seeds/${run[0].id}.jpg`; o1.download = 'sealed-line_seed.jpg'; copy(o2, run[0].genie); o3.href = 'data/session.json'; o4.href = './index.html?run'; ob.append(o1, o2, o3, o4); one.append(ob); h.append(one);
+  const all = el('button', '', 'Copy the whole run script'); copy(all, run.map(s => `### ${s.title}${s.run > 1 ? ' — issue as the door opens' : ' — with the first seed'}\n${s.genie}\n\nThen, one at a time:\n${s.events.map(e => '- ' + e).join('\n')}`).join('\n\n')); h.append(all); list.append(h);
+  for (const s of run) list.append(card(s));
+  const h2 = el('section', 'intro'); h2.append(el('div', 'k', 'Other frames'), el('h2', '', 'Single seeds: windows, doorways and the train from outside')); list.append(h2);
+}
+for (const s of rest) list.append(card(s));
+</script>
+</body>
+</html>

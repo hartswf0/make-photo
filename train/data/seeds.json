@@ -1,0 +1,1139 @@
+{
+ "seeds_version": 1,
+ "note": "Starting frames for world-model takes (Genie 3). Each is composed in the 3D train (data here), captured with its depth (tools/seed_capture.js), and dressed on the same geometry (tools/dress_seed.py). 'genie' is the opening prompt; 'events' are issued one at a time once the world is running.",
+ "style": "Film still from a lost 1970s Ethiopian western-noir shot on 35mm: technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red accents, heavy grain, practical amber lamps, documentary patience. Photographic, physically plausible, a real man with natural proportions.",
+ "world": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land.",
+ "seeds": [
+  {
+   "id": "quiet_walk",
+   "title": "The quiet car",
+   "car": 1,
+   "x": 5.6,
+   "dir": -1,
+   "walk": 5,
+   "km": 0.78,
+   "shot": "follow",
+   "ref": "assets/worlds/quiet.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat walking away from the camera down the central aisle of a railway carriage: teal painted panelled walls, oxblood leather bench seats with brass rails and small tables on both sides, a few seated passengers wrapped in white shawls, cyan plastic twenty-litre jerrycans on the floor by the seats, arched cream ceiling with amber dome lamps, brass luggage racks, large windows on both sides. Through the left windows a colossal stone column crowned by a golden winged angel stands far off on the ochre highland plain. A few honeybees in the lamplight. A brass-framed door to the next carriage at the far end. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "He begins in the quiet car: bench seats, small tables, sleeping passengers, a coffee cup with one bee on its rim. Far outside, a golden angel on a stone column slides past the windows.",
+   "events": [
+    "A single bee lifts from a coffee cup and flies slowly down the aisle ahead of him.",
+    "He walks after it; the sleeping passengers do not stir.",
+    "Outside the left windows the golden angel on its column turns its head to follow the train.",
+    "He reaches the brass-framed door at the end of the carriage and slides it open."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. He begins in the quiet car: bench seats, small tables, sleeping passengers, a coffee cup with one bee on its rim. Far outside, a golden angel on a stone column slides past the windows."
+  },
+  {
+   "id": "quiet_window",
+   "title": "The traveler at the glass",
+   "car": 1,
+   "seat": -1,
+   "km": 7.0,
+   "shot": "profile",
+   "ref": "assets/worlds/f997_window.jpg",
+   "frame": "Medium profile shot inside a railway carriage of a weathered man in a canvas duster coat and dark felt hat seated at a window table, oxblood leather seat, teal panelled wall, a white coffee cup with a honeybee on its rim, a cyan plastic jerrycan beside him. Through the large window: an enormous golden beehive the size of a cathedral standing on the ochre highland plain with a dark swarm spiralling above it, late golden light on his face.",
+   "scene": "He is seated at the window of the quiet car. Outside, the impossible hive, a golden beehive as tall as a cathedral, stands on the plain and grows as the train approaches.",
+   "events": [
+    "He watches the hive draw level with the window; its doorway glows.",
+    "The swarm above the hive bends toward the train and paces the carriage.",
+    "A bee lands on the rim of his cup.",
+    "He sets down the cup, stands and steps into the aisle."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. He is seated at the window of the quiet car. Outside, the impossible hive, a golden beehive as tall as a cathedral, stands on the plain and grows as the train approaches."
+  },
+  {
+   "id": "gangway",
+   "title": "Between carriages",
+   "car": 1,
+   "x": -3.2,
+   "dir": -1,
+   "walk": 2,
+   "km": 1.0,
+   "shot": "threshold",
+   "ref": "assets/worlds/quiet.jpg",
+   "frame": "Low-angle view from inside the dark rubber-bellows gangway between two railway carriages, looking back through a brass-framed doorway into a warm lamplit teal carriage with oxblood leather seats, where a lone traveler in a long weathered canvas duster coat and a dark felt hat walks toward the camera, about to step through the door. Amber dome lamps, bees around the door frame, steel floor plates in the foreground. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The camera waits in the gangway between two carriages. He comes toward it down the lamplit aisle of the quiet car.",
+   "events": [
+    "He steps over the threshold into the dark gangway; the floor plates shift under his boots.",
+    "The camera turns with him as he passes and follows him into the next carriage.",
+    "The next carriage is a dining car where every table is laid and every guest is perfectly still."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The camera waits in the gangway between two carriages. He comes toward it down the lamplit aisle of the quiet car."
+  },
+  {
+   "id": "dining_walk",
+   "title": "The dining car that feels wrong",
+   "car": 2,
+   "x": 6.2,
+   "dir": -1,
+   "walk": 5,
+   "km": 2.38,
+   "shot": "follow",
+   "ref": "assets/worlds/dining.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat walking down the aisle of an elegant weathered railway dining car: white linen tables with small brass lamps and coffee cups on both sides, oxblood chairs, teal panelled walls, arched ceiling with amber lamps. The seated diners in 1970s suits and white shawls are all frozen mid-gesture with their faces turned toward him. A musician with a krar stands at the far door. Through the right windows a Victorian steam train with lit windows runs alongside on a second track; beyond it a row of tall carved stone stelae. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The dining car: linen, brass lamps, cups, a musician at the far end. The diners are motionless and all of them are watching him. Outside the right-hand windows an older steam train keeps pace on a second track.",
+   "events": [
+    "As he walks, each table of diners resumes eating only after he has passed it.",
+    "The musician at the far door begins to play; the lamps on the tables brighten in time.",
+    "In the steam train outside, a passenger in the same hat and coat looks back at him through the glass.",
+    "A waiter opens the door at the far end and holds it."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The dining car: linen, brass lamps, cups, a musician at the far end. The diners are motionless and all of them are watching him. Outside the right-hand windows an older steam train keeps pace on a second track."
+  },
+  {
+   "id": "greenhouse_walk",
+   "title": "The greenhouse at the equator",
+   "car": 3,
+   "x": 6.4,
+   "dir": -1,
+   "walk": 5,
+   "km": 1.6,
+   "shot": "follow",
+   "ref": "assets/worlds/greenhouse.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat walking a narrow wet plank aisle through a railway carriage that is a greenhouse: glass roof and glass walls with riveted teal iron ribs, raised planters overflowing with coffee shrubs, enset, wild flowers and vines on both sides, wooden beehive boxes among the leaves, shafts of sunlight through steam, bees everywhere, cyan jerrycans feeding drip lines. Through the glass the train is crossing a high stone viaduct over a deep misty valley. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The greenhouse car: a forest under glass, hive boxes among the coffee shrubs, drip lines fed from cyan jerrycans. The train is high on a viaduct and the valley falls away under the glass.",
+   "events": [
+    "It begins to rain gently inside the carriage, though the sky outside is clear.",
+    "He ducks under a vine; bees rise from a hive box and form a slow ring around him.",
+    "A hive box opens by itself and the comb inside is lit like a lamp.",
+    "He pushes through the leaves to the brass-framed door at the far end."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The greenhouse car: a forest under glass, hive boxes among the coffee shrubs, drip lines fed from cyan jerrycans. The train is high on a viaduct and the valley falls away under the glass."
+  },
+  {
+   "id": "apiary_walk",
+   "title": "The apiary car in the tunnel",
+   "car": 4,
+   "x": 6.0,
+   "dir": -1,
+   "walk": 5,
+   "km": 3.22,
+   "shot": "follow",
+   "ref": "assets/worlds/apiary.jpg",
+   "far": 60,
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat walking down the red-carpeted aisle of a windowless railway carriage that is a museum of beekeeping, at night in a tunnel: both walls covered floor to ceiling with small painted wooden beehive panels of saints, hunters, trains, devils and animals in faded reds, teals and golds, glass vitrines of glowing honeycomb on walnut plinths, woven straw hives hanging from the arched ceiling, amber lamps, honey light, an elderly woman beekeeper in a white headwrap standing by a vitrine. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The apiary car, in a tunnel: walls of painted hive panels, vitrines of lit honeycomb, straw hives overhead, a retired beekeeper who knows why he is here.",
+   "events": [
+    "The painted figures on the panels turn their heads as he passes.",
+    "The beekeeper lifts the glass of a vitrine and the honeycomb inside begins to hum.",
+    "One painted panel swings open like a small door; daylight and a mountain road are behind it.",
+    "Honey runs slowly up the wall toward the ceiling."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The apiary car, in a tunnel: walls of painted hive panels, vitrines of lit honeycomb, straw hives overhead, a retired beekeeper who knows why he is here."
+  },
+  {
+   "id": "mirror_walk",
+   "title": "The mirror corridor",
+   "car": 5,
+   "x": 6.8,
+   "dir": -1,
+   "walk": 4,
+   "km": 4.45,
+   "shot": "follow",
+   "ref": "assets/worlds/mirror.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat walking a narrow sleeper-car corridor: compartment doors with small lit frosted windows and brass sconces along the teal panelled wall on the left, a row of large windows on the right, worn red carpet runner. Halfway down on the left hangs a tall gilt-framed mirror that shows not him but Victorian passengers in top hats and crinolines. Through the right windows, dusk over a still salt lake with huge hexagonal honeycomb monoliths floating in the pink air. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The mirror corridor of the sleeper: compartment doors, sconces, a gilt mirror that reflects another century. Outside, dusk over a salt lake where honeycomb monoliths hang in the air.",
+   "events": [
+    "He stops at the mirror. The Victorian passengers inside it stop too, and one raises a hand.",
+    "A bee flies out of the mirror into the corridor.",
+    "A compartment door slides open; inside, an older version of himself is asleep with the same hat over his eyes.",
+    "Outside, one of the floating honeycombs drifts close enough to touch the glass."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The mirror corridor of the sleeper: compartment doors, sconces, a gilt mirror that reflects another century. Outside, dusk over a salt lake where honeycomb monoliths hang in the air."
+  },
+  {
+   "id": "surveillance_walk",
+   "title": "Every camera is a hive",
+   "car": 6,
+   "x": 6.2,
+   "dir": -1,
+   "walk": 4,
+   "km": 3.3,
+   "shot": "follow",
+   "ref": "assets/worlds/surveillance.jpg",
+   "far": 60,
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat walking through a windowless railway carriage used as a surveillance room: both walls stacked with dozens of old CRT monitors and reel-to-reel recorders glowing teal and amber, cables across the steel floor, a hooded watcher standing by a swivel chair. Many of the screens show this same corridor from behind him, with himself walking on every screen. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The surveillance car: walls of monitors and tape reels. The screens show the other carriages, the land outside, and him, from behind, as he is right now.",
+   "events": [
+    "On one monitor he is a few seconds ahead of himself; on that screen he turns round.",
+    "He turns round.",
+    "Every screen switches to a bee's-eye view flying down this corridor toward his back.",
+    "The watcher pulls a tape from a recorder and offers it to him."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The surveillance car: walls of monitors and tape reels. The screens show the other carriages, the land outside, and him, from behind, as he is right now."
+  },
+  {
+   "id": "cinema_enter",
+   "title": "The cinema car",
+   "car": 7,
+   "x": 6.6,
+   "dir": -1,
+   "walk": 3,
+   "km": 7.0,
+   "shot": "follow",
+   "ref": "assets/worlds/cinema.jpg",
+   "far": 60,
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat standing at the back of a railway carriage converted into a tiny cinema: rows of worn red velvet seats on both sides of the aisle with a few silhouetted spectators, heavy red velvet drapes on the walls, a brass hand-cranked projector throwing a dusty beam, and at the far end a glowing screen showing a sepia film of a steam train arriving straight toward the audience. Bees cross the projector beam. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The last carriage is a cinema. On the screen a train from 1895 arrives at a station, head on. The audience has seen this film before.",
+   "events": [
+    "He walks down the aisle toward the screen; the train in the film grows.",
+    "The projector beam fills with bees and the image becomes the view ahead of this train.",
+    "The steam locomotive on the screen does not stop at the edge of the picture.",
+    "A spectator in the front row stands; she is wearing a beekeeper's veil."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The last carriage is a cinema. On the screen a train from 1895 arrives at a station, head on. The audience has seen this film before."
+  },
+  {
+   "id": "dollhouse",
+   "title": "The dollhouse track",
+   "car": 2,
+   "x": 1.5,
+   "dir": -1,
+   "walk": 6,
+   "km": 0.9,
+   "shot": "lateral",
+   "ref": "assets/worlds/exterior.jpg",
+   "zoom": 1.25,
+   "frame": "Exterior side view of a moving 1970s teal and cream railway dining carriage seen square-on from a camera tracking alongside it, looking in through a row of large windows: inside, warm amber lamps, white linen tables, seated diners, and a lone traveler in a long weathered canvas duster coat and a dark felt hat walking along the aisle in profile. Riveted teal steel below the windows, cream band between them, dark roof, steel wheels on rails. Ochre highland plain and sky reflected in the glass. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The camera rides outside, level with the windows, and tracks him as he walks the length of the train inside, carriage after carriage, each window a different room.",
+   "events": [
+    "The wall between two windows wipes across the frame and the next carriage is a greenhouse.",
+    "He passes through a door and the next row of windows is full of monitors.",
+    "A swarm flows between the camera and the train, then clears.",
+    "The camera drifts in through an open window and takes up position behind him."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The camera rides outside, level with the windows, and tracks him as he walks the length of the train inside, carriage after carriage, each window a different room."
+  },
+  {
+   "id": "lean_out",
+   "title": "Leaning out",
+   "car": 1,
+   "seat": -1,
+   "km": 6.62,
+   "shot": "lean",
+   "swarm": 1,
+   "ref": "assets/worlds/f997_aerial.jpg",
+   "frame": "View from just outside an open carriage window of a moving 1970s teal and cream passenger train, looking forward along its curving flank toward a dark diesel locomotive: weathered riveted teal steel, cream window band, wheels and rails below, ochre highland plain, an enormous golden beehive tower on the horizon ahead, a dense dark swarm of bees flowing alongside the train like smoke, dust, late golden sun.",
+   "scene": "He leans out of the window. The whole train is visible ahead, the locomotive, the swarm running alongside, and on the horizon the hive.",
+   "events": [
+    "The swarm closes in and travels level with his face.",
+    "The locomotive sounds its horn and the swarm scatters, then re-forms as an arrow pointing at the hive.",
+    "A second, older train appears on the horizon running the other way.",
+    "He pulls his head back inside."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. He leans out of the window. The whole train is visible ahead, the locomotive, the swarm running alongside, and on the horizon the hive."
+  },
+  {
+   "id": "viaduct_witness",
+   "title": "The witness on the viaduct",
+   "car": 1,
+   "seat": -1,
+   "km": 1.66,
+   "shot": "drone",
+   "swarm": 1,
+   "ref": "assets/worlds/exterior.jpg",
+   "frame": "Wide high view from a hillside of a long 1970s teal and cream passenger train with a dark diesel locomotive crossing a tall many-arched stone viaduct over a deep misty highland valley, a river far below, ochre and violet mountain ranges, a dark ribbon of bees flowing beside the train, golden hour, dust.",
+   "scene": "From a hillside, the whole train is seen crossing the viaduct. The camera can descend to the train, enter any window and find him inside.",
+   "events": [
+    "The camera glides down toward the fourth carriage.",
+    "It passes through an open window into the lamplight.",
+    "He is there, seated, and looks up as if he heard it arrive."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. From a hillside, the whole train is seen crossing the viaduct. The camera can descend to the train, enter any window and find him inside.",
+   "far": 2500
+  },
+  {
+   "id": "run_1_empty",
+   "run": 1,
+   "title": "1. The empty carriage",
+   "car": 1,
+   "x": 5.6,
+   "dir": -1,
+   "walk": 3,
+   "km": 0.5,
+   "shot": "follow",
+   "empty": true,
+   "ref": "assets/worlds/quiet.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat, hands clasped behind his back, walking away from the camera down the central aisle of a completely empty weathered railway carriage: teal panelled walls, oxblood leather bench seats with brass rails and small bare tables on both sides, arched cream ceiling with amber dome lamps, empty brass luggage racks, large windows showing a bare ochre plain. No passengers, no luggage, no bees. A closed brass-framed sliding door with a small lit window at the far end.",
+   "chapters": [],
+   "worlds": [],
+   "door": null,
+   "scene": "An empty carriage: seats, tables, lamps, windows, a closed door at the far end.",
+   "bees": "none.",
+   "people": "none.",
+   "deed": "nothing. He walks.",
+   "window": "a bare ochre plain.",
+   "genie": "A playable third-person world: THE SEALED LINE. One continuous take aboard a weathered 1970s passenger train crossing ochre highlands. The protagonist is a lone traveler in a long canvas duster coat and a dark felt hat. He walks the central aisle and passes through the brass-framed sliding doors between carriages. The train never stops moving. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber lamps, heavy grain. No cuts, dissolves, teleporting or interface overlays: every change arrives through a door, a window or an object. This first carriage is empty. Teal panelled walls, oxblood leather bench seats and small tables on both sides, amber dome lamps, brass luggage racks, large windows. No passengers, no luggage, no cups, no bees, no sound but the rails. Nothing has happened here yet. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window.",
+   "events": [
+    "He walks the length of the empty carriage.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ]
+  },
+  {
+   "id": "run_2_dining",
+   "run": 2,
+   "title": "2. Sealed velocity",
+   "car": 2,
+   "x": 5.6,
+   "dir": -1,
+   "walk": 3,
+   "km": 2.38,
+   "shot": "follow",
+   "ref": "assets/worlds/dining.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat, hands clasped behind his back, walking away from the camera down the central aisle of an elegant weathered railway dining car: white linen tables with small brass lamps, cups and sugar bowls on both sides, oxblood chairs, teal walls, diners in 1970s suits and white shawls all standing at their tables facing him and applauding. A dozen honeybees circle the sugar bowls. Through the right windows a Victorian steam train runs alongside. A closed brass-framed sliding door with a small lit window at the far end of the carriage.",
+   "chapters": [
+    "03 Bullet Train",
+    "04 Snowpiercer"
+   ],
+   "worlds": [
+    {
+     "uid": "W-0045",
+     "name": "Smart Locker0527"
+    },
+    {
+     "uid": "W-0046",
+     "name": "Quiet Car Nippon Speedline"
+    },
+    {
+     "uid": "W-0047",
+     "name": "Mobile Concession Cart"
+    },
+    {
+     "uid": "W-0052",
+     "name": "First Class Cabin Prince"
+    },
+    {
+     "uid": "W-0053",
+     "name": "Automated Train Lavatory"
+    },
+    {
+     "uid": "W-0054",
+     "name": "Breached Exterior Train Door"
+    },
+    {
+     "uid": "W-0056",
+     "name": "Momomon Mascot Suit"
+    },
+    {
+     "uid": "W-0050",
+     "name": "Loves You Luggage Storage"
+    },
+    {
+     "uid": "W-0060",
+     "name": "Protein Block Machine Tail"
+    },
+    {
+     "uid": "W-0063",
+     "name": "Sacred Engine Room Car1"
+    },
+    {
+     "uid": "W-0066",
+     "name": "Kronole Storage Mid Train"
+    },
+    {
+     "uid": "W-0069",
+     "name": "Water Reclamation Tanks First Class"
+    },
+    {
+     "uid": "W-0070",
+     "name": "Night Vision Goggles Armory"
+    },
+    {
+     "uid": "W-0071",
+     "name": "Child Laborer Engine Subfloor"
+    },
+    {
+     "uid": "W-0073",
+     "name": "Greenhouse Car Equator"
+    },
+    {
+     "uid": "W-0076",
+     "name": "Classroom Car Anthem"
+    },
+    {
+     "uid": "W-0077",
+     "name": "Tailor Station Second Class"
+    },
+    {
+     "uid": "W-0079",
+     "name": "Violin Strings Dining Car"
+    },
+    {
+     "uid": "W-0080",
+     "name": "Butcher Station Livestock Car"
+    },
+    {
+     "uid": "W-0090",
+     "name": "Sushi Aquarium Filtration Pump"
+    },
+    {
+     "uid": "W-0091",
+     "name": "Dented Door Tail Boundary"
+    },
+    {
+     "uid": "W-0096",
+     "name": "Intercom Speaker Tail"
+    },
+    {
+     "uid": "W-0097",
+     "name": "Hatchet Blade Armory Corridor"
+    },
+    {
+     "uid": "W-0098",
+     "name": "Wilford Pocket Watch Engine Room"
+    },
+    {
+     "uid": "W-0099",
+     "name": "Masons Shoe Threshold"
+    },
+    {
+     "uid": "W-0100",
+     "name": "Shattered Window First Class Lounge"
+    },
+    {
+     "uid": "W-0086",
+     "name": "Frozen Seoul View"
+    },
+    {
+     "uid": "W-0065",
+     "name": "Polar Bear Snowdrift Crash Site"
+    },
+    {
+     "uid": "W-0064",
+     "name": "Frozen Body Tail Exterior"
+    },
+    {
+     "uid": "W-0061",
+     "name": "Yekaterina Bridge Russian Far East"
+    },
+    {
+     "uid": "W-0093",
+     "name": "Frozen Skyscraper Avalanche"
+    },
+    {
+     "uid": "W-0081",
+     "name": "Ice Jam Siberian Undercarriage"
+    },
+    {
+     "uid": "W-0094",
+     "name": "Prison Drawer Namgoong Minsu"
+    }
+   ],
+   "door": "He slides the door open and steps through the dark gangway. The door shuts behind him. The next carriage is a dining car on a train that must never stop.",
+   "scene": "A first-class dining car crammed with a whole sealed train's worth of rooms: linen tables where a violinist plays for diners in furs; a long sushi counter built around a bubbling aquarium; beside it a steel machine extruding black gelatin protein blocks onto a tray; a butcher's rail of hanging chickens; a tailor's station with a measuring tape; a row of school desks where children sing an anthem to a teacher at a blackboard; a wall of numbered smart lockers, one open with a silver briefcase inside; a concession cart of bottled water jammed in the aisle; a pink cartoon mascot suit slumped in a seat; steel drawers along the floor, one open with a man asleep in it; a shoe placed on a diner's head like a hat; an intercom horn barking orders; a hatchet buried in a doorframe; a brass pocket watch swinging from a lamp; a child's arm reaching up through a floor hatch to oil a gear; water tanks sweating overhead.",
+   "bees": "exactly one. It walks the rim of a diner's glass, then follows him.",
+   "people": "diners in furs who eat without looking up, two men in suits fighting silently over the briefcase and shushing each other, a prim official with large glasses conducting the children, masked guards in night-vision goggles at both doors.",
+   "deed": "the concession cart is shoved into his shins. One of the fighting men uses him as a shield, the other apologises in a whisper and straightens his hat. The official takes the shoe from the diner's head and sets it on his. A child hands him a protein block and waits until he bites it. The one bee stings the back of his hand; the welt stays for the rest of the journey.",
+   "window": "everything is frozen white: a city of iced skyscrapers, a trestle bridge packed with ice, a polar bear watching from a snowdrift, one upraised frozen arm beside the track. A window at the end of the car is shattered and snow blows in across the linen.",
+   "genie": "He slides the door open and steps through the dark gangway. The door shuts behind him. The next carriage is a dining car on a train that must never stop. A first-class dining car crammed with a whole sealed train's worth of rooms: linen tables where a violinist plays for diners in furs; a long sushi counter built around a bubbling aquarium; beside it a steel machine extruding black gelatin protein blocks onto a tray; a butcher's rail of hanging chickens; a tailor's station with a measuring tape; a row of school desks where children sing an anthem to a teacher at a blackboard; a wall of numbered smart lockers, one open with a silver briefcase inside; a concession cart of bottled water jammed in the aisle; a pink cartoon mascot suit slumped in a seat; steel drawers along the floor, one open with a man asleep in it; a shoe placed on a diner's head like a hat; an intercom horn barking orders; a hatchet buried in a doorframe; a brass pocket watch swinging from a lamp; a child's arm reaching up through a floor hatch to oil a gear; water tanks sweating overhead. Bees: exactly one. It walks the rim of a diner's glass, then follows him. People: diners in furs who eat without looking up, two men in suits fighting silently over the briefcase and shushing each other, a prim official with large glasses conducting the children, masked guards in night-vision goggles at both doors. What happens to him: the concession cart is shoved into his shins. One of the fighting men uses him as a shield, the other apologises in a whisper and straightens his hat. The official takes the shoe from the diner's head and sets it on his. A child hands him a protein block and waits until he bites it. The one bee stings the back of his hand; the welt stays for the rest of the journey. Outside: everything is frozen white: a city of iced skyscrapers, a trestle bridge packed with ice, a polar bear watching from a snowdrift, one upraised frozen arm beside the track. A window at the end of the car is shattered and snow blows in across the linen. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window.",
+   "events": [
+    "the concession cart is shoved into his shins. One of the fighting men uses him as a shield, the other apologises in a whisper and straightens his hat. The official takes the shoe from the diner's head and sets it on his. A child hands him a protein block and waits until he bites it. The one bee stings the back of his hand; the welt stays for the rest of the journey.",
+    "Outside the windows: everything is frozen white: a city of iced skyscrapers, a trestle bridge packed with ice, a polar bear watching from a snowdrift, one upraised frozen arm beside the track. A window at the end of the car is shattered and snow blows in across the linen.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ]
+  },
+  {
+   "id": "run_3_greenhouse",
+   "run": 3,
+   "title": "3. Half for me, half for them",
+   "car": 3,
+   "x": 5.6,
+   "dir": -1,
+   "walk": 3,
+   "km": 1.6,
+   "shot": "follow",
+   "ref": "assets/worlds/greenhouse.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat, hands clasped behind his back, walking away from the camera down the central aisle of a railway carriage that is a greenhouse: glass roof and walls with teal iron ribs, planters overflowing with coffee shrubs, flowers and vines on both sides, wooden beehive boxes, cyan jerrycans feeding drip lines, a child dancing in the aisle, warm rain falling inside, hundreds of bees over the flowers. Through the glass the train crosses a high viaduct above clouds. A closed brass-framed sliding door with a small lit window at the far end of the carriage.",
+   "chapters": [
+    "05 Honeyland"
+   ],
+   "worlds": [
+    {
+     "uid": "W-0102",
+     "name": "Bekirlija Village"
+    },
+    {
+     "uid": "W-0103",
+     "name": "Limestone Crevice"
+    },
+    {
+     "uid": "W-0104",
+     "name": "Editing Room Skopje"
+    },
+    {
+     "uid": "W-0105",
+     "name": "Spider Caves"
+    },
+    {
+     "uid": "W-0106",
+     "name": "Skopje Market"
+    },
+    {
+     "uid": "W-0107",
+     "name": "Arrival Of Hussein"
+    },
+    {
+     "uid": "W-0108",
+     "name": "Apicultural Museum"
+    },
+    {
+     "uid": "W-0109",
+     "name": "Langstroth Patent"
+    },
+    {
+     "uid": "W-0110",
+     "name": "Hollowed Tree Trunk"
+    },
+    {
+     "uid": "W-0111",
+     "name": "Sundance Awards"
+    },
+    {
+     "uid": "W-0112",
+     "name": "Macedonian Bee Lineage"
+    },
+    {
+     "uid": "W-0113",
+     "name": "Verbal Transaction"
+    },
+    {
+     "uid": "W-0114",
+     "name": "Winter Bound Bed"
+    },
+    {
+     "uid": "W-0115",
+     "name": "Colony Collapse Threshold"
+    },
+    {
+     "uid": "W-0116",
+     "name": "Yugoslav Archive"
+    },
+    {
+     "uid": "W-0117",
+     "name": "Egyptian Sun Temple"
+    },
+    {
+     "uid": "W-0118",
+     "name": "Half For Them Rule"
+    }
+   ],
+   "door": "He slides the door open and steps through the dark gangway. The door shuts behind him. Warm air comes out to meet him. The next carriage is a greenhouse with a mountain village growing in it.",
+   "scene": "A glass-roofed carriage holding a whole hillside: on the left a limestone cliff face rises to the roof with wild honeycomb glowing in a crevice; a hollowed tree trunk hive lies across two planters; stone houses of an abandoned village the size of doll's houses sit among coffee shrubs; an old woman lies in a winter bed under quilts between the flower beds, a candle beside her; a market stall of honey jars with a brass scale; a small herd of cattle wedged in the aisle; a row of white box hives being opened too fast; painted wooden hive panels leaning against the glass; a patent drawing of a movable-frame hive pinned to a rib; a film-editing bench with strips of footage hanging like vines; a filing cabinet of agricultural decrees with moss on it; a small sandstone sun temple whose reliefs are bees; a golden trophy among the tomatoes. It is raining inside.",
+   "bees": "dozens, calm, working the flowers. Half of every comb in the carriage has been left uncut.",
+   "people": "a beekeeper in a yellow blouse and green headscarf working the cliff bare-handed and singing to the bees; a loud family with seven children and a caravan chasing calves; a merchant counting money; two people filming everything from behind a planter.",
+   "deed": "the beekeeper cuts a comb in two and presses half into his hand: half for him, half for them. The family's children climb him like a tree and take his hat; a calf leans its full weight against his legs. He is soaked by the indoor rain. When the neighbour takes all the honey from a box hive, the bees turn on everyone and he is stung on the cheek, which swells.",
+   "window": "the train is crossing a viaduct so high the clouds are below the glass; on a far ridge, a single lit stone house.",
+   "genie": "He slides the door open and steps through the dark gangway. The door shuts behind him. Warm air comes out to meet him. The next carriage is a greenhouse with a mountain village growing in it. A glass-roofed carriage holding a whole hillside: on the left a limestone cliff face rises to the roof with wild honeycomb glowing in a crevice; a hollowed tree trunk hive lies across two planters; stone houses of an abandoned village the size of doll's houses sit among coffee shrubs; an old woman lies in a winter bed under quilts between the flower beds, a candle beside her; a market stall of honey jars with a brass scale; a small herd of cattle wedged in the aisle; a row of white box hives being opened too fast; painted wooden hive panels leaning against the glass; a patent drawing of a movable-frame hive pinned to a rib; a film-editing bench with strips of footage hanging like vines; a filing cabinet of agricultural decrees with moss on it; a small sandstone sun temple whose reliefs are bees; a golden trophy among the tomatoes. It is raining inside. Bees: dozens, calm, working the flowers. Half of every comb in the carriage has been left uncut. People: a beekeeper in a yellow blouse and green headscarf working the cliff bare-handed and singing to the bees; a loud family with seven children and a caravan chasing calves; a merchant counting money; two people filming everything from behind a planter. What happens to him: the beekeeper cuts a comb in two and presses half into his hand: half for him, half for them. The family's children climb him like a tree and take his hat; a calf leans its full weight against his legs. He is soaked by the indoor rain. When the neighbour takes all the honey from a box hive, the bees turn on everyone and he is stung on the cheek, which swells. Outside: the train is crossing a viaduct so high the clouds are below the glass; on a far ridge, a single lit stone house. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window.",
+   "events": [
+    "the beekeeper cuts a comb in two and presses half into his hand: half for him, half for them. The family's children climb him like a tree and take his hat; a calf leans its full weight against his legs. He is soaked by the indoor rain. When the neighbour takes all the honey from a box hive, the bees turn on everyone and he is stung on the cheek, which swells.",
+    "Outside the windows: the train is crossing a viaduct so high the clouds are below the glass; on a far ridge, a single lit stone house.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ]
+  },
+  {
+   "id": "run_4_apiary",
+   "run": 4,
+   "title": "4. The beekeepers",
+   "car": 4,
+   "x": 5.6,
+   "dir": -1,
+   "walk": 3,
+   "km": 3.22,
+   "shot": "follow",
+   "ref": "assets/worlds/apiary.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat, hands clasped behind his back, walking away from the camera down the central aisle of a windowless railway carriage that is a museum of beekeeping at night: both walls covered floor to ceiling with small painted wooden beehive panels of saints, hunters, trains and animals, glass vitrines of glowing honeycomb, woven straw hives hanging from the ceiling, amber honey light, an old woman beekeeper in a white headwrap kneeling in prayer, the air thick with thousands of bees flying in ribbons. A closed brass-framed sliding door with a small lit window at the far end of the carriage.",
+   "chapters": [
+    "01 Beekeeper"
+   ],
+   "worlds": [
+    {
+     "uid": "W-0013",
+     "name": "Anisette Terminal"
+    },
+    {
+     "uid": "W-0014",
+     "name": "False Bottom Honey Centrifuge"
+    },
+    {
+     "uid": "W-0015",
+     "name": "Beach Assault Landing Zone"
+    },
+    {
+     "uid": "W-0016",
+     "name": "Boston FBIField Office"
+    },
+    {
+     "uid": "W-0017",
+     "name": "High Society Nightclub Atrium"
+    },
+    {
+     "uid": "W-0018",
+     "name": "Global Tracing Signal Interface"
+    },
+    {
+     "uid": "W-0019",
+     "name": "Wrecked Tactical Humvee"
+    },
+    {
+     "uid": "W-0020",
+     "name": "White Picket Fence Property"
+    },
+    {
+     "uid": "W-0021",
+     "name": "Rainy Airport Tarmac"
+    },
+    {
+     "uid": "W-0022",
+     "name": "Overlook Command Post"
+    },
+    {
+     "uid": "W-0023",
+     "name": "Concrete Stairwell Exploding Data Center"
+    },
+    {
+     "uid": "W-0024",
+     "name": "Smoldering Hive Frame"
+    },
+    {
+     "uid": "W-0025",
+     "name": "Glass Enclosure Executive Penthouse"
+    },
+    {
+     "uid": "W-0026",
+     "name": "Offshore Financial Server Rack"
+    },
+    {
+     "uid": "W-0027",
+     "name": "Audio Recording Command Directive"
+    },
+    {
+     "uid": "W-0028",
+     "name": "Rooftop Helicopter Extraction Point"
+    },
+    {
+     "uid": "W-0029",
+     "name": "Armory Concealed Behind Honey Jars"
+    }
+   ],
+   "door": "He slides the door open and steps through the dark gangway. The door shuts behind him. The sound arrives before the light. The next carriage is an apiary that is also an armoury.",
+   "scene": "A windowless carriage lined floor to ceiling with painted hive panels and shelves of honey jars; one shelf has swung open like a door on a wall of rifles behind the jars. A steel honey centrifuge with a false bottom stands open on a cache of passports and pistols. A white picket fence runs down one side of the aisle with a mown strip of lawn and a mailbox. A hive frame smoulders on a table, still smoking. An old computer terminal glows green with a world map of tracing lines; a rack of blinking servers drips honey; a reel-to-reel recorder plays a calm voice giving an order; a glass-walled office the size of a phone booth holds a man in a suit pounding on the glass; a nightclub's mirrored bar and dance floor fill one corner under a slow disco ball; the burned-out shell of an armoured truck is parked across the far end, its doors open; a concrete stairwell leads up into the ceiling and smoke comes down it; a helicopter searchlight sweeps through the roof vents.",
+   "bees": "hundreds, flying in tight ribbons that part around him and close behind him.",
+   "people": "a retired beekeeper in a canvas jacket calmly lifting frames with bare hands; agents in windbreakers shouting into radios; clubgoers in sequins dancing as if nothing is wrong; a squad in black sliding down ropes from the roof vents; an elderly woman at the mailbox reading a bank letter and crying.",
+   "deed": "an agent mistakes him for the beekeeper and handcuffs one of his wrists; the beekeeper snaps the cuff off with a hive tool without looking up, drops a veil over his hat and pushes a dripping frame into his hands. The roped squad swings through him like a door; a dancer spins him once. Honey runs down his sleeves. He is stung on both hands and does not drop the frame.",
+   "window": null,
+   "genie": "He slides the door open and steps through the dark gangway. The door shuts behind him. The sound arrives before the light. The next carriage is an apiary that is also an armoury. A windowless carriage lined floor to ceiling with painted hive panels and shelves of honey jars; one shelf has swung open like a door on a wall of rifles behind the jars. A steel honey centrifuge with a false bottom stands open on a cache of passports and pistols. A white picket fence runs down one side of the aisle with a mown strip of lawn and a mailbox. A hive frame smoulders on a table, still smoking. An old computer terminal glows green with a world map of tracing lines; a rack of blinking servers drips honey; a reel-to-reel recorder plays a calm voice giving an order; a glass-walled office the size of a phone booth holds a man in a suit pounding on the glass; a nightclub's mirrored bar and dance floor fill one corner under a slow disco ball; the burned-out shell of an armoured truck is parked across the far end, its doors open; a concrete stairwell leads up into the ceiling and smoke comes down it; a helicopter searchlight sweeps through the roof vents. Bees: hundreds, flying in tight ribbons that part around him and close behind him. People: a retired beekeeper in a canvas jacket calmly lifting frames with bare hands; agents in windbreakers shouting into radios; clubgoers in sequins dancing as if nothing is wrong; a squad in black sliding down ropes from the roof vents; an elderly woman at the mailbox reading a bank letter and crying. What happens to him: an agent mistakes him for the beekeeper and handcuffs one of his wrists; the beekeeper snaps the cuff off with a hive tool without looking up, drops a veil over his hat and pushes a dripping frame into his hands. The roped squad swings through him like a door; a dancer spins him once. Honey runs down his sleeves. He is stung on both hands and does not drop the frame. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window.",
+   "events": [
+    "an agent mistakes him for the beekeeper and handcuffs one of his wrists; the beekeeper snaps the cuff off with a hive tool without looking up, drops a veil over his hat and pushes a dripping frame into his hands. The roped squad swings through him like a door; a dancer spins him once. Honey runs down his sleeves. He is stung on both hands and does not drop the frame.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ],
+   "far": 60
+  },
+  {
+   "id": "run_5_mirror",
+   "run": 5,
+   "title": "5. The angels",
+   "car": 5,
+   "x": 5.6,
+   "dir": -1,
+   "walk": 3,
+   "km": 4.45,
+   "shot": "follow",
+   "ref": "assets/worlds/mirror.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat, hands clasped behind his back, walking away from the camera down the central aisle of a narrow sleeper-car corridor at dusk: compartment doors with lit frosted windows and brass sconces on the left wall, large windows on the right, worn red carpet, a tall gilt mirror on the left, a confused passenger in the corridor, and beside the traveler a second figure of the same height made entirely of swarming bees walking in step with him. Outside, a pink salt lake with huge honeycomb monoliths floating in the air. A closed brass-framed sliding door with a small lit window at the far end of the carriage.",
+   "chapters": [
+    "06 Wings I",
+    "07 Wings II"
+   ],
+   "worlds": [
+    {
+     "uid": "W-0119",
+     "name": "Victory Column Vantage"
+    },
+    {
+     "uid": "W-0120",
+     "name": "Kaiser Wilhelm Memorial Ruins"
+    },
+    {
+     "uid": "W-0121",
+     "name": "State Library Thought Site"
+    },
+    {
+     "uid": "W-0122",
+     "name": "Circus Alekan Threshold"
+    },
+    {
+     "uid": "W-0140",
+     "name": "Potsdamer Platz Death Strip"
+    },
+    {
+     "uid": "W-0124",
+     "name": "Hansa Studios Mixing Desk"
+    },
+    {
+     "uid": "W-0142",
+     "name": "Peter Falk Sketchpad"
+    },
+    {
+     "uid": "W-0126",
+     "name": "Anhalter Bahnhof Ruins"
+    },
+    {
+     "uid": "W-0127",
+     "name": "Berlin Wall Graffiti Segment"
+    },
+    {
+     "uid": "W-0129",
+     "name": "Grand Hotel Esplanade Kaisersaal"
+    },
+    {
+     "uid": "W-0147",
+     "name": "Color Timing Suite"
+    },
+    {
+     "uid": "W-0148",
+     "name": "Original35mm Negatives"
+    },
+    {
+     "uid": "W-0149",
+     "name": "Nick Cave Esplanade Stage"
+    },
+    {
+     "uid": "W-0133",
+     "name": "Handke Song Of Childhood Notebook"
+    },
+    {
+     "uid": "W-0134",
+     "name": "UBahn Train Carriage"
+    },
+    {
+     "uid": "W-0152",
+     "name": "Prop Armor Surface"
+    },
+    {
+     "uid": "W-0128",
+     "name": "Cannes Film Festival1987"
+    }
+   ],
+   "door": "He slides the door open and steps through the dark gangway. The door shuts behind him. All colour drains away as he crosses the threshold. The next carriage is a sleeper corridor in black and white.",
+   "scene": "A narrow sleeper corridor in silver monochrome. Every compartment door stands open on a different room of a divided city: a library reading room where readers sit under green lamps; a circus tent with a trapeze swinging the width of the compartment; a strip of raked sand, barbed wire and a watchtower; a recording studio mixing desk with its meters twitching; the bombed stump of a church tower; the brick arch of a ruined railway terminus; a hotel ballroom with a rock band playing on a small stage; a film laboratory where strips of negative hang drying. A long concrete wall covered in bright graffiti runs down the window side, the only colour in the carriage. A suit of plate armour stands in the corridor. A notebook lies open on the carpet, a child's handwriting moving across the page by itself. In the gilt mirror, the corridor is in colour.",
+   "bees": "they have gathered into the shape of a man his height in an overcoat, who walks beside him in step and turns its head when he does.",
+   "people": "men in long dark overcoats with ponytails stand unseen behind every passenger, one hand on a shoulder, listening; the passengers' thoughts are audible as overlapping whispers. A trapeze artist with feathered wings swings out of her compartment and back. A rumpled man in a raincoat sketches faces on a pad and seems to know the angels are there.",
+   "deed": "an angel lays a hand on his shoulder and for a moment he hears everyone in the carriage think at once and stops walking. The trapeze artist takes his hat on one pass and returns it on the next. The man in the raincoat hands him a paper cup of coffee: the cup is hot, and where he holds it colour returns, spreading up his sleeve until he alone is in colour. The man made of bees touches his other shoulder and he is stung a dozen times.",
+   "window": "dusk over a grey city seen from above, as if the carriage ran along rooftops; a golden winged figure on a tall column is level with the windows and watching.",
+   "genie": "He slides the door open and steps through the dark gangway. The door shuts behind him. All colour drains away as he crosses the threshold. The next carriage is a sleeper corridor in black and white. A narrow sleeper corridor in silver monochrome. Every compartment door stands open on a different room of a divided city: a library reading room where readers sit under green lamps; a circus tent with a trapeze swinging the width of the compartment; a strip of raked sand, barbed wire and a watchtower; a recording studio mixing desk with its meters twitching; the bombed stump of a church tower; the brick arch of a ruined railway terminus; a hotel ballroom with a rock band playing on a small stage; a film laboratory where strips of negative hang drying. A long concrete wall covered in bright graffiti runs down the window side, the only colour in the carriage. A suit of plate armour stands in the corridor. A notebook lies open on the carpet, a child's handwriting moving across the page by itself. In the gilt mirror, the corridor is in colour. Bees: they have gathered into the shape of a man his height in an overcoat, who walks beside him in step and turns its head when he does. People: men in long dark overcoats with ponytails stand unseen behind every passenger, one hand on a shoulder, listening; the passengers' thoughts are audible as overlapping whispers. A trapeze artist with feathered wings swings out of her compartment and back. A rumpled man in a raincoat sketches faces on a pad and seems to know the angels are there. What happens to him: an angel lays a hand on his shoulder and for a moment he hears everyone in the carriage think at once and stops walking. The trapeze artist takes his hat on one pass and returns it on the next. The man in the raincoat hands him a paper cup of coffee: the cup is hot, and where he holds it colour returns, spreading up his sleeve until he alone is in colour. The man made of bees touches his other shoulder and he is stung a dozen times. Outside: dusk over a grey city seen from above, as if the carriage ran along rooftops; a golden winged figure on a tall column is level with the windows and watching. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window.",
+   "events": [
+    "an angel lays a hand on his shoulder and for a moment he hears everyone in the carriage think at once and stops walking. The trapeze artist takes his hat on one pass and returns it on the next. The man in the raincoat hands him a paper cup of coffee: the cup is hot, and where he holds it colour returns, spreading up his sleeve until he alone is in colour. The man made of bees touches his other shoulder and he is stung a dozen times.",
+    "Outside the windows: dusk over a grey city seen from above, as if the carriage ran along rooftops; a golden winged figure on a tall column is level with the windows and watching.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ]
+  },
+  {
+   "id": "run_6_surveillance",
+   "run": 6,
+   "title": "6. The breach",
+   "car": 6,
+   "x": 5.6,
+   "dir": -1,
+   "walk": 3,
+   "km": 3.3,
+   "shot": "follow",
+   "ref": "assets/worlds/surveillance.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat, hands clasped behind his back, walking away from the camera down the central aisle of a windowless railway carriage used as a surveillance room: both walls stacked with old CRT monitors and reel-to-reel recorders glowing teal, most of the screens crawling with bees, the rest showing this same corridor from behind him, cables across the steel floor, an angry hooded operator shouting, loose magnetic tape in the air, a dense swarm. A closed brass-framed sliding door with a small lit window at the far end of the carriage.",
+   "chapters": [
+    "00 Breach",
+    "02 Surveillance"
+   ],
+   "worlds": [
+    {
+     "uid": "W-0001",
+     "name": "Agri Dyne Breach"
+    },
+    {
+     "uid": "W-0002",
+     "name": "Nozomi64 Breach"
+    },
+    {
+     "uid": "W-0003",
+     "name": "CDCIntake Breach"
+    },
+    {
+     "uid": "W-0004",
+     "name": "Eurotunnel EMP"
+    },
+    {
+     "uid": "W-0005",
+     "name": "Davis Apiary Eradication"
+    },
+    {
+     "uid": "W-0006",
+     "name": "Channel Train Massacre"
+    },
+    {
+     "uid": "W-0007",
+     "name": "NORADStorm Recognition"
+    },
+    {
+     "uid": "W-0008",
+     "name": "Seoul Station Misdiagnosis"
+    },
+    {
+     "uid": "W-0009",
+     "name": "Hive Mind Strike"
+    },
+    {
+     "uid": "W-0010",
+     "name": "Seattle Kill Switch"
+    },
+    {
+     "uid": "W-0011",
+     "name": "Evergreen Protocol Transport"
+    },
+    {
+     "uid": "W-0012",
+     "name": "Lincoln Tunnel Firewall"
+    },
+    {
+     "uid": "W-0030",
+     "name": "Diplomatic Threshold 2017"
+    },
+    {
+     "uid": "W-0031",
+     "name": "Commercial Origin Shenzhen"
+    },
+    {
+     "uid": "W-0032",
+     "name": "Academic Testbed Atlanta"
+    },
+    {
+     "uid": "W-0033",
+     "name": "Graphical Threshold LA"
+    },
+    {
+     "uid": "W-0034",
+     "name": "Psychoacoustic Chamber Maryland"
+    },
+    {
+     "uid": "W-0035",
+     "name": "Maven Integration Virginia"
+    },
+    {
+     "uid": "W-0036",
+     "name": "Biometric Repository AWS"
+    },
+    {
+     "uid": "W-0037",
+     "name": "Ethical Frameworks Berkeley"
+    },
+    {
+     "uid": "W-0038",
+     "name": "Data Chokepoint Utah"
+    },
+    {
+     "uid": "W-0039",
+     "name": "Topographic Deadzone Tennessee"
+    },
+    {
+     "uid": "W-0040",
+     "name": "Stadium Surveillance Atlanta"
+    },
+    {
+     "uid": "W-0041",
+     "name": "IJCAI Threshold Buenos Aires"
+    },
+    {
+     "uid": "W-0042",
+     "name": "Simulated Campus Edinburgh"
+    },
+    {
+     "uid": "W-0043",
+     "name": "YOLO Git Hub Commit"
+    },
+    {
+     "uid": "W-0044",
+     "name": "Senate Vulnerability DC"
+    }
+   ],
+   "door": "He slides the door open and steps through the dark gangway. The door shuts behind him. Cold blue light and static. The next carriage is a control room that has already lost control.",
+   "scene": "A windowless carriage walled with CRT monitors and tape reels. The screens show a radar sweep with a storm on it that is not weather; a stadium crowd with a green box drawn on every face; a subway car full of slumped commuters; a green wireframe of a campus with tiny figures running; drone footage of a forest canopy; this corridor, from behind him, a few seconds from now. Down the middle: a long treaty table with flags and unsigned papers; a factory bench of palm-sized quadcopters, half assembled; an anechoic booth of foam wedges with one drone hovering in it; a hospital gurney under a plastic tent; a stack of white bee boxes sealed with hazard tape; a shipping container with frost on its doors; a server rack humming; a steel fire door across the far end with a keypad. A red telephone rings and nobody answers it.",
+   "bees": "thousands, and not all of them are bees: among them fly drones the size of bees, with a faint red light each. They cover most of the screens like a moving skin.",
+   "people": "radar operators in headsets standing on their chairs; delegates in suits arguing across the table in several languages; an engineer typing a single line of code again and again with shaking hands; medics in hazard suits; a professor trying to give a lecture to nobody; soldiers stacking sandbags in the aisle.",
+   "deed": "a green targeting box appears around his face on every screen and follows him. Medics seize him, lay him on the gurney, find the welts and let him go. A delegate pushes a pen into his hand and points at the treaty. On the monitors he trips a moment before he does: a cable takes his ankle and he goes down on one knee, and bees and drones settle across his back and shoulders. The engineer presses Enter; half the drones fall out of the air like hail; he gets up and walks on wearing the rest.",
+   "window": null,
+   "genie": "He slides the door open and steps through the dark gangway. The door shuts behind him. Cold blue light and static. The next carriage is a control room that has already lost control. A windowless carriage walled with CRT monitors and tape reels. The screens show a radar sweep with a storm on it that is not weather; a stadium crowd with a green box drawn on every face; a subway car full of slumped commuters; a green wireframe of a campus with tiny figures running; drone footage of a forest canopy; this corridor, from behind him, a few seconds from now. Down the middle: a long treaty table with flags and unsigned papers; a factory bench of palm-sized quadcopters, half assembled; an anechoic booth of foam wedges with one drone hovering in it; a hospital gurney under a plastic tent; a stack of white bee boxes sealed with hazard tape; a shipping container with frost on its doors; a server rack humming; a steel fire door across the far end with a keypad. A red telephone rings and nobody answers it. Bees: thousands, and not all of them are bees: among them fly drones the size of bees, with a faint red light each. They cover most of the screens like a moving skin. People: radar operators in headsets standing on their chairs; delegates in suits arguing across the table in several languages; an engineer typing a single line of code again and again with shaking hands; medics in hazard suits; a professor trying to give a lecture to nobody; soldiers stacking sandbags in the aisle. What happens to him: a green targeting box appears around his face on every screen and follows him. Medics seize him, lay him on the gurney, find the welts and let him go. A delegate pushes a pen into his hand and points at the treaty. On the monitors he trips a moment before he does: a cable takes his ankle and he goes down on one knee, and bees and drones settle across his back and shoulders. The engineer presses Enter; half the drones fall out of the air like hail; he gets up and walks on wearing the rest. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window.",
+   "events": [
+    "a green targeting box appears around his face on every screen and follows him. Medics seize him, lay him on the gurney, find the welts and let him go. A delegate pushes a pen into his hand and points at the treaty. On the monitors he trips a moment before he does: a cable takes his ankle and he goes down on one knee, and bees and drones settle across his back and shoulders. The engineer presses Enter; half the drones fall out of the air like hail; he gets up and walks on wearing the rest.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ],
+   "far": 60
+  },
+  {
+   "id": "run_7_cinema",
+   "run": 7,
+   "title": "7. The arrival of a train",
+   "car": 7,
+   "x": 5.6,
+   "dir": -1,
+   "walk": 3,
+   "km": 7.0,
+   "shot": "follow",
+   "ref": "assets/worlds/cinema.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat, hands clasped behind his back, walking away from the camera down the central aisle of a railway carriage converted into a small cinema: rows of red velvet seats on both sides of the aisle, an audience of beekeepers in white veils standing and clapping, heavy red drapes, a brass projector whose beam is solid with bees, and at the far end a glowing screen showing a sepia steam train arriving head on. Bees thick in the air and on his coat. A closed brass-framed sliding door with a small lit window at the far end of the carriage.",
+   "chapters": [
+    "08 Heist 1855",
+    "09 Steam",
+    "10 Lumi\u00e8re"
+   ],
+   "worlds": [
+    {
+     "uid": "W-0156",
+     "name": "Guard Van Night Mail"
+    },
+    {
+     "uid": "W-0155",
+     "name": "Chubb Workshop 1850s"
+    },
+    {
+     "uid": "W-0169",
+     "name": "Chubb Lock Mechanism 1855"
+    },
+    {
+     "uid": "W-0171",
+     "name": "Wax Workshop Apothecary 1854"
+    },
+    {
+     "uid": "W-0168",
+     "name": "Smelting Furnace 1855"
+    },
+    {
+     "uid": "W-0160",
+     "name": "London Bridge Ticket Office 1855"
+    },
+    {
+     "uid": "W-0161",
+     "name": "Old Bailey Courtroom 1857"
+    },
+    {
+     "uid": "W-0165",
+     "name": "Green Man Tavern 1850s"
+    },
+    {
+     "uid": "W-0170",
+     "name": "Scotland Yard Desk 1855"
+    },
+    {
+     "uid": "W-0167",
+     "name": "Royal Mint 1850s"
+    },
+    {
+     "uid": "W-0164",
+     "name": "Newgate Prison Registry 1855"
+    },
+    {
+     "uid": "W-0173",
+     "name": "Firebox Labor"
+    },
+    {
+     "uid": "W-0174",
+     "name": "Mobile Postal Architecture"
+    },
+    {
+     "uid": "W-0176",
+     "name": "Kinetic Exchange"
+    },
+    {
+     "uid": "W-0179",
+     "name": "Concentrated Correspondence"
+    },
+    {
+     "uid": "W-0184",
+     "name": "Human Machine Interface"
+    },
+    {
+     "uid": "W-0185",
+     "name": "Granular Social Network"
+    },
+    {
+     "uid": "W-0186",
+     "name": "Cinematographe Tripod Site"
+    },
+    {
+     "uid": "W-0187",
+     "name": "Salon Indien Grand Cafe"
+    },
+    {
+     "uid": "W-0188",
+     "name": "Crank Handle Interface"
+    },
+    {
+     "uid": "W-0189",
+     "name": "Emulsion Mixing Vats"
+    },
+    {
+     "uid": "W-0190",
+     "name": "Woman In Plaid Cape"
+    },
+    {
+     "uid": "W-0194",
+     "name": "Steam Locomotive Drive Wheels"
+    },
+    {
+     "uid": "W-0196",
+     "name": "Nitrate Negative Archive Shelf"
+    },
+    {
+     "uid": "W-0198",
+     "name": "M\u00e9li\u00e8s Seat"
+    },
+    {
+     "uid": "W-0199",
+     "name": "Luggage Cart"
+    },
+    {
+     "uid": "W-0201",
+     "name": "Train Carriage Window Threshold"
+    },
+    {
+     "uid": "W-0202",
+     "name": "Editing Splicing Block"
+    },
+    {
+     "uid": "W-0203",
+     "name": "Box Office Till"
+    },
+    {
+     "uid": "W-0205",
+     "name": "Lens Grinding Workstation"
+    },
+    {
+     "uid": "W-0206",
+     "name": "Projection Screen Canvas"
+    },
+    {
+     "uid": "W-0209",
+     "name": "Child Looking At Camera"
+    },
+    {
+     "uid": "W-0210",
+     "name": "Platform Floorboards"
+    },
+    {
+     "uid": "W-0214",
+     "name": "Hand Painted Movie Poster"
+    },
+    {
+     "uid": "W-0215",
+     "name": "Darkroom Chemical Bath"
+    },
+    {
+     "uid": "W-0216",
+     "name": "Pocket Watch"
+    },
+    {
+     "uid": "W-0220",
+     "name": "Arc Lamp Carbon Rods"
+    },
+    {
+     "uid": "W-0193",
+     "name": "AIUpscale Server Rack"
+    },
+    {
+     "uid": "W-0213",
+     "name": "You Tube Comment Section"
+    }
+   ],
+   "door": "He slides the door open and steps through the dark gangway. The door shuts behind him. Darkness, then a flickering beam. The next carriage is a cinema, a mail van and a strongroom at once.",
+   "scene": "A railway carriage converted into a tiny gaslit cinema: rows of velvet seats, a brass hand-cranked projector on a wooden tripod, an arc lamp spitting between carbon rods, a canvas screen at the far end where a steam train arrives at a station head on. Around the seats the carriage is also a Victorian night mail: a wall of pigeonholes where sorters fling letters without looking; a net and leather pouch hung out of the side door to snatch a mail bag at speed; an open firebox roaring where a fireman shovels coal; and a guard's van, with two iron safes, their doors open, gold bars being swapped for bags of lead shot. A locksmith's bench of keys and wax impressions; a small smelting furnace pouring gold; a ticket window; a judge's bench and dock built into the back row; a tavern table of conspirators; vats of silver emulsion; shelves of film cans; a splicing block; a darkroom tray with an image coming up in it; a hand-painted poster; a luggage cart; a box-office till; a humming server rack re-drawing the film sharper than it ever was; a scroll of comments unrolling down one wall.",
+   "bees": "the projector beam is solid with them; their shadows are the film.",
+   "people": "an audience in 1895 dress who flinch from the screen and laugh; a man in the third row taking notes on how it is done; a woman in a plaid cape; a child in white who turns and stares straight at the camera; top-hatted robbers working in silence; a judge in a wig; mail sorters who never stop.",
+   "deed": "a robber presses a gold bar into his arms, heavy enough to bend him, and a guard immediately takes it back and gives him a bag of lead shot instead. A sorter stuffs letters into his coat pockets. The judge points at him and the whole audience turns. He is lifted off his feet and carried overhead, hand over hand, to the front row and set down before the screen, his coat more bees than cloth. The locomotive on the screen does not stop at the edge of the picture.",
+   "window": null,
+   "genie": "He slides the door open and steps through the dark gangway. The door shuts behind him. Darkness, then a flickering beam. The next carriage is a cinema, a mail van and a strongroom at once. A railway carriage converted into a tiny gaslit cinema: rows of velvet seats, a brass hand-cranked projector on a wooden tripod, an arc lamp spitting between carbon rods, a canvas screen at the far end where a steam train arrives at a station head on. Around the seats the carriage is also a Victorian night mail: a wall of pigeonholes where sorters fling letters without looking; a net and leather pouch hung out of the side door to snatch a mail bag at speed; an open firebox roaring where a fireman shovels coal; and a guard's van, with two iron safes, their doors open, gold bars being swapped for bags of lead shot. A locksmith's bench of keys and wax impressions; a small smelting furnace pouring gold; a ticket window; a judge's bench and dock built into the back row; a tavern table of conspirators; vats of silver emulsion; shelves of film cans; a splicing block; a darkroom tray with an image coming up in it; a hand-painted poster; a luggage cart; a box-office till; a humming server rack re-drawing the film sharper than it ever was; a scroll of comments unrolling down one wall. Bees: the projector beam is solid with them; their shadows are the film. People: an audience in 1895 dress who flinch from the screen and laugh; a man in the third row taking notes on how it is done; a woman in a plaid cape; a child in white who turns and stares straight at the camera; top-hatted robbers working in silence; a judge in a wig; mail sorters who never stop. What happens to him: a robber presses a gold bar into his arms, heavy enough to bend him, and a guard immediately takes it back and gives him a bag of lead shot instead. A sorter stuffs letters into his coat pockets. The judge points at him and the whole audience turns. He is lifted off his feet and carried overhead, hand over hand, to the front row and set down before the screen, his coat more bees than cloth. The locomotive on the screen does not stop at the edge of the picture. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window.",
+   "events": [
+    "a robber presses a gold bar into his arms, heavy enough to bend him, and a guard immediately takes it back and gives him a bag of lead shot instead. A sorter stuffs letters into his coat pockets. The judge points at him and the whole audience turns. He is lifted off his feet and carried overhead, hand over hand, to the front row and set down before the screen, his coat more bees than cloth. The locomotive on the screen does not stop at the edge of the picture.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ],
+   "far": 60
+  },
+  {
+   "id": "run_8_hive",
+   "run": 8,
+   "title": "8. Inside the hive",
+   "car": 8,
+   "x": 5.6,
+   "dir": -1,
+   "walk": 3,
+   "km": 6.9,
+   "shot": "follow",
+   "ref": "assets/worlds/beecam.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat, hands clasped behind his back, walking away from the camera down the central aisle of the inside of a colossal beehive that has the shape of a railway carriage: walls and arched ceiling made entirely of golden hexagonal honeycomb, some cells glowing like lamps, a soft wax floor with pools of honey, an enormous glowing queen cell at the far end, air dense with bees, two human figures made of bees swaying. The traveler's coat and hat are completely covered in bees. A closed brass-framed sliding door with a small lit window at the far end of the carriage.",
+   "chapters": [
+    "11 Bee Movie",
+    "all chapters return"
+   ],
+   "worlds": [
+    {
+     "uid": "W-0221",
+     "name": "Dream Works Render Farm2006"
+    },
+    {
+     "uid": "W-0222",
+     "name": "Amagansett Pitch2000s"
+    },
+    {
+     "uid": "W-0223",
+     "name": "Adee Honey Farms Migration2007"
+    },
+    {
+     "uid": "W-0224",
+     "name": "Tumblr Bee Movie Script2013"
+    },
+    {
+     "uid": "W-0225",
+     "name": "USDACCDDiscovery2006"
+    },
+    {
+     "uid": "W-0226",
+     "name": "Golden Blossom Packaging2007"
+    },
+    {
+     "uid": "W-0227",
+     "name": "Mc Donalds Bee Movie Toys2007"
+    },
+    {
+     "uid": "W-0228",
+     "name": "California Bees As Fish Ruling2022"
+    }
+   ],
+   "door": "He walks into the screen. It parts like a curtain of wings. There is no next carriage; there is the hive.",
+   "scene": "The last carriage has the proportions of a carriage and nothing else of one: walls, arched ceiling and floor are living golden honeycomb, some cells lit from inside like windows. In the lit cells, in miniature, are the rooms he has walked through: the dining car in snow, the greenhouse cliff, the armoury behind the honey jars, the monochrome corridor, the wall of screens, the cinema. Set into the comb like fossils: flatbed trucks stacked with white bee boxes; a bottling line filling plastic honey bears; a heap of cheap plastic cartoon bee toys; rows of computers rendering a single cartoon bee, frame by frame; an endless printed script unrolling from the ceiling like flypaper; a courtroom bench where a judge's ruling declares that a bee is legally a fish, with a goldfish bowl beside the gavel; laboratory trays of dead bees with labels. Honey pools on the soft wax floor. At the far end the queen's cell glows.",
+   "bees": "all of them. The air is bees; the sound is a single chord.",
+   "people": "none. The figures who sway here are bees in the shape of the passengers he has passed: the diners, the beekeeper with the half comb, the agents, the angels, the operators, the audience.",
+   "deed": "he is entirely covered in bees and is no longer being stung. His steps slow in the wax. The script from the ceiling sticks to his shoulders and trails behind him. As he passes each lit cell the small room inside goes dark. He reaches the queen's cell, takes off his hat and kneels.",
+   "window": null,
+   "genie": "He walks into the screen. It parts like a curtain of wings. There is no next carriage; there is the hive. The last carriage has the proportions of a carriage and nothing else of one: walls, arched ceiling and floor are living golden honeycomb, some cells lit from inside like windows. In the lit cells, in miniature, are the rooms he has walked through: the dining car in snow, the greenhouse cliff, the armoury behind the honey jars, the monochrome corridor, the wall of screens, the cinema. Set into the comb like fossils: flatbed trucks stacked with white bee boxes; a bottling line filling plastic honey bears; a heap of cheap plastic cartoon bee toys; rows of computers rendering a single cartoon bee, frame by frame; an endless printed script unrolling from the ceiling like flypaper; a courtroom bench where a judge's ruling declares that a bee is legally a fish, with a goldfish bowl beside the gavel; laboratory trays of dead bees with labels. Honey pools on the soft wax floor. At the far end the queen's cell glows. Bees: all of them. The air is bees; the sound is a single chord. People: none. The figures who sway here are bees in the shape of the passengers he has passed: the diners, the beekeeper with the half comb, the agents, the angels, the operators, the audience. What happens to him: he is entirely covered in bees and is no longer being stung. His steps slow in the wax. The script from the ceiling sticks to his shoulders and trails behind him. As he passes each lit cell the small room inside goes dark. He reaches the queen's cell, takes off his hat and kneels. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window.",
+   "events": [
+    "he is entirely covered in bees and is no longer being stung. His steps slow in the wax. The script from the ceiling sticks to his shoulders and trails behind him. As he passes each lit cell the small room inside goes dark. He reaches the queen's cell, takes off his hat and kneels.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ],
+   "far": 40
+  }
+ ],
+ "run": {
+  "title": "One empty carriage, then seven doors",
+  "lock": "The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window.",
+  "corpus": "island-ecology \u00b7 BEES ON A TRAIN/worlds.json (228 worlds, 12 chapters)",
+  "covered": 158,
+  "how": "One session. It starts in an empty carriage so there is nothing to compete with what the doors bring. Each door cue pours whole chapters of the worlds file into the next carriage as things that are physically there, with people doing something to him. Everything is described by role and object, not by the names of real people or film titles.",
+  "ids": [
+   "run_1_empty",
+   "run_2_dining",
+   "run_3_greenhouse",
+   "run_4_apiary",
+   "run_5_mirror",
+   "run_6_surveillance",
+   "run_7_cinema",
+   "run_8_hive"
+  ]
+ }
+}

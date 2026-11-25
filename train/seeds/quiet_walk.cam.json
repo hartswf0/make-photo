@@ -1,0 +1,42 @@
+{
+ "camera": {
+  "extrinsics": {
+   "coordinateSystem": "rub",
+   "position": [
+    -11.425508744032303,
+    2.9698023378042557,
+    0.10125053562467289
+   ],
+   "quaternion": [
+    -0.02745644020362953,
+    0.7000498493282364,
+    0.02638121719525799,
+    0.7130781049269108
+   ]
+  },
+  "intrinsics": {
+   "width": 1280,
+   "height": 720,
+   "fx": 649.4571918977125,
+   "fy": 649.4571918977125,
+   "cx": 640,
+   "cy": 360
+  }
+ },
+ "observe": {
+  "t": 1.95,
+  "km": 0.796,
+  "speed": 26,
+  "phase": "run",
+  "car": "quiet",
+  "seated": false,
+  "x": -14.05,
+  "shot": "follow",
+  "take": false,
+  "world": null,
+  "segment": null,
+  "people": 12,
+  "calls": 303,
+  "tris": 706420
+ }
+}

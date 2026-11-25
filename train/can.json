@@ -1,0 +1,35 @@
+{
+ "can": 1,
+ "id": "train",
+ "name": "The Sealed Line",
+ "version": "2026.11.25",
+ "page": "./index.html",
+ "entry": null,
+ "ground": "own",
+ "frame": {
+  "origin": "the rail under the locomotive",
+  "units": "metres",
+  "scale": "true",
+  "axes": "+x is the direction of travel, +y up; the train is the fixed frame and the land moves under it"
+ },
+ "sites": [],
+ "line": "./line.json",
+ "bands": null,
+ "budget": {
+  "js_kb": 95,
+  "data_kb": 10500,
+  "build_ms": 1500
+ },
+ "packets": [
+  "kinds",
+  "places",
+  "life",
+  "voice"
+ ],
+ "legos": "./legos.json",
+ "look": "./look.json",
+ "sources": "./sources.json",
+ "seeds": "./data/seeds.json",
+ "status": "Not poured yet. The trough owns vehicles, and a train is a vehicle: it needs a rail service in the trough (a lane like the ferry's, stations as piers) before it can run there without a page load. Today the join is by door: every halt in line.json is a place in the overworld whose door boards the train, and getting off at a halt carries you back to that place.",
+ "note": "Bees on a Train as a make-photo level: a locomotive and eight carriages you walk through, a camera rig of twenty-four positions and moves, thresholds onto worlds made from the El Desierto train clips, and seeds for world-model takes."
+}
