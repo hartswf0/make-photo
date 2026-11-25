@@ -50,6 +50,8 @@ The take (▶) cuts between them and walks him down the train. `trainFilm.rig()`
 
 The main use of the seeds. One third-person walk down the train, WASD in the generator, a new prompt at every door.
 
+- **One request.** The session starts from one picture and one prompt (`data/session.json`, `request`). Everything after is sent into the running session: W held down, and one cue per door. The other seven dressed frames are references for judging a take, never inputs.
+- **Rehearsal.** `index.html?run` (or the Run button) plays the same session in the 3D train: third-person lock, WASD, and as each door opens the cue for the next carriage appears and is copied, so you can drive a generator beside it.
 - **The lock.** Every carriage is framed the same way: the follow shot, behind him at shoulder height, whole body in frame, a closed door at the far end. Every prompt ends with the same lock paragraph (`run.lock` in `data/seeds.json`).
 - **The seam.** The doors are real and shut. A carriage is not visible until he opens its door, and the prompt for it is issued at that moment: door, dark gangway, door shutting behind him. The new world arrives behind something that was always going to hide it.
 - **The escalation.** One bee in the quiet car, a dozen in the dining car, hundreds, thousands, a man made of bees, screens covered in them, a projector beam solid with them, and the eighth carriage is the inside of a hive. People go from asleep to carrying him overhead.

@@ -174,7 +174,7 @@ function frame() {
     worlds.updateStage(dt, { x: input.jx + axis('d', 'a'), y: input.jy + axis('w', 's'), yaw: input.yaw, pitch: input.pitch }); input.yaw = input.pitch = 0;
     audio.update(journey.speed * .5, 1, 0); renderer.render(worlds.stage.scene, worlds.stage.camera); return;
   }
-  const loc = stepActor(dt); stepTake(dt);
+  const loc = stepActor(dt); stepTake(dt); stepRun();
   const portal = worlds ? worlds.nearest(tmp.set(actor.x, DIM.FLOOR + 1.2, actor.z), 3.2) : null, own = worlds && worlds.portals.find(p => p.car === loc.car);
   const ctx = { a: actor, car: loc.car, aisleZ: loc.aisleZ, side: actor.seated ? Math.sign(actor.z) || 1 : (own && Math.abs(own.pos.z) > .5 ? Math.sign(own.pos.z) : 1), bee: bees.lead, t: state.t, dist: journey.dist, speed: journey.speed, noseX: train.noseX, tailX: train.tailX };
   rig.st.yaw += input.yaw; rig.st.pitch = clamp(rig.st.pitch + input.pitch, -1.1, 1.1); input.yaw = input.pitch = 0;
@@ -237,6 +237,22 @@ function capture(w = 1280, h = 720) {
   return { width: w, height: h, color, depth: b64(z.buffer), camera: { extrinsics: { coordinateSystem: 'rub', position: camera.position.toArray(), quaternion: camera.quaternion.toArray() }, intrinsics: { width: w, height: h, fx: fy, fy, cx: w / 2, cy: h / 2 } }, observe: api.observe() };
 }
 
+// ---- the run: a rehearsal of the single world-model session. Third-person lock, WASD, and at each door the cue that would be sent.
+const run = { on: false, cars: [], n: 1 };
+async function startRun() {
+  if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds;
+  run.cars = seeds.filter(x => x.run).sort((a, b) => a.run - b.run); run.on = true; run.n = 1; state.take = false; state.stings = 0;
+  if (worlds && worlds.stage.active) await worlds.exit();
+  actor.seated = false; actor.x = cars[1].x + 5.6; actor.z = 0; actor.dir = -1; actor.yaw = -Math.PI / 2; state.walkGoal = null; rig.set('follow'); ui.shot('follow', false);
+  document.body.classList.add('run'); ui.cue(run.cars[0], 1, run.cars.length, true); stub('The run', 'one session · hold W · a cue at every door'); return true;
+}
+function stepRun() {
+  if (!run.on) return; if (rig.st.shot.id !== 'follow') rig.set('follow');
+  const next = run.cars[run.n]; if (!next) return;
+  const door = train.doors.find(d => d.car.i === next.car - 1 && d.x < d.car.x);     // the rear door of the carriage he is leaving
+  if (door && door.open > .5 && actor.x - door.x < 1.9) { run.n++; ui.cue(next, run.n, run.cars.length, false); state.log.push({ t: +state.t.toFixed(1), cue: next.id }); try { navigator.clipboard.writeText(next.genie).catch(() => {}); } catch { } }
+}
+
 // ---- actions
 async function act() {
   if (worlds && worlds.stage.active) return worlds.exit();
@@ -263,9 +279,9 @@ const api = {
   act, stand, sit, still, record, swarm: (on = !state.forceSwarm) => (state.forceSwarm = on), jump: km => { journey.dist = km * 1000; journey.phase = 'run'; },
   walkTo: car => { if (actor.seated) stand(); state.walkGoal = cars[clamp(car, 0, 7)].x; }, enter: id => { const p = worlds.portals.find(p => p.ids.includes(id)); return p && worlds.enter(p, id); }, exit: () => worlds.exit(),
   next: d => { const s = worlds.stage; if (s.active) { s.portal.show(s.portal.index + d); return worlds.enter(s.portal); } }, live: () => worlds.toggleLive(),
-  deed, deeds: () => Object.keys(DEEDS), seed, capture, seeds: async () => { if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds; return seeds; },
+  run: startRun, endRun: () => { run.on = false; document.body.classList.remove('run'); ui.cue(null); }, deed, deeds: () => Object.keys(DEEDS), seed, capture, seeds: async () => { if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds; return seeds; },
   log: () => state.log.slice(), rig: (w, h) => rig.export({ a: actor, car: locate(cars, actor.x).car, aisleZ: 0, side: 1, bee: bees.lead, t: state.t, dist: journey.dist, speed: journey.speed, noseX: train.noseX, tailX: train.tailX }, w, h),
-  observe: () => ({ t: +state.t.toFixed(2), km: +(journey.dist / 1000).toFixed(3), speed: +journey.speed.toFixed(1), phase: journey.phase, car: cars[state.lastCar]?.key, seated: actor.seated, stings: state.stings, x: +actor.x.toFixed(2), shot: rig.st.shot.id, take: state.take, world: worlds?.stage.active ? worlds.stage.id : null, segment: land.env.segment?.type || null, people: people.length, calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
+  observe: () => ({ t: +state.t.toFixed(2), km: +(journey.dist / 1000).toFixed(3), speed: +journey.speed.toFixed(1), phase: journey.phase, car: cars[state.lastCar]?.key, seated: actor.seated, stings: state.stings, x: +actor.x.toFixed(2), shot: rig.st.shot.id, take: state.take, run: run.on ? run.n : 0, world: worlds?.stage.active ? worlds.stage.id : null, segment: land.env.segment?.type || null, people: people.length, calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
   _: { scene, camera, renderer, train, land, rig, actor, journey, state, input, get people() { return people; }, get cast() { return cast; }, get hero() { return hero; } },
 };
 window.trainFilm = api;
@@ -277,4 +293,4 @@ addEventListener('keyup', e => input.keys.delete(e.key.toLowerCase())); addEvent
 ui.loading('laying track');
 frame();
 buildWorlds({ scene, train, renderer, ui, toast: stub }).then(w => { worlds = w; if (params.get('world')) api.enter(params.get('world')); }).catch(e => console.warn('worlds unavailable', e));
-Promise.resolve(bootCast()).then(() => { if (params.get('seed')) seed(params.get('seed')); else if (params.get('shot')) setShot(params.get('shot')); else setShot('profile'); if (params.has('take')) api.take(true); stub('BEES ON A TRAIN', 'the sealed line · the train is moving, you cannot get off'); });
+Promise.resolve(bootCast()).then(() => { if (params.has('run')) startRun(); else if (params.get('seed')) seed(params.get('seed')); else if (params.get('shot')) setShot(params.get('shot')); else setShot('profile'); if (params.has('take')) api.take(true); stub('BEES ON A TRAIN', 'the sealed line · the train is moving, you cannot get off'); });

@@ -25,6 +25,7 @@ figcaption{position:absolute;left:8px;top:8px;font:600 10px/1 var(--mono);letter
 .prompt{font:13px/1.6 var(--mono);background:rgba(236,220,182,.05);border-left:3px solid var(--ox);padding:12px 14px;white-space:pre-wrap;max-height:210px;overflow:auto}
 ol{margin:0;padding-left:20px}li{margin:5px 0}
 h3{font:600 10px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--brass);margin:0 0 8px}
+.one{border:1px solid var(--brass);padding:14px 16px;margin:14px 0}.one p{margin:6px 0 2px}
 .intro{border-top:1px solid var(--line);padding-top:26px}.intro p{max-width:70ch;margin:8px 0}.lock{font:12px/1.6 var(--mono);opacity:.75}
 .beats{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}.beats dt{font:600 10px/1.9 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--brass);white-space:nowrap}.beats dd{margin:0}
 @media(max-width:760px){.beats{grid-template-columns:1fr}.beats dt{margin-top:6px}}
@@ -48,7 +49,7 @@ function card(s) {
   const a = el('article'); a.id = s.id;
   a.append(el('h2', '', s.title), el('div', 'meta', `${s.id} · ${s.shot} shot · km ${s.km} · 1280 × 720`));
   const pair = el('div', 'pair');
-  for (const [label, src] of [['Blocking', `seeds/${s.id}.blockout.jpg`], ['Seed', `seeds/${s.id}.jpg`]]) { const f = el('figure'), i = el('img'); i.src = src; i.loading = 'lazy'; i.alt = `${label}: ${s.title}`; f.append(i, el('figcaption', '', label)); pair.append(f); }
+  for (const [label, src] of [['3D blocking', `seeds/${s.id}.blockout.jpg`], [s.run > 1 ? 'Reference: what this door should reveal' : 'Seed', `seeds/${s.id}.jpg`]]) { const f = el('figure'), i = el('img'); i.src = src; i.loading = 'lazy'; i.alt = `${label}: ${s.title}`; f.append(i, el('figcaption', '', label)); pair.append(f); }
   const cols = el('div', 'cols'), left = el('div'), right = el('div');
   if (s.run) {
     const dl = el('dl', 'beats');
@@ -57,13 +58,16 @@ function card(s) {
   } else left.append(el('h3', '', 'Opening prompt'), el('div', 'prompt', s.genie));
   const ol = el('ol'); for (const e of s.events) ol.append(el('li', '', e)); right.append(el('h3', '', 'Then, one at a time'), ol);
   cols.append(left, right);
-  const bar = el('div', 'bar'), b1 = el('button', '', s.run > 1 ? 'Copy door prompt' : 'Copy opening prompt'), b2 = el('button', '', 'Copy events'), l1 = el('a', 'pill', 'Download seed'), l2 = el('a', 'pill', 'Stand here in the train →');
+  const bar = el('div', 'bar'), b1 = el('button', '', s.run > 1 ? 'Copy door prompt' : 'Copy opening prompt'), b2 = el('button', '', 'Copy events'), l1 = el('a', 'pill', s.run > 1 ? 'Download reference' : 'Download seed'), l2 = el('a', 'pill', 'Stand here in the train →');
   copy(b1, s.genie); copy(b2, s.events.join('\n')); l1.href = `seeds/${s.id}.jpg`; l1.download = `sealed-line_${s.id}.jpg`; l2.href = `./index.html?seed=${s.id}`;
   bar.append(b1, b2, l1, l2); a.append(pair, cols, bar); return a;
 }
 const run = d.seeds.filter(s => s.run).sort((a, b) => a.run - b.run), rest = d.seeds.filter(s => !s.run);
 if (run.length) {
   const h = el('section', 'intro'); h.append(el('div', 'k', 'The run'), el('h2', '', d.run.title + ': one walk, eight carriages, more bees each time'), el('p', '', d.run.how), el('p', 'lock', 'Ends every prompt: ' + d.run.lock));
+  const one = el('div', 'one'); one.append(el('h3', '', 'One request'), el('p', '', 'Only the first picture and the opening prompt start the session. Every later prompt is a cue sent into the running session as he opens a door, while you hold W. The other seven pictures are what each door should reveal: compare a take against them; do not send them.'));
+  const ob = el('div', 'bar'), o1 = el('a', 'pill', 'Download the one seed'), o2 = el('button', '', 'Copy the opening prompt'), o3 = el('a', 'pill', 'session.json'), o4 = el('a', 'pill', 'Rehearse it in 3D →');
+  o1.href = `seeds/${run[0].id}.jpg`; o1.download = 'sealed-line_seed.jpg'; copy(o2, run[0].genie); o3.href = 'data/session.json'; o4.href = './index.html?run'; ob.append(o1, o2, o3, o4); one.append(ob); h.append(one);
   const all = el('button', '', 'Copy the whole run script'); copy(all, run.map(s => `### ${s.title}${s.run > 1 ? ' — issue as the door opens' : ' — with the first seed'}\n${s.genie}\n\nThen, one at a time:\n${s.events.map(e => '- ' + e).join('\n')}`).join('\n\n')); h.append(all); list.append(h);
   for (const s of run) list.append(card(s));
   const h2 = el('section', 'intro'); h2.append(el('div', 'k', 'Other frames'), el('h2', '', 'Single seeds: windows, doorways and the train from outside')); list.append(h2);

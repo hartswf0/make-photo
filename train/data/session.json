@@ -1,0 +1,130 @@
+{
+ "session": 1,
+ "name": "The Sealed Line: eight doors",
+ "note": "One world-model session. One request starts it: the seed image and the opening prompt. Everything after that is sent into the running session: movement, and one cue each time he opens a door. The other seven pictures in seeds/ are references for comparison and are never sent.",
+ "request": {
+  "image": "seeds/run_1_quiet.jpg",
+  "size": [
+   1280,
+   720
+  ],
+  "prompt": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. He begins in the quiet car. Everything is ordinary: bench seats, small tables, sleeping passengers, cold coffee. Bees: exactly one. It hangs in the aisle at head height, in no hurry. People: asleep, every one of them, breathing together. What happens to him: the bee lands on the back of his hand and stings him once. He flinches, shakes the hand and keeps walking; a red welt rises on it and stays there for the rest of the journey. Outside: a golden angel on a stone column, far off on the plain, turns its head to watch the train. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window."
+ },
+ "controls": {
+  "view": "third person, locked behind him",
+  "move": "W forward down the aisle, S back, A and D to sidestep or turn",
+  "note": "Hold W. Stop at a door only long enough to send its cue."
+ },
+ "cues": [
+  {
+   "n": 1,
+   "when": "at the start, once the world is running",
+   "send": [
+    "the bee lands on the back of his hand and stings him once. He flinches, shakes the hand and keeps walking; a red welt rises on it and stays there for the rest of the journey.",
+    "Outside the windows: a golden angel on a stone column, far off on the plain, turns its head to watch the train.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ]
+  },
+  {
+   "n": 2,
+   "carriage": "A dozen bees",
+   "when": "as he opens door 1, with his hand on the handle",
+   "send": [
+    "He slides the door open and steps through the dark gangway. The door shuts behind him. The next carriage is a dining car. A dining car laid for a banquet: linen, brass table lamps, soup, sugar bowls, a musician with a krar at the far end. Bees: a dozen, working the sugar bowls and the rims of the glasses. People: every diner stands at once as he enters, turns to face him and applauds, slowly, without smiling. A waiter walks straight into him. What happens to him: the waiter's tray of soup goes down the front of his coat; hands reach out from both sides to brush him off, straighten his hat and turn him around once before letting him go. A bee stings the side of his neck. Outside: an older steam train keeps pace on a second track. In its window a man in the same hat and coat is being applauded too. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window."
+   ],
+   "then": [
+    "the waiter's tray of soup goes down the front of his coat; hands reach out from both sides to brush him off, straighten his hat and turn him around once before letting him go. A bee stings the side of his neck.",
+    "Outside the windows: an older steam train keeps pace on a second track. In its window a man in the same hat and coat is being applauded too.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ],
+   "check": "the waiter's tray of soup goes down the front of his coat; hands reach out from both sides to brush him off, straighten his hat and turn him around once before letting him go. A bee stings the side of his neck.",
+   "reference": "seeds/run_2_dining.jpg"
+  },
+  {
+   "n": 3,
+   "carriage": "Hundreds",
+   "when": "as he opens door 2, with his hand on the handle",
+   "send": [
+    "He slides the door open and steps through the gangway. Warm wet air comes out to meet him. The next carriage is a greenhouse. A forest under a glass roof: coffee shrubs, enset, flowers, hive boxes among the leaves, drip lines fed from cyan jerrycans. Bees: hundreds, a loud brown haze over every flower. People: a child is dancing alone in the aisle in the rain and will not move out of his way; she dances around him instead. What happens to him: it is raining inside the carriage and he is soaked in seconds. A vine hooks his hat and lifts it off his head; he has to jump to take it back. A bee stings his cheek, which swells. Outside: the train is on a viaduct so high that the clouds are below the glass. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window."
+   ],
+   "then": [
+    "it is raining inside the carriage and he is soaked in seconds. A vine hooks his hat and lifts it off his head; he has to jump to take it back. A bee stings his cheek, which swells.",
+    "Outside the windows: the train is on a viaduct so high that the clouds are below the glass.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ],
+   "check": "it is raining inside the carriage and he is soaked in seconds. A vine hooks his hat and lifts it off his head; he has to jump to take it back. A bee stings his cheek, which swells.",
+   "reference": "seeds/run_3_greenhouse.jpg"
+  },
+  {
+   "n": 4,
+   "carriage": "Thousands",
+   "when": "as he opens door 3, with his hand on the handle",
+   "send": [
+    "He slides the door open and steps through the gangway. The sound arrives before the light does. The next carriage is an apiary. A windowless carriage lined floor to ceiling with painted hive panels, vitrines of lit honeycomb, straw hives hanging overhead. The train is in a tunnel. Bees: thousands. They fly in ribbons that part around him and close behind him. People: an old beekeeper in a white headwrap kneels in the aisle praying to an open hive. The painted saints on the panels turn their heads to follow him. What happens to him: the beekeeper rises, drops a veil over his hat and pushes a dripping frame of comb into his hands; honey runs down his sleeves. Bees walk on the veil in front of his eyes. He is stung on both hands and does not drop the frame. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window."
+   ],
+   "then": [
+    "the beekeeper rises, drops a veil over his hat and pushes a dripping frame of comb into his hands; honey runs down his sleeves. Bees walk on the veil in front of his eyes. He is stung on both hands and does not drop the frame.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ],
+   "check": "the beekeeper rises, drops a veil over his hat and pushes a dripping frame of comb into his hands; honey runs down his sleeves. Bees walk on the veil in front of his eyes. He is stung on both hands and does not drop the frame.",
+   "reference": "seeds/run_4_apiary.jpg"
+  },
+  {
+   "n": 5,
+   "carriage": "A man made of bees",
+   "when": "as he opens door 4, with his hand on the handle",
+   "send": [
+    "He slides the door open and steps through the gangway. The carriage beyond is narrower than it should be: a sleeper corridor. A sleeper corridor: compartment doors on one side, windows on the other, brass sconces, a gilt mirror that shows another century. Bees: they have gathered into the shape of a man his height, in a hat, who walks beside him in step and turns its head when he does. People: every compartment door slides open at once and passengers in nightclothes crowd the corridor, take him by the shoulders and pass him from hand to hand down the carriage. What happens to him: he is spun round twice, his coat pulled half off and put back on him backwards, his hat exchanged for someone else's and then returned. The man made of bees puts a hand on his shoulder, and where it rests he is stung a dozen times. Outside: dusk over a salt lake. Honeycomb monoliths the size of houses hang in the air and one drifts close enough to scrape the glass. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window."
+   ],
+   "then": [
+    "he is spun round twice, his coat pulled half off and put back on him backwards, his hat exchanged for someone else's and then returned. The man made of bees puts a hand on his shoulder, and where it rests he is stung a dozen times.",
+    "Outside the windows: dusk over a salt lake. Honeycomb monoliths the size of houses hang in the air and one drifts close enough to scrape the glass.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ],
+   "check": "he is spun round twice, his coat pulled half off and put back on him backwards, his hat exchanged for someone else's and then returned. The man made of bees puts a hand on his shoulder, and where it rests he is stung a dozen times.",
+   "reference": "seeds/run_5_mirror.jpg"
+  },
+  {
+   "n": 6,
+   "carriage": "The screens are covered",
+   "when": "as he opens door 5, with his hand on the handle",
+   "send": [
+    "He slides the door open and steps through the gangway. Cold blue light and static. The next carriage is a surveillance room. A windowless carriage walled with monitors and tape reels. The screens show every other carriage, and him, from behind, a few seconds from now. Bees: they cover most of the screens like a moving skin; where they part, the picture underneath is of him. People: the operators have lost control of the room. One is shouting at a screen; another throws reels of tape, which unspool over him like streamers. What happens to him: on the monitors he trips a moment before he does. A cable takes his ankle and he goes down on one knee among the tape, bees settling across his back and shoulders, then gets up and walks on wearing them. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window."
+   ],
+   "then": [
+    "on the monitors he trips a moment before he does. A cable takes his ankle and he goes down on one knee among the tape, bees settling across his back and shoulders, then gets up and walks on wearing them.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ],
+   "check": "on the monitors he trips a moment before he does. A cable takes his ankle and he goes down on one knee among the tape, bees settling across his back and shoulders, then gets up and walks on wearing them.",
+   "reference": "seeds/run_6_surveillance.jpg"
+  },
+  {
+   "n": 7,
+   "carriage": "The audience",
+   "when": "as he opens door 6, with his hand on the handle",
+   "send": [
+    "He slides the door open and steps through the gangway. Darkness, then a flickering beam. The next carriage is a cinema. A cinema in a railway carriage: velvet rows, drapes, a hand-cranked projector, a screen at the far end where a train from 1895 arrives head on. Bees: the projector beam is solid with them; their shadows are the film. People: the audience are all beekeepers in veils. They stand, turn their backs on the screen and applaud him as he comes down the aisle. What happens to him: the audience lifts him off his feet and carries him overhead, hand over hand, toward the screen, then sets him down in front of it. His coat is now more bees than cloth. The locomotive on the screen does not stop at the edge of the picture. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window."
+   ],
+   "then": [
+    "the audience lifts him off his feet and carries him overhead, hand over hand, toward the screen, then sets him down in front of it. His coat is now more bees than cloth. The locomotive on the screen does not stop at the edge of the picture.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ],
+   "check": "the audience lifts him off his feet and carries him overhead, hand over hand, toward the screen, then sets him down in front of it. His coat is now more bees than cloth. The locomotive on the screen does not stop at the edge of the picture.",
+   "reference": "seeds/run_7_cinema.jpg"
+  },
+  {
+   "n": 8,
+   "carriage": "Inside the hive",
+   "when": "as he opens door 7, with his hand on the handle",
+   "send": [
+    "He walks into the screen. It parts like a curtain of wings. There is no next carriage; there is the hive. The last carriage has the proportions of a carriage and nothing else of one: walls, ceiling and floor are living honeycomb, some cells lit from inside, honey pooled on soft wax, and at the far end the queen's cell, glowing. Bees: all of them. The air is bees; the sound is a single chord. People: there are no people left. The figures who sway here are bees in the shape of the passengers he has passed. What happens to him: he is entirely covered in bees and is no longer being stung. His steps slow in the wax. In every cell he passes, a small lit window shows one of the seven carriages behind him. He reaches the queen's cell and kneels. The camera stays locked behind him in third person at shoulder height with his whole body in frame. He keeps walking forward down the aisle toward the closed brass-framed door at the far end. The room is still a railway carriage three metres wide with the same arched ceiling; the train keeps moving and the land keeps sliding past any window."
+   ],
+   "then": [
+    "he is entirely covered in bees and is no longer being stung. His steps slow in the wax. In every cell he passes, a small lit window shows one of the seven carriages behind him. He reaches the queen's cell and kneels.",
+    "He reaches the closed door at the far end and puts his hand on the brass handle."
+   ],
+   "check": "he is entirely covered in bees and is no longer being stung. His steps slow in the wax. In every cell he passes, a small lit window shows one of the seven carriages behind him. He reaches the queen's cell and kneels.",
+   "reference": "seeds/run_8_hive.jpg"
+  }
+ ]
+}

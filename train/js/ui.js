@@ -10,7 +10,7 @@ export function createUI({ shots }) {
     if (s.frame !== last) { ribbon.append(el('span', 'grp', groups[s.frame])); last = s.frame; }
     const b = el('button', 'chip', s.label); b.dataset.shot = s.id; b.title = s.lens; ribbon.append(b); chips[s.id] = b;
   }
-  let ctxLabel = null, statusT = 0, nextName = '';
+  let ctxLabel = null, statusT = 0, nextName = '', cueText = '';
   const ui = {
     toast(title, sub) { const s = el('div', 'stub'); s.append(el('b', '', title), el('span', '', sub || '')); $('stubs').prepend(s); requestAnimationFrame(() => s.classList.add('in')); setTimeout(() => { s.classList.remove('in'); setTimeout(() => s.remove(), 600); }, 4200); while ($('stubs').children.length > 3) $('stubs').lastChild.remove(); },
     loading(text) { $('loading').hidden = !text; if (text) $('loadingText').textContent = text; },
@@ -19,6 +19,9 @@ export function createUI({ shots }) {
     context(label) { if (label === ctxLabel) return; ctxLabel = label; $('act').hidden = !label; if (label) $('act').textContent = label; },
     status(j, env, shot) { if (performance.now() - statusT < 250) return; statusT = performance.now(); $('status').textContent = `km ${(j.dist / 1000 % 9).toFixed(2)} · ${Math.round(j.speed * 3.6)} km/h · ${shot.lens}${env.segment && env.segment.type !== 'station' ? ' · ' + env.segment.name : nextName ? ' · next ' + nextName : ''}`; },
     next(name) { nextName = name; },
+    /** The cue card of the run: what would be sent into the session at this door. */
+    cue(c, n, of, opening) { const box = $('cue'); box.hidden = !c; if (!c) return; cueText = c.genie; $('cueN').textContent = `${opening ? 'Sent with the seed' : 'Send now · door ' + (n - 1) + ' is open'} · carriage ${n} of ${of}`; $('cueTitle').textContent = c.title.replace(/^\d+\. /, '');
+      $('cueBees').textContent = c.bees; $('cueDeed').textContent = c.deed; box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash'); },
     fade(on) { $('fade').classList.toggle('on', on); },
     world(w, id, portal) {
       document.body.classList.toggle('inworld', !!w); if (!w) { $('clip').hidden = true; $('clipVideo').pause(); return; }
@@ -29,6 +32,7 @@ export function createUI({ shots }) {
     hud(on) { document.body.classList.toggle('nohud', !on); },
     bind({ api, input, audio, setShot, worldsRef }) {
       ribbon.addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) setShot(b.dataset.shot); });
+      $('runBtn').onclick = () => document.body.classList.contains('run') ? api.endRun() : api.run(); $('cueCopy').onclick = async () => { try { await navigator.clipboard.writeText(cueText); $('cueCopy').textContent = 'Copied'; setTimeout(() => $('cueCopy').textContent = 'Copy cue', 1200); } catch { } };
       $('take').onclick = () => api.take(); $('rec').onclick = () => api.record(); $('still').onclick = () => api.still(); $('act').onclick = () => api.act();
       $('snd').onclick = () => $('snd').classList.toggle('on', audio.toggle()); $('hud').onclick = () => document.body.classList.toggle('nohud');
       $('wBack').onclick = () => api.exit(); $('wPrev').onclick = () => api.next(-1); $('wNext').onclick = () => api.next(1);
