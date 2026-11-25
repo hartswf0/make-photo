@@ -1,0 +1,272 @@
+// BEES ON A TRAIN — the sealed line. Boot, journey, passenger, input and the frame loop.
+import * as THREE from 'three';
+import { DIM, makeTextures, makeMaterials, clamp, damp, lerp } from './kit.js';
+import { buildTrain, locate, bayX as bay } from './train.js';
+import { buildLand, LOOP, STOP_AT, ahead } from './land.js';
+import { buildBees } from './bees.js';
+import { createRig, SHOTS } from './rig.js';
+import { buildWorlds } from './worlds.js';
+import { loadCast } from './cast.js';
+import { createUI } from './ui.js';
+import { createAudio } from './audio.js';
+
+const mobile = matchMedia('(pointer:coarse)').matches || innerWidth < 760;
+const params = new URLSearchParams(location.search);
+const canvas = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobile, powerPreference: 'high-performance', preserveDrawingBuffer: false });
+renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1.5 : 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.08;
+const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0xdcc096, 500, 4200);
+const camera = new THREE.PerspectiveCamera(58, 1, .06, 6500);
+const hemi = new THREE.HemisphereLight(0xfff0d6, 0x4e4438, 1.0), sunL = new THREE.DirectionalLight(0xffd29a, 2.4);
+sunL.position.set(.55, .42, .72); scene.add(hemi, sunL);
+const lamps = [0, 1, 2].map(() => { const l = new THREE.PointLight(0xffc27a, 0, 9, 1.6); scene.add(l); return l; });
+
+const tex = makeTextures(), M = makeMaterials(tex), tl = new THREE.TextureLoader();
+const sTex = f => { const t = tl.load('assets/' + f); t.colorSpace = THREE.SRGBColorSpace; return t; };
+M.panels = new THREE.MeshStandardMaterial({ map: (() => { const t = sTex('tex_panels.jpg'); t.wrapS = THREE.RepeatWrapping; t.repeat.x = 2.4; return t; })(), roughness: .8 });
+M.screens = [0, 1, 2, 3].map(k => new THREE.MeshBasicMaterial({ color: [0x1f4d4a, 0x4a3a1c, 0x234046, 0x18302e][k] }));
+
+const train = buildTrain(scene, M), land = buildLand(scene, M, tex, tl), bees = buildBees(scene, M, mobile), rig = createRig(camera);
+const cars = train.cars, quiet = cars[1];
+// posters and the route map: generated flats hung where a real carriage would hang them
+for (const [file, car, x, w, h] of [['tex_poster.jpg', cars[1], DIM.L / 2 - .12, .62, .82], ['tex_ticket.jpg', cars[2], DIM.L / 2 - .12, .9, .52], ['tex_poster.jpg', cars[7], DIM.L / 2 - .12, .62, .82]]) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshLambertMaterial({ map: sTex(file) })); m.position.set(x, 1.35, -.95); m.rotation.y = -Math.PI / 2; car.group.add(m);
+  const fr = new THREE.Mesh(new THREE.BoxGeometry(.02, h + .06, w + .06), M.brass); fr.position.set(x + .02, 1.35, -.95); car.group.add(fr);
+}
+// projector beam in the cinema
+{ const c = cars[7], p = c.projector, len = p.x - c.portal.x, g = new THREE.CylinderGeometry(.04, 1.0, len, 12, 1, true).rotateZ(-Math.PI / 2);
+  const beam = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xffe2a8, transparent: true, opacity: .07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+  beam.position.set(p.x - len / 2, (p.y + c.portal.y) / 2, p.z / 2); beam.rotation.y = Math.atan2(p.z, len) * -1; c.group.add(beam); }
+
+// Donkey Water's 20-litre cans ride in the quiet car and the greenhouse: the train is part of the same world of water
+try { if (window.makeWaterWifiCan) for (const [ci, x, y, z, ry] of [[1, bay(4) - 1.25, 0, .62, .3], [1, bay(5) + .72, 0, .6, -.4], [1, bay(2) + .2, 0, -.62, 1.2], [3, 6.9, 0, .15, .2], [3, 6.3, 0, -.2, 1.9], [0, -DIM.L / 2 + 1.1, 0, -.9, .4]]) {
+  const can = window.makeWaterWifiCan(THREE, { textureBase: '../donkey/', withPourAndRipples: false }); can.position.set(x, y, z); can.rotation.y = ry; cars[ci].group.add(can); } } catch (e) { console.warn('no cans', e); }
+
+// ---- state
+const seat0 = quiet.playerSeat;
+const actor = { x: quiet.x + seat0.x, z: seat0.z, dir: 1, yaw: Math.PI / 2, seated: true, seat: { car: quiet, ...seat0 }, speed: 0 };
+const journey = { dist: +(params.get('at') || 600), speed: 0, cruise: 26, dwell: 0, phase: 'run', wheel: 0 };
+const state = { t: 0, take: false, takeT: 0, takeI: 0, walkGoal: null, camCar: 1, log: [], paused: false, lastCar: -1, lastSeg: null, hud: true };
+const input = { jx: 0, jy: 0, yaw: 0, pitch: 0, keys: new Set() };
+const ui = createUI({ shots: SHOTS, mobile });
+const audio = createAudio();
+const stub = (title, sub = '') => { state.log.push({ t: +state.t.toFixed(1), km: +(journey.dist / 1000).toFixed(2), title, sub }); if (state.log.length > 400) state.log.shift(); ui.toast(title, sub); };
+let worlds = null, cast = null, people = [], hero = null;
+
+// ---- the line: the halt on each lap is the next station of make-photo's archipelago
+const line = { stations: [{ id: 'amba', name: 'Amba halt' }], i: 0 };
+fetch('line.json').then(r => r.json()).then(d => { line.stations = d.stations; line.i = Math.max(0, d.stations.findIndex(s => s.id === params.get('from'))); ui.next(nextHalt().name); }).catch(() => {});
+const nextHalt = () => line.stations[(line.i + 1) % line.stations.length];
+function getOff() { const s = nextHalt(), url = '../atlas/overworld.html'; stub('Getting off', s.name); const c = window.DW && window.DW.carry; if (window.DW) window.DW.go(url, { station: s.id, mode: 'walk', ...(c && Number.isFinite(c.liters) ? { liters: c.liters, donkey: c.donkey } : {}) }); else location.href = url; }
+
+// ---- people: [role, carriage, seat index, talking]
+const SEATED = [['imani', 1, 5, 0], ['elder', 1, 16, 0], ['matriarch', 2, 9, 1], ['researcher', 2, 14, 1], ['beekeeper', 4, -1, 0], ['watcher', 6, -1, 0], ['bride', 7, 9, 0], ['child', 7, 22, 0], ['rahel', 2, 20, 0], ['saba', 7, 14, 0]];
+const STAND = { 4: [-3.2, .55, -1], 6: [1.2, .5, 1] };   // where the standing ones stand: local x, z, facing
+function bootCast() {
+  try {
+    cast = loadCast();
+    hero = cast.make('traveler'); scene.add(hero.root);
+    for (const [id, ci, si, talk] of (mobile ? SEATED.slice(0, 5) : SEATED)) {
+      const c = cars[ci], p = cast.make(id); if (!p) continue;
+      if (si < 0) { const [x, z, f] = STAND[ci]; p.root.position.set(c.x + x, DIM.FLOOR, z); p.root.rotation.y = f * Math.PI / 2; p.loco = { speedMps: 0, talking: false }; }
+      else { const s = c.seats[si % c.seats.length]; if (c === quiet && s === seat0) continue; p.root.position.set(c.x + s.x, DIM.FLOOR + SEAT_Y, s.z); p.root.rotation.y = s.face * Math.PI / 2; p.loco = { speedMps: 0, sitting: true, talking: !!talk }; }
+      p.car = ci; scene.add(p.root); people.push(p);
+    }
+    // the conductor walks the train; the musician of clip 1022 stands at the end of the dining car
+    const cond = cast.make('conductor'); cond.walk = { a: cars[6].x, b: cars[1].x + 6, dir: 1, x: cars[3].x }; scene.add(cond.root); people.push(cond);
+    const mus = cast.make('musician'); mus.root.position.set(cars[2].x + cars[2].stage.x, DIM.FLOOR, .25); mus.root.rotation.y = Math.PI / 2; mus.loco = { speedMps: 0, working: 'guitar-playing' }; mus.car = 2; scene.add(mus.root); people.push(mus);
+  } catch (e) { console.warn('cast unavailable', e); }
+  ui.loading(null);
+}
+const SEAT_Y = .0;
+
+// ---- journey: cruise, slow for the halt, dwell, depart
+function stepJourney(dt) {
+  const d = ahead(STOP_AT, journey.dist);
+  if (journey.phase === 'run') {
+    let v = journey.cruise; if (d > 0 && d < 900) v = Math.min(v, Math.sqrt(2 * .42 * d) + .4);
+    journey.speed = damp(journey.speed, v, v < journey.speed ? 2.5 : .25, dt);
+    if (d > 0 && d < .6) { journey.phase = 'dwell'; journey.dwell = 20; journey.speed = 0; stub(nextHalt().name, 'the train stands here; you may get off'); }
+  } else { journey.dwell -= dt; if (journey.dwell <= 0) { journey.phase = 'run'; journey.dist += 1; line.i = (line.i + 1) % line.stations.length; ui.next(nextHalt().name); stub('Departure', 'next halt ' + nextHalt().name); } }
+  journey.dist = (journey.dist + journey.speed * dt) % (LOOP * 1000);
+  journey.wheel += journey.speed * dt / .46; train.spin(journey.wheel);
+}
+
+// ---- passenger
+const fwd = new THREE.Vector3(), tmp = new THREE.Vector3();
+function nearestSeat() { const { car } = locate(cars, actor.x); let best = null, bd = 1.25; for (const s of car.seats) { const d = Math.hypot(car.x + s.x - actor.x, s.z - actor.z); if (d < bd) { bd = d; best = { car, ...s }; } } return best; }
+function stand() { if (!actor.seated) return; const { car } = locate(cars, actor.x); actor.seated = false; actor.z = clamp(car.aisleZ + Math.sign(actor.z - car.aisleZ) * car.aisleHalf, -1.2, 1.2); actor.x += actor.dir * .0; stub('The traveler stands', car.name); }
+function sit() { const s = nearestSeat(); if (!s) return; actor.seated = true; actor.seat = s; actor.x = s.car.x + s.x; actor.z = s.z; actor.dir = s.face; stub('The traveler sits', s.car.name); }
+function stepActor(dt) {
+  let mx = 0, mz = 0;
+  const k = input.keys, jx = input.jx + (k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0), jy = input.jy + (k.has('w') || k.has('arrowup') ? 1 : 0) - (k.has('s') || k.has('arrowdown') ? 1 : 0);
+  if (Math.abs(jx) + Math.abs(jy) > .08) {
+    state.walkGoal = null; if (actor.seated) stand();
+    if (rig.st.shot.inside && rig.st.shot.frame !== 'bee') { camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize(); mx = fwd.x * jy - fwd.z * jx; mz = fwd.z * jy + fwd.x * jx; }
+    else { mx = jy; mz = jx; }
+  } else if (state.walkGoal !== null && !actor.seated) { const d = state.walkGoal - actor.x; if (Math.abs(d) < .3) state.walkGoal = null; else mx = Math.sign(d) * .75; }
+  const len = Math.hypot(mx, mz), sp = Math.min(1, len) * 1.45;
+  if (len > .01 && !actor.seated) {
+    actor.x += mx / len * sp * dt; actor.z += mz / len * sp * dt;
+    const c7 = cars[7], c0 = cars[0]; actor.x = clamp(actor.x, c7.x + c7.walkMin, c0.x + c0.walkMax);
+    if (Math.abs(mx) > .2 * len) actor.dir = Math.sign(mx);
+    actor.yaw = dampAngle(actor.yaw, Math.atan2(mx, mz), 10, dt);
+  } else if (actor.seated) actor.yaw = dampAngle(actor.yaw, actor.dir > 0 ? Math.PI / 2 : -Math.PI / 2, 8, dt);
+  const loc = locate(cars, actor.x);
+  if (!actor.seated) actor.z = clamp(actor.z, loc.aisleZ - loc.half, loc.aisleZ + loc.half);
+  actor.speed = len > .01 && !actor.seated ? sp : 0;
+  if (loc.i !== state.lastCar) { state.lastCar = loc.i; stub(loc.car.name, loc.car.sub); ui.car(loc.car); }
+  if (hero) {
+    hero.root.position.set(actor.x, DIM.FLOOR + (actor.seated ? SEAT_Y : 0), actor.z); hero.root.rotation.y = actor.yaw;
+    hero.loco = { speedMps: actor.speed, sitting: actor.seated }; hero.root.visible = !(rig.st.shot.id === 'pov');
+  }
+  return loc;
+}
+const dampAngle = (a, b, k, dt) => { let d = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI; if (d < -Math.PI) d += Math.PI * 2; return a + d * (1 - Math.exp(-k * dt)); };
+
+// ---- the take: an unattended continuous performance
+const TAKE = [['pushin', 9], ['window', 6], ['follow', 9, 'rear'], ['threshold', 8], ['lateral', 8], ['lead', 7], ['bee', 6], ['floor', 5], ['crane', 16], ['track', 7], ['follow', 9], ['cctv', 5], ['wheel', 4], ['drone', 8], ['lineside', 10], ['follow', 9], ['roof', 6], ['pov', 7], ['vista', 9], ['nose', 6], ['follow', 8, 'front'], ['tail', 6]];
+function stepTake(dt) {
+  if (!state.take) return; state.takeT -= dt; if (state.takeT > 0) return;
+  const [shot, dur, go] = TAKE[state.takeI++ % TAKE.length]; setShot(shot, true); state.takeT = dur;
+  if (go === 'rear') { if (actor.seated) stand(); state.walkGoal = cars[7].x + 3; } else if (go === 'front') { if (actor.seated) stand(); state.walkGoal = cars[1].x - 2; }
+}
+function setShot(id, fromTake = false) { if (!rig.set(id)) return; if (!fromTake) state.take = false; ui.shot(id, state.take); }
+
+// ---- environment
+const fogDay = new THREE.Color(0xdcc096), fogDusk = new THREE.Color(0xb98aa0), fogDark = new THREE.Color(0x07090c), sunDay = new THREE.Color(0xffd29a), sunDusk = new THREE.Color(0xff8f7a), col = new THREE.Color();
+let dark = 0;
+function stepEnv(dt, loc) {
+  const e = land.env; dark = damp(dark, e.tunnel, 5, dt);
+  scene.fog.color.copy(fogDay).lerp(fogDusk, e.dusk).lerp(fogDark, dark); scene.fog.far = lerp(4200, 160, dark); scene.fog.near = lerp(500, 4, dark);
+  hemi.intensity = lerp(lerp(1.15, .75, e.dusk), .03, dark); sunL.intensity = lerp(lerp(2.4, 1.5, e.dusk), 0, dark); sunL.color.copy(sunDay).lerp(sunDusk, e.dusk);
+  land.sky.material.uniforms.dark.value = dark; land.sky.material.uniforms.hor.value.set(0xf0cf8e).lerp(col.set(0xf2a6a0), e.dusk); land.sky.material.uniforms.top.value.set(0x356e7a).lerp(col.set(0x2b2a55), e.dusk);
+  renderer.toneMappingExposure = lerp(1.08, 1.3, dark);
+  const c = cars[state.camCar], inside = rig.st.shot.inside, power = (c.dim ? 2.2 : c.cool ? 4 : 4.6) * lerp(.55, 1.5, dark) * (inside ? 1 : .6);
+  const xs = c.lamps.length ? c.lamps.slice().sort((a, b) => Math.abs(c.x + a - camera.position.x) - Math.abs(c.x + b - camera.position.x)) : [0];
+  lamps.forEach((l, k) => { const x = xs[k % xs.length]; l.position.set(c.x + x, DIM.FLOOR + 1.95, 0); l.intensity = k < xs.length ? power : 0; l.color.setHex(c.cool ? 0x8fe0d8 : 0xffc27a); });
+  for (const m of train.glowMats.values()) m.opacity = lerp(.5, .95, Math.max(dark, e.dusk * .6));
+  if (e.segment !== state.lastSeg) { state.lastSeg = e.segment; if (e.segment && e.segment.type !== 'station') stub(e.segment.name, `km ${(journey.dist / 1000).toFixed(1)}`); }
+  bees.state.swarmWant = (e.hive > .3 || e.viaduct > .5) ? 1 : state.forceSwarm ? 1 : 0; bees.state.side = 1;
+  void loc;
+}
+
+// ---- frame
+let slow = 0;
+const clock = new THREE.Clock(), goal = new THREE.Vector3(), cup = new THREE.Vector3(quiet.x + quiet.props.cup.x, DIM.FLOOR + quiet.props.cup.y + .075, quiet.props.cup.z);
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+function frame() {
+  requestAnimationFrame(frame);
+  const raw = clock.getDelta(), dt = Math.min(raw, .05); if (state.paused) return; state.t += dt;
+  // if the device cannot hold the frame rate, give up resolution before giving up the journey
+  slow = raw > .045 ? slow + raw : Math.max(0, slow - raw * 2); if (slow > 2.5 && renderer.getPixelRatio() > 1) { renderer.setPixelRatio(Math.max(1, renderer.getPixelRatio() - .5)); resize(); slow = 0; }
+  stepJourney(dt);
+  if (worlds && worlds.stage.active) {
+    worlds.updateStage(dt, { x: input.jx + axis('d', 'a'), y: input.jy + axis('w', 's'), yaw: input.yaw, pitch: input.pitch }); input.yaw = input.pitch = 0;
+    audio.update(journey.speed * .5, 1, 0); renderer.render(worlds.stage.scene, worlds.stage.camera); return;
+  }
+  const loc = stepActor(dt); stepTake(dt);
+  const portal = worlds ? worlds.nearest(tmp.set(actor.x, DIM.FLOOR + 1.2, actor.z), 3.2) : null, own = worlds && worlds.portals.find(p => p.car === loc.car);
+  const ctx = { a: actor, car: loc.car, aisleZ: loc.aisleZ, side: actor.seated ? Math.sign(actor.z) || 1 : (own && Math.abs(own.pos.z) > .5 ? Math.sign(own.pos.z) : 1), bee: bees.lead, t: state.t, dist: journey.dist, speed: journey.speed, noseX: train.noseX, tailX: train.tailX };
+  rig.st.yaw += input.yaw; rig.st.pitch = clamp(rig.st.pitch + input.pitch, -1.1, 1.1); input.yaw = input.pitch = 0;
+  rig.update(dt, ctx);
+  state.camCar = rig.st.shot.inside ? locate(cars, camera.position.x).i : loc.i;
+  land.update(journey.dist, camera.position.x, state.t); stepEnv(dt, loc);
+  if (own) goal.copy(own.pos);
+  bees.update(dt, state.t, { cars, camCar: Math.max(1, state.camCar), actor, cup, goal: own ? goal : null });
+  for (const p of people) {
+    let ci = p.car;
+    if (p.walk) { const w = p.walk; w.x += w.dir * .8 * dt; if (w.x > w.b) w.dir = -1; if (w.x < w.a) w.dir = 1; const l = locate(cars, w.x); ci = l.i; p.root.position.set(w.x, DIM.FLOOR, l.aisleZ + .12); p.root.rotation.y = w.dir * Math.PI / 2; p.loco = { speedMps: .8 }; }
+    p.root.visible = Math.abs(ci - state.camCar) <= 2; p.wake(Math.abs(ci - state.camCar) <= 1);
+  }
+  if (cast) cast.update(dt);
+  for (const c of cars) c.group.visible = !rig.st.shot.inside || Math.abs(c.i - state.camCar) <= 3;
+  if (worlds) worlds.update(state.t, state.camCar, M);
+  const halt = journey.phase === 'dwell' && !actor.seated && !portal;
+  ui.context(actor.seated ? 'Stand' : portal ? `Enter · ${portal.world.title}` : halt ? `Get off · ${nextHalt().name}` : nearestSeat() ? 'Sit' : null);
+  ui.status(journey, land.env, rig.st.shot);
+  audio.update(journey.speed, rig.st.shot.inside ? 1 : .6, dark, bees.lead.p.distanceTo(camera.position));
+  renderer.render(scene, camera);
+}
+const axis = (p, n) => (input.keys.has(p) ? 1 : 0) - (input.keys.has(n) ? 1 : 0);
+
+// ---- seeds: a composed, repeatable starting frame for a world model, with the true depth of the blocking
+const depthMat = new THREE.ShaderMaterial({ side: THREE.DoubleSide,
+  vertexShader: `varying float vZ;
+#include <common>
+#include <skinning_pars_vertex>
+void main(){
+#include <skinbase_vertex>
+#include <begin_vertex>
+#include <skinning_vertex>
+#include <project_vertex>
+vZ = -mvPosition.z; }`,
+  fragmentShader: 'varying float vZ; void main(){ gl_FragColor = vec4(vZ, 0., 0., 1.); }' });
+let seeds = null;
+async function seed(id) {
+  if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds;
+  const sd = seeds.find(x => x.id === id); if (!sd) return null;
+  if (worlds && worlds.stage.active) await worlds.exit();
+  const c = cars[sd.car]; state.take = false; state.walkGoal = null; journey.dist = sd.km * 1000; journey.phase = 'run'; journey.speed = journey.cruise;
+  if (sd.seat !== undefined) { const st = sd.seat < 0 ? c.playerSeat : c.seats[sd.seat]; actor.seated = true; actor.seat = { car: c, ...st }; actor.x = c.x + st.x; actor.z = st.z; actor.dir = st.face; }
+  else { actor.seated = false; actor.x = c.x + sd.x; actor.dir = sd.dir || -1; actor.z = c.aisleZ + (sd.z || 0); actor.yaw = actor.dir * Math.PI / 2; if (sd.walk) state.walkGoal = actor.x + actor.dir * sd.walk; }
+  state.forceSwarm = !!sd.swarm; setShot(sd.shot); const st = rig.st; st.yaw = sd.yaw || 0; st.pitch = sd.pitch || 0; st.zoom = sd.zoom || 1; if (sd.mt !== undefined) st.mem.t0 = state.t - sd.mt;
+  document.body.classList.add('nohud'); return sd;
+}
+function b64(buf) { let s = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 32768) s += String.fromCharCode.apply(null, u.subarray(i, i + 32768)); return btoa(s); }
+/** One frame as a generator wants it: the picture, linear depth along the view axis in metres, and the posed pinhole camera. */
+function capture(w = 1280, h = 720) {
+  const pr = renderer.getPixelRatio(); renderer.setPixelRatio(1); renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  renderer.render(scene, camera); const color = canvas.toDataURL('image/jpeg', .93);
+  const rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.FloatType, format: THREE.RGBAFormat, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter }), hidden = [];
+  scene.traverse(o => { if (o.visible && (o.isSprite || o.isPoints || (o.material && o.material.transparent && o.material.opacity < .9))) { o.visible = false; hidden.push(o); } });
+  scene.overrideMaterial = depthMat; const fog = scene.fog; scene.fog = null; renderer.setRenderTarget(rt); renderer.render(scene, camera);
+  const px = new Float32Array(w * h * 4); renderer.readRenderTargetPixels(rt, 0, 0, w, h, px); renderer.setRenderTarget(null); scene.overrideMaterial = null; scene.fog = fog; hidden.forEach(o => o.visible = true); rt.dispose();
+  const z = new Float32Array(w * h); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) z[(h - 1 - y) * w + x] = px[(y * w + x) * 4] || 5000;   // top row first
+  renderer.setPixelRatio(pr); resize(); const fy = h / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+  return { width: w, height: h, color, depth: b64(z.buffer), camera: { extrinsics: { coordinateSystem: 'rub', position: camera.position.toArray(), quaternion: camera.quaternion.toArray() }, intrinsics: { width: w, height: h, fx: fy, fy, cx: w / 2, cy: h / 2 } }, observe: api.observe() };
+}
+
+// ---- actions
+async function act() {
+  if (worlds && worlds.stage.active) return worlds.exit();
+  if (actor.seated) return stand();
+  if (journey.phase === 'dwell' && !(worlds && worlds.nearest(tmp.set(actor.x, DIM.FLOOR + 1.2, actor.z), 3.2))) return getOff();
+  const portal = worlds && worlds.nearest(tmp.set(actor.x, DIM.FLOOR + 1.2, actor.z), 3.2);
+  if (portal) { state.take = false; stub(`Through the threshold`, portal.world.title); return worlds.enter(portal); }
+  sit();
+}
+function still() {
+  const st = worlds && worlds.stage.active; renderer.render(st ? worlds.stage.scene : scene, st ? worlds.stage.camera : camera);
+  canvas.toBlob(b => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `bees-on-a-train_${st ? worlds.stage.id : rig.st.shot.id}_${Date.now()}.png`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }, 'image/png');
+}
+let rec = null;
+function record() {
+  if (rec) { rec.stop(); return false; }
+  const stream = canvas.captureStream(30), type = ['video/mp4;codecs=avc1', 'video/webm;codecs=vp9', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t)), chunks = [];
+  rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 9e6 }); rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+  rec.onstop = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(chunks, { type })); a.download = `bees-on-a-train_take_${Date.now()}.${type.includes('mp4') ? 'mp4' : 'webm'}`; a.click(); rec = null; ui.recording(false); };
+  rec.start(); ui.recording(true); return true;
+}
+const api = {
+  version: '2.0.0', shots: () => SHOTS.map(s => s.id), camera: id => setShot(id), take: (on = !state.take) => { state.take = on; state.takeT = 0; ui.shot(rig.st.shot.id, on); return on; },
+  act, stand, sit, still, record, swarm: (on = !state.forceSwarm) => (state.forceSwarm = on), jump: km => { journey.dist = km * 1000; journey.phase = 'run'; },
+  walkTo: car => { if (actor.seated) stand(); state.walkGoal = cars[clamp(car, 0, 7)].x; }, enter: id => { const p = worlds.portals.find(p => p.ids.includes(id)); return p && worlds.enter(p, id); }, exit: () => worlds.exit(),
+  next: d => { const s = worlds.stage; if (s.active) { s.portal.show(s.portal.index + d); return worlds.enter(s.portal); } }, live: () => worlds.toggleLive(),
+  seed, capture, seeds: async () => { if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds; return seeds; },
+  log: () => state.log.slice(), rig: (w, h) => rig.export({ a: actor, car: locate(cars, actor.x).car, aisleZ: 0, side: 1, bee: bees.lead, t: state.t, dist: journey.dist, speed: journey.speed, noseX: train.noseX, tailX: train.tailX }, w, h),
+  observe: () => ({ t: +state.t.toFixed(2), km: +(journey.dist / 1000).toFixed(3), speed: +journey.speed.toFixed(1), phase: journey.phase, car: cars[state.lastCar]?.key, seated: actor.seated, x: +actor.x.toFixed(2), shot: rig.st.shot.id, take: state.take, world: worlds?.stage.active ? worlds.stage.id : null, segment: land.env.segment?.type || null, people: people.length, calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
+  _: { scene, camera, renderer, train, land, rig, actor, journey, state, input, get people() { return people; }, get cast() { return cast; }, get hero() { return hero; } },
+};
+window.trainFilm = api;
+ui.bind({ api, input, audio, setShot, worldsRef: () => worlds, state });
+addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; const k = e.key.toLowerCase(); input.keys.add(k);
+  if (k === 'e' || k === 'enter') act(); else if (k === 't') api.take(); else if (k === 'c') setShot(SHOTS[(SHOTS.indexOf(rig.st.shot) + 1) % SHOTS.length].id); else if (k === 'p') still(); else if (k === 'h') ui.hud(state.hud = !state.hud); else if (k === 'escape' && worlds?.stage.active) worlds.exit(); else if (/^[1-9]$/.test(k)) setShot(SHOTS[+k - 1].id); });
+addEventListener('keyup', e => input.keys.delete(e.key.toLowerCase())); addEventListener('blur', () => input.keys.clear());
+
+ui.loading('laying track');
+frame();
+buildWorlds({ scene, train, renderer, ui, toast: stub }).then(w => { worlds = w; if (params.get('world')) api.enter(params.get('world')); }).catch(e => console.warn('worlds unavailable', e));
+Promise.resolve(bootCast()).then(() => { if (params.get('seed')) seed(params.get('seed')); else if (params.get('shot')) setShot(params.get('shot')); else setShot('profile'); if (params.has('take')) api.take(true); stub('BEES ON A TRAIN', 'the sealed line · the train is moving, you cannot get off'); });

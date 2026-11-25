@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Sealed Line · Seeds</title>
+<style>
+:root{--ink:#0b0d0c;--paper:#ecdcb6;--brass:#c59a3e;--ox:#7a1f1d;--line:rgba(236,220,182,.2);--serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--ink);color:var(--paper);font:16px/1.55 var(--serif)}
+header{padding:28px 20px 8px;max-width:1180px;margin:0 auto}
+.k{font:600 11px/1 var(--mono);letter-spacing:.26em;text-transform:uppercase;color:var(--brass)}
+h1{font-size:clamp(28px,5vw,46px);font-style:italic;font-weight:400;margin:10px 0 8px;text-wrap:balance}
+header p{max-width:66ch;opacity:.88;margin:6px 0}
+a{color:var(--brass)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 6px}
+button,.pill{font:600 12px/1 var(--mono);letter-spacing:.05em;color:var(--paper);background:rgba(236,220,182,.07);border:1px solid var(--line);border-radius:20px;padding:11px 15px;cursor:pointer;text-decoration:none;display:inline-block}
+button:hover,.pill:hover{border-color:var(--brass)}button.done{background:var(--brass);color:var(--ink)}
+main{max-width:1180px;margin:0 auto;padding:10px 20px 80px;display:grid;gap:34px}
+article{border-top:1px solid var(--line);padding-top:22px;display:grid;gap:14px}
+h2{font-size:26px;font-style:italic;font-weight:400;margin:0}
+.meta{font:11px/1.5 var(--mono);opacity:.7}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pair figure{margin:0;position:relative}.pair img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover;background:#16130f}
+figcaption{position:absolute;left:8px;top:8px;font:600 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;background:rgba(11,13,12,.7);padding:6px 8px}
+.cols{display:grid;grid-template-columns:1.25fr 1fr;gap:22px}
+.prompt{font:13px/1.6 var(--mono);background:rgba(236,220,182,.05);border-left:3px solid var(--ox);padding:12px 14px;white-space:pre-wrap;max-height:210px;overflow:auto}
+ol{margin:0;padding-left:20px}li{margin:5px 0}
+h3{font:600 10px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--brass);margin:0 0 8px}
+@media(max-width:760px){.pair,.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="k">make-photo · the Sealed Line</div>
+  <h1>Seeds for the train that is a world</h1>
+  <p>Each seed is a starting frame for a world-model take. It is composed in the playable train (the traveler, the carriage, the lens and what is passing outside are all real 3D positions), captured with its depth, and then dressed on that same geometry. The left picture is the blocking; the right is the frame to hand over.</p>
+  <p>Give the generator the dressed frame with the opening prompt. Once the world is running, issue the events one at a time.</p>
+  <div class="bar"><a class="pill" href="./index.html">Ride the train →</a><a class="pill" href="./TRAIN.md">How it is built</a><a class="pill" href="../atlas/overworld.html">The overworld</a></div>
+</header>
+<main id="list"></main>
+<script type="module">
+const d = await (await fetch('data/seeds.json')).json(), list = document.getElementById('list');
+const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; };
+const copy = (b, text) => b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(text); const o = b.textContent; b.textContent = 'Copied'; b.classList.add('done'); setTimeout(() => { b.textContent = o; b.classList.remove('done'); }, 1400); } catch { } });
+for (const s of d.seeds) {
+  const a = el('article'); a.id = s.id;
+  a.append(el('h2', '', s.title), el('div', 'meta', `${s.id} · ${s.shot} shot · km ${s.km} · 1280 × 720`));
+  const pair = el('div', 'pair');
+  for (const [label, src] of [['Blocking', `seeds/${s.id}.blockout.jpg`], ['Seed', `seeds/${s.id}.jpg`]]) { const f = el('figure'), i = el('img'); i.src = src; i.loading = 'lazy'; i.alt = `${label}: ${s.title}`; f.append(i, el('figcaption', '', label)); pair.append(f); }
+  const cols = el('div', 'cols'), left = el('div'), right = el('div');
+  left.append(el('h3', '', 'Opening prompt'), el('div', 'prompt', s.genie));
+  const ol = el('ol'); for (const e of s.events) ol.append(el('li', '', e)); right.append(el('h3', '', 'Events, one at a time'), ol);
+  cols.append(left, right);
+  const bar = el('div', 'bar'), b1 = el('button', '', 'Copy opening prompt'), b2 = el('button', '', 'Copy events'), l1 = el('a', 'pill', 'Download seed'), l2 = el('a', 'pill', 'Stand here in the train →');
+  copy(b1, s.genie); copy(b2, s.events.join('\n')); l1.href = `seeds/${s.id}.jpg`; l1.download = `sealed-line_${s.id}.jpg`; l2.href = `./index.html?seed=${s.id}`;
+  bar.append(b1, b2, l1, l2); a.append(pair, cols, bar); list.append(a);
+}
+</script>
+</body>
+</html>

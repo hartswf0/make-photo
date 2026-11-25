@@ -36,6 +36,8 @@ canvas{display:block;touch-action:none}
 (async () => {
 const T = THREE, QS = new URLSearchParams(location.search), $ = id => document.getElementById(id);
 const OW = await (await fetch('./ow/world.json?v=6')).json(), TS = OW.tile * OW.mpp;          // a tile is 2 km
+// The Sealed Line: each halt in train/line.json is a place whose door boards the train (train/index.html); getting off there carries you back here.
+try { const SL = await (await fetch('../train/line.json?v=1')).json(); for (const h of SL.stations) OW.places.push({ name: h.name, island: h.island, world: 'the Sealed Line', entry: '../train/index.html?from=' + h.id, x: h.x, z: h.z, station: h.id }); } catch { }
 // ---------- renderer, sky, light ----------
 const renderer = new T.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); /* the rain glass refracts this canvas */ renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1)); renderer.setSize(innerWidth, innerHeight); document.body.prepend(renderer.domElement);
 renderer.outputColorSpace = T.SRGBColorSpace; renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;   /* light@1: shadows, as the levels have them */
@@ -740,6 +742,7 @@ async function settle(keepYaw) { const ks = new Set(); for (let dj = -1; dj <= 1
 { const k = Math.floor(P.x / TS) + '_' + Math.floor(P.z / TS); await fetchTile(k); P.y = groundAt(P.x, P.z); if (donkey) placeDk(P.x + Math.sin(P.yaw) * 2 - Math.cos(P.yaw) * 1.8, P.z + Math.cos(P.yaw) * 2 + Math.sin(P.yaw) * 1.8, P.yaw, (x, z) => groundAt(x, z)); }
 await loadLooks('./looks.json?v=5'); await loadLooks('./look-catalog.json?v=3');
 for (const o of [walker, car, glider, skiff, ...(donkey ? [donkey.group] : []), ...(parked ? [parked.group] : []), ...MOORED.map(m => m.boat), ...ferries.map(f => f.boat)]) shade(o);
+if (CAR && CAR.station) { const h = OW.places.find(p => p.station === CAR.station); if (h) await goTo(h.x + 9, h.z + 9, undefined, true); }   /* arriving by train: step down at that halt */
 camera.position.set(P.x, P.y + 40, P.z + 60); requestAnimationFrame(frame);
 async function goTo(x, z, yaw, settleIt) { const k = Math.floor(x / TS) + '_' + Math.floor(z / TS); await fetchTile(k); if (P.mode === 'ferry') { P.ferry = null; P.mode = 'walk'; } if (P.mode === 'boat' && !wet(x, z)) setMode('walk'); P.x = x; P.z = z; P.y = groundAt(x, z); if (Number.isFinite(yaw)) P.yaw = yaw; if (P.mode === 'fly') P.alt = Math.max(P.y, 0) + 60; P.speed = 0;
   if (donkey) placeDk(P.x - Math.sin(P.yaw) * 3, P.z - Math.cos(P.yaw) * 3, P.yaw, (x, z) => groundAt(x, z)); if (settleIt && P.mode === 'walk') { TARGET = null; await settle(Number.isFinite(yaw)); if (donkey) placeDk(P.x - Math.sin(P.yaw) * 3, P.z - Math.cos(P.yaw) * 3, P.yaw, (x, z) => groundAt(x, z)); }   /* from the map: land somewhere you can stand, facing somewhere to go */

@@ -1,0 +1,301 @@
+{
+ "legos": "1.1",
+ "can": "train",
+ "L": [
+  {
+   "id": "loco",
+   "name": "Locomotive",
+   "at": "loco",
+   "zone_ring": "inner",
+   "keeper": "conductor",
+   "offers": [
+    "enter",
+    "listen"
+   ],
+   "variants": {
+    "probable": {
+     "note": "the carriage as built"
+    },
+    "plausible": {
+     "note": "its threshold shows a frame of El Desierto footage"
+    },
+    "preposterous": {
+     "note": "the sacred engine behind a hatch"
+    }
+   }
+  },
+  {
+   "id": "quiet",
+   "name": "Quiet car",
+   "at": "quiet",
+   "zone_ring": "center",
+   "keeper": "imani",
+   "offers": [
+    "enter",
+    "listen"
+   ],
+   "variants": {
+    "probable": {
+     "note": "the carriage as built"
+    },
+    "plausible": {
+     "note": "its threshold shows a frame of El Desierto footage"
+    },
+    "preposterous": {
+     "note": "ordinary human experience; a bee on a coffee cup"
+    }
+   }
+  },
+  {
+   "id": "dining",
+   "name": "Dining car",
+   "at": "dining",
+   "zone_ring": "inner",
+   "keeper": "matriarch",
+   "offers": [
+    "enter",
+    "listen"
+   ],
+   "variants": {
+    "probable": {
+     "note": "the carriage as built"
+    },
+    "plausible": {
+     "note": "its threshold shows a frame of El Desierto footage"
+    },
+    "preposterous": {
+     "note": "every guest is still and watching"
+    }
+   }
+  },
+  {
+   "id": "greenhouse",
+   "name": "Greenhouse car",
+   "at": "greenhouse",
+   "zone_ring": "inner",
+   "keeper": null,
+   "offers": [
+    "enter"
+   ],
+   "variants": {
+    "probable": {
+     "note": "the carriage as built"
+    },
+    "plausible": {
+     "note": "its threshold shows a frame of El Desierto footage"
+    },
+    "preposterous": {
+     "note": "a forest under glass; it rains indoors"
+    }
+   }
+  },
+  {
+   "id": "apiary",
+   "name": "Apiary car",
+   "at": "apiary",
+   "zone_ring": "inner",
+   "keeper": "beekeeper",
+   "offers": [
+    "enter",
+    "listen"
+   ],
+   "variants": {
+    "probable": {
+     "note": "the carriage as built"
+    },
+    "plausible": {
+     "note": "its threshold shows a frame of El Desierto footage"
+    },
+    "preposterous": {
+     "note": "painted hive panels that turn their heads"
+    }
+   }
+  },
+  {
+   "id": "mirror",
+   "name": "Mirror corridor",
+   "at": "mirror",
+   "zone_ring": "inner",
+   "keeper": null,
+   "offers": [
+    "enter"
+   ],
+   "variants": {
+    "probable": {
+     "note": "the carriage as built"
+    },
+    "plausible": {
+     "note": "its threshold shows a frame of El Desierto footage"
+    },
+    "preposterous": {
+     "note": "a mirror that reflects another century"
+    }
+   }
+  },
+  {
+   "id": "surveillance",
+   "name": "Surveillance car",
+   "at": "surveillance",
+   "zone_ring": "inner",
+   "keeper": "watcher",
+   "offers": [
+    "enter",
+    "listen"
+   ],
+   "variants": {
+    "probable": {
+     "note": "the carriage as built"
+    },
+    "plausible": {
+     "note": "its threshold shows a frame of El Desierto footage"
+    },
+    "preposterous": {
+     "note": "screens that show you from behind"
+    }
+   }
+  },
+  {
+   "id": "cinema",
+   "name": "Cinema car",
+   "at": "cinema",
+   "zone_ring": "inner",
+   "keeper": "bride",
+   "offers": [
+    "enter",
+    "listen"
+   ],
+   "variants": {
+    "probable": {
+     "note": "the carriage as built"
+    },
+    "plausible": {
+     "note": "its threshold shows a frame of El Desierto footage"
+    },
+    "preposterous": {
+     "note": "the film is the view ahead"
+    }
+   }
+  },
+  {
+   "id": "halt",
+   "name": "The halt",
+   "at": "platform",
+   "zone_ring": "rim",
+   "offers": [
+    "enter"
+   ],
+   "variants": {
+    "probable": {
+     "note": "the next island of the archipelago"
+    },
+    "plausible": {
+     "note": "the platform is crowded with crates of hives"
+    },
+    "preposterous": {
+     "note": "the train does not stop; the platform keeps pace"
+    }
+   }
+  }
+ ],
+ "E": [
+  {
+   "id": "traveler",
+   "name": "The traveler",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "tex",
+   "at": "quiet",
+   "source": 997,
+   "note": "Tex Lexington in a duster: the man at the window"
+  },
+  {
+   "id": "imani",
+   "name": "Imani",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "imani",
+   "at": "quiet",
+   "note": "riding without Mistletoe, a can by her seat"
+  },
+  {
+   "id": "musician",
+   "name": "Yared",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "yared_krar",
+   "at": "dining",
+   "source": 1022
+  },
+  {
+   "id": "beekeeper",
+   "name": "Makeda",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "makeda",
+   "at": "apiary"
+  },
+  {
+   "id": "conductor",
+   "name": "Bekele",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "ferry_bekele",
+   "at": "quiet",
+   "note": "walks the train"
+  },
+  {
+   "id": "lead_bee",
+   "name": "The lead bee",
+   "body": "creature",
+   "at": "quiet",
+   "note": "rests on the cup, then leads to the nearest threshold"
+  },
+  {
+   "id": "swarm",
+   "name": "The swarm",
+   "body": "creature",
+   "at": "outside",
+   "source": 995
+  },
+  {
+   "id": "jerikan",
+   "name": "Jerikan",
+   "body": "item",
+   "archetype": "core.jerikan",
+   "at": "quiet"
+  }
+ ],
+ "G": [
+  {
+   "id": "walk_the_train",
+   "name": "Walk the train end to end",
+   "note": "quiet car to cinema car"
+  },
+  {
+   "id": "through",
+   "name": "Step through every threshold"
+  },
+  {
+   "id": "arrive",
+   "name": "Get off at a halt and be somewhere"
+  }
+ ],
+ "O": [
+  {
+   "id": "sealed",
+   "name": "The train does not stop for you",
+   "note": "it stands only at the halt"
+  },
+  {
+   "id": "gaze",
+   "name": "Something in each carriage is watching"
+  }
+ ],
+ "S": [
+  {
+   "id": "follow_bee",
+   "name": "Follow the bee",
+   "note": "it knows which door is next"
+  }
+ ]
+}

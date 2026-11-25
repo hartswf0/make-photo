@@ -1,0 +1,77 @@
+{
+ "line": 1,
+ "name": "The Sealed Line",
+ "note": "One loop of the train's route is one leg between halts. In the overworld each halt is a place whose door boards the train (atlas/overworld.html reads this file); on the train, getting off at a halt carries you back to that place.",
+ "stations": [
+  {
+   "id": "teton",
+   "name": "Teton halt",
+   "island": "teton",
+   "x": 19470,
+   "z": 34530
+  },
+  {
+   "id": "corridor",
+   "name": "Meskel Square halt",
+   "island": "corridor",
+   "x": 23632,
+   "z": 30160
+  },
+  {
+   "id": "halfdome",
+   "name": "Granite Notch halt",
+   "island": "halfdome",
+   "x": 27262,
+   "z": 18626
+  },
+  {
+   "id": "simien",
+   "name": "Imet Gogo halt",
+   "island": "simien_imet_gogo",
+   "x": 36406,
+   "z": 11918
+  },
+  {
+   "id": "gheralta",
+   "name": "Hawzen halt",
+   "island": "gheralta_spires",
+   "x": 40290,
+   "z": 9570
+  },
+  {
+   "id": "mars",
+   "name": "Tezeta Frontier halt",
+   "island": "mars",
+   "x": 37074,
+   "z": 6140
+  },
+  {
+   "id": "ahiya",
+   "name": "Ahiya halt",
+   "island": "ahiya",
+   "x": 40360,
+   "z": 13665
+  },
+  {
+   "id": "blue_nile",
+   "name": "Abay Terrace halt",
+   "island": "blue_nile_gorge",
+   "x": 29368,
+   "z": 35220
+  },
+  {
+   "id": "wygwyl",
+   "name": "Baltimere halt",
+   "island": "wygwyl",
+   "x": 31664,
+   "z": 38525
+  },
+  {
+   "id": "gerd",
+   "name": "Belaya halt",
+   "island": "gerd_belaya_escarpment",
+   "x": 16538,
+   "z": 41112
+  }
+ ]
+}

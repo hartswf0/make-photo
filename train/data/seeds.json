@@ -1,0 +1,247 @@
+{
+ "seeds_version": 1,
+ "note": "Starting frames for world-model takes (Genie 3). Each is composed in the 3D train (data here), captured with its depth (tools/seed_capture.js), and dressed on the same geometry (tools/dress_seed.py). 'genie' is the opening prompt; 'events' are issued one at a time once the world is running.",
+ "style": "Film still from a lost 1970s Ethiopian western-noir shot on 35mm: technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red accents, heavy grain, practical amber lamps, documentary patience. Photographic, physically plausible, a real man with natural proportions.",
+ "world": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land.",
+ "seeds": [
+  {
+   "id": "quiet_walk",
+   "title": "The quiet car",
+   "car": 1,
+   "x": 5.6,
+   "dir": -1,
+   "walk": 5,
+   "km": 0.78,
+   "shot": "follow",
+   "ref": "assets/worlds/quiet.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat walking away from the camera down the central aisle of a railway carriage: teal painted panelled walls, oxblood leather bench seats with brass rails and small tables on both sides, a few seated passengers wrapped in white shawls, cyan plastic twenty-litre jerrycans on the floor by the seats, arched cream ceiling with amber dome lamps, brass luggage racks, large windows on both sides. Through the left windows a colossal stone column crowned by a golden winged angel stands far off on the ochre highland plain. A few honeybees in the lamplight. A brass-framed door to the next carriage at the far end. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "He begins in the quiet car: bench seats, small tables, sleeping passengers, a coffee cup with one bee on its rim. Far outside, a golden angel on a stone column slides past the windows.",
+   "events": [
+    "A single bee lifts from a coffee cup and flies slowly down the aisle ahead of him.",
+    "He walks after it; the sleeping passengers do not stir.",
+    "Outside the left windows the golden angel on its column turns its head to follow the train.",
+    "He reaches the brass-framed door at the end of the carriage and slides it open."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. He begins in the quiet car: bench seats, small tables, sleeping passengers, a coffee cup with one bee on its rim. Far outside, a golden angel on a stone column slides past the windows."
+  },
+  {
+   "id": "quiet_window",
+   "title": "The traveler at the glass",
+   "car": 1,
+   "seat": -1,
+   "km": 7.0,
+   "shot": "profile",
+   "ref": "assets/worlds/f997_window.jpg",
+   "frame": "Medium profile shot inside a railway carriage of a weathered man in a canvas duster coat and dark felt hat seated at a window table, oxblood leather seat, teal panelled wall, a white coffee cup with a honeybee on its rim, a cyan plastic jerrycan beside him. Through the large window: an enormous golden beehive the size of a cathedral standing on the ochre highland plain with a dark swarm spiralling above it, late golden light on his face.",
+   "scene": "He is seated at the window of the quiet car. Outside, the impossible hive, a golden beehive as tall as a cathedral, stands on the plain and grows as the train approaches.",
+   "events": [
+    "He watches the hive draw level with the window; its doorway glows.",
+    "The swarm above the hive bends toward the train and paces the carriage.",
+    "A bee lands on the rim of his cup.",
+    "He sets down the cup, stands and steps into the aisle."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. He is seated at the window of the quiet car. Outside, the impossible hive, a golden beehive as tall as a cathedral, stands on the plain and grows as the train approaches."
+  },
+  {
+   "id": "gangway",
+   "title": "Between carriages",
+   "car": 1,
+   "x": -3.2,
+   "dir": -1,
+   "walk": 2,
+   "km": 1.0,
+   "shot": "threshold",
+   "ref": "assets/worlds/quiet.jpg",
+   "frame": "Low-angle view from inside the dark rubber-bellows gangway between two railway carriages, looking back through a brass-framed doorway into a warm lamplit teal carriage with oxblood leather seats, where a lone traveler in a long weathered canvas duster coat and a dark felt hat walks toward the camera, about to step through the door. Amber dome lamps, bees around the door frame, steel floor plates in the foreground. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The camera waits in the gangway between two carriages. He comes toward it down the lamplit aisle of the quiet car.",
+   "events": [
+    "He steps over the threshold into the dark gangway; the floor plates shift under his boots.",
+    "The camera turns with him as he passes and follows him into the next carriage.",
+    "The next carriage is a dining car where every table is laid and every guest is perfectly still."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The camera waits in the gangway between two carriages. He comes toward it down the lamplit aisle of the quiet car."
+  },
+  {
+   "id": "dining_walk",
+   "title": "The dining car that feels wrong",
+   "car": 2,
+   "x": 6.2,
+   "dir": -1,
+   "walk": 5,
+   "km": 2.38,
+   "shot": "follow",
+   "ref": "assets/worlds/dining.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat walking down the aisle of an elegant weathered railway dining car: white linen tables with small brass lamps and coffee cups on both sides, oxblood chairs, teal panelled walls, arched ceiling with amber lamps. The seated diners in 1970s suits and white shawls are all frozen mid-gesture with their faces turned toward him. A musician with a krar stands at the far door. Through the right windows a Victorian steam train with lit windows runs alongside on a second track; beyond it a row of tall carved stone stelae. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The dining car: linen, brass lamps, cups, a musician at the far end. The diners are motionless and all of them are watching him. Outside the right-hand windows an older steam train keeps pace on a second track.",
+   "events": [
+    "As he walks, each table of diners resumes eating only after he has passed it.",
+    "The musician at the far door begins to play; the lamps on the tables brighten in time.",
+    "In the steam train outside, a passenger in the same hat and coat looks back at him through the glass.",
+    "A waiter opens the door at the far end and holds it."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The dining car: linen, brass lamps, cups, a musician at the far end. The diners are motionless and all of them are watching him. Outside the right-hand windows an older steam train keeps pace on a second track."
+  },
+  {
+   "id": "greenhouse_walk",
+   "title": "The greenhouse at the equator",
+   "car": 3,
+   "x": 6.4,
+   "dir": -1,
+   "walk": 5,
+   "km": 1.6,
+   "shot": "follow",
+   "ref": "assets/worlds/greenhouse.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat walking a narrow wet plank aisle through a railway carriage that is a greenhouse: glass roof and glass walls with riveted teal iron ribs, raised planters overflowing with coffee shrubs, enset, wild flowers and vines on both sides, wooden beehive boxes among the leaves, shafts of sunlight through steam, bees everywhere, cyan jerrycans feeding drip lines. Through the glass the train is crossing a high stone viaduct over a deep misty valley. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The greenhouse car: a forest under glass, hive boxes among the coffee shrubs, drip lines fed from cyan jerrycans. The train is high on a viaduct and the valley falls away under the glass.",
+   "events": [
+    "It begins to rain gently inside the carriage, though the sky outside is clear.",
+    "He ducks under a vine; bees rise from a hive box and form a slow ring around him.",
+    "A hive box opens by itself and the comb inside is lit like a lamp.",
+    "He pushes through the leaves to the brass-framed door at the far end."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The greenhouse car: a forest under glass, hive boxes among the coffee shrubs, drip lines fed from cyan jerrycans. The train is high on a viaduct and the valley falls away under the glass."
+  },
+  {
+   "id": "apiary_walk",
+   "title": "The apiary car in the tunnel",
+   "car": 4,
+   "x": 6.0,
+   "dir": -1,
+   "walk": 5,
+   "km": 3.22,
+   "shot": "follow",
+   "ref": "assets/worlds/apiary.jpg",
+   "far": 60,
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat walking down the red-carpeted aisle of a windowless railway carriage that is a museum of beekeeping, at night in a tunnel: both walls covered floor to ceiling with small painted wooden beehive panels of saints, hunters, trains, devils and animals in faded reds, teals and golds, glass vitrines of glowing honeycomb on walnut plinths, woven straw hives hanging from the arched ceiling, amber lamps, honey light, an elderly woman beekeeper in a white headwrap standing by a vitrine. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The apiary car, in a tunnel: walls of painted hive panels, vitrines of lit honeycomb, straw hives overhead, a retired beekeeper who knows why he is here.",
+   "events": [
+    "The painted figures on the panels turn their heads as he passes.",
+    "The beekeeper lifts the glass of a vitrine and the honeycomb inside begins to hum.",
+    "One painted panel swings open like a small door; daylight and a mountain road are behind it.",
+    "Honey runs slowly up the wall toward the ceiling."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The apiary car, in a tunnel: walls of painted hive panels, vitrines of lit honeycomb, straw hives overhead, a retired beekeeper who knows why he is here."
+  },
+  {
+   "id": "mirror_walk",
+   "title": "The mirror corridor",
+   "car": 5,
+   "x": 6.8,
+   "dir": -1,
+   "walk": 4,
+   "km": 4.45,
+   "shot": "follow",
+   "ref": "assets/worlds/mirror.jpg",
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat walking a narrow sleeper-car corridor: compartment doors with small lit frosted windows and brass sconces along the teal panelled wall on the left, a row of large windows on the right, worn red carpet runner. Halfway down on the left hangs a tall gilt-framed mirror that shows not him but Victorian passengers in top hats and crinolines. Through the right windows, dusk over a still salt lake with huge hexagonal honeycomb monoliths floating in the pink air. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The mirror corridor of the sleeper: compartment doors, sconces, a gilt mirror that reflects another century. Outside, dusk over a salt lake where honeycomb monoliths hang in the air.",
+   "events": [
+    "He stops at the mirror. The Victorian passengers inside it stop too, and one raises a hand.",
+    "A bee flies out of the mirror into the corridor.",
+    "A compartment door slides open; inside, an older version of himself is asleep with the same hat over his eyes.",
+    "Outside, one of the floating honeycombs drifts close enough to touch the glass."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The mirror corridor of the sleeper: compartment doors, sconces, a gilt mirror that reflects another century. Outside, dusk over a salt lake where honeycomb monoliths hang in the air."
+  },
+  {
+   "id": "surveillance_walk",
+   "title": "Every camera is a hive",
+   "car": 6,
+   "x": 6.2,
+   "dir": -1,
+   "walk": 4,
+   "km": 3.3,
+   "shot": "follow",
+   "ref": "assets/worlds/surveillance.jpg",
+   "far": 60,
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat walking through a windowless railway carriage used as a surveillance room: both walls stacked with dozens of old CRT monitors and reel-to-reel recorders glowing teal and amber, cables across the steel floor, a hooded watcher standing by a swivel chair. Many of the screens show this same corridor from behind him, with himself walking on every screen. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The surveillance car: walls of monitors and tape reels. The screens show the other carriages, the land outside, and him, from behind, as he is right now.",
+   "events": [
+    "On one monitor he is a few seconds ahead of himself; on that screen he turns round.",
+    "He turns round.",
+    "Every screen switches to a bee's-eye view flying down this corridor toward his back.",
+    "The watcher pulls a tape from a recorder and offers it to him."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The surveillance car: walls of monitors and tape reels. The screens show the other carriages, the land outside, and him, from behind, as he is right now."
+  },
+  {
+   "id": "cinema_enter",
+   "title": "The cinema car",
+   "car": 7,
+   "x": 6.6,
+   "dir": -1,
+   "walk": 3,
+   "km": 7.0,
+   "shot": "follow",
+   "ref": "assets/worlds/cinema.jpg",
+   "far": 60,
+   "frame": "Third-person view from behind a lone traveler in a long weathered canvas duster coat and a dark felt hat standing at the back of a railway carriage converted into a tiny cinema: rows of worn red velvet seats on both sides of the aisle with a few silhouetted spectators, heavy red velvet drapes on the walls, a brass hand-cranked projector throwing a dusty beam, and at the far end a glowing screen showing a sepia film of a steam train arriving straight toward the audience. Bees cross the projector beam. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The last carriage is a cinema. On the screen a train from 1895 arrives at a station, head on. The audience has seen this film before.",
+   "events": [
+    "He walks down the aisle toward the screen; the train in the film grows.",
+    "The projector beam fills with bees and the image becomes the view ahead of this train.",
+    "The steam locomotive on the screen does not stop at the edge of the picture.",
+    "A spectator in the front row stands; she is wearing a beekeeper's veil."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The last carriage is a cinema. On the screen a train from 1895 arrives at a station, head on. The audience has seen this film before."
+  },
+  {
+   "id": "dollhouse",
+   "title": "The dollhouse track",
+   "car": 2,
+   "x": 1.5,
+   "dir": -1,
+   "walk": 6,
+   "km": 0.9,
+   "shot": "lateral",
+   "ref": "assets/worlds/exterior.jpg",
+   "zoom": 1.25,
+   "frame": "Exterior side view of a moving 1970s teal and cream railway dining carriage seen square-on from a camera tracking alongside it, looking in through a row of large windows: inside, warm amber lamps, white linen tables, seated diners, and a lone traveler in a long weathered canvas duster coat and a dark felt hat walking along the aisle in profile. Riveted teal steel below the windows, cream band between them, dark roof, steel wheels on rails. Ochre highland plain and sky reflected in the glass. He walks unhurriedly with his hands clasped behind his back.",
+   "scene": "The camera rides outside, level with the windows, and tracks him as he walks the length of the train inside, carriage after carriage, each window a different room.",
+   "events": [
+    "The wall between two windows wipes across the frame and the next carriage is a greenhouse.",
+    "He passes through a door and the next row of windows is full of monitors.",
+    "A swarm flows between the camera and the train, then clears.",
+    "The camera drifts in through an open window and takes up position behind him."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. The camera rides outside, level with the windows, and tracks him as he walks the length of the train inside, carriage after carriage, each window a different room."
+  },
+  {
+   "id": "lean_out",
+   "title": "Leaning out",
+   "car": 1,
+   "seat": -1,
+   "km": 6.62,
+   "shot": "lean",
+   "swarm": 1,
+   "ref": "assets/worlds/f997_aerial.jpg",
+   "frame": "View from just outside an open carriage window of a moving 1970s teal and cream passenger train, looking forward along its curving flank toward a dark diesel locomotive: weathered riveted teal steel, cream window band, wheels and rails below, ochre highland plain, an enormous golden beehive tower on the horizon ahead, a dense dark swarm of bees flowing alongside the train like smoke, dust, late golden sun.",
+   "scene": "He leans out of the window. The whole train is visible ahead, the locomotive, the swarm running alongside, and on the horizon the hive.",
+   "events": [
+    "The swarm closes in and travels level with his face.",
+    "The locomotive sounds its horn and the swarm scatters, then re-forms as an arrow pointing at the hive.",
+    "A second, older train appears on the horizon running the other way.",
+    "He pulls his head back inside."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. He leans out of the window. The whole train is visible ahead, the locomotive, the swarm running alongside, and on the horizon the hive."
+  },
+  {
+   "id": "viaduct_witness",
+   "title": "The witness on the viaduct",
+   "car": 1,
+   "seat": -1,
+   "km": 1.66,
+   "shot": "drone",
+   "swarm": 1,
+   "ref": "assets/worlds/exterior.jpg",
+   "frame": "Wide high view from a hillside of a long 1970s teal and cream passenger train with a dark diesel locomotive crossing a tall many-arched stone viaduct over a deep misty highland valley, a river far below, ochre and violet mountain ranges, a dark ribbon of bees flowing beside the train, golden hour, dust.",
+   "scene": "From a hillside, the whole train is seen crossing the viaduct. The camera can descend to the train, enter any window and find him inside.",
+   "events": [
+    "The camera glides down toward the fourth carriage.",
+    "It passes through an open window into the lamplight.",
+    "He is there, seated, and looks up as if he heard it arrive."
+   ],
+   "genie": "A playable third-person cinematic world: THE SEALED LINE. One continuous take aboard a weathered, luxurious 1970s passenger train crossing an archipelago of Ethiopian highland islands in the year 2086, a world of water and Wi-Fi where people carry twenty-litre cyan jerrycans. The protagonist is a lone traveler in a long weathered canvas duster coat and a dark felt hat; the camera is an independent third-person observer that keeps his whole body in frame. He can walk the aisle, stop, turn, sit, look out of the windows and pass through the brass-framed doors between carriages. The train never stops moving: the land outside slides past continuously and independently of him, and what was ahead recedes behind. Every carriage is a different room of the same train, physically connected by a short dark gangway; each holds something ordinary and one thing that should not be there. Honeybees travel the train and move with intent. Look: a lost 1970s Ethiopian western-noir on 35mm, technicolor-sepia dust, imperial gold, teal and indigo shadow, blood red, amber practical lamps, heavy grain. The train's architecture, the traveler's appearance and the direction of travel stay fixed. No cuts, dissolves, teleporting, morphing surfaces or interface overlays: every change arrives through a door, a window, an object or the passing land. From a hillside, the whole train is seen crossing the viaduct. The camera can descend to the train, enter any window and find him inside.",
+   "far": 2500
+  }
+ ]
+}

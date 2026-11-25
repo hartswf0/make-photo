@@ -1,0 +1,270 @@
+{
+ "sources": 1,
+ "note": "video@1: the El Desierto train clips this level was compiled from. 'frames' are the moments turned into depth worlds behind the carriage thresholds (data/worlds.json).",
+ "clips": [
+  {
+   "video": 1,
+   "clip_id": 92,
+   "title": "The prestige train that feels wrong",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/092_20260422_055703_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/092_20260422_055703_sheet.jpg",
+    "preview": "https://hartswf0.github.io/el-desierto/PREVIEWS/092_20260422_055703.mp4"
+   },
+   "layer": "foreground",
+   "extract": "the dining car and its guests",
+   "frames": [
+    {
+     "world": "f092_dining",
+     "t": 0.5,
+     "title": "Dining car, unapproved branch"
+    }
+   ],
+   "compile_into": "L:dining"
+  },
+  {
+   "video": 1,
+   "clip_id": 861,
+   "title": "Bees on a Train title sequence",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/861_20260426_235607_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/861_20260426_235607_sheet.jpg",
+    "preview": "https://hartswf0.github.io/el-desierto/PREVIEWS/861_20260426_235607.mp4"
+   },
+   "layer": "foreground",
+   "extract": "the fluorescent corridor, the arrival of a train",
+   "frames": [
+    {
+     "world": "f861_corridor",
+     "t": 8.2,
+     "title": "Fluorescent corridor"
+    },
+    {
+     "world": "f861_lumiere",
+     "t": 1.7,
+     "title": "The arrival of a train"
+    }
+   ],
+   "compile_into": "L:surveillance, loco"
+  },
+  {
+   "video": 1,
+   "clip_id": 866,
+   "title": "Bees on a Train title sequence",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/866_20260427_000209_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/866_20260427_000209_sheet.jpg",
+    "preview": "https://hartswf0.github.io/el-desierto/PREVIEWS/866_20260427_000209.mp4"
+   },
+   "layer": "foreground",
+   "extract": "La Ciotat 1895, the breached corridor",
+   "frames": [
+    {
+     "world": "f866_corridor",
+     "t": 5.2,
+     "title": "The breached corridor"
+    },
+    {
+     "world": "f866_lumiere",
+     "t": 1.7,
+     "title": "La Ciotat, 1895"
+    }
+   ],
+   "compile_into": "L:cinema, surveillance"
+  },
+  {
+   "video": 1,
+   "clip_id": 870,
+   "title": "Bee cam: through the burned apiary",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/870_20260427_000658_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/870_20260427_000658_sheet.jpg",
+    "preview": "https://hartswf0.github.io/el-desierto/PREVIEWS/870_20260427_000658.mp4"
+   },
+   "layer": "foreground",
+   "extract": "the burned hive interior, the apiary field",
+   "frames": [
+    {
+     "world": "f870_field",
+     "t": 3.0,
+     "title": "The apiary before the fire"
+    },
+    {
+     "world": "f870_hive",
+     "t": 4.4,
+     "title": "Bee cam: inside the burned hive"
+    },
+    {
+     "world": "f870_comb",
+     "t": 6.4,
+     "title": "Bee cam: between the combs"
+    }
+   ],
+   "compile_into": "L:greenhouse, apiary"
+  },
+  {
+   "video": 1,
+   "clip_id": 995,
+   "title": "The sealed car",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v2/995_20260427_023029_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/995_20260427_023029_sheet.jpg",
+    "preview": "https://hartswf0.github.io/el-desierto/PREVIEWS/995_20260427_023029.mp4"
+   },
+   "layer": "foreground",
+   "extract": "teal corridor, the swarm over the field",
+   "frames": [
+    {
+     "world": "f995_sealed",
+     "t": 1.0,
+     "title": "The sealed car"
+    },
+    {
+     "world": "f995_swarm",
+     "t": 8.0,
+     "title": "The sealed car \u2014 swarm over the field"
+    }
+   ],
+   "compile_into": "L:surveillance; E:swarm"
+  },
+  {
+   "video": 1,
+   "clip_id": 997,
+   "title": "Highland noir / train as hive",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v2/997_20260427_023252_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/997_20260427_023252_sheet.jpg",
+    "preview": "https://hartswf0.github.io/el-desierto/PREVIEWS/997_20260427_023252.mp4"
+   },
+   "layer": "foreground",
+   "extract": "the traveler at the window, the aerial of the train, the halt",
+   "frames": [
+    {
+     "world": "f997_window",
+     "t": 2.8,
+     "title": "Highland noir \u2014 the traveler at the glass"
+    },
+    {
+     "world": "f997_village",
+     "t": 5.6,
+     "title": "Highland noir \u2014 what he carries"
+    },
+    {
+     "world": "f997_aerial",
+     "t": 0.3,
+     "title": "Highland noir \u2014 train as hive"
+    },
+    {
+     "world": "f997_station",
+     "t": 7.8,
+     "title": "Highland noir \u2014 the ridge at sunset"
+    },
+    {
+     "world": "f997_tunnel",
+     "t": 8.9,
+     "title": "Highland noir \u2014 the halt"
+    }
+   ],
+   "compile_into": "E:traveler; L:quiet; the look"
+  },
+  {
+   "video": 1,
+   "clip_id": 1007,
+   "title": "The mirror of the station",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/1007_20260427_024406_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/1007_20260427_024406_sheet.jpg",
+    "preview": "https://hartswf0.github.io/el-desierto/PREVIEWS/1007_20260427_024406.mp4"
+   },
+   "layer": "foreground",
+   "extract": "the lamp corridor, the gilt mirror, the arcade inside it",
+   "frames": [
+    {
+     "world": "f1007_corridor",
+     "t": 2.0,
+     "title": "Corridor of lamps"
+    },
+    {
+     "world": "f1007_mirror",
+     "t": 5.6,
+     "title": "The mirror of the station"
+    },
+    {
+     "world": "f1007_arcade",
+     "t": 11.4,
+     "title": "The gaslit arcade inside the mirror"
+    }
+   ],
+   "compile_into": "L:mirror"
+  },
+  {
+   "video": 1,
+   "clip_id": 1020,
+   "title": "The camera that remembers",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/1020_20260427_025941_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/1020_20260427_025941_sheet.jpg",
+    "preview": "https://hartswf0.github.io/el-desierto/PREVIEWS/1020_20260427_025941.mp4"
+   },
+   "layer": "foreground",
+   "extract": "the steam train on the coast, the platform at sunset",
+   "frames": [
+    {
+     "world": "f1020_steam",
+     "t": 10.8,
+     "title": "The camera that remembers"
+    },
+    {
+     "world": "f1020_platform",
+     "t": 6.4,
+     "title": "Platform at sunset"
+    }
+   ],
+   "compile_into": "L:cinema, loco"
+  },
+  {
+   "video": 1,
+   "clip_id": 1022,
+   "title": "The highland musician",
+   "source": {
+    "archive": "el-desierto",
+    "video": "https://github.com/hartswf0/el-desierto/releases/download/finals-v1/1022_20260427_030205_final.mp4",
+    "sheet": "https://raw.githubusercontent.com/hartswf0/el-desierto/main/SHEETS/1022_20260427_030205_sheet.jpg",
+    "preview": "https://hartswf0.github.io/el-desierto/PREVIEWS/1022_20260427_030205.mp4"
+   },
+   "layer": "foreground",
+   "extract": "the musician at the window, the corridor of painted panels, the elevated line",
+   "frames": [
+    {
+     "world": "f1022_museum",
+     "t": 2.8,
+     "title": "Corridor of painted hive panels"
+    },
+    {
+     "world": "f1022_corridor",
+     "t": 7.6,
+     "title": "The musician walks the corridor"
+    },
+    {
+     "world": "f1022_sax",
+     "t": 10.4,
+     "title": "The highland musician"
+    },
+    {
+     "world": "f1022_cliff",
+     "t": 0.1,
+     "title": "The elevated line"
+    }
+   ],
+   "compile_into": "E:musician; L:dining, apiary"
+  }
+ ]
+}
