@@ -135,7 +135,7 @@ function timecycle() { const ws = [], here = islandAt(P.x, P.z); let tot = 0; fo
 function applyAtmosphere(A, storm) { const e = storm * storm * (3 - 2 * storm);
   if (A.std > 0) { const grey = c => { const l = c.r * .2126 + c.g * .7152 + c.b * .0722; c.lerp(new T.Color(l, l, l), A.std); }; [...A.sky, A.fog, A.hs, A.hg, A.sc, A.fc].forEach(grey); }   /* under the standard only blue things keep their blue, so only they burn cyan */
   const gr = skyX.createLinearGradient(0, 0, 0, 256); [0, .55, .75, 1].forEach((st, k) => gr.addColorStop(st, '#' + A.sky[k].clone().lerp(STORM_SKY[k], e).getHexString(T.SRGBColorSpace))); skyX.fillStyle = gr; skyX.fillRect(0, 0, 4, 256); skyT.needsUpdate = true;
-  scene.fog.color.copy(A.fog).lerp(STORM_SKY[3], e); scene.fog.near = A.near * (1 - .9 * e); scene.fog.far = A.far * (1 - .9 * e);
+  scene.fog.color.copy(A.fog).lerp(STORM_SKY[3], e); scene.fog.near = Math.max(1000, A.near) * (1 - .9 * e); scene.fog.far = Math.max(20000, A.far) * (1 - .9 * e);   /* each world keeps its haze colour, but you can always see the country: never thicker than 1 to 20 km outside a storm */
   hemi.color.copy(A.hs); hemi.groundColor.copy(A.hg); hemi.intensity = A.hi * (1 - .4 * e) + (STORM.flash > .09 ? 2.2 : STORM.flash > 0 ? .8 : 0); sun.color.copy(A.sc); sun.intensity = A.si * (1 - .7 * e); fill.color.copy(A.fc); fill.intensity = A.fi;
   SEA_U.uDeep.value.copy(A.wc); SEA_U.uShallow.value.copy(A.wc).lerp(new T.Color('#5fc4c8'), .45); SEA_U.uSky.value.copy(A.sky[2]); SEA_U.uSunCol.value.copy(A.sc); SEA_U.uSunDir.value.copy(LIGHT.dir); water.material.uniforms.uDeep.value.copy(SEA_U.uDeep.value); water.material.uniforms.uShallow.value.copy(SEA_U.uShallow.value); water.material.uniforms.uSky.value.copy(SEA_U.uSky.value); water.material.uniforms.uSunCol.value.copy(SEA_U.uSunCol.value); water.material.uniforms.uSunDir.value.copy(LIGHT.dir);
   LIGHT.dir.copy(A.sd.lengthSq() > 1e-6 ? A.sd : new T.Vector3(-1, 2, -.6)).normalize(); LIGHT.box = Math.round(A.box) || 80; LIGHT.map = A.map || 2048; LIGHT.lamps = A.lamps;
@@ -170,6 +170,14 @@ const groundMat = new T.MeshLambertMaterial({ map: tex });
       vec3 rock = RK * mix(.78, 1.18, g2 * .7); c = mix(c, rock, smoothstep(GP.y, GP.z, sl));                       // this island's rock where it is steep
       c = mix(SD, c, smoothstep(1.5, 7.0, h));                                                                                // a shore of sand
       c = mix(c, SN, smoothstep(GP.x, GP.x + 450.0, h + g3 * 120.0) * (1.0 - smoothstep(.45, .7, sl)));                         // snow on the high ground
+      { /* country: the low, gentle ground is a quilt of fields, each its own crop, with dark hedgerows between, in this island's palette */
+        float fm = (1.0 - smoothstep(.07, .2, sl)) * smoothstep(9.0, 24.0, h) * (1.0 - smoothstep(GP.x * .55, GP.x * .75, h));
+        if (fm > 0.0) { vec2 q = vWp.xz / 150.0; q += vec2(sin(q.y * 1.7 + 2.1), cos(q.x * 1.3 + .7)) * .22; vec2 id = floor(q), fr = fract(q);
+          float hs = fract(sin(dot(id, vec2(127.1, 311.7))) * 43758.5453), hs2 = fract(sin(dot(id, vec2(269.5, 183.3))) * 43758.5453);
+          vec3 tint = hs < .22 ? vec3(1.0) : hs < .42 ? vec3(1.22, 1.12, .62) : hs < .58 ? vec3(.78, .98, .62) : hs < .72 ? vec3(1.12, .92, .66) : hs < .86 ? vec3(.92, 1.08, .8) : vec3(1.05, .86, .7);   /* pasture, ripe grain, young crop, stubble, hay, ploughed */
+          float rows = .9 + .1 * sin((hs2 > .5 ? fr.x : fr.y) * 150.0);
+          float e = min(min(fr.x, 1.0 - fr.x), min(fr.y, 1.0 - fr.y)), hedge = (1.0 - smoothstep(.012, .04, e)) * (1.0 - smoothstep(2500.0, 5000.0, length(vWp - cameraPosition)));
+          c = mix(c, c * tint * (hs < .22 ? 1.0 : rows), fm * .85); c = mix(c, MA * .45, hedge * fm * .9); } }
       { float dn = clamp(1.0 - length(vWp - cameraPosition) / 900.0, 0.0, 1.0); vec3 n = normalize(vNw);   /* MONOLITH-3's ground recipe, as a value on this island's colour */
         vec3 grit = texture2D(uGT, vWp.xz * .23).rgb, scr = texture2D(uST, vWp.xz * .069 + vec2(.26, .17)).rgb, slabs = tri(uRT, vWp / 132., n), grains = tri(uRT, vWp / 14., n);
         float soil = (.22 + .95 * grit.r) * (.69 + .46 * grit.b) * mix(1., .55 + .9 * scr.r, .45), stone = (.3 + 1.05 * slabs.r) * (.66 + .68 * grains.r), cliff = smoothstep(.16, .47, sl);
@@ -220,6 +228,26 @@ const water = new T.Mesh(new T.PlaneGeometry(26000, 26000, 220, 220), new T.Shad
       gl_FragColor = vec4(col, a);
       #include <fog_fragment>
     }` })); water.rotation.x = -Math.PI / 2; water.position.y = 0; water.renderOrder = 2; scene.add(water); water.material.uniforms.uLow.value = LOWT;
+// ---------- the ranges: mountains all round the archipelago's horizon, 30 to 70 km out, ridged and snow-capped, with their own haze so they
+//            stand on the skyline as country does, instead of fading into the fog ----------
+const RANGES = (() => { const cx = OW.width_m / 2, cz = OW.height_m / 2, R0 = Math.hypot(cx, cz) + 7000, NA = 900, NR = 46, pos = [], idx = [];
+  const hsh = (x, y) => { const s_ = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s_ - Math.floor(s_); }, vn = (x, y) => { const i = Math.floor(x), j = Math.floor(y), a = x - i, b = y - j, u = a * a * (3 - 2 * a), v = b * b * (3 - 2 * b); return (hsh(i, j) * (1 - u) + hsh(i + 1, j) * u) * (1 - v) + (hsh(i, j + 1) * (1 - u) + hsh(i + 1, j + 1) * u) * v; };
+  const ridged = (x, y) => { let f = 0, a = .55, k = 1; for (let o = 0; o < 5; o++) { f += a * (1 - Math.abs(vn(x * k, y * k) * 2 - 1)) ** 2; a *= .5; k *= 2.03; } return f; };
+  const hx = cx + 4500, hz = cz + 4500, edge = a => Math.pow(Math.pow(Math.abs(Math.cos(a)) / hx, 6) + Math.pow(Math.abs(Math.sin(a)) / hz, 6), -1 / 6);   /* just past the sea, all round */
+  for (let j = 0; j < NR; j++) for (let i = 0; i < NA; i++) { const a = i / NA * Math.PI * 2, t = j / (NR - 1), r = edge(a) + t * 38000, x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
+    const env = Math.min(1, t * 6) * (1 - .2 * t), big = .45 + .55 * vn(Math.cos(a) * 4 + 9, Math.sin(a) * 4 + 4), rr = ridged(x / 5200, z / 5200), peaks = Math.pow(rr, 1.7), hgt = -60 + env * big * (peaks * 5200 + ridged(x / 1700 + 3, z / 1700) * 320); pos.push(x, hgt, z); }   /* sharp ridged peaks with gullies, highest where the great ranges run */
+  for (let j = 0; j < NR - 1; j++) for (let i = 0; i < NA; i++) { const a = j * NA + i, b = j * NA + (i + 1) % NA; idx.push(a, a + NA, b, b, a + NA, b + NA); }
+  const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+  const U = { uFog: { value: new T.Color() }, uSun: { value: new T.Vector3(0, 1, 0) }, uLit: { value: new T.Color('#fff4e0') }, uDark: { value: new T.Color('#2c3b45') } };
+  const m = new T.Mesh(geo, new T.ShaderMaterial({ uniforms: U, fog: false, vertexShader: `varying vec3 vW, vN; void main(){ vW = (modelMatrix * vec4(position, 1.)).xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * vec4(vW, 1.); }`,
+    fragmentShader: `uniform vec3 uFog, uSun, uLit, uDark; varying vec3 vW, vN;
+      void main(){ vec3 n = normalize(vN); float k = max(dot(n, normalize(uSun)), 0.), sl = 1. - n.y, h = vW.y;
+        vec3 col = mix(vec3(.07, .11, .09), vec3(.26, .26, .28), smoothstep(250., 1500., h + sl * 600.));                         /* forested foothills, then bare rock */
+        col = mix(col, vec3(.92, .94, .97), smoothstep(2200., 2700., h + sin(vW.x * .003) * 220.) * (1. - smoothstep(.35, .7, sl)));   /* snow on the high ground */
+        col *= mix(uDark * 1.3, uLit * 1.25, .2 + .95 * k);
+        float d = length(vW.xz - cameraPosition.xz); col = mix(col, uFog * .85, clamp(d / 240000., 0., .3));          /* blue distance, never lost in it */
+        gl_FragColor = vec4(col, 1.); }` }));
+  m.frustumCulled = false; m.renderOrder = -1; scene.add(m); return { m, U }; })();
 // ---------- streaming: 2 km tiles near you at full detail, further ones coarser ----------
 const have = new Set(OW.tiles.map(([i, j]) => i + '_' + j)), tiles = new Map(), data = new Map(), loading = new Set();
 async function fetchTile(key) { if (data.has(key) || loading.has(key)) return; loading.add(key); try { const b = new Uint16Array(await (await fetch(`./ow/t/${key}.bin?v=4`)).arrayBuffer()), f = new Float32Array(b.length); for (let k = 0; k < b.length; k++) f[k] = b[k] / 10 - 1000; data.set(key, f); } catch { } loading.delete(key); }
@@ -538,8 +566,8 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
   ey = Math.max(ey, groundAt(ex, ez) + 1.5); camera.position.lerp(new T.Vector3(ex, ey, ez), Math.min(1, dt * 6)); camera.lookAt(P.x + Math.sin(P.yaw) * dist * .35, P.y + 1.1 + up * .2, P.z + Math.cos(P.yaw) * dist * .35);   /* you stand in the lower third, not under the drops at the bottom edge */   /* look past yourself so the horizon, and the lights on it, stay in view */ if (!look.id && Math.abs(fwd) > .1) camYaw *= Math.pow(.2, dt);
   if (CAMO) { const h = CAMO.heading * Math.PI / 180, pt = CAMO.pitch * Math.PI / 180; camera.position.set(CAMO.x, CAMO.y, CAMO.z); camera.lookAt(CAMO.x + Math.sin(h) * Math.cos(pt), CAMO.y + Math.sin(pt), CAMO.z - Math.cos(h) * Math.cos(pt));
     if (camera.fov !== CAMO.fov) { camera.fov = CAMO.fov; camera.updateProjectionMatrix(); } walker.visible = false; if (donkey) donkey.group.visible = false; }   /* a level's own eye, for matched comparisons */
-  water.position.x = Math.round(P.x / 100) * 100; water.position.z = Math.round(P.z / 100) * 100; water.material.uniforms.uTime.value = now / 1000;
-  OWS.dk = Math.max(0, OWS.dk - dt * .0025); splashes(dt); lifeAndSea(dt, now / 1000); CORNER.draw(now); if (P.swim && !DIVE.frame) diveScent(); if (DIVE.on) diveTick(dt);
+  water.position.x = Math.round(P.x / 100) * 100; water.position.z = Math.round(P.z / 100) * 100; water.material.uniforms.uTime.value = now / 1000; RANGES.U.uFog.value.copy(scene.fog.color); RANGES.U.uSun.value.copy(SEA_U.uSunDir.value); RANGES.U.uLit.value.copy(SEA_U.uSunCol.value);
+  OWS.dk = Math.max(0, OWS.dk - dt * .0025); splashes(dt); lifeAndSea(dt, now / 1000); gpsTick(); CORNER.draw(now); if (P.swim && !DIVE.frame) diveScent(); if (DIVE.on) diveTick(dt);
   if (REG) REG.update(dt, now / 1000, P, donkey && donkey.group.position); hearAndHouse(); placeSun();
   if (now - (LIGHT.lt || 0) > 250) { LIGHT.lt = now; const near = LAMPS.map(l => [Math.hypot(l.x - P.x, l.z - P.z), l]).filter(q => q[0] < 160).sort((a, b) => a[0] - b[0]);
     LAMP_POOL.forEach((pl, k) => { const q = near[k]; if (!q) { pl.intensity = 0; return; } const l = q[1]; pl.position.set(l.x, l.y, l.z); pl.color.set(l.color || '#ffca88'); pl.distance = l.r || 28; pl.intensity = (l.i ?? 2.4) * (LIGHT.lamps ?? 1); }); }
@@ -586,17 +614,25 @@ function diveTick(dt) { const A = abyss(); if (!A) return; const q = A.pose(); c
   walker.position.set(0, Math.sin(performance.now() / 700) * .06, 0); walker.rotation.set(1.42 - q.pitch * .5, 0, Math.sin(performance.now() / 900) * .06, 'YXZ'); walker.visible = true;   /* flat in the water, nose along the way she looks */
   if (motion) try { motion.setActorLocomotion('imani', { speedMps: 0, carrying: false, blend: 1 }); motion.update(dt); } catch { } SWIM.pose(performance.now() / 1000, 1, sp > .4 ? 1.25 : .55); DIVE.r.render(DIVE.sc, DIVE.cam); if (q.atSurface && DIVE.lift > 0) surfaceUp(); DIVE.lift = Math.max(0, DIVE.lift - dt); }
 // ---------- the corner map: always there, heading-up, about 1.5 km around you, your way drawn on it; tap for the whole map ----------
-function paintMini(mg, R, sc, t) {   /* the world beneath the drop: heading-up, about 1.5 km around you, your way moving on it */
-    const img = tex.image, k = img.width / OW.width_m, yaw = P.yaw + camYaw; mg.setTransform(sc, 0, 0, sc, 0, 0); mg.fillStyle = '#0e3346'; mg.fillRect(0, 0, R * 2, R * 2);
-    mg.save(); mg.translate(R, R); mg.rotate(yaw + Math.PI); const M = 1500 / R, W2 = (x, z) => [(x - P.x) / M, (z - P.z) / M], span = 1700;
-    mg.drawImage(img, (P.x - span) * k, (P.z - span) * k, span * 2 * k, span * 2 * k, -span / M, -span / M, span * 2 / M, span * 2 / M);
-    mg.lineCap = 'round'; mg.strokeStyle = 'rgba(255,240,210,.6)'; mg.lineWidth = 1.4;
-    for (const r of OW.roads) { const p0 = r.pts[0], pn = r.pts[r.pts.length - 1]; if (Math.min(Math.hypot(p0[0] - P.x, p0[2] - P.z), Math.hypot(pn[0] - P.x, pn[2] - P.z)) > 9000) continue; mg.beginPath(); r.pts.forEach((q, i) => { const [x, y] = W2(q[0], q[2]); i ? mg.lineTo(x, y) : mg.moveTo(x, y); }); mg.stroke(); }
-    mg.strokeStyle = '#ffd27a'; mg.lineWidth = 3; for (const b of OW.bridges) { mg.beginPath(); b.pts.forEach((q, i) => { const [x, y] = W2(q[0], q[2]); i ? mg.lineTo(x, y) : mg.moveTo(x, y); }); mg.stroke(); }
-    for (const p of OW.places) { const [x, y] = W2(p.x, p.z); if (Math.hypot(x, y) > R + 4) continue; mg.fillStyle = '#fff'; mg.beginPath(); mg.arc(x, y, 2.6, 0, 6.283); mg.fill(); }
-    const w = window.__ow && window.__ow.way && window.__ow.way(); if (w) { mg.strokeStyle = '#5ff2ff'; mg.lineWidth = 2.6; mg.setLineDash([4, 4]); mg.lineDashOffset = -t * 14; mg.beginPath(); w.path.forEach((q, i) => { const [x, y] = W2(q[0], q[1]); i ? mg.lineTo(x, y) : mg.moveTo(x, y); }); mg.lineTo(...W2(w.x, w.z)); mg.stroke(); mg.setLineDash([]);
-      let [tx, ty] = W2(w.x, w.z); const d = Math.hypot(tx, ty); if (d > R - 9) { tx *= (R - 9) / d; ty *= (R - 9) / d; } mg.fillStyle = '#5ff2ff'; mg.beginPath(); mg.arc(tx, ty, 4.5 + Math.sin(t * 4) * 1, 0, 6.283); mg.fill(); }
+/* the GPS: every kind of way in its own colour, the trail you have walked, your route, and which world each place belongs to */
+const GPS = { trail: [], col: { highway: '#ffcf5a', trail: '#e8c9a0', bridge: '#ff9a3c', ferry: '#7ff3ff', route: '#38f2ff', walked: '#ff6ad5' },
+  world: w => /Donkey/.test(w) ? '#ffb347' : /MONOLITH/.test(w) ? '#d8dde4' : /Ethiopia/.test(w) ? '#6fdc8c' : /Highland/.test(w) ? '#d9b36a' : /WYGWYL|city/i.test(w) ? '#6aa8ff' : '#ffffff' };
+function gpsTick() { const T_ = GPS.trail, l = T_[T_.length - 1]; if (!l || Math.hypot(l[0] - P.x, l[1] - P.z) > 14) { T_.push([P.x, P.z]); if (T_.length > 700) T_.shift(); } }
+function paintMini(mg, R, sc, t) {   /* the world beneath the drop: heading-up, about 1.5 km around you, live */
+    const img = tex.image, k = img.width / OW.width_m, yaw = P.yaw + camYaw, C = GPS.col; mg.setTransform(sc, 0, 0, sc, 0, 0); mg.fillStyle = '#0e3346'; mg.fillRect(0, 0, R * 2, R * 2);
+    mg.save(); mg.translate(R, R); mg.rotate(yaw + Math.PI); const M = 1500 / R, W2 = (x, z) => [(x - P.x) / M, (z - P.z) / M], span = 1700, near = (x, z) => Math.abs(x - P.x) < 9000 && Math.abs(z - P.z) < 9000;
+    mg.globalAlpha = .82; mg.drawImage(img, (P.x - span) * k, (P.z - span) * k, span * 2 * k, span * 2 * k, -span / M, -span / M, span * 2 / M, span * 2 / M); mg.globalAlpha = 1;
+    const path = (pts, w, col, dash, casing, get = q => [q[0], q[2]]) => { mg.beginPath(); pts.forEach((q, i) => { const [x, y] = W2(...get(q)); i ? mg.lineTo(x, y) : mg.moveTo(x, y); }); if (casing) { mg.setLineDash([]); mg.strokeStyle = 'rgba(10,20,30,.55)'; mg.lineWidth = w + 2; mg.stroke(); } mg.setLineDash(dash || []); mg.strokeStyle = col; mg.lineWidth = w; mg.stroke(); mg.setLineDash([]); };
+    mg.lineCap = mg.lineJoin = 'round';
+    for (const r of OW.roads) { const p0 = r.pts[0]; if (!near(p0[0], p0[2]) && !near(r.pts[r.pts.length - 1][0], r.pts[r.pts.length - 1][2])) continue; if (r.kind === 'highway') path(r.pts, 2.2, C.highway, null, true); else path(r.pts, 1.3, C.trail, [3, 3]); }
+    for (const f of OW.ferries) path(f.lane, 1.8, C.ferry, [4, 4]);
+    for (const b of OW.bridges) path(b.pts, 3.2, C.bridge, null, true);
+    if (GPS.trail.length > 1) { const T_ = GPS.trail; for (let i = Math.max(1, T_.length - 160); i < T_.length; i++) { const [x0, y0] = W2(T_[i - 1][0], T_[i - 1][1]), [x1, y1] = W2(T_[i][0], T_[i][1]); mg.globalAlpha = .25 + .75 * (i / T_.length); mg.strokeStyle = C.walked; mg.lineWidth = 2; mg.beginPath(); mg.moveTo(x0, y0); mg.lineTo(x1, y1); mg.stroke(); } mg.globalAlpha = 1; }
+    for (const p of OW.places) { const [x, y] = W2(p.x, p.z); if (Math.hypot(x, y) > R + 4) continue; mg.fillStyle = '#fff'; mg.strokeStyle = GPS.world(p.world || ''); mg.lineWidth = 2; mg.beginPath(); mg.arc(x, y, 3, 0, 6.283); mg.fill(); mg.stroke(); }
+    const w = window.__ow && window.__ow.way && window.__ow.way(); if (w) { mg.lineDashOffset = -t * 14; path([...w.path, [w.x, w.z]], 3, C.route, [6, 4], true, q => q); mg.lineDashOffset = 0;
+      let [tx, ty] = W2(w.x, w.z); const d = Math.hypot(tx, ty); if (d > R - 9) { tx *= (R - 9) / d; ty *= (R - 9) / d; } mg.fillStyle = C.route; mg.strokeStyle = '#04202a'; mg.lineWidth = 1.5; mg.beginPath(); mg.arc(tx, ty, 4.5 + Math.sin(t * 4) * 1.2, 0, 6.283); mg.fill(); mg.stroke(); }
     mg.restore();
+    { const g2 = mg.createRadialGradient(R, R, 2, R, R, R * .55); g2.addColorStop(0, 'rgba(255,255,255,.35)'); g2.addColorStop(1, 'rgba(255,255,255,0)'); mg.fillStyle = g2; mg.beginPath(); mg.moveTo(R, R); mg.arc(R, R, R * .55, -Math.PI / 2 - .42, -Math.PI / 2 + .42); mg.closePath(); mg.fill(); }   /* the way you face */
   return w; }
 const CORNER = (() => { const R = 62, PAD = 14, S2 = (R + PAD) * 2, dpr = Math.min(2, devicePixelRatio || 1), c = document.createElement('canvas'); c.width = c.height = S2 * dpr; c.id = 'corner-map';
   Object.assign(c.style, { position: 'fixed', left: `calc(${10 - PAD}px + env(safe-area-inset-left))`, top: `calc(${10 - PAD}px + env(safe-area-inset-top))`, width: S2 + 'px', height: S2 + 'px', zIndex: 45, cursor: 'pointer', touchAction: 'none' });
@@ -708,7 +744,7 @@ camera.position.set(P.x, P.y + 40, P.z + 60); requestAnimationFrame(frame);
 async function goTo(x, z, yaw, settleIt) { const k = Math.floor(x / TS) + '_' + Math.floor(z / TS); await fetchTile(k); if (P.mode === 'ferry') { P.ferry = null; P.mode = 'walk'; } if (P.mode === 'boat' && !wet(x, z)) setMode('walk'); P.x = x; P.z = z; P.y = groundAt(x, z); if (Number.isFinite(yaw)) P.yaw = yaw; if (P.mode === 'fly') P.alt = Math.max(P.y, 0) + 60; P.speed = 0;
   if (donkey) placeDk(P.x - Math.sin(P.yaw) * 3, P.z - Math.cos(P.yaw) * 3, P.yaw, (x, z) => groundAt(x, z)); if (settleIt && P.mode === 'walk') { TARGET = null; await settle(Number.isFinite(yaw)); if (donkey) placeDk(P.x - Math.sin(P.yaw) * 3, P.z - Math.cos(P.yaw) * 3, P.yaw, (x, z) => groundAt(x, z)); }   /* from the map: land somewhere you can stand, facing somewhere to go */
   camera.position.set(P.x - Math.sin(P.yaw) * 20, P.y + 12, P.z - Math.cos(P.yaw) * 20); }
-window.__ow = { gravity: (dt, now) => gravity(dt, now), footing, setEye(e) { CAMO = e; if (!e) { camera.fov = 60; camera.updateProjectionMatrix(); } }, sun, renderer, scene, LIGHT, camera, RT, P, OW, tiles, data, setMode, groundAt, deckAt, terrain, ferries, board, nearPier, wet, woody, rogallo, CROSS, MOORED, goTo, donkey, parked, PARK, REG, MOUNTS, STORM, LOOKS, ATM, get look() { return ATM.top; }, CAN_SOURCES, PEOPLE, SWITCHES, ROOMS, blocked, get inside() { return INSIDE; }, get speech() { return SPEECH; },
+window.__ow = { get trail() { return GPS.trail; }, GPS, gravity: (dt, now) => gravity(dt, now), footing, setEye(e) { CAMO = e; if (!e) { camera.fov = 60; camera.updateProjectionMatrix(); } }, sun, renderer, scene, LIGHT, camera, RT, P, OW, tiles, data, setMode, groundAt, deckAt, terrain, ferries, board, nearPier, wet, woody, rogallo, CROSS, MOORED, goTo, donkey, parked, PARK, REG, MOUNTS, STORM, LOOKS, ATM, get look() { return ATM.top; }, CAN_SOURCES, PEOPLE, SWITCHES, ROOMS, blocked, get inside() { return INSIDE; }, get speech() { return SPEECH; },
   follow(on = true) { AUTO.on = on; },
   setTarget(t) { TARGET = t ? { x: t.x, z: t.z, kind: t.kind || 'door', label: t.label || '' } : null; }, way() { if (!WAY) return null; const path = [[P.x, P.z]]; for (const c of ROUTE) path.push([c.x, c.z], c.far); if (TARGET) path.push([TARGET.x, TARGET.z]); else path.push([WAY.x, WAY.z]);
     return { x: WAY.x, z: WAY.z, kind: WAY.kind, label: WAY.label, chosen: !!TARGET, goal: TARGET && TARGET.label, path }; } };
