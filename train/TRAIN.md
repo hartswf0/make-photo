@@ -46,20 +46,30 @@ Sixteen mounts and eight moves. A mount is a place for the lens; a move travels 
 
 The take (▶) cuts between them and walks him down the train. `trainFilm.rig()` returns every position as a posed pinhole camera.
 
-## The run: eight doors
+## The run: one empty carriage, then seven doors
 
-The main use of the seeds. One third-person walk down the train, WASD in the generator, a new prompt at every door.
+The main use of the seeds. One world-model session, third person, W held down.
 
-- **One request.** The session starts from one picture and one prompt (`data/session.json`, `request`). Everything after is sent into the running session: W held down, and one cue per door. The other seven dressed frames are references for judging a take, never inputs.
-- **Rehearsal.** `index.html?run` (or the Run button) plays the same session in the 3D train: third-person lock, WASD, and as each door opens the cue for the next carriage appears and is copied, so you can drive a generator beside it.
-- **The lock.** Every carriage is framed the same way: the follow shot, behind him at shoulder height, whole body in frame, a closed door at the far end. Every prompt ends with the same lock paragraph (`run.lock` in `data/seeds.json`).
-- **The seam.** The doors are real and shut. A carriage is not visible until he opens its door, and the prompt for it is issued at that moment: door, dark gangway, door shutting behind him. The new world arrives behind something that was always going to hide it.
-- **The escalation.** One bee in the quiet car, a dozen in the dining car, hundreds, thousands, a man made of bees, screens covered in them, a projector beam solid with them, and the eighth carriage is the inside of a hive. People go from asleep to carrying him overhead.
-- **The standard beats.** Each carriage has the same six fields: at the door, the carriage, bees, people, what happens to him, outside. What happens to him is always visible on his body (a welt, soup, a lost hat, honey on his sleeves, his coat on backwards, bees on his back) so a take can be checked.
+- **One request.** The session starts from one picture and one prompt: an empty carriage (`data/session.json`, `request`). Everything after is sent into the running session, one cue per door. The other dressed frames show each carriage's room and framing; they are references, never inputs.
+- **The seam.** The doors are real and shut. A carriage is not visible until he opens its door, and its cue is sent at that moment: door, dark gangway, door shutting behind him.
+- **What the doors bring.** Each cue pours whole chapters of island-ecology's `BEES ON A TRAIN/worlds.json` into the next carriage as things that are physically there. 158 of the 228 worlds are in the seven cues, listed per carriage in `data/seeds.json` (`worlds`) and on `seeds.html`.
 
-The 3D train follows the same script so the two share a look: the bees aboard grow by carriage, the passengers behave worse the further back you go, he is stung without asking from the apiary car on, and F, G and V make him flinch, swat and stagger. `trainFilm.deed(name)` plays any of ten reactions.
+  | Door | Carriage | Chapters | Worlds |
+  |---|---|---|---|
+  | 1 | Dining car: sealed velocity | 03 Bullet Train, 04 Snowpiercer | 33 |
+  | 2 | Greenhouse: half for me, half for them | 05 Honeyland | 17 |
+  | 3 | Apiary: the beekeepers | 01 Beekeeper | 17 |
+  | 4 | Mirror corridor: the angels | 06 and 07 Wings | 17 |
+  | 5 | Surveillance: the breach | 00 Breach, 02 Surveillance | 27 |
+  | 6 | Cinema: the arrival of a train | 08 Heist 1855, 09 Steam, 10 Lumière | 39 |
+  | 7 | The hive | 11 Bee Movie, and every earlier carriage in miniature | 8 |
 
-Swapping in other deeds is an edit to the `run_*` entries in `data/seeds.json`; re-run `tools/dress_seed.py` only if the `frame` text changes.
+- **The lock and the beats.** Every cue has the same six fields (at the door, the carriage, bees, people, what happens to him, outside) and ends with the same lock paragraph. The bees go from none, to one, to all of them. What happens to him always leaves something visible on his body.
+- **Names.** Cues describe by role and object. Real people and film titles in the worlds file are not named in the prompts.
+- **Rehearsal.** `index.html?run` plays the session in the 3D train: the first carriage is emptied, and as each door opens the cue for the next carriage appears and is copied.
+- **Rebuilding.** `tools/build_run.py <worlds_synthesized.json>` holds the cue text and regenerates `seeds.json` and `session.json`.
+
+The 3D train's own contents are simpler than the cues: the bees aboard grow by carriage, passengers behave worse toward the rear, and F, G and V make him flinch, swat and stagger (`trainFilm.deed`).
 
 ## Seeds for world-model takes
 
@@ -70,7 +80,7 @@ The aim is a starting frame that already holds what the take needs: him in third
 3. **Dress** with `tools/dress_seed.py`: World Labs Atlas `atlasChisel` paints a photographic frame onto that depth, steered by a style reference from the level's own keyframes and the seed's `frame` description. The geometry stays where the game put it.
 4. **Hand over** the dressed frame with the seed's `genie` prompt, then issue its `events` one at a time. `seeds.html` has copy buttons.
 
-Twenty seeds ship: the eight of the run, and twelve single frames: the carriages on foot, the traveler at the glass, the doorway between carriages, the dollhouse track, leaning out, and the witness over the viaduct. No Genie take has been run from them yet.
+Twenty seeds ship: the eight frames of the run (one seed and seven references), and twelve single frames: the carriages on foot, the traveler at the glass, the doorway between carriages, the dollhouse track, leaning out, and the witness over the viaduct. No Genie take has been run from them yet.
 
 ## Thresholds and worlds
 

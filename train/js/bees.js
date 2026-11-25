@@ -42,7 +42,7 @@ export function buildBees(scene, M, mobile) {
         b.p.set(b.home.x + Math.sin(a) * b.r + (noise2(a * .3, k) - .5), b.home.y + Math.sin(a * 1.7 + k) * .25, clamp(b.home.z + Math.cos(a * 1.3) * b.r * .7, -1.33, 1.33));
       }
       e.set(0, k === 0 ? Math.atan2(-lead.v.z, lead.v.x) : t * b.sp * 1.3 + b.ph, 0); q.setFromEuler(e);
-      const shown = k < 1 + ctx.density * (N - 1); s.setScalar(k === 0 ? 1.5 : shown ? 1 : 0); m.compose(b.p, q, s); mesh.setMatrixAt(k, m); if (!shown) { wing.setMatrixAt(k, m); continue; }
+      const shown = ctx.density >= 0 && k < 1 + ctx.density * (N - 1); s.setScalar(k === 0 ? 1.5 : shown ? 1 : 0); m.compose(b.p, q, s); mesh.setMatrixAt(k, m); if (!shown) { wing.setMatrixAt(k, m); continue; }
       s.set(1, 1, .4 + Math.abs(Math.sin(t * 90 + k)) * 1.2); if (k === 0 && lead.landed > .8) s.z = .5;
       tmp.copy(b.p).y += .016; m.compose(tmp, q, s); wing.setMatrixAt(k, m);
     }
