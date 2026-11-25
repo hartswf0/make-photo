@@ -1,0 +1,43 @@
+{
+ "camera": {
+  "extrinsics": {
+   "coordinateSystem": "rub",
+   "position": [
+    -49.319557812424726,
+    2.9692125504221765,
+    0.09872067350259822
+   ],
+   "quaternion": [
+    -0.0273293382314464,
+    0.7002184585146973,
+    0.026435205566201547,
+    0.7129154210239843
+   ]
+  },
+  "intrinsics": {
+   "width": 1280,
+   "height": 720,
+   "fx": 649.4571918977125,
+   "fy": 649.4571918977125,
+   "cx": 640,
+   "cy": 360
+  }
+ },
+ "observe": {
+  "t": 2.9,
+  "km": 1.613,
+  "speed": 26,
+  "phase": "run",
+  "car": "greenhouse",
+  "seated": false,
+  "stings": 0,
+  "x": -51.94,
+  "shot": "follow",
+  "take": false,
+  "world": null,
+  "segment": "viaduct",
+  "people": 15,
+  "calls": 383,
+  "tris": 926254
+ }
+}

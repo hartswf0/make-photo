@@ -16,6 +16,7 @@ export const CARS = [
   { key: 'mirror', name: 'Mirror corridor', sub: 'alternate historical periods', windows: 'both' },
   { key: 'surveillance', name: 'Surveillance car', sub: 'every camera is a drone is a hive', windows: 'none' },
   { key: 'cinema', name: 'Cinema car', sub: 'recorded pasts and possible futures', windows: 'none' },
+  { key: 'hive', name: 'The hive', sub: 'the last carriage is not a carriage', windows: 'none' },
 ];
 
 function shell(b, M, car, i) {
@@ -82,7 +83,7 @@ function shell(b, M, car, i) {
     b.box(M.ext, x + e * .06, (2.1 + WALL) / 2 + .1, 0, .02, WALL - 2.1 + .2, 1.0); if (closed) b.box(M.ext, x + e * .06, 1.0, 0, .02, 2.2, 1.0);
     if (closed) { b.box(M.walnut, x, 1.02, 0, .06, 2.04, .84); b.box(M.red, x + e * .09, 1.3, .9, .04, .14, .14); b.box(M.red, x + e * .09, 1.3, -.9, .04, .14, .14); }
     else {
-      b.box(M.walnut, x - e * .02, 1.02, .62, .05, 2.02, .42);      // sliding door, parked open
+      if (e < 0 || i === 1) car.doorSpots.push(x);                    // a real sliding door hangs here (buildTrain)
       // gangway bellows
       const gx = e * (L / 2 + GAP / 4);
       b.box(M.black, gx, -.03, 0, GAP / 2 + .02, .06, 1.1); b.box(M.black, gx, 2.1, 0, GAP / 2 + .02, .06, 1.1);
@@ -230,8 +231,25 @@ const FIT = {
     for (const e of [0, 1]) b.cyl(M.iron, L / 2 - 2.4 + e * .22 - .1, 1.66, -.75, .16, .16, .04, 14, Math.PI / 2);
     c.projector = { x: L / 2 - 2.9, y: 1.36, z: -.75 };
     c.portal = { x: sx, y: 1.22, z: 0, ry: Math.PI / 2, w: 2.3, h: 2.0 };
-    c.walkMin = -L / 2 + 1.5; c.dim = true;
+    c.dim = true;   // the way on is through the screen
   },
+};
+
+FIT.hive = (b, M, c) => {
+  // the eighth carriage: the shell is still a carriage, but every surface has become comb
+  b.box(M.honey, 0, .01, 0, L - .3, .02, HW * 2 - .1);
+  reseed(8); const R = .2, dx = R * 1.75, dy = R * 1.52;
+  for (const s of [-1, 1]) for (let r = 0; r < 7; r++) for (let k = 0; k < Math.floor((L - .6) / dx); k++) {
+    const x = -L / 2 + .4 + k * dx + (r % 2) * dx / 2, y = .2 + r * dy, lit = rnd() < .14, deep = .1 + rnd() * .16;
+    b.cyl(lit ? M.lamp : rnd() < .5 ? M.honey : M.straw, x, y, s * (HW - .05 - deep / 2), R, R, deep, 6, Math.PI / 2);
+    if (lit && k % 5 === 0) c.glows.push([x, y, s * (HW - .3), .7, 0xffc04a]);
+  }
+  for (let r = 0; r < 6; r++) for (let k = 0; k < Math.floor((L - .6) / dx); k += 1) { const z = -1.0 + r * .4 + (k % 2) * .2, x = -L / 2 + .4 + k * dx; b.cyl(rnd() < .12 ? M.lamp : M.honey, x, ROOF - .18 - Math.abs(z) * .32 - rnd() * .12, z, R, R, .16 + rnd() * .3, 6); }
+  for (let k = 0; k < 16; k++) { const x = (rnd() - .5) * (L - 3), s = rnd() < .5 ? -1 : 1; b.sph(M.honey, x, .12, s * (.7 + rnd() * .6), .22 + rnd() * .3, .1, .25 + rnd() * .3); c.hives.push({ x, y: .5 + rnd() * 1.4, z: s * (.3 + rnd() * .8) }); }
+  // the queen's cell at the far end
+  b.sph(M.honey, -L / 2 + 1.1, 1.25, 0, .9, 1.25, 1.1, 10); b.sph(M.lamp, -L / 2 + 1.45, 1.25, 0, .5, .8, .6, 10); c.glows.push([-L / 2 + 1.7, 1.25, 0, 3.2, 0xffb030]);
+  c.portal = { x: -L / 2 + 2.02, y: 1.2, z: 0, ry: Math.PI / 2, w: .9, h: 1.3 };
+  c.walkMin = -L / 2 + 2.6; c.noLamps = true; c.aisleHalf = .5;
 };
 
 function loco(b, M, c) {
@@ -276,7 +294,7 @@ function loco(b, M, c) {
 export function buildTrain(scene, M) {
   const root = new THREE.Group(); root.name = 'train'; scene.add(root);
   const cars = CARS.map((def, i) => {
-    const c = { ...def, i, x: carX(i), seats: [], glows: [], lamps: [], hives: [], props: {}, aisleZ: 0, aisleHalf: .38, walkMin: -L / 2 - GAP / 2, walkMax: L / 2 + GAP / 2 };
+    const c = { ...def, i, x: carX(i), doorSpots: [], seats: [], glows: [], lamps: [], hives: [], props: {}, aisleZ: 0, aisleHalf: .38, walkMin: -L / 2 - GAP / 2, walkMax: L / 2 + GAP / 2 };
     c.group = new THREE.Group(); c.group.position.set(c.x, DIM.FLOOR, 0); root.add(c.group);
     const b = new Batch();
     if (i === 0) loco(b, M, c);
@@ -285,7 +303,7 @@ export function buildTrain(scene, M) {
       const cool = c.cool, n = c.key === 'cinema' ? 2 : 5;
       for (let k = 0; k < n; k++) {
         const x = -L / 2 + (L / n) * (k + .5);
-        if (!c.glassRoof) { b.cyl(M.brass, x, ROOF - .07, 0, .13, .16, .05, 12); b.sph(cool ? M.lampCool : M.lamp, x, ROOF - .13, 0, .11, .075, .11); c.glows.push([x, ROOF - .15, 0, 1.3, cool ? 0x9fe6dc : 0xffb65c]); }
+        if (!c.glassRoof && !c.noLamps) { b.cyl(M.brass, x, ROOF - .07, 0, .13, .16, .05, 12); b.sph(cool ? M.lampCool : M.lamp, x, ROOF - .13, 0, .11, .075, .11); c.glows.push([x, ROOF - .15, 0, 1.3, cool ? 0x9fe6dc : 0xffb65c]); }
         c.lamps.push(x);
       }
     }
@@ -314,8 +332,14 @@ export function buildTrain(scene, M) {
     if (!glowMats.has(col)) glowMats.set(col, new THREE.SpriteMaterial({ map: glowTex, color: col, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: .55 }));
     const sp = new THREE.Sprite(glowMats.get(col)); sp.position.set(x, y, z); sp.scale.setScalar(s); c.group.add(sp); glows.push(sp);
   }));
+  // sliding doors: closed until someone comes, so the next carriage stays unseen until the door is opened
+  const doors = [];
+  for (const c of cars) for (const x of c.doorSpots) {
+    const g = new THREE.Group(), leaf = new Batch(); leaf.box(M.walnut, 0, 0, 0, .05, 2.03, .86); leaf.box(M.brass, 0, 0, 0, .06, 2.03, .03); leaf.box(M.lamp, 0, .52, 0, .058, .5, .34); leaf.box(M.brass, .035, -.05, -.32, .03, .16, .03); leaf.box(M.brass, -.035, -.05, -.32, .03, .16, .03);
+    leaf.build(g).forEach(m => { m.matrixAutoUpdate = false; }); g.position.set(x, 1.02, 0); c.group.add(g); doors.push({ car: c, g, x: c.x + x, open: 0 });
+  }
   const tail = cars[cars.length - 1], hl = cars[0];
-  return { root, cars, spin, glowMats, glowTex, wheelCount: wheelPos.length, length: DIM.SPAN * DIM.CARS, tailX: tail.x - L / 2, noseX: hl.x + L / 2 };
+  return { root, cars, doors, spin, glowMats, glowTex, wheelCount: wheelPos.length, length: DIM.SPAN * DIM.CARS, tailX: tail.x - L / 2, noseX: hl.x + L / 2 };
 }
 
 /** Which carriage contains a train-frame x, and the walkable aisle there. */

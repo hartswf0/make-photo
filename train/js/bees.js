@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { DIM, noise2, damp, clamp } from './kit.js';
 
 export function buildBees(scene, M, mobile) {
-  const N = mobile ? 70 : 150, geo = new THREE.SphereGeometry(1, 6, 5).scale(.034, .018, .018);
+  const N = mobile ? 90 : 320, geo = new THREE.SphereGeometry(1, 6, 5).scale(.034, .018, .018);
   const mesh = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: 0xf2b21e }), N); mesh.frustumCulled = false; scene.add(mesh);
   const wing = new THREE.InstancedMesh(new THREE.PlaneGeometry(.05, .07).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xfff4d6, transparent: true, opacity: .35, side: THREE.DoubleSide, depthWrite: false }), N); wing.frustumCulled = false; scene.add(wing);
   const bees = []; for (let k = 0; k < N; k++) bees.push({ p: new THREE.Vector3(0, -50, 0), home: new THREE.Vector3(), r: .3 + Math.random() * .9, ph: Math.random() * 100, car: -9, sp: .6 + Math.random() });
@@ -18,7 +18,7 @@ export function buildBees(scene, M, mobile) {
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(1, 1, 1), e = new THREE.Euler(), tmp = new THREE.Vector3();
 
   function rehome(b, cars, ci) {
-    const c = cars[clamp(ci, 1, cars.length - 1)]; b.car = c.i;
+    const c = cars[clamp(ci, 1, cars.length - 1)]; b.car = c.i; if (c.i >= 4 && Math.random() < .5) { b.home.set(c.x + (Math.random() - .5) * 16, DIM.FLOOR + .5 + Math.random() * 1.7, (Math.random() - .5) * 2.2); b.r = .3 + Math.random() * .8; return; }
     const spots = c.hives.length ? c.hives : c.lamps.map(x => ({ x, y: DIM.ROOF - .4, z: 0 }));
     const h = spots[(Math.random() * spots.length) | 0], spread = c.hives.length ? .5 : 1;
     b.home.set(c.x + h.x + (Math.random() - .5) * 2.5 * spread, DIM.FLOOR + h.y + Math.random() * .7, clamp(h.z + (Math.random() - .5) * 1.6 * spread, -1.25, 1.25));
@@ -42,7 +42,7 @@ export function buildBees(scene, M, mobile) {
         b.p.set(b.home.x + Math.sin(a) * b.r + (noise2(a * .3, k) - .5), b.home.y + Math.sin(a * 1.7 + k) * .25, clamp(b.home.z + Math.cos(a * 1.3) * b.r * .7, -1.33, 1.33));
       }
       e.set(0, k === 0 ? Math.atan2(-lead.v.z, lead.v.x) : t * b.sp * 1.3 + b.ph, 0); q.setFromEuler(e);
-      s.setScalar(k === 0 ? 1.5 : 1); m.compose(b.p, q, s); mesh.setMatrixAt(k, m);
+      const shown = k < 1 + ctx.density * (N - 1); s.setScalar(k === 0 ? 1.5 : shown ? 1 : 0); m.compose(b.p, q, s); mesh.setMatrixAt(k, m); if (!shown) { wing.setMatrixAt(k, m); continue; }
       s.set(1, 1, .4 + Math.abs(Math.sin(t * 90 + k)) * 1.2); if (k === 0 && lead.landed > .8) s.z = .5;
       tmp.copy(b.p).y += .016; m.compose(tmp, q, s); wing.setMatrixAt(k, m);
     }

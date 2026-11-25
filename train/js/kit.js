@@ -9,7 +9,7 @@ export const DIM = {
   FLOOR: 1.25,    // floor height above rail head
   WALL: 2.2,      // wall height to the cornice
   ROOF: 2.72,     // crown of the ceiling above the floor
-  CARS: 8,
+  CARS: 9,
 };
 DIM.SPAN = DIM.L + DIM.GAP;
 export const carX = i => -i * DIM.SPAN;

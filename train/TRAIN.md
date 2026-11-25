@@ -25,7 +25,7 @@ Two things to know before building the rail service: the trough has no rail data
 
 ## The train
 
-Locomotive, quiet car, dining car, greenhouse, apiary car, mirror corridor, surveillance car, cinema car. The route is a 9 km loop: the angel on her column, the viaduct, the other train pacing on the second road, the Aksum stelae, a tunnel, a salt lake at dusk with honeycomb monoliths over it and the jerikan in the shallows, the halt, the impossible hive, a second tunnel.
+Locomotive, quiet car, dining car, greenhouse, apiary car, mirror corridor, surveillance car, cinema car, and the hive. The way out of the cinema is through its screen. The route is a 9 km loop: the angel on her column, the viaduct, the other train pacing on the second road, the Aksum stelae, a tunnel, a salt lake at dusk with honeycomb monoliths over it and the jerikan in the shallows, the halt, the impossible hive, a second tunnel.
 
 The train is the fixed frame and the land is resampled under it. That is what lets a camera be attached to the traveler, a carriage, a bee, the train or the land with the same few lines.
 
@@ -46,6 +46,19 @@ Sixteen mounts and eight moves. A mount is a place for the lens; a move travels 
 
 The take (▶) cuts between them and walks him down the train. `trainFilm.rig()` returns every position as a posed pinhole camera.
 
+## The run: eight doors
+
+The main use of the seeds. One third-person walk down the train, WASD in the generator, a new prompt at every door.
+
+- **The lock.** Every carriage is framed the same way: the follow shot, behind him at shoulder height, whole body in frame, a closed door at the far end. Every prompt ends with the same lock paragraph (`run.lock` in `data/seeds.json`).
+- **The seam.** The doors are real and shut. A carriage is not visible until he opens its door, and the prompt for it is issued at that moment: door, dark gangway, door shutting behind him. The new world arrives behind something that was always going to hide it.
+- **The escalation.** One bee in the quiet car, a dozen in the dining car, hundreds, thousands, a man made of bees, screens covered in them, a projector beam solid with them, and the eighth carriage is the inside of a hive. People go from asleep to carrying him overhead.
+- **The standard beats.** Each carriage has the same six fields: at the door, the carriage, bees, people, what happens to him, outside. What happens to him is always visible on his body (a welt, soup, a lost hat, honey on his sleeves, his coat on backwards, bees on his back) so a take can be checked.
+
+The 3D train follows the same script so the two share a look: the bees aboard grow by carriage, the passengers behave worse the further back you go, he is stung without asking from the apiary car on, and F, G and V make him flinch, swat and stagger. `trainFilm.deed(name)` plays any of ten reactions.
+
+Swapping in other deeds is an edit to the `run_*` entries in `data/seeds.json`; re-run `tools/dress_seed.py` only if the `frame` text changes.
+
 ## Seeds for world-model takes
 
 The aim is a starting frame that already holds what the take needs: him in third person, the aisle, a door ahead, something wrong in the carriage and something wrong outside the windows.
@@ -55,7 +68,7 @@ The aim is a starting frame that already holds what the take needs: him in third
 3. **Dress** with `tools/dress_seed.py`: World Labs Atlas `atlasChisel` paints a photographic frame onto that depth, steered by a style reference from the level's own keyframes and the seed's `frame` description. The geometry stays where the game put it.
 4. **Hand over** the dressed frame with the seed's `genie` prompt, then issue its `events` one at a time. `seeds.html` has copy buttons.
 
-Twelve seeds ship: the eight carriages on foot, the traveler at the glass, the doorway between carriages, the dollhouse track, leaning out, and the witness over the viaduct. No Genie take has been run from them yet.
+Twenty seeds ship: the eight of the run, and twelve single frames: the carriages on foot, the traveler at the glass, the doorway between carriages, the dollhouse track, leaning out, and the witness over the viaduct. No Genie take has been run from them yet.
 
 ## Thresholds and worlds
 
@@ -63,7 +76,7 @@ Each carriage has a pane onto worlds made from frames of the clips and from gene
 
 ## Scripting
 
-`window.trainFilm`: `camera`, `take`, `act`, `stand`, `sit`, `walkTo`, `seed`, `capture`, `seeds`, `enter`, `exit`, `next`, `live`, `swarm`, `jump`, `still`, `record`, `observe`, `log`, `rig`.
+`window.trainFilm`: `camera`, `take`, `act`, `deed`, `stand`, `sit`, `walkTo`, `seed`, `capture`, `seeds`, `enter`, `exit`, `next`, `live`, `swarm`, `jump`, `still`, `record`, `observe`, `log`, `rig`.
 
 ## Tools
 

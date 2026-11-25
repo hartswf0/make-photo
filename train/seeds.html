@@ -25,6 +25,9 @@ figcaption{position:absolute;left:8px;top:8px;font:600 10px/1 var(--mono);letter
 .prompt{font:13px/1.6 var(--mono);background:rgba(236,220,182,.05);border-left:3px solid var(--ox);padding:12px 14px;white-space:pre-wrap;max-height:210px;overflow:auto}
 ol{margin:0;padding-left:20px}li{margin:5px 0}
 h3{font:600 10px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--brass);margin:0 0 8px}
+.intro{border-top:1px solid var(--line);padding-top:26px}.intro p{max-width:70ch;margin:8px 0}.lock{font:12px/1.6 var(--mono);opacity:.75}
+.beats{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}.beats dt{font:600 10px/1.9 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--brass);white-space:nowrap}.beats dd{margin:0}
+@media(max-width:760px){.beats{grid-template-columns:1fr}.beats dt{margin-top:6px}}
 @media(max-width:760px){.pair,.cols{grid-template-columns:1fr}}
 </style>
 </head>
@@ -33,7 +36,7 @@ h3{font:600 10px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;colo
   <div class="k">make-photo · the Sealed Line</div>
   <h1>Seeds for the train that is a world</h1>
   <p>Each seed is a starting frame for a world-model take. It is composed in the playable train (the traveler, the carriage, the lens and what is passing outside are all real 3D positions), captured with its depth, and then dressed on that same geometry. The left picture is the blocking; the right is the frame to hand over.</p>
-  <p>Give the generator the dressed frame with the opening prompt. Once the world is running, issue the events one at a time.</p>
+  <p>The run below is the main use: one third-person walk down eight carriages. A new prompt is issued each time he opens a door, so the change of world hides behind the door and the gangway.</p>
   <div class="bar"><a class="pill" href="./index.html">Ride the train →</a><a class="pill" href="./TRAIN.md">How it is built</a><a class="pill" href="../atlas/overworld.html">The overworld</a></div>
 </header>
 <main id="list"></main>
@@ -41,19 +44,31 @@ h3{font:600 10px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;colo
 const d = await (await fetch('data/seeds.json')).json(), list = document.getElementById('list');
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; };
 const copy = (b, text) => b.addEventListener('click', async () => { try { await navigator.clipboard.writeText(text); const o = b.textContent; b.textContent = 'Copied'; b.classList.add('done'); setTimeout(() => { b.textContent = o; b.classList.remove('done'); }, 1400); } catch { } });
-for (const s of d.seeds) {
+function card(s) {
   const a = el('article'); a.id = s.id;
   a.append(el('h2', '', s.title), el('div', 'meta', `${s.id} · ${s.shot} shot · km ${s.km} · 1280 × 720`));
   const pair = el('div', 'pair');
   for (const [label, src] of [['Blocking', `seeds/${s.id}.blockout.jpg`], ['Seed', `seeds/${s.id}.jpg`]]) { const f = el('figure'), i = el('img'); i.src = src; i.loading = 'lazy'; i.alt = `${label}: ${s.title}`; f.append(i, el('figcaption', '', label)); pair.append(f); }
   const cols = el('div', 'cols'), left = el('div'), right = el('div');
-  left.append(el('h3', '', 'Opening prompt'), el('div', 'prompt', s.genie));
-  const ol = el('ol'); for (const e of s.events) ol.append(el('li', '', e)); right.append(el('h3', '', 'Events, one at a time'), ol);
+  if (s.run) {
+    const dl = el('dl', 'beats');
+    for (const [k, v] of [['At the door', s.door], ['The carriage', s.scene], ['Bees', s.bees], ['People', s.people], ['What happens to him', s.deed], ['Outside', s.window]]) if (v) dl.append(el('dt', '', k), el('dd', '', v));
+    left.append(el('h3', '', s.run === 1 ? 'Opening' : 'Issued as the door opens'), dl);
+  } else left.append(el('h3', '', 'Opening prompt'), el('div', 'prompt', s.genie));
+  const ol = el('ol'); for (const e of s.events) ol.append(el('li', '', e)); right.append(el('h3', '', 'Then, one at a time'), ol);
   cols.append(left, right);
-  const bar = el('div', 'bar'), b1 = el('button', '', 'Copy opening prompt'), b2 = el('button', '', 'Copy events'), l1 = el('a', 'pill', 'Download seed'), l2 = el('a', 'pill', 'Stand here in the train →');
+  const bar = el('div', 'bar'), b1 = el('button', '', s.run > 1 ? 'Copy door prompt' : 'Copy opening prompt'), b2 = el('button', '', 'Copy events'), l1 = el('a', 'pill', 'Download seed'), l2 = el('a', 'pill', 'Stand here in the train →');
   copy(b1, s.genie); copy(b2, s.events.join('\n')); l1.href = `seeds/${s.id}.jpg`; l1.download = `sealed-line_${s.id}.jpg`; l2.href = `./index.html?seed=${s.id}`;
-  bar.append(b1, b2, l1, l2); a.append(pair, cols, bar); list.append(a);
+  bar.append(b1, b2, l1, l2); a.append(pair, cols, bar); return a;
 }
+const run = d.seeds.filter(s => s.run).sort((a, b) => a.run - b.run), rest = d.seeds.filter(s => !s.run);
+if (run.length) {
+  const h = el('section', 'intro'); h.append(el('div', 'k', 'The run'), el('h2', '', d.run.title + ': one walk, eight carriages, more bees each time'), el('p', '', d.run.how), el('p', 'lock', 'Ends every prompt: ' + d.run.lock));
+  const all = el('button', '', 'Copy the whole run script'); copy(all, run.map(s => `### ${s.title}${s.run > 1 ? ' — issue as the door opens' : ' — with the first seed'}\n${s.genie}\n\nThen, one at a time:\n${s.events.map(e => '- ' + e).join('\n')}`).join('\n\n')); h.append(all); list.append(h);
+  for (const s of run) list.append(card(s));
+  const h2 = el('section', 'intro'); h2.append(el('div', 'k', 'Other frames'), el('h2', '', 'Single seeds: windows, doorways and the train from outside')); list.append(h2);
+}
+for (const s of rest) list.append(card(s));
 </script>
 </body>
 </html>

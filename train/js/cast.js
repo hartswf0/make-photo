@@ -33,6 +33,6 @@ export function loadCast() {
     p.wake = on => { if (on === p.on) return; p.on = on; if (on) motion.registerActor(p.key, ch, { defaultClip: p.loco.sitting ? 'sitting-idle' : 'idle', blend: 1 }); else motion.unregisterActor(p.key); };
     p.wake(true); people.push(p); return p;
   }
-  function update(dt) { for (const p of people) if (p.on) motion.setActorLocomotion(p.key, p.loco); motion.update(dt); }
+  function update(dt) { for (const p of people) if (p.on) { if (p.clip) motion.setClip(p.key, p.clip, { fade: .15, speed: 1, blend: 1 }); else motion.setActorLocomotion(p.key, p.loco); } motion.update(dt); }
   return { make, update, people, motion };
 }
