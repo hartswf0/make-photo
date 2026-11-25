@@ -119,6 +119,9 @@
     const flash = new T.PointLight(0xffc070, 0, 14, 2); scene.add(flash); const flashSprite = new T.Sprite(new T.SpriteMaterial({ map: puffTex, color: 0xffd08a, transparent: true, blending: T.AdditiveBlending, depthWrite: false })); flashSprite.scale.setScalar(.35); flashSprite.visible = false; scene.add(flashSprite);
     const dust = []; for (let i = 0; i < 16; i++) { const s = new T.Sprite(new T.SpriteMaterial({ map: puffTex, color: 0xc8906a, transparent: true, depthWrite: false, opacity: 0 })); s.visible = false; scene.add(s); dust.push({ s, t: 9 }); }
 
+    // ================= the glass games: the same mini-games the trough plays (atlas/glass-games.js) =================
+    const GG = window.GlassGames ? window.GlassGames.create({ T, camera, canvas: renderer.domElement }) : null;
+    const HOST = { freeze: v => { st.frozen = v; }, cam: f => { st.gameCam = f; }, post: o => { st.aimO = o; } };
     // ================= sound =================
     const S = await makeSound(T, camera);
 
@@ -158,6 +161,9 @@
       const M = mount.state;
       if (verb === "dismount") { const side = new T.Vector3(Math.cos(M.heading), 0, -Math.sin(M.heading)); st.x = M.x + side.x * 1.3; st.z = M.z + side.z * 1.3; st.y = heightAt(st.x, st.z); st.heading = M.heading; st.mode = "foot"; placeTex(); S.cloth(texPos()); ev("dismount"); }
       else if (verb === "mount") { st.mode = "ride"; S.cloth(texPos()); ev("mount"); }
+      else if (verb === "krar" && GG) { st.mode = "krar"; const s = SAL.stage; st.x = s.x; st.z = s.z; st.y = SAL.y0 + .32; st.heading = SAL.ry + Math.PI; SAL.krar.visible = false; krarHeld.visible = true; holster(); stopSmoke(); ev("krar");
+        GG.play("krar", { cam: () => ({ pos: new T.Vector3(SAL.bar.x, SAL.y0 + 1.75, SAL.bar.z), look: new T.Vector3(st.x, st.y + 1.1, st.z), fov: 44 }), pluck: () => { st.pluck = 1; st.notes++; ev("note"); },
+          onNote: (ok, n, of) => { if (n >= 8) done("krar"); } }, HOST).then(res => { act("stopKrar"); if (res && res.total) say(res.caught >= res.total * .7 ? "Almaz: “That was our mother's song. Stay as long as you like.”" : "Almaz: “The krar knows you a little. Come back.”"); }); }
       else if (verb === "krar") { st.mode = "krar"; const s = SAL.stage; st.x = s.x; st.z = s.z; st.y = SAL.y0 + .32; st.heading = SAL.ry + Math.PI; SAL.krar.visible = false; krarHeld.visible = true; holster(); stopSmoke(); ev("krar"); say("Yared: “Twin suns over the mines. The Empire takes the spice, but not our songs. This is our Tezeta.”"); }
       else if (verb === "stopKrar") { st.mode = "foot"; krarHeld.visible = false; SAL.krar.visible = true; const s = SAL.stage; st.x = s.x - Math.sin(SAL.ry) * 1.6; st.z = s.z - Math.cos(SAL.ry) * 1.6; }
       else if (verb === "draw") { st.litres = 20; S.pour(W.landmarks.tank); done("water"); say("Twenty litres from the windmill tank."); }
@@ -166,19 +172,24 @@
       else if (verb === "board") { st.mode = "train"; st.train = { car: 1 }; done("train"); S.chime(); ev("board"); say("The monorail runs out over the canyon."); }
       else if (verb === "alight") { const STN = W.station; st.mode = "foot"; st.train = null; st.x = STN.x; st.z = STN.z + .4; st.y = STN.deck; ev("alight"); }
     }
-    function draw() { if (st.mode !== "foot") return; st.gun = !st.gun; if (st.gun) { holdIn(gun, HAND_R, [.0, -.03, .05], [0, 0, 0]); stopSmoke(); S.cloth(texPos()); } else holster(); }
+    function draw() { if (st.mode !== "foot") return;
+      if (GG && !st.gun) { st.gun = true; holdIn(gun, HAND_R, [.0, -.03, .05], [0, 0, 0]); stopSmoke(); S.cloth(texPos()); ev("draw");
+        const eye = () => { const h = new T.Vector3(); tex.bones[7].getWorldPosition(h); return h; };
+        GG.play("draw", { eye, muzzle: () => { const h = new T.Vector3(); tex.bones[HAND_R].getWorldPosition(h); return h; }, yaw0: st.heading, pitch0: -.02, shots: 6, fire: dir => { st.cool = 0; const r = fire(dir); ev("shot"); return r; } }, HOST).then(() => { holster(); st.aimO = null; });
+        return; }
+      st.gun = !st.gun; if (st.gun) { holdIn(gun, HAND_R, [.0, -.03, .05], [0, 0, 0]); stopSmoke(); S.cloth(texPos()); } else holster(); }
     function holster() { st.gun = false; holdIn(gun, PELVIS, [-.17, -.05, .02], [Math.PI / 2, 0, 0]); }
     function smoke() { if (st.mode !== "foot") return; if (st.smoking) return stopSmoke(true); if (st.gun) holster(); st.smoking = true; st.smokeT = 0; holdIn(cig, HAND_R, [.0, -.02, .06], [0, 0, -.3]); cig.visible = true; S.match(texPos()); ev("smoke"); }
     function stopSmoke(drop) { if (!st.smoking) return; st.smoking = false; cig.visible = false; if (cig.parent) cig.parent.remove(cig); }
     const _o = new T.Vector3(), _d = new T.Vector3();
-    function fire() {
+    function fire(aimDir) {
       if (st.mode !== "foot" || !st.gun || st.cool > 0) return;
       st.cool = .45; st.recoil = 1; st.shots++; tex.bones[HAND_R].getWorldPosition(_o);
-      _d.set(Math.sin(st.heading), 0, Math.cos(st.heading));
+      if (aimDir) _d.copy(aimDir); else _d.set(Math.sin(st.heading), 0, Math.cos(st.heading));
       // a little help aiming: the nearest target within 7 degrees of where he points
       let best = null; for (const p of props) { if (p.down) continue; const t = p.body.translation(), v = new T.Vector3(t.x - _o.x, t.y - _o.y, t.z - _o.z), dd = v.length(); if (dd > 60) continue; const a = v.clone().normalize().angleTo(_d); if (a < .12 && (!best || a < best.a)) best = { a, v: v.normalize() }; }
       for (const n of npcs) { if (n.rag) continue; const t = n.body.translation(), v = new T.Vector3(t.x - _o.x, t.y + .3 - _o.y, t.z - _o.z), dd = v.length(); if (dd > 60) continue; const a = v.clone().normalize().angleTo(_d); if (a < .1 && (!best || a < best.a)) best = { a, v: v.normalize() }; }
-      if (best) _d.copy(best.v); else _d.y = -.03;
+      if (best && !aimDir) _d.copy(best.v); else if (!aimDir) _d.y = -.03;
       const ray = new R.Ray(v3(_o.x + _d.x * .3, _o.y + _d.y * .3, _o.z + _d.z * .3), v3(_d.x, _d.y, _d.z));
       const hit = world.castRay(ray, 140, true, undefined, undefined, texCol, texBody), toi = hit ? (hit.timeOfImpact ?? hit.toi) : 140, hp = new T.Vector3(ray.origin.x + _d.x * toi, ray.origin.y + _d.y * toi, ray.origin.z + _d.z * toi);
       flash.position.copy(_o); flash.intensity = 6; flashSprite.position.copy(_o).addScaledVector(_d, .25); flashSprite.visible = true; flashSprite.material.opacity = 1;
@@ -190,6 +201,7 @@
       else if (who && who.kind === "part") { S.thud(hp); }
       else { S.ricochet(hp); puffAt(hp); }
       if (hit) puffAt(hp);
+      return { hit: !!(who && (who.kind === "prop" || who.kind === "npc")), point: hp, what: who && who.kind === "prop" ? who.p.kind : who && who.kind === "npc" ? who.n.name : null };
     }
     function puffAt(p) { const d = dust.find(x => x.t > 1.2) || dust[0]; d.t = 0; d.s.visible = true; d.s.position.copy(p); }
     function fall(who, push, at) {   // a ragdoll: Tex (who === "tex") or a settler
@@ -254,7 +266,8 @@
       dkBody.setNextKinematicTranslation(v3(M.x, (M.y || 0) + 1, M.z));
       // Tex on foot
       if (st.mode === "foot") {
-        const fwd = input.throttle, turn = input.steer, run = input.run;
+        const fwd = st.frozen ? 0 : input.throttle, turn = st.frozen ? 0 : input.steer, run = input.run;
+        if (st.aimO) { st.heading = Math.atan2(st.aimO.aim.x, st.aimO.aim.z); st.recoil = Math.max(st.recoil, st.aimO.recoil || 0); }
         st.heading += turn * dt * (run ? 2.2 : 2.6);
         const speed = fwd * (fwd > 0 ? (run ? 4.2 : 1.55) : .9), dx = Math.sin(st.heading) * speed * dt, dz = Math.cos(st.heading) * speed * dt;
         st.vy = ctrl.computedGrounded() ? -1 : st.vy - 9.81 * dt;
@@ -290,7 +303,7 @@
       for (const d of SAL.doors) { const wp = new T.Vector3(); d.hinge.getWorldPosition(wp); const who = [texPos(), mount.state].some(q => Math.hypot(q.x - wp.x, q.z - wp.z) < 1.4); d.v += ((who ? 1.15 : 0) - d.a) * dt * 18 - d.v * dt * 5; d.a += d.v * dt; d.hinge.rotation.y = d.sx * d.a; if (who && Math.abs(d.v) > 2 && !d.creak) { d.creak = 1; S.creak(wp); } if (!who) d.creak = 0; }
       // inside the saloon? (sound changes, lamps light, the camera comes close)
       const P = st.mode === "ride" ? { x: M.x, z: M.z } : texPos(); st.inside = pointIn(P, SAL.room);
-      for (const L of SAL.lamps) L.intensity = lerp(L.intensity, st.inside ? 7 : 1.2, 1 - Math.exp(-dt * 3));
+      for (const L of SAL.lamps) L.intensity = lerp(L.intensity, L.isHemisphereLight ? (st.inside ? .9 : 0) : st.inside ? 9 : 1.2, 1 - Math.exp(-dt * 3));
       // the storm, as an event
       if (W.STORM.phase !== lastStorm) { if (W.STORM.phase === "coming") ev("storm"); if (W.STORM.phase === "clear" && lastStorm === "clearing") done("storm"); lastStorm = W.STORM.phase; }
       for (; seen < st.events.length; seen++) evs.push(st.events[seen]);   // everything since the last frame, including what a click or a key did between frames
@@ -302,7 +315,7 @@
       const modeCam = st.mode === "krar" ? { pos: new T.Vector3(SAL.bar.x, SAL.y0 + 1.75, SAL.bar.z), look: new T.Vector3(st.x, st.y + 1.1, st.z), fov: 44 }   // from the bar, across the room to the stage
         : st.mode === "train" ? (() => { const p = new T.Vector3(st.x, st.y + 1.2, st.z); return { pos: new T.Vector3(p.x - 10, p.y + 2.5, p.z + 15), look: p.clone().add(new T.Vector3(6, 0, 0)), fov: 46 }; })()   // tracking alongside the car, over the canyon
         : null;
-      const cam = director(dt, focus, evs) || modeCam || (st.inside ? (() => { const f = new T.Vector3(Math.sin(focus.heading), 0, Math.cos(focus.heading)), look = new T.Vector3(focus.x, focus.y + 1.45, focus.z).addScaledVector(f, 2); return { pos: avoid(new T.Vector3(focus.x, focus.y + 1.6, focus.z), new T.Vector3(focus.x, focus.y + 2.1, focus.z).addScaledVector(f, -3.2)), look, fov: 58 }; })() : null);
+      const cam = (st.gameCam && st.gameCam()) || director(dt, focus, evs) || modeCam || (st.inside ? (() => { const f = new T.Vector3(Math.sin(focus.heading), 0, Math.cos(focus.heading)), look = new T.Vector3(focus.x, focus.y + 1.45, focus.z).addScaledVector(f, 2); return { pos: avoid(new T.Vector3(focus.x, focus.y + 1.6, focus.z), new T.Vector3(focus.x, focus.y + 2.1, focus.z).addScaledVector(f, -3.2)), look, fov: 58 }; })() : null);
       return { mode: st.mode, focus, cam, events: evs };
     }
     function exhale() { const h = new T.Vector3(); tex.bones[7].getWorldPosition(h); h.add(new T.Vector3(Math.sin(st.heading) * .15, 0, Math.cos(st.heading) * .15)); for (let k = 0; k < 4; k++) { const p = puffs.find(x => x.t > 3) || puffs[0]; p.t = -k * .15; p.s.visible = true; p.s.position.copy(h).add(new T.Vector3((Math.random() - .5) * .05, 0, (Math.random() - .5) * .05)); } S.exhale(h); }
@@ -310,11 +323,11 @@
 
     // ================= input =================
     const doIt = () => { const o = offer(); if (o && o.verb) act(o.verb); };
-    addEventListener("keydown", e => { if (e.repeat) return; const k = e.key.toLowerCase(); S.resume();
+    addEventListener("keydown", e => { if (e.repeat || (GG && GG.running)) return; const k = e.key.toLowerCase(); S.resume();
       if (k === "e") doIt(); else if (k === "r") draw(); else if (k === " " ) { if (st.gun) { fire(); ev("shot"); } } else if (k === "x") smoke(); else if (k === "z") fall("tex");
       else if (k >= "1" && k <= "6") pluck(+k - 1); else if (k === "v") setCinema(!DIR.on); });
     addEventListener("pointerdown", () => S.resume(), { passive: true });
-    c.canvas.addEventListener("pointerdown", e => { S.resume(); if (e.pointerType === "mouse" && e.button === 0 && st.gun) { fire(); ev("shot"); } });
+    c.canvas.addEventListener("pointerdown", e => { S.resume(); if (e.pointerType === "mouse" && e.button === 0 && st.gun && !(GG && GG.running)) { fire(); ev("shot"); } });
     function setCinema(on) { DIR.on = on; DIR.until = 0; if (c.onCinema) c.onCinema(on); }
     return { W, world, R, st, goals, props, npcs, step, act, offer, draw, fire: () => { fire(); ev("shot"); }, smoke, fall, pluck, record, setCinema, DIR, S, REC, hfLayout: c.hfLayout };
   }

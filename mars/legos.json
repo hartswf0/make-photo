@@ -78,6 +78,21 @@
    "offers": [
     "listen"
    ]
+  },
+  {
+   "id": "saloon",
+   "name": "The Tezeta Saloon",
+   "at": "door",
+   "zone_ring": "center",
+   "keeper": "kaleb",
+   "offers": [
+    "enter",
+    "listen"
+   ],
+   "portal": {
+    "room": "tezeta-saloon",
+    "note": "through the batwing doors; the first time, a short scene"
+   }
   }
  ],
  "E": [
@@ -103,15 +118,20 @@
    "body": "walker",
    "archetype": "cast.walker",
    "cast": "almaz_matriarch",
-   "at": "saloon",
+   "at": "bar",
    "offset": [
-    6,
+    0,
     0
    ],
    "zone_ring": "center",
    "source": 757,
    "line": "You rode here to write your names in my dust, but this ground remembers our mother's songs. Listen.",
-   "thanks": "Water in my dust. Now you may stay."
+   "thanks": "Water in my dust. Now you may stay.",
+   "face": "barback",
+   "loco": {
+    "talking": true
+   },
+   "fixed": true
   },
   {
    "id": "yared",
@@ -119,14 +139,18 @@
    "body": "walker",
    "archetype": "cast.walker",
    "cast": "yared_krar",
-   "at": "street",
+   "at": "stage",
    "offset": [
-    -5,
-    8
+    0,
+    0
    ],
    "zone_ring": "inner",
    "source": 754,
-   "line": "Twin suns over the mines. The Empire takes the spice, but not our songs. This is our Tezeta."
+   "line": "Twin suns over the mines. The Empire takes the spice, but not our songs. This is our Tezeta.",
+   "lift": 0.32,
+   "clip": "guitar-playing",
+   "face": "dance",
+   "fixed": true
   },
   {
    "id": "selam",
@@ -180,6 +204,117 @@
      "base": 0.3
     }
    ]
+  },
+  {
+   "id": "kaleb",
+   "name": "Kaleb",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "kaleb",
+   "at": "barback",
+   "zone_ring": "center",
+   "clip": "idle-foldarms",
+   "face": "bar",
+   "fixed": true,
+   "line": "Buna or water. On Mars the water costs more.",
+   "thanks": "Water for the house. Sit anywhere."
+  },
+  {
+   "id": "girma",
+   "name": "Girma",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "queue_2",
+   "at": "table1",
+   "offset": [
+    0.46,
+    0.72
+   ],
+   "loco": {
+    "sitting": true,
+    "talking": true
+   },
+   "face": "table1",
+   "fixed": true,
+   "zone_ring": "inner",
+   "line": "Sit down, rider. The storm does not come in here."
+  },
+  {
+   "id": "abeba",
+   "name": "Abeba",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "queue_1",
+   "at": "table1",
+   "offset": [
+    -0.85,
+    -0.05
+   ],
+   "loco": {
+    "sitting": true,
+    "talking": true
+   },
+   "face": "table1",
+   "fixed": true,
+   "zone_ring": "inner",
+   "line": "He plays the same song every night. Every night it is new."
+  },
+  {
+   "id": "berhanu",
+   "name": "Berhanu",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "queue_4",
+   "at": "table0",
+   "offset": [
+    0.85,
+    0
+   ],
+   "loco": {
+    "sitting": true
+   },
+   "face": "stage",
+   "fixed": true,
+   "zone_ring": "inner",
+   "line": "I came to Mars on the first water train. Listen to him."
+  },
+  {
+   "id": "zewditu",
+   "name": "Zewditu",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "queue_3",
+   "at": "dance",
+   "offset": [
+    -0.6,
+    0
+   ],
+   "loco": {
+    "dancing": "simple"
+   },
+   "face": "stage",
+   "fixed": true,
+   "zone_ring": "inner",
+   "line": "Dance or step aside."
+  },
+  {
+   "id": "nell",
+   "name": "Nell",
+   "body": "walker",
+   "archetype": "cast.walker",
+   "cast": "nell",
+   "at": "dance",
+   "offset": [
+    0.7,
+    0.3
+   ],
+   "loco": {
+    "dancing": "arm"
+   },
+   "face": "stage",
+   "fixed": true,
+   "zone_ring": "inner",
+   "line": "The krar is in the Tezeta tonight."
   }
  ],
  "G": [
@@ -255,6 +390,26 @@
      "storm"
     ],
     "results_in": "the carved city stands behind the town"
+   }
+  },
+  {
+   "id": "krar",
+   "verb": "play",
+   "at": "saloon",
+   "shift": {
+    "causes": [
+     "listen"
+    ],
+    "results_in": "the room sings back"
+   }
+  },
+  {
+   "id": "draw",
+   "verb": "draw_gun",
+   "at": "range",
+   "shift": {
+    "causes": [],
+    "results_in": "bottles and cans knocked from the rail"
    }
   }
  ],

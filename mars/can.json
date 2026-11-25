@@ -5,12 +5,13 @@
  "version": "2026.11.25",
  "page": "./index.html",
  "entry": {
-  "script": "./mars-can.js?v=2",
+  "script": "./mars-can.js?v=4",
   "global": "MarsCan",
   "call": "create",
   "adapter": "ground@1",
   "needs": [
-   "./mars-world.js?v=2"
+   "./mars-world.js?v=4",
+   "./mars-physics.js?v=1"
   ]
  },
  "ground": "trough",

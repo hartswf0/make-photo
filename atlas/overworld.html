@@ -31,7 +31,8 @@ canvas{display:block;touch-action:none}
 <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
 <script src="../abyssinian-highlands/habitus-kits.js"></script>
 <script src="../donkey/vehicles.js?v=1"></script>
-<script src="./regions.js?v=16"></script>
+<script src="./glass-games.js?v=1"></script>
+<script src="./regions.js?v=17"></script>
 <script>
 (async () => {
 const T = THREE, QS = new URLSearchParams(location.search), $ = id => document.getElementById(id);
@@ -306,9 +307,18 @@ function hearAndHouse() { INSIDE = null; for (const r of ROOMS) if (inPoly(r.pts
   if (!AUD.ctx) return; const c = AUD.ctx, L = c.listener, f = new T.Vector3(); camera.getWorldDirection(f);
   if (L.positionX) { L.positionX.value = camera.position.x; L.positionY.value = camera.position.y; L.positionZ.value = camera.position.z; L.forwardX.value = f.x; L.forwardY.value = f.y; L.forwardZ.value = f.z; L.upX.value = 0; L.upY.value = 1; L.upZ.value = 0; }
   for (const e of AUD.list) if (e.g) { const d = Math.hypot(e.x - P.x, e.z - P.z), want = d > e.radius * 1.5 ? 0 : e.gain * (e.room ? (INSIDE === e.room ? 1 : 0) : INSIDE ? .18 : 1); e.g.gain.setTargetAtTime(want, c.currentTime, .4); } }
-const REG = window.DWRegions ? window.DWRegions.create({ T, scene, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, shelf: './cans.json?v=8',
+const GAMES = window.GlassGames ? window.GlassGames.create({ T, camera, canvas: renderer.domElement }) : null;
+const HOST = { freeze: v => { FREEZE = v; if (v) P.speed = 0; }, cam: f => { GAMECAM = f; if (f) f.warm = false; }, post: o => { AIMPOSE = o; }, clip: c => { PLAYERCLIP = c || null; },
+  hold(obj, bi, pos, rot) { const b = imani && imani.bones[bi]; if (!b) return () => { }; b.add(obj); obj.position.set(...pos); obj.rotation.set(...rot); HELD.push(obj); return () => { b.remove(obj); HELD.splice(HELD.indexOf(obj), 1); }; },
+  player: () => ({ x: P.x, y: P.y, z: P.z, yaw: P.yaw, mode: P.mode }), place(x, z, y, yaw) { if (P.mode !== 'walk') setMode('walk'); P.x = x; P.z = z; if (y !== undefined && y !== null) P.y = y; if (yaw !== undefined) P.yaw = yaw; P.speed = 0; P.vy = 0; }, eye: () => new THREE.Vector3(P.x, P.y + 1.55, P.z) };
+/* a cutscene: a can's shot list. The trough lends the eye and the speech; any key or tap moves on to the next shot. */
+async function cutscene(sc) { if (!sc || !sc.shots) return; HOST.freeze(true); if (GAMES) GAMES.letterbox(true); let skip = false; const k = () => { skip = true; }; addEventListener('keydown', k); addEventListener('pointerdown', k);
+  try { for (const sh of sc.shots) { skip = false; let t = 0, last = performance.now(); GAMECAM = () => { return { pos: typeof sh.pos === 'function' ? sh.pos(t) : sh.pos, look: typeof sh.look === 'function' ? sh.look(t) : sh.look, fov: sh.fov || 42, cut: t < .05 }; }; GAMECAM.warm = false;
+      if (sh.line) say(sh.line.name, sh.line.text, sh.line.who); if (sh.run) sh.run(); await new Promise(res => { const end = () => { const n = performance.now(); t += Math.min(.05, (n - last) / 1000); last = n; skip || t > (sh.dur || 4) ? res() : requestAnimationFrame(end); }; end(); });   // shot time runs on frames, capped, so a slow machine still sees each shot } }
+  finally { removeEventListener('keydown', k); removeEventListener('pointerdown', k); GAMECAM = null; if (GAMES) GAMES.letterbox(false); HOST.freeze(false); if (sc.done) sc.done(); } }
+const REG = window.DWRegions ? window.DWRegions.create({ T, scene, play: (kind, opts) => GAMES ? GAMES.play(kind, opts, HOST) : Promise.resolve(null), cutscene, host: HOST, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, shelf: './cans.json?v=9',
   addSource: o => reg(CAN_SOURCES, o), addWeather: o => reg(CAN_WEATHER, o), addBlockers, setGround, shade, coarseAt: (x, z) => coarse(x, z), shapeAt: (x, z, h, pad) => shapeAt(x, z, h, pad), lowAt: (x, z) => lowAt(x, z), holeGround: r => { const v = GROUND_U.uHoles.value.find(h => h.z <= h.x); if (!v) return () => { }; v.set(...r); return () => v.set(0, 0, -1, -1); }, addHeights: (r, at) => { const o = { r, at }; HEIGHTS.push(o); return () => { const k = HEIGHTS.indexOf(o); if (k >= 0) HEIGHTS.splice(k, 1); }; }, addFloraHole: r => { FLORA_HOLES.push(r); return () => { const k = FLORA_HOLES.indexOf(r); if (k >= 0) FLORA_HOLES.splice(k, 1); }; }, addLamps: list => { const o = list.map(l => ({ ...l })); LAMPS.push(...o); return () => { for (const l of o) { const k = LAMPS.indexOf(l); if (k >= 0) LAMPS.splice(k, 1); } }; }, sunDir: () => sun.position.clone().normalize(), maxAnisotropy: renderer.capabilities.getMaxAnisotropy(), addInterior: o => reg(ROOMS, o), addSwitch: o => reg(SWITCHES, o), addPerson: o => reg(PEOPLE, o), addSound, say,
-  motion: { add: (id, ch) => motion && motion.registerActor(id, ch, { defaultClip: 'idle', blend: 1 }), loco: (id, o) => motion && motion.setActorLocomotion(id, o), drop: id => motion && motion.unregisterActor && motion.unregisterActor(id) }, onShelf: list => { for (const o of list) if (!o.keep) KIND[o.id] = null; },
+  motion: { add: (id, ch) => motion && motion.registerActor(id, ch, { defaultClip: 'idle', blend: 1 }), loco: (id, o) => motion && motion.setActorLocomotion(id, o), clip: (id, c) => motion && motion.setClip(id, c, { fade: .3 }), drop: id => motion && motion.unregisterActor && motion.unregisterActor(id) }, onShelf: list => { for (const o of list) if (!o.keep) KIND[o.id] = null; },
   onStart: () => { STORM.pending++; STORM.want = 1; STORM.t0 = STORM.t0 || performance.now(); },
   onMount: (isl, r, ms) => { MOUNTS.push({ id: isl.id, ms: Math.round(ms), at: [Math.round(P.x), Math.round(P.z)] }); STORM.pending = Math.max(0, STORM.pending - 1); STORM.until = Math.max((STORM.t0 || 0) + 4000, performance.now() + 1500); } }) : null;
 // ---------- ground height: streamed tiles, then bridge decks on top ----------
@@ -350,7 +360,13 @@ function laneAt(fe, t) { const L = fe.lane, tgt = t * fe.len; let acc = 0; for (
 function makeBoat(color, sc = 1) { const g = new T.Group(), hull = new T.Mesh(new T.BoxGeometry(3.6, 1.4, 9), new T.MeshLambertMaterial({ color })); hull.position.y = .5; const bow = new T.Mesh(new T.ConeGeometry(1.8, 3, 4), new T.MeshLambertMaterial({ color })); bow.rotation.x = Math.PI / 2; bow.rotation.y = Math.PI / 4; bow.position.set(0, .5, 5.8); bow.scale.set(1, 1, .55);
   const cab = new T.Mesh(new T.BoxGeometry(2.6, 1.6, 3), new T.MeshLambertMaterial({ color: '#2b4f6e' })); cab.position.set(0, 1.9, -1.2); const stripe = new T.Mesh(new T.BoxGeometry(3.65, .25, 9.05), new T.MeshLambertMaterial({ color: '#1c468c' })); stripe.position.y = .9; g.add(hull, bow, cab, stripe); g.scale.setScalar(sc); return g; }
 // ---------- you, in four ways of moving ----------
-let CAMO = null; const P = { x: 0, z: 0, y: 0, yaw: 0, speed: 0, vy: 0, mode: 'walk', alt: 0 };
+let CAMO = null, GAMECAM = null, FREEZE = false, PLAYERCLIP = null, AIMPOSE = null; const HELD = [];
+/* the player's right arm, pointed along an aim after the motion clip has posed the body (the draw) */
+const _aw = new THREE.Vector3(), _ac = new THREE.Vector3(), _aq = new THREE.Quaternion(), _aq2 = new THREE.Quaternion();
+function aimArm(o) { const B = imani.bones; if (!B || !B[16]) return; imani.group.updateMatrixWorld(true);
+  for (const [bi, ci] of [[16, 18], [18, 20]]) { const b = B[bi], c = B[ci]; b.getWorldPosition(_aw); c.getWorldPosition(_ac); const cur = _ac.sub(_aw).normalize(), want = o.aim.clone().add(new THREE.Vector3(0, .04 * (o.recoil || 0), 0)).normalize();
+    _aq.setFromUnitVectors(cur, want); b.getWorldQuaternion(_aq2); _aq2.premultiply(_aq); b.parent.getWorldQuaternion(_aq); b.quaternion.copy(_aq.invert().multiply(_aq2)); b.updateMatrixWorld(true); } }
+const P = { x: 0, z: 0, y: 0, yaw: 0, speed: 0, vy: 0, mode: 'walk', alt: 0 };
 const walker = new T.Group(); { const cloak = new T.Mesh(new T.ConeGeometry(.42, 1.45, 10), new T.MeshLambertMaterial({ color: '#7a3c26' })); cloak.position.y = .72; const head = new T.Mesh(new T.SphereGeometry(.17, 12, 10), new T.MeshLambertMaterial({ color: '#3a2418' })); head.position.y = 1.58; walker.add(cloak, head); } scene.add(walker);
 const car = new T.Group(); { const body = new T.Mesh(new T.BoxGeometry(2, 1, 4.4), new T.MeshLambertMaterial({ color: '#d9d2bf' })); body.position.y = .9; const cab = new T.Mesh(new T.BoxGeometry(1.8, .8, 2), new T.MeshLambertMaterial({ color: '#2b3e4c' })); cab.position.set(0, 1.75, -.3);
   const can = new T.Mesh(new T.BoxGeometry(.5, .6, .35), new T.MeshLambertMaterial({ color: '#1b6fc0' })); can.position.set(.4, 1.65, 1.6); car.add(body, cab, can);
@@ -512,7 +528,7 @@ function autoWay() { AUTO.f = AUTO.t = 0; if (!AUTO.on || DIVE.on || P.mode === 
 // ---------- the loop ----------
 let last = performance.now(), streamAt = 0, ready = false;
 function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
-  autoWay(); const fwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - stick.y - EXT.y + AUTO.f, turn = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + stick.x + EXT.x + AUTO.t, fast = keys.ShiftLeft || keys.ShiftRight || OWS.fast ? 1.8 : 1;
+  autoWay(); const fwd = FREEZE ? 0 : (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - stick.y - EXT.y + AUTO.f, turn = FREEZE ? 0 : (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + stick.x + EXT.x + AUTO.t, fast = keys.ShiftLeft || keys.ShiftRight || OWS.fast ? 1.8 : 1;
   const m = P.mode, top = SPEED[m] * fast;
   if (m === 'ferry') { const fe = P.ferry, pos = laneAt(fe.fe, fe.t); fe.t = Math.min(1, fe.t + dt * 38 / fe.fe.len) * (fe.dir > 0 ? 1 : 1); const q = laneAt(fe.fe, fe.dir > 0 ? fe.t : 1 - fe.t); P.x = q[0]; P.z = q[1]; P.y = 2; P.yaw = q[2] + (fe.dir > 0 ? 0 : Math.PI); fe.fe.boat.position.set(P.x, .2, P.z); fe.fe.boat.rotation.y = P.yaw;
     if (fe.t >= 1) { const end = fe.dir > 0 ? fe.fe.f.piers[1] : fe.fe.f.piers[0]; P.mode = 'walk'; P.x = end[0][0]; P.z = end[0][2]; P.y = groundAt(P.x, P.z); P.speed = 0; fe.fe.t = fe.dir > 0 ? 1 : 0; P.ferry = null; setMode('walk'); } }
@@ -529,7 +545,7 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
       else { const gy = footing(nx, nz); if (m === 'drive' && gy < -0.8) P.speed *= -.2; else { const slope = (gy - P.y) / Math.max(.1, Math.hypot(nx - P.x, nz - P.z)); if ((m === 'drive' && slope < .9) || slope < 1.4 || deckAt(nx, nz)) { P.x = nx; P.z = nz; } else P.speed *= m === 'drive' ? -.2 : .5; } } } if (m === 'walk' && P.swim) P.speed = Math.max(-1.8, Math.min(1.8, P.speed));
   }
   if (m === 'walk' || m === 'drive') gravity(dt, now);
-  if (motion && !DIVE.on) { try { motion.setActorLocomotion('imani', { speedMps: m === 'walk' && !P.swim ? Math.abs(P.speed) : 0, carrying: !P.swim, sitting: m === 'ride' || m === 'boat' || m === 'ferry' || m === 'fly', blend: 1 }); motion.update(dt); } catch { } }   /* one call a frame: a second call each frame cross-faded the walk back to idle and froze her */
+  if (motion && !DIVE.on) { try { if (PLAYERCLIP) { motion.setClip('imani', PLAYERCLIP, { fade: .3 }); motion.update(dt); throw 0; } motion.setActorLocomotion('imani', { speedMps: m === 'walk' && !P.swim ? Math.abs(P.speed) : 0, carrying: !P.swim, sitting: m === 'ride' || m === 'boat' || m === 'ferry' || m === 'fly', blend: 1 }); motion.update(dt); } catch { } if (AIMPOSE && imani) aimArm(AIMPOSE); }   /* one call a frame: a second call each frame cross-faded the walk back to idle and froze her */
   if (donkey && m === 'walk') {                                                // Mistletoe keeps to your side on foot
     const bx = P.x + Math.sin(P.yaw) * 1.2 - Math.cos(P.yaw) * 1.9, bz = P.z + Math.cos(P.yaw) * 1.2 + Math.sin(P.yaw) * 1.9, g = donkey.group.position, dx = bx - g.x, dz = bz - g.z, d = Math.hypot(dx, dz);
     if (d > 60) placeDk(bx, bz, P.yaw, (x, z) => groundAt(x, z));
@@ -566,6 +582,8 @@ function frame(now) { const dt = Math.min(.05, (now - last) / 1000); last = now;
   ey = Math.max(ey, groundAt(ex, ez) + 1.5); camera.position.lerp(new T.Vector3(ex, ey, ez), Math.min(1, dt * 6)); camera.lookAt(P.x + Math.sin(P.yaw) * dist * .35, P.y + 1.1 + up * .2, P.z + Math.cos(P.yaw) * dist * .35);   /* you stand in the lower third, not under the drops at the bottom edge */   /* look past yourself so the horizon, and the lights on it, stay in view */ if (!look.id && Math.abs(fwd) > .1) camYaw *= Math.pow(.2, dt);
   if (CAMO) { const h = CAMO.heading * Math.PI / 180, pt = CAMO.pitch * Math.PI / 180; camera.position.set(CAMO.x, CAMO.y, CAMO.z); camera.lookAt(CAMO.x + Math.sin(h) * Math.cos(pt), CAMO.y + Math.sin(pt), CAMO.z - Math.cos(h) * Math.cos(pt));
     if (camera.fov !== CAMO.fov) { camera.fov = CAMO.fov; camera.updateProjectionMatrix(); } walker.visible = false; if (donkey) donkey.group.visible = false; }   /* a level's own eye, for matched comparisons */
+  else if (GAMECAM) { const c = GAMECAM(); if (c) { if (c.cut || !GAMECAM.warm) { camera.position.copy(c.pos); GAMECAM.warm = true; } else camera.position.lerp(c.pos, Math.min(1, dt * 7)); camera.lookAt(c.look); const f = c.fov || 50; if (camera.fov !== f) { camera.fov = f; camera.updateProjectionMatrix(); } } }   /* a mini-game's or a cutscene's eye */
+  else if (camera.fov !== 60 && !CAMO) { camera.fov = 60; camera.updateProjectionMatrix(); }
   water.position.x = Math.round(P.x / 100) * 100; water.position.z = Math.round(P.z / 100) * 100; water.material.uniforms.uTime.value = now / 1000; RANGES.U.uFog.value.copy(scene.fog.color); RANGES.U.uSun.value.copy(SEA_U.uSunDir.value); RANGES.U.uLit.value.copy(SEA_U.uSunCol.value);
   OWS.dk = Math.max(0, OWS.dk - dt * .0025); splashes(dt); lifeAndSea(dt, now / 1000); gpsTick(); CORNER.draw(now); if (P.swim && !DIVE.frame) diveScent(); if (DIVE.on) diveTick(dt);
   if (REG) REG.update(dt, now / 1000, P, donkey && donkey.group.position); hearAndHouse(); placeSun();
@@ -682,7 +700,7 @@ setInterval(() => { const n = nearest(OW.places); if (n && n.d < 500 && window.D
 function liveAct() { if (P.mode === 'ferry' || P.mode === 'fly') return null;
   if (DIVE.on) return null; if (P.swim && P.mode === 'walk' && deepHere() && abyss() && abyss().ready) { const sp = proj(P.x, P.y + 1.2, P.z); return { kind: 'dive', id: 'dive', label: 'Dive', x: sp.x, y: sp.y }; }
   const pier = nearPier(); if (pier) { const pr = pier.fe.f.piers[pier.dir > 0 ? 0 : 1][0], sp = proj(pr[0], pr[1] + 2, pr[2]); return { kind: 'sail', id: 'sail', label: 'Ferry to ' + OW.islands.find(i => i.id === pier.to).name, x: sp.x, y: sp.y, pier }; }
-  for (const sw of SWITCHES) if (Math.hypot(sw.x - P.x, sw.z - P.z) < 4.5) { const sp = proj(sw.x, P.y + 1.4, sw.z); return { kind: 'switch', id: 'switch', label: sw.label(), x: sp.x, y: sp.y, sw }; }
+  for (const sw of SWITCHES) if (Math.hypot(sw.x - P.x, sw.z - P.z) < (sw.r || 4.5) && (!sw.when || sw.when())) { const sp = proj(sw.x, P.y + 1.4, sw.z); return { kind: 'switch', id: 'switch', label: sw.label(), x: sp.x, y: sp.y, sw }; }
   { const pp = nearest(PEOPLE); if (pp && pp.d < 4.5 && OWS.liters >= 5) { const sp = proj(pp.p.x, pp.p.y + 1.6, pp.p.z); return { kind: 'give', id: 'share', label: 'Give 5 L', person: pp.p.name, delta: -5, x: sp.x, y: sp.y, who: pp.p }; } }
   const cs = nearest(CAN_SOURCES); if (cs && cs.d < 14) { const sp = proj(cs.p.x, P.y + 1.5, cs.p.z); if (!cs.p.flowing) return { kind: 'dry', id: 'dry', label: 'Dry today', x: sp.x, y: sp.y, note: cs.p.note };
     if (OWS.liters < 19.9) return { kind: 'draw', id: 'draw', label: 'Draw', delta: 20 - OWS.liters, x: sp.x, y: sp.y, src: cs.p }; }

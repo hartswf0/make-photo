@@ -456,3 +456,47 @@ Some levels cannot share the trough's renderer without being rebuilt, and rebuil
 - The storm advances with the trough's frame time, so in the software-GL test browser it crawls.
 - `build_ms` is 14 s in that browser, against a budget of 2,500 ms (the city takes 12 s there).
 - The monorail, the neon saloon and the twin suns exist only as named looks and source records, not as geometry.
+
+## 10. Verbs in the trough: one surface, mini-games on the glass, cutscenes
+
+The Western's verbs (the draw, the krar, the lift, the monorail) lived only in the standalone page (`mars/index.html`), with their own HUD. The jerry-can rule says a can brings content and the trough owns the verbs. So these verbs now come in as **offers on the trough's own surface**: the same rain glass, one live offer at a time, the same cyan and amber drops. The standalone page uses the same mini-games, so the two no longer look different.
+
+New trough services, available to any can:
+
+| Service | What it does |
+|---|---|
+| `live.verbs` | The can lists `{x, z, r, label, when(), run()}` in its own frame. The adapter registers each one with `addSwitch`, so it appears as the surface's live offer when you stand within `r` and `when()` is true. |
+| `play(kind, opts)` | A mini-game on the glass (`atlas/glass-games.js`). It freezes walking, takes the camera, captures the keys, and resolves with a result. |
+| `play("draw")` | A reticle of seven water drops that close in as your hand steadies, sway, a drop cylinder, streaks and splashes where shots land, and an over-the-shoulder camera whose field of view narrows as you steady. `fire(dir)` is the can's own: the Mars can casts it into its Rapier world. |
+| `play("krar")` | Six rivulets run down the glass to a bridge line. You pluck each drop as it reaches the line (keys 1–6 or tap), Karplus-Strong strings in the Tezeta scale, and a jar fills with what you catch. |
+| `cutscene({shots})` | A letterboxed shot list. Each shot has a position and a look (fixed or a function of time), a field of view, a duration and a spoken line. Any key or tap skips. Input is frozen until it ends. |
+| `host` | What a scene may do to the player: `place`, `clip` (a mocap clip for the player's body), `hold(obj, bone, pos, rot)` (puts a krar in the hands), `freeze`, `cam`, `eye`. |
+| `motion.clip(id, clip)` | Residents can run a named mocap clip (`guitar-playing`, `idle-foldarms`, …), not only locomotion. |
+
+Walkers (`E` in `legos.json`) also take:
+- `loco`: sitting, talking or dancing;
+- `clip`;
+- `lift`: standing on a stage;
+- `face`: a landmark they turn to;
+- `fixed`: does not turn to face you.
+
+The saloon is no longer empty:
+
+| Who | Where | Doing |
+|---|---|---|
+| Yared | on the stage | plays |
+| Almaz | at the bar | talks across it |
+| Kaleb | behind the bar | arms folded |
+| Girma and Abeba | at a table | sit and talk |
+| Berhanu | at another table | watches the stage |
+| Zewditu and Nell | on the floor | dance |
+
+The first time you come through the doors, a three-shot cutscene introduces the room.
+
+Each can is an experiment in what one more service lets the whole world do:
+- WYGWYL brought walls, doors and rooms.
+- Simien brought ground and herds.
+- The reef brought a renderer of its own.
+- Mars brings physics, mini-games and cutscenes.
+
+Once a service is in the trough, every can can use it.
