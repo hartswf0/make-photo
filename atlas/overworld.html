@@ -31,7 +31,7 @@ canvas{display:block;touch-action:none}
 <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
 <script src="../abyssinian-highlands/habitus-kits.js"></script>
 <script src="../donkey/vehicles.js?v=1"></script>
-<script src="./glass-games.js?v=1"></script>
+<script src="./glass-games.js?v=2"></script>
 <script src="./regions.js?v=17"></script>
 <script>
 (async () => {
@@ -314,7 +314,7 @@ const HOST = { freeze: v => { FREEZE = v; if (v) P.speed = 0; }, cam: f => { GAM
 /* a cutscene: a can's shot list. The trough lends the eye and the speech; any key or tap moves on to the next shot. */
 async function cutscene(sc) { if (!sc || !sc.shots) return; HOST.freeze(true); if (GAMES) GAMES.letterbox(true); let skip = false; const k = () => { skip = true; }; addEventListener('keydown', k); addEventListener('pointerdown', k);
   try { for (const sh of sc.shots) { skip = false; let t = 0, last = performance.now(); GAMECAM = () => { return { pos: typeof sh.pos === 'function' ? sh.pos(t) : sh.pos, look: typeof sh.look === 'function' ? sh.look(t) : sh.look, fov: sh.fov || 42, cut: t < .05 }; }; GAMECAM.warm = false;
-      if (sh.line) say(sh.line.name, sh.line.text, sh.line.who); if (sh.run) sh.run(); await new Promise(res => { const end = () => { const n = performance.now(); t += Math.min(.05, (n - last) / 1000); last = n; skip || t > (sh.dur || 4) ? res() : requestAnimationFrame(end); }; end(); });   // shot time runs on frames, capped, so a slow machine still sees each shot } }
+      if (sh.line) say(sh.line.name, sh.line.text, sh.line.who); if (sh.run) sh.run(); await new Promise(res => { const end = () => { const n = performance.now(); t += Math.min(.05, (n - last) / 1000); last = n; skip || t > (sh.dur || 4) ? res() : requestAnimationFrame(end); }; end(); });   /* shot time runs on frames, capped, so a slow machine still sees each shot */ } }
   finally { removeEventListener('keydown', k); removeEventListener('pointerdown', k); GAMECAM = null; if (GAMES) GAMES.letterbox(false); HOST.freeze(false); if (sc.done) sc.done(); } }
 const REG = window.DWRegions ? window.DWRegions.create({ T, scene, play: (kind, opts) => GAMES ? GAMES.play(kind, opts, HOST) : Promise.resolve(null), cutscene, host: HOST, islands: OW.islands, groundAt: (x, z) => terrain(x, z), ensureGround, shelf: './cans.json?v=9',
   addSource: o => reg(CAN_SOURCES, o), addWeather: o => reg(CAN_WEATHER, o), addBlockers, setGround, shade, coarseAt: (x, z) => coarse(x, z), shapeAt: (x, z, h, pad) => shapeAt(x, z, h, pad), lowAt: (x, z) => lowAt(x, z), holeGround: r => { const v = GROUND_U.uHoles.value.find(h => h.z <= h.x); if (!v) return () => { }; v.set(...r); return () => v.set(0, 0, -1, -1); }, addHeights: (r, at) => { const o = { r, at }; HEIGHTS.push(o); return () => { const k = HEIGHTS.indexOf(o); if (k >= 0) HEIGHTS.splice(k, 1); }; }, addFloraHole: r => { FLORA_HOLES.push(r); return () => { const k = FLORA_HOLES.indexOf(r); if (k >= 0) FLORA_HOLES.splice(k, 1); }; }, addLamps: list => { const o = list.map(l => ({ ...l })); LAMPS.push(...o); return () => { for (const l of o) { const k = LAMPS.indexOf(l); if (k >= 0) LAMPS.splice(k, 1); } }; }, sunDir: () => sun.position.clone().normalize(), maxAnisotropy: renderer.capabilities.getMaxAnisotropy(), addInterior: o => reg(ROOMS, o), addSwitch: o => reg(SWITCHES, o), addPerson: o => reg(PEOPLE, o), addSound, say,

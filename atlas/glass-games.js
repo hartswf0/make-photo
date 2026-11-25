@@ -83,7 +83,7 @@
       const dirOf = (yaw, pitch) => new T.Vector3(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch));
       const swayed = () => { const b = (1 - S.steady * .85) * .018; return { yaw: S.yaw + Math.sin(S.t * 1.3) * b + Math.sin(S.t * 3.1) * b * .4, pitch: S.pitch + Math.sin(S.t * 1.7 + 1) * b * .8 + S.recoil * .06 }; };
       function fire() {
-        const now = performance.now() / 1000; if (S.ammo <= 0 || now - S.lastFire < .35) { SFX.click(); return; } S.ammo--; S.lastFire = now;   // real time: a slow frame must not swallow a shot S.recoil = 1; S.steady *= .3;
+        const now = performance.now() / 1000; if (S.ammo <= 0 || now - S.lastFire < .35) { SFX.click(); return; } S.ammo--; S.lastFire = now; S.recoil = 1; S.steady *= .3;   // real time: a slow frame must not swallow a shot
         const a = swayed(), dir = dirOf(a.yaw, a.pitch), r = o.fire ? o.fire(dir) || {} : {}, from = o.muzzle ? o.muzzle() : (o.eye && o.eye());
         SFX.shot(); if (r.what === 'bottle') SFX.glass(); else if (r.what === 'can') SFX.tin();
         if (r.hit) S.hits++; S.marks.push({ from: from && from.clone(), to: r.point ? r.point.clone() : from.clone().addScaledVector(dir, 60), t: 0, hit: !!r.hit, what: r.what });
