@@ -17,8 +17,9 @@ export function createUI({ shots }) {
     car(c) { $('carName').textContent = c.name; $('carSub').textContent = c.sub; },
     shot(id, take) { for (const k in chips) chips[k].classList.toggle('on', k === id); chips[id]?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); $('take').classList.toggle('on', !!take); $('take').firstElementChild.textContent = take ? '■' : '▶'; },
     context(label) { if (label === ctxLabel) return; ctxLabel = label; $('act').hidden = !label; if (label) $('act').textContent = label; },
-    status(j, env, shot) { if (performance.now() - statusT < 250) return; statusT = performance.now(); $('status').textContent = `km ${(j.dist / 1000 % 9).toFixed(2)} · ${Math.round(j.speed * 3.6)} km/h · ${shot.lens}${env.segment && env.segment.type !== 'station' ? ' · ' + env.segment.name : nextName ? ' · next ' + nextName : ''}`; },
+    status(j, env, shot, extra = '') { if (performance.now() - statusT < 250) return; statusT = performance.now(); $('status').textContent = `km ${(j.dist / 1000 % 9).toFixed(2)} · ${Math.round(j.speed * 3.6)} km/h · ${shot.lens}${env.segment && env.segment.type !== 'station' ? ' · ' + env.segment.name : nextName ? ' · next ' + nextName : ''}`; $('score').textContent = extra; },
     next(name) { nextName = name; },
+    goals(list, mode) { const box = $('goals'); box.hidden = mode !== 'game'; if (box.hidden) return; box.textContent = ''; for (const q of list) { const d = q.done(), li = el('li', d ? 'done' : '', q.text + (q.show && !d && q.show() ? ' · ' + q.show() : '')); box.append(li); } },
     /** The cue card of the run: what would be sent into the session at this door. */
     cue(c, n, of, opening) { const box = $('cue'); box.hidden = !c; if (!c) return; cueText = c.genie; $('cueN').textContent = `${opening ? 'Sent with the seed' : 'Send now · door ' + (n - 1) + ' is open'} · carriage ${n} of ${of}`; $('cueTitle').textContent = c.title.replace(/^\d+\. /, '');
       $('cueBees').textContent = c.bees; $('cueDeed').textContent = c.deed; box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash'); },
@@ -33,6 +34,8 @@ export function createUI({ shots }) {
     bind({ api, input, audio, setShot, worldsRef }) {
       ribbon.addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) setShot(b.dataset.shot); });
       $('runBtn').onclick = () => document.body.classList.contains('run') ? api.endRun() : api.run(); $('cueCopy').onclick = async () => { try { await navigator.clipboard.writeText(cueText); $('cueCopy').textContent = 'Copied'; setTimeout(() => $('cueCopy').textContent = 'Copy cue', 1200); } catch { } };
+      $('beeBtn').onclick = () => api.bee(); $('smokeBtn').onclick = () => api.smoke();
+      $('modes').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const m = b.dataset.mode; if (m === 'cinema') { api.mode('world'); api.take(true); b.classList.add('on'); } else { api.take(false); api.mode(m); } });
       $('take').onclick = () => api.take(); $('rec').onclick = () => api.record(); $('still').onclick = () => api.still(); $('act').onclick = () => api.act();
       $('snd').onclick = () => $('snd').classList.toggle('on', audio.toggle()); $('hud').onclick = () => document.body.classList.toggle('nohud');
       $('wBack').onclick = () => api.exit(); $('wPrev').onclick = () => api.next(-1); $('wNext').onclick = () => api.next(1);

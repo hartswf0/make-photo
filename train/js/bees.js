@@ -27,12 +27,13 @@ export function buildBees(scene, M, mobile) {
   function update(dt, t, ctx) {
     const { cars, camCar, actor } = ctx;
     // lead bee: rests on the coffee cup while the traveler sits, then leads toward the nearest threshold
+    if (lead.manual) { /* flown by the player */ } else {
     if (actor.seated && ctx.cup) { lead.target.copy(ctx.cup); lead.landed = damp(lead.landed, lead.p.distanceTo(ctx.cup) < .12 ? 1 : 0, 3, dt); }
     else { lead.landed = damp(lead.landed, 0, 6, dt); lead.target.set(actor.x + actor.dir * 1.5, DIM.FLOOR + 1.5, actor.z * .4); if (ctx.goal) { tmp.copy(ctx.goal).sub(lead.target); const d = tmp.length(); lead.target.addScaledVector(tmp, Math.min(1, 1.2 / Math.max(d, .01))); } }
     const wob = 1 - lead.landed;
     tmp.copy(lead.target); tmp.x += Math.sin(t * 2.3) * .22 * wob; tmp.y += Math.sin(t * 3.1) * .12 * wob + (lead.landed ? .012 : 0); tmp.z += Math.cos(t * 1.7) * .2 * wob;
     lead.v.copy(tmp).sub(lead.p); const dl = lead.v.length(); lead.p.addScaledVector(lead.v, Math.min(1, dt * (dl > 3 ? 6 : 2.6)));
-    if (dl > .001) lead.v.multiplyScalar(1 / dl);
+    if (dl > .001) lead.v.multiplyScalar(1 / dl); }
     for (let k = 0; k < N; k++) {
       const b = bees[k];
       if (k === 0) b.p.copy(lead.p);
@@ -41,7 +42,7 @@ export function buildBees(scene, M, mobile) {
         const a = t * b.sp + b.ph;
         b.p.set(b.home.x + Math.sin(a) * b.r + (noise2(a * .3, k) - .5), b.home.y + Math.sin(a * 1.7 + k) * .25, clamp(b.home.z + Math.cos(a * 1.3) * b.r * .7, -1.33, 1.33));
       }
-      e.set(0, k === 0 ? Math.atan2(-lead.v.z, lead.v.x) : t * b.sp * 1.3 + b.ph, 0); q.setFromEuler(e);
+      e.set(0, k === 0 ? Math.atan2(-lead.v.z, lead.v.x || 1e-6) : t * b.sp * 1.3 + b.ph, 0); q.setFromEuler(e);
       const shown = ctx.density >= 0 && k < 1 + ctx.density * (N - 1); s.setScalar(k === 0 ? 1.5 : shown ? 1 : 0); m.compose(b.p, q, s); mesh.setMatrixAt(k, m); if (!shown) { wing.setMatrixAt(k, m); continue; }
       s.set(1, 1, .4 + Math.abs(Math.sin(t * 90 + k)) * 1.2); if (k === 0 && lead.landed > .8) s.z = .5;
       tmp.copy(b.p).y += .016; m.compose(tmp, q, s); wing.setMatrixAt(k, m);

@@ -10,8 +10,11 @@ const V = (x, y, z) => new THREE.Vector3(x, y, z), lerp = THREE.MathUtils.lerp, 
 /** frame: what the shot is attached to. inside: lens is in the carriage (so it gets wall clamping and lamp light). */
 export const SHOTS = [
   { id: 'follow', label: 'Follow', frame: 'passenger', inside: true, fov: 58, lens: '28mm corridor',
-    at: c => c.a.seated ? { pos: V(c.a.x - c.a.dir * 1.55, F + 1.52, c.a.z - c.side * 1.0), look: V(c.a.x + c.a.dir * .9, F + 1.12, c.a.z + c.side * .9) }
+    at: c => c.a.roof ? { free: true, pos: V(c.a.x - c.a.dir * 4.6, F + ROOF + 2.3, c.a.z * .4 + .9), look: V(c.a.x + c.a.dir * 6, F + ROOF + 1.1, c.a.z * .5) }
+      : c.a.seated ? { pos: V(c.a.x - c.a.dir * 1.55, F + 1.52, c.a.z - c.side * 1.0), look: V(c.a.x + c.a.dir * .9, F + 1.12, c.a.z + c.side * .9) }
       : { pos: V(c.a.x - c.a.dir * 2.5, F + 1.72, c.aisleZ + .1), look: V(c.a.x + c.a.dir * 3, F + 1.3, c.a.z) } },
+  { id: 'shoulder', label: 'Shoulder', frame: 'passenger', inside: true, fov: 46, lens: 'over the shoulder, Q swaps side',
+    at: c => ({ pos: V(c.a.x - c.a.dir * 1.05, F + (c.a.seated ? 1.3 : 1.66), c.a.z + (c.shoulder || 1) * c.a.dir * -.5), look: V(c.a.x + c.a.dir * 4, F + (c.a.seated ? 1.1 : 1.42), c.a.z + (c.shoulder || 1) * c.a.dir * .25) }) },
   { id: 'profile', label: 'Profile', frame: 'passenger', inside: true, fov: 34, lens: '50mm face-in-glass',
     at: c => ({ pos: V(c.a.x + c.a.dir * 1.05, F + 1.22, c.a.z - c.side * 1.15), look: V(c.a.x, F + (c.a.seated ? 1.12 : 1.5), c.a.z + c.side * .15) }) },
   { id: 'pov', label: 'Eyes', frame: 'passenger', inside: true, fov: 68, lens: 'point of view',
@@ -23,7 +26,9 @@ export const SHOTS = [
   { id: 'cctv', label: 'CCTV', frame: 'carriage', inside: true, fov: 82, lens: 'fixed surveillance',
     at: c => ({ pos: V(c.car.x + L / 2 - .5, F + 2.12, HW - .32), look: V(c.car.x - 2.5, F + .7, -.5) }) },
   { id: 'bee', label: 'Bee cam', frame: 'bee', inside: true, fov: 86, lens: 'macro wide',
-    at: c => ({ pos: V(c.bee.p.x - c.bee.v.x * .34, c.bee.p.y + .07, c.bee.p.z - c.bee.v.z * .34), look: V(c.bee.p.x + c.bee.v.x, c.bee.p.y - .02, c.bee.p.z + c.bee.v.z) }) },
+    at: c => ({ pos: V(c.bee.p.x - c.bee.v.x * .34, c.bee.p.y + .07 - c.bee.v.y * .2, c.bee.p.z - c.bee.v.z * .34), look: V(c.bee.p.x + c.bee.v.x, c.bee.p.y - .02 + c.bee.v.y, c.bee.p.z + c.bee.v.z) }) },
+  { id: 'beepov', label: 'Bee eyes', frame: 'bee', inside: true, fov: 104, lens: 'compound, first person',
+    at: c => ({ pos: V(c.bee.p.x + c.bee.v.x * .03, c.bee.p.y + .01, c.bee.p.z + c.bee.v.z * .03), look: V(c.bee.p.x + c.bee.v.x, c.bee.p.y + c.bee.v.y, c.bee.p.z + c.bee.v.z) }) },
   { id: 'lean', label: 'Lean out', frame: 'train', fov: 52, lens: 'out of the window',
     at: c => ({ pos: V(c.a.x, F + 1.5, c.side * (HW + .6)), look: V(c.a.x + 40, F + 1.2, c.side * (HW + 2.6)) }) },
   { id: 'track', label: 'Tracking', frame: 'train', fov: 36, lens: 'lateral tracking',
@@ -70,7 +75,7 @@ export function createRig(camera) {
   function set(id) { const s = byId[id]; if (!s) return false; st.shot = s; st.mem = {}; st.yaw = st.pitch = 0; st.zoom = 1; st.cut = true; return true; }
   function update(dt, ctx) {
     const s = st.shot, r = s.at(ctx, st.mem);
-    if (s.inside) {   // keep the lens inside the carriage it is in
+    if (s.inside && !r.free) {   // keep the lens inside the carriage it is in
       const lx = r.pos.x - ctx.car.x, end = Math.abs(lx) > L / 2 - .25;
       if (ctx.car.i === 0) r.pos.x = clamp(r.pos.x, ctx.car.x - L / 2 + .35, ctx.car.x - L / 2 + 2.85);
       r.pos.z = clamp(r.pos.z, end ? -.3 : -(HW - .22), end ? .3 : HW - .22); r.pos.y = clamp(r.pos.y, F + .25, F + 2.3);
