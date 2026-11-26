@@ -169,7 +169,8 @@ function stepAI(r, dt) {
 }
 let shake = 0;
 const DN = mobile ? 90 : 220, dustP = new Float32Array(DN * 3).fill(-99), dustV = new Float32Array(DN * 4), dustG = new THREE.BufferGeometry(); dustG.setAttribute('position', new THREE.BufferAttribute(dustP, 3));
-const dust = new THREE.Points(dustG, new THREE.PointsMaterial({ color: 0xe8cfa6, size: 1.5, transparent: true, opacity: .5, depthWrite: false })); dust.frustumCulled = false; scene.add(dust); let dustI = 0;
+const soft = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,.9)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+const dust = new THREE.Points(dustG, new THREE.PointsMaterial({ color: 0xe8cfa6, map: soft, size: .9, transparent: true, opacity: .4, depthWrite: false })); dust.frustumCulled = false; scene.add(dust); let dustI = 0;
 function puff(x, z, vx, vz) { const k = dustI++ % DN; dustP[k * 3] = x; dustP[k * 3 + 1] = .3; dustP[k * 3 + 2] = z; dustV[k * 4] = vx; dustV[k * 4 + 1] = 1.5 + Math.random() * 2; dustV[k * 4 + 2] = vz; dustV[k * 4 + 3] = 1; }
 const cam = { yaw: 0, p: new THREE.Vector3(0, 30, -40) }; let acc = 0, last = performance.now();
 function frame(now) { requestAnimationFrame(frame); const dt = Math.min(.05, (now - last) / 1000); last = now;
