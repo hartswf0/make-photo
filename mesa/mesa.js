@@ -271,7 +271,7 @@
   scene.add(dust); { const p = dust.geometry.attributes.position; for (let i = 0; i < 900; i++) p.setXYZ(i, (Math.random() - .5) * 60, Math.random() * 12, (Math.random() - .5) * 60); }
 
   /* ---------- shooting ---------- */
-  function fire(dir) { if (st.cool > 0 || st.mode === "down" || !INK) return; if (st.ink < 1.5) { st.cool = .25; S.dry(); return; } st.cool = .2; st.recoil = .8; st.ink -= 2.5;
+  function fire(dir) { if (st.cool > 0 || st.mode === "down" || !INK) return; if (st.ink < 2) { st.cool = .25; S.dry(); return; } st.cool = Math.max(.1, .2 - GAME.combo * .012); st.recoil = .8; st.ink -= 2; GAME.shake = Math.max(GAME.shake, .08);
     const o = new T.Vector3(); if (gun.parent) gun.localToWorld(o.set(0, 0, .26)); else o.set(st.x, st.y + 1.4, st.z);
     const spread = .012 + (1 - st.steady) * .02, col = PAINT[paintN++ % PAINT.length]; let d;
     if (LOCK.p) { const to = LOCK.p.clone(), tf = to.distanceTo(o) / 32; to.y += .5 * 9.81 * tf * tf; d = to.sub(o).normalize().add(new T.Vector3((Math.random() - .5) * .012, (Math.random() - .5) * .012, (Math.random() - .5) * .012)).normalize(); }   /* locked: lead the drop */
@@ -282,8 +282,9 @@
     SPORE.scatter(q, 1);
     if (who && who.kind === "knight" && owner !== "outlaw") { KN.hit(0, q, .42, col); KNIGHT.hp--; if (LENS) LENS.event("hit", col); S.glass(q, .5); if (KNIGHT.hp <= 0 && KNIGHT.state !== "shattered") { KN.shatter(0, d); if (LENS) LENS.event("shatter"); KNIGHT.state = "shattered"; KNIGHT.t = 0; S.glass(q, 2); complete("knight", "The knight goes to pieces on the mirror floor, every shard still holding its colour."); } return true; }   /* what a paintball does besides land: prisms crack, outlaws go down in their own colour, shards skitter */
     if (who && who.kind === "prism") { const p = who.p; p.hp--; S.glass(q, .3); if (p.hp <= 0) shatter(p, d); return false; }
-    if (who && who.kind === "me") { if (owner !== "outlaw") return true; paintBody(me, q, col, 3); if (st.mode !== "down") { $("hurt").classList.add("on"); setTimeout(() => $("hurt").classList.remove("on"), 260); fall("The paint takes him off his feet."); } return true; }
-    if (who && who.kind === "outlaw") { const ol = who.o; paintBody(ol.ch, q, col, 3); if (ol.state === "idle" || ol.state === "telegraph" || ol.state === "fire") { ol.state = "fall"; ol.t = 0; S.thud(q); say(`${ol.name} goes down, painted to the hat.`, 2); }
+    if (who && who.kind === "me") { if (owner !== "outlaw") return true; paintBody(me, q, col, 3); if (st.mode !== "down" && GAME.dashT <= 0 && GAME.hurtT > .9) { $("hurt").classList.add("on"); setTimeout(() => $("hurt").classList.remove("on"), 260); GAME.hp--; GAME.hurtT = 0; GAME.combo = 0; GAME.shake = .6; S.hurt(); if (GAME.hp <= 0) { GAME.hp = 3; GAME.score = Math.max(0, GAME.score - 300); fall("Three hits. He goes down, and he gets up."); } } return true; }
+    if (who && who.kind === "chip") { if (owner === "outlaw") return true; const c = who.ch; if (!c.alive) return true; c.alive = false; c.t = -2 - Math.random() * 3; flash.color.set(col); flash.position.copy(q); flash.intensity = 60; S.glass(q, .3); st.ink = Math.min(100, st.ink + 12); score(40, q); for (let i = 0; i < 7; i++) puff(q.clone(), i % 2 ? col : 0xffffff, new T.Vector3((Math.random() - .5) * 6, Math.random() * 4, (Math.random() - .5) * 6), .7, .22, 2.5, true); return true; }
+    if (who && who.kind === "outlaw") { const ol = who.o; paintBody(ol.ch, q, col, 3); if (owner === "outlaw") return true; if (ol.state === "run" || ol.state === "telegraph" || ol.state === "fire" || ol.state === "stagger") { ol.hp--; if (ol.hp <= 0) { ol.state = "fall"; ol.t = 0; S.thud(q); score(100, q); } else { ol.state = "stagger"; ol.t = 0; ol.x += d.x * .6; ol.z += d.z * .6; score(30, q); } }
       const gp = new T.Vector3(q.x, heightAt(q.x, q.z), q.z); INK.splat(gp, new T.Vector3(0, 1, 0), d, col, 1.4); return true; }
     if (who && who.kind === "shard") { who.b.applyImpulseAtPoint(v3(d.x * .4, .3, d.z * .4), v3(q.x, q.y, q.z), true); return true; }
     return false; }
@@ -300,19 +301,42 @@
   const ringTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; return { c, tx: new T.CanvasTexture(c) }; })();
   const rings = outlaws.map(() => { const s = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(Object.assign(document.createElement("canvas"), { width: 128, height: 128 })), transparent: true, depthWrite: false, depthTest: false })); s.scale.set(.9, .9, 1); s.visible = false; scene.add(s); return s; });
   const DUEL = { wave: 0, on: false, left: 0, next: 0 };
-  function startWave() { DUEL.wave++; DUEL.left = outlaws.length; const pick = SPOTS.slice().sort(() => Math.random() - .5);
-    outlaws.forEach((o, i) => { const [x, z] = pick[i]; o.x = x; o.z = z; o.state = "idle"; o.t = -1 - Math.random() * 2.5 - i * 1.2; o.ch.group.visible = true; o.ch.group.position.set(x, heightAt(x, z), z); });
-    say(`Wave ${DUEL.wave}. Three of them, along the sightlines. Watch for the red ring: that is the draw.`, 4); S.bell(); }
+  /* ---------- the shootout: it comes to him wherever he is. Outlaws ride in three at a time and keep moving; each takes two hits.
+     Glass chips hang in the air to be shot for ink. Hits in a row build a combo: each one rings a note higher up the scale, scores
+     more and speeds the gun. He has three hits in him, and a dash that paint cannot touch. ---------- */
+  const GAME = { score: 0, combo: 0, comboT: 0, hp: 3, hurtT: 0, dashT: 0, dashCool: 0, dx: 0, dz: 1, mvx: 0, mvz: 0, shake: 0, slow: 0, mark: 0, best: 0 };
+  const NOTES = [392, 440, 523.3, 587.3, 659.3, 784, 880, 1046.5, 1174.7, 1318.5, 1568];
+  const inPit = () => st.y < W.cathedralY + 2.5 && Math.abs(st.x - W.PIT.x) < W.PIT.hx + 3 && Math.abs(st.z - W.PIT.z) < W.PIT.hz + 3;
+  function score(pts, p) { GAME.combo++; GAME.comboT = 3.4; GAME.score += pts * Math.min(GAME.combo, 10); GAME.best = Math.max(GAME.best, GAME.combo); GAME.mark = .16; GAME.shake = Math.max(GAME.shake, .18); S.note(NOTES[Math.min(GAME.combo - 1, NOTES.length - 1)], p); }
+  function dash() { if (GAME.dashCool > 0 || st.mode !== "foot") return; const m = Math.hypot(GAME.mvx, GAME.mvz); GAME.dx = m > .1 ? GAME.mvx / m : Math.sin(st.heading); GAME.dz = m > .1 ? GAME.mvz / m : Math.cos(st.heading); GAME.dashT = .26; GAME.dashCool = .85; S.whoosh(); }
+  const pickSpot = o => { const a = Math.atan2(o.x - st.x, o.z - st.z) + (Math.random() < .5 ? -1 : 1) * (.45 + Math.random() * .7), r = 8 + Math.random() * 9; o.tx = st.x + Math.sin(a) * r; o.tz = st.z + Math.cos(a) * r; };
+  function startWave() { DUEL.wave++; DUEL.left = outlaws.length;
+    outlaws.forEach((o, i) => { const a = CAM.yaw + (i - 1) * .75 + (Math.random() - .5) * .4, r = 21 + Math.random() * 7; o.x = st.x + Math.sin(a) * r; o.z = st.z + Math.cos(a) * r; o.hp = 2; o.state = "run"; o.t = -i * .6; o.ch.group.visible = true; o.ch.group.rotation.set(0, a + Math.PI, 0); o.ch.group.position.set(o.x, heightAt(o.x, o.z), o.z); pickSpot(o); for (let k = 0; k < 4; k++) puff(new T.Vector3(o.x, heightAt(o.x, o.z) + .4, o.z), 0xe8c890, new T.Vector3((Math.random() - .5) * 2, 1, (Math.random() - .5) * 2), 1.2, .5, 3, false); });
+    say(DUEL.wave === 1 ? "Three of them, and they do not stand still. The red ring is the draw: shoot first, or dash." : `Wave ${DUEL.wave}.`, 3.5); S.bell(); }
   function duelStep(dt) {
-    if (!DUEL.on) { outlaws.forEach((o, i) => { if (o.ch) o.ch.group.visible = false; rings[i].visible = false; o.body.setNextKinematicTranslation(v3(0, -50, 0)); }); return; }
-    if (DUEL.left === 0) { DUEL.next += dt; if (DUEL.next > 3) { DUEL.next = 0; if (DUEL.wave >= 3) { DUEL.on = false; complete("duel", "Three waves, and the arena is quiet. Uncle Mesa holsters and spits."); setMode("world"); return; } startWave(); } return; }
-    outlaws.forEach((o, i) => { const g = o.ch.group, ring = rings[i]; o.t += dt; const toMe = Math.atan2(st.x - o.x, st.z - o.z);
-      if (o.state === "idle") { g.rotation.y = lerp(g.rotation.y, toMe, 1 - Math.exp(-dt * 3)); if (motion) motion.setClip(o.id, "angry", { fade: .3 }); if (o.t > 0) { o.state = "telegraph"; o.t = 0; S.tick(g.position); } }
-      else if (o.state === "telegraph") { g.rotation.y = toMe; drawRing(ring, o.t / 1.6); if (o.t > 1.6) { o.state = "fire"; o.t = 0; outlawShot(o); } }
-      else if (o.state === "fire") { if (o.t > .8) { o.state = "idle"; o.t = -2 - Math.random() * 2; } }
-      else if (o.state === "fall") { g.rotation.x = lerp(g.rotation.x, -Math.PI / 2, 1 - Math.exp(-dt * 5)); if (o.t > 2.5) { o.state = "away"; g.visible = false; g.rotation.x = 0; DUEL.left--; } }
+    if (!DUEL.on) { outlaws.forEach((o, i) => { if (o.ch) o.ch.group.visible = false; rings[i].visible = false; o.state = "away"; o.body.setNextKinematicTranslation(v3(0, -50, 0)); }); DUEL.left = 0; return; }
+    if (!done.gate || inPit()) return;   /* not before the gate, and not down in the cathedral: that is the knight's */
+    if (DUEL.left === 0) { DUEL.next += dt; if (DUEL.next > (DUEL.wave ? 5 : 1.5)) { DUEL.next = 0; startWave(); } return; }
+    const tele = Math.max(.75, 1.45 - DUEL.wave * .09), sp = Math.min(5.4, 3.3 + DUEL.wave * .25);
+    outlaws.forEach((o, i) => { const g = o.ch.group, ring = rings[i]; o.t += dt; const toMe = Math.atan2(st.x - o.x, st.z - o.z); let mv = 0;
+      if (o.state !== "away" && o.state !== "fall" && Math.hypot(st.x - o.x, st.z - o.z) > 55) { const a = CAM.yaw + (Math.random() - .5) * 1.6; o.x = st.x + Math.sin(a) * 24; o.z = st.z + Math.cos(a) * 24; pickSpot(o); }   /* he outran them: they cut him off */
+      if (o.state === "run") { const dx = o.tx - o.x, dz = o.tz - o.z, d = Math.hypot(dx, dz); if (o.t > 0 && d > .7) { o.x += dx / d * sp * dt; o.z += dz / d * sp * dt; g.rotation.y += wrapA(Math.atan2(dx, dz) - g.rotation.y) * (1 - Math.exp(-dt * 8)); mv = sp; } else if (o.t > 0) { o.state = "telegraph"; o.t = 0; S.tick(g.position); } }
+      else if (o.state === "telegraph") { g.rotation.y = toMe; drawRing(ring, o.t / tele); if (o.t > tele) { o.state = "fire"; o.t = 0; outlawShot(o); } }
+      else if (o.state === "fire" || o.state === "stagger") { g.rotation.y = toMe; if (o.t > .5) { o.state = "run"; o.t = 0; pickSpot(o); } }
+      else if (o.state === "fall") { g.rotation.x = lerp(g.rotation.x, -Math.PI / 2, 1 - Math.exp(-dt * 6)); if (o.t > 1.6) { o.state = "away"; g.visible = false; g.rotation.x = 0; DUEL.left--; if (DUEL.left === 0) { GAME.slow = .7; S.chime(); GAME.score += 250 * DUEL.wave; if (DUEL.wave === 3) complete("duel", "Three waves down, painted to the hat. More are coming."); else say("Clear.", 1.5); } } }
+      if (motion) try { if (o.state === "run") motion.setActorLocomotion(o.id, { speedMps: mv, blend: 1 }); else motion.setClip(o.id, o.state === "stagger" ? "angry" : "idle", { fade: .15 }); } catch (e) { }
+      if (o.state !== "away") g.position.set(o.x, heightAt(o.x, o.z) + (o.state === "fall" ? .2 : 0), o.z);
       ring.visible = o.state === "telegraph"; if (ring.visible) { const h = new T.Vector3(); boneW(o.ch, 7, h); ring.position.copy(h).add(new T.Vector3(0, .45, 0)); }
       const p = g.position; o.body.setNextKinematicTranslation(o.state === "away" || o.state === "fall" ? v3(0, -50, 0) : v3(p.x, p.y + .85, p.z)); }); }
+  /* glass chips: six-sided panes that hang and drift near him; a hit breaks one, pays ink and keeps the combo alive */
+  const CHIPS = []; { const g = new T.CylinderGeometry(.5, .5, .07, 6); g.rotateX(Math.PI / 2); const cols = [["#2fd0d8", "#e9f4f0", "#2a4ab8"], ["#f2a83a", "#f2d04a", "#d8342c"], ["#e85aa8", "#f6efe0", "#2fd0d8"]];
+    for (let i = 0; i < 7; i++) { const m = new T.Mesh(g, W.glassMat(W.leaded(700 + i, { cells: 3, pal: cols[i % 3] }), { opacity: .92, emissiveIntensity: 1.2 })); m.visible = false; scene.add(m); const b = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(0, -70 - i, 0)), c = world.createCollider(R.ColliderDesc.ball(.58), b), ch = { m, b, alive: false, t: -1 - i * .8, ph: i * 1.7, x: 0, y: 0, z: 0 }; OWNER.set(c.handle, { kind: "chip", ch }); CHIPS.push(ch); } }
+  function gameStep(dt, t) { GAME.comboT -= dt; if (GAME.comboT <= 0) GAME.combo = 0; GAME.dashT = Math.max(0, GAME.dashT - dt); GAME.dashCool = Math.max(0, GAME.dashCool - dt); GAME.mark = Math.max(0, GAME.mark - dt); GAME.shake = Math.max(0, GAME.shake - dt * 2.2); GAME.hurtT += dt; if (GAME.hp < 3 && GAME.hurtT > 7) { GAME.hp++; GAME.hurtT = 0; }
+    if (GAME.dashT > 0 && Math.random() < dt * 60) puff(new T.Vector3(st.x, st.y + .3 + Math.random(), st.z), 0xf2d8a8, new T.Vector3(-GAME.dx * 2, .4, -GAME.dz * 2), .5, .3, 2.5, false);
+    const live = DUEL.on && done.gate && st.mode === "foot" && !inPit();
+    for (const c of CHIPS) { if (!c.alive) { c.m.visible = false; c.b.setNextKinematicTranslation(v3(0, -70, 0)); c.t += dt; if (c.t > 0 && live) { const a = CAM.yaw + (Math.random() - .5) * 2.4, r = 9 + Math.random() * 15; c.x = st.x + Math.sin(a) * r; c.z = st.z + Math.cos(a) * r; c.y = Math.max(heightAt(c.x, c.z), st.y) + 2.4 + Math.random() * 2; c.alive = true; c.life = 16; c.grow = 0; } continue; }
+      c.life -= dt; c.grow = Math.min(1, c.grow + dt * 4); c.x += Math.cos(t * .6 + c.ph) * dt * 1.1; const y = c.y + Math.sin(t * 1.7 + c.ph) * .4; c.m.visible = true; c.m.position.set(c.x, y, c.z); c.m.rotation.y += dt * 2.2; c.m.scale.setScalar(c.grow * (c.life < 1 ? Math.max(.01, c.life) : 1)); c.b.setNextKinematicTranslation(v3(c.x, y, c.z));
+      if (c.life < 0 || Math.hypot(c.x - st.x, c.z - st.z) > 42) { c.alive = false; c.t = -1; } } }
   function drawRing(s, k) { const c = s.material.map.image, q = c.getContext("2d"); q.clearRect(0, 0, 128, 128); q.lineWidth = 10; q.strokeStyle = "rgba(255,60,60,.35)"; q.beginPath(); q.arc(64, 64, 48, 0, 6.29); q.stroke(); q.strokeStyle = "rgba(255,40,60,.95)"; q.beginPath(); q.arc(64, 64, 48, -Math.PI / 2, -Math.PI / 2 + clamp(k, 0, 1) * 6.283); q.stroke(); s.material.map.needsUpdate = true; }
   const DAKAR = [0xd8342c, 0xf2c81e, 0x1f9a4a, 0x2a6ad8];   /* Touki Bouki: the red, yellow and green of the flag, and the blue of the Dakar sky */
   function outlawShot(o) { if (!INK) return; const from = new T.Vector3(); boneW(o.ch, 20, from); const to = new T.Vector3(st.x, st.y + 1.2, st.z), L = to.distanceTo(from), tf = L / 28; to.y += .5 * 9.81 * tf * tf;
@@ -337,7 +361,7 @@
     if (near(p, W.zig.seat, 4)) return { label: "Sit and rest", run: () => { st.mode = "sit"; st.x = W.zig.seat.x; st.z = W.zig.seat.z; st.y = W.zig.seat.y; st.heading = Math.PI / 2; complete("zig", "He sits on the warm steps in the low sun, and the glass columns burn gold behind him."); } };
     if (near(p, W.booth.userData.seat, 2.2)) return { label: "Take a seat at the booth", run: () => { st.mode = "sit"; const s = W.booth.userData.seat; st.x = s.x; st.z = s.z; st.y = s.y - .7; st.heading = Math.PI; say("Uncle Chip's booth. Under the glass sign, a man can sit and still draw.", 3); } };
     return null; }
-  let MODE = "world"; function setMode(m) { MODE = m; document.body.classList.toggle("cinema", m === "cinema"); for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", b.dataset.mode === m); DUEL.on = m === "game"; if (m === "game") { DUEL.wave = 0; DUEL.left = 0; DUEL.next = 2.5; say("Game. The outlaws are coming to the arena.", 2.5); } DIR.i = 0; DIR.t = 0; }
+  let MODE = "world"; function setMode(m) { MODE = m; document.body.classList.toggle("cinema", m === "cinema"); for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", b.dataset.mode === m); DUEL.on = m === "game"; if (m === "game") { DUEL.wave = 0; DUEL.left = 0; DUEL.next = 0; GAME.score = 0; GAME.combo = 0; GAME.hp = 3; } DIR.i = 0; DIR.t = 0; }
   function fall(line) { if (LENS) LENS.event("fall"); if (st.mode === "ride") { st.mode = "foot"; } st.mode = "down"; st.downT = 0; if (line) say(line, 2); S.thud(new T.Vector3(st.x, st.y, st.z)); }
 
   /* ---------- the director (Cinema): the breakdown's six cameras ---------- */
@@ -360,6 +384,7 @@
     if (e.code === "KeyZ" && st.mode !== "down") fall("He goes down. He gets up.");
     if (e.code === "KeyG") GRIDON = !GRIDON;
     if (/^Digit[1-6]$/.test(e.code)) mood(+e.code.slice(5) - 1);
+    if (e.code === "KeyQ" || e.code === "KeyF") dash();
     if (e.code === "KeyV") setMode(MODE === "cinema" ? "world" : "cinema");
     if (e.code === "KeyL" && LENS) { LENS.cycle(); lensUI(); } });
   addEventListener("keyup", e => { keys[e.code] = false; });
@@ -383,12 +408,14 @@
     const up = e => { if (e.pointerId === PAD.sid) { PAD.sid = null; PAD.mx = PAD.my = 0; PAD.swim = false; stickEl.hidden = true; } if (e.pointerId === PAD.lid) { PAD.lid = null; PAD.look = false; } }; canvas.addEventListener("pointerup", up); canvas.addEventListener("pointercancel", up);
     /* the fire button: hold to shoot, and slide the same thumb to turn while shooting */
     fb.addEventListener("pointerdown", e => { e.preventDefault(); touchOn(); S.wake(); PAD.fire = true; PAD.lx = e.clientX; PAD.ly = e.clientY; try { fb.setPointerCapture(e.pointerId); } catch (x) { } }); fb.addEventListener("pointermove", e => { if (PAD.fire) look(e); }); for (const ev of ["pointerup", "pointercancel"]) fb.addEventListener(ev, () => { PAD.fire = false; });
+    $("dashb").addEventListener("pointerdown", e => { e.preventDefault(); touchOn(); dash(); });
     if (matchMedia("(pointer: coarse)").matches) setTimeout(touchOn, 0); }
   /* aiming: the shot goes where the reticle is, and if something worth shooting is within a few degrees of it, the gun finds it */
   const ray = new T.Raycaster(), LOCK = { p: null }, _lk = new T.Vector3();
-  function aimDir() { ray.setFromCamera(new T.Vector2(mouse.on ? mouse.x : 0, mouse.on ? mouse.y : .1), camera); const d = ray.ray.direction.clone(); LOCK.p = null; let best = Math.cos(.17);
+  function aimDir() { ray.setFromCamera(new T.Vector2(mouse.on ? mouse.x : 0, mouse.on ? mouse.y : .1), camera); const d = ray.ray.direction.clone(); LOCK.p = null; let best = Math.cos(PAD.touch ? .5 : .24);   /* a thumb needs a wider cone than a mouse */
     const tryP = (p, far) => { const v = _lk.copy(p).sub(camera.position), L = v.length(); if (L > far || L < 1.5) return; const c = v.dot(d) / L; if (c > best) { best = c; LOCK.p = p.clone(); } };
-    for (const o of outlaws) if (o.ch && o.ch.group.visible && (o.state === "idle" || o.state === "telegraph" || o.state === "fire")) tryP(boneW(o.ch, 3, new T.Vector3()), 90);
+    for (const o of outlaws) if (o.ch && o.ch.group.visible && (o.state === "run" || o.state === "telegraph" || o.state === "fire" || o.state === "stagger")) tryP(boneW(o.ch, 3, new T.Vector3()), 90);
+    for (const c of CHIPS) if (c.alive) tryP(c.m.position, 45);
     if (KNIGHT.state === "hunt" || KNIGHT.state === "strike") tryP(new T.Vector3(KNIGHT.x, W.cathedralY + 1.25, KNIGHT.z), 60);
     for (const p of W.prisms) if (!p.broken) tryP(new T.Vector3(p.x, p.y, p.z), 30);
     return d; }
@@ -425,6 +452,9 @@
       cure(p) { if (!ctx || ctx.currentTime - (this._c || 0) < .07) return; this._c = ctx.currentTime; const f = [1568, 1760, 2093, 2349, 2637][Math.floor(Math.random() * 5)]; tone(p, f, f, .9, .035, "sine", .7, 0, .01); tone(p, f * 1.5, f * 1.5, .5, .015, "sine", .7, .03); },
       chord() { this.pad && this.pad([196, 246.9, 293.7]); },
       dry() { tone(null, 600, 500, .03, .06, "square", .05); },
+      note(f, p) { tone(p || null, f, f, .55, .1, "triangle", .55); tone(null, f * 2, f * 2, .3, .035, "sine", .6, .02); },
+      whoosh() { burst(null, .28, "bandpass", 1400, .35, .24, .15); },
+      hurt() { burst(null, .22, "lowpass", 260, .9, .2, .2); tone(null, 170, 60, .32, .28, "sawtooth", .2); },
       step(p, glass) { if (!ctx) return; if (glass) { tone(p, 1900 + Math.random() * 900, 1500, .08, .045, "sine", .6); burst(p, .04, "highpass", 3200, .1, .04, .4); } else burst(p, .1, "lowpass", 340 + Math.random() * 180, .34, .09, .06); },
       bloom(p) { if (!ctx) return; const f = [784, 988, 1175, 1319, 1568][Math.floor(Math.random() * 5)]; tone(p, f, f, 1.4, .06, "sine", .7, .05, .02); tone(p, f * 2.01, f * 2.01, .9, .025, "sine", .7, .08); burst(p, .2, "highpass", 5000, .12, .18, .4); },
       glass(p, k = 1) { if (!ctx) return; burst(p, .3 * k, "highpass", 3500, .6 * k, .3 * k, .5); for (let i = 0; i < 10 * k; i++) tone(p, 2500 + Math.random() * 4000, 2000 + Math.random() * 3000, .2 + Math.random() * .4, .05, "sine", .5, Math.random() * .5 * k); },
@@ -452,7 +482,7 @@
   const clock = new T.Clock(), IRIS = { open: 0 }; let offerNow = null, fstep = 0;
   const camPos = new T.Vector3(st.x, st.y + 3, st.z + 8), camLook = new T.Vector3(st.x, st.y + 1.5, st.z);
   function frame() {
-    const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
+    let dt = Math.min(clock.getDelta(), .05); const t = clock.elapsedTime; if (GAME.slow > 0) { GAME.slow -= dt; dt *= .35; }
     const padM = Math.hypot(PAD.mx, PAD.my), fwd = clamp((keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + (Math.abs(PAD.my) > .25 ? PAD.my : 0), -1, 1), turn = clamp((keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0) - (Math.abs(PAD.mx) > .25 ? PAD.mx : 0), -1, 1), run = keys.ShiftLeft || keys.ShiftRight || padM > .9;
     const trig = (keys.Space || mouse.down || PAD.fire) && st.mode === "foot";
     if (trig && !st.gun) { st.gun = true; holdGun(true); S.cock(); st.cool = .16; }   /* pulling the trigger draws */
@@ -470,7 +500,8 @@
       const speed = mm < .1 ? 0 : st.swim ? 6.2 : st.gun ? 2.6 : (run || mm > .8) && my > -.3 ? 4.6 : 1.9;
       if (st.gun) st.heading += wrapA(CAM.yaw - st.heading) * (1 - Math.exp(-dt * 14));
       else if (speed > 0) { st.heading += wrapA(Math.atan2(wx, wz) - st.heading) * (1 - Math.exp(-dt * 9)); if (!PAD.look && my > -.3) CAM.yaw += wrapA(st.heading - CAM.yaw) * (1 - Math.exp(-dt * .9)); }
-      const dx = mm > 0 ? wx / mm * speed * dt : 0, dz = mm > 0 ? wz / mm * speed * dt : 0;
+      let dx = mm > 0 ? wx / mm * speed * dt : 0, dz = mm > 0 ? wz / mm * speed * dt : 0; GAME.mvx = speed > 0 ? wx : 0; GAME.mvz = speed > 0 ? wz : 0;
+      if (GAME.dashT > 0) { dx = GAME.dx * 15 * dt; dz = GAME.dz * 15 * dt; }
       st.vy = ctrl.computedGrounded() ? -1 : st.vy - 9.81 * dt; meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); ctrl.computeColliderMovement(meCol, v3(dx, st.vy * dt, dz));
       const mv = ctrl.computedMovement(); st.x += mv.x; st.y += mv.y; st.z += mv.z; if (ctrl.computedGrounded()) st.vy = 0; const g = heightAt(st.x, st.z); if (st.y < g - 3 && !(Math.abs(st.x) < 10 && Math.abs(st.z - W.PIT.z) < W.PIT.hz)) st.y = g;
       st.speed = Math.hypot(mv.x, mv.z) / Math.max(dt, 1e-3);
@@ -513,8 +544,8 @@
     /* physics */
     { const n = Math.max(1, Math.ceil(dt * 60)); for (let k = 0; k < n; k++) { world.step(); fstep++; } }
     for (const s of shards) { const p = s.b.translation(), r = s.b.rotation(); s.m.position.set(p.x, p.y, p.z); s.m.quaternion.set(r.x, r.y, r.z, r.w); }
-    duelStep(dt); paintStep(t);
-    if (trig && st.gun) fire(aimDir()); else { st.ink = Math.min(100, st.ink + dt * 6); if (st.gun && st.mode === "foot") aimDir(); else LOCK.p = null; }
+    duelStep(dt); gameStep(dt, t); paintStep(t);
+    if (trig && st.gun) { fire(aimDir()); if (LOCK.p) { /* the view leans toward what the gun has found */ const want = Math.atan2(LOCK.p.x - st.x, LOCK.p.z - st.z); CAM.yaw += wrapA(want - CAM.yaw) * (1 - Math.exp(-dt * (PAD.touch ? 5 : 2))); } } else { st.ink = Math.min(100, st.ink + dt * 6); if (st.gun && st.mode === "foot") aimDir(); else LOCK.p = null; }
     if (INK) { INK.step(dt, t); INK.setSun(SKY.uSun.value, scene.fog.color, scene.fog.density); if (INK.turf() >= 250) complete("turf", "250 square metres of the desert are yours, and all of it has turned to glass."); }
     if (motion) try { motion.update(dt); } catch (e) { }
     swarmStep(dt, t);
@@ -552,7 +583,7 @@
       sun.position.copy(SKY.uSun.value).multiplyScalar(300).add(new T.Vector3(st.x, st.y, st.z)); sun.target.position.set(st.x, st.y, st.z); scene.fog.color.copy(SKY.uC.value).lerp(new T.Color(.93, .72, .42), STORM); }
 
     /* the camera */
-    { const tall = camera.aspect < 1; let dist = tall ? 6.4 : WIDE ? 6.2 : 4.8, up = 2.3, side = 0, h = st.mode === "foot" || st.mode === "down" ? CAM.yaw : st.heading, lookUp = 1.5 + CAM.pitch * 7, fov = tall ? 62 : 52;
+    { const tall = camera.aspect < 1; let dist = tall ? 6.4 : WIDE ? 6.2 : 4.8, up = 2.3, side = 0, h = st.mode === "foot" || st.mode === "down" ? CAM.yaw : st.heading, lookUp = (tall && st.gun ? 1.0 : 1.5) + CAM.pitch * 7, fov = tall ? 62 : 52;
       if (st.gun && st.mode === "foot") { dist = tall ? 5 : 3.6; up = tall ? 2.3 : 1.9; side = tall ? .95 : .8; fov = tall ? 58 : 46; if (near(st, Z.clockwork_iris, 9) && Math.cos(CAM.yaw) < -.8) fov = 22; } up -= CAM.pitch * 2.5;
       if (st.mode === "ride") { dist = 8; up = 3.2; } if (st.mode === "bike") { dist = 6.4 + Math.abs(BK.speed) * .08; up = 2.2; lookUp = 1.3; fov = 52 + Math.abs(BK.speed) * .6; } if (st.mode === "sit") { dist = 5; up = 1.6; h = st.heading + 1.2; } if (st.mode === "down") { dist = 6; up = 3.5; }
       let want = new T.Vector3(st.x - Math.sin(h) * dist + Math.cos(h) * side, st.y + up, st.z - Math.cos(h) * dist - Math.sin(h) * side), look = new T.Vector3(st.x + Math.sin(h) * (st.gun ? 6 : 1.5), st.y + lookUp, st.z + Math.cos(h) * (st.gun ? 6 : 1.5));
@@ -561,7 +592,7 @@
       { const head = new T.Vector3(st.x, st.y + 1.6, st.z), to = camPos.clone().sub(head), L = to.length(); if (L > .5) { to.divideScalar(L); const hit = world.castRay(new R.Ray(v3(head.x, head.y, head.z), v3(to.x, to.y, to.z)), L, true, undefined, undefined, meCol, undefined, c => { const o = OWNER.get(c.handle); return !!o && (o.kind === "static" || o.kind === "ground"); }); if (hit) camPos.copy(head).addScaledVector(to, Math.max(.6, (hit.timeOfImpact ?? hit.toi) - .35)); } }
       if (MODE === "cinema") { const now = performance.now(); DIR.t += Math.min(1, (now - (DIR.last || now)) / 1000) / 7; DIR.last = now; if (DIR.t >= 1) { DIR.t = 0; DIR.i = (DIR.i + 1) % SHOTS.length; } const sh = SHOTS[DIR.i], [p, a] = sh.f(smooth(0, 1, DIR.t)); camPos.set(...p); camLook.set(...a); fov = 40; $("shot").textContent = sh.name; }
       if (window.__mesaCam) { camPos.copy(window.__mesaCam.pos); camLook.copy(window.__mesaCam.at); }
-      camera.position.copy(camPos); camera.lookAt(camLook); camera.fov = lerp(camera.fov, fov, 1 - Math.exp(-dt * 6)); camera.updateProjectionMatrix(); }
+      camera.position.copy(camPos); if (GAME.shake > 0) camera.position.add(_lk.set(Math.random() - .5, Math.random() - .5, Math.random() - .5).multiplyScalar(GAME.shake * .22)); camera.lookAt(camLook); camera.fov = lerp(camera.fov, fov, 1 - Math.exp(-dt * 6)); camera.updateProjectionMatrix(); }
     S.listener(camera);
     const o = offer(); if ((o && o.label) !== (offerNow && offerNow.label)) { $("do").textContent = o ? o.label : ""; $("do").hidden = !o; } offerNow = o;
     $("where").textContent = W.zoneAt(st.x, st.z) + (MODE === "game" && DUEL.on ? ` · wave ${DUEL.wave} · ${DUEL.left} left` : "");
@@ -592,13 +623,18 @@
     if (st.gun || st.swim) { /* the ink tank: a glass vial by the reticle, the colour of the next shot */ const vx = w - 34 * k, vy = h * .5, vh = 120 * k, vw = 12 * k, f = st.ink / 100, col = "#" + new T.Color(PAINT[paintN % PAINT.length]).getHexString();
       FX.fillStyle = "rgba(20,14,10,.45)"; FX.fillRect(vx - vw / 2, vy - vh / 2, vw, vh); FX.fillStyle = col; FX.fillRect(vx - vw / 2, vy + vh / 2 - vh * f, vw, vh * f); FX.strokeStyle = "rgba(255,255,255,.6)"; FX.lineWidth = 1.5 * k; FX.strokeRect(vx - vw / 2, vy - vh / 2, vw, vh);
       FX.fillStyle = "rgba(251,242,226,.75)"; FX.font = `${10 * k}px ui-monospace, monospace`; FX.textAlign = "right"; FX.fillText(st.swim ? "SWIM · REFILL" : `INK ${Math.round(st.ink)}`, vx - vw, vy + vh / 2); FX.fillText(`TURF ${INK ? INK.turf() : 0} m²`, vx - vw, vy + vh / 2 + 14 * k); }
+    if (DUEL.on && MODE !== "cinema") { /* three hits, the score, the combo and how long it has left */ const x0 = w / 2, y0 = (PAD.touch ? 150 : 26) * k; FX.textAlign = "center";
+      for (let i = 0; i < 3; i++) { const x = x0 + (i - 1) * 20 * k; FX.beginPath(); FX.moveTo(x, y0 - 7 * k); FX.lineTo(x + 7 * k, y0); FX.lineTo(x, y0 + 7 * k); FX.lineTo(x - 7 * k, y0); FX.closePath(); FX.fillStyle = i < GAME.hp ? "rgba(255,58,168,.95)" : "rgba(20,14,10,.4)"; FX.fill(); FX.strokeStyle = "rgba(255,255,255,.7)"; FX.lineWidth = k; FX.stroke(); }
+      FX.fillStyle = "rgba(251,242,226,.95)"; FX.font = `700 ${20 * k}px Georgia, serif`; FX.fillText(String(GAME.score), x0, y0 + 34 * k);
+      if (GAME.combo > 1) { const s2 = 1 + GAME.mark * 2.5; FX.font = `italic 700 ${26 * k * s2}px Georgia, serif`; FX.fillStyle = "rgba(242,208,74,.98)"; FX.fillText("×" + Math.min(GAME.combo, 10), x0, y0 + 66 * k); FX.fillStyle = "rgba(242,208,74,.8)"; FX.fillRect(x0 - 30 * k, y0 + 74 * k, 60 * k * Math.max(0, GAME.comboT / 3.4), 3 * k); } }
     if (!st.gun || st.mode !== "foot") return; let cx = (mouse.on ? (mouse.x + 1) / 2 : .5) * w, cy = (mouse.on ? (1 - mouse.y) / 2 : .45) * h; const r = lerp(34, 9, st.steady) * k * (1 + st.recoil * .6);
     if (LOCK.p) { const sp = _lk.copy(LOCK.p).project(camera); cx = (sp.x + 1) / 2 * w; cy = (1 - sp.y) / 2 * h; FX.beginPath(); FX.arc(cx, cy, r + 7 * k, 0, Math.PI * 2); FX.strokeStyle = "rgba(255,58,168,.95)"; FX.lineWidth = 2.5 * k; FX.stroke(); }
+    if (GAME.mark > 0) { const m = (10 + GAME.mark * 60) * k; FX.strokeStyle = "rgba(255,255,255,.95)"; FX.lineWidth = 3 * k; FX.beginPath(); for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { FX.moveTo(cx + a * m * .5, cy + b * m * .5); FX.lineTo(cx + a * m, cy + b * m); } FX.stroke(); }
     for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + performance.now() / 2600, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r, s = 3.2 * k; FX.beginPath(); FX.ellipse(x, y, s, s * 1.25, a, 0, Math.PI * 2); FX.fillStyle = "rgba(161,232,228,.6)"; FX.fill(); FX.strokeStyle = "rgba(255,255,255,.6)"; FX.lineWidth = k; FX.stroke(); }
     if (st.steady > .85) { FX.beginPath(); FX.arc(cx, cy, 2.5 * k, 0, Math.PI * 2); FX.fillStyle = "rgba(248,205,145,.95)"; FX.fill(); } }
 
   resize(); $("boot").classList.add("done"); $("title").classList.add("on"); setTimeout(() => { $("title").classList.remove("on"); GRIDON = false; }, 3600);
-  say("This land ain't dust anymore. It's data. And it remembers.", 5);
-  window.__mesa = { PAD, CAM, LOCK, tune(b, d) { BRIM_UP = b; BEARD_UP = d; }, KNIGHT, KN, PR, PROC, HERD, SPORE, HALL, BK, TK, anta, paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
+  setMode("game"); say("This land ain't dust anymore. It's data. And it remembers.", 5);
+  window.__mesa = { GAME, CHIPS, dash, PAD, CAM, LOCK, tune(b, d) { BRIM_UP = b; BEARD_UP = d; }, KNIGHT, KN, PR, PROC, HERD, SPORE, HALL, BK, TK, anta, paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
   requestAnimationFrame(frame);
 })().catch(e => { console.error(e); const b = document.getElementById("boot-s"); if (b) b.textContent = "Something went wrong: " + e.message; });

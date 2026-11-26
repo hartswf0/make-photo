@@ -41,13 +41,14 @@
     #goals { cursor: pointer; } #goals li { display: none; } #goals li.next, #goals.open li { display: block; }
     #stick { position: fixed; z-index: 5; width: 112px; height: 112px; margin: -56px 0 0 -56px; border: 1px solid var(--line); border-radius: 50%; background: rgba(26, 18, 12, .25); pointer-events: none; }
     #stick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px; border-radius: 50%; background: rgba(251, 242, 226, .55); }
-    #fireb { display: none; }
+    #fireb, #dashb { display: none; }
+    body.touch #dashb { display: grid; place-items: center; position: fixed; right: calc(6vw + 100px); bottom: calc(30px + env(safe-area-inset-bottom, 0px)); z-index: 5; width: 62px; height: 62px; padding: 0; border-radius: 50%; background: rgba(47, 208, 216, .7); border-color: var(--cyan); touch-action: none; user-select: none; -webkit-user-select: none; }
     body.touch #fireb { display: grid; place-items: center; position: fixed; right: 6vw; bottom: calc(30px + env(safe-area-inset-bottom, 0px)); z-index: 5; width: 86px; height: 86px; padding: 0; border-radius: 50%; background: rgba(255, 58, 168, .78); border-color: var(--magenta); touch-action: none; user-select: none; -webkit-user-select: none; }
     body.touch #do { position: fixed; right: 6vw; bottom: calc(132px + env(safe-area-inset-bottom, 0px)); z-index: 5; }
     body.touch .bar { top: calc(62px + env(safe-area-inset-top, 0px)); bottom: auto; padding: 0 6vw; gap: 5px; } body.touch .bar button { padding: 7px 8px; font-size: 9px; }
     body.touch .bar .keys, body.touch #gridb, body.touch #wide { display: none; } body.touch #line { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
     body.touch #goals { left: 6vw; right: auto; top: calc(100px + env(safe-area-inset-top, 0px)); background: none; border: 0; padding: 0; text-shadow: 0 1px 6px rgba(0, 0, 0, .8); }
-    body.cinema #fireb, body.cinema #stick { display: none !important; }
+    body.cinema #fireb, body.cinema #dashb, body.cinema #stick { display: none !important; }
     @media (max-width: 720px) { .bar .keys { display: none; } }
   </style>
 </head>
@@ -59,14 +60,14 @@
   <div id="title">MESA CHIP<small>a cyber-western of glass</small></div>
   <ol id="goals" aria-label="The trail"></ol>
   <div id="line" aria-live="polite"></div><div id="shot"></div>
-  <div id="stick" hidden><i></i></div><button id="fireb" type="button" aria-label="Fire">Fire</button>
+  <div id="stick" hidden><i></i></div><button id="fireb" type="button" aria-label="Fire">Fire</button><button id="dashb" type="button" aria-label="Dash">Dash</button>
   <div class="bar">
-    <span class="keys">W A S D · arrows turn · Shift run · E do · Space or click to shoot · L lens · 1–6 time of day</span>
+    <span class="keys">W A S D · arrows turn · Shift run · E do · Space or click to shoot · Q dash · L lens · 1–6 time of day</span>
     <button id="do" type="button" hidden></button>
     <button id="gridb" type="button" aria-pressed="true" title="Glass-block grid (G)">Grid</button>
     <button id="wide" type="button" aria-pressed="true" title="Barrel-scope mask">Wide</button>
     <button id="lens" type="button" aria-pressed="false" title="SCION lens (L): Tekle, 1985, Mambéty, Mœbius">Plain</button>
-    <div class="modes" role="group" aria-label="How to be here"><button type="button" data-mode="world" aria-pressed="true">World</button><button type="button" data-mode="game" aria-pressed="false">Game</button><button type="button" data-mode="cinema" aria-pressed="false">Cinema</button></div>
+    <div class="modes" role="group" aria-label="How to be here"><button type="button" data-mode="game" aria-pressed="true">Shootout</button><button type="button" data-mode="world" aria-pressed="false">Wander</button><button type="button" data-mode="cinema" aria-pressed="false">Cinema</button></div>
   </div>
   <div id="boot" role="status"><div><b>MESA CHIP</b><span id="boot-s">Cutting glass…</span></div></div>
   <script src="../field-plates/three.js"></script>
@@ -81,6 +82,6 @@
   <script src="./swarm.js?v=2"></script>
   <script src="./ink.js?v=2"></script>
   <script src="./lens.js?v=1"></script>
-  <script src="./mesa.js?v=8"></script>
+  <script src="./mesa.js?v=9"></script>
 </body>
 </html>
