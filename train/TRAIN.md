@@ -31,7 +31,7 @@ The train is the fixed frame and the land is resampled under it. That is what le
 
 ## Cameras (`js/rig.js`)
 
-Sixteen mounts and eight moves. A mount is a place for the lens; a move travels on its own clock.
+Eighteen mounts and eight moves. A mount is a place for the lens; a move travels on its own clock.
 
 | Move | What it does |
 |---|---|
@@ -71,6 +71,30 @@ The main use of the seeds. One world-model session, third person, W held down.
 
 The 3D train's own contents are simpler than the cues: the bees aboard grow by carriage, passengers behave worse toward the rear, and F, G and V make him flinch, swat and stagger (`trainFilm.deed`).
 
+## The game on the train
+
+The bar at the bottom left switches **World** (walk and film, nothing asks anything of you), **Game** (goals, and the swarm is hostile) and **Cinema** (the unattended take). `?game` starts in Game.
+
+| System | What it does | Where |
+|---|---|---|
+| Inspect | Walk up to anything and press E: a panel of facts and numbered verbs. Passengers, doors, thresholds, cans, the smoker, the ladders, the controls, the queen's cell. | `js/interact.js` |
+| Stubs | 158 worlds of the corpus hang beside the aisles of the carriages they were poured into. Inspect one to read it; take it to keep it. | `data/corpus.json` |
+| Passengers | Talk: each says a line for their carriage and does something to him. The child gives half a comb, the beekeeper the veil, the conductor the cab key for five stubs. | `TALK` in `js/main.js` |
+| The bee | B: you are the lead bee. Fly where you look, through shut doors, Space up, Shift down. Two bee cameras. | `toggleBee` |
+| The great swarm | One body of 1,100 with four states: it shadows him outside the glass, circles when he is on the roof, dives, and reels when smoked. A dive that lands stings twice unless he wears the veil. Tunnels strip some off; the horn scatters it. At zero it settles and the whole train goes quiet. Twelve stings from it and he comes round in the apiary car. | `js/game.js` |
+| The roof | A ladder in every gangway. He walks the roofs the length of the train and ducks by himself in tunnels. | `js/game.js` |
+| The smoker | In the apiary car. R puffs; smoke only counts when the swarm is within reach. | `js/game.js` |
+| The cab | With the key, the controls give three verbs: faster or slower, stop the train anywhere (then you can get off there), and the horn. | `js/game.js` |
+| Goals | Eight, shown in Game: stubs in seven carriages, the veil, the smoker, the roof, the swarm, the key, the train, the queen's cell. | `goals` in `js/game.js` |
+
+### Passes
+
+M cycles the frame through beauty, clay, normals, depth, object classes and wireframe (`?pass=normals`). `trainFilm.capture()` returns the picture, linear depth and the camera as before, and now also normals, classes, wireframe and clay of the same frame, for conditioning a generator or reading a take against the scene.
+
+### Light
+
+On desktop the sun casts: through the windows onto the seats and floor, and the train and the swarm onto the land and the roofs. Metals reflect a small sky. Phones skip the shadow pass.
+
 ## Seeds for world-model takes
 
 The aim is a starting frame that already holds what the take needs: him in third person, the aisle, a door ahead, something wrong in the carriage and something wrong outside the windows.
@@ -88,7 +112,7 @@ Each carriage has a pane onto worlds made from frames of the clips and from gene
 
 ## Scripting
 
-`window.trainFilm`: `camera`, `take`, `act`, `deed`, `stand`, `sit`, `walkTo`, `seed`, `capture`, `seeds`, `enter`, `exit`, `next`, `live`, `swarm`, `jump`, `still`, `record`, `observe`, `log`, `rig`.
+`window.trainFilm`: `camera`, `take`, `act`, `mode`, `game`, `goals`, `bee`, `smoke`, `pass`, `deed`, `stand`, `sit`, `walkTo`, `seed`, `capture`, `seeds`, `enter`, `exit`, `next`, `live`, `swarm`, `jump`, `still`, `record`, `observe`, `log`, `rig`.
 
 ## Tools
 

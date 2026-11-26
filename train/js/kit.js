@@ -59,7 +59,7 @@ export function makeTextures() {
 }
 
 export function makeMaterials(tex) {
-  const S = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .82, metalness: 0, ...o });
+  const S = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: .82, metalness: 0, envMapIntensity: .55, ...o });
   const Lm = (color, o = {}) => new THREE.MeshLambertMaterial({ color, ...o });
   return {
     teal: S(0x1f6e6a, { map: tex.paint, roughness: .7 }),
@@ -126,7 +126,7 @@ export class Batch {
     const out = [];
     for (const [mat, list] of this.by) {
       const g = mergeGeometries(list, false); list.forEach(x => x.dispose());
-      const mesh = new THREE.Mesh(g, mat); mesh.matrixAutoUpdate = false; if (mat.transparent) mesh.renderOrder = 2;
+      const mesh = new THREE.Mesh(g, mat); mesh.matrixAutoUpdate = false; mesh.castShadow = mesh.receiveShadow = !mat.transparent && !mat.isMeshBasicMaterial; if (mat.transparent) mesh.renderOrder = 2;
       parent.add(mesh); out.push(mesh);
     }
     this.by.clear(); return out;
