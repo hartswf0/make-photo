@@ -1,0 +1,14 @@
+{
+ "can": 1,
+ "id": "knox",
+ "name": "Sunday at Eastminster",
+ "version": "2026.11.26",
+ "page": "./index.html",
+ "status": "standalone. The world (knox-world.js) has no renderer, camera, player or loop, so it can be poured; the trough has no Knoxville island yet, and its vehicles (tractor, wagon, helicopter) and paint belong to the trough's vocabulary once they are there.",
+ "entry": { "script": null, "world": "./knox-world.js?v=1", "global": "KnoxWorld", "adapter": "ground@1 (planned)" },
+ "frame": { "origin": "Magnolia Avenue in front of the church", "units": "metres", "scale": "about 1:10 for distances; landmarks near true size", "axes": "x east, z south" },
+ "places": ["World's Fair Park and the Sunsphere", "downtown and World Headquarters", "Neyland Stadium", "the Tennessee River and its bridges", "East Knoxville and Magnolia Avenue", "Eastminster Presbyterian Church", "Holston Hills golf course", "the Holston River", "the Forks of the River"],
+ "verbs": ["walk", "run", "unlock", "ring", "paint (the marker)", "drive (tractor and hay wagon)", "fly (helicopter)", "talk"],
+ "physics": "Rapier: heightfield ground, static walls, dynamic trash cans and hay bales, the wagon bed as a kinematic body",
+ "motion": "Mesh2Motion clips through m2m-world-bridge.js: walk, jog, rope-pull, push, idle-talking, farm-watering, idle-foldarms"
+}

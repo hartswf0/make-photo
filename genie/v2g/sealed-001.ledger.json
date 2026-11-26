@@ -1,0 +1,29 @@
+{
+  "take": "genie/takes-out/sealed-001/take.mp4",
+  "how": "Labelled by eye from frames at 1 s steps around each change. Times are video seconds from the first frame. 'cue' is the line that most plausibly asked for it, with its send time. 'latency' is appear minus cue time.",
+  "entities": [
+    { "id": "traveler", "seen": "a jointed mannequin-like figure in a gold-patterned coat (seed) -> by 8 s a white man in his 40s with stubble, beige canvas duster, brown felt hat, waistcoat and tie; after the 56 s cut the duster is olive-grey", "appear": 0, "until": 116.5, "cue": "world_setup", "fidelity": "identity replaced in the first 8 s; the hat and the coat held for the whole take", "persisted_s": 116.5 },
+    { "id": "two men in dark suits", "seen": "white men, dark suits and ties, one with a briefcase", "appear": 15.5, "until": 56.1, "cue": "door 1 at 9.3 s: 'two men in suits fighting silently over the briefcase'", "latency": 6.2, "fidelity": "present and holding the briefcase, but not fighting; they flank him and stop his walk", "persisted_s": 40.6 },
+    { "id": "pale city in the windows", "seen": "a hazy white skyline over the desert", "appear": 14, "until": 18, "cue": "door 1 at 9.3 s: 'a city of iced skyscrapers'", "latency": 4.7, "fidelity": "faint; the land stays ochre, not frozen", "persisted_s": 4 },
+    { "id": "violinist", "seen": "a man in green, then (after the cut) an older white man in a black top hat and dark coat, playing", "appear": 42, "until": 116.5, "cue": "door 1 at 9.3 s: 'a violinist plays for diners in furs'", "latency": 32.7, "fidelity": "arrived 33 s late, two carriages later; it crossed the cut and stayed to the end", "persisted_s": 70 },
+    { "id": "calf", "seen": "a brown calf at his side", "appear": 33, "until": 63, "cue": "door 2 follow-up at 28.3 s: 'a calf leans its full weight against his legs'", "latency": 4.7, "fidelity": "present and beside him, not leaning; crossed the cut", "persisted_s": 30 },
+    { "id": "bees", "seen": "a few bees in the air, later gold bees on his cuff", "appear": 40, "until": 116.5, "cue": "door 1 'exactly one bee' ... door 3 'hundreds'", "fidelity": "a handful, never a swarm", "persisted_s": 76 },
+    { "id": "honeycomb frame", "seen": "a gold hive frame held up behind him", "appear": 45, "until": 56.1, "cue": "door 3 at 39.3 s / follow-up 44.3 s: 'pushes a dripping frame into his hands'", "latency": 1, "fidelity": "held by someone behind him, not given to him", "persisted_s": 11 },
+    { "id": "handcuffs", "seen": "a cuff on the wrist of the man in the suit", "appear": 46, "until": 56.1, "cue": "door 3 follow-up at 44.3 s: 'an agent ... handcuffs one of his wrists'", "latency": 1.7, "fidelity": "the action landed on the wrong person", "persisted_s": 10 },
+    { "id": "monochrome sleeper corridor", "seen": "grey corridor, library compartment with green lamp, a suit of plate armour, colour graffiti wall and a church tower outside", "appear": 56.1, "until": 116.5, "cue": "door 4 at 54.3 s", "latency": 1.8, "fidelity": "the only room change: a hard cut, not through a door; the monochrome held about 6 s, then colour returned to everything", "persisted_s": 60 },
+    { "id": "man made of bees", "seen": "a dark lumpy figure his height walking beside him", "appear": 56.1, "until": 60, "cue": "door 4: 'bees gathered into the shape of a man'", "latency": 1.8, "fidelity": "present for 4 s, then gone", "persisted_s": 4 },
+    { "id": "paper coffee cup", "seen": "a steaming paper cup in his right hand", "appear": 59, "until": 116.5, "cue": "door 4 follow-up at 58.3 s: 'hands him a paper cup of coffee'", "latency": 0.7, "fidelity": "exact, and it never left his hand: the best-kept object in the take", "persisted_s": 57 },
+    { "id": "gold bees on his cuff", "seen": "a gold clump at his wrist", "appear": 60, "until": 116.5, "cue": "door 4 follow-up: 'the man made of bees touches his other shoulder'", "latency": 1.7, "fidelity": "a mark that stayed: the only one of the seven listed marks", "persisted_s": 56 },
+    { "id": "green targeting boxes", "seen": "green square reticles on his coat and in the air", "appear": 72, "until": 116.5, "cue": "door 5 at 69.3 s: 'a green targeting box appears around his face on every screen'", "latency": 2.7, "fidelity": "on his body and floating, not on screens (there are no screens); they never left", "persisted_s": 44.5 },
+    { "id": "helmeted figure", "seen": "a figure in a round steel helmet with lenses", "appear": 87, "until": 116.5, "cue": "door 1 at 9.3 s: 'masked guards in night-vision goggles'", "latency": 77.7, "fidelity": "from the first door, 78 s late", "persisted_s": 29.5 },
+    { "id": "smoke", "seen": "white curling smoke around his head", "appear": 95, "until": 116.5, "cue": "door 6 at 84.3 s ('an arc lamp spitting', 'the projector beam') or door 2's steam", "latency": 10.7, "fidelity": "atmosphere only", "persisted_s": 21.5 }
+  ],
+  "never_appeared": ["any door opening", "dining car, greenhouse, apiary, control room, cinema, hive", "the shoe on his head", "the concession cart", "rain indoors", "monitors", "the screen", "any mark listed under 'Check' except the bees at his cuff"],
+  "rules_learned": [
+    "Cue content never expires. Things asked for at 9 s arrived at 42 s and 87 s, so every cue joins a growing pool.",
+    "Nothing is ever removed: the frame only accumulates. Room changes happen only as a cut (once, at 56 s).",
+    "Small objects handed to him persist best (the cup: 57 s, exact). People persist well. Rooms and windows do not.",
+    "An action 'done to him' lands on whoever is in frame (the handcuffs went on the other man).",
+    "Fast, exact arrivals (under 2 s) came from short, concrete, single-object lines: the cup, the cuff, the frame."
+  ]
+}
