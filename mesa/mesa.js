@@ -20,7 +20,7 @@
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap; renderer.localClippingEnabled = true;
   const scene = new T.Scene(), camera = new T.PerspectiveCamera(52, 1, .1, 5000);
   const LENS = window.MesaLens ? window.MesaLens.create({ T, renderer }) : null;   /* the SCION lenses (lens.js): L cycles them */
-  scene.fog = new T.FogExp2(0xf0c890, .0016);
+  scene.fog = new T.FogExp2(0xf0c890, .0024);
   /* the painted skybox: horizontal bands of yellow and blue over the salt, as in the film's brushstroke strata (01:10) */
   const SKY = { uSun: { value: new T.Vector3(.3, .2, -.9).normalize() }, uA: { value: new T.Color("#f2c84a") }, uB: { value: new T.Color("#3a6ab8") }, uC: { value: new T.Color("#f4e8d2") }, uStorm: { value: 0 }, uTime: { value: 0 } };
   const sky = new T.Mesh(new T.SphereGeometry(4000, 32, 16), new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false, uniforms: SKY,
@@ -106,7 +106,7 @@
   /* ---------- Uncle Mesa, the outlaws, from the one cast ---------- */
   boot("Waking Uncle Mesa…");
   const spec = (base, s) => ({ base, s: Object.assign({ ownColors: true }, s) });
-  const MESA = spec("tex", { name: "Uncle Mesa", scale: 1.0, build: 1.04, fem: .05, skinHex: 0x3e2618, hair: "feltHat", hatHex: 0xece2c8, beard: true, hairHex: 0xe6e2da, outer: "none", shirtHex: 0xf2efe6, trouserHex: 0x8a7a5a, tibebTrim: false });
+  const MESA = spec("tex", { name: "Uncle Mesa", scale: 1.02, build: .9, fem: .05, skinHex: 0x3e2618, hair: "feltHat", hatHex: 0xe8d2a6, beard: true, hairHex: 0xb9afa2, outer: "none", shirtHex: 0xf2efe6, trouserHex: 0x8a7a5a, tibebTrim: false });
   const OUTLAWS = [spec("yared_krar", { name: "Outlaw Jeb", skinHex: 0x8a6048, hair: "feltHat", hatHex: 0x2a2420, beard: true, hairHex: 0x1a1410, outer: "duster", coatHex: 0x2a2622, shirtHex: 0x4a3a30, trouserHex: 0x2a2826, build: .92 }),
     spec("yared_krar", { name: "Outlaw Ramón", skinHex: 0x6a4430, hair: "feltHat", hatHex: 0x3a2a1e, beard: true, hairHex: 0x14100c, outer: "duster", coatHex: 0x3a2e24, shirtHex: 0x2a2420, trouserHex: 0x24201c, build: .9 }),
     spec("yared_krar", { name: "Outlaw Silas", skinHex: 0x3a2418, hair: "feltHat", hatHex: 0x1e1a16, beard: true, hairHex: 0x100c0a, outer: "duster", coatHex: 0x1e2226, shirtHex: 0x3a3430, trouserHex: 0x1e1c1a, build: .92 })];
@@ -125,13 +125,16 @@
   const glasses = new T.Group(); { const rim = new T.MeshStandardMaterial({ color: 0xf4f2ec, roughness: .3, metalness: .2 }), lens = new T.MeshStandardMaterial({ color: 0xf2c84a, transparent: true, opacity: .35, roughness: .05, metalness: .3 });
     for (const s of [-1, 1]) { const r = new T.Mesh(new T.TorusGeometry(.028, .0045, 8, 24), rim); r.position.x = s * .033; glasses.add(r); const l = new T.Mesh(new T.CircleGeometry(.027, 20), lens); l.position.x = s * .033; glasses.add(l); }
     const br = new T.Mesh(new T.CylinderGeometry(.003, .003, .014, 6), rim); br.rotation.z = Math.PI / 2; glasses.add(br); scene.add(glasses); }
+  /* as the film draws him: a brim far wider than his shoulders, flat as a plate, and a beard down to the chest */
+  const brim = new T.Mesh(new T.CylinderGeometry(.43, .43, .012, 40), new T.MeshStandardMaterial({ color: 0xe8d2a6, roughness: .85 })); brim.castShadow = true; scene.add(brim);
+  const longBeard = (() => { const g = new T.SphereGeometry(1, 16, 12), p = g.attributes.position; for (let i = 0; i < p.count; i++) { const t = (p.getY(i) + 1) / 2, w = .22 + .78 * Math.min(1, t * 1.5); p.setX(i, p.getX(i) * w); p.setZ(i, p.getZ(i) * w); } g.computeVertexNormals(); const m = new T.Mesh(g, new T.MeshStandardMaterial({ color: 0xd6d0c6, roughness: 1 })); m.scale.set(.082, .2, .05); return m; })(); longBeard.castShadow = true; scene.add(longBeard);
   const badge = (() => { const c = document.createElement("canvas"); c.width = 128; c.height = 64; const q = c.getContext("2d"); q.fillStyle = "#f2d04a"; q.fillRect(0, 0, 128, 32); q.fillStyle = "#2a4ab8"; q.fillRect(0, 32, 128, 32); q.fillStyle = "#1a1410"; q.font = "700 22px Georgia"; q.textAlign = "center"; q.fillText("MESA", 64, 24); q.fillStyle = "#f6efe0"; q.fillText("CHIP", 64, 56); const tx = new T.CanvasTexture(c); tx.colorSpace = T.SRGBColorSpace; return new T.Mesh(new T.PlaneGeometry(.07, .035), new T.MeshStandardMaterial({ map: tx, roughness: .5 })); })(); scene.add(badge);
   const poncho = (() => { const c = document.createElement("canvas"); c.width = 128; c.height = 128; const q = c.getContext("2d"); q.fillStyle = "#2a2420"; q.fillRect(0, 0, 128, 128); for (let y = 0; y < 128; y += 4) { q.fillStyle = y % 16 < 8 ? "#3a302a" : "#1e1a16"; q.fillRect(0, y, 128, 2); } q.fillStyle = "#8a4a2a"; for (const y of [90, 100]) q.fillRect(0, y, 128, 3);
     const tx = new T.CanvasTexture(c); tx.colorSpace = T.SRGBColorSpace; tx.wrapS = tx.wrapT = T.RepeatWrapping; tx.repeat.set(3, 1); const m = new T.Mesh(new T.ConeGeometry(.62, .78, 18, 1, true), new T.MeshStandardMaterial({ map: tx, roughness: 1, side: T.DoubleSide })); m.visible = false; m.castShadow = true; scene.add(m); return m; })();
   const gun = new T.Group(); { const steel = new T.MeshStandardMaterial({ color: 0x2a2a2e, metalness: .8, roughness: .35 }), grip = new T.MeshStandardMaterial({ color: 0xe8e0d0, roughness: .5 });
     const barrel = new T.Mesh(new T.CylinderGeometry(.013, .013, .2, 8), steel); barrel.rotation.x = Math.PI / 2; barrel.position.z = .12; gun.add(barrel); const cyl = new T.Mesh(new T.CylinderGeometry(.028, .028, .05, 10), steel); cyl.rotation.x = Math.PI / 2; cyl.position.z = .02; gun.add(cyl);
     const g2 = new T.Mesh(new T.BoxGeometry(.03, .09, .04), grip); g2.position.set(0, -.05, -.03); g2.rotation.x = -.3; gun.add(g2); }
-  const HAND = 20; const holdGun = on => { const b = me.bones && me.bones[HAND]; if (!b) return; if (on) { b.add(gun); gun.position.set(0, -.05, .06); gun.rotation.set(-Math.PI / 2, 0, 0); } else if (gun.parent) gun.parent.remove(gun); };
+  let BRIM_UP = .15, BEARD_UP = -.3; const HAND = 20; const holdGun = on => { const b = me.bones && me.bones[HAND]; if (!b) return; if (on) { b.add(gun); gun.position.set(0, -.05, .06); gun.rotation.set(-Math.PI / 2, 0, 0); } else if (gun.parent) gun.parent.remove(gun); };
   const _aw = new T.Vector3(), _ac = new T.Vector3(), _aq = new T.Quaternion(), _aq2 = new T.Quaternion();
   function aimArm(ch, dir) { const B = ch.bones; if (!B || !B[16]) return; ch.group.updateMatrixWorld(true);
     for (const [bi, ci] of [[16, 18], [18, 20]]) { const b = B[bi], c = B[ci]; b.getWorldPosition(_aw); c.getWorldPosition(_ac); const cur = _ac.sub(_aw).normalize(); _aq.setFromUnitVectors(cur, dir); b.getWorldQuaternion(_aq2); _aq2.premultiply(_aq); b.parent.getWorldQuaternion(_aq); b.quaternion.copy(_aq.invert().multiply(_aq2)); b.updateMatrixWorld(true); } }
@@ -268,16 +271,20 @@
   scene.add(dust); { const p = dust.geometry.attributes.position; for (let i = 0; i < 900; i++) p.setXYZ(i, (Math.random() - .5) * 60, Math.random() * 12, (Math.random() - .5) * 60); }
 
   /* ---------- shooting ---------- */
-  function fire(dir) { if (st.cool > 0 || st.mode === "down" || !INK) return; if (st.ink < 1.5) { st.cool = .25; S.dry(); return; } st.cool = .095; st.recoil = .5; st.ink -= 1.5;
+  function fire(dir) { if (st.cool > 0 || st.mode === "down" || !INK) return; if (st.ink < 2) { st.cool = .25; S.dry(); return; } st.cool = Math.max(.1, .2 - GAME.combo * .012); st.recoil = .8; st.ink -= 2; GAME.shake = Math.max(GAME.shake, .08);
     const o = new T.Vector3(); if (gun.parent) gun.localToWorld(o.set(0, 0, .26)); else o.set(st.x, st.y + 1.4, st.z);
-    const spread = .018 + (1 - st.steady) * .03, d = dir.clone().add(new T.Vector3((Math.random() - .5) * spread, (Math.random() - .5) * spread + .035, (Math.random() - .5) * spread)).normalize(), col = PAINT[paintN++ % PAINT.length]; if (LENS) LENS.event("fire", col);
-    INK.fire(o, d, col, 30 + Math.random() * 4); puff(o.clone().addScaledVector(d, .12), col, d.clone().multiplyScalar(1.5), .3, .05, 1.4, false); S.launch(o); }
+    const spread = .012 + (1 - st.steady) * .02, col = PAINT[paintN++ % PAINT.length]; let d;
+    if (LOCK.p) { const to = LOCK.p.clone(), tf = to.distanceTo(o) / 32; to.y += .5 * 9.81 * tf * tf; d = to.sub(o).normalize().add(new T.Vector3((Math.random() - .5) * .012, (Math.random() - .5) * .012, (Math.random() - .5) * .012)).normalize(); }   /* locked: lead the drop */
+    else d = dir.clone().add(new T.Vector3((Math.random() - .5) * spread, (Math.random() - .5) * spread + .035, (Math.random() - .5) * spread)).normalize();
+    tracer(o, o.clone().addScaledVector(d, 9), col); puff(o.clone().addScaledVector(d, .2), 0xff3aa8, d.clone().multiplyScalar(2.4), .4, .14, 2.6, true); S.shot(o, .22); if (LENS) LENS.event("fire", col);
+    INK.fire(o, d, col, LOCK.p ? 32 : 30 + Math.random() * 4); puff(o.clone().addScaledVector(d, .12), col, d.clone().multiplyScalar(1.5), .3, .05, 1.4, false); S.launch(o); }
   function inkHit(who, q, n, d, col, owner) {
     SPORE.scatter(q, 1);
     if (who && who.kind === "knight" && owner !== "outlaw") { const dmg = window.__trials ? window.__trials.hit(q, col) : 1; KN.hit(0, q, .42, col); KNIGHT.hp -= dmg; if (LENS) LENS.event("hit", col); S.glass(q, .5); if (KNIGHT.hp <= 0 && KNIGHT.state !== "shattered") { KN.shatter(0, d); if (LENS) LENS.event("shatter"); if (window.__trials) window.__trials.win(); KNIGHT.state = "shattered"; KNIGHT.t = 0; S.glass(q, 2); complete("knight", "The knight goes to pieces on the mirror floor, every shard still holding its colour."); } return true; }   /* what a paintball does besides land: prisms crack, outlaws go down in their own colour, shards skitter */
     if (who && who.kind === "prism") { const p = who.p; p.hp--; S.glass(q, .3); if (p.hp <= 0) shatter(p, d); return false; }
-    if (who && who.kind === "me") { if (owner !== "outlaw") return true; paintBody(me, q, col, 3); if (st.mode !== "down") { $("hurt").classList.add("on"); setTimeout(() => $("hurt").classList.remove("on"), 260); fall("The paint takes him off his feet."); } return true; }
-    if (who && who.kind === "outlaw") { const ol = who.o; paintBody(ol.ch, q, col, 3); if (ol.state === "idle" || ol.state === "telegraph" || ol.state === "fire") { ol.state = "fall"; ol.t = 0; S.thud(q); say(`${ol.name} goes down, painted to the hat.`, 2); }
+    if (who && who.kind === "me") { if (owner !== "outlaw") return true; paintBody(me, q, col, 3); if (st.mode !== "down" && GAME.dashT <= 0 && GAME.hurtT > .9) { $("hurt").classList.add("on"); setTimeout(() => $("hurt").classList.remove("on"), 260); GAME.hp--; GAME.hurtT = 0; GAME.combo = 0; GAME.shake = .6; S.hurt(); if (GAME.hp <= 0) { GAME.hp = 3; GAME.score = Math.max(0, GAME.score - 300); fall("Three hits. He goes down, and he gets up."); } } return true; }
+    if (who && who.kind === "chip") { if (owner === "outlaw") return true; const c = who.ch; if (!c.alive) return true; c.alive = false; c.t = -2 - Math.random() * 3; flash.color.set(col); flash.position.copy(q); flash.intensity = 60; S.glass(q, .3); st.ink = Math.min(100, st.ink + 12); score(40, q); for (let i = 0; i < 7; i++) puff(q.clone(), i % 2 ? col : 0xffffff, new T.Vector3((Math.random() - .5) * 6, Math.random() * 4, (Math.random() - .5) * 6), .7, .22, 2.5, true); return true; }
+    if (who && who.kind === "outlaw") { const ol = who.o; paintBody(ol.ch, q, col, 3); if (owner === "outlaw") return true; if (ol.state === "run" || ol.state === "telegraph" || ol.state === "fire" || ol.state === "stagger") { ol.hp--; if (ol.hp <= 0) { ol.state = "fall"; ol.t = 0; S.thud(q); score(100, q); } else { ol.state = "stagger"; ol.t = 0; ol.x += d.x * .6; ol.z += d.z * .6; score(30, q); } }
       const gp = new T.Vector3(q.x, heightAt(q.x, q.z), q.z); INK.splat(gp, new T.Vector3(0, 1, 0), d, col, 1.4); return true; }
     if (who && who.kind === "shard") { who.b.applyImpulseAtPoint(v3(d.x * .4, .3, d.z * .4), v3(q.x, q.y, q.z), true); return true; }
     return false; }
@@ -294,19 +301,42 @@
   const ringTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; return { c, tx: new T.CanvasTexture(c) }; })();
   const rings = outlaws.map(() => { const s = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(Object.assign(document.createElement("canvas"), { width: 128, height: 128 })), transparent: true, depthWrite: false, depthTest: false })); s.scale.set(.9, .9, 1); s.visible = false; scene.add(s); return s; });
   const DUEL = { wave: 0, on: false, left: 0, next: 0 };
-  function startWave() { DUEL.wave++; DUEL.left = outlaws.length; const pick = SPOTS.slice().sort(() => Math.random() - .5);
-    outlaws.forEach((o, i) => { const [x, z] = pick[i]; o.x = x; o.z = z; o.state = "idle"; o.t = -1 - Math.random() * 2.5 - i * 1.2; o.ch.group.visible = true; o.ch.group.position.set(x, heightAt(x, z), z); });
-    say(`Wave ${DUEL.wave}. Three of them, along the sightlines. Watch for the red ring: that is the draw.`, 4); S.bell(); }
+  /* ---------- the shootout: it comes to him wherever he is. Outlaws ride in three at a time and keep moving; each takes two hits.
+     Glass chips hang in the air to be shot for ink. Hits in a row build a combo: each one rings a note higher up the scale, scores
+     more and speeds the gun. He has three hits in him, and a dash that paint cannot touch. ---------- */
+  const GAME = { score: 0, combo: 0, comboT: 0, hp: 3, hurtT: 0, dashT: 0, dashCool: 0, dx: 0, dz: 1, mvx: 0, mvz: 0, shake: 0, slow: 0, mark: 0, best: 0 };
+  const NOTES = [392, 440, 523.3, 587.3, 659.3, 784, 880, 1046.5, 1174.7, 1318.5, 1568];
+  const inPit = () => st.y < W.cathedralY + 2.5 && Math.abs(st.x - W.PIT.x) < W.PIT.hx + 3 && Math.abs(st.z - W.PIT.z) < W.PIT.hz + 3;
+  function score(pts, p) { GAME.combo++; GAME.comboT = 3.4; GAME.score += pts * Math.min(GAME.combo, 10); GAME.best = Math.max(GAME.best, GAME.combo); GAME.mark = .16; GAME.shake = Math.max(GAME.shake, .18); S.note(NOTES[Math.min(GAME.combo - 1, NOTES.length - 1)], p); }
+  function dash() { if (GAME.dashCool > 0 || st.mode !== "foot") return; const m = Math.hypot(GAME.mvx, GAME.mvz); GAME.dx = m > .1 ? GAME.mvx / m : Math.sin(st.heading); GAME.dz = m > .1 ? GAME.mvz / m : Math.cos(st.heading); GAME.dashT = .26; GAME.dashCool = .85; S.whoosh(); }
+  const pickSpot = o => { const a = Math.atan2(o.x - st.x, o.z - st.z) + (Math.random() < .5 ? -1 : 1) * (.45 + Math.random() * .7), r = 8 + Math.random() * 9; o.tx = st.x + Math.sin(a) * r; o.tz = st.z + Math.cos(a) * r; };
+  function startWave() { DUEL.wave++; DUEL.left = outlaws.length;
+    outlaws.forEach((o, i) => { const a = CAM.yaw + (i - 1) * .75 + (Math.random() - .5) * .4, r = 21 + Math.random() * 7; o.x = st.x + Math.sin(a) * r; o.z = st.z + Math.cos(a) * r; o.hp = 2; o.state = "run"; o.t = -i * .6; o.ch.group.visible = true; o.ch.group.rotation.set(0, a + Math.PI, 0); o.ch.group.position.set(o.x, heightAt(o.x, o.z), o.z); pickSpot(o); for (let k = 0; k < 4; k++) puff(new T.Vector3(o.x, heightAt(o.x, o.z) + .4, o.z), 0xe8c890, new T.Vector3((Math.random() - .5) * 2, 1, (Math.random() - .5) * 2), 1.2, .5, 3, false); });
+    say(DUEL.wave === 1 ? "Three of them, and they do not stand still. The red ring is the draw: shoot first, or dash." : `Wave ${DUEL.wave}.`, 3.5); S.bell(); }
   function duelStep(dt) {
-    if (!DUEL.on) { outlaws.forEach((o, i) => { if (o.ch) o.ch.group.visible = false; rings[i].visible = false; o.body.setNextKinematicTranslation(v3(0, -50, 0)); }); return; }
-    if (DUEL.left === 0) { DUEL.next += dt; if (DUEL.next > 3) { DUEL.next = 0; if (DUEL.wave >= 3) { DUEL.on = false; complete("duel", "Three waves, and the arena is quiet. Uncle Mesa holsters and spits."); setMode("world"); return; } startWave(); } return; }
-    outlaws.forEach((o, i) => { const g = o.ch.group, ring = rings[i]; o.t += dt; const toMe = Math.atan2(st.x - o.x, st.z - o.z);
-      if (o.state === "idle") { g.rotation.y = lerp(g.rotation.y, toMe, 1 - Math.exp(-dt * 3)); if (motion) motion.setClip(o.id, "angry", { fade: .3 }); if (o.t > 0) { o.state = "telegraph"; o.t = 0; S.tick(g.position); } }
-      else if (o.state === "telegraph") { g.rotation.y = toMe; drawRing(ring, o.t / 1.6); if (o.t > 1.6) { o.state = "fire"; o.t = 0; outlawShot(o); } }
-      else if (o.state === "fire") { if (o.t > .8) { o.state = "idle"; o.t = -2 - Math.random() * 2; } }
-      else if (o.state === "fall") { g.rotation.x = lerp(g.rotation.x, -Math.PI / 2, 1 - Math.exp(-dt * 5)); if (o.t > 2.5) { o.state = "away"; g.visible = false; g.rotation.x = 0; DUEL.left--; } }
+    if (!DUEL.on) { outlaws.forEach((o, i) => { if (o.ch) o.ch.group.visible = false; rings[i].visible = false; o.state = "away"; o.body.setNextKinematicTranslation(v3(0, -50, 0)); }); DUEL.left = 0; return; }
+    if (!done.gate || inPit()) return;   /* not before the gate, and not down in the cathedral: that is the knight's */
+    if (DUEL.left === 0) { DUEL.next += dt; if (DUEL.next > (DUEL.wave ? 5 : 1.5)) { DUEL.next = 0; startWave(); } return; }
+    const tele = Math.max(.75, 1.45 - DUEL.wave * .09), sp = Math.min(5.4, 3.3 + DUEL.wave * .25);
+    outlaws.forEach((o, i) => { const g = o.ch.group, ring = rings[i]; o.t += dt; const toMe = Math.atan2(st.x - o.x, st.z - o.z); let mv = 0;
+      if (o.state !== "away" && o.state !== "fall" && Math.hypot(st.x - o.x, st.z - o.z) > 55) { const a = CAM.yaw + (Math.random() - .5) * 1.6; o.x = st.x + Math.sin(a) * 24; o.z = st.z + Math.cos(a) * 24; pickSpot(o); }   /* he outran them: they cut him off */
+      if (o.state === "run") { const dx = o.tx - o.x, dz = o.tz - o.z, d = Math.hypot(dx, dz); if (o.t > 0 && d > .7) { o.x += dx / d * sp * dt; o.z += dz / d * sp * dt; g.rotation.y += wrapA(Math.atan2(dx, dz) - g.rotation.y) * (1 - Math.exp(-dt * 8)); mv = sp; } else if (o.t > 0) { o.state = "telegraph"; o.t = 0; S.tick(g.position); } }
+      else if (o.state === "telegraph") { g.rotation.y = toMe; drawRing(ring, o.t / tele); if (o.t > tele) { o.state = "fire"; o.t = 0; outlawShot(o); } }
+      else if (o.state === "fire" || o.state === "stagger") { g.rotation.y = toMe; if (o.t > .5) { o.state = "run"; o.t = 0; pickSpot(o); } }
+      else if (o.state === "fall") { g.rotation.x = lerp(g.rotation.x, -Math.PI / 2, 1 - Math.exp(-dt * 6)); if (o.t > 1.6) { o.state = "away"; g.visible = false; g.rotation.x = 0; DUEL.left--; if (DUEL.left === 0) { GAME.slow = .7; S.chime(); GAME.score += 250 * DUEL.wave; if (DUEL.wave === 3) complete("duel", "Three waves down, painted to the hat. More are coming."); else say("Clear.", 1.5); } } }
+      if (motion) try { if (o.state === "run") motion.setActorLocomotion(o.id, { speedMps: mv, blend: 1 }); else motion.setClip(o.id, o.state === "stagger" ? "angry" : "idle", { fade: .15 }); } catch (e) { }
+      if (o.state !== "away") g.position.set(o.x, heightAt(o.x, o.z) + (o.state === "fall" ? .2 : 0), o.z);
       ring.visible = o.state === "telegraph"; if (ring.visible) { const h = new T.Vector3(); boneW(o.ch, 7, h); ring.position.copy(h).add(new T.Vector3(0, .45, 0)); }
       const p = g.position; o.body.setNextKinematicTranslation(o.state === "away" || o.state === "fall" ? v3(0, -50, 0) : v3(p.x, p.y + .85, p.z)); }); }
+  /* glass chips: six-sided panes that hang and drift near him; a hit breaks one, pays ink and keeps the combo alive */
+  const CHIPS = []; { const g = new T.CylinderGeometry(.5, .5, .07, 6); g.rotateX(Math.PI / 2); const cols = [["#2fd0d8", "#e9f4f0", "#2a4ab8"], ["#f2a83a", "#f2d04a", "#d8342c"], ["#e85aa8", "#f6efe0", "#2fd0d8"]];
+    for (let i = 0; i < 7; i++) { const m = new T.Mesh(g, W.glassMat(W.leaded(700 + i, { cells: 3, pal: cols[i % 3] }), { opacity: .92, emissiveIntensity: 1.2 })); m.visible = false; scene.add(m); const b = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(0, -70 - i, 0)), c = world.createCollider(R.ColliderDesc.ball(.58), b), ch = { m, b, alive: false, t: -1 - i * .8, ph: i * 1.7, x: 0, y: 0, z: 0 }; OWNER.set(c.handle, { kind: "chip", ch }); CHIPS.push(ch); } }
+  function gameStep(dt, t) { GAME.comboT -= dt; if (GAME.comboT <= 0) GAME.combo = 0; GAME.dashT = Math.max(0, GAME.dashT - dt); GAME.dashCool = Math.max(0, GAME.dashCool - dt); GAME.mark = Math.max(0, GAME.mark - dt); GAME.shake = Math.max(0, GAME.shake - dt * 2.2); GAME.hurtT += dt; if (GAME.hp < 3 && GAME.hurtT > 7) { GAME.hp++; GAME.hurtT = 0; }
+    if (GAME.dashT > 0 && Math.random() < dt * 60) puff(new T.Vector3(st.x, st.y + .3 + Math.random(), st.z), 0xf2d8a8, new T.Vector3(-GAME.dx * 2, .4, -GAME.dz * 2), .5, .3, 2.5, false);
+    const live = DUEL.on && done.gate && st.mode === "foot" && !inPit();
+    for (const c of CHIPS) { if (!c.alive) { c.m.visible = false; c.b.setNextKinematicTranslation(v3(0, -70, 0)); c.t += dt; if (c.t > 0 && live) { const a = CAM.yaw + (Math.random() - .5) * 2.4, r = 9 + Math.random() * 15; c.x = st.x + Math.sin(a) * r; c.z = st.z + Math.cos(a) * r; c.y = Math.max(heightAt(c.x, c.z), st.y) + 2.4 + Math.random() * 2; c.alive = true; c.life = 16; c.grow = 0; } continue; }
+      c.life -= dt; c.grow = Math.min(1, c.grow + dt * 4); c.x += Math.cos(t * .6 + c.ph) * dt * 1.1; const y = c.y + Math.sin(t * 1.7 + c.ph) * .4; c.m.visible = true; c.m.position.set(c.x, y, c.z); c.m.rotation.y += dt * 2.2; c.m.scale.setScalar(c.grow * (c.life < 1 ? Math.max(.01, c.life) : 1)); c.b.setNextKinematicTranslation(v3(c.x, y, c.z));
+      if (c.life < 0 || Math.hypot(c.x - st.x, c.z - st.z) > 42) { c.alive = false; c.t = -1; } } }
   function drawRing(s, k) { const c = s.material.map.image, q = c.getContext("2d"); q.clearRect(0, 0, 128, 128); q.lineWidth = 10; q.strokeStyle = "rgba(255,60,60,.35)"; q.beginPath(); q.arc(64, 64, 48, 0, 6.29); q.stroke(); q.strokeStyle = "rgba(255,40,60,.95)"; q.beginPath(); q.arc(64, 64, 48, -Math.PI / 2, -Math.PI / 2 + clamp(k, 0, 1) * 6.283); q.stroke(); s.material.map.needsUpdate = true; }
   const DAKAR = [0xd8342c, 0xf2c81e, 0x1f9a4a, 0x2a6ad8];   /* Touki Bouki: the red, yellow and green of the flag, and the blue of the Dakar sky */
   function outlawShot(o) { if (!INK) return; const from = new T.Vector3(); boneW(o.ch, 20, from); const to = new T.Vector3(st.x, st.y + 1.2, st.z), L = to.distanceTo(from), tf = L / 28; to.y += .5 * 9.81 * tf * tf;
@@ -317,7 +347,8 @@
   /* ---------- jobs, offers, modes ---------- */
   const GOALS = [["gate", "Pass through the title gate"], ["iris", "Sight the mesas through the clockwork iris"], ["horse", "Ride the lone horse"], ["prism", "Shatter a glass prism"], ["duel", "Win the duel (Game mode)"], ["cathedral", "Descend into the glass cathedral"], ["oasis", "Find the oasis"], ["zig", "Sit on the ziggurat steps"], ["turf", "Ink 250 m² of turf. It cures to glass"], ["tags", "Fill the four tag spots on Main Street"], ["touki", "Ride the horned motorcycle with Anta"], ["knight", "Shatter the stained-glass knight in the cathedral"]];
   const done = {}; $("goals").innerHTML = GOALS.map(([k, t]) => `<li data-k="${k}">${t}</li>`).join("");
-  function complete(k, line) { if (done[k]) return; done[k] = true; const li = $("goals").querySelector(`[data-k="${k}"]`); if (li) li.classList.add("done"); S.chime(); if (line) say(line, 4); }
+  const nextGoal = () => { let found = false; for (const li of $("goals").children) { const n = !found && !done[li.dataset.k]; li.classList.toggle("next", n); if (n) found = true; } }; nextGoal(); $("goals").addEventListener("click", () => $("goals").classList.toggle("open"));
+  function complete(k, line) { if (done[k]) return; done[k] = true; const li = $("goals").querySelector(`[data-k="${k}"]`); if (li) li.classList.add("done"); nextGoal(); S.chime(); if (line) say(line, 4); }
   let lineT = 0; function say(t, sec = 3) { $("line").textContent = t; $("line").classList.add("on"); lineT = sec; }
   const near = (a, b, r) => Math.hypot(a.x - b.x, a.z - b.z) < r;
   function offer() { const p = { x: st.x, z: st.z };
@@ -330,7 +361,7 @@
     if (near(p, W.zig.seat, 4)) return { label: "Sit and rest", run: () => { st.mode = "sit"; st.x = W.zig.seat.x; st.z = W.zig.seat.z; st.y = W.zig.seat.y; st.heading = Math.PI / 2; complete("zig", "He sits on the warm steps in the low sun, and the glass columns burn gold behind him."); } };
     if (near(p, W.booth.userData.seat, 2.2)) return { label: "Take a seat at the booth", run: () => { st.mode = "sit"; const s = W.booth.userData.seat; st.x = s.x; st.z = s.z; st.y = s.y - .7; st.heading = Math.PI; say("Uncle Chip's booth. Under the glass sign, a man can sit and still draw.", 3); } };
     return null; }
-  let MODE = "world"; function setMode(m) { MODE = m; document.body.classList.toggle("cinema", m === "cinema"); for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", b.dataset.mode === m); DUEL.on = m === "game"; if (m === "game") { DUEL.wave = 0; DUEL.left = 0; DUEL.next = 2.5; say("Game. The outlaws are coming to the arena.", 2.5); } DIR.i = 0; DIR.t = 0; }
+  let MODE = "world"; function setMode(m) { MODE = m; document.body.classList.toggle("cinema", m === "cinema"); for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", b.dataset.mode === m); DUEL.on = m === "game"; if (m === "game") { DUEL.wave = 0; DUEL.left = 0; DUEL.next = 0; GAME.score = 0; GAME.combo = 0; GAME.hp = 3; } DIR.i = 0; DIR.t = 0; }
   function fall(line) { if (LENS) LENS.event("fall"); if (window.__trials) window.__trials.fall(); if (st.mode === "ride") { st.mode = "foot"; } st.mode = "down"; st.downT = 0; if (line) say(line, 2); S.thud(new T.Vector3(st.x, st.y, st.z)); }
 
   /* ---------- the director (Cinema): the breakdown's six cameras ---------- */
@@ -345,7 +376,7 @@
   /* ---------- input ---------- */
   const keys = {}; addEventListener("keydown", e => { if (e.repeat) return; keys[e.code] = true; S.wake();
     if (e.code === "KeyE") { const o = offer(); if (o) o.run(); }
-    if (e.code === "KeyR" && st.mode === "foot") { st.gun = !st.gun; holdGun(st.gun); S.cock(); }
+    if (e.code === "KeyR" && st.mode === "foot") { st.gun = !st.gun; st.gunLock = st.gun; holdGun(st.gun); S.cock(); }
     if (e.code === "Space") e.preventDefault();
     if (e.code === "KeyX") { st.smokeT = 2.2; S.exhale(); }
     if (e.code === "KeyP") { st.poncho = !st.poncho; say(st.poncho ? "The dark-weave poncho." : "The white shirt and the badge.", 1.4); }
@@ -353,18 +384,43 @@
     if (e.code === "KeyZ" && st.mode !== "down") fall("He goes down. He gets up.");
     if (e.code === "KeyG") GRIDON = !GRIDON;
     if (/^Digit[1-6]$/.test(e.code)) mood(+e.code.slice(5) - 1);
+    if (e.code === "KeyQ" || e.code === "KeyF") dash();
     if (e.code === "KeyV") setMode(MODE === "cinema" ? "world" : "cinema");
     if (e.code === "KeyL" && LENS) { LENS.cycle(); lensUI(); } });
   addEventListener("keyup", e => { keys[e.code] = false; });
-  const mouse = { x: 0, y: .08, on: false }; canvas.addEventListener("pointermove", e => { mouse.x = e.clientX / innerWidth * 2 - 1; mouse.y = -(e.clientY / innerHeight * 2 - 1); mouse.on = true; });
-  canvas.addEventListener("pointerdown", () => { S.wake(); mouse.down = true; }); addEventListener("pointerup", () => { mouse.down = false; });
+  const mouse = { x: 0, y: .08, on: false }; canvas.addEventListener("pointermove", e => { if (e.pointerType === "touch") return; mouse.x = e.clientX / innerWidth * 2 - 1; mouse.y = -(e.clientY / innerHeight * 2 - 1); mouse.on = true; });
+  canvas.addEventListener("pointerdown", e => { S.wake(); if (e.pointerType !== "touch") mouse.down = true; }); addEventListener("pointerup", () => { mouse.down = false; });
   $("do").addEventListener("click", () => { const o = offer(); if (o) o.run(); });
   for (const b of document.querySelectorAll("[data-mode]")) b.addEventListener("click", () => setMode(b.dataset.mode));
   $("wide").addEventListener("click", () => { WIDE = !WIDE; $("wide").setAttribute("aria-pressed", WIDE); });
   function lensUI() { const b = $("lens"); if (!b || !LENS) return; b.textContent = LENS.label(); b.setAttribute("aria-pressed", LENS.on()); if (LENS.on()) say({ tekle: "Afewerk Tekle: one window, cut once. Only the light moves.", lucas85: "1985: every facet takes its own light; the focus follows the fight.", mambety: "Mambéty: told, not shot. It holds, it jumps, the horns come back.", moebius: "Mœbius and Otomo: one line, flat colour, light that stays behind." }[LENS.name], 3); }
   if ($("lens")) { $("lens").addEventListener("click", () => { LENS.cycle(); lensUI(); }); lensUI(); }
   $("gridb").addEventListener("click", () => { GRIDON = !GRIDON; });
-  const ray = new T.Raycaster(); function aimDir() { ray.setFromCamera(new T.Vector2(mouse.on ? mouse.x : 0, mouse.on ? mouse.y : .08), camera); return ray.ray.direction.clone(); }
+  /* ---------- touch: the left thumb is a stick wherever it lands, the right thumb turns the view, and there is one button to fire.
+     PAD carries the stick; CAM is where the camera faces. On foot, W A S D and the stick move him where the camera faces. ---------- */
+  const PAD = { mx: 0, my: 0, fire: false, look: false, touch: false, swim: false, sid: null, lid: null, sx: 0, sy: 0, lx: 0, ly: 0 }, CAM = { yaw: Math.PI, pitch: 0 };
+  { const stickEl = $("stick"), knob = stickEl.firstElementChild, fb = $("fireb"), touchOn = () => { if (PAD.touch) return; PAD.touch = true; document.body.classList.add("touch"); WIDE = false; };
+    const look = e => { CAM.yaw -= (e.clientX - PAD.lx) * .0055; CAM.pitch = clamp(CAM.pitch - (e.clientY - PAD.ly) * .004, -.3, .5); PAD.lx = e.clientX; PAD.ly = e.clientY; };
+    canvas.addEventListener("pointerdown", e => { if (e.pointerType !== "touch") return; touchOn(); try { canvas.setPointerCapture(e.pointerId); } catch (x) { }
+      if (e.clientX < innerWidth * .45 && PAD.sid === null) { PAD.sid = e.pointerId; PAD.sx = e.clientX; PAD.sy = e.clientY; stickEl.hidden = false; stickEl.style.left = e.clientX + "px"; stickEl.style.top = e.clientY + "px"; knob.style.transform = ""; }
+      else if (PAD.lid === null) { PAD.lid = e.pointerId; PAD.lx = e.clientX; PAD.ly = e.clientY; PAD.look = true; } });
+    canvas.addEventListener("pointermove", e => { if (e.pointerId === PAD.sid) { let dx = e.clientX - PAD.sx, dy = e.clientY - PAD.sy; const L = Math.hypot(dx, dy), M = 56; if (L > M) { dx *= M / L; dy *= M / L; } PAD.mx = dx / M; PAD.my = -dy / M; PAD.swim = Math.hypot(PAD.mx, PAD.my) > .85; knob.style.transform = `translate(${dx}px, ${dy}px)`; } else if (e.pointerId === PAD.lid) look(e); });
+    const up = e => { if (e.pointerId === PAD.sid) { PAD.sid = null; PAD.mx = PAD.my = 0; PAD.swim = false; stickEl.hidden = true; } if (e.pointerId === PAD.lid) { PAD.lid = null; PAD.look = false; } }; canvas.addEventListener("pointerup", up); canvas.addEventListener("pointercancel", up);
+    /* the fire button: hold to shoot, and slide the same thumb to turn while shooting */
+    fb.addEventListener("pointerdown", e => { e.preventDefault(); touchOn(); S.wake(); PAD.fire = true; PAD.lx = e.clientX; PAD.ly = e.clientY; try { fb.setPointerCapture(e.pointerId); } catch (x) { } }); fb.addEventListener("pointermove", e => { if (PAD.fire) look(e); }); for (const ev of ["pointerup", "pointercancel"]) fb.addEventListener(ev, () => { PAD.fire = false; });
+    $("dashb").addEventListener("pointerdown", e => { e.preventDefault(); touchOn(); dash(); });
+    $("menub").addEventListener("click", () => { const on = document.body.classList.toggle("menu"); $("menub").setAttribute("aria-expanded", on); $("menub").textContent = on ? "×" : "☰"; });
+    document.querySelector(".bar").addEventListener("click", e => { if (PAD.touch && e.target.closest("button")) { document.body.classList.remove("menu"); $("menub").textContent = "☰"; } });
+    if (matchMedia("(pointer: coarse)").matches || (navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 900)) setTimeout(touchOn, 0); }
+  /* aiming: the shot goes where the reticle is, and if something worth shooting is within a few degrees of it, the gun finds it */
+  const ray = new T.Raycaster(), LOCK = { p: null }, _lk = new T.Vector3();
+  function aimDir() { ray.setFromCamera(new T.Vector2(mouse.on ? mouse.x : 0, mouse.on ? mouse.y : .1), camera); const d = ray.ray.direction.clone(); LOCK.p = null; let best = Math.cos(PAD.touch ? .5 : .24);   /* a thumb needs a wider cone than a mouse */
+    const tryP = (p, far) => { const v = _lk.copy(p).sub(camera.position), L = v.length(); if (L > far || L < 1.5) return; const c = v.dot(d) / L; if (c > best) { best = c; LOCK.p = p.clone(); } };
+    for (const o of outlaws) if (o.ch && o.ch.group.visible && (o.state === "run" || o.state === "telegraph" || o.state === "fire" || o.state === "stagger")) tryP(boneW(o.ch, 3, new T.Vector3()), 90);
+    for (const c of CHIPS) if (c.alive) tryP(c.m.position, 45);
+    if (KNIGHT.state === "hunt" || KNIGHT.state === "strike") tryP(new T.Vector3(KNIGHT.x, W.cathedralY + 1.25, KNIGHT.z), 60);
+    for (const p of W.prisms) if (!p.broken) tryP(new T.Vector3(p.x, p.y, p.z), 30);
+    return d; }
   const GRAB = document.createElement("canvas"); let GRIDON = true, WIDE = true, STORM = 0, STORMON = false, gridT = 0;
   function toggleStorm() { STORMON = !STORMON; S.storm(STORMON); say(STORMON ? "The sand comes up in gold ribbons, and the spectacles go with it." : "The storm lies down.", 2.2); }
   /* 1–6: six pads in the minor of the West, and six times of day to go with them */
@@ -398,6 +454,10 @@
       cure(p) { if (!ctx || ctx.currentTime - (this._c || 0) < .07) return; this._c = ctx.currentTime; const f = [1568, 1760, 2093, 2349, 2637][Math.floor(Math.random() * 5)]; tone(p, f, f, .9, .035, "sine", .7, 0, .01); tone(p, f * 1.5, f * 1.5, .5, .015, "sine", .7, .03); },
       chord() { this.pad && this.pad([196, 246.9, 293.7]); },
       dry() { tone(null, 600, 500, .03, .06, "square", .05); },
+      note(f, p) { tone(p || null, f, f, .55, .1, "triangle", .55); tone(null, f * 2, f * 2, .3, .035, "sine", .6, .02); },
+      whoosh() { burst(null, .28, "bandpass", 1400, .35, .24, .15); },
+      hurt() { burst(null, .22, "lowpass", 260, .9, .2, .2); tone(null, 170, 60, .32, .28, "sawtooth", .2); },
+      step(p, glass) { if (!ctx) return; if (glass) { tone(p, 1900 + Math.random() * 900, 1500, .08, .045, "sine", .6); burst(p, .04, "highpass", 3200, .1, .04, .4); } else burst(p, .1, "lowpass", 340 + Math.random() * 180, .34, .09, .06); },
       bloom(p) { if (!ctx) return; const f = [784, 988, 1175, 1319, 1568][Math.floor(Math.random() * 5)]; tone(p, f, f, 1.4, .06, "sine", .7, .05, .02); tone(p, f * 2.01, f * 2.01, .9, .025, "sine", .7, .08); burst(p, .2, "highpass", 5000, .12, .18, .4); },
       glass(p, k = 1) { if (!ctx) return; burst(p, .3 * k, "highpass", 3500, .6 * k, .3 * k, .5); for (let i = 0; i < 10 * k; i++) tone(p, 2500 + Math.random() * 4000, 2000 + Math.random() * 3000, .2 + Math.random() * .4, .05, "sine", .5, Math.random() * .5 * k); },
       thud(p) { burst(p, .3, "lowpass", 200, .9, .28, .3); },
@@ -424,18 +484,30 @@
   const clock = new T.Clock(), IRIS = { open: 0 }; let offerNow = null, fstep = 0;
   const camPos = new T.Vector3(st.x, st.y + 3, st.z + 8), camLook = new T.Vector3(st.x, st.y + 1.5, st.z);
   function frame() {
-    const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
-    const fwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0), turn = (keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0), run = keys.ShiftLeft || keys.ShiftRight;
-    st.cool = Math.max(0, st.cool - dt); st.recoil = Math.max(0, st.recoil - dt * 5); st.steady = Math.min(1, st.steady + dt * (st.gun ? .8 : 0));
+    let dt = Math.min(clock.getDelta(), .05); const t = clock.elapsedTime; if (GAME.slow > 0) { GAME.slow -= dt; dt *= .35; }
+    const padM = Math.hypot(PAD.mx, PAD.my), fwd = clamp((keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + (Math.abs(PAD.my) > .25 ? PAD.my : 0), -1, 1), turn = clamp((keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0) - (Math.abs(PAD.mx) > .25 ? PAD.mx : 0), -1, 1), run = keys.ShiftLeft || keys.ShiftRight || padM > .9;
+    const trig = (keys.Space || mouse.down || PAD.fire) && st.mode === "foot";
+    if (trig && !st.gun) { st.gun = true; holdGun(true); S.cock(); st.cool = .16; }   /* pulling the trigger draws */
+    if (trig) st.gunT = 3.5; else if (st.gun && !st.gunLock) { st.gunT = (st.gunT || 0) - dt; if (st.gunT <= 0) { st.gun = false; st.steady = 0; holdGun(false); } }
+    if (st.mode !== "foot" && st.mode !== "down") { CAM.yaw = st.heading; CAM.pitch = 0; }
+    st.cool = Math.max(0, st.cool - dt); st.recoil = Math.max(0, st.recoil - dt * 5); st.steady = Math.min(1, st.steady + dt * (st.gun ? 2.4 : 0));
     if (lineT > 0) { lineT -= dt; if (lineT <= 0) $("line").classList.remove("on"); }
     if (st.mode === "foot") {
-      if (st.gun) { /* aim with the reticle; he turns only when it nears the edge of the frame, so the view does not chase the cursor */ const mx = mouse.on ? mouse.x : 0, ex = Math.abs(mx) > .45 ? (Math.abs(mx) - .45) * Math.sign(mx) : 0; st.heading -= ex * dt * 4.2; st.heading += (keys.ArrowLeft ? 1 : 0) * dt * 1.6 - (keys.ArrowRight ? 1 : 0) * dt * 1.6; } else st.heading += turn * dt * 2.4;
-      st.swim = !!(run && INK && INK.inkUnder(st.x, st.z, st.y)); if (st.swim) st.ink = Math.min(100, st.ink + dt * 38);
-      const speed = fwd * (fwd > 0 ? (st.swim ? 6.2 : st.gun ? 1.6 : run ? 4.6 : 1.5) : .9), sx = st.gun ? -turn * 1.6 : 0;
-      const dx = (Math.sin(st.heading) * speed + Math.cos(st.heading) * sx) * dt, dz = (Math.cos(st.heading) * speed - Math.sin(st.heading) * sx) * dt;
+      /* he goes where the camera faces: W and S along it, A and D across it, the arrows (or the right thumb, or the mouse at the
+         edge of the frame) turn it. He turns to face the way he walks; with the gun up he faces the way he aims and sidesteps. */
+      const mx = clamp((keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + PAD.mx, -1, 1), my = clamp((keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + PAD.my, -1, 1), mm = Math.min(1, Math.hypot(mx, my));
+      CAM.yaw += ((keys.ArrowLeft ? 1 : 0) - (keys.ArrowRight ? 1 : 0)) * dt * 2.2; if (!PAD.touch && mouse.on && Math.abs(mouse.x) > .6) CAM.yaw -= (Math.abs(mouse.x) - .6) * Math.sign(mouse.x) * dt * 4.5;
+      const wx = Math.sin(CAM.yaw) * my - Math.cos(CAM.yaw) * mx, wz = Math.cos(CAM.yaw) * my + Math.sin(CAM.yaw) * mx;
+      st.swim = !!((keys.ShiftLeft || keys.ShiftRight || PAD.swim) && INK && INK.inkUnder(st.x, st.z, st.y)); if (st.swim) st.ink = Math.min(100, st.ink + dt * 38);
+      const speed = mm < .1 ? 0 : st.swim ? 6.2 : st.gun ? 2.6 : (run || mm > .8) && my > -.3 ? 4.6 : 1.9;
+      if (st.gun) st.heading += wrapA(CAM.yaw - st.heading) * (1 - Math.exp(-dt * 14));
+      else if (speed > 0) { st.heading += wrapA(Math.atan2(wx, wz) - st.heading) * (1 - Math.exp(-dt * 9)); if (!PAD.look && my > -.3) CAM.yaw += wrapA(st.heading - CAM.yaw) * (1 - Math.exp(-dt * .9)); }
+      let dx = mm > 0 ? wx / mm * speed * dt : 0, dz = mm > 0 ? wz / mm * speed * dt : 0; GAME.mvx = speed > 0 ? wx : 0; GAME.mvz = speed > 0 ? wz : 0;
+      if (GAME.dashT > 0) { dx = GAME.dx * 15 * dt; dz = GAME.dz * 15 * dt; }
       st.vy = ctrl.computedGrounded() ? -1 : st.vy - 9.81 * dt; meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); ctrl.computeColliderMovement(meCol, v3(dx, st.vy * dt, dz));
       const mv = ctrl.computedMovement(); st.x += mv.x; st.y += mv.y; st.z += mv.z; if (ctrl.computedGrounded()) st.vy = 0; const g = heightAt(st.x, st.z); if (st.y < g - 3 && !(Math.abs(st.x) < 10 && Math.abs(st.z - W.PIT.z) < W.PIT.hz)) st.y = g;
       st.speed = Math.hypot(mv.x, mv.z) / Math.max(dt, 1e-3);
+      st.stride = (st.stride || 0) + st.speed * dt; if (st.stride > (st.speed > 3 ? 1.2 : .74) && !st.swim) { st.stride = 0; S.step(_lk.set(st.x, st.y, st.z), st.y < W.cathedralY + .6); }
       me.group.position.set(st.x, st.y, st.z); me.group.rotation.set(0, st.heading, 0);
       if (motion) try { if (st.swim) motion.setClip("mesa", st.speed > .3 ? "crouch-walk" : "crouch-idle", { fade: .15 }); else motion.setActorLocomotion("mesa", { speedMps: st.speed, blend: 1 }); } catch (e) { }
       if (st.swim && Math.random() < dt * 1.6) { const s0 = INK.inkUnder(st.x, st.z, st.y); if (s0 && me.bones) { const b = me.bones[[54, 59, 53, 58][Math.floor(Math.random() * 4)]]; if (b) paintBody(me, b.getWorldPosition(new T.Vector3()), s0.col, 1); } }
@@ -474,8 +546,8 @@
     /* physics */
     { const n = Math.max(1, Math.ceil(dt * 60)); for (let k = 0; k < n; k++) { world.step(); fstep++; } }
     for (const s of shards) { const p = s.b.translation(), r = s.b.rotation(); s.m.position.set(p.x, p.y, p.z); s.m.quaternion.set(r.x, r.y, r.z, r.w); }
-    duelStep(dt); paintStep(t);
-    if (st.gun && st.mode === "foot" && (keys.Space || mouse.down)) fire(aimDir()); else st.ink = Math.min(100, st.ink + dt * 5);
+    duelStep(dt); gameStep(dt, t); paintStep(t);
+    if (trig && st.gun) { fire(aimDir()); if (LOCK.p) { /* the view leans toward what the gun has found */ const want = Math.atan2(LOCK.p.x - st.x, LOCK.p.z - st.z); CAM.yaw += wrapA(want - CAM.yaw) * (1 - Math.exp(-dt * (PAD.touch ? 5 : 2))); } } else { st.ink = Math.min(100, st.ink + dt * 6); if (st.gun && st.mode === "foot") aimDir(); else LOCK.p = null; }
     if (INK) { INK.step(dt, t); INK.setSun(SKY.uSun.value, scene.fog.color, scene.fog.density); if (INK.turf() >= 250) complete("turf", "250 square metres of the desert are yours, and all of it has turned to glass."); }
     if (motion) try { motion.update(dt); } catch (e) { }
     swarmStep(dt, t);
@@ -485,12 +557,13 @@
     /* his pieces follow his head and chest */
     { const head = boneW(me, 7, new T.Vector3()), chest = boneW(me, 3, new T.Vector3()), f = new T.Vector3(0, 0, 1).applyQuaternion(me.group.quaternion), up = new T.Vector3(0, 1, 0).applyQuaternion(me.group.quaternion);
       glasses.position.copy(head).addScaledVector(f, .105).addScaledVector(up, .045); glasses.quaternion.copy(me.group.quaternion); glasses.rotateY(Math.PI);
+      brim.position.copy(head).addScaledVector(up, BRIM_UP).addScaledVector(f, .01); brim.quaternion.copy(me.group.quaternion); longBeard.position.copy(head).addScaledVector(f, .075).addScaledVector(up, BEARD_UP); longBeard.quaternion.copy(me.group.quaternion); longBeard.rotateX(-.12);
       badge.position.copy(chest).addScaledVector(f, .135).add(new T.Vector3(-Math.cos(st.heading) * .08, .05, Math.sin(st.heading) * .08)); badge.quaternion.copy(me.group.quaternion); badge.visible = !st.poncho;
       poncho.visible = st.poncho; poncho.position.copy(chest).addScaledVector(up, -.18); poncho.quaternion.copy(me.group.quaternion);
       if (st.smokeT > 0) { st.smokeT -= dt; if (Math.random() < dt * 30) puff(head.clone().addScaledVector(f, .16).addScaledVector(up, -.06), Math.random() < .5 ? 0xf2c84a : 0xffe08a, f.clone().multiplyScalar(.5).add(new T.Vector3(0, .35, 0)), 2.4, .12, 2.8, true); } }
 
     /* the iris breathes; it opens wide when he stands in it with the gun up (the sightline) */
-    { const inIris = near(st, Z.clockwork_iris, 9) && st.gun; IRIS.open = lerp(IRIS.open, inIris || MODE === "cinema" && DIR.i === 0 ? 1 : .35 + .15 * Math.sin(t * .4), 1 - Math.exp(-dt * 2)); W.iris.rotation.z += dt * .05;
+    { const inIris = near(st, Z.clockwork_iris, 9) && st.gun && Math.cos(CAM.yaw) < -.8; IRIS.open = lerp(IRIS.open, inIris || MODE === "cinema" && DIR.i === 0 ? 1 : .35 + .15 * Math.sin(t * .4), 1 - Math.exp(-dt * 2)); W.iris.rotation.z += dt * .05;
       for (const b of W.iris.userData.blades) b.piv.rotation.z = b.a + Math.PI / 2 + lerp(.0, 1.25, IRIS.open);
       if (inIris && Math.cos(st.heading) < -.8) complete("iris", "Through the brass and the glass, the mesas sit in the aperture like a target."); }
     /* zones */
@@ -500,7 +573,7 @@
     for (const q of puffs) { if (q.t >= q.life) { q.s.visible = false; continue; } q.t += dt; const k = q.t / q.life; q.s.position.addScaledVector(q.v, dt); q.v.multiplyScalar(1 - dt * 1.5); q.s.scale.setScalar(q.size * (1 + k * q.grow)); q.s.material.opacity = .85 * (1 - k); }
     for (let i = tracers.length - 1; i >= 0; i--) { const tr = tracers[i]; tr.t += dt; tr.m.material.opacity = .95 * (1 - tr.t / .5); if (tr.t > .5) { scene.remove(tr.m); tr.m.geometry.dispose(); tracers.splice(i, 1); } }
     flash.intensity = Math.max(0, flash.intensity - dt * 300);
-    STORM = lerp(STORM, STORMON ? 1 : 0, 1 - Math.exp(-dt * .8)); SKY.uStorm.value = STORM; scene.fog.density = .0016 + STORM * .028; SKY.uTime.value = t;
+    STORM = lerp(STORM, STORMON ? 1 : 0, 1 - Math.exp(-dt * .8)); SKY.uStorm.value = STORM; scene.fog.density = .0024 + STORM * .028; SKY.uTime.value = t;
     for (const r of ribbons) { r.ph += dt * r.sp; const a = r.ph, x = st.x + Math.cos(a) * r.r, z = st.z + Math.sin(a) * r.r * .6; r.m.position.set(x, st.y + 1 + r.y + Math.sin(a * 2) * 1.5, z); r.m.rotation.set(Math.sin(a) * .3, -a, Math.sin(a * 3) * .2); r.m.material.opacity = STORM * .32; r.m.visible = STORM > .02; }
     specs.mat.opacity = STORM * .9; for (const s of specs) { s.ph += dt * .4; s.g.position.set(st.x + Math.cos(s.ph) * s.r, st.y + 2.2 + Math.sin(s.ph * 1.7), st.z + Math.sin(s.ph) * s.r); s.g.rotation.set(s.ph, s.ph * .7, 0); s.g.visible = STORM > .05; }
     { const p = dust.geometry.attributes.position; for (let i = 0; i < p.count; i++) { let x = p.getX(i) + dt * (1.2 + STORM * 14), y = p.getY(i) + Math.sin(t + i) * dt * .2; if (x > 30) x -= 60; p.setXYZ(i, x, y, p.getZ(i)); } p.needsUpdate = true; dust.position.set(st.x, st.y, st.z); dust.material.opacity = .4 + STORM * .5; }
@@ -512,16 +585,16 @@
       sun.position.copy(SKY.uSun.value).multiplyScalar(300).add(new T.Vector3(st.x, st.y, st.z)); sun.target.position.set(st.x, st.y, st.z); scene.fog.color.copy(SKY.uC.value).lerp(new T.Color(.93, .72, .42), STORM); }
 
     /* the camera */
-    { let dist = WIDE ? 6.2 : 4.8, up = 2.3, side = 0, h = st.heading, lookUp = 1.5, fov = 52;
-      if (st.gun && st.mode === "foot") { dist = 2.9; up = 1.7; side = .7; fov = lerp(46, 34, st.steady); if (near(st, Z.clockwork_iris, 9)) fov = 22; }
+    { const tall = camera.aspect < 1; let dist = tall ? 6.4 : WIDE ? 6.2 : 4.8, up = 2.3, side = 0, h = st.mode === "foot" || st.mode === "down" ? CAM.yaw : st.heading, lookUp = (tall && st.gun ? 1.0 : 1.5) + CAM.pitch * 7, fov = tall ? 62 : 52;
+      if (st.gun && st.mode === "foot") { dist = tall ? 5 : 3.6; up = tall ? 2.3 : 1.9; side = tall ? .95 : .8; fov = tall ? 58 : 46; if (near(st, Z.clockwork_iris, 9) && Math.cos(CAM.yaw) < -.8) fov = 22; } up -= CAM.pitch * 2.5;
       if (st.mode === "ride") { dist = 8; up = 3.2; } if (st.mode === "bike") { dist = 6.4 + Math.abs(BK.speed) * .08; up = 2.2; lookUp = 1.3; fov = 52 + Math.abs(BK.speed) * .6; } if (st.mode === "sit") { dist = 5; up = 1.6; h = st.heading + 1.2; } if (st.mode === "down") { dist = 6; up = 3.5; }
       let want = new T.Vector3(st.x - Math.sin(h) * dist + Math.cos(h) * side, st.y + up, st.z - Math.cos(h) * dist - Math.sin(h) * side), look = new T.Vector3(st.x + Math.sin(h) * (st.gun ? 6 : 1.5), st.y + lookUp, st.z + Math.cos(h) * (st.gun ? 6 : 1.5));
       want.y = Math.max(want.y, heightAt(want.x, want.z) + .8);
-      camPos.lerp(want, 1 - Math.exp(-dt * (st.gun ? 10 : 4))); camLook.lerp(look, 1 - Math.exp(-dt * 6));
+      camPos.lerp(want, 1 - Math.exp(-dt * (st.gun || PAD.look ? 12 : 5))); camLook.lerp(look, 1 - Math.exp(-dt * 6));
       { const head = new T.Vector3(st.x, st.y + 1.6, st.z), to = camPos.clone().sub(head), L = to.length(); if (L > .5) { to.divideScalar(L); const hit = world.castRay(new R.Ray(v3(head.x, head.y, head.z), v3(to.x, to.y, to.z)), L, true, undefined, undefined, meCol, undefined, c => { const o = OWNER.get(c.handle); return !!o && (o.kind === "static" || o.kind === "ground"); }); if (hit) camPos.copy(head).addScaledVector(to, Math.max(.6, (hit.timeOfImpact ?? hit.toi) - .35)); } }
       if (MODE === "cinema") { const now = performance.now(); DIR.t += Math.min(1, (now - (DIR.last || now)) / 1000) / 7; DIR.last = now; if (DIR.t >= 1) { DIR.t = 0; DIR.i = (DIR.i + 1) % SHOTS.length; } const sh = SHOTS[DIR.i], [p, a] = sh.f(smooth(0, 1, DIR.t)); camPos.set(...p); camLook.set(...a); fov = 40; $("shot").textContent = sh.name; }
       if (window.__mesaCam) { camPos.copy(window.__mesaCam.pos); camLook.copy(window.__mesaCam.at); }
-      camera.position.copy(camPos); camera.lookAt(camLook); camera.fov = lerp(camera.fov, fov, 1 - Math.exp(-dt * 6)); camera.updateProjectionMatrix(); }
+      camera.position.copy(camPos); if (GAME.shake > 0) camera.position.add(_lk.set(Math.random() - .5, Math.random() - .5, Math.random() - .5).multiplyScalar(GAME.shake * .22)); camera.lookAt(camLook); camera.fov = lerp(camera.fov, fov, 1 - Math.exp(-dt * 6)); camera.updateProjectionMatrix(); }
     S.listener(camera);
     const o = offer(); if ((o && o.label) !== (offerNow && offerNow.label)) { $("do").textContent = o ? o.label : ""; $("do").hidden = !o; } offerNow = o;
     $("where").textContent = W.zoneAt(st.x, st.z) + (MODE === "game" && DUEL.on ? ` · wave ${DUEL.wave} · ${DUEL.left} left` : "");
@@ -531,7 +604,7 @@
     const mi = W.mirrors.map(m => ({ m, d: Math.hypot(camera.position.x - m.x, camera.position.z - m.z) })).sort((a, b) => a.d - b.d)[0];
     for (const m of W.mirrors) { m.mesh.material.uniforms.uRes.value.set(renderer.domElement.width, renderer.domElement.height); m.mesh.material.uniforms.uOn.value = 0; }
     if (mi && mi.d < mi.m.r && camera.position.y > mi.m.y) { const y = mi.m.y, vc = MIR.vcam; vc.copy(camera); vc.position.y = 2 * y - camera.position.y; const f = new T.Vector3(0, 0, -1).applyQuaternion(camera.quaternion); f.y = -f.y; const u = new T.Vector3(0, 1, 0).applyQuaternion(camera.quaternion); u.y = -u.y; vc.up.copy(u); vc.lookAt(vc.position.clone().add(f)); vc.updateMatrixWorld();
-      MIR.clip.constant = -y; renderer.clippingPlanes = [MIR.clip]; mi.m.mesh.visible = false; renderer.setRenderTarget(MIR.rt); renderer.render(scene, vc); renderer.setRenderTarget(null); renderer.clippingPlanes = []; mi.m.mesh.visible = true; mi.m.mesh.material.uniforms.uTime.value = t; mi.m.mesh.material.uniforms.uOn.value = 1; }
+      MIR.clip.constant = -y; renderer.clippingPlanes = [MIR.clip]; for (const m of W.mirrors) m.mesh.visible = false; renderer.setRenderTarget(MIR.rt); renderer.render(scene, vc); renderer.setRenderTarget(null); renderer.clippingPlanes = []; for (const m of W.mirrors) m.mesh.visible = true; mi.m.mesh.material.uniforms.uTime.value = t; mi.m.mesh.material.uniforms.uOn.value = 1; }
     if (LENS && LENS.on()) {   /* the lens focuses on what matters: the knight when it is out of the glass and near, else Uncle Mesa */
       const K = KNIGHT, kOut = K.state === "hunt" || K.state === "strike" || K.state === "forming", kd = Math.hypot(camera.position.x - K.x, camera.position.z - K.z);
       const md = camera.position.distanceTo(new T.Vector3(st.x, st.y + 1.2, st.z)); LENS.render(scene, camera, dt, { focus: kOut && kd < 40 ? Math.min(kd, md * 1.6) : md });
@@ -552,12 +625,18 @@
     if (st.gun || st.swim) { /* the ink tank: a glass vial by the reticle, the colour of the next shot */ const vx = w - 34 * k, vy = h * .5, vh = 120 * k, vw = 12 * k, f = st.ink / 100, col = "#" + new T.Color(PAINT[paintN % PAINT.length]).getHexString();
       FX.fillStyle = "rgba(20,14,10,.45)"; FX.fillRect(vx - vw / 2, vy - vh / 2, vw, vh); FX.fillStyle = col; FX.fillRect(vx - vw / 2, vy + vh / 2 - vh * f, vw, vh * f); FX.strokeStyle = "rgba(255,255,255,.6)"; FX.lineWidth = 1.5 * k; FX.strokeRect(vx - vw / 2, vy - vh / 2, vw, vh);
       FX.fillStyle = "rgba(251,242,226,.75)"; FX.font = `${10 * k}px ui-monospace, monospace`; FX.textAlign = "right"; FX.fillText(st.swim ? "SWIM · REFILL" : `INK ${Math.round(st.ink)}`, vx - vw, vy + vh / 2); FX.fillText(`TURF ${INK ? INK.turf() : 0} m²`, vx - vw, vy + vh / 2 + 14 * k); }
-    if (!st.gun || st.mode !== "foot") return; const cx = (mouse.on ? (mouse.x + 1) / 2 : .5) * w, cy = (mouse.on ? (1 - mouse.y) / 2 : .46) * h, r = lerp(46, 8, st.steady) * k * (1 + st.recoil * .6);
+    if (DUEL.on && MODE !== "cinema") { /* three hits, the score, the combo and how long it has left */ const x0 = w / 2, y0 = (PAD.touch ? (h > w ? 104 : 22) : 26) * k; FX.textAlign = "center";
+      for (let i = 0; i < 3; i++) { const x = x0 + (i - 1) * 20 * k; FX.beginPath(); FX.moveTo(x, y0 - 7 * k); FX.lineTo(x + 7 * k, y0); FX.lineTo(x, y0 + 7 * k); FX.lineTo(x - 7 * k, y0); FX.closePath(); FX.fillStyle = i < GAME.hp ? "rgba(255,58,168,.95)" : "rgba(20,14,10,.4)"; FX.fill(); FX.strokeStyle = "rgba(255,255,255,.7)"; FX.lineWidth = k; FX.stroke(); }
+      FX.fillStyle = "rgba(251,242,226,.95)"; FX.font = `700 ${20 * k}px Georgia, serif`; FX.fillText(String(GAME.score), x0, y0 + 34 * k);
+      if (GAME.combo > 1) { const s2 = 1 + GAME.mark * 2.5; FX.font = `italic 700 ${26 * k * s2}px Georgia, serif`; FX.fillStyle = "rgba(242,208,74,.98)"; FX.fillText("×" + Math.min(GAME.combo, 10), x0, y0 + 66 * k); FX.fillStyle = "rgba(242,208,74,.8)"; FX.fillRect(x0 - 30 * k, y0 + 74 * k, 60 * k * Math.max(0, GAME.comboT / 3.4), 3 * k); } }
+    if (!st.gun || st.mode !== "foot") return; let cx = (mouse.on ? (mouse.x + 1) / 2 : .5) * w, cy = (mouse.on ? (1 - mouse.y) / 2 : .45) * h; const r = lerp(34, 9, st.steady) * k * (1 + st.recoil * .6);
+    if (LOCK.p) { const sp = _lk.copy(LOCK.p).project(camera); cx = (sp.x + 1) / 2 * w; cy = (1 - sp.y) / 2 * h; FX.beginPath(); FX.arc(cx, cy, r + 7 * k, 0, Math.PI * 2); FX.strokeStyle = "rgba(255,58,168,.95)"; FX.lineWidth = 2.5 * k; FX.stroke(); }
+    if (GAME.mark > 0) { const m = (10 + GAME.mark * 60) * k; FX.strokeStyle = "rgba(255,255,255,.95)"; FX.lineWidth = 3 * k; FX.beginPath(); for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { FX.moveTo(cx + a * m * .5, cy + b * m * .5); FX.lineTo(cx + a * m, cy + b * m); } FX.stroke(); }
     for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + performance.now() / 2600, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r, s = 3.2 * k; FX.beginPath(); FX.ellipse(x, y, s, s * 1.25, a, 0, Math.PI * 2); FX.fillStyle = "rgba(161,232,228,.6)"; FX.fill(); FX.strokeStyle = "rgba(255,255,255,.6)"; FX.lineWidth = k; FX.stroke(); }
     if (st.steady > .85) { FX.beginPath(); FX.arc(cx, cy, 2.5 * k, 0, Math.PI * 2); FX.fillStyle = "rgba(248,205,145,.95)"; FX.fill(); } }
 
-  resize(); $("boot").classList.add("done"); $("title").classList.add("on"); setTimeout(() => { $("title").classList.remove("on"); GRIDON = false; }, 6500);
-  say("This land ain't dust anymore. It's data. And it remembers.", 5);
-  window.__mesa = { T, scene, camera, W, LENS, say, lensUI, KNIGHT, KN, PR, PROC, HERD, SPORE, HALL, BK, TK, anta, paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
+  resize(); $("boot").classList.add("done"); $("title").classList.add("on"); setTimeout(() => { $("title").classList.remove("on"); GRIDON = false; }, 3600);
+  setMode("game"); say("This land ain't dust anymore. It's data. And it remembers.", 5);
+  window.__mesa = { T, scene, camera, LENS, say, lensUI, GAME, CHIPS, dash, PAD, CAM, LOCK, tune(b, d) { BRIM_UP = b; BEARD_UP = d; }, KNIGHT, KN, PR, PROC, HERD, SPORE, HALL, BK, TK, anta, paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
   requestAnimationFrame(frame);
 })().catch(e => { console.error(e); const b = document.getElementById("boot-s"); if (b) b.textContent = "Something went wrong: " + e.message; });
