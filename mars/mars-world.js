@@ -108,9 +108,10 @@
       const stool = new T.Mesh(new T.CylinderGeometry(.22, .2, .6, 12), dark); stool.position.set(w / 2 - 1.9, .62, -d / 2 + 1.6); g.add(stool);
       const krar = makeKrar(); krar.position.set(w / 2 - 1.2, 1.05, -d / 2 + 1.3); krar.rotation.set(-.25, -.6, 0); g.add(krar);
       // two hanging lamps: the room's only light
-      const lamps = []; for (const [lx, lz] of [[-1, -1.5], [2.5, 1.8]]) { const L = new T.PointLight(0xffb066, 3, 13, 2); L.position.set(lx, h - 1.1, lz); g.add(L); lamps.push(L);
+      const lamps = []; for (const [lx, lz] of [[-1, -1.5], [2.5, 1.8], [-w / 2 + 2.2, 1.2], [w / 2 - 1.9, -d / 2 + 2.4]]) { const L = new T.PointLight(0xffb066, 3, 14, 1.6); L.position.set(lx, h - 1.1, lz); g.add(L); lamps.push(L);
         const glass = new T.Mesh(new T.SphereGeometry(.16, 12, 8), new T.MeshStandardMaterial({ color: 0xffe0a0, emissive: 0xffa040, emissiveIntensity: 1.6 })); glass.position.copy(L.position); g.add(glass);
         const cord = new T.Mesh(new T.CylinderGeometry(.01, .01, 1, 4), dark); cord.position.set(lx, h - .55, lz); g.add(cord); }
+      { const fill = new T.HemisphereLight(0xffc890, 0x2a1408, 0); fill.position.set(0, h - .5, 0); g.add(fill); lamps.push(fill); }   // bounce off the floor and the planks
       // the neon over the door
       { const c = document.createElement("canvas"); c.width = 512; c.height = 128; const q = c.getContext("2d"); q.fillStyle = "#000"; q.fillRect(0, 0, 512, 128); q.shadowColor = "#ff3fb4"; q.shadowBlur = 18; q.strokeStyle = "#ff6fc8"; q.lineWidth = 5; q.font = "bold 64px Georgia"; q.textAlign = "center"; q.textBaseline = "middle"; q.strokeText("TEZETA", 256, 66);
         const tx = new T.CanvasTexture(c); tx.colorSpace = T.SRGBColorSpace; const neon = new T.Mesh(new T.PlaneGeometry(3.2, .8), new T.MeshBasicMaterial({ map: tx, transparent: true, blending: T.AdditiveBlending, depthWrite: false })); neon.position.set(0, dh + .55, d / 2 + .36); g.add(neon); SALOON.neon = neon; }

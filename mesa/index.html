@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <title>MESA CHIP</title>
+  <meta name="description" content="A cyber-western of glass, built from the film's keyframe breakdown: Uncle Mesa walks north from the title gate through the clockwork iris and the glass canyon to the ziggurat under the curtain wall.">
+  <script type="importmap">{"imports":{"three":"../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
+  <style>
+    :root { --ink: #fbf2e2; --dim: rgba(251, 242, 226, .64); --line: rgba(251, 242, 226, .3); --stage: #1a120c; --cyan: #2fd0d8; --amber: #f2a83a; --magenta: #ff3aa8;
+      --serif: Georgia, "Times New Roman", serif; --mono: ui-monospace, Menlo, Consolas, monospace; color-scheme: dark; }
+    html, body { margin: 0; height: 100%; background: var(--stage); color: var(--ink); font: 12px/1.4 var(--mono); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+    canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; outline: none; }
+    #grid, #fx { pointer-events: none; } #grid { z-index: 1; } #fx { z-index: 2; }
+    [hidden] { display: none !important; }
+    #scope { position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: 0; transition: opacity .8s; }
+    #scope::before { content: ""; position: absolute; inset: 3.5vh 2.5vw; border-radius: 9vh / 14vh; box-shadow: 0 0 0 100vmax #0b0805, inset 0 0 60px 30px rgba(11, 8, 5, .85); }
+    body.wide #scope { opacity: 1; }
+    .top { position: fixed; left: 0; right: 0; top: 0; z-index: 4; padding: calc(16px + env(safe-area-inset-top, 0px)) 6vw 24px; pointer-events: none; display: grid; gap: 3px; }
+    .top b { font: italic 400 clamp(20px, 3vw, 28px)/1.2 var(--serif); } .top span { color: var(--dim); letter-spacing: .14em; text-transform: uppercase; font-size: 10px; }
+    #title { position: fixed; left: 0; right: 0; bottom: 24vh; z-index: 3; text-align: center; font: 700 clamp(44px, 9vw, 120px)/1 var(--serif); letter-spacing: .14em; color: #f2d04a; text-shadow: 0 0 30px rgba(242, 168, 58, .6), 0 2px 0 #1a1410; opacity: 0; filter: blur(14px); transition: opacity 2.2s, filter 2.6s; pointer-events: none; }
+    #title.on { opacity: 1; filter: blur(0); } #title small { display: block; font: italic 400 clamp(14px, 2vw, 22px)/1.6 var(--serif); letter-spacing: .1em; color: var(--cyan); }
+    #goals { position: fixed; right: 6vw; top: calc(16px + env(safe-area-inset-top, 0px)); z-index: 4; margin: 0; padding: 10px 12px; list-style: none; display: grid; gap: 5px; max-width: 270px; background: rgba(26, 18, 12, .5); border: 1px solid var(--line); font-size: 11px; }
+    #goals li { color: var(--dim); } #goals li.done { color: var(--ink); text-decoration: line-through; text-decoration-color: var(--magenta); }
+    #goals li::before { content: "○ "; color: var(--amber); } #goals li.done::before { content: "● "; color: var(--magenta); }
+    #line { position: fixed; left: 0; right: 0; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); z-index: 4; padding: 0 20px; text-align: center; font: italic 400 clamp(16px, 2.4vw, 23px)/1.4 var(--serif); text-shadow: 0 1px 12px rgba(0, 0, 0, .9); pointer-events: none; opacity: 0; transition: opacity .7s; text-wrap: balance; }
+    #line.on { opacity: 1; }
+    .bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; padding: 10px 6vw calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .bar .keys { color: var(--dim); letter-spacing: .1em; text-transform: uppercase; font-size: 10px; margin-right: auto; }
+    button { all: unset; cursor: pointer; font: 600 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink); border: 1px solid var(--line); padding: 10px 12px; background: rgba(26, 18, 12, .4); }
+    button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; } button[aria-pressed="true"] { background: var(--ink); color: var(--stage); }
+    #do { background: var(--magenta); border-color: var(--magenta); }
+    .modes { display: flex; } .modes button { border-right-width: 0; } .modes button:last-child { border-right-width: 1px; }
+    #hurt { position: fixed; inset: 0; z-index: 3; background: radial-gradient(transparent 40%, rgba(216, 32, 90, .55)); opacity: 0; transition: opacity .25s; pointer-events: none; } #hurt.on { opacity: 1; }
+    .lb { position: fixed; left: 0; right: 0; height: 0; background: #000; z-index: 3; transition: height .6s; pointer-events: none; } .lb.t { top: 0; } .lb.b { bottom: 0; }
+    body.cinema .lb { height: calc((100vh - 100vw / 2.39) / 2); } body.cinema #goals, body.cinema .top { opacity: 0; } body.cinema #scope { opacity: 0; }
+    #shot { position: fixed; left: 6vw; bottom: calc((100vh - 100vw / 2.39) / 2 + 12px); z-index: 4; color: var(--dim); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; display: none; } body.cinema #shot { display: block; }
+    #boot { position: fixed; inset: 0; display: grid; place-items: center; background: var(--stage); z-index: 9; transition: opacity .6s; text-align: center; padding: 24px; } #boot.done { opacity: 0; pointer-events: none; }
+    #boot b { display: block; font: 700 28px/1.3 var(--serif); letter-spacing: .14em; color: #f2d04a; margin-bottom: 8px; } #boot span { color: var(--dim); font-size: 11px; letter-spacing: .08em; }
+    @media (max-width: 720px) { .bar .keys { display: none; } #goals { display: none; } }
+  </style>
+</head>
+<body class="wide">
+  <canvas id="c" tabindex="0" aria-label="MESA CHIP, a desert of glass. W A S D move, Shift run, E do, R draw, Space or click fire, X smoke, P poncho, T sandstorm, Z fall, G glass grid, 1 to 6 pads and time of day, V cinema."></canvas>
+  <canvas id="grid"></canvas><canvas id="fx"></canvas>
+  <div id="scope"></div><div id="hurt"></div><div class="lb t"></div><div class="lb b"></div>
+  <header class="top"><b>Uncle Mesa</b><span id="where">The Title Gate</span></header>
+  <div id="title">MESA CHIP<small>a cyber-western of glass</small></div>
+  <ol id="goals" aria-label="The trail"></ol>
+  <div id="line" aria-live="polite"></div><div id="shot"></div>
+  <div class="bar">
+    <span class="keys">W A S D · Shift · E do · R draw · Space fire · X smoke · P poncho · T storm · Z fall · G grid · 1–6 pads</span>
+    <button id="do" type="button" hidden></button>
+    <button id="gridb" type="button" aria-pressed="true" title="Glass-block grid (G)">Grid</button>
+    <button id="wide" type="button" aria-pressed="true" title="Barrel-scope mask">Wide</button>
+    <div class="modes" role="group" aria-label="How to be here"><button type="button" data-mode="world" aria-pressed="true">World</button><button type="button" data-mode="game" aria-pressed="false">Game</button><button type="button" data-mode="cinema" aria-pressed="false">Cinema</button></div>
+  </div>
+  <div id="boot" role="status"><div><b>MESA CHIP</b><span id="boot-s">Cutting glass…</span></div></div>
+  <script src="../field-plates/three.js"></script>
+  <script src="../donkey/donkey.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-eye-globe.js?v=v6sculpt1"></script><script src="../donkey/scion-eyelids.js?v=v6sculpt1"></script>
+  <script src="../donkey/human-physical-v6.js?v=v6sculpt1"></script><script src="../donkey/human-sculpt-v3.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-groom-garments.js?v=v6sculpt2"></script><script src="../donkey/characters.js?v=cast2"></script>
+  <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
+  <script src="./mesa-world.js?v=1"></script>
+  <script src="./mesa.js?v=1"></script>
+</body>
+</html>

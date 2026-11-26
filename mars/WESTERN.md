@@ -17,9 +17,9 @@ Every verb is taken from the El Desierto clips the level was compiled from (`sou
 | Ride, get down, get on | W A S D, Shift, E | Make-photo's donkey; Tex rides its saddle point with the `ride` pose. At a gallop into a wall, he is thrown | #988 |
 | Walk | W A S D, Shift | A Rapier character controller: walls stop you, steps and porches are climbed | |
 | Go into the saloon | walk through the batwing doors | A real room: bar, bottles, tables, chairs, two lamps, a stage. Inside, the camera comes in and the sound changes | #754, #760 |
-| Play the krar | E at the stage, 1–6 | Six plucked strings (Karplus-Strong) in the Tezeta scale on G; the `krar` pose; the camera watches from the bar | #754, #760 |
+| Play the krar | E at the stage, 1–6 | Six rivulets run down the glass to a bridge line; pluck each drop as it arrives (`atlas/glass-games.js`, shared with the trough). Six plucked strings (Karplus-Strong) in the Tezeta scale on G; the `krar` pose; the camera watches from the bar | #754, #760 |
 | Light a cigarette | X | A match strike, the `smoke` pose bringing it to the lips, the ember brightening on each draw, smoke from the lips | #757 |
-| Draw and fire a revolver | R, Space or click | The `aim` pose and recoil. A ray goes into the physics world: bottles break, cans ring, barrels roll, people fall | #988, #757 |
+| Draw and fire a revolver | R, Space or click | A reticle of water drops that closes as the hand steadies, with sway and a six-drop cylinder. The `aim` pose and recoil. A ray goes into the physics world: bottles break, cans ring, barrels roll, people fall | #988, #757 |
 | Fall | Z | A ragdoll: capsules on spherical joints drive the cast's own bones until the body is still, then he gets up | |
 | Draw water, give water | E at the tank, E by Selam | The windmill tank; 20 L carried to the telegraph | |
 | Take the lift, board the monorail | E | After the storm, a glass lift to the platform; the train docks every 42 s; a tracking shot over the canyon | #761 |
@@ -81,7 +81,7 @@ Between events the director cycles through a Leone wide (the figure small in the
 
 ## Not yet
 
-- **In the trough:** the can carries the saloon (room, walls, lamps) and the station, but the trough's player cannot yet draw, smoke, play or board. Those verbs belong in the trough's vocabulary (`atlas/JERRYCAN.md`), and its physics is its own.
+- **In the trough:** the draw, the krar, the lift and the monorail are now offers on the trough's surface, played as glass mini-games and cutscenes (`atlas/JERRYCAN.md` §10). Smoking, falling and the ragdolls are still only in this page, and the trough's player is Imani, not Tex.
 - **Standoffs and duels:** no AI draws on you yet. The Matriarch's standoff (#757) is the next scene: a timed draw, a winner and a fall.
 - **Bodies:** the horse in the film is still the donkey, and people who are shot get up again.
 - **Realism:** ragdoll joints have no angle limits yet, so a fall can bend a knee the wrong way.

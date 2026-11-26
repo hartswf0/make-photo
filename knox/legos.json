@@ -1,0 +1,21 @@
+{
+ "legos": "1.1", "can": "knox",
+ "L": [
+  { "id": "church", "name": "Eastminster Presbyterian", "at": "church", "keeper": "pastor", "offers": ["unlock", "ring", "talk"], "variants": { "probable": { "note": "an ordinary Sunday: raccoons in the trash, kudzu at the edge of the yard" }, "plausible": { "note": "the kudzu has reached the walls" }, "preposterous": { "note": "the kudzu has taken the steeple; the bell rings through leaves" } } },
+  { "id": "shed", "name": "the custodian's shed", "at": "shed", "keeper": "custodian", "offers": ["drive"] },
+  { "id": "golf", "name": "Holston Hills", "at": "golf", "keeper": "groundskeeper", "offers": ["deliver", "talk"] },
+  { "id": "hq", "name": "World Headquarters", "at": "hq", "keeper": "pilot", "offers": ["elevator", "fly", "talk"] },
+  { "id": "sunsphere", "name": "The Sunsphere", "at": "sunsphere", "offers": ["circle"] },
+  { "id": "stadium", "name": "Neyland Stadium", "at": "stadium", "offers": [] }
+ ],
+ "E": [
+  { "id": "custodian", "name": "Otis", "is": "a Black man in his fifties, salt-and-pepper beard, tan felt cowboy hat, navy chore coat over a chambray shirt, dark jeans, boots", "cast": "tex + spec" },
+  { "id": "pastor", "name": "Reverend Ruth", "is": "a Black woman in her sixties, silver hair swept back, a plum shawl over a cream blouse", "cast": "almaz_matriarch + spec", "at": "church steps", "clip": "idle-talking" },
+  { "id": "groundskeeper", "name": "Mr. Hollis", "is": "a Black man in his seventies, short grey hair and beard, green work parka, khaki trousers", "cast": "yared_krar + spec", "at": "the first green", "clip": "farm-watering" },
+  { "id": "pilot", "name": "Captain Dee", "is": "a Black woman in her thirties, short locs, brown flight jacket over a white shirt, navy trousers", "cast": "selam_wire + spec", "at": "the helipad", "clip": "idle-foldarms" },
+  { "id": "raccoons", "name": "three raccoons", "at": "the trash cans behind the shed" }
+ ],
+ "G": [ ["unlock", "the church doors"], ["bell", "six strokes for eleven o'clock"], ["raccoons", "paint them off the trash"], ["kudzu", "nine clumps, three hits each"], ["hay", "four bales to the picnic"], ["fly", "one lap of the Sunsphere"] ],
+ "O": ["paintball marker", "tractor", "hay wagon", "six hay bales", "four trash cans", "helicopter", "the bell"],
+ "S": ["paint", "drive", "fly", "ring"]
+}
