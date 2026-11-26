@@ -209,7 +209,7 @@ function frame() {
   const loc = stepActor(dt); stepTake(dt); stepRun();
   const portal = worlds ? worlds.nearest(tmp.set(actor.x, DIM.FLOOR + 1.2, actor.z), 3.2) : null, own = worlds && worlds.portals.find(p => p.car === loc.car);
   const ctx = { a: actor, car: loc.car, aisleZ: loc.aisleZ, side: actor.seated ? Math.sign(actor.z) || 1 : (own && Math.abs(own.pos.z) > .5 ? Math.sign(own.pos.z) : 1), bee: bees.lead, t: state.t, dist: journey.dist, speed: journey.speed, noseX: train.noseX, tailX: train.tailX };
-  ctx.shoulder = state.shoulder; ctx.heist = game.mode === 'game';
+  ctx.shoulder = state.shoulder; ctx.heist = game.mode === 'game'; ctx.high = state.high || run.on;   // the run and its seed use the high rear camera: whole body, feet and the door ahead
   if (ctx.heist && !state.bee && !run.on && rig.st.shot.id !== 'follow') setShot('follow', true);
   if (ctx.heist && !state.bee) { input.yaw = input.pitch = 0; rig.st.yaw = rig.st.pitch = 0; rig.st.zoom = 1; }   // the heist camera is fixed: a stray drag must not tip the lens
   if (ctx.heist) { const cN = cars[cars.length - 1]; if (actor.x < cN.x + cN.walkMin + .6) actor.cam = 1; if (actor.x > cars[0].x - DIM.L / 2 + 2.2) actor.cam = -1; }
@@ -268,7 +268,7 @@ async function seed(id) {
   const c = cars[sd.car]; state.take = false; state.walkGoal = null; journey.dist = sd.km * 1000; journey.phase = 'run'; journey.speed = journey.cruise;
   if (sd.seat !== undefined) { const st = sd.seat < 0 ? c.playerSeat : c.seats[sd.seat]; actor.seated = true; actor.seat = { car: c, ...st }; actor.x = c.x + st.x; actor.z = st.z; actor.dir = st.face; }
   else { actor.seated = false; actor.x = c.x + sd.x; actor.dir = sd.dir || -1; actor.z = c.aisleZ + (sd.z || 0); actor.yaw = actor.dir * Math.PI / 2; if (sd.walk) state.walkGoal = actor.x + actor.dir * sd.walk; }
-  state.forceSwarm = !!sd.swarm; state.empty = !!sd.empty; setCans(!!sd.cans); if (sd.cans && game.mode === 'game') gameSys.setMode('world'); setShot(sd.shot); const st = rig.st; st.yaw = sd.yaw || 0; st.pitch = sd.pitch || 0; st.zoom = sd.zoom || 1; if (sd.mt !== undefined) st.mem.t0 = state.t - sd.mt;
+  state.forceSwarm = !!sd.swarm; state.empty = !!sd.empty; setCans(!!sd.cans); state.high = !!sd.high; actor.cam = actor.dir; if (sd.cans && game.mode === 'game') gameSys.setMode('world'); setShot(sd.shot); const st = rig.st; st.yaw = sd.yaw || 0; st.pitch = sd.pitch || 0; st.zoom = sd.zoom || 1; if (sd.mt !== undefined) st.mem.t0 = state.t - sd.mt;
   document.body.classList.add('nohud'); return sd;
 }
 function b64(buf) { let s = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 32768) s += String.fromCharCode.apply(null, u.subarray(i, i + 32768)); return btoa(s); }
@@ -298,7 +298,7 @@ const run = { on: false, cars: [], n: 1 };
 async function startRun() {
   if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds;
   const spam = params.get('run') !== 'worlds';   // ?run is SPAM on a Train; ?run=worlds is the earlier corpus run
-  run.cars = spam ? (await (await fetch('data/spam_session.json')).json()).run.map((c, k) => ({ ...c, car: k + 1 })) : seeds.filter(x => x.run).sort((a, b) => a.run - b.run); run.on = true; run.n = 1; state.take = false; state.stings = 0; state.empty = spam || !!run.cars[0].empty; setCans(spam); if (game.mode === 'game') gameSys.setMode('world');
+  run.cars = spam ? (await (await fetch('data/spam_session.json')).json()).run.map((c, k) => ({ ...c, car: k + 1 })) : seeds.filter(x => x.run).sort((a, b) => a.run - b.run); run.on = true; run.n = 1; actor.cam = -1; state.take = false; state.stings = 0; state.empty = spam || !!run.cars[0].empty; setCans(spam); if (game.mode === 'game') gameSys.setMode('world');
   if (worlds && worlds.stage.active) await worlds.exit();
   actor.seated = false; actor.x = cars[1].x + 5.6; actor.z = 0; actor.dir = -1; actor.yaw = -Math.PI / 2; state.walkGoal = null; rig.set('follow'); ui.shot('follow', false);
   document.body.classList.add('run'); ui.cue(run.cars[0], 1, run.cars.length, true); stub('The run', 'one session · hold W · a cue at every door'); return true;
