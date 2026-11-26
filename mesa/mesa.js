@@ -15,8 +15,9 @@
   const boot = s => { $("boot-s").textContent = s; };
 
   /* ---------- renderer, the painted sky, the sun ---------- */
-  const canvas = $("c"), renderer = new T.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6)); renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+  const COARSE = matchMedia("(pointer: coarse)").matches || (navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 900);   /* a phone: fewer pixels, a smaller shadow map */
+  const canvas = $("c"), renderer = new T.WebGLRenderer({ canvas, antialias: !COARSE, preserveDrawingBuffer: !COARSE, powerPreference: "high-performance" });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, COARSE ? 1.25 : 1.6)); renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap; renderer.localClippingEnabled = true;
   const scene = new T.Scene(), camera = new T.PerspectiveCamera(52, 1, .1, 5000);
   const LENS = window.MesaLens ? window.MesaLens.create({ T, renderer }) : null;   /* the SCION lenses (lens.js): L cycles them */
@@ -46,7 +47,7 @@
         c = mix(c, vec3(.93, .72, .42), uStorm * .85); gl_FragColor = vec4(c, 1.); }` }));
   scene.add(sky);
   const hemi = new T.HemisphereLight(0xfff0d8, 0x9a5a2e, .8); scene.add(hemi);
-  const sun = new T.DirectionalLight(0xffe2b0, 2.8); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 700 }); sun.shadow.bias = -.0004; scene.add(sun, sun.target);
+  const sun = new T.DirectionalLight(0xffe2b0, 2.8); sun.castShadow = true; sun.shadow.mapSize.set(COARSE ? 1024 : 2048, COARSE ? 1024 : 2048); Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 700 }); sun.shadow.bias = -.0004; scene.add(sun, sun.target);
   const fx = $("fx"), FX = fx.getContext("2d"), grid = $("grid"), GX = grid.getContext("2d");
   const resize = () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); for (const c of [fx, grid]) { c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio; } if (MIR) MIR.rt.setSize(Math.round(innerWidth * .5), Math.round(innerHeight * .5)); if (LENS) LENS.resize(); };
   let MIR = null; addEventListener("resize", resize);
@@ -119,7 +120,7 @@
   const kD = make(spec("tex", { name: "Knight", scale: 1.08, build: 1.1, fem: .05, outer: "none" }), "knight"), pD = make(spec("yared_krar", { name: "Marcher", outer: "none" }), "marcher");
   for (const d of [kD, pD]) if (d) { d.group.visible = false; d.group.position.set(0, -200, 0); }
   let motion = null;
-  try { motion = window.Mesh2MotionWorldBridge.createWorldCastDriver(T, { clipsBaseUrl: "../motion-pipeline/mesh2motion/clips", preload: ["idle", "walk", "jog", "sprint", "crouch-walk", "crouch-idle", "horse-idle", "horse-walk", "horse-trot", "sitting-idle", "idle-foldarms", "angry"], defaultBlend: 1, defaultFade: .25 });
+  try { motion = window.Mesh2MotionWorldBridge.createWorldCastDriver(T, { clipsBaseUrl: "../motion-pipeline/mesh2motion/clips", preload: ["idle", "walk", "jog", "sprint", "crouch-walk", "crouch-idle", "horse-idle", "horse-walk", "horse-trot", "sitting-idle", "idle-foldarms", "angry", "walk-backwards", "jump", "victory", "clapping", "greeting"], defaultBlend: 1, defaultFade: .25 });
     motion.registerActor("mesa", me, { defaultClip: "idle", blend: 1 }); if (anta) motion.registerActor("anta", anta, { defaultClip: "idle-foldarms", blend: 1 }); if (kD) motion.registerActor("knightD", kD, { defaultClip: "idle", blend: 1 }); if (pD) motion.registerActor("procD", pD, { defaultClip: "walk", blend: 1 }); for (const o of outlaws) if (o.ch) { motion.registerActor(o.id, o.ch, { defaultClip: "idle", blend: 1 }); o.ch.group.visible = false; } } catch (e) { console.warn("motion", e); motion = null; }
   /* his signature pieces, carried with the body: round white-rimmed glasses, the yellow-and-blue MESA CHIP pocket badge, the dark-weave poncho, the revolver */
   const glasses = new T.Group(); { const rim = new T.MeshStandardMaterial({ color: 0xf4f2ec, roughness: .3, metalness: .2 }), lens = new T.MeshStandardMaterial({ color: 0xf2c84a, transparent: true, opacity: .35, roughness: .05, metalness: .3 });
@@ -136,8 +137,8 @@
     const g2 = new T.Mesh(new T.BoxGeometry(.03, .09, .04), grip); g2.position.set(0, -.05, -.03); g2.rotation.x = -.3; gun.add(g2); }
   let BRIM_UP = .15, BEARD_UP = -.3; const HAND = 20; const holdGun = on => { const b = me.bones && me.bones[HAND]; if (!b) return; if (on) { b.add(gun); gun.position.set(0, -.05, .06); gun.rotation.set(-Math.PI / 2, 0, 0); } else if (gun.parent) gun.parent.remove(gun); };
   const _aw = new T.Vector3(), _ac = new T.Vector3(), _aq = new T.Quaternion(), _aq2 = new T.Quaternion();
-  function aimArm(ch, dir) { const B = ch.bones; if (!B || !B[16]) return; ch.group.updateMatrixWorld(true);
-    for (const [bi, ci] of [[16, 18], [18, 20]]) { const b = B[bi], c = B[ci]; b.getWorldPosition(_aw); c.getWorldPosition(_ac); const cur = _ac.sub(_aw).normalize(); _aq.setFromUnitVectors(cur, dir); b.getWorldQuaternion(_aq2); _aq2.premultiply(_aq); b.parent.getWorldQuaternion(_aq); b.quaternion.copy(_aq.invert().multiply(_aq2)); b.updateMatrixWorld(true); } }
+  function aimArm(ch, dir, left) { const B = ch.bones; if (!B || !B[16]) return; ch.group.updateMatrixWorld(true);
+    for (const [bi, ci] of left ? [[10, 12], [12, 14]] : [[16, 18], [18, 20]]) { const b = B[bi], c = B[ci]; b.getWorldPosition(_aw); c.getWorldPosition(_ac); const cur = _ac.sub(_aw).normalize(); _aq.setFromUnitVectors(cur, dir); b.getWorldQuaternion(_aq2); _aq2.premultiply(_aq); b.parent.getWorldQuaternion(_aq); b.quaternion.copy(_aq.invert().multiply(_aq2)); b.updateMatrixWorld(true); } }
   const boneW = (ch, i, out) => { const b = ch.bones && ch.bones[i]; if (b) b.getWorldPosition(out); else out.copy(ch.group.position).add(new T.Vector3(0, 1.6, 0)); return out; };
 
   /* ---------- painted bodies: a hit is pinned to the nearest bone, so the paint walks, falls and rides with the body ----------
@@ -276,15 +277,16 @@
     const spread = .012 + (1 - st.steady) * .02, col = PAINT[paintN++ % PAINT.length]; let d;
     if (LOCK.p) { const to = LOCK.p.clone(), tf = to.distanceTo(o) / 32; to.y += .5 * 9.81 * tf * tf; d = to.sub(o).normalize().add(new T.Vector3((Math.random() - .5) * .012, (Math.random() - .5) * .012, (Math.random() - .5) * .012)).normalize(); }   /* locked: lead the drop */
     else d = dir.clone().add(new T.Vector3((Math.random() - .5) * spread, (Math.random() - .5) * spread + .035, (Math.random() - .5) * spread)).normalize();
-    tracer(o, o.clone().addScaledVector(d, 9), col); puff(o.clone().addScaledVector(d, .2), 0xff3aa8, d.clone().multiplyScalar(2.4), .4, .14, 2.6, true); S.shot(o, .22); if (LENS) LENS.event("fire", col);
-    INK.fire(o, d, col, LOCK.p ? 32 : 30 + Math.random() * 4); puff(o.clone().addScaledVector(d, .12), col, d.clone().multiplyScalar(1.5), .3, .05, 1.4, false); S.launch(o); }
+    const tru = st.steady >= .85 && !!LOCK.p; if (tru) { st.steady = .35; GAME.kick = 1; S.shot(o, .5); }   /* a settled, locked shot is a true shot: it hits twice as hard */
+    tracer(o, o.clone().addScaledVector(d, tru ? 16 : 9), tru ? 0xffffff : col); puff(o.clone().addScaledVector(d, .2), 0xff3aa8, d.clone().multiplyScalar(2.4), .4, .14, 2.6, true); S.shot(o, .22); if (LENS) LENS.event("fire", col);
+    INK.fire(o, d, col, LOCK.p ? 32 : 30 + Math.random() * 4, { owner: tru ? "true" : "mesa", exclude: meCol }); puff(o.clone().addScaledVector(d, .12), col, d.clone().multiplyScalar(1.5), .3, .05, 1.4, false); S.launch(o); }
   function inkHit(who, q, n, d, col, owner) {
     SPORE.scatter(q, 1);
-    if (who && who.kind === "knight" && owner !== "outlaw") { const dmg = window.__trials ? window.__trials.hit(q, col) : 1; KN.hit(0, q, .42, col); KNIGHT.hp -= dmg; if (LENS) LENS.event("hit", col); S.glass(q, .5); if (KNIGHT.hp <= 0 && KNIGHT.state !== "shattered") { KN.shatter(0, d); if (LENS) LENS.event("shatter"); if (window.__trials) window.__trials.win(); KNIGHT.state = "shattered"; KNIGHT.t = 0; S.glass(q, 2); complete("knight", "The knight goes to pieces on the mirror floor, every shard still holding its colour."); } return true; }   /* what a paintball does besides land: prisms crack, outlaws go down in their own colour, shards skitter */
+    if (who && who.kind === "knight" && owner !== "outlaw") { const dmg = window.__trials ? window.__trials.hit(q, col) : (owner === "true" ? 2 : 1); KN.hit(0, q, .42, col); KNIGHT.hp -= dmg; if (LENS) LENS.event("hit", col); S.glass(q, .5); if (KNIGHT.hp <= 0 && KNIGHT.state !== "shattered") { KN.shatter(0, d); if (LENS) LENS.event("shatter"); if (window.__trials) window.__trials.win(); KNIGHT.state = "shattered"; KNIGHT.t = 0; S.glass(q, 2); complete("knight", "The knight goes to pieces on the mirror floor, every shard still holding its colour."); } return true; }   /* what a paintball does besides land: prisms crack, outlaws go down in their own colour, shards skitter */
     if (who && who.kind === "prism") { const p = who.p; p.hp--; S.glass(q, .3); if (p.hp <= 0) shatter(p, d); return false; }
-    if (who && who.kind === "me") { if (owner !== "outlaw") return true; paintBody(me, q, col, 3); if (st.mode !== "down" && GAME.dashT <= 0 && GAME.hurtT > .9) { $("hurt").classList.add("on"); setTimeout(() => $("hurt").classList.remove("on"), 260); GAME.hp--; GAME.hurtT = 0; GAME.combo = 0; GAME.shake = .6; S.hurt(); if (GAME.hp <= 0) { GAME.hp = 3; GAME.score = Math.max(0, GAME.score - 300); fall("Three hits. He goes down, and he gets up."); } } return true; }
+    if (who && who.kind === "me") { if (owner !== "outlaw") return true; paintBody(me, q, col, 3); if (st.mode !== "down" && GAME.dashT <= 0 && GAME.hurtT > .9) { $("hurt").classList.add("on"); setTimeout(() => $("hurt").classList.remove("on"), 260); GAME.hp--; GAME.hurtT = 0; GAME.combo = 0; GAME.shake = .6; S.hurt(); if (GAME.hp <= 0) { GAME.hp = 3; GAME.score = Math.max(0, GAME.score - 300); fall("Three hits. He goes down, and he gets up."); if (anta && done.gate) { st.downT = 1.5; say("Three hits. Anta hauls him back up.", 2.5); } } } return true; }
     if (who && who.kind === "chip") { if (owner === "outlaw") return true; const c = who.ch; if (!c.alive) return true; c.alive = false; c.t = -2 - Math.random() * 3; flash.color.set(col); flash.position.copy(q); flash.intensity = 60; S.glass(q, .3); st.ink = Math.min(100, st.ink + 12); score(40, q); for (let i = 0; i < 7; i++) puff(q.clone(), i % 2 ? col : 0xffffff, new T.Vector3((Math.random() - .5) * 6, Math.random() * 4, (Math.random() - .5) * 6), .7, .22, 2.5, true); return true; }
-    if (who && who.kind === "outlaw") { const ol = who.o; paintBody(ol.ch, q, col, 3); if (owner === "outlaw") return true; if (ol.state === "run" || ol.state === "telegraph" || ol.state === "fire" || ol.state === "stagger") { ol.hp--; if (ol.hp <= 0) { ol.state = "fall"; ol.t = 0; S.thud(q); score(100, q); } else { ol.state = "stagger"; ol.t = 0; ol.x += d.x * .6; ol.z += d.z * .6; score(30, q); } }
+    if (who && who.kind === "outlaw") { const ol = who.o; paintBody(ol.ch, q, col, 3); if (owner === "outlaw") return true; if (ol.state === "run" || ol.state === "telegraph" || ol.state === "fire" || ol.state === "stagger") { ol.hp -= owner === "true" ? 2 : 1; if (ol.hp <= 0) { ol.state = "fall"; ol.t = 0; S.thud(q); score(100, q); if (owner === "true") { GAME.slow = Math.max(GAME.slow, .4); GAME.kick = 1.6; } } else { ol.state = "stagger"; ol.t = 0; ol.x += d.x * .6; ol.z += d.z * .6; score(30, q); } }
       const gp = new T.Vector3(q.x, heightAt(q.x, q.z), q.z); INK.splat(gp, new T.Vector3(0, 1, 0), d, col, 1.4); return true; }
     if (who && who.kind === "shard") { who.b.applyImpulseAtPoint(v3(d.x * .4, .3, d.z * .4), v3(q.x, q.y, q.z), true); return true; }
     return false; }
@@ -308,6 +310,14 @@
   const NOTES = [392, 440, 523.3, 587.3, 659.3, 784, 880, 1046.5, 1174.7, 1318.5, 1568];
   const inPit = () => st.y < W.cathedralY + 2.5 && Math.abs(st.x - W.PIT.x) < W.PIT.hx + 3 && Math.abs(st.z - W.PIT.z) < W.PIT.hz + 3;
   function score(pts, p) { GAME.combo++; GAME.comboT = 3.4; GAME.score += pts * Math.min(GAME.combo, 10); GAME.best = Math.max(GAME.best, GAME.combo); GAME.mark = .16; GAME.shake = Math.max(GAME.shake, .18); S.note(NOTES[Math.min(GAME.combo - 1, NOTES.length - 1)], p); }
+  /* Anta is the second gun. Once he is through the gate she follows on foot or rides pillion, and paints the nearest outlaw (or the
+     knight) every second and a half. Her hits count toward the combo. When he goes down she hauls him up early. */
+  const AN = { cool: 2, aimT: 0, dir: new T.Vector3(0, 0, 1), n: 0 };
+  function antaStep(dt) { if (!anta || !INK || !done.gate) return; AN.cool -= dt; AN.aimT -= dt; if (AN.cool > 0) return; const from = boneW(anta, 20, new T.Vector3()); let best = null, bd = 46;
+    for (const o of outlaws) if (o.ch && o.ch.group.visible && (o.state === "run" || o.state === "telegraph" || o.state === "fire" || o.state === "stagger")) { const p = boneW(o.ch, 3, new T.Vector3()), d = p.distanceTo(from); if (d < bd) { bd = d; best = p; } }
+    if (!best && (KNIGHT.state === "hunt" || KNIGHT.state === "strike")) { const p = new T.Vector3(KNIGHT.x, W.cathedralY + 1.25, KNIGHT.z); if (p.distanceTo(from) < 40) best = p; }
+    if (!best) { AN.cool = .4; return; } const tf = best.distanceTo(from) / 30; best.y += .5 * 9.81 * tf * tf; const d = best.sub(from).normalize(); d.x += (Math.random() - .5) * .07; d.z += (Math.random() - .5) * .07; d.normalize();
+    AN.dir.copy(d); AN.aimT = .55; AN.cool = 1.3 + Math.random() * .6; INK.fire(from.clone().addScaledVector(d, .4), d, DAKAR[AN.n++ % DAKAR.length], 30, { owner: "anta", exclude: meCol }); S.launch(from); }
   function dash() { if (GAME.dashCool > 0 || st.mode !== "foot") return; const m = Math.hypot(GAME.mvx, GAME.mvz); GAME.dx = m > .1 ? GAME.mvx / m : Math.sin(st.heading); GAME.dz = m > .1 ? GAME.mvz / m : Math.cos(st.heading); GAME.dashT = .26; GAME.dashCool = .85; S.whoosh(); }
   const pickSpot = o => { const a = Math.atan2(o.x - st.x, o.z - st.z) + (Math.random() < .5 ? -1 : 1) * (.45 + Math.random() * .7), r = 8 + Math.random() * 9; o.tx = st.x + Math.sin(a) * r; o.tz = st.z + Math.cos(a) * r; };
   function startWave() { DUEL.wave++; DUEL.left = outlaws.length;
@@ -323,7 +333,7 @@
       if (o.state === "run") { const dx = o.tx - o.x, dz = o.tz - o.z, d = Math.hypot(dx, dz); if (o.t > 0 && d > .7) { o.x += dx / d * sp * dt; o.z += dz / d * sp * dt; g.rotation.y += wrapA(Math.atan2(dx, dz) - g.rotation.y) * (1 - Math.exp(-dt * 8)); mv = sp; } else if (o.t > 0) { o.state = "telegraph"; o.t = 0; S.tick(g.position); } }
       else if (o.state === "telegraph") { g.rotation.y = toMe; drawRing(ring, o.t / tele); if (o.t > tele) { o.state = "fire"; o.t = 0; outlawShot(o); } }
       else if (o.state === "fire" || o.state === "stagger") { g.rotation.y = toMe; if (o.t > .5) { o.state = "run"; o.t = 0; pickSpot(o); } }
-      else if (o.state === "fall") { g.rotation.x = lerp(g.rotation.x, -Math.PI / 2, 1 - Math.exp(-dt * 6)); if (o.t > 1.6) { o.state = "away"; g.visible = false; g.rotation.x = 0; DUEL.left--; if (DUEL.left === 0) { GAME.slow = .7; S.chime(); GAME.score += 250 * DUEL.wave; if (DUEL.wave === 3) complete("duel", "Three waves down, painted to the hat. More are coming."); else say("Clear.", 1.5); } } }
+      else if (o.state === "fall") { g.rotation.x = lerp(g.rotation.x, -Math.PI / 2, 1 - Math.exp(-dt * 6)); if (o.t > 1.6) { o.state = "away"; g.visible = false; g.rotation.x = 0; DUEL.left--; if (DUEL.left === 0) { GAME.slow = .7; GAME.cleared = (GAME.cleared || 0) + 1; GAME.cheer = 2; S.chime(); GAME.score += 250 * DUEL.wave; if (DUEL.wave === 3) complete("duel", "Three waves down, painted to the hat. More are coming."); else say("Clear.", 1.5); } } }
       if (motion) try { if (o.state === "run") motion.setActorLocomotion(o.id, { speedMps: mv, blend: 1 }); else motion.setClip(o.id, o.state === "stagger" ? "angry" : "idle", { fade: .15 }); } catch (e) { }
       if (o.state !== "away") g.position.set(o.x, heightAt(o.x, o.z) + (o.state === "fall" ? .2 : 0), o.z);
       ring.visible = o.state === "telegraph"; if (ring.visible) { const h = new T.Vector3(); boneW(o.ch, 7, h); ring.position.copy(h).add(new T.Vector3(0, .45, 0)); }
@@ -331,7 +341,7 @@
   /* glass chips: six-sided panes that hang and drift near him; a hit breaks one, pays ink and keeps the combo alive */
   const CHIPS = []; { const g = new T.CylinderGeometry(.5, .5, .07, 6); g.rotateX(Math.PI / 2); const cols = [["#2fd0d8", "#e9f4f0", "#2a4ab8"], ["#f2a83a", "#f2d04a", "#d8342c"], ["#e85aa8", "#f6efe0", "#2fd0d8"]];
     for (let i = 0; i < 7; i++) { const m = new T.Mesh(g, W.glassMat(W.leaded(700 + i, { cells: 3, pal: cols[i % 3] }), { opacity: .92, emissiveIntensity: 1.2 })); m.visible = false; scene.add(m); const b = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(0, -70 - i, 0)), c = world.createCollider(R.ColliderDesc.ball(.58), b), ch = { m, b, alive: false, t: -1 - i * .8, ph: i * 1.7, x: 0, y: 0, z: 0 }; OWNER.set(c.handle, { kind: "chip", ch }); CHIPS.push(ch); } }
-  function gameStep(dt, t) { GAME.comboT -= dt; if (GAME.comboT <= 0) GAME.combo = 0; GAME.dashT = Math.max(0, GAME.dashT - dt); GAME.dashCool = Math.max(0, GAME.dashCool - dt); GAME.mark = Math.max(0, GAME.mark - dt); GAME.shake = Math.max(0, GAME.shake - dt * 2.2); GAME.hurtT += dt; if (GAME.hp < 3 && GAME.hurtT > 7) { GAME.hp++; GAME.hurtT = 0; }
+  function gameStep(dt, t) { GAME.comboT -= dt; if (GAME.comboT <= 0) GAME.combo = 0; GAME.dashT = Math.max(0, GAME.dashT - dt); GAME.dashCool = Math.max(0, GAME.dashCool - dt); GAME.mark = Math.max(0, GAME.mark - dt); GAME.shake = Math.max(0, GAME.shake - dt * 2.2); GAME.kick = Math.max(0, (GAME.kick || 0) - dt * 5); GAME.cheer = Math.max(0, (GAME.cheer || 0) - dt); GAME.hurtT += dt; if (GAME.hp < 3 && GAME.hurtT > 7) { GAME.hp++; GAME.hurtT = 0; }
     if (GAME.dashT > 0 && Math.random() < dt * 60) puff(new T.Vector3(st.x, st.y + .3 + Math.random(), st.z), 0xf2d8a8, new T.Vector3(-GAME.dx * 2, .4, -GAME.dz * 2), .5, .3, 2.5, false);
     const live = DUEL.on && done.gate && st.mode === "foot" && !inPit();
     for (const c of CHIPS) { if (!c.alive) { c.m.visible = false; c.b.setNextKinematicTranslation(v3(0, -70, 0)); c.t += dt; if (c.t > 0 && live) { const a = CAM.yaw + (Math.random() - .5) * 2.4, r = 9 + Math.random() * 15; c.x = st.x + Math.sin(a) * r; c.z = st.z + Math.cos(a) * r; c.y = Math.max(heightAt(c.x, c.z), st.y) + 2.4 + Math.random() * 2; c.alive = true; c.life = 16; c.grow = 0; } continue; }
@@ -349,17 +359,32 @@
   const done = {}; $("goals").innerHTML = GOALS.map(([k, t]) => `<li data-k="${k}">${t}</li>`).join("");
   const nextGoal = () => { let found = false; for (const li of $("goals").children) { const n = !found && !done[li.dataset.k]; li.classList.toggle("next", n); if (n) found = true; } }; nextGoal(); $("goals").addEventListener("click", () => $("goals").classList.toggle("open"));
   function complete(k, line) { if (done[k]) return; done[k] = true; const li = $("goals").querySelector(`[data-k="${k}"]`); if (li) li.classList.add("done"); nextGoal(); S.chime(); if (line) say(line, 4); }
+  /* ---------- the way through: five missions in order, each with a beam to walk to and an arrow on the glass, ending at the trough
+     gate (atlas/trough-gate.js), which leads on into the trough. Nobody is left loose in the open world. ---------- */
+  const GATE = { x: 26, z: -256 }, TG = window.TroughGate ? window.TroughGate.build(T) : null; if (TG) { TG.position.set(GATE.x, heightAt(GATE.x, GATE.z), GATE.z); TG.rotation.y = .5; scene.add(TG); }
+  const MIS = [
+    { t: "Walk north through the title gate", at: () => [0, Z.title_gate.z - 8], ok: () => done.gate },
+    { t: "Clear the street with Anta", at: () => null, ok: () => (GAME.cleared || 0) >= 1 },
+    { t: "Ride the horned bike to the oasis. Anta shoots from the back", at: () => st.mode === "bike" ? [Z.oasis_pond.x, Z.oasis_pond.z] : [BK.x, BK.z], ok: () => near(st, Z.oasis_pond, 34) },
+    { t: "Go down into the glass cathedral and break the knight", at: () => [W.PIT.x, W.PIT.z + 20], ok: () => done.knight },
+    { t: "Carry the chip north to the trough", at: () => [GATE.x, GATE.z], ok: () => false }];
+  let MI = 0; const misLi = document.createElement("li"), WAY = new T.Mesh(new T.CylinderGeometry(.35, .35, 120, 10, 1, true), new T.MeshBasicMaterial({ color: 0xf2d04a, transparent: true, opacity: .3, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false })), WAYAT = new T.Vector3(); WAY.visible = false; scene.add(WAY);
+  misLi.className = "next"; misLi.textContent = MIS[0].t; $("goals").prepend(misLi);
+  function missionStep() { const m = MIS[MI]; if (!m) return; if (m.ok()) { MI++; S.chime(); const n = MIS[MI]; if (n) { misLi.textContent = n.t; say(n.t + ".", 4.5); } return; }
+    const a = MODE === "cinema" ? null : m.at(); WAY.visible = !!a && MI !== 4; if (a) { WAYAT.set(a[0], heightAt(a[0], a[1]) + 1.2, a[1]); WAY.position.set(a[0], WAYAT.y + 59, a[1]); } else WAYAT.y = -9999; }
   let lineT = 0; function say(t, sec = 3) { $("line").textContent = t; $("line").classList.add("on"); lineT = sec; }
   const near = (a, b, r) => Math.hypot(a.x - b.x, a.z - b.z) < r;
   function offer() { const p = { x: st.x, z: st.z };
-    if (st.mode === "bike") return Math.abs(BK.speed) < 2 ? { label: "Get off", run: () => { st.mode = "foot"; S.engine(false); st.x = BK.x + Math.cos(BK.h) * 1.2; st.z = BK.z - Math.sin(BK.h) * 1.2; st.y = heightAt(st.x, st.z); meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); me.group.rotation.set(0, st.heading, 0); } } : null;
-    if (st.mode === "foot" && near(p, BK, 2.6)) return { label: "Ride the horned bike", run: () => { st.mode = "bike"; st.gun = false; holdGun(false); S.engine(true); if (!BK.rode) { BK.rode = true; say("Anta climbs on behind him. The horns point the way out of town.", 3.5); } complete("touki", "The zebu horns cut the wind. Touki Bouki: the journey of the hyena."); } };
+    if (st.mode === "bike") return Math.abs(BK.speed) < 7 ? { label: "Get off", run: () => { st.mode = "foot"; S.engine(false); st.x = BK.x + Math.cos(BK.h) * 1.2; st.z = BK.z - Math.sin(BK.h) * 1.2; st.y = heightAt(st.x, st.z); meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); me.group.rotation.set(0, st.heading, 0); } } : null;
+    if (st.mode === "foot" && near(p, BK, 3.6)) return { label: "Ride the horned bike", run: () => { st.mode = "bike"; st.gun = false; holdGun(false); S.engine(true); if (!BK.rode) { BK.rode = true; say("Anta climbs on behind him. The horns point the way out of town.", 3.5); } complete("touki", "The zebu horns cut the wind. Touki Bouki: the journey of the hyena."); } };
     if (st.mode === "ride") return { label: "Get down", run: () => { st.mode = "foot"; const M = mount.state; st.x = M.x + Math.cos(M.heading) * 1.6; st.z = M.z - Math.sin(M.heading) * 1.6; st.y = heightAt(st.x, st.z); meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); } };
     if (st.mode === "sit") return { label: "Stand", run: () => { st.mode = "foot"; } };
     if (st.mode !== "foot") return null;
+    if (TG && near(p, GATE, 5)) return { label: "Pour into the trough", run: () => { say("The chip goes into the water, and the water remembers the way.", 3); S.chime(); setTimeout(() => window.TroughGate.go("mesa", "mars"), 1400); } };
     if (near(p, mount.state, 3)) return { label: "Saddle up", run: () => { st.mode = "ride"; st.gun = false; holdGun(false); complete("horse", "Uncle Mesa swings up in front of the striped glass, and the wall throws his shadow forty feet long."); S.neigh(); } };
     if (near(p, W.zig.seat, 4)) return { label: "Sit and rest", run: () => { st.mode = "sit"; st.x = W.zig.seat.x; st.z = W.zig.seat.z; st.y = W.zig.seat.y; st.heading = Math.PI / 2; complete("zig", "He sits on the warm steps in the low sun, and the glass columns burn gold behind him."); } };
     if (near(p, W.booth.userData.seat, 2.2)) return { label: "Take a seat at the booth", run: () => { st.mode = "sit"; const s = W.booth.userData.seat; st.x = s.x; st.z = s.z; st.y = s.y - .7; st.heading = Math.PI; say("Uncle Chip's booth. Under the glass sign, a man can sit and still draw.", 3); } };
+    if (done.gate && !near(p, BK, 3.6)) return { label: "Call the bike", run: () => { BK.x = st.x + Math.cos(CAM.yaw) * 2.4; BK.z = st.z - Math.sin(CAM.yaw) * 2.4; BK.h = CAM.yaw; BK.speed = 0; S.cock(); say("Anta brings the bike round.", 2); } };
     return null; }
   let MODE = "world"; function setMode(m) { MODE = m; document.body.classList.toggle("cinema", m === "cinema"); for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", b.dataset.mode === m); DUEL.on = m === "game"; if (m === "game") { DUEL.wave = 0; DUEL.left = 0; DUEL.next = 0; GAME.score = 0; GAME.combo = 0; GAME.hp = 3; } DIR.i = 0; DIR.t = 0; }
   function fall(line) { if (LENS) LENS.event("fall"); if (window.__trials) window.__trials.fall(); if (st.mode === "ride") { st.mode = "foot"; } st.mode = "down"; st.downT = 0; if (line) say(line, 2); S.thud(new T.Vector3(st.x, st.y, st.z)); }
@@ -421,7 +446,7 @@
     if (KNIGHT.state === "hunt" || KNIGHT.state === "strike") tryP(new T.Vector3(KNIGHT.x, W.cathedralY + 1.25, KNIGHT.z), 60);
     for (const p of W.prisms) if (!p.broken) tryP(new T.Vector3(p.x, p.y, p.z), 30);
     return d; }
-  const GRAB = document.createElement("canvas"); let GRIDON = true, WIDE = true, STORM = 0, STORMON = false, gridT = 0;
+  const GRAB = document.createElement("canvas"); let GRIDON = !COARSE, WIDE = true, STORM = 0, STORMON = false, gridT = 0;
   function toggleStorm() { STORMON = !STORMON; S.storm(STORMON); say(STORMON ? "The sand comes up in gold ribbons, and the spectacles go with it." : "The storm lies down.", 2.2); }
   /* 1–6: six pads in the minor of the West, and six times of day to go with them */
   const MOODS = [
@@ -481,16 +506,17 @@
 
   /* ---------- the frame ---------- */
   boot("Opening the iris…");
+  const GODS = []; W.root.traverse(o => { if (o.userData.god) GODS.push(o); });
   const clock = new T.Clock(), IRIS = { open: 0 }; let offerNow = null, fstep = 0;
   const camPos = new T.Vector3(st.x, st.y + 3, st.z + 8), camLook = new T.Vector3(st.x, st.y + 1.5, st.z);
   function frame() {
     let dt = Math.min(clock.getDelta(), .05); const t = clock.elapsedTime; if (GAME.slow > 0) { GAME.slow -= dt; dt *= .35; }
     const padM = Math.hypot(PAD.mx, PAD.my), fwd = clamp((keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + (Math.abs(PAD.my) > .25 ? PAD.my : 0), -1, 1), turn = clamp((keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0) - (Math.abs(PAD.mx) > .25 ? PAD.mx : 0), -1, 1), run = keys.ShiftLeft || keys.ShiftRight || padM > .9;
-    const trig = (keys.Space || mouse.down || PAD.fire) && st.mode === "foot";
+    const kfwd = fwd, kturn = turn, trig = (keys.Space || mouse.down || PAD.fire) && st.mode === "foot";
     if (trig && !st.gun) { st.gun = true; holdGun(true); S.cock(); st.cool = .16; }   /* pulling the trigger draws */
     if (trig) st.gunT = 3.5; else if (st.gun && !st.gunLock) { st.gunT = (st.gunT || 0) - dt; if (st.gunT <= 0) { st.gun = false; st.steady = 0; holdGun(false); } }
     if (st.mode !== "foot" && st.mode !== "down") { CAM.yaw = st.heading; CAM.pitch = 0; }
-    st.cool = Math.max(0, st.cool - dt); st.recoil = Math.max(0, st.recoil - dt * 5); st.steady = Math.min(1, st.steady + dt * (st.gun ? 2.4 : 0));
+    st.cool = Math.max(0, st.cool - dt); st.recoil = Math.max(0, st.recoil - dt * 5); st.steady = clamp(st.steady + dt * (st.gun ? (st.speed < .4 ? 1.7 : .8) : -3), 0, 1);   /* the aim settles: quicker standing still */
     if (lineT > 0) { lineT -= dt; if (lineT <= 0) $("line").classList.remove("on"); }
     if (st.mode === "foot") {
       /* he goes where the camera faces: W and S along it, A and D across it, the arrows (or the right thumb, or the mouse at the
@@ -509,7 +535,7 @@
       st.speed = Math.hypot(mv.x, mv.z) / Math.max(dt, 1e-3);
       st.stride = (st.stride || 0) + st.speed * dt; if (st.stride > (st.speed > 3 ? 1.2 : .74) && !st.swim) { st.stride = 0; S.step(_lk.set(st.x, st.y, st.z), st.y < W.cathedralY + .6); }
       me.group.position.set(st.x, st.y, st.z); me.group.rotation.set(0, st.heading, 0);
-      if (motion) try { if (st.swim) motion.setClip("mesa", st.speed > .3 ? "crouch-walk" : "crouch-idle", { fade: .15 }); else motion.setActorLocomotion("mesa", { speedMps: st.speed, blend: 1 }); } catch (e) { }
+      if (motion) try { if (st.swim) motion.setClip("mesa", st.speed > .3 ? "crouch-walk" : "crouch-idle", { fade: .15 }); else if (GAME.dashT > 0) motion.setClip("mesa", "jump", { fade: .06 }); else if (GAME.cheer > 0 && st.speed < .3 && !trig) motion.setClip("mesa", "victory", { fade: .2 }); else if (st.gun && st.speed > .4 && GAME.mvx * Math.sin(st.heading) + GAME.mvz * Math.cos(st.heading) < -.4) motion.setClip("mesa", "walk-backwards", { fade: .15 }); else motion.setActorLocomotion("mesa", { speedMps: st.speed, blend: 1 }); } catch (e) { }
       if (st.swim && Math.random() < dt * 1.6) { const s0 = INK.inkUnder(st.x, st.z, st.y); if (s0 && me.bones) { const b = me.bones[[54, 59, 53, 58][Math.floor(Math.random() * 4)]]; if (b) paintBody(me, b.getWorldPosition(new T.Vector3()), s0.col, 1); } }
       if (st.swim && st.speed > .5 && Math.random() < dt * 30) { const s0 = INK.inkUnder(st.x, st.z, st.y); if (s0) puff(new T.Vector3(st.x, st.y + .1, st.z), s0.col, new T.Vector3((Math.random() - .5) * 2, 1.2, (Math.random() - .5) * 2), .5, .08, 1.5, false); }
     } else if (st.mode === "ride") {
@@ -517,13 +543,15 @@
       me.group.position.copy(_sp).add(new T.Vector3(0, -.62, 0)); me.group.quaternion.copy(_sq); st.x = M.x; st.z = M.z; st.y = _sp.y - 1.2; st.heading = M.heading;
       if (motion) try { motion.setClip("mesa", Math.abs(M.speed || 0) > 3.5 ? "horse-trot" : Math.abs(M.speed || 0) > .3 ? "horse-walk" : "horse-idle", { fade: .3 }); } catch (e) { }
     } else if (st.mode === "bike") {
+      /* a thumb on the stick is the throttle; lean it to steer; pull it right back to brake. The steering calms down with speed. */
+      const fwd = PAD.sid !== null ? (PAD.my < -.6 ? -1 : Math.max(.6, padM)) : kfwd, turn = PAD.sid !== null ? (Math.abs(PAD.mx) > .12 ? -PAD.mx : 0) : kturn;
       const boost = run ? 1.45 : 1, max = 19 * boost;
       BK.speed = lerp(BK.speed, fwd > 0 ? max * fwd : fwd < 0 ? (BK.speed > 1 ? 0 : -4) : 0, 1 - Math.exp(-dt * (fwd > 0 ? .7 : fwd < 0 ? 2.6 : 1.1)));
-      BK.steer = lerp(BK.steer, turn * .42, 1 - Math.exp(-dt * 6)); BK.h += BK.speed * Math.tan(BK.steer) / 1.46 * dt;
+      BK.steer = lerp(BK.steer, turn * .42 / (1 + Math.abs(BK.speed) / 14), 1 - Math.exp(-dt * 6)); BK.h += BK.speed * Math.tan(BK.steer) / 1.46 * dt;
       const want = v3(Math.sin(BK.h) * BK.speed * dt, -.5 * dt, Math.cos(BK.h) * BK.speed * dt); bkBody.setTranslation(v3(BK.x, heightAt(BK.x, BK.z) + .6, BK.z), true);
       bkCtrl.computeColliderMovement(bkCol, want, R.QueryFilterFlags.EXCLUDE_DYNAMIC, undefined, c => c !== meCol);
       const mv = bkCtrl.computedMovement(), blocked = Math.hypot(want.x - mv.x, want.z - mv.z); BK.x += mv.x; BK.z += mv.z;
-      if (blocked > .04) { if (Math.abs(BK.speed) > 13) { BK.speed = 0; S.engine(false); st.x = BK.x; st.z = BK.z; st.y = heightAt(BK.x, BK.z); st.heading = BK.h; meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); fall("The horns hit first. Everyone goes over."); } else BK.speed *= .35; }
+      if (blocked > .04) { if (Math.abs(BK.speed) > 21) { BK.speed = 0; S.engine(false); st.x = BK.x; st.z = BK.z; st.y = heightAt(BK.x, BK.z); st.heading = BK.h; meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); fall("The horns hit first. Everyone goes over."); } else BK.speed *= .35; }
       BK.lean = lerp(BK.lean, -BK.steer * clamp(Math.abs(BK.speed) / 9, 0, 1.4) * 1.05, 1 - Math.exp(-dt * 5)); BK.wheelie = lerp(BK.wheelie, run && fwd > 0 && BK.speed < max * .75 ? .2 : 0, 1 - Math.exp(-dt * 3));
       if (st.mode === "bike") { st.x = BK.x; st.z = BK.z; st.y = heightAt(BK.x, BK.z); st.heading = BK.h; S.engineRate(.7 + Math.abs(BK.speed) * .055); if (Math.random() < dt * (4 + BK.speed)) { const ex = TK.group.localToWorld(TK.exhaust.clone()); puff(ex, 0xe8dccb, new T.Vector3(-Math.sin(BK.h), .4, -Math.cos(BK.h)), 1.2, .12, 3, false); } }
       meBody.setTranslation(v3(BK.x, st.y + 1.25, BK.z), true);   /* his body rides with the bike, so paint can still find him */
@@ -540,18 +568,24 @@
       _bu.set(0, 1, 0).applyQuaternion(TK.group.quaternion);
       if (st.mode === "bike") { me.group.position.copy(TK.group.localToWorld(_bs.copy(TK.seat))).addScaledVector(_bu, -SEATH); me.group.quaternion.copy(TK.group.quaternion); }
       if (anta) { if (BK.rode && (st.mode === "bike" || near({ x: BK.x, z: BK.z }, { x: anta.group.position.x, z: anta.group.position.z }, 1.5))) { anta.group.position.copy(TK.group.localToWorld(_bs.copy(TK.pillion))).addScaledVector(_bu, -SEATH); anta.group.quaternion.copy(TK.group.quaternion); if (motion) try { motion.setClip("anta", "sitting-idle", { fade: .3 }); } catch (e) { } }
-        else { if (motion) try { motion.setClip("anta", "idle-foldarms", { fade: .3 }); } catch (e) { } }
+        else if (done.gate) { /* on foot she keeps to his right shoulder, a step behind */ const g = anta.group.position, tx = st.x - Math.sin(CAM.yaw) * 1.5 + Math.cos(CAM.yaw) * 1.9, tz = st.z - Math.cos(CAM.yaw) * 1.5 - Math.sin(CAM.yaw) * 1.9, dx = tx - g.x, dz = tz - g.z, d = Math.hypot(dx, dz), sp = d > 6 ? 5.2 : d > 1.1 ? 2.2 : 0;
+          if (d > 34) { g.x = tx; g.z = tz; } else if (sp) { g.x += dx / d * sp * dt; g.z += dz / d * sp * dt; anta.group.rotation.set(0, Math.atan2(dx, dz), 0); } else if (AN.aimT > 0) anta.group.rotation.set(0, Math.atan2(AN.dir.x, AN.dir.z), 0);
+          g.y = heightAt(g.x, g.z); if (motion) try { if (GAME.cheer > 0 && !sp) motion.setClip("anta", "clapping", { fade: .2 }); else motion.setActorLocomotion("anta", { speedMps: sp, blend: 1 }); } catch (e) { } }
+        else { if (motion) try { motion.setClip("anta", near(st, anta.group.position, 7) ? "greeting" : "idle-foldarms", { fade: .3 }); } catch (e) { } }
+        antaStep(dt);
         const ch = boneW(anta, 3, new T.Vector3()), f = new T.Vector3(0, 0, 1).applyQuaternion(anta.group.quaternion); satchel.position.copy(ch).addScaledVector(f, -.17).add(new T.Vector3(0, -.32, 0)); satchel.quaternion.copy(anta.group.quaternion); } }
 
     /* physics */
     { const n = Math.max(1, Math.ceil(dt * 60)); for (let k = 0; k < n; k++) { world.step(); fstep++; } }
     for (const s of shards) { const p = s.b.translation(), r = s.b.rotation(); s.m.position.set(p.x, p.y, p.z); s.m.quaternion.set(r.x, r.y, r.z, r.w); }
-    duelStep(dt); gameStep(dt, t); paintStep(t);
+    duelStep(dt); gameStep(dt, t); missionStep(); paintStep(t);
     if (trig && st.gun) { fire(aimDir()); if (LOCK.p) { /* the view leans toward what the gun has found */ const want = Math.atan2(LOCK.p.x - st.x, LOCK.p.z - st.z); CAM.yaw += wrapA(want - CAM.yaw) * (1 - Math.exp(-dt * (PAD.touch ? 5 : 2))); } } else { st.ink = Math.min(100, st.ink + dt * 6); if (st.gun && st.mode === "foot") aimDir(); else LOCK.p = null; }
     if (INK) { INK.step(dt, t); INK.setSun(SKY.uSun.value, scene.fog.color, scene.fog.density); if (INK.turf() >= 250) complete("turf", "250 square metres of the desert are yours, and all of it has turned to glass."); }
     if (motion) try { motion.update(dt); } catch (e) { }
     swarmStep(dt, t);
-    if (st.gun && st.mode === "foot") aimArm(me, aimDir());
+    if (st.gun && st.mode === "foot" && !(GAME.cheer > 0 && st.speed < .3 && !trig)) aimArm(me, aimDir().add(_lk.set(0, st.recoil * .3, 0)).normalize());   /* the arm kicks up with each shot */
+    if (st.mode === "bike") { const d = _lk.set(0, -.42, .9).applyQuaternion(TK.group.quaternion).normalize().clone(); aimArm(me, d); aimArm(me, d, true); }   /* both hands on the bars */
+    if (anta) { if (AN.aimT > 0) aimArm(anta, AN.dir); else if (BK.rode && st.mode === "bike") { const d = _lk.set(0, -.2, .95).applyQuaternion(TK.group.quaternion).normalize().clone(); aimArm(anta, d); aimArm(anta, d, true); } }
     for (const o of outlaws) if (o.state === "telegraph" || o.state === "fire") { const d = new T.Vector3(st.x - o.x, 1.2 + (o.state === "fire" ? .1 : -.25), st.z - o.z).normalize(); aimArm(o.ch, d); }
 
     /* his pieces follow his head and chest */
@@ -578,7 +612,7 @@
     specs.mat.opacity = STORM * .9; for (const s of specs) { s.ph += dt * .4; s.g.position.set(st.x + Math.cos(s.ph) * s.r, st.y + 2.2 + Math.sin(s.ph * 1.7), st.z + Math.sin(s.ph) * s.r); s.g.rotation.set(s.ph, s.ph * .7, 0); s.g.visible = STORM > .05; }
     { const p = dust.geometry.attributes.position; for (let i = 0; i < p.count; i++) { let x = p.getX(i) + dt * (1.2 + STORM * 14), y = p.getY(i) + Math.sin(t + i) * dt * .2; if (x > 30) x -= 60; p.setXYZ(i, x, y, p.getZ(i)); } p.needsUpdate = true; dust.position.set(st.x, st.y, st.z); dust.material.opacity = .4 + STORM * .5; }
     for (const c of W.caustics) c.material.opacity = (.22 + .12 * Math.sin(t * 1.3 + c.position.x)) * (1 - STORM * .7);
-    W.root.traverse(o => { if (o.userData.god) o.material.opacity = .07 + .04 * Math.sin(t * .7 + o.position.z); });
+    for (const o of GODS) o.material.opacity = .07 + .04 * Math.sin(t * .7 + o.position.z);
     /* the sun and the time of day: a slow cycle, or a mood from 1–6 */
     { MOODK = Math.min(1, MOODK + dt * .4); const m = MOODS[MOOD], el = m.el + Math.sin(t * .02) * .03, az = m.az, dir = new T.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)).normalize();
       SKY.uSun.value.lerp(dir, .05); SKY.uA.value.lerp(new T.Color(m.a), .03); SKY.uB.value.lerp(new T.Color(m.b), .03); SKY.uC.value.lerp(new T.Color(m.c), .03); sunCol.lerp(new T.Color(m.sun), .03); sun.color.copy(sunCol); sun.intensity = 1 + 2.2 * smooth(0, .3, el);
@@ -586,7 +620,8 @@
 
     /* the camera */
     { const tall = camera.aspect < 1; let dist = tall ? 6.4 : WIDE ? 6.2 : 4.8, up = 2.3, side = 0, h = st.mode === "foot" || st.mode === "down" ? CAM.yaw : st.heading, lookUp = (tall && st.gun ? 1.0 : 1.5) + CAM.pitch * 7, fov = tall ? 62 : 52;
-      if (st.gun && st.mode === "foot") { dist = tall ? 5 : 3.6; up = tall ? 2.3 : 1.9; side = tall ? .95 : .8; fov = tall ? 58 : 46; if (near(st, Z.clockwork_iris, 9) && Math.cos(CAM.yaw) < -.8) fov = 22; } up -= CAM.pitch * 2.5;
+      if (st.gun && st.mode === "foot") { const a = smooth(.1, .9, st.steady);   /* from the hip, to the shoulder, to the eye: the camera comes in as the aim settles */
+        dist = lerp(tall ? 5.6 : 4.2, tall ? 3.7 : 2.5, a); up = lerp(tall ? 2.4 : 2.0, tall ? 2.0 : 1.75, a); side = lerp(.6, tall ? 1.0 : .95, a); fov = lerp(tall ? 64 : 54, tall ? 46 : 36, a) - (GAME.kick || 0) * 5; if (near(st, Z.clockwork_iris, 9) && Math.cos(CAM.yaw) < -.8) fov = 22; } up -= CAM.pitch * 2.5;
       if (st.mode === "ride") { dist = 8; up = 3.2; } if (st.mode === "bike") { dist = 6.4 + Math.abs(BK.speed) * .08; up = 2.2; lookUp = 1.3; fov = 52 + Math.abs(BK.speed) * .6; } if (st.mode === "sit") { dist = 5; up = 1.6; h = st.heading + 1.2; } if (st.mode === "down") { dist = 6; up = 3.5; }
       let want = new T.Vector3(st.x - Math.sin(h) * dist + Math.cos(h) * side, st.y + up, st.z - Math.cos(h) * dist - Math.sin(h) * side), look = new T.Vector3(st.x + Math.sin(h) * (st.gun ? 6 : 1.5), st.y + lookUp, st.z + Math.cos(h) * (st.gun ? 6 : 1.5));
       want.y = Math.max(want.y, heightAt(want.x, want.z) + .8);
@@ -625,18 +660,21 @@
     if (st.gun || st.swim) { /* the ink tank: a glass vial by the reticle, the colour of the next shot */ const vx = w - 34 * k, vy = h * .5, vh = 120 * k, vw = 12 * k, f = st.ink / 100, col = "#" + new T.Color(PAINT[paintN % PAINT.length]).getHexString();
       FX.fillStyle = "rgba(20,14,10,.45)"; FX.fillRect(vx - vw / 2, vy - vh / 2, vw, vh); FX.fillStyle = col; FX.fillRect(vx - vw / 2, vy + vh / 2 - vh * f, vw, vh * f); FX.strokeStyle = "rgba(255,255,255,.6)"; FX.lineWidth = 1.5 * k; FX.strokeRect(vx - vw / 2, vy - vh / 2, vw, vh);
       FX.fillStyle = "rgba(251,242,226,.75)"; FX.font = `${10 * k}px ui-monospace, monospace`; FX.textAlign = "right"; FX.fillText(st.swim ? "SWIM · REFILL" : `INK ${Math.round(st.ink)}`, vx - vw, vy + vh / 2); FX.fillText(`TURF ${INK ? INK.turf() : 0} m²`, vx - vw, vy + vh / 2 + 14 * k); }
+    if (WAYAT.y > -9000 && MODE !== "cinema") { /* where to go: a gold mark on the place, or an arrow at the edge of the glass pointing to it */ const sp = _lk.copy(WAYAT).project(camera), back = sp.z > 1, dist = Math.round(Math.hypot(WAYAT.x - st.x, WAYAT.z - st.z)); let sx = (back ? -sp.x : sp.x), sy = (back ? -sp.y : sp.y); const off = back || Math.abs(sx) > .9 || Math.abs(sy) > .84;
+      if (off) { const m = Math.max(Math.abs(sx) / .9, Math.abs(sy) / .84, 1e-3); sx /= m; sy /= m; if (back && Math.abs(sx) < .5) sx = Math.sign(sx || 1) * .9; } const px = (sx + 1) / 2 * w, py = (1 - sy) / 2 * h; if (dist > 6) { FX.save(); FX.translate(px, py); FX.rotate(off ? Math.atan2(-sy, sx) + Math.PI / 2 : Math.PI); FX.beginPath(); FX.moveTo(0, -11 * k); FX.lineTo(8 * k, 7 * k); FX.lineTo(-8 * k, 7 * k); FX.closePath(); FX.fillStyle = "rgba(242,208,74,.95)"; FX.fill(); FX.strokeStyle = "rgba(20,14,10,.8)"; FX.lineWidth = 1.5 * k; FX.stroke(); FX.restore();
+        FX.font = `600 ${11 * k}px ui-monospace, monospace`; FX.textAlign = "center"; FX.fillStyle = "rgba(251,242,226,.95)"; FX.fillText(dist + " m", clamp(px, 30 * k, w - 30 * k), clamp(py + 24 * k, 20 * k, h - 10 * k)); } }
     if (DUEL.on && MODE !== "cinema") { /* three hits, the score, the combo and how long it has left */ const x0 = w / 2, y0 = (PAD.touch ? (h > w ? 104 : 22) : 26) * k; FX.textAlign = "center";
       for (let i = 0; i < 3; i++) { const x = x0 + (i - 1) * 20 * k; FX.beginPath(); FX.moveTo(x, y0 - 7 * k); FX.lineTo(x + 7 * k, y0); FX.lineTo(x, y0 + 7 * k); FX.lineTo(x - 7 * k, y0); FX.closePath(); FX.fillStyle = i < GAME.hp ? "rgba(255,58,168,.95)" : "rgba(20,14,10,.4)"; FX.fill(); FX.strokeStyle = "rgba(255,255,255,.7)"; FX.lineWidth = k; FX.stroke(); }
       FX.fillStyle = "rgba(251,242,226,.95)"; FX.font = `700 ${20 * k}px Georgia, serif`; FX.fillText(String(GAME.score), x0, y0 + 34 * k);
       if (GAME.combo > 1) { const s2 = 1 + GAME.mark * 2.5; FX.font = `italic 700 ${26 * k * s2}px Georgia, serif`; FX.fillStyle = "rgba(242,208,74,.98)"; FX.fillText("×" + Math.min(GAME.combo, 10), x0, y0 + 66 * k); FX.fillStyle = "rgba(242,208,74,.8)"; FX.fillRect(x0 - 30 * k, y0 + 74 * k, 60 * k * Math.max(0, GAME.comboT / 3.4), 3 * k); } }
     if (!st.gun || st.mode !== "foot") return; let cx = (mouse.on ? (mouse.x + 1) / 2 : .5) * w, cy = (mouse.on ? (1 - mouse.y) / 2 : .45) * h; const r = lerp(34, 9, st.steady) * k * (1 + st.recoil * .6);
-    if (LOCK.p) { const sp = _lk.copy(LOCK.p).project(camera); cx = (sp.x + 1) / 2 * w; cy = (1 - sp.y) / 2 * h; FX.beginPath(); FX.arc(cx, cy, r + 7 * k, 0, Math.PI * 2); FX.strokeStyle = "rgba(255,58,168,.95)"; FX.lineWidth = 2.5 * k; FX.stroke(); }
+    if (LOCK.p) { const sp = _lk.copy(LOCK.p).project(camera); cx = (sp.x + 1) / 2 * w; cy = (1 - sp.y) / 2 * h; FX.beginPath(); FX.arc(cx, cy, r + 7 * k, 0, Math.PI * 2); FX.strokeStyle = st.steady >= .85 ? "rgba(255,244,200,1)" : "rgba(255,58,168,.95)"; FX.lineWidth = (st.steady >= .85 ? 4 : 2.5) * k; FX.stroke(); }
     if (GAME.mark > 0) { const m = (10 + GAME.mark * 60) * k; FX.strokeStyle = "rgba(255,255,255,.95)"; FX.lineWidth = 3 * k; FX.beginPath(); for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { FX.moveTo(cx + a * m * .5, cy + b * m * .5); FX.lineTo(cx + a * m, cy + b * m); } FX.stroke(); }
     for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + performance.now() / 2600, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r, s = 3.2 * k; FX.beginPath(); FX.ellipse(x, y, s, s * 1.25, a, 0, Math.PI * 2); FX.fillStyle = "rgba(161,232,228,.6)"; FX.fill(); FX.strokeStyle = "rgba(255,255,255,.6)"; FX.lineWidth = k; FX.stroke(); }
     if (st.steady > .85) { FX.beginPath(); FX.arc(cx, cy, 2.5 * k, 0, Math.PI * 2); FX.fillStyle = "rgba(248,205,145,.95)"; FX.fill(); } }
 
   resize(); $("boot").classList.add("done"); $("title").classList.add("on"); setTimeout(() => { $("title").classList.remove("on"); GRIDON = false; }, 3600);
   setMode("game"); say("This land ain't dust anymore. It's data. And it remembers.", 5);
-  window.__mesa = { T, scene, camera, LENS, say, lensUI, GAME, CHIPS, dash, PAD, CAM, LOCK, tune(b, d) { BRIM_UP = b; BEARD_UP = d; }, KNIGHT, KN, PR, PROC, HERD, SPORE, HALL, BK, TK, anta, paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
+  window.__mesa = { AN, MIS, GATE, get MI() { return MI; }, set MI(v) { MI = v; misLi.textContent = MIS[v].t; }, T, scene, camera, LENS, say, lensUI, GAME, CHIPS, dash, PAD, CAM, LOCK, tune(b, d) { BRIM_UP = b; BEARD_UP = d; }, KNIGHT, KN, PR, PROC, HERD, SPORE, HALL, BK, TK, anta, paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
   requestAnimationFrame(frame);
 })().catch(e => { console.error(e); const b = document.getElementById("boot-s"); if (b) b.textContent = "Something went wrong: " + e.message; });

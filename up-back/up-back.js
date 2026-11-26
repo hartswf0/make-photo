@@ -132,6 +132,9 @@
     for (const x of [-1.8, -.4, 1.4]) box(air, .7, .4, .04, glassM, x, 2.1, 1.1); box(air, .65, 1.5, .04, M(0x8f9496, { metalness: .7, roughness: .5 }), .5, 1.5, 1.14); for (const x of [-.6, .1]) { wheel(air, x, 1.0, .3, steelM); wheel(air, x, -1.0, .3, steelM); } box(air, 1.4, .1, .1, steelM, 4.3, .6, 0); }
   place(air, 22, -74, .28, [[2.2, 0, 1.5], [0, 0, 1.5], [-2.2, 0, 1.5]]);
 
+  /* the trough gate, past the Airstream: the way on from here (atlas/trough-gate.js) */
+  const GATE = { x: 8, z: -90 }, TG = window.TroughGate ? place(window.TroughGate.build(T), GATE.x, GATE.z, .2, [[0, 0, 1.6]]) : null;
+
   /* ---------- the fig bush, behind the Denali: yellow going, a few figs the frost missed ---------- */
   const FIG = { x: -13.5, z: -6.5, left: 0, figs: [] }, leafShape = (() => { const s = new T.Shape(), P = [[0, -.5], [.12, -.3], [.3, -.34], [.26, -.12], [.46, -.04], [.3, .1], [.4, .3], [.18, .28], [.12, .48], [0, .36]]; s.moveTo(P[0][0], P[0][1]); for (let i = 1; i < P.length; i++) s.lineTo(P[i][0], P[i][1]); for (let i = P.length - 2; i > 0; i--) s.lineTo(-P[i][0], P[i][1]); s.closePath(); const g = new T.ShapeGeometry(s); g.rotateX(-Math.PI / 2); return g; })();
   { const g = new T.Group(), y0 = heightAt(FIG.x, FIG.z), bark = M(0x8a8478, { roughness: .9 }), N = 170, lv = new T.InstancedMesh(leafShape, new T.MeshStandardMaterial({ roughness: .6, side: T.DoubleSide }), N), m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), c = new T.Color(); let n = 0;
@@ -197,7 +200,7 @@
   const FINDS = [["chair", "Get up out of the chair"], ["photo", "Look at the photograph on the wall"], ["mower", "Try the mower"], ["denali", "The black Denali"], ["fig", "Pick a fig"], ["suburban", "The Suburban by the garage"], ["deere", "Start the Deere"], ["camper", "Knock on the camper"], ["trailer", "The trailer of leaves"], ["air", "Walk up to the Airstream"]], done = {};
   const nextUp = () => { const n = FINDS.find(([k]) => !done[k]); $("next").textContent = n ? n[1] : `All ten. ${LV.cleared} leaves moved with the Deere.`; }; nextUp();
   let lineT = 0; const say = (t, sec = 4) => { $("line").textContent = t; $("line").classList.add("on"); lineT = sec; };
-  const found = (k, line) => { if (line) say(line, 5); if (done[k]) return; done[k] = true; S.chime(); nextUp(); if (FINDS.every(([f]) => done[f])) setTimeout(() => say("That is everything up back. It will all still be here.", 6), 5500); };
+  const found = (k, line) => { if (line) say(line, 5); if (done[k]) return; done[k] = true; S.chime(); nextUp(); if (FINDS.every(([f]) => done[f])) setTimeout(() => say("That is everything up back. Past the Airstream, the blue light is the way on.", 6), 5500); };
   const dist = (x, z) => Math.hypot(st.x - x, st.z - z), wp = (g, x, z) => _p.set(x, 0, z).applyMatrix4(g.matrixWorld);
   function offer() {
     if (st.mode === "sit") return { label: "Get up", run: () => { st.mode = "foot"; st.x = CHAIR.x + Math.sin(CHAIR.h) * .7; st.z = CHAIR.z + Math.cos(CHAIR.h) * .7; CAM.yaw = Math.PI; found("chair", "The cane stays where it is, hooked on the wing of the chair."); } };
@@ -212,6 +215,7 @@
     if (dist(camper.position.x, camper.position.z) < 3.4) return { label: "Knock", run: () => { S.knock(); found("camper", "Red and white, on blocks, leaning into the ivy. Nobody answers."); } };
     if (dist(trailer.position.x, trailer.position.z) < 3) return { label: "The trailer", run: () => found("trailer", "The gate is up and the deck is full. It is hauling leaves nowhere.") };
     if (dist(air.position.x, air.position.z) < 4.6) return { label: "Lay a hand on it", run: () => { S.ring(); found("air", "The Airstream, gone the colour of the sky. This is as far up back as up back goes."); } };
+    if (TG && dist(GATE.x, GATE.z) < 5) return { label: "Go on into the trough", run: () => { say("Past the Airstream the yard runs out, and the water starts.", 3); S.chime(); setTimeout(() => window.TroughGate.go("up-back", "teton"), 1400); } };
     return null; }
 
   /* ---------- input ---------- */

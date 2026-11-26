@@ -11,7 +11,7 @@
     :root { --ink: #fbf2e2; --dim: rgba(251, 242, 226, .64); --line: rgba(251, 242, 226, .3); --stage: #1a120c; --cyan: #2fd0d8; --amber: #f2a83a; --magenta: #ff3aa8;
       --serif: Georgia, "Times New Roman", serif; --mono: ui-monospace, Menlo, Consolas, monospace; color-scheme: dark; }
     html, body { margin: 0; height: 100%; background: var(--stage); color: var(--ink); font: 12px/1.4 var(--mono); overflow: hidden; -webkit-tap-highlight-color: transparent; }
-    canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; outline: none; }
+    canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; touch-action: none; outline: none; }
     #grid, #fx { pointer-events: none; } #grid { z-index: 1; } #fx { z-index: 2; }
     [hidden] { display: none !important; }
     #scope { position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: 0; transition: opacity .8s; }
@@ -30,7 +30,7 @@
     .bar .keys { color: var(--dim); letter-spacing: .1em; text-transform: uppercase; font-size: 10px; margin-right: auto; }
     button { all: unset; cursor: pointer; font: 600 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink); border: 1px solid var(--line); padding: 10px 12px; background: rgba(26, 18, 12, .4); }
     button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; } button[aria-pressed="true"] { background: var(--ink); color: var(--stage); }
-    #do { background: var(--magenta); border-color: var(--magenta); }
+    #do { background: var(--magenta); border-color: var(--magenta); position: fixed; right: 6vw; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); z-index: 5; }
     .modes { display: flex; } .modes button { border-right-width: 0; } .modes button:last-child { border-right-width: 1px; }
     #hurt { position: fixed; inset: 0; z-index: 3; background: radial-gradient(transparent 40%, rgba(216, 32, 90, .55)); opacity: 0; transition: opacity .25s; pointer-events: none; } #hurt.on { opacity: 1; }
     .lb { position: fixed; left: 0; right: 0; height: 0; background: #000; z-index: 3; transition: height .6s; pointer-events: none; } .lb.t { top: 0; } .lb.b { bottom: 0; }
@@ -56,7 +56,9 @@
     body.touch #scope { display: none; } body.touch .top { padding-top: calc(10px + env(safe-area-inset-top, 0px)); } body.touch .top b { font-size: 17px; }
     body.touch #goals { top: calc(54px + env(safe-area-inset-top, 0px)); max-width: 70vw; }
     body.touch #trials-hud { top: calc(84px + env(safe-area-inset-top, 0px)); transform: translateX(-50%) scale(.72); transform-origin: top center; background: rgba(18, 12, 10, .4); }
-    @media (orientation: landscape) { body.touch #line { bottom: 14px; padding: 0 30vw; font-size: 14px; } body.touch #fireb { bottom: 18px; } body.touch #dashb { bottom: 18px; } body.touch #do { bottom: 116px; } }
+    @media (orientation: landscape) { body.touch #line { bottom: 10px; padding: 0 27vw; font-size: 14px; } body.touch #fireb { width: 76px; height: 76px; right: max(4vw, env(safe-area-inset-right, 0px)); bottom: 16px; } body.touch #dashb { width: 54px; height: 54px; right: calc(max(4vw, env(safe-area-inset-right, 0px)) + 88px); bottom: 16px; } body.touch #do { right: max(4vw, env(safe-area-inset-right, 0px)); bottom: 104px; }
+      body.touch .top { padding-left: max(4vw, env(safe-area-inset-left, 0px)); padding-top: 6px; } body.touch .top b { font-size: 15px; display: inline; } body.touch #goals { top: 44px; left: max(4vw, env(safe-area-inset-left, 0px)); max-width: 38vw; } body.touch #menub { top: 8px; right: max(4vw, env(safe-area-inset-right, 0px)); width: 38px; height: 38px; }
+      body.touch.menu .bar { top: 52px; padding: 8px 4vw; } body.touch.menu #st { top: 112px; left: 4vw; } body.touch #trials-hud { top: 50px; transform: translateX(-50%) scale(.6); } }
     body.cinema #fireb, body.cinema #dashb, body.cinema #stick { display: none !important; }
     @media (max-width: 720px) { .bar .keys { display: none; } }
   </style>
@@ -70,9 +72,9 @@
   <ol id="goals" aria-label="The trail"></ol>
   <div id="line" aria-live="polite"></div><div id="shot"></div>
   <div id="stick" hidden><i></i></div><button id="fireb" type="button" aria-label="Fire">Fire</button><button id="dashb" type="button" aria-label="Dash">Dash</button><button id="menub" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+  <button id="do" type="button" hidden></button>
   <div class="bar">
     <span class="keys">W A S D · arrows turn · Shift run · E do · Space or click to shoot · Q dash · L lens · Enter trials · 1–6 time of day</span>
-    <button id="do" type="button" hidden></button>
     <button id="gridb" type="button" aria-pressed="true" title="Glass-block grid (G)">Grid</button>
     <button id="wide" type="button" aria-pressed="true" title="Barrel-scope mask">Wide</button>
     <button id="lens" type="button" aria-pressed="false" title="SCION lens (L): Tekle, 1985, Mambéty, Mœbius">Plain</button>
@@ -91,7 +93,8 @@
   <script src="./swarm.js?v=2"></script>
   <script src="./ink.js?v=2"></script>
   <script src="./lens.js?v=1"></script>
-  <script src="./mesa.js?v=14"></script>
+  <script src="../atlas/trough-gate.js?v=1"></script>
+  <script src="./mesa.js?v=15"></script>
   <script src="../soundtrack/soundtrack.js?v=1" data-album="glass" data-albums="glass,yegelle,deepsea,firstwintera,kudzucontact,volholla"></script>
   <script src="./trials.js?v=4"></script>
 </body>

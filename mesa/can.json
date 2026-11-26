@@ -1,0 +1,37 @@
+{
+ "can": 1,
+ "id": "mesa",
+ "name": "MESA CHIP",
+ "version": "2026.11.26",
+ "page": "./index.html",
+ "status": "standalone, with a gate into the trough. The world (mesa-world.js) has no renderer, camera, player or loop, so it can be poured; the trough has no mesa island yet, so the gate arrives at Ethiopia on Mars, the nearest western.",
+ "entry": {
+  "script": null,
+  "world": "./mesa-world.js",
+  "adapter": "ground@1 (planned)"
+ },
+ "begin": {
+  "in": "its own world",
+  "at": "the title gate, facing north up Main Street"
+ },
+ "leads": {
+  "to": "../atlas/overworld.html",
+  "gate": "east of the ziggurat, at the end of the five missions",
+  "island": "mars",
+  "with": "../atlas/trough-gate.js"
+ },
+ "frame": {
+  "units": "metres",
+  "scale": "true",
+  "axes": "x east, z south"
+ },
+ "verbs": [
+  "walk",
+  "run",
+  "dash",
+  "shoot (paint)",
+  "ride (horse, horned bike)",
+  "sit",
+  "call (the bike)"
+ ]
+}
