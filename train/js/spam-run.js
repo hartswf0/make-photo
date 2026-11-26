@@ -24,7 +24,7 @@ try { (function spamRun(T,kit,rail,landLib,canLib,audioLib) {
   const state={t:0,dist:600,x:P.x,z:0,dir:-1,speed:0,lid:0,react:-10,goal:null,mode:'Follow',cue:0,visited:new Set([1]),found:new Set(),events:[],tour:false,waitUntil:0,body:'Can',returning:false,bee:null,beeYaw:Math.PI,beePitch:0,guide:!seedMode,paused:false,seed:seedMode};
   const names=['Empty seed','Classic / One Bee','Dining / Twelve Bees','Wax and Gold','Mailworks','Cinema and Doubles','Hot Honey','Slop Sea','Sacred Hive'];
   const discoveries=['','The first sting','Bouncy desserts','A balancing act','Envelope fountain','A film within a film','Honey droplets','Jelly copy machine','Share the feast'];
-  let score=null,loadingError='',camPos=null,camAim=null,rec=null,guideShown=true,initialized=false;
+  let score=null,loadingError='',camPos=null,camAim=null,rec=null,guideShown=true,initialized=false,lastSeedCapture=null;
   const keys=new Set(),stick={x:0,y:0}, drag={yaw:0,pitch:0};
   const B=(p,m,x,y,z,w,h,d)=>{let o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);p.add(o);return o;};
   const S=(p,m,x,y,z,r)=>{let o=new T.Mesh(new T.SphereGeometry(r,12,8),m);o.position.set(x,y,z);p.add(o);return o;};
@@ -137,10 +137,10 @@ try { (function spamRun(T,kit,rail,landLib,canLib,audioLib) {
     specials.engine.rotation.z+=dt*.75;trolley.position.x=cars[2].x-5+.65*Math.sin(state.t*.5);
   }
   function updateUI(){let i=current(),n=i-1;$('title').textContent=names[n]||'Train';$('progress').textContent=String(n).padStart(2,'0')+' / 08';$('found').textContent=state.found.size+' / 8';$('view').textContent=state.mode;$('bee').textContent=state.body==='Bee'?'Return to can':'Bee';$('tour').textContent=state.tour?'Pause tour':'Tour';$('next').disabled=i>=9||state.returning;$('discover').textContent=i===1?'First car':state.found.has(i)?'Play again':'Discover';$('hint').textContent=i===1?'An empty train. One door ahead.':state.found.has(i)?'Explore freely or continue.':discoveries[n];if(state.t>state.toastUntil)$('toast').classList.remove('on');}
-  function drawFrame(dt){state.t+=dt;state.dist=(state.dist+24*dt)%landLib.LOOP;train.spin(state.dist/.46);state.speed=0;
+  function drawFrame(dt){state.t+=state.seed?0:dt;state.dist=(state.dist+(state.seed?0:24*dt))%landLib.LOOP;train.spin(state.dist/.46);state.speed=0;
     if(!state.seed&&!state.paused){doorStep(dt);guideStep(dt);const i=current();if(i!==state.lastCar){state.lastCar=i;state.visited.add(i);log('enter_car',{i});if(i===2&&!state.found.has(2))trigger(2);}}
     state.lid=state.t-state.react<1.15?1:state.t-state.react<1.9?.25:0;
-    actor.update(dt,state.speed,false,state.lid);if(state.t-state.react<.9)actor.group.position.y=F+Math.sin((state.t-state.react)*Math.PI/.9)*.14;
+    actor.update(state.seed?0:dt,state.speed,false,state.lid);if(state.t-state.react<.9)actor.group.position.y=F+Math.sin((state.t-state.react)*Math.PI/.9)*.14;
     for(const n of npcs){n.c.group.visible=state.mode==='Outside'||Math.abs(n.ci-current())<=2;let a=n.role==='music'?.28*(1+Math.sin(state.t*4+n.phase)):n.role==='sort'?.10*(1+Math.sin(state.t*3+n.phase)):0;n.c.update(dt,0,n.seated,a);}
     updateToys(dt);updateCamera(dt);land.update(state.dist,camera.position.x,state.t);updateBees(dt);
     const ci=current(),car=cars[ci];light.position.set(camera.position.x,F+2.04,0);light.color.setHex(car.cool?0x9de4d9:0xffbf78);light.intensity=car.dim?3.2:5;
@@ -155,7 +155,7 @@ try { (function spamRun(T,kit,rail,landLib,canLib,audioLib) {
   function saveBlob(blob,name){const a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),20000);}
   function cameraData(){const w=canvas.width,h=canvas.height,fy=h*.5/Math.tan(T.MathUtils.degToRad(camera.fov)*.5);return {position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),intrinsics:{width:w,height:h,fx:fy,fy,cx:w/2,cy:h/2},source:'SPAM_CLASSIC_001',car:current()-1,seed:state.seed};}
   function still(){let vis=routeGuide.visible;routeGuide.visible=false;renderer.render(scene,camera);canvas.toBlob(b=>b&&saveBlob(b,state.seed?'spam_0_seed_clean.jpg':'spam-train-'+Date.now()+'.jpg'),'image/jpeg',.94);routeGuide.visible=vis;}
-  function seedFrame(){state.seed=true;state.tour=false;state.goal=null;state.x=cars[1].x+5.55;state.z=0;state.dir=-1;P.set(state.x,F,0);actor.group.rotation.y=-Math.PI/2;state.react=-100;state.found.clear();state.events=[];state.visited=new Set([1]);state.lastCar=1;state.cue=0;state.lid=0;state.body='Can';if(state.bee)state.bee.manual=false;state.bee=null;state.returning=false;state.guide=false;setMode('Follow');for(const d of train.doors){d.open=0;d.g.position.z=0;}document.body.classList.add('seed');cue(0);camPos=null;initialized=false;drawFrame(0);}
+  function seedFrame(){state.seed=true;state.dist=600;state.t=0;state.tour=false;state.goal=null;state.x=cars[1].x+5.55;state.z=0;state.dir=-1;P.set(state.x,F,0);actor.group.rotation.y=-Math.PI/2;state.react=-100;state.found.clear();state.events=[];state.visited=new Set([1]);state.lastCar=1;state.cue=0;state.lid=0;state.body='Can';if(state.bee)state.bee.manual=false;state.bee=null;state.returning=false;state.guide=false;setMode('Follow');for(const d of train.doors){d.open=0;d.g.position.z=0;}document.body.classList.add('seed');cue(0);camPos=null;initialized=false;drawFrame(0);}
   // Matching witness frame: linear eye-space depth, displayed near-white, far-black.
   const depthMat=new T.ShaderMaterial({side:T.DoubleSide,vertexShader:`varying float vZ;
 #include <common>
@@ -181,8 +181,8 @@ vZ=-mvPosition.z;
     meta.depth={encoding:'8-bit linear eye-space depth preview',nearWhite:true,rangeMeters:[0,45],formula:'distance_m = 45 * (1 - pixel/255); values at or above 45m clip to black'};
     return {color,depth,camera:meta};
   }
-  function saveSeed(){const data=captureSeed();const a=document.createElement('a');a.href=data.color;a.download='spam_0_seed_clean.jpg';a.click();}
-  function saveWitness(){const data=captureSeed();const a=document.createElement('a');a.href=data.depth;a.download='spam_0_seed_clean.depth.png';a.click();saveBlob(new Blob([JSON.stringify(data.camera,null,2)],{type:'application/json'}),'spam_0_seed_clean.cam.json');}
+  function saveSeed(){const data=lastSeedCapture=captureSeed();const a=document.createElement('a');a.href=data.color;a.download='spam_0_seed_clean.jpg';a.click();}
+  function saveWitness(){const data=lastSeedCapture|| (lastSeedCapture=captureSeed());const a=document.createElement('a');a.href=data.depth;a.download='spam_0_seed_clean.depth.png';a.click();saveBlob(new Blob([JSON.stringify(data.camera,null,2)],{type:'application/json'}),'spam_0_seed_clean.cam.json');}
   function record(){if(rec){rec.stop();return;}if(!canvas.captureStream||!window.MediaRecorder){toast('Recording not supported here');return;}let stream=canvas.captureStream(24),chunks=[],type=['video/webm;codecs=vp9','video/webm','video/mp4'].find(t=>MediaRecorder.isTypeSupported(t));rec=new MediaRecorder(stream,type?{mimeType:type,videoBitsPerSecond:6000000}:undefined);const r=rec;let old=state.guide;state.guide=false;r.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};r.onstop=()=>{saveBlob(new Blob(chunks,{type:r.mimeType}),'spam-take-'+Date.now()+(r.mimeType.includes('mp4')?'.mp4':'.webm'));stream.getTracks().forEach(t=>t.stop());rec=null;state.guide=old;$('rec').textContent='Rec';};r.start(1000);$('rec').textContent='Stop';}
   $('next').onclick=nextCar;$('discover').onclick=()=>{if(state.found.has(current()))state.found.delete(current());discover();};$('tour').onclick=()=>{state.seed=false;state.guide=true;document.body.classList.remove('seed');state.tour=!state.tour;if(state.tour){state.waitUntil=0;if(state.goal===null)nextCar();}};$('bee').onclick=changeBody;
   $('view').onclick=()=>{let modes=state.body==='Bee'?['Bee follow','Bee eyes']:['Follow','Profile','Face','Window','Orbit','Outside'];setMode(modes[(modes.indexOf(state.mode)+1)%modes.length]);};
