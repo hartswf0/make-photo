@@ -103,7 +103,7 @@
       else if (tr.lens === "lucas85") {   /* the focus is earned: moving, turning or spraying throws it, so you plant and fire in bursts */
         const mv = Math.hypot(S.x - (G.px ?? S.x), S.z - (G.pz ?? S.z)) / Math.max(dt, 1e-3) + Math.abs(S.heading - (G.ph ?? S.heading)) / Math.max(dt, 1e-3) * 2; G.px = S.x; G.pz = S.z; G.ph = S.heading;
         if (mv > .6) S.steady = Math.max(0, S.steady - dt * 2.5); if (S.recoil > .05) S.steady = Math.max(0, S.steady - dt * 1.6);
-        const sh = S.steady > .82; $(".cue").textContent = S.gun ? (sh ? "Sharp" : "Focusing " + Math.round(S.steady * 100) + "%") : "Draw (R)"; $(".cue").classList.toggle("hot", sh && S.gun); }
+        const sh = S.steady > .82; $(".cue").textContent = S.gun ? (sh ? "Sharp" : "Focusing " + Math.round(S.steady * 100) + "%") : (document.body.classList.contains("touch") ? "Hold FIRE" : "Draw (R)"); $(".cue").classList.toggle("hot", sh && S.gun); }
       else if (tr.lens === "mambety") { const prev = G.beatT % BEAT; G.beatT += dt; const ph = G.beatT % BEAT; if (ph < prev) tick(196 + (Math.floor(G.beatT / BEAT) % 4 === 0 ? 98 : 0), .16, .5); const on = ph < WINDOW || ph > BEAT - WINDOW; $(".cue").textContent = on ? "On the beat ×2" : "· · ·"; $(".cue").classList.toggle("hot", on); }
       else { const live = G.t - G.lastHit < BLOOM; $(".cue").textContent = live ? "Bloom ×" + Math.min(4, G.chain + 1) : "Chain ×1"; $(".cue").classList.toggle("hot", live); }
       $(".n").textContent = tr.n; $(".t").textContent = tr.title; $(".bar i").style.width = Math.max(0, K.hp / HP * 100) + "%";
@@ -111,7 +111,7 @@
     }
     window.__trialsG = G; window.__trialsBegin = begin; requestAnimationFrame(loop);
     function title() { const best = (() => { try { return +localStorage.getItem("mesa-trials-best") || 0; } catch (e) { return 0; } })();
-      G.results = []; show(`<div><div class="k">MESA CHIP · a cyber-western of glass</div><h2>The Four Trials</h2><div class="a">Uncle Mesa and the knight of glass, four times, in four ways of seeing</div><p>Under the dune the floor is glass. Each trial is the same fight told in another language: Tekle's leaded light, the 1985 shard light, Mambéty's telling, Mœbius's line. WASD to move, R to draw, hold Space or click to spray paint, Shift to run.${best ? `<br><br>Best: ${best}` : ""}</p><button type="button" data-go>Play</button><button type="button" class="ghost" data-quit>Wander the world</button></div>`);
+      G.results = []; show(`<div><div class="k">MESA CHIP · a cyber-western of glass</div><h2>The Four Trials</h2><div class="a">Uncle Mesa and the knight of glass, four times, in four ways of seeing</div><p>Under the dune the floor is glass. Each trial is the same fight told in another language: Tekle's leaded light, the 1985 shard light, Mambéty's telling, Mœbius's line. ${document.body.classList.contains('touch') ? 'Left thumb moves, right thumb looks, hold FIRE to spray paint, DASH to dodge the sword.' : 'WASD to move, R to draw, hold Space or click to spray paint, Shift to run.'}${best ? `<br><br>Best: ${best}` : ""}</p><button type="button" data-go>Play</button><button type="button" class="ghost" data-quit>Wander the world</button></div>`);
       card.querySelector("[data-go]").onclick = () => intro(0); card.querySelector("[data-quit]").onclick = quit; }
     play.onclick = title;
     addEventListener("keydown", e => { if (e.code === "Enter" && !card.classList.contains("on") && !G.on) title(); else if (e.code === "Escape" && (G.on || card.classList.contains("on"))) quit(); });
