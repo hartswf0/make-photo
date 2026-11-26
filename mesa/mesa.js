@@ -24,13 +24,25 @@
   const SKY = { uSun: { value: new T.Vector3(.3, .2, -.9).normalize() }, uA: { value: new T.Color("#f2c84a") }, uB: { value: new T.Color("#3a6ab8") }, uC: { value: new T.Color("#f4e8d2") }, uStorm: { value: 0 }, uTime: { value: 0 } };
   const sky = new T.Mesh(new T.SphereGeometry(4000, 32, 16), new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false, uniforms: SKY,
     vertexShader: "varying vec3 vD; void main(){ vD=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }",
+    /* the sky, after Superstudio's airbrushed collages (the Supersurface, the Continuous Monument): a soft gradient, long
+       horizontal strokes of cloud laid on with an airbrush, and pale mountains on the horizon. The moods (1-6) still tint it. */
     fragmentShader: `varying vec3 vD; uniform vec3 uSun, uA, uB, uC; uniform float uStorm, uTime;
-      float h(float n){ return fract(sin(n)*43758.5453); }
-      void main(){ float y=clamp(vD.y,0.,1.); float band=floor(y*14.+sin(vD.x*3.+vD.z*2.)*.35); float t=fract(y*14.+sin(vD.x*3.+vD.z*2.)*.35);
-        vec3 c=mix(uC, mix(uA,uB,smoothstep(.05,.6,y)), smoothstep(0.,.18,y)); c=mix(c, c*(.88+.24*h(band)), .7*smoothstep(.02,.1,y)); c=mix(c,c*1.06,smoothstep(.45,.5,t)*smoothstep(.55,.5,t));
-        float s=max(dot(vD,uSun),0.); vec3 burst=mix(vec3(.35,.9,.5),vec3(1.,.82,.3),pow(s,6.)); c+=burst*(pow(s,900.)*3.+pow(s,24.)*.35);
-        float ang=atan(vD.x-uSun.x, vD.y-uSun.y); c+=vec3(1.,.85,.35)*pow(s,40.)*(.5+.5*sin(ang*18.+uTime*.3))*.25;
-        c=mix(c,vec3(.93,.72,.42),uStorm*.85); gl_FragColor=vec4(c,1.); }` }));
+      float hh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(hh(i), hh(i + vec2(1., 0.)), f.x), mix(hh(i + vec2(0., 1.)), hh(i + vec2(1., 1.)), f.x), f.y); }
+      float fb(vec2 p){ float s = 0., a = .5; for (int i = 0; i < 5; i++) { s += a * n2(p); p *= 2.03; a *= .5; } return s; }
+      void main(){ float y = clamp(vD.y, 0., 1.), az = atan(vD.x, vD.z);
+        vec3 top = mix(uB, vec3(.32, .5, .74), .45), hor = mix(uC, vec3(.9, .93, .94), .5);
+        vec3 c = mix(hor, top, smoothstep(.0, .62, y));
+        float band = fb(vec2(az * 1.9 + uTime * .003, y * 9.5)), puff = fb(vec2(az * 5.5, y * 24.));
+        float strokes = smoothstep(.5, .72, band) * smoothstep(.015, .07, y) * smoothstep(.55, .18, y);
+        vec3 cloudLit = mix(vec3(1.), uA, .14), cloudShade = mix(top, vec3(.72, .8, .88), .55);
+        c = mix(c, mix(cloudShade, cloudLit, smoothstep(.45, .8, puff)), strokes * .9);
+        float ridge = .03 + .05 * fb(vec2(az * 2.4, 1.3)) + .018 * fb(vec2(az * 9., 4.));
+        float m = smoothstep(ridge, ridge - .01, y) * smoothstep(-.02, .003, y);
+        c = mix(c, mix(vec3(.94, .96, .98), hor * .92 + vec3(.0, .02, .05), smoothstep(ridge - .06, ridge, y)), m * .85);
+        float s = max(dot(vD, uSun), 0.); vec3 burst = mix(vec3(.35, .9, .5), vec3(1., .82, .3), pow(s, 6.)); c += burst * (pow(s, 900.) * 3. + pow(s, 24.) * .3);
+        float ang = atan(vD.x - uSun.x, vD.y - uSun.y); c += vec3(1., .85, .35) * pow(s, 40.) * (.5 + .5 * sin(ang * 18. + uTime * .3)) * .22;
+        c = mix(c, vec3(.93, .72, .42), uStorm * .85); gl_FragColor = vec4(c, 1.); }` }));
   scene.add(sky);
   const hemi = new T.HemisphereLight(0xfff0d8, 0x9a5a2e, .8); scene.add(hemi);
   const sun = new T.DirectionalLight(0xffe2b0, 2.8); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 700 }); sun.shadow.bias = -.0004; scene.add(sun, sun.target);
@@ -42,11 +54,36 @@
   boot("Leading the glass…");
   const { heightAt } = window.MesaWorld, W = window.MesaWorld.create(T); scene.add(W.root); const Z = W.zones;
 
+  /* ---------- the salt flats as the Supersurface: beyond the town the ground turns to a glossy pale plane ruled in a grid,
+     blotched with airbrushed yellow-green, catching the horizon; at the rim of the world it becomes al-Idrisi's sea, deep blue
+     with white zigzag waves, as on the Tabula Rogeriana. ---------- */
+  W.root.traverse(o => { if (!o.isMesh || o.userData.cls !== "ground") return; const m = o.material, prev = m.onBeforeCompile, pk = prev ? prev.toString() : ""; m.customProgramCacheKey = () => pk + "|supersurface";
+    m.onBeforeCompile = (sh, r) => { if (prev) prev.call(m, sh, r); sh.uniforms.uHor = SKY.uC; sh.uniforms.uTop = SKY.uB;
+      sh.vertexShader = "varying vec3 vGW;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n vGW = (modelMatrix * vec4(transformed, 1.)).xyz;");
+      sh.fragmentShader = `varying vec3 vGW; uniform vec3 uHor; uniform vec3 uTop; float gh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float gn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(gh(i), gh(i + vec2(1., 0.)), f.x), mix(gh(i + vec2(0., 1.)), gh(i + vec2(1., 1.)), f.x), f.y); }
+        ` + sh.fragmentShader.replace("void main() {", "void main() {\n float gSalt = 0.;")
+        .replace("#include <color_fragment>", `#include <color_fragment>
+          { float r = length(vGW.xz - vec2(0., -60.)); gSalt = smoothstep(300., 345., r);
+            if (gSalt > 0.) { float dist = length(vViewPosition), fade = 1. - smoothstep(90., 700., dist);
+              vec2 g = abs(fract(vGW.xz / 4.) - .5), G = abs(fract(vGW.xz / 20.) - .5); float w = fwidth(vGW.x / 4.) * 1.2, W = fwidth(vGW.x / 20.) * 1.4;
+              float fine = smoothstep(.5 - w - .012, .5, max(g.x, g.y)), major = smoothstep(.5 - W - .006, .5, max(G.x, G.y));
+              float blot = gn(vGW.xz * .012) * .6 + gn(vGW.xz * .035) * .4;
+              vec3 surf = mix(vec3(.76, .9, .91), vec3(.6, .8, .86), smoothstep(.3, .7, blot)); surf = mix(surf, vec3(.9, .9, .66), smoothstep(.62, .85, blot) * .55);
+              surf = mix(surf, vec3(.26, .42, .48), max(fine * .6 * fade, major * .9 * (fade * .6 + .4)));
+              float sea = smoothstep(440., 462., r);
+              if (sea > 0.) { float ang = atan(vGW.z + 60., vGW.x), arc = ang * r * .11, rr = r * .16; float v = fract(rr + abs(fract(arc * .55) - .5) * 1.1);
+                float wave = 1. - smoothstep(.05, .13, abs(v - .5)); vec3 ink = mix(vec3(.06, .12, .42), vec3(.1, .2, .55), gn(vGW.xz * .02)); surf = mix(surf, mix(ink, vec3(.94, .95, .97), wave * (fade * .7 + .3)), sea); }
+              diffuseColor.rgb = mix(diffuseColor.rgb, surf, gSalt); } }`)
+        .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\n roughnessFactor = mix(roughnessFactor, .32, gSalt);")
+        .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n { float fr = pow(1. - clamp(dot(normal, normalize(vViewPosition)), 0., 1.), 3.); totalEmissiveRadiance += mix(uHor, uTop, .3) * fr * gSalt * .4 * (1. - smoothstep(440., 462., length(vGW.xz - vec2(0., -60.)))); }"); };
+    m.needsUpdate = true; });
+
   /* ---------- planar mirrors: the oasis pond and the cathedral floor reflect what stands above them ---------- */
   { const rt = new T.WebGLRenderTarget(Math.round(innerWidth * .5), Math.round(innerHeight * .5), { type: T.HalfFloatType }), vcam = new T.PerspectiveCamera(), clip = new T.Plane(new T.Vector3(0, 1, 0), 0);
-    for (const m of W.mirrors) m.mesh.material = new T.ShaderMaterial({ uniforms: { tMirror: { value: rt.texture }, uRes: { value: new T.Vector2(1, 1) }, uTint: { value: new T.Vector3(...m.tint) }, uTime: { value: 0 } },
+    for (const m of W.mirrors) m.mesh.material = new T.ShaderMaterial({ uniforms: { tMirror: { value: rt.texture }, uRes: { value: new T.Vector2(1, 1) }, uTint: { value: new T.Vector3(...m.tint) }, uTime: { value: 0 }, uOn: { value: 0 } },
       vertexShader: "varying vec3 vW; void main(){ vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }",
-      fragmentShader: "uniform sampler2D tMirror; uniform vec2 uRes; uniform vec3 uTint; uniform float uTime; varying vec3 vW; void main(){ vec2 uv=gl_FragCoord.xy/uRes; uv.x=1.-uv.x; uv+=vec2(sin(vW.x*1.7+uTime*1.3),cos(vW.z*1.9+uTime))*.0025; vec3 c=texture2D(tMirror,uv).rgb*uTint; float edge=.08; gl_FragColor=vec4(c+edge*vec3(.2,.3,.32),1.);\n#include <colorspace_fragment>\n}" });
+      fragmentShader: "uniform sampler2D tMirror; uniform vec2 uRes; uniform vec3 uTint; uniform float uTime; uniform float uOn; varying vec3 vW; void main(){ if (uOn < .5) { gl_FragColor = vec4(uTint * vec3(.5, .66, .78), 1.);\n#include <colorspace_fragment>\nreturn; } vec2 uv=gl_FragCoord.xy/uRes; uv.x=1.-uv.x; uv+=vec2(sin(vW.x*1.7+uTime*1.3),cos(vW.z*1.9+uTime))*.0025; vec3 c=texture2D(tMirror,uv).rgb*uTint; float edge=.08; gl_FragColor=vec4(c+edge*vec3(.2,.3,.32),1.);\n#include <colorspace_fragment>\n}" });
     MIR = { rt, vcam, clip }; }
 
   /* ---------- physics ---------- */
@@ -425,9 +462,9 @@
 
     /* the mirrors: the nearest one renders the world flipped across its surface */
     const mi = W.mirrors.map(m => ({ m, d: Math.hypot(camera.position.x - m.x, camera.position.z - m.z) })).sort((a, b) => a.d - b.d)[0];
-    for (const m of W.mirrors) m.mesh.material.uniforms.uRes.value.set(renderer.domElement.width, renderer.domElement.height);
+    for (const m of W.mirrors) { m.mesh.material.uniforms.uRes.value.set(renderer.domElement.width, renderer.domElement.height); m.mesh.material.uniforms.uOn.value = 0; }
     if (mi && mi.d < mi.m.r && camera.position.y > mi.m.y) { const y = mi.m.y, vc = MIR.vcam; vc.copy(camera); vc.position.y = 2 * y - camera.position.y; const f = new T.Vector3(0, 0, -1).applyQuaternion(camera.quaternion); f.y = -f.y; const u = new T.Vector3(0, 1, 0).applyQuaternion(camera.quaternion); u.y = -u.y; vc.up.copy(u); vc.lookAt(vc.position.clone().add(f)); vc.updateMatrixWorld();
-      MIR.clip.constant = -y; renderer.clippingPlanes = [MIR.clip]; mi.m.mesh.visible = false; renderer.setRenderTarget(MIR.rt); renderer.render(scene, vc); renderer.setRenderTarget(null); renderer.clippingPlanes = []; mi.m.mesh.visible = true; mi.m.mesh.material.uniforms.uTime.value = t; }
+      MIR.clip.constant = -y; renderer.clippingPlanes = [MIR.clip]; mi.m.mesh.visible = false; renderer.setRenderTarget(MIR.rt); renderer.render(scene, vc); renderer.setRenderTarget(null); renderer.clippingPlanes = []; mi.m.mesh.visible = true; mi.m.mesh.material.uniforms.uTime.value = t; mi.m.mesh.material.uniforms.uOn.value = 1; }
     renderer.render(scene, camera);
     overlay(dt); requestAnimationFrame(frame);
   }

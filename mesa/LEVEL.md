@@ -83,6 +83,22 @@ After Touki Bouki (Djibril Diop Mambéty, 1973). A 1970s road bike is parked by 
 
 **Not yet:** there is no motorbike clip in the motion library, so the riders use `sitting-idle`, with their legs forward along the tank.
 
+## The sky and the salt flats
+
+Three references, used together:
+- **The sky** follows Superstudio's airbrushed collages:
+  - a soft gradient from a pale horizon to blue;
+  - long horizontal strokes of cloud laid on as if with an airbrush, lit on top and blue in their shadows;
+  - pale mountains drawn along the horizon.
+
+  The six moods (1–6) still tint it, and the emerald-gold sunburst stays.
+- **The salt flats** become the Supersurface (Superstudio, 1972): beyond 300 m from the town the ground turns into a glossy pale cyan plane.
+  - **The grid:** fine lines every 4 m and major lines every 20 m, both fading with distance.
+  - **The finish:** airbrushed blotches of blue-green and pale yellow, and a sheen that catches the horizon at grazing angles.
+- **The Continuous Monument** (Superstudio, 1969): a colossal 64 m wall of green glass grid stands on the salt to the east, sixteen panels on an arc at 485 m.
+- **The edge of the world** is al-Idrisi's sea from the Tabula Rogeriana (1154): deep blue, with white zigzag waves following the curve of the rim.
+- **The buttes** are al-Idrisi's mountains: ten islands of rock at the rim, in bands of red, yellow, orange and purple, edged in dark ink and scalloped with scales.
+
 ## Built on
 
 | Part | Used for |

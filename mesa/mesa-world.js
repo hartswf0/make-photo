@@ -73,10 +73,24 @@
       g.setAttribute("color", new T.BufferAttribute(col, 3)); g.computeVertexNormals(); const m = new T.Mesh(g, new T.MeshStandardMaterial({ vertexColors: true, roughness: 1 })); m.receiveShadow = true; m.userData.cls = "ground"; root.add(m); }
 
     /* ---------- the orange buttes on the salt-flat ring, and the hoodoos on the ridge ---------- */
-    const butteM = new T.MeshStandardMaterial({ color: 0xd2662e, roughness: 1, flatShading: true });
-    for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2 + hash(i) * .3, r = 390 + hash(i, 2) * 70, x = Math.cos(a) * r, z = Math.sin(a) * r - 60, h = 40 + hash(i, 3) * 70, w = 30 + hash(i, 4) * 40;
-      const g = new T.Group(); const s = new T.Mesh(new T.CylinderGeometry(w * 1.3, w * 1.9, h * .35, 9), butteM); s.position.y = h * .17; g.add(s); const t = new T.Mesh(new T.CylinderGeometry(w, w * 1.05, h, 9), butteM); t.position.y = h * .5 + h * .2; g.add(t);
+    /* the buttes as al-Idrisi draws his mountains on the Tabula Rogeriana: bands of red, yellow and purple, each edged in dark
+       ink and scalloped with scales */
+    const IDRISI = [["#d8342c", "#f2c84a", "#e88a2a"], ["#9a4a9a", "#e86ab0", "#f2c84a"], ["#d8342c", "#9a4a9a", "#f2d04a"]];
+    const idrisi = k => { const c = document.createElement("canvas"); c.width = 256; c.height = 256; const q = c.getContext("2d"), pal = IDRISI[k % 3], n = 7;
+      for (let i = 0; i < n; i++) { const y0 = i * 256 / n, h = 256 / n; q.fillStyle = pal[i % pal.length]; q.fillRect(0, y0, 256, h + 1); q.strokeStyle = "rgba(40,20,10,.85)"; q.lineWidth = 3;
+        q.beginPath(); for (let x = 0; x <= 256; x += 16) { q.moveTo(x + 8, y0 + h); q.arc(x, y0 + h, 8, 0, Math.PI, true); } q.stroke(); q.beginPath(); q.moveTo(0, y0); q.lineTo(256, y0); q.stroke(); }
+      const tx = new T.CanvasTexture(c); tx.colorSpace = T.SRGBColorSpace; tx.wrapS = tx.wrapT = T.RepeatWrapping; tx.repeat.set(3, 1); return new T.MeshStandardMaterial({ map: tx, roughness: .95 }); };
+    const butteMs = [0, 1, 2].map(idrisi), butteTop = new T.MeshStandardMaterial({ color: 0xe8d8b0, roughness: 1 });
+    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 + hash(i) * .3, r = 420 + hash(i, 2) * 60, x = Math.cos(a) * r, z = Math.sin(a) * r - 60, h = 26 + hash(i, 3) * 40, w = 16 + hash(i, 4) * 18;   /* islands of mountain at the rim, small enough to see past */
+      const g = new T.Group(); const butteM = [butteMs[i % 3], butteTop, butteTop]; const s = new T.Mesh(new T.CylinderGeometry(w * 1.3, w * 1.9, h * .35, 9), butteM); s.position.y = h * .17; g.add(s); const t = new T.Mesh(new T.CylinderGeometry(w, w * 1.05, h, 9), butteM); t.position.y = h * .5 + h * .2; g.add(t);
       g.position.set(x, heightAt(x, z) - 2, z); g.rotation.y = hash(i, 5) * 6; root.add(g); }
+    /* the Continuous Monument: a colossal wall of glass grid standing on the salt to the east, after Superstudio */
+    { const c = document.createElement("canvas"); c.width = c.height = 256; const q = c.getContext("2d"); q.fillStyle = "rgba(190,228,222,.5)"; q.fillRect(0, 0, 256, 256); q.strokeStyle = "rgba(20,60,56,.85)"; q.lineWidth = 3;
+      for (let k = 0; k <= 8; k++) { q.beginPath(); q.moveTo(k * 32, 0); q.lineTo(k * 32, 256); q.stroke(); q.beginPath(); q.moveTo(0, k * 32); q.lineTo(256, k * 32); q.stroke(); }
+      const tx = new T.CanvasTexture(c); tx.colorSpace = T.SRGBColorSpace; tx.wrapS = tx.wrapT = T.RepeatWrapping;
+      for (let i = 0; i < 16; i++) { const a = -.55 + i * .085, r = 485, x = Math.cos(a) * r, z = Math.sin(a) * r - 60, w = Math.sin(.085) * r * 1.02, h = 64, t = tx.clone(); t.needsUpdate = true; t.repeat.set(w / 6, h / 6);
+        const mat = new T.MeshStandardMaterial({ map: t, transparent: true, opacity: .82, roughness: .1, metalness: .3, emissive: 0x6a9a94, emissiveIntensity: .35, side: T.DoubleSide, depthWrite: false });
+        const m = new T.Mesh(new T.BoxGeometry(w, h, 6), mat); m.position.set(x, heightAt(x, z) + h / 2, z); m.rotation.y = -a + Math.PI / 2; root.add(m); } }
     const hoodooM = new T.MeshStandardMaterial({ color: 0xc86a3a, roughness: 1, flatShading: true }), capM = new T.MeshStandardMaterial({ color: 0x7a3a22, roughness: 1, flatShading: true });
     for (let i = 0; i < 26; i++) { const x = -210 + hash(i, 1) * 90, z = -210 + hash(i, 2) * 120, y = heightAt(x, z), h = 5 + hash(i, 3) * 9, g = new T.Group();
       for (let k = 0; k < 3; k++) { const seg = new T.Mesh(new T.CylinderGeometry(.9 - k * .15 + hash(i, k) * .3, 1.2 - k * .15, h / 3, 7), hoodooM); seg.position.y = h / 6 + k * h / 3; g.add(seg); }
