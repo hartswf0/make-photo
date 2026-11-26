@@ -170,7 +170,7 @@
 
     /* ---------- the ziggurat: stepped stone at the canyon's end, giant glass columns behind it ---------- */
     const zig = { seat: null }; { const zz = Z.ziggurat_steps, y = heightAt(zz.x, zz.z), stone = M(0xd8b48a, { roughness: .95 });
-      for (let k = 0; k < 6; k++) { const w = 36 - k * 5, d = 26 - k * 3.6, s = box(w, 1.2, d, stone); s.position.set(zz.x, y + .6 + k * 1.2, zz.z - k * .6); root.add(shadowOf(s)); solid(zz.x, y + .6 + k * 1.2, zz.z - k * .6, w / 2, .6, d / 2, 0, "ziggurat"); }
+      for (let k = 0; k < 6; k++) { const w = 36 - k * 5, d = 26 - k * 3.6, s = box(w, 1.2, d, stone); s.userData.cls = "zig"; s.position.set(zz.x, y + .6 + k * 1.2, zz.z - k * .6); root.add(shadowOf(s)); solid(zz.x, y + .6 + k * 1.2, zz.z - k * .6, w / 2, .6, d / 2, 0, "ziggurat"); }
       zig.seat = new T.Vector3(zz.x + 6, y + 2.4, zz.z + 26 / 2 - 4.6);
       const colTx = leaded(T, 900, { cells: 6, pal: ["#f2d04a", "#2fd0d8", "#f2a83a", "#e9f4f0"] });
       for (let i = 0; i < 7; i++) { const x = zz.x - 24 + i * 8, h = 30 + (i % 3) * 12, c = new T.Mesh(new T.BoxGeometry(3, h, 3), glassMat(T, colTx, { opacity: .8 })); c.position.set(x, y + h / 2, zz.z - 22); root.add(c); glass.push(c); solid(x, y + h / 2, zz.z - 22, 1.5, h / 2, 1.5, 0, "column"); } }

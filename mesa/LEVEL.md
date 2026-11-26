@@ -36,7 +36,8 @@ A cyber-western of glass, built from the film's keyframe breakdown (`keyframes.j
 3. the crane into the cathedral;
 4. the silhouette wall in profile;
 5. the curtain wall pullback;
-6. the ziggurat.
+6. the ziggurat;
+7. the triptych.
 
 ## Paint: the graffiti game (`ink.js`)
 
@@ -70,7 +71,8 @@ After Touki Bouki (Djibril Diop Mambéty, 1973). A 1970s road bike is parked by 
 - a finned twin engine and an exhaust;
 - high chrome bars, with round mirrors on tall stalks;
 - a round headlight over the plate "10";
-- a zebu skull strapped over the bars, its horns sweeping out wide and nearly flat and curling up at the tips, as on the poster.
+- a zebu skull strapped over the bars, its horns sweeping out wide and nearly flat and curling up at the tips, as on the poster;
+- the Dogon kanaga standing on the sissy bar: the cross the film puts on the rear of Mory's bike, which the poster does not show.
 
 **Anta** waits beside it: a Black woman with short natural hair, an olive-green shirt, mustard trousers and a tan leather satchel. When Uncle Mesa rides, she rides pillion. She is from the one cast and takes paint like everyone else.
 
@@ -82,6 +84,39 @@ After Touki Bouki (Djibril Diop Mambéty, 1973). A 1970s road bike is parked by 
 - **Paint:** Uncle Mesa can still be painted while riding, because his body rides with the bike.
 
 **Not yet:** there is no motorbike clip in the motion library, so the riders use `sitting-idle`, with their legs forward along the tank.
+
+## The triptych (`triptych.js`)
+
+Three windows of leaded glass stand behind the ziggurat on a wall as tall as it, the wings turned in like an open altarpiece. They are painted in code on canvases at load, after the way Afewerk Tekle built *The Total Liberation of Africa* (Africa Hall, Addis Ababa, 1961): jewel colour, frontal long-faced figures cut from big planes, and a heavy black line drawn with a broad nib. The drawing is this level's own, and its three verses are the level's opening line.
+
+| Window | Verse | What is in it |
+|---|---|---|
+| THEN | it was dust | a herder with a staff and his zebu, face on, under a red sky; vultures; a pole whose wire carries nothing |
+| THEN AND NOW | it is data | Uncle Mesa lifts a torch with a chip of blue glass in its flame; Anta's open hand beside him; four of the town behind |
+| NOW AND THE FUTURE | and it remembers | a child holds the chip up to a rising sun; a woman's hand on his shoulder; the curtain wall; the horned bike small on a road of light |
+
+**How a window is made.** Flat pieces of colour are drawn first. The sheet is then cut into jittered cells on rings around the torch flame, so every shard in all three windows points at the one light. Each cell takes its own tone. Lead follows the edges of the drawing, then faces, hands and lettering go on top, then the iron bars.
+
+**The glass tracks three things:**
+- **The sun.** The windows' colour is thrown through them onto the sand, the ziggurat steps, Uncle Mesa, Anta and the outlaws. It swings and stretches with the time of day (1–6): short at noon, a hundred metres down the canyon at golden hour. The lead falls as dark lines, and the verses can be read on the ground. A sandstorm puts it out.
+- **Uncle Mesa.** Every painted eye follows him (twenty of them, the zebu's included). When he is far off or behind the glass they turn up to the flame. A glow walks behind the glass beside him.
+- **The torch.** Light leaves the flame in slow rings and crosses all three windows.
+
+Stand in each window's light and it gives its verse.
+
+## The swarms (`swarm.js`)
+
+A figure in a swarm is not a character. One hidden cast character plays the motion-capture clips, and its bones are recorded every frame. A figure is a few hundred flat panes, each with a lead rim, each pinned to one bone, all drawn as instances of a single triangle. Each figure reads the recording a little further back, so no two are in step.
+
+| Swarm | Where | What it does | Cost |
+|---|---|---|---|
+| The procession | round the ziggurat | Ten robed figures led by a torchbearer pour out of the centre window as loose shards, take their bodies on the sand to the east, walk round the front through the windows' light, and go back into the glass on the west side. Walk behind the torch for five seconds | 1 hidden rig, 1 draw, about 1,900 panes |
+| The stained-glass knight | the north window of the sunken cathedral | Come near on the cathedral floor and his panes leave the lead, form him on the mirror, and he comes for Uncle Mesa with a sword of red glass. In reach he swings (`hammering`) and puts him down. Each paintball knocks panes off him, stained with the paint; nine hits and he is in pieces. Later the pieces fly home | 1 hidden rig, 1 draw, about 300 panes |
+| The zebu | the salt ring, 370 m out | Twelve long-horned cattle of glass, two calves among them. They walk the ring, graze when still, keep apart, and gallop from the bike. Ride beside them | 1 draw, about 950 panes |
+| The spores | over the oasis | Ninety-six lit bodies, each trailing three beads. They come down and ring Uncle Mesa. Paint landing near them scatters them and stains them | 1 draw |
+| The tail light | behind the bike | Above about 30 km/h a red streak follows the last seventeen metres of road, after Kaneda's | 1 draw |
+
+**The knight is this level's own design:** steel-blue panes with gold trim, a red plume, a sun over a mesa on the breastplate. The idea of a knight stepping out of a window is from *Young Sherlock Holmes* (1985).
 
 ## The sky and the salt flats
 
@@ -118,3 +153,7 @@ The glass is painted at load on canvases: leaded cells around a jittered grid, l
 - **Sound:** gunfire and glass are synthesized.
 - **Phones:** there are no touch controls.
 - **The overworld:** not poured into the trough yet.
+- **The zebu's bones:** no cast skeleton fits a cow, so their gait is worked out in `swarm.js`, not motion capture.
+- **The knight:** he keeps to the cathedral floor and has no way round obstacles.
+- **The procession:** it cannot be touched or painted.
+- **Tested** in a headless browser with software rendering only: not yet on a phone or a real graphics card.
