@@ -38,6 +38,11 @@ Five missions in order, shown one at a time, each with a gold beam on the place 
 - **Animation.** He backpedals with the gun up (`walk-backwards`), leaps on a dash (`jump`), and raises his arms on a cleared wave (`victory`) while Anta claps; his arm kicks up with each shot; she waves when he first comes near (`greeting`).
 - **On a phone** the picture is drawn at fewer pixels with a smaller shadow map, and landscape has its own layout.
 
+## Music (`score.js`, `../soundtrack/`)
+
+- **The score** is the default and is played in the browser; nothing is streamed. Ninety-two beats a minute in the tizita minor on D. A drone and a plucked krar figure always play; a bass comes in when outlaws are up; kick, rim and shaker when the fight is on; a whistled line at a ×4 combo, an octave higher at ×8. While he is down it all goes under water. In the cathedral it thins out and echoes.
+- **The picker** on the music strip switches to any of the 86 MOTO halls instead, streamed from the moto site. It is on screen on a phone, under the goal.
+
 ## Keyframe → zone → mechanic
 
 | Keyframe | Time | Zone (`mesa-world.js`) | Effect | Mechanic |
