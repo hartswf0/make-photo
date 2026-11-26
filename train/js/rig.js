@@ -7,10 +7,12 @@ import { DIM, clamp, damp, noise2 } from './kit.js';
 const { L, HW, FLOOR: F, ROOF } = DIM;
 const V = (x, y, z) => new THREE.Vector3(x, y, z), lerp = THREE.MathUtils.lerp, ease = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
 
+// the heist camera rides high, and ducks under the lintel as it follows him through a doorway
+const heistY = x => { const lx = (((x + L / 2) % DIM.SPAN) + DIM.SPAN) % DIM.SPAN, edge = lx < L ? Math.min(lx, L - lx) : 0, t = clamp((edge - .5) / 1.3, 0, 1); return 1.82 + .44 * t * t * (3 - 2 * t); };
 /** frame: what the shot is attached to. inside: lens is in the carriage (so it gets wall clamping and lamp light). */
 export const SHOTS = [
   { id: 'follow', label: 'Follow', frame: 'passenger', inside: true, fov: 58, lens: '28mm corridor',
-    at: c => c.heist && !c.a.roof ? { fov: innerHeight > innerWidth ? 76 : 62, pos: V(c.a.x - c.a.cam * 4.3, F + 2.26, c.aisleZ), look: V(c.a.x + c.a.cam * 4, F + .9, c.aisleZ + (c.a.z - c.aisleZ) * .5) }
+    at: c => c.heist && !c.a.roof ? { fov: innerHeight > innerWidth ? 76 : 62, pos: V(c.a.x - c.a.cam * 4.3, F + heistY(c.a.x - c.a.cam * 4.3), c.aisleZ), look: V(c.a.x + c.a.cam * 4, F + .9, c.aisleZ + (c.a.z - c.aisleZ) * .5) }
       : c.a.roof ? { free: true, pos: V(c.a.x - (c.heist ? c.a.cam : c.a.dir) * 4.6, F + ROOF + 2.3, c.a.z * .4 + .9), look: V(c.a.x + (c.heist ? c.a.cam : c.a.dir) * 6, F + ROOF + 1.1, c.a.z * .5) }
       : c.a.seated ? { pos: V(c.a.x - c.a.dir * 1.55, F + 1.52, c.a.z - c.side * 1.0), look: V(c.a.x + c.a.dir * .9, F + 1.12, c.a.z + c.side * .9) }
       : { pos: V(c.a.x - c.a.dir * 2.5, F + 1.72, c.aisleZ + .1), look: V(c.a.x + c.a.dir * 3, F + 1.3, c.a.z) } },
