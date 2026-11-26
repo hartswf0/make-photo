@@ -94,6 +94,44 @@
     for (const [bi, ci] of [[16, 18], [18, 20]]) { const b = B[bi], c = B[ci]; b.getWorldPosition(_aw); c.getWorldPosition(_ac); const cur = _ac.sub(_aw).normalize(); _aq.setFromUnitVectors(cur, dir); b.getWorldQuaternion(_aq2); _aq2.premultiply(_aq); b.parent.getWorldQuaternion(_aq); b.quaternion.copy(_aq.invert().multiply(_aq2)); b.updateMatrixWorld(true); } }
   const boneW = (ch, i, out) => { const b = ch.bones && ch.bones[i]; if (b) b.getWorldPosition(out); else out.copy(ch.group.position).add(new T.Vector3(0, 1.6, 0)); return out; };
 
+  /* ---------- painted bodies: a hit is pinned to the nearest bone, so the paint walks, falls and rides with the body ----------
+     Each body keeps up to NM marks (bone, offset in the bone's frame, radius, colour, when). Every frame they are carried to world
+     space and handed to a shader patch on the body's own materials: inside a mark the cloth or skin takes the paint, with a ragged
+     edge, running downward as wet paint does; for a second it is glossy, then it crystallizes into small leaded glass cells, as the
+     world's paint does. */
+  const NM = 24, BNOW = { value: 0 }, BODY_BONES = [1, 3, 5, 7, 10, 12, 14, 16, 18, 20, 51, 53, 54, 56, 58, 59];
+  function paintable(ch) { if (!ch || ch.paint) return; const U = { uBP: { value: Array.from({ length: NM }, () => new T.Vector4(0, -999, 0, 0)) }, uBC: { value: Array.from({ length: NM }, () => new T.Vector4()) }, uBN: { value: 0 }, uBNow: BNOW };
+    /* the cast's skin, cloth and eyes already have shader hooks of their own: ours runs after theirs, on the same material */
+    ch.group.traverse(o => { if (!o.isMesh || !o.material) return; for (const m of Array.isArray(o.material) ? o.material : [o.material]) { if (!m || !m.isMeshStandardMaterial || m.transparent) continue; if (m.userData.paintOwner) continue; m.userData.paintOwner = ch.group.uuid; patchBody(m, U); } });
+    ch.paint = { U, marks: [] }; }
+  function patchBody(m, U) { const prev = m.onBeforeCompile, prevKey = prev ? prev.toString() : ""; m.customProgramCacheKey = () => prevKey + "|painted-body";
+    m.onBeforeCompile = (sh, r) => { if (prev) prev.call(m, sh, r); Object.assign(sh.uniforms, U);
+      sh.vertexShader = "varying vec3 vBP; varying vec3 vBN;\n" + sh.vertexShader.replace("#include <skinning_vertex>", "#include <skinning_vertex>\n vBP = (modelMatrix * vec4(transformed, 1.)).xyz; vBN = normalize(mat3(modelMatrix) * objectNormal);");
+      sh.fragmentShader = `uniform vec4 uBP[${NM}]; uniform vec4 uBC[${NM}]; uniform int uBN; uniform float uBNow; varying vec3 vBP; varying vec3 vBN;
+        float bh(vec3 p){ return fract(sin(dot(p, vec3(41.3, 289.1, 17.7))) * 23758.5453); } vec2 bh2(vec2 p){ p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3))); return fract(sin(p) * 43758.5453); }
+        ` + sh.fragmentShader.replace("void main() {", "void main() {\n float bCov = 0., bCure = 0.; vec3 bGlow = vec3(0.);")
+        .replace("#include <color_fragment>", `#include <color_fragment>
+          vec3 bCol = vec3(0.); for (int i = 0; i < ${NM}; i++) { if (i >= uBN) break; vec4 h = uBP[i]; vec3 dv = vBP - h.xyz; float run = smoothstep(0., 1.5, uBNow - uBC[i].w);
+            dv.y = dv.y < 0. ? dv.y / (1. + run * 1.4) : dv.y * 1.3;   /* wet paint runs down the body */
+            float rag = (bh(floor(vBP * 22.)) - .5) * h.w * .45, k = 1. - smoothstep(h.w * .78, h.w, length(dv) + rag);
+            if (k > bCov) { bCov = k; bCol = uBC[i].rgb; bCure = smoothstep(1.2, 2.8, uBNow - uBC[i].w); } }
+          if (bCov > 0.) { vec3 n = abs(vBN); vec2 p = (n.y > .6 ? vBP.xz : n.x > n.z ? vBP.zy : vBP.xy) * 9.;
+            vec2 g = floor(p), f = fract(p); float d1 = 8., d2 = 8.; vec2 id = g;
+            for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) { vec2 o = vec2(float(x), float(y)), r = o + bh2(g + o) * .8 + .1 - f; float d = dot(r, r); if (d < d1) { d2 = d1; d1 = d; id = g + o; } else if (d < d2) d2 = d; }
+            float lead = smoothstep(.09 * bCure, .09 * bCure + .04, sqrt(d2) - sqrt(d1)); vec3 cell = bCol * (.8 + .4 * bh(vec3(id, 3.)));
+            vec3 wetC = pow(bCol, vec3(1.1)), glassC = mix(vec3(.05, .04, .03), cell, lead);
+            diffuseColor.rgb = mix(diffuseColor.rgb, mix(wetC, glassC, bCure), smoothstep(0., .35, bCov)); bGlow = cell * lead * bCure * .55 * smoothstep(0., .35, bCov); }`)
+        .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\n roughnessFactor = mix(roughnessFactor, mix(.1, .25, bCure), smoothstep(0., .35, bCov));")
+        .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += bGlow;"); };
+    m.needsUpdate = true; }
+  const _bw = new T.Vector3();
+  function paintBody(ch, p, color, spread = 1) { if (!ch || !ch.paint || !ch.bones) return; const col = new T.Color(color); ch.group.updateMatrixWorld(true);
+    for (let s2 = 0; s2 < spread; s2++) { const q = s2 ? p.clone().add(new T.Vector3((Math.random() - .5) * .45, (Math.random() - .6) * .5, (Math.random() - .5) * .45)) : p; let best = null, bd = 1e9;
+      for (const bi of BODY_BONES) { const b = ch.bones[bi]; if (!b) continue; b.getWorldPosition(_bw); const d = _bw.distanceToSquared(q); if (d < bd) { bd = d; best = b; } }
+      if (!best) return; const local = best.worldToLocal(q.clone()); ch.paint.marks.push({ bone: best, local, r: (s2 ? .1 : .17) + Math.random() * .08, col, t: BNOW.value }); if (ch.paint.marks.length > NM) ch.paint.marks.shift(); } }
+  function paintStep(t) { BNOW.value = t; for (const ch of PAINTED) { if (!ch || !ch.paint) continue; const P = ch.paint; P.marks.forEach((m, i) => { m.bone.localToWorld(_bw.copy(m.local)); P.U.uBP.value[i].set(_bw.x, _bw.y, _bw.z, m.r); P.U.uBC.value[i].set(m.col.r, m.col.g, m.col.b, m.t); }); P.U.uBN.value = P.marks.length; } }
+  const PAINTED = [me, ...outlaws.map(o => o.ch)]; PAINTED.forEach(paintable);
+
   /* the controller */
   const ctrl = world.createCharacterController(.03); ctrl.enableAutostep(.5, .2, true); ctrl.enableSnapToGround(.5); ctrl.setApplyImpulsesToDynamicBodies(true); ctrl.setMaxSlopeClimbAngle(50 * Math.PI / 180);
   const meBody = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased()), meCol = world.createCollider(R.ColliderDesc.capsule(.55, .3), meBody); OWNER.set(meCol.handle, { kind: "me" });
@@ -125,9 +163,10 @@
     const o = new T.Vector3(); if (gun.parent) gun.localToWorld(o.set(0, 0, .26)); else o.set(st.x, st.y + 1.4, st.z);
     const spread = .018 + (1 - st.steady) * .03, d = dir.clone().add(new T.Vector3((Math.random() - .5) * spread, (Math.random() - .5) * spread + .035, (Math.random() - .5) * spread)).normalize(), col = PAINT[paintN++ % PAINT.length];
     INK.fire(o, d, col, 30 + Math.random() * 4); puff(o.clone().addScaledVector(d, .12), col, d.clone().multiplyScalar(1.5), .3, .05, 1.4, false); S.launch(o); }
-  function inkHit(who, q, n, d, col) {   /* what a paintball does besides land: prisms crack, outlaws go down in their own colour, shards skitter */
+  function inkHit(who, q, n, d, col, owner) {   /* what a paintball does besides land: prisms crack, outlaws go down in their own colour, shards skitter */
     if (who && who.kind === "prism") { const p = who.p; p.hp--; S.glass(q, .3); if (p.hp <= 0) shatter(p, d); return false; }
-    if (who && who.kind === "outlaw") { const ol = who.o; if (ol.state === "idle" || ol.state === "telegraph" || ol.state === "fire") { ol.state = "fall"; ol.t = 0; S.thud(q); say(`${ol.name} goes down, painted to the hat.`, 2); }
+    if (who && who.kind === "me") { if (owner !== "outlaw") return true; paintBody(me, q, col, 3); if (st.mode !== "down") { $("hurt").classList.add("on"); setTimeout(() => $("hurt").classList.remove("on"), 260); fall("The paint takes him off his feet."); } return true; }
+    if (who && who.kind === "outlaw") { const ol = who.o; paintBody(ol.ch, q, col, 3); if (ol.state === "idle" || ol.state === "telegraph" || ol.state === "fire") { ol.state = "fall"; ol.t = 0; S.thud(q); say(`${ol.name} goes down, painted to the hat.`, 2); }
       const gp = new T.Vector3(q.x, heightAt(q.x, q.z), q.z); INK.splat(gp, new T.Vector3(0, 1, 0), d, col, 1.4); return true; }
     if (who && who.kind === "shard") { who.b.applyImpulseAtPoint(v3(d.x * .4, .3, d.z * .4), v3(q.x, q.y, q.z), true); return true; }
     return false; }
@@ -158,12 +197,11 @@
       ring.visible = o.state === "telegraph"; if (ring.visible) { const h = new T.Vector3(); boneW(o.ch, 7, h); ring.position.copy(h).add(new T.Vector3(0, .45, 0)); }
       const p = g.position; o.body.setNextKinematicTranslation(o.state === "away" || o.state === "fall" ? v3(0, -50, 0) : v3(p.x, p.y + .85, p.z)); }); }
   function drawRing(s, k) { const c = s.material.map.image, q = c.getContext("2d"); q.clearRect(0, 0, 128, 128); q.lineWidth = 10; q.strokeStyle = "rgba(255,60,60,.35)"; q.beginPath(); q.arc(64, 64, 48, 0, 6.29); q.stroke(); q.strokeStyle = "rgba(255,40,60,.95)"; q.beginPath(); q.arc(64, 64, 48, -Math.PI / 2, -Math.PI / 2 + clamp(k, 0, 1) * 6.283); q.stroke(); s.material.map.needsUpdate = true; }
-  function outlawShot(o) { const from = new T.Vector3(); boneW(o.ch, 20, from); const to = new T.Vector3(st.x, st.y + 1.3, st.z), d = to.clone().sub(from), L = d.length(); d.normalize();
-    S.shot(from, .7); tracer(from, to); for (let i = 0; i < 3; i++) puff(from.clone().addScaledVector(d, .2), 0xd8205a, d.clone().multiplyScalar(2), .7, .16, 2, true);
-    const hit = world.castRay(new R.Ray(v3(from.x + d.x * .6, from.y + d.y * .6, from.z + d.z * .6), v3(d.x, d.y, d.z)), L - .6, true, undefined, undefined, o.body.collider(0));
-    const who = hit && OWNER.get(hit.collider.handle);
-    if (who && who.kind === "me") { $("hurt").classList.add("on"); setTimeout(() => $("hurt").classList.remove("on"), 260); fall("The shot takes him off his feet."); }
-    else if (who && who.kind === "prism") { S.glass(new T.Vector3(who.p.x, who.p.y, who.p.z), .3); say("The prism takes the bullet for him.", 1.6); } }
+  const DAKAR = [0xd8342c, 0xf2c81e, 0x1f9a4a, 0x2a6ad8];   /* Touki Bouki: the red, yellow and green of the flag, and the blue of the Dakar sky */
+  function outlawShot(o) { if (!INK) return; const from = new T.Vector3(); boneW(o.ch, 20, from); const to = new T.Vector3(st.x, st.y + 1.2, st.z), L = to.distanceTo(from), tf = L / 28; to.y += .5 * 9.81 * tf * tf;
+    const d = to.sub(from).normalize(), col = DAKAR[(o.shots = (o.shots || 0) + 1) % DAKAR.length];
+    for (let k = 0; k < 3; k++) INK.fire(from.clone().addScaledVector(d, .4), d.clone().add(new T.Vector3((Math.random() - .5) * .03, (Math.random() - .5) * .02, (Math.random() - .5) * .03)).normalize(), col, 27 + k, { owner: "outlaw", exclude: o.body.collider(0) });
+    S.launch(from); S.launch(from); puff(from.clone().addScaledVector(d, .3), col, d.clone().multiplyScalar(2), .5, .08, 1.6, false); }
 
   /* ---------- jobs, offers, modes ---------- */
   const GOALS = [["gate", "Pass through the title gate"], ["iris", "Sight the mesas through the clockwork iris"], ["horse", "Ride the lone horse"], ["prism", "Shatter a glass prism"], ["duel", "Win the duel (Game mode)"], ["cathedral", "Descend into the glass cathedral"], ["oasis", "Find the oasis"], ["zig", "Sit on the ziggurat steps"], ["turf", "Ink 250 m² of turf. It cures to glass"], ["tags", "Fill the four tag spots on Main Street"]];
@@ -281,6 +319,7 @@
       st.speed = Math.hypot(mv.x, mv.z) / Math.max(dt, 1e-3);
       me.group.position.set(st.x, st.y, st.z); me.group.rotation.set(0, st.heading, 0);
       if (motion) try { if (st.swim) motion.setClip("mesa", st.speed > .3 ? "crouch-walk" : "crouch-idle", { fade: .15 }); else motion.setActorLocomotion("mesa", { speedMps: st.speed, blend: 1 }); } catch (e) { }
+      if (st.swim && Math.random() < dt * 1.6) { const s0 = INK.inkUnder(st.x, st.z, st.y); if (s0 && me.bones) { const b = me.bones[[54, 59, 53, 58][Math.floor(Math.random() * 4)]]; if (b) paintBody(me, b.getWorldPosition(new T.Vector3()), s0.col, 1); } }
       if (st.swim && st.speed > .5 && Math.random() < dt * 30) { const s0 = INK.inkUnder(st.x, st.z, st.y); if (s0) puff(new T.Vector3(st.x, st.y + .1, st.z), s0.col, new T.Vector3((Math.random() - .5) * 2, 1.2, (Math.random() - .5) * 2), .5, .08, 1.5, false); }
     } else if (st.mode === "ride") {
       mount.update(dt, { throttle: fwd, steer: turn, pace: run ? 3 : 1 }, heightAt); const M = mount.state; mount.saddleAt(_sp, _sq);
@@ -293,7 +332,7 @@
     /* physics */
     { const n = Math.max(1, Math.ceil(dt * 60)); for (let k = 0; k < n; k++) { world.step(); fstep++; } }
     for (const s of shards) { const p = s.b.translation(), r = s.b.rotation(); s.m.position.set(p.x, p.y, p.z); s.m.quaternion.set(r.x, r.y, r.z, r.w); }
-    duelStep(dt);
+    duelStep(dt); paintStep(t);
     if (st.gun && st.mode === "foot" && (keys.Space || mouse.down)) fire(aimDir()); else st.ink = Math.min(100, st.ink + dt * 5);
     if (INK) { INK.step(dt, t); INK.setSun(SKY.uSun.value, scene.fog.color, scene.fog.density); if (INK.turf() >= 250) complete("turf", "250 square metres of the desert are yours, and all of it has turned to glass."); }
     if (motion) try { motion.update(dt); } catch (e) { }
@@ -373,6 +412,6 @@
 
   resize(); $("boot").classList.add("done"); $("title").classList.add("on"); setTimeout(() => { $("title").classList.remove("on"); GRIDON = false; }, 6500);
   say("This land ain't dust anymore. It's data. And it remembers.", 5);
-  window.__mesa = { get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
+  window.__mesa = { paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
   requestAnimationFrame(frame);
 })().catch(e => { console.error(e); const b = document.getElementById("boot-s"); if (b) b.textContent = "Something went wrong: " + e.message; });

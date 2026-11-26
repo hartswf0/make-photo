@@ -54,6 +54,12 @@ Uncle Mesa's six-shooter fires paintballs. Hold Space or the mouse button to spr
 - **The ink tank.** Each shot costs 1.5 of 100. It refills slowly on its own and fast while swimming. The vial by the reticle shows how full it is, in the colour of the next shot.
 - **Turf.** Each square metre of upward ground that you ink counts once. The goal is 250 m².
 - **Tag spots.** Four frames on the Main Street fronts. Ten hits inside one and it blooms into a lettered stained-glass mural: MESA CHIP, DATA REMEMBERS, UNCLE MESA, THIS LAND.
+- **Painted bodies.** Uncle Mesa and the outlaws take paint where they are hit.
+  - **Pinned to bones.** A hit is pinned to the nearest of sixteen bones, so it walks, falls and rides with the body.
+  - **On the body.** A patch on the body's own materials, run after the cast's own shader hooks: the cloth or skin takes the paint with a ragged edge and runs downward while wet. For about 1.2 s it is glossy, then it crystallizes into small leaded cells and glows, as the world's paint does.
+  - **Limit.** Up to 24 marks a body; the oldest goes first.
+  - **The outlaws' paint.** They fire paintballs too, three at a time with a little lift for the drop, in Touki Bouki's colours: the red, yellow and green of Senegal's flag and the blue of the Dakar sky. One that reaches Uncle Mesa paints him and puts him down.
+  - **Swimming.** Swimming in his own ink leaves it on his boots and shins.
 - **Other targets.** Outlaws go down painted, and their colour pools under them. Prisms still crack and shatter.
 - **The buffer.** Every splat and drip is one instance in a single instanced mesh, 1,600 at a time; the oldest is reused.
 
