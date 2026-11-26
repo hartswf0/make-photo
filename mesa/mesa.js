@@ -508,7 +508,7 @@
 
   /* ---------- the frame ---------- */
   boot("Opening the iris…");
-  const GODS = []; W.root.traverse(o => { if (o.userData.god) GODS.push(o); });
+  let SCH = 0; const GODS = []; W.root.traverse(o => { if (o.userData.god) GODS.push(o); });
   const clock = new T.Clock(), IRIS = { open: 0 }; let offerNow = null, fstep = 0;
   const camPos = new T.Vector3(st.x, st.y + 3, st.z + 8), camLook = new T.Vector3(st.x, st.y + 1.5, st.z);
   function frame() {
@@ -574,7 +574,7 @@
       _bu.set(0, 1, 0).applyQuaternion(TK.group.quaternion);
       if (st.mode === "bike") { me.group.position.copy(TK.group.localToWorld(_bs.copy(TK.seat))).addScaledVector(_bu, -SEATH); me.group.quaternion.copy(TK.group.quaternion); }
       if (anta) { if (BK.rode && (st.mode === "bike" || near({ x: BK.x, z: BK.z }, { x: anta.group.position.x, z: anta.group.position.z }, 1.5))) { anta.group.position.copy(TK.group.localToWorld(_bs.copy(TK.pillion))).addScaledVector(_bu, -SEATH); anta.group.quaternion.copy(TK.group.quaternion); if (motion) try { motion.setClip("anta", "sitting-idle", { fade: .3 }); } catch (e) { } }
-        else if (done.gate) { /* on foot she keeps to his right shoulder, a step behind */ const g = anta.group.position, tx = st.x - Math.sin(CAM.yaw) * 1.5 + Math.cos(CAM.yaw) * 1.9, tz = st.z - Math.cos(CAM.yaw) * 1.5 - Math.sin(CAM.yaw) * 1.9, dx = tx - g.x, dz = tz - g.z, d = Math.hypot(dx, dz), sp = d > 6 ? 5.2 : d > 1.1 ? 2.2 : 0;
+        else if (done.gate) { /* on foot she keeps to his left, out of the line of the camera */ const g = anta.group.position, tx = st.x - Math.sin(CAM.yaw) * .6 - Math.cos(CAM.yaw) * 2.6, tz = st.z - Math.cos(CAM.yaw) * .6 + Math.sin(CAM.yaw) * 2.6, dx = tx - g.x, dz = tz - g.z, d = Math.hypot(dx, dz), sp = d > 6 ? 5.2 : d > 1.1 ? 2.2 : 0;
           if (d > 34) { g.x = tx; g.z = tz; } else if (sp) { g.x += dx / d * sp * dt; g.z += dz / d * sp * dt; anta.group.rotation.set(0, Math.atan2(dx, dz), 0); } else if (AN.aimT > 0) anta.group.rotation.set(0, Math.atan2(AN.dir.x, AN.dir.z), 0);
           g.y = heightAt(g.x, g.z); if (motion) try { if (GAME.cheer > 0 && !sp) motion.setClip("anta", "clapping", { fade: .2 }); else motion.setActorLocomotion("anta", { speedMps: sp, blend: 1 }); } catch (e) { } }
         else { if (motion) try { motion.setClip("anta", near(st, anta.group.position, 7) ? "greeting" : "idle-foldarms", { fade: .3 }); } catch (e) { } }
@@ -585,6 +585,8 @@
     { const n = Math.max(1, Math.ceil(dt * 60)); for (let k = 0; k < n; k++) { world.step(); fstep++; } }
     for (const s of shards) { const p = s.b.translation(), r = s.b.rotation(); s.m.position.set(p.x, p.y, p.z); s.m.quaternion.set(r.x, r.y, r.z, r.w); }
     duelStep(dt); gameStep(dt, t); missionStep(); paintStep(t);
+    if (window.MesaScore) { /* the score follows the fight: how many are up, the combo, whether he is down, whether he is under the dune */ const up = DUEL.on ? outlaws.filter(o => o.state !== "away" && o.state !== "fall").length : 0, kn = KNIGHT.state === "hunt" || KNIGHT.state === "strike" ? 1 : 0;
+      SCH = lerp(SCH, clamp(up * .28 + kn * .7 + (st.mode === "bike" ? .45 : 0) + GAME.combo * .03, 0, 1), 1 - Math.exp(-dt * 1.2)); window.MesaScore.set({ heat: SCH, combo: GAME.combo, down: st.mode === "down", pit: inPit() }); }
     if (trig && st.gun) { fire(aimDir()); if (LOCK.p) { /* the view leans toward what the gun has found */ const want = Math.atan2(LOCK.p.x - st.x, LOCK.p.z - st.z); CAM.yaw += wrapA(want - CAM.yaw) * (1 - Math.exp(-dt * (PAD.touch ? 5 : 2))); } } else { st.ink = Math.min(100, st.ink + dt * 6); if (st.gun && st.mode === "foot") aimDir(); else LOCK.p = null; }
     if (INK) { INK.step(dt, t); INK.setSun(SKY.uSun.value, scene.fog.color, scene.fog.density); if (INK.turf() >= 250) complete("turf", "250 square metres of the desert are yours, and all of it has turned to glass."); }
     if (motion) try { motion.update(dt); } catch (e) { }
@@ -675,7 +677,7 @@
     if (WAYAT.y > -9000 && MODE !== "cinema") { /* where to go: a gold mark on the place, or an arrow at the edge of the glass pointing to it */ const sp = _lk.copy(WAYAT).project(camera), back = sp.z > 1, dist = Math.round(Math.hypot(WAYAT.x - st.x, WAYAT.z - st.z)); let sx = (back ? -sp.x : sp.x), sy = (back ? -sp.y : sp.y); const off = back || Math.abs(sx) > .9 || Math.abs(sy) > .84;
       if (off) { const m = Math.max(Math.abs(sx) / .9, Math.abs(sy) / .84, 1e-3); sx /= m; sy /= m; if (back && Math.abs(sx) < .5) sx = Math.sign(sx || 1) * .9; } const px = (sx + 1) / 2 * w, py = (1 - sy) / 2 * h; if (dist > 6) { FX.save(); FX.translate(px, py); FX.rotate(off ? Math.atan2(-sy, sx) + Math.PI / 2 : Math.PI); FX.beginPath(); FX.moveTo(0, -11 * k); FX.lineTo(8 * k, 7 * k); FX.lineTo(-8 * k, 7 * k); FX.closePath(); FX.fillStyle = "rgba(242,208,74,.95)"; FX.fill(); FX.strokeStyle = "rgba(20,14,10,.8)"; FX.lineWidth = 1.5 * k; FX.stroke(); FX.restore();
         FX.font = `600 ${11 * k}px ui-monospace, monospace`; FX.textAlign = "center"; FX.fillStyle = "rgba(251,242,226,.95)"; FX.fillText(dist + " m", clamp(px, 30 * k, w - 30 * k), clamp(py + 24 * k, 20 * k, h - 10 * k)); } }
-    if (DUEL.on && MODE !== "cinema") { /* three hits, the score, the combo and how long it has left */ const x0 = w / 2, y0 = (PAD.touch ? (h > w ? 104 : 22) : 26) * k; FX.textAlign = "center";
+    if (DUEL.on && MODE !== "cinema") { /* three hits, the score, the combo and how long it has left */ const x0 = w / 2, y0 = (PAD.touch ? (h > w ? 152 : 22) : 26) * k; FX.textAlign = "center";
       for (let i = 0; i < 3; i++) { const x = x0 + (i - 1) * 20 * k; FX.beginPath(); FX.moveTo(x, y0 - 7 * k); FX.lineTo(x + 7 * k, y0); FX.lineTo(x, y0 + 7 * k); FX.lineTo(x - 7 * k, y0); FX.closePath(); FX.fillStyle = i < GAME.hp ? "rgba(255,58,168,.95)" : "rgba(20,14,10,.4)"; FX.fill(); FX.strokeStyle = "rgba(255,255,255,.7)"; FX.lineWidth = k; FX.stroke(); }
       FX.fillStyle = "rgba(251,242,226,.95)"; FX.font = `700 ${20 * k}px Georgia, serif`; FX.fillText(String(GAME.score), x0, y0 + 34 * k);
       if (GAME.combo > 1) { const s2 = 1 + GAME.mark * 2.5; FX.font = `italic 700 ${26 * k * s2}px Georgia, serif`; FX.fillStyle = "rgba(242,208,74,.98)"; FX.fillText("×" + Math.min(GAME.combo, 10), x0, y0 + 66 * k); FX.fillStyle = "rgba(242,208,74,.8)"; FX.fillRect(x0 - 30 * k, y0 + 74 * k, 60 * k * Math.max(0, GAME.comboT / 3.4), 3 * k); } }
