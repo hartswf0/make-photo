@@ -28,7 +28,7 @@ export function createAudio() {
     swarm(level, anger) { if (!ctx || !on) return; const t = ctx.currentTime, base = 205 + anger * 70; for (const w of wings) w.o.frequency.setTargetAtTime(base + w.det * (1 + anger), t, .15); wingFilt.frequency.setTargetAtTime(480 + anger * 900 + level * 300, t, .2); wingGain.gain.setTargetAtTime(Math.min(.2, level * .2 + anger * .05 * level), t, .25); },
     steps(speed, dt, metal) { if (!ctx || !on || speed < .3) return; stepT -= dt * speed; if (stepT <= 0) { stepT = .62; const t = ctx.currentTime; metal ? tone('square', 900 + Math.random() * 200, t, .04, .06, 300) : noise(t, .05, .09, 'lowpass', 500); } },
     fx(n) { if (!ctx || !on) return; const t = ctx.currentTime;
-      if (n === 'sting') { tone('sawtooth', 1400, t, .12, .22, 300); noise(t, .08, .2, 'highpass', 3000); }
+      if (n === 'sting') { tone('sawtooth', 1800, t, .16, .3, 240); tone('sine', 90, t, .22, .5, 40); noise(t, .1, .3, 'highpass', 3000); }
       else if (n === 'pick') { tone('square', 660, t, .07, .14); tone('square', 990, t + .07, .1, .14); noise(t, .04, .1, 'bandpass', 2500, 4); }
       else if (n === 'rob') { for (let k = 0; k < 4; k++) noise(t + k * .05, .03, .14, 'bandpass', 1800 + k * 300, 5); tone('square', 520, t + .2, .08, .14); tone('square', 780, t + .28, .12, .14); }
       else if (n === 'throw') noise(t, .22, .22, 'bandpass', 700, .8);
@@ -37,6 +37,7 @@ export function createAudio() {
       else if (n === 'door') { noise(t, .5, .14, 'bandpass', 420, .7); tone('sine', 90, t + .42, .12, .25, 60); }
       else if (n === 'win') [0, 4, 7, 12, 16].forEach((iv, k) => tone('triangle', N(57 + iv), t + k * .11, .5, .18));
       else if (n === 'out') tone('sawtooth', 300, t, .9, .25, 60);
+      else if (n === 'yelp') { const o = ctx.createOscillator(), g = ctx.createGain(), v = ctx.createOscillator(), vg = ctx.createGain(), f0 = 380 + Math.random() * 260; o.type = 'sawtooth'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 2.3, t + .12); o.frequency.exponentialRampToValueAtTime(f0 * .8, t + .7); v.frequency.value = 14; vg.gain.value = 40; v.connect(vg).connect(o.frequency); const fl = ctx.createBiquadFilter(); fl.type = 'bandpass'; fl.frequency.value = 1100; fl.Q.value = 2; env(g, t, .02, .7, .3); o.connect(fl).connect(g).connect(master); o.start(t); v.start(t); o.stop(t + .8); v.stop(t + .8); }
       else if (n === 'smoke') noise(t, .5, .16, 'lowpass', 1400); } };
   return A;
 }
