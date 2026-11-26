@@ -8,7 +8,7 @@ const $ = id => document.getElementById(id);
 const SHORT = ['ENGINE', 'QUIET', 'DINING', 'GARDEN', 'APIARY', 'MIRROR', 'WATCH', 'CINEMA', 'HIVE'];
 export const QUOTA = 20;
 
-export function createHeist({ scene, cars, train, props, people, actor, state, stub, deed, game, sys, audio }) {
+export function createHeist({ scene, cars, train, props, people, actor, state, stub, deed, game, sys, audio, onRob }) {
   const H = { spam: 0, robbed: 0, thrown: 0, done: false, decoyUntil: 0, loose: [], left: cars.map(() => 0) };
   // ---- the can: drawn, not borrowed
   const label = (() => { const c = document.createElement('canvas'); c.width = 256; c.height = 192; const q = c.getContext('2d'); q.fillStyle = '#17307a'; q.fillRect(0, 0, 256, 192); q.fillStyle = '#ffd92e'; q.font = '900 78px Arial Black, Impact, sans-serif'; q.textAlign = 'center'; q.textBaseline = 'middle'; q.fillText('SPAM', 128, 62, 236);
@@ -35,7 +35,7 @@ export function createHeist({ scene, cars, train, props, people, actor, state, s
   /** What the one action button would do here, or null. */
   function target(ci) {
     const pr = near(props, actor.x, actor.z, 1.5, p => p.car === ci && p.loot > 0 ? [cars[p.car].x + p.at[0], p.at[2]] : null); if (pr) return { label: 'ROB', what: pr.title.split(/[,;:]/)[0], run: () => rob(pr.loot, pr.title, () => { H.left[pr.car] -= pr.loot; pr.loot = 0; }) };
-    const who = near(people, actor.x, actor.z, 1.3, p => p.root.visible && !pocket.get(p) ? [p.root.position.x, p.root.position.z] : null); if (who) return { label: 'ROB', what: who.role, run: () => rob(1, who.role, () => { pocket.set(who, 1); who.clip = 'angry'; setTimeout(() => { who.clip = null; }, 2600); }) };
+    const who = near(people, actor.x, actor.z, 1.3, p => p.root.visible && !pocket.get(p) ? [p.root.position.x, p.root.position.z] : null); if (who) return { label: 'ROB', what: who.role, run: () => rob(1, who.role, () => { pocket.set(who, 1); onRob && onRob(who); who.clip = 'angry'; setTimeout(() => { who.clip = null; }, 2600); }) };
     return null;
   }
   function rob(n, from, after) { audio.fx('rob'); H.spam += n; H.robbed += n; after(); deed('crouch'); stub(`+${n} SPAM`, from.split(/[,;:]/)[0]); }

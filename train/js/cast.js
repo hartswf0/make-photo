@@ -2,20 +2,21 @@
 // driver exactly as the overworld moves Imani. The traveler is Tex Lexington in a duster: the man at the window in clip 997.
 import * as THREE from 'three';
 
+// Who rides: make-photo's cast rigs, each given their own skin, hair and build so the train is not one family.
 export const ROLES = {
   traveler: { cast: 'tex', over: { outer: 'duster', coatHex: 0x6a4a30, shirtHex: 0x3b2a1e, trouserHex: 0x26221f, hatHex: 0x4a3220 }, role: 'The traveler' },
-  imani: { cast: 'imani', role: 'The carrier, riding without her donkey' },
-  beekeeper: { cast: 'makeda', role: 'The retired beekeeper' },
-  musician: { cast: 'yared_krar', role: 'The musician of clip 1022' },
-  matriarch: { cast: 'almaz_matriarch', role: 'The matriarch' },
-  conductor: { cast: 'ferry_bekele', role: 'The conductor' },
-  researcher: { cast: 'selam_wire', role: 'The researcher with the crate' },
-  elder: { cast: 'convoy_elder_1', role: 'A sleeping passenger' },
-  child: { cast: 'compound_child', role: 'A child at the glass' },
-  bride: { cast: 'old_bride', role: 'The old bride' },
-  watcher: { cast: 'hood_watcher_1', role: 'The watcher' },
-  rahel: { cast: 'rahel', role: 'A passenger' },
-  saba: { cast: 'saba', role: 'A passenger' },
+  imani: { cast: 'imani', role: 'Imani, the carrier' },
+  beekeeper: { cast: 'makeda', role: 'Makeda, the beekeeper' },
+  musician: { cast: 'yared_krar', over: { skinHex: 0x6a4a36 }, role: 'Yared, the musician' },
+  matriarch: { cast: 'almaz_matriarch', role: 'Almaz, the matriarch' },
+  conductor: { cast: 'ferry_bekele', over: { skinHex: 0x8a6248, hair: 'silverSwept', hairHex: 0xc9c5bd, beard: false }, role: 'Bekele, the conductor' },
+  researcher: { cast: 'selam_wire', over: { skinHex: 0xb08a68, hair: 'ponytail', hairHex: 0x16120f, outer: 'duster', coatHex: 0x2f4a5a }, role: 'Noor, the dispatcher' },
+  elder: { cast: 'convoy_elder_1', over: { skinHex: 0xc9a48c, hair: 'silverSwept', hairHex: 0xe6e2da, coatHex: 0x4a4f3a }, role: 'Oren, the old man' },
+  child: { cast: 'compound_child', over: { skinHex: 0x9b7862, hairHex: 0x3a2412 }, role: 'June, the child' },
+  bride: { cast: 'old_bride', over: { skinHex: 0xd2ad96, hair: 'silverSwept', hairHex: 0xf0ece4 }, role: 'The old bride' },
+  watcher: { cast: 'hood_watcher_1', over: { skinHex: 0x7c5e4b }, role: 'The watcher' },
+  rahel: { cast: 'rahel', over: { skinHex: 0xb8906e, hair: 'glassesCrop', hairHex: 0x1a1512, coatHex: 0x8a2f3a }, role: 'Mila, the student' },
+  saba: { cast: 'saba', over: { skinHex: 0xcfa78e, hair: 'ponytail', hairHex: 0xa8642a, coatHex: 0x2f6a5c }, role: 'Cass, the tourist' },
 };
 
 export function loadCast() {
