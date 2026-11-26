@@ -87,7 +87,7 @@ The page opens in Game. It is a run of rooms to rob, after Void Bastards: read t
 
 ## SPAM Wars · Can Racers (`racers.html`)
 
-A co-op pod race on the salt flat beside the Sealed Line. The craft is two SPAM-can engines joined by an energy binder, towing a pod on two cables. **Each player holds one engine's throttle**, so going straight takes agreement and turning takes one of you easing off. Player 1 also throws SPAM; player 2 fires the boost. Solo (M) puts both engines on one stick.
+A co-op pod race on the salt flat beside the Sealed Line. The craft is two SPAM-can engines joined by an energy binder, towing a pod on two cables. It opens in **Solo**: the craft drives itself and you steer with one thumb; let go and it eases back onto the line of the track. In **Co-op** each player holds one engine's throttle: the average is the speed and the difference is the turn. Steering is a bounded turn rate in both modes, so the craft arcs and cannot spin on the spot.
 
 - Phone: a lever on each side of the screen, one thumb each, or two people on one phone. Keys: W/S and ↑/↓, E throw, Enter boost. Gamepad: the two sticks are the two engines (or two pads, one stick each).
 - Physics is Rapier: rigid bodies for the engines, pod, rivals, thrown cans, walls, rotating sweepers and bumpers; the hover, the binder and the cables are spring forces in `js/racers.js`.

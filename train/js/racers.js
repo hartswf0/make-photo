@@ -54,8 +54,8 @@ if (!mobile) import('./train.js').then(async ({ buildTrain }) => { const { makeT
   const t = buildTrain(scene, M); t.root.position.set(170, 0, -42); t.root.rotation.y = .06; }).catch(() => {});
 
 // ---------------- hazards: sweepers and bumpers, after the game-show fashion
-const sweepers = [120, 300, 430].map((i, n) => { const g = new THREE.Group(), post = new THREE.Mesh(new THREE.CylinderGeometry(.7, .9, 3, 12), new THREE.MeshLambertMaterial({ color: 0x17307a })), arm = new THREE.Mesh(new THREE.BoxGeometry(HALF * 1.15, .8, .8), new THREE.MeshLambertMaterial({ color: 0xffd92e })); post.position.y = 1.5; arm.position.y = 1.2; arm.castShadow = true; g.add(post, arm); g.position.copy(P[i]); scene.add(g);
-  const body = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(P[i].x, 1.2, P[i].z)); world.createCollider(R.ColliderDesc.cuboid(HALF * .575, .4, .4).setRestitution(1.2), body); world.createCollider(R.ColliderDesc.cylinder(1.5, .8).setTranslation(P[i].x, 1.5, P[i].z));
+const sweepers = [120, 300, 430].map((i, n) => { const g = new THREE.Group(), post = new THREE.Mesh(new THREE.CylinderGeometry(.7, .9, 3, 12), new THREE.MeshLambertMaterial({ color: 0x17307a })), arm = new THREE.Mesh(new THREE.BoxGeometry(HALF * .9, .8, .8), new THREE.MeshLambertMaterial({ color: 0xffd92e })); post.position.y = 1.5; arm.position.y = 1.2; arm.castShadow = true; g.add(post, arm); const sx = P[i].x + NOR[i].x * HALF * .5, sz = P[i].z + NOR[i].z * HALF * .5; g.position.set(sx, 0, sz); scene.add(g);
+  const body = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(sx, 1.2, sz)); world.createCollider(R.ColliderDesc.cuboid(HALF * .45, .4, .4).setRestitution(1.2), body);   // it sweeps one half of the road; the other half is always open
   return { g, body, a: n * 1.3, w: (n % 2 ? -1 : 1) * (.9 + n * .25) }; });
 for (const i of [60, 200, 205, 370, 480]) { const s = i % 2 ? 1 : -1, x = P[i].x + NOR[i].x * s * (HALF * .45), z = P[i].z + NOR[i].z * s * (HALF * .45), b = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 1.6, 16), new THREE.MeshLambertMaterial({ color: 0xe5588a })); b.position.set(x, .8, z); b.castShadow = true; scene.add(b); world.createCollider(R.ColliderDesc.cylinder(.8, 1.5).setTranslation(x, .8, z).setRestitution(1.7)); }
 const pads = [40, 160, 260, 345, 455].map(i => { const m = new THREE.Mesh(new THREE.PlaneGeometry(6, 9), new THREE.MeshBasicMaterial({ color: 0x38e0c0, transparent: true, opacity: .75 })); m.rotation.x = -Math.PI / 2; m.rotation.z = -Math.atan2(TAN[i].x, TAN[i].z); m.position.set(P[i].x, .06, P[i].z); scene.add(m); return { i, m }; });
@@ -82,31 +82,33 @@ function makePlayer(c) {
   return { player: true, c, e, pod, eng, pm, lines, thr: [0, 0], boost: 0, boostT: 0, meter: 1, ammo: c.id === 'thick' ? 6 : 3, stun: 0, idx: g.i, lap: -1, prog: 0, done: 0, name: 'YOU', mid: new THREE.Vector3(), yaw: g.yaw, speed: 0 };
 }
 function makeAI(c, n) { const g = grid(n), b = mkBody(g.x, g.z, g.yaw, 1.7, .45, 1.4, 5 * c.mass), eng = [canMesh(c), canMesh(c)], pm = podMesh(c, 1); eng.forEach(m => scene.add(m)); scene.add(pm);
-  return { c, b, eng, pm, lane: (n % 3 - 1) * 4.5, skill: .8 + (n * .37 % .13), ammo: 2, cool: 4 + n * 2, boostT: 0, stun: 0, idx: g.i, lap: -1, prog: 0, done: 0, name: c.name, mid: new THREE.Vector3(), yaw: g.yaw, speed: 0, podP: new THREE.Vector3(g.x, HOVER, g.z) }; }
+  return { c, b, eng, pm, lane: (n % 3 - 1) * 4.5, skill: .74 + (n * .37 % .14), ammo: 2, cool: 4 + n * 2, boostT: 0, stun: 0, idx: g.i, lap: -1, prog: 0, done: 0, name: c.name, mid: new THREE.Vector3(), yaw: g.yaw, speed: 0, podP: new THREE.Vector3(g.x, HOVER, g.z) }; }
 
 // thrown cans
 const shots = []; for (let k = 0; k < 10; k++) { const m = new THREE.Mesh(new THREE.BoxGeometry(.7, .5, .45), new THREE.MeshStandardMaterial({ map: labelTex(CANS[k % 4]), roughness: .4 })); m.visible = false; m.castShadow = true; scene.add(m);
   const b = world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(0, -50 - k * 3, 0).setCcdEnabled(true)); world.createCollider(R.ColliderDesc.cuboid(.35, .25, .22).setMass(.5).setRestitution(.5), b); shots.push({ m, b, life: 0, owner: null }); }
 function fire(r) { if (r.ammo <= 0 || r.stun > 0 || state.phase !== 'race') return false; const s = shots.find(q => q.life <= 0); if (!s) return false; r.ammo--; const f = fwdOf(r.yaw, tmpF);
   s.b.setTranslation({ x: r.mid.x + f.x * 3.4, y: 1.5, z: r.mid.z + f.z * 3.4 }, true); s.b.setLinvel({ x: f.x * (r.speed + 42), y: 3.5, z: f.z * (r.speed + 42) }, true); s.b.setAngvel({ x: 9, y: 4, z: 0 }, true); s.life = 3.2; s.owner = r; s.m.visible = true; audio.fx('throw'); return true; }
-function smack(r, from, power = 1) { const k = power / r.c.mass, f = tmpG.set(r.mid.x - from.x, 0, r.mid.z - from.z).normalize(), bodies = r.player ? [...r.e, r.pod] : [r.b]; for (const b of bodies) { b.applyImpulse({ x: f.x * 22 * k, y: 9 * k, z: f.z * 22 * k }, true); b.applyTorqueImpulse({ x: 0, y: (Math.random() - .5) * 60 * k, z: 0 }, true); } r.stun = 1.1 / r.c.mass; audio.fx('hit'); if (r.player) { flash('SPAMMED'); navigator.vibrate?.(120); } }
+function smack(r, from, power = 1) { const k = power / r.c.mass, f = tmpG.set(r.mid.x - from.x, 0, r.mid.z - from.z).normalize(), bodies = r.player ? [...r.e, r.pod] : [r.b]; for (const b of bodies) { b.applyImpulse({ x: f.x * 22 * k, y: 9 * k, z: f.z * 22 * k }, true); b.applyTorqueImpulse({ x: 0, y: (Math.random() - .5) * 60 * k, z: 0 }, true); } r.stun = 1.1 / r.c.mass; audio.fx('hit'); if (r.player) { shake = 1; flash('SPAMMED'); navigator.vibrate?.(120); } }
 
 // ---------------- input: one throttle per player
 const inp = { t: [0, 0], fire: false, boost: false, steer: 0, keys: new Set() }, state = { phase: 'select', mode: 'coop', t: 0, count: 0, pick: 0, laps: 3, finish: 0 };
 for (const [id, k] of [['lev0', 0], ['lev1', 1]]) { const el = $(id), nub = el.firstElementChild; let pid = null, y0 = 0, x0 = 0;
-  const mv = e => { const dy = clamp((y0 - e.clientY) / 70, -.5, 1); inp.t[k] = dy; nub.style.transform = `translateY(${-dy * 56}px)`; if (k === 0) inp.steer = clamp((e.clientX - x0) / 60, -1, 1); };
-  el.addEventListener('pointerdown', e => { pid = e.pointerId; el.setPointerCapture(pid); y0 = e.clientY + 35; x0 = e.clientX; mv(e); audio.start(); });   // touching is already half throttle
-  el.addEventListener('pointermove', e => { if (e.pointerId === pid) mv(e); }); const end = e => { if (e.pointerId !== pid) return; pid = null; inp.t[k] = 0; if (k === 0) inp.steer = 0; nub.style.transform = ''; }; el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end); }
+  const mv = e => { const dy = clamp((y0 - e.clientY) / 70, -.5, 1); inp.t[k] = dy; const sx = clamp((e.clientX - x0) / 46, -1, 1); if (state.mode === 'solo') { inp.steer = sx; nub.style.transform = `translate(${sx * 30}px,${dy < -.25 ? 30 : 0}px)`; } else nub.style.transform = `translateY(${-dy * 56}px)`; };
+  el.addEventListener('pointerdown', e => { pid = e.pointerId; el.setPointerCapture(pid); y0 = e.clientY + (state.mode === 'solo' ? 0 : 35); x0 = e.clientX; mv(e); audio.start(); });   // in co-op, touching is already half throttle
+  el.addEventListener('pointermove', e => { if (e.pointerId === pid) mv(e); }); const end = e => { if (e.pointerId !== pid) return; pid = null; inp.t[k] = 0; inp.steer = 0; nub.style.transform = ''; }; el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end); }
 $('fire').addEventListener('pointerdown', () => { inp.fire = true; }); $('boost').addEventListener('pointerdown', () => { inp.boost = true; });
 addEventListener('keydown', e => { const k = e.key.toLowerCase(); inp.keys.add(k); if (k === 'e' || k === ' ') inp.fire = true; if (k === 'enter' || k === 'shift' || k === '/') inp.boost = true; if (k === 'm') setMode(state.mode === 'coop' ? 'solo' : 'coop'); if (state.phase === 'select') { if (k === 'arrowright' || k === 'd') pick(state.pick + 1); if (k === 'arrowleft' || k === 'a') pick(state.pick - 1); if (k === 'enter' || k === ' ') begin(); } });
 addEventListener('keyup', e => inp.keys.delete(e.key.toLowerCase()));
-function readInput() { const K = inp.keys, ax = (p, n) => (K.has(p) ? 1 : 0) - (K.has(n) ? .5 : 0); let a = inp.t[0], b = inp.t[1], st = inp.steer;
+/** Both modes come down to a throttle and a steer. Solo drives itself forward and you steer; co-op takes the two throttles' average and their difference. */
+function readInput() { const K = inp.keys, held = (...k) => k.some(x => K.has(x)); let a = inp.t[0], b = inp.t[1], st = inp.steer;
   const pads = [...(navigator.getGamepads?.() || [])].filter(Boolean);
-  if (pads[0]) { const p = pads[0], q = pads[1]; a = Math.abs(p.axes[1]) > .12 ? -p.axes[1] : a; b = q ? (Math.abs(q.axes[1]) > .12 ? -q.axes[1] : b) : (Math.abs(p.axes[3] ?? 0) > .12 ? -p.axes[3] : b); st = Math.abs(p.axes[0]) > .15 ? p.axes[0] : st;
+  if (pads[0]) { const p = pads[0], q = pads[1]; if (Math.abs(p.axes[1]) > .12) a = -p.axes[1]; if (q) { if (Math.abs(q.axes[1]) > .12) b = -q.axes[1]; } else if (Math.abs(p.axes[3] ?? 0) > .12) b = -p.axes[3]; if (Math.abs(p.axes[0]) > .15) st = p.axes[0];
     for (const g of pads) { if ([0, 2, 4, 6].some(i => g.buttons[i]?.pressed)) { if (!g._f) inp.fire = true; g._f = 1; } else g._f = 0; if ([1, 3, 5, 7].some(i => g.buttons[i]?.pressed)) { if (!g._b) inp.boost = true; g._b = 1; } else g._b = 0; } }
-  if (state.mode === 'solo') { const th = Math.max(a, ax('w', 's'), ax('arrowup', 'arrowdown')), s = clamp(st + (K.has('d') || K.has('arrowright') ? 1 : 0) - (K.has('a') || K.has('arrowleft') ? 1 : 0), -1, 1); return [clamp(th + s * .55, -.5, 1), clamp(th - s * .55, -.5, 1)]; }
-  return [clamp(a || ax('w', 's'), -.5, 1), clamp(b || ax('arrowup', 'arrowdown'), -.5, 1)]; }
-function setMode(m) { state.mode = m; document.body.dataset.mode = m; $('mode').textContent = m === 'coop' ? 'CO-OP · one engine each' : 'SOLO · one stick'; }
+  if (state.mode === 'solo') { st = clamp(st + (held('d', 'arrowright') ? 1 : 0) - (held('a', 'arrowleft') ? 1 : 0), -1, 1); const brake = held('s', 'arrowdown') || Math.min(a, b) < -.25; return [brake ? -.4 : 1, st]; }
+  if (held('w')) a = 1; if (held('s')) a = -.5; if (held('arrowup')) b = 1; if (held('arrowdown')) b = -.5;
+  return [clamp((a + b) / 2 + (a > .1 || b > .1 ? .25 : 0), -.5, 1), clamp((a - b) * .55, -1, 1)]; }
+function setMode(m) { state.mode = m; document.body.dataset.mode = m; $('mode').textContent = m === 'coop' ? 'CO-OP · one engine each  ⇄' : 'SOLO · it drives, you steer  ⇄'; for (const [id, t] of [['lev0', m === 'coop' ? 'PLAYER 1 · LEFT ENGINE' : 'STEER ← →'], ['lev1', m === 'coop' ? 'PLAYER 2 · RIGHT ENGINE' : 'STEER ← →']]) $(id).lastElementChild.textContent = t; }
 $('mode').onclick = () => setMode(state.mode === 'coop' ? 'solo' : 'coop');
 
 // ---------------- sound: engines left and right, and a march that gets louder with the laps
@@ -129,30 +131,34 @@ const audio = (() => { let ctx, master, eng = [], on = false, step = 0, next = 0
 // ---------------- the race
 let me = null; const flashEl = $('flash'); let flashT = 0; function flash(s) { flashEl.textContent = s; flashEl.classList.add('on'); flashT = 1.2; }
 function pick(k) { state.pick = (k + CANS.length) % CANS.length; const c = CANS[state.pick]; for (const b of $('cans').children) b.classList.toggle('on', +b.dataset.k === state.pick); $('cName').textContent = c.name; $('cStyle').textContent = c.style; $('cTraits').innerHTML = c.traits.map(t => `<li>${t}</li>`).join(''); }
-CANS.forEach((c, k) => { const b = document.createElement('button'); b.dataset.k = k; b.textContent = c.name; b.style.background = c.a; b.style.color = c.b; b.onclick = () => pick(k); $('cans').append(b); }); pick(0); setMode('coop');
+CANS.forEach((c, k) => { const b = document.createElement('button'); b.dataset.k = k; b.textContent = c.name; b.style.background = c.a; b.style.color = c.b; b.onclick = () => pick(k); $('cans').append(b); }); pick(0); setMode('solo');
 function begin() { if (state.phase !== 'select') return; audio.start(); me = makePlayer(CANS[state.pick]); racers.push(me); let n = 1; for (let k = 0; k < 5; k++) racers.push(makeAI(CANS[(state.pick + 1 + k) % 4], n++)); $('select').hidden = true; document.body.classList.add('racing'); state.phase = 'count'; state.count = 3.6; }
 $('go').onclick = begin; $('again').onclick = () => location.reload();
 // A craft that has stopped against a wall is set back on the line, facing the right way: nobody should have to three-point-turn a pod.
 function rescue(r) { const i = r.idx, yaw = Math.atan2(TAN[i].x, TAN[i].z), f = fwdOf(yaw, tmpF), rx = f.z, rz = -f.x, q = { x: 0, y: Math.sin(yaw / 2), z: 0, w: Math.cos(yaw / 2) }, zero = { x: 0, y: 0, z: 0 };
   const put = (b, x, z) => { b.setTranslation({ x, y: HOVER, z }, true); b.setRotation(q, true); b.setLinvel({ x: f.x * 8, y: 0, z: f.z * 8 }, true); b.setAngvel(zero, true); };
-  if (r.player) { put(r.e[0], P[i].x - rx * 1.4, P[i].z - rz * 1.4); put(r.e[1], P[i].x + rx * 1.4, P[i].z + rz * 1.4); put(r.pod, P[i].x - f.x * 5, P[i].z - f.z * 5); flash('BACK ON TRACK'); } else put(r.b, P[i].x + rx * r.lane, P[i].z + rz * r.lane); r.stuck = 0; }
+  if (r.player) { const ox = P[i].x - NOR[i].x * 5, oz = P[i].z - NOR[i].z * 5; put(r.e[0], ox - rx * 1.4, oz - rz * 1.4); put(r.e[1], ox + rx * 1.4, oz + rz * 1.4); put(r.pod, ox - f.x * 5, oz - f.z * 5); flash('BACK ON TRACK'); } else put(r.b, P[i].x + rx * r.lane, P[i].z + rz * r.lane); r.stuck = 0; }
 function progress(r) { if (state.phase === 'race' && !r.done) { r.stuck = r.speed < 2.5 ? (r.stuck || 0) + 1 / 60 : 0; if (r.stuck > (r.player ? 1.6 : 2.2)) rescue(r); } let best = r.idx, bd = 1e9; for (let d = -6; d <= 14; d++) { const i = (r.idx + d + NS) % NS, q = P[i], dd = (q.x - r.mid.x) ** 2 + (q.z - r.mid.z) ** 2; if (dd < bd) { bd = dd; best = i; } } if (best < 40 && r.idx > NS - 40) { r.lap++; if (r.player && r.lap > 0 && r.lap < state.laps) { flash(r.lap === state.laps - 1 ? 'FINAL LAP' : `LAP ${r.lap + 1}`); audio.fx('lap'); } } else if (best > NS - 40 && r.idx < 40) r.lap--; r.idx = best; r.prog = r.lap * NS + best; if (r.lap >= state.laps && !r.done) { r.done = ++state.finish; if (r.player) finish(); } }
 function finish() { state.phase = 'done'; const th = ['1ST', '2ND', '3RD', '4TH', '5TH', '6TH'][me.done - 1]; $('result').hidden = false; $('place').textContent = th; $('time').textContent = `${state.t.toFixed(1)} s · ${me.c.name}`; audio.fx('lap'); }
 
 function stepPlayer(r, dt) {
-  const [a, b] = state.phase === 'race' && r.stun <= 0 ? readInput() : [0, 0]; r.thr[0] = a; r.thr[1] = b;
-  if (inp.fire) fire(r); if (inp.boost && r.meter >= 1 && state.phase === 'race') { r.boostT = 1.8; r.meter = 0; audio.fx('boost'); flash('BOOST'); } inp.fire = inp.boost = false;
+  const [th, st] = state.phase === 'race' && r.stun <= 0 ? readInput() : [0, 0]; r.thr[0] = clamp(th + st * .5, -.5, 1); r.thr[1] = clamp(th - st * .5, -.5, 1);   // what each flame shows
+  if (inp.fire) fire(r); if (inp.boost && r.meter >= 1 && state.phase === 'race') { r.boostT = 1.8; r.meter = 0; audio.fx('boost'); flash('BOOST'); shake = .5; } inp.fire = inp.boost = false;
   r.meter = Math.min(1, r.meter + dt / (r.c.id === 'hot' ? 9 : 6)); const bo = r.boostT > 0 ? 1 : 0;
-  const p0 = r.e[0].translation(), p1 = r.e[1].translation(), dx = p1.x - p0.x, dz = p1.z - p0.z, d = Math.hypot(dx, dz) || 1, heading = Math.atan2(-dz, dx);   // the pair faces square to the line between its engines
-  for (let k = 0; k < 2; k++) { const e = r.e[k], m = e.mass(), yaw = yawOf(e), f = fwdOf(yaw, tmpF), s = k ? -1 : 1, v = e.linvel(), w = e.angvel(); e.resetForces(true); e.resetTorques(true);
-    hoverAndGrip(e, m, r.c.grip, f); const T = r.thr[k] * F * 1.5 * r.c.thrust * m * (1 + bo * .9 * r.c.boost); e.addForce({ x: f.x * T, y: 0, z: f.z * T }, true);
-    const stretch = (d - 2.8) * 90, rel = ((r.e[1].linvel().x - r.e[0].linvel().x) * dx + (r.e[1].linvel().z - r.e[0].linvel().z) * dz) / d * 12; e.addForce({ x: s * dx / d * (stretch + rel) * m, y: 0, z: s * dz / d * (stretch + rel) * m }, true);   // the energy binder
-    let da = heading - yaw; da = Math.atan2(Math.sin(da), Math.cos(da)); e.addTorque({ x: 0, y: (da * 60 - w.y * 9) * m, z: 0 }, true); void v; }
+  const p0 = r.e[0].translation(), p1 = r.e[1].translation(), dx = p1.x - p0.x, dz = p1.z - p0.z, d = Math.hypot(dx, dz) || 1, heading = Math.atan2(-dz, dx), f = fwdOf(heading, tmpF), fx = f.x, fz = f.z;   // the pair faces square to the line between its engines
+  const va = r.e[0].linvel(), vb = r.e[1].linvel(), wPair = ((va.x - vb.x) * fx + (va.z - vb.z) * fz) / d;
+  // steering is a turn rate, not a spin: bounded, slower at speed, and when the stick is let go the craft eases back onto the line of the track
+  const look = (r.idx + 7 + Math.floor(r.speed * .12)) % NS; let da = Math.atan2(P[look].x - r.mid.x, P[look].z - r.mid.z) - heading; da = Math.atan2(Math.sin(da), Math.cos(da));
+  const assist = (state.mode === 'solo' ? 1.5 : .7) * (1 - Math.abs(st) * .85), maxTurn = 1.55 * clamp(1.25 - r.speed / 110, .7, 1.1), wWant = clamp(st * maxTurn + clamp(da, -1, 1) * assist * (th > 0 ? 1 : .3), -maxTurn, maxTurn) * (r.speed < 3 && th <= 0 ? 0 : 1);
+  for (let k = 0; k < 2; k++) { const e = r.e[k], m = e.mass(), yaw = yawOf(e), s = k ? -1 : 1, w = e.angvel(); e.resetForces(true); e.resetTorques(true);
+    hoverAndGrip(e, m, r.c.grip * 2.6, f); const ease = state.mode === 'solo' && th > 0 ? 1 - Math.min(.65, Math.max(0, Math.abs(da) - .12) * 1.5) : 1, T = th * ease * F * 1.12 * r.c.thrust * m * (1 + bo * .9 * r.c.boost) + s * (wWant - wPair) * m * 16 / r.c.mass; e.addForce({ x: fx * T, y: 0, z: fz * T }, true);
+    const stretch = (d - 2.8) * 90, rel = ((vb.x - va.x) * dx + (vb.z - va.z) * dz) / d * 12; e.addForce({ x: s * dx / d * (stretch + rel) * m, y: 0, z: s * dz / d * (stretch + rel) * m }, true);   // the energy binder
+    let ea = heading - yaw; ea = Math.atan2(Math.sin(ea), Math.cos(ea)); e.addTorque({ x: 0, y: (ea * 60 - w.y * 9) * m, z: 0 }, true); }
   // the pod on its two cables
-  const pod = r.pod, pm = pod.mass(), pp = pod.translation(); pod.resetForces(true); pod.resetTorques(true); const py = yawOf(pod); hoverAndGrip(pod, pm, .35, fwdOf(py, tmpF));
+  const pod = r.pod, pm = pod.mass(), pp = pod.translation(); pod.resetForces(true); pod.resetTorques(true); const py = yawOf(pod); hoverAndGrip(pod, pm, .9, fwdOf(py, tmpF));
   for (let k = 0; k < 2; k++) { const e = r.e[k], ep = e.translation(), cx = ep.x - pp.x, cz = ep.z - pp.z, L = Math.hypot(cx, cz) || 1, over = L - 5.2; if (over > 0) { const fN = over * 70 + 4; pod.addForce({ x: cx / L * fN * pm, y: 0, z: cz / L * fN * pm }, true); e.addForce({ x: -cx / L * fN * pm * .45, y: 0, z: -cz / L * fN * pm * .45 }, true); } }
   let pa = Math.atan2((p0.x + p1.x) / 2 - pp.x, (p0.z + p1.z) / 2 - pp.z) - py; pa = Math.atan2(Math.sin(pa), Math.cos(pa)); pod.addTorque({ x: 0, y: (pa * 30 - pod.angvel().y * 5) * pm, z: 0 }, true);
-  r.mid.set((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, (p0.z + p1.z) / 2); r.yaw = heading; const v0 = r.e[0].linvel(), v1 = r.e[1].linvel(); r.speed = Math.hypot((v0.x + v1.x) / 2, (v0.z + v1.z) / 2);
+  r.mid.set((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, (p0.z + p1.z) / 2); r.yaw = heading; const sp = Math.hypot((va.x + vb.x) / 2, (va.z + vb.z) / 2); if (r.speed - sp > 7) { shake = Math.min(1, (r.speed - sp) / 20); audio.fx('bump'); navigator.vibrate?.(40); } r.speed = sp; r.slip = Math.abs(((va.x + vb.x) * fz - (va.z + vb.z) * fx) / 2);
 }
 function stepAI(r, dt) {
   const b = r.b, m = b.mass(), p = b.translation(), yaw = yawOf(b), f = fwdOf(yaw, tmpF), v = b.linvel(); r.mid.set(p.x, p.y, p.z); r.yaw = yaw; r.speed = Math.hypot(v.x, v.z); b.resetForces(true); b.resetTorques(true); hoverAndGrip(b, m, r.c.grip * 1.3, f);
@@ -161,6 +167,10 @@ function stepAI(r, dt) {
   b.addForce({ x: f.x * T, y: 0, z: f.z * T }, true);
   r.cool -= dt; if (r.cool <= 0 && r.ammo > 0 && state.phase === 'race') { const t = racers.find(o => o !== r && o.prog > r.prog && o.prog - r.prog < 26 && Math.abs(Math.atan2(o.mid.x - p.x, o.mid.z - p.z) - yaw) < .2); if (t) { fire(r); r.cool = 5 + Math.random() * 4; } }
 }
+let shake = 0;
+const DN = mobile ? 90 : 220, dustP = new Float32Array(DN * 3).fill(-99), dustV = new Float32Array(DN * 4), dustG = new THREE.BufferGeometry(); dustG.setAttribute('position', new THREE.BufferAttribute(dustP, 3));
+const dust = new THREE.Points(dustG, new THREE.PointsMaterial({ color: 0xe8cfa6, size: 1.5, transparent: true, opacity: .5, depthWrite: false })); dust.frustumCulled = false; scene.add(dust); let dustI = 0;
+function puff(x, z, vx, vz) { const k = dustI++ % DN; dustP[k * 3] = x; dustP[k * 3 + 1] = .3; dustP[k * 3 + 2] = z; dustV[k * 4] = vx; dustV[k * 4 + 1] = 1.5 + Math.random() * 2; dustV[k * 4 + 2] = vz; dustV[k * 4 + 3] = 1; }
 const cam = { yaw: 0, p: new THREE.Vector3(0, 30, -40) }; let acc = 0, last = performance.now();
 function frame(now) { requestAnimationFrame(frame); const dt = Math.min(.05, (now - last) / 1000); last = now;
   if (state.phase === 'count') { const pc = Math.ceil(state.count); state.count -= dt; const c = Math.ceil(state.count); if (c !== pc && c > 0) { flash(String(c)); audio.fx('beep'); } if (state.count <= 0) { state.phase = 'race'; flash('GO'); audio.fx('go'); } }
@@ -176,12 +186,14 @@ function frame(now) { requestAnimationFrame(frame); const dt = Math.min(.05, (no
     else { const f = fwdOf(r.yaw, tmpF), rx = f.z, rz = -f.x; r.eng.forEach((m, k) => { const s = k ? 1 : -1; m.position.set(r.mid.x + rx * s * 1.3, r.mid.y, r.mid.z + rz * s * 1.3); m.rotation.y = r.yaw; m.flame.scale.z = .4 + r.speed * .03; }); tmpV.set(r.mid.x - f.x * 4.6, HOVER, r.mid.z - f.z * 4.6); r.podP.lerp(tmpV, Math.min(1, dt * 5)); r.pm.position.copy(r.podP); r.pm.rotation.y = r.yaw; }
     if (state.phase === 'race') { for (const pd of pads) if (r.boostT <= 0 && (P[pd.i].x - r.mid.x) ** 2 + (P[pd.i].z - r.mid.z) ** 2 < 30) { r.boostT = 1.5; if (r.player) { audio.fx('boost'); flash('BOOST'); } }
       for (const cr of crates) if (cr.back <= 0 && cr.m.position.distanceToSquared(r.mid) < 9) { cr.back = 6; cr.m.visible = false; r.ammo = Math.min(9, r.ammo + 3); if (r.player) { audio.fx('pick'); flash('+3 SPAM'); } } } }
+  for (const r of racers) if (r.speed > 6 && Math.random() < dt * (r.player ? 40 + (r.slip || 0) * 12 : 10)) { const f = fwdOf(r.yaw, tmpF); puff(r.mid.x - f.x * 2 + (Math.random() - .5) * 3, r.mid.z - f.z * 2 + (Math.random() - .5) * 3, -f.x * 3, -f.z * 3); }
+  for (let k = 0; k < DN; k++) if (dustV[k * 4 + 3] > 0) { dustV[k * 4 + 3] -= dt * .9; dustP[k * 3] += dustV[k * 4] * dt; dustP[k * 3 + 1] += dustV[k * 4 + 1] * dt; dustP[k * 3 + 2] += dustV[k * 4 + 2] * dt; if (dustV[k * 4 + 3] <= 0) dustP[k * 3 + 1] = -99; } dustG.attributes.position.needsUpdate = true;
   for (const cr of crates) { cr.m.rotation.y += dt * 2; if (cr.back > 0 && (cr.back -= dt) <= 0) cr.m.visible = true; }
   for (const s of shots) if (s.life > 0) { s.life -= dt; const p = s.b.translation(), q = s.b.rotation(); s.m.position.set(p.x, p.y, p.z); s.m.quaternion.set(q.x, q.y, q.z, q.w);
     for (const r of racers) if (r !== s.owner && s.life > 0 && (r.mid.x - p.x) ** 2 + (r.mid.z - p.z) ** 2 < 6.5 && p.y < 3) { smack(r, s.owner.mid); s.life = 0; }
     if (s.life <= 0) { s.m.visible = false; s.b.setTranslation({ x: 0, y: -60, z: 0 }, true); s.b.setLinvel({ x: 0, y: 0, z: 0 }, true); } }
   if (me) { const portrait = innerHeight > innerWidth; let d = me.yaw - cam.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); cam.yaw += d * Math.min(1, dt * 3.2); const f = fwdOf(cam.yaw, tmpF), back = portrait ? 15 : 11.5, up = portrait ? 7.5 : 4.6;
-    tmpV.set(me.mid.x - f.x * back, up, me.mid.z - f.z * back); cam.p.lerp(tmpV, Math.min(1, dt * 7)); camera.position.copy(cam.p); camera.lookAt(me.mid.x + f.x * 9, 1.2, me.mid.z + f.z * 9);
+    tmpV.set(me.mid.x - f.x * back, up, me.mid.z - f.z * back); cam.p.lerp(tmpV, Math.min(1, dt * 7)); shake = Math.max(0, shake - dt * 2.2); camera.position.copy(cam.p); camera.position.x += (Math.random() - .5) * shake * .9; camera.position.y += (Math.random() - .5) * shake * .7 + (me.boostT > 0 ? (Math.random() - .5) * .12 : 0); camera.lookAt(me.mid.x + f.x * 9, 1.2, me.mid.z + f.z * 9);
     const fov = (portrait ? 84 : 66) + Math.min(16, me.speed * .22) + (me.boostT > 0 ? 8 : 0); if (Math.abs(camera.fov - fov) > .2) { camera.fov = lerp(camera.fov, fov, .1); camera.updateProjectionMatrix(); }
     sun.target.position.copy(me.mid); sun.position.set(me.mid.x + 60, 90, me.mid.z + 40);
     const order = racers.slice().sort((a, b) => (a.done || 99) - (b.done || 99) || b.prog - a.prog), pos = order.indexOf(me) + 1; $('pos').textContent = pos; $('lap').textContent = `LAP ${clamp(me.lap + 1, 1, state.laps)}/${state.laps}`; $('spd').textContent = Math.round(me.speed * 3.6); $('ammo').textContent = me.ammo; $('meter').style.width = (me.meter * 100) + '%'; $('fire').classList.toggle('off', me.ammo <= 0); $('boost').classList.toggle('off', me.meter < 1);
