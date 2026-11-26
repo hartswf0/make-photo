@@ -118,7 +118,8 @@ Walk up to anyone and press TALK (Y). Type, or tap a question. Each passenger ha
 
 B, or the Bee button. Three things the traveler never has.
 
-- **A bee's eye.** The frame is seen through hexagonal facets, bent at the edges. There is no red receptor: red things go dark, blue and green carry the picture. Ultraviolet, which people cannot see, shows as a violet-white that pulses.
+- **A bee's eye.** Full resolution and sharp where you look; hexagonal facets only at the edge of sight. A bee's colours are laid over ours so the room still reads. Ultraviolet shows as a violet-white that pulses.
+- **Framed like a film.** The camera rides behind and above the bee, so the bee, its swarm and the length of the carriage are in one frame. Let go of the stick and it turns back to face down the train. Bars top and bottom hold the few controls, dim until touched.
 - **A world written in ultraviolet**, drawn only for the bee's camera: bullseyes on every prop that still hides something sweet, nectar guides on the greenhouse flowers, a mark on every neck, a scent trail down the aisle to the queen, and one line the bees wrote on the wall of each carriage.
 - **A body that is a swarm.** You start as one bee. Fly close to others and they join and stay with you from carriage to carriage; the count is top right. They bunch behind you when you slow and string out when you go. SEND (F) lets them go ahead to the nearest person in front, and they sting when enough arrive.
 
