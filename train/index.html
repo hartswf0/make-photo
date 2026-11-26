@@ -116,7 +116,9 @@ body.inworld #map,body.inworld #loot,body.inworld #throwBtn,body.inworld #turnBt
 #stingFx::after{content:attr(data-pack);display:block;font:800 14px/1.6 Arial,sans-serif;font-style:normal;letter-spacing:.14em;color:#fff;text-shadow:0 1px 6px #000;text-transform:uppercase}
 #stingFx.on{animation:sting .9s ease-out}@keyframes sting{0%{opacity:1;transform:scale(1.5) rotate(-4deg)}20%{transform:scale(1) rotate(2deg)}80%{opacity:1}100%{opacity:0;transform:scale(1.05)}}
 body.bee::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:2;animation:none}
-#beePad,#beeOut{display:none}body.bee #beePad{display:grid;gap:8px;right:calc(18px + var(--sar));bottom:calc(140px + var(--sab))}#beePad button{width:58px;height:50px;border-radius:14px;background:rgba(11,13,12,.6);border:1px solid var(--line);font-size:18px}
+#swarmHud,#sendBtn,#beeOut{display:none}
+body.bee #swarmHud{display:block;top:calc(12px + var(--sat));right:calc(14px + var(--sar));text-align:right;text-shadow:0 1px 8px #000}#swarmN{display:block;font:900 44px/.9 "Arial Black",Impact,sans-serif;color:#ffd92e}#swarmHud span{font:800 10px/1 Arial;letter-spacing:.16em;text-transform:uppercase}
+body.bee #sendBtn{display:block;right:calc(18px + var(--sar));bottom:calc(142px + var(--sab));width:92px;height:92px;border-radius:50%;background:#3a1c05;border:3px solid #ffd92e;color:#ffd92e;font:900 13px/1.15 "Arial Black",Impact,sans-serif}#sendBtn.off{opacity:.35}
 body.bee #beeOut{display:block;top:calc(10px + var(--sat));left:calc(12px + var(--sal));padding:10px 14px;border-radius:18px;background:rgba(11,13,12,.6);border:1px solid var(--line);font:700 12px/1 var(--mono)}
 body.bee #map,body.bee #loot,body.bee #throwBtn,body.bee #turnBtn,body.bee #talkBtn,body.bee #title,body.bee #modes,body.bee #bar,body.bee #goals,body.bee #smokeBtn,body.bee #stubs,body.bee #hint,body.bee #panel{display:none!important}
 body.bee #act{background:#ffd92e;color:#3a1c05;font:900 17px/1.1 "Arial Narrow",Arial,sans-serif;font-style:normal;text-transform:uppercase;min-height:64px;bottom:calc(64px + var(--sab))}
@@ -189,7 +191,7 @@ body.inworld #talk,body.inworld .bubble{display:none}
 </aside>
 <button id="talkBtn" class="hud" hidden>TALK</button>
 <div id="stingFx" class="hud"></div>
-<div id="beePad" class="hud"><button id="beeUp" aria-label="Up">▲</button><button id="beeDown" aria-label="Down">▼</button></div><button id="beeOut" class="hud">← back to him</button>
+<div id="swarmHud" class="hud"><b id="swarmN">0</b><span>with you</span></div><button id="sendBtn" class="hud">SEND<br>SWARM</button><button id="beeOut" class="hud">← back to him</button>
 <aside id="talk" class="hud" hidden>
   <header><div><b id="talkName"></b><span id="talkRole"></span></div><button id="talkClose" aria-label="Close">✕</button></header>
   <div id="talkLog"></div>
