@@ -4,10 +4,10 @@ import { DIM, noise2, damp, clamp } from './kit.js';
 import { makeHoneybee, swarmBeeGeometry } from './beemodel.js';
 
 export function buildBees(scene, M, mobile) {
-  const N = mobile ? 110 : 360, cast = swarmBeeGeometry(.17);
+  const N = mobile ? 110 : 360, cast = swarmBeeGeometry(.1);
   const mesh = new THREE.InstancedMesh(cast.body, new THREE.MeshLambertMaterial({ vertexColors: true }), N); mesh.frustumCulled = false; scene.add(mesh);
-  const wing = new THREE.InstancedMesh(cast.wings, new THREE.MeshBasicMaterial({ map: cast.wingTexture, transparent: true, opacity: .8, side: THREE.DoubleSide, depthWrite: false }), N); wing.frustumCulled = false; scene.add(wing);
-  const heroBee = makeHoneybee(.3); scene.add(heroBee.group); let prevLead = null;
+  const wing = new THREE.InstancedMesh(cast.wings, new THREE.MeshBasicMaterial({ color: 0xeaf6ff, transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false }), N); wing.frustumCulled = false; scene.add(wing);
+  const heroBee = makeHoneybee(.15); scene.add(heroBee.group); let prevLead = null;
   const bees = []; for (let k = 0; k < N; k++) bees.push({ v: new THREE.Vector3(), p: new THREE.Vector3(0, -50, 0), home: new THREE.Vector3(), r: .3 + Math.random() * .9, ph: Math.random() * 100, car: -9, sp: .6 + Math.random() });
   const lead = { p: new THREE.Vector3(-23, 2.4, 1.1), v: new THREE.Vector3(1, 0, 0), target: new THREE.Vector3(), landed: 0 };
   // exterior swarm: a ribbon of points that paces the train
@@ -66,7 +66,7 @@ export function buildBees(scene, M, mobile) {
     { // the bee you follow, in full
       const H = ctx.hero || {}, moved = prevLead ? Math.hypot(lead.p.x - prevLead.x, lead.p.z - prevLead.z) / Math.max(dt, .001) : 0; (prevLead || (prevLead = lead.p.clone())).copy(lead.p);
       heroBee.group.position.copy(lead.p); heroBee.group.rotation.y = Math.atan2(-lead.v.z, lead.v.x || 1e-6); heroBee.group.visible = ctx.density >= 0 || !!ctx.follow;
-      heroBee.update(dt, { speed: H.speed !== undefined ? H.speed : Math.min(1, moved / 3), turn: H.turn || 0, landed: lead.landed > .7 ? 1 : 0, sting: H.sting || 0 }); }
+      heroBee.update(dt, { speed: H.speed !== undefined ? H.speed : Math.min(1, moved / 3), turn: H.turn || 0, landed: lead.landed > .7 ? 1 : 0, look: H.look }); }
     mesh.instanceMatrix.needsUpdate = wing.instanceMatrix.needsUpdate = true; state.near = near; state.anger = mad; state.followers = fol; state.atMob = atMob;
     // swarm ribbon
     state.swarm = damp(state.swarm, state.swarmWant, .8, dt); swarm.material.opacity = Math.min(1, state.swarm * 1.2); swarm.visible = state.swarm > .01;
@@ -78,5 +78,5 @@ export function buildBees(scene, M, mobile) {
       sg.attributes.position.needsUpdate = true;
     }
   }
-  return { update, lead, state, count: N };
+  return { update, lead, state, count: N, hero: heroBee };
 }
