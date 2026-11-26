@@ -34,7 +34,7 @@ export function createInteract({ scene, cars, camera, stub }) {
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3();
   function drawStubs(t, camCar) {
     if (!tags) return;
-    for (const it of holders) { const show = it.left().length && Math.abs(it.car - camCar) <= 1; where(it); e.set(0, t * 1.5 + it.index, 0); q.setFromEuler(e); one.setScalar(show ? 1 : 0); v.copy(it.world).y += .32 + Math.sin(t * 2 + it.index) * .03; m4.compose(v, q, one); tags.setMatrixAt(it.index, m4); }
+    for (const it of holders) { const show = game.mode !== 'game' && it.left().length && Math.abs(it.car - camCar) <= 1; where(it); e.set(0, t * 1.5 + it.index, 0); q.setFromEuler(e); one.setScalar(show ? 1 : 0); v.copy(it.world).y += .32 + Math.sin(t * 2 + it.index) * .03; m4.compose(v, q, one); tags.setMatrixAt(it.index, m4); }
     tags.instanceMatrix.needsUpdate = true;
   }
 

@@ -36,7 +36,7 @@ export function createUI({ shots }) {
       $('camBtn').onclick = () => { document.body.classList.toggle('pick'); document.body.classList.remove('menu'); }; $('menuBtn').onclick = () => { document.body.classList.toggle('menu'); document.body.classList.remove('pick'); };
       $('tools').addEventListener('click', () => document.body.classList.remove('menu')); $('goals').onclick = () => $('goals').classList.toggle('all'); $('passBtn').onclick = () => api.pass();
       $('runBtn').onclick = () => document.body.classList.contains('run') ? api.endRun() : api.run(); $('cueCopy').onclick = async () => { try { await navigator.clipboard.writeText(cueText); $('cueCopy').textContent = 'Copied'; setTimeout(() => $('cueCopy').textContent = 'Copy cue', 1200); } catch { } };
-      $('beeBtn').onclick = () => api.bee(); $('smokeBtn').onclick = () => api.smoke();
+      $('beeBtn').onclick = () => api.bee(); $('smokeBtn').onclick = () => api.smoke(); $('throwBtn').onclick = () => api.throw(); $('turnBtn').onclick = () => api.turn();
       $('modes').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const m = b.dataset.mode; if (m === 'cinema') { api.mode('world'); api.take(true); b.classList.add('on'); } else { api.take(false); api.mode(m); } });
       $('take').onclick = () => api.take(); $('rec').onclick = () => api.record(); $('still').onclick = () => api.still(); $('act').onclick = () => api.act();
       $('snd').onclick = () => $('snd').classList.toggle('on', audio.toggle()); $('hud').onclick = () => document.body.classList.toggle('nohud');

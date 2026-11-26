@@ -71,6 +71,20 @@ The main use of the seeds. One world-model session, third person, W held down.
 
 The 3D train's own contents are simpler than the cues: the bees aboard grow by carriage, passengers behave worse toward the rear, and F, G and V make him flinch, swat and stagger (`trainFilm.deed`).
 
+## The heist (what Game mode is now)
+
+The page opens in Game. It is a run of rooms to rob, after Void Bastards: read the map, pick a room, take what is in it, get out.
+
+- **Map** across the top: every carriage, where you are, how much SPAM is left in each. Tap a carriage and he walks there.
+- **Camera** is fixed behind him down the aisle and never needs aiming. ⟲ (or Z) turns him to face the other way.
+- **Stick** pushes him along the train at a jog; doors open as he reaches them.
+- **SPAM** lies in every aisle (walk over it), and is hidden in every prop and on every passenger: the yellow button reads ROB when one is in reach.
+- **THROW** (Space) lobs a can. A can on the floor draws the bees for eight seconds; a can to a passenger staggers them; on the roof it flies at the great swarm and knocks 14% off it.
+- **Stings** are the eight dots. At eight he comes round in the quiet car with half his SPAM gone.
+- **Win**: 20 SPAM carried to the ENGINE.
+
+`js/heist.js`. World mode (`?world`) keeps the inspect panel, stubs, cameras and the rest described below.
+
 ## The game on the train
 
 The bar at the bottom left switches **World** (walk and film, nothing asks anything of you), **Game** (goals, and the swarm is hostile) and **Cinema** (the unattended take). `?game` starts in Game.
