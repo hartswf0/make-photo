@@ -48,6 +48,15 @@
     body.touch .bar { top: calc(62px + env(safe-area-inset-top, 0px)); bottom: auto; padding: 0 6vw; gap: 5px; } body.touch .bar button { padding: 7px 8px; font-size: 9px; }
     body.touch .bar .keys, body.touch #gridb, body.touch #wide { display: none; } body.touch #line { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
     body.touch #goals { left: 6vw; right: auto; top: calc(100px + env(safe-area-inset-top, 0px)); background: none; border: 0; padding: 0; text-shadow: 0 1px 6px rgba(0, 0, 0, .8); }
+    /* a phone shows the game and almost nothing else: the place, one goal, the stick, Fire, Dash. Everything else is behind the menu button. */
+    #menub { display: none; }
+    body.touch #menub { display: grid; place-items: center; position: fixed; right: 5vw; top: calc(12px + env(safe-area-inset-top, 0px)); z-index: 8; width: 42px; height: 42px; padding: 0; font-size: 18px; letter-spacing: 0; }
+    body.touch .bar { display: none; } body.touch.menu .bar { display: flex; top: calc(62px + env(safe-area-inset-top, 0px)); padding: 10px 5vw; background: rgba(20, 14, 10, .9); z-index: 7; }
+    body.touch #st { display: none; } body.touch.menu #st { display: flex; top: calc(170px + env(safe-area-inset-top, 0px)); left: 5vw; z-index: 7; background: rgba(20, 14, 10, .9); }
+    body.touch #scope { display: none; } body.touch .top { padding-top: calc(10px + env(safe-area-inset-top, 0px)); } body.touch .top b { font-size: 17px; }
+    body.touch #goals { top: calc(54px + env(safe-area-inset-top, 0px)); max-width: 70vw; }
+    body.touch #trials-hud { top: calc(84px + env(safe-area-inset-top, 0px)); transform: translateX(-50%) scale(.72); transform-origin: top center; background: rgba(18, 12, 10, .4); }
+    @media (orientation: landscape) { body.touch #line { bottom: 14px; padding: 0 30vw; font-size: 14px; } body.touch #fireb { bottom: 18px; } body.touch #dashb { bottom: 18px; } body.touch #do { bottom: 116px; } }
     body.cinema #fireb, body.cinema #dashb, body.cinema #stick { display: none !important; }
     @media (max-width: 720px) { .bar .keys { display: none; } }
   </style>
@@ -60,7 +69,7 @@
   <div id="title">MESA CHIP<small>a cyber-western of glass</small></div>
   <ol id="goals" aria-label="The trail"></ol>
   <div id="line" aria-live="polite"></div><div id="shot"></div>
-  <div id="stick" hidden><i></i></div><button id="fireb" type="button" aria-label="Fire">Fire</button><button id="dashb" type="button" aria-label="Dash">Dash</button>
+  <div id="stick" hidden><i></i></div><button id="fireb" type="button" aria-label="Fire">Fire</button><button id="dashb" type="button" aria-label="Dash">Dash</button><button id="menub" type="button" aria-label="Menu" aria-expanded="false">☰</button>
   <div class="bar">
     <span class="keys">W A S D · arrows turn · Shift run · E do · Space or click to shoot · Q dash · L lens · Enter trials · 1–6 time of day</span>
     <button id="do" type="button" hidden></button>
@@ -82,7 +91,7 @@
   <script src="./swarm.js?v=2"></script>
   <script src="./ink.js?v=2"></script>
   <script src="./lens.js?v=1"></script>
-  <script src="./mesa.js?v=13"></script>
+  <script src="./mesa.js?v=14"></script>
   <script src="../soundtrack/soundtrack.js?v=1" data-album="glass" data-albums="glass,yegelle,deepsea,firstwintera,kudzucontact,volholla"></script>
   <script src="./trials.js?v=4"></script>
 </body>

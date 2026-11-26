@@ -409,7 +409,9 @@
     /* the fire button: hold to shoot, and slide the same thumb to turn while shooting */
     fb.addEventListener("pointerdown", e => { e.preventDefault(); touchOn(); S.wake(); PAD.fire = true; PAD.lx = e.clientX; PAD.ly = e.clientY; try { fb.setPointerCapture(e.pointerId); } catch (x) { } }); fb.addEventListener("pointermove", e => { if (PAD.fire) look(e); }); for (const ev of ["pointerup", "pointercancel"]) fb.addEventListener(ev, () => { PAD.fire = false; });
     $("dashb").addEventListener("pointerdown", e => { e.preventDefault(); touchOn(); dash(); });
-    if (matchMedia("(pointer: coarse)").matches) setTimeout(touchOn, 0); }
+    $("menub").addEventListener("click", () => { const on = document.body.classList.toggle("menu"); $("menub").setAttribute("aria-expanded", on); $("menub").textContent = on ? "×" : "☰"; });
+    document.querySelector(".bar").addEventListener("click", e => { if (PAD.touch && e.target.closest("button")) { document.body.classList.remove("menu"); $("menub").textContent = "☰"; } });
+    if (matchMedia("(pointer: coarse)").matches || (navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 900)) setTimeout(touchOn, 0); }
   /* aiming: the shot goes where the reticle is, and if something worth shooting is within a few degrees of it, the gun finds it */
   const ray = new T.Raycaster(), LOCK = { p: null }, _lk = new T.Vector3();
   function aimDir() { ray.setFromCamera(new T.Vector2(mouse.on ? mouse.x : 0, mouse.on ? mouse.y : .1), camera); const d = ray.ray.direction.clone(); LOCK.p = null; let best = Math.cos(PAD.touch ? .5 : .24);   /* a thumb needs a wider cone than a mouse */
@@ -623,7 +625,7 @@
     if (st.gun || st.swim) { /* the ink tank: a glass vial by the reticle, the colour of the next shot */ const vx = w - 34 * k, vy = h * .5, vh = 120 * k, vw = 12 * k, f = st.ink / 100, col = "#" + new T.Color(PAINT[paintN % PAINT.length]).getHexString();
       FX.fillStyle = "rgba(20,14,10,.45)"; FX.fillRect(vx - vw / 2, vy - vh / 2, vw, vh); FX.fillStyle = col; FX.fillRect(vx - vw / 2, vy + vh / 2 - vh * f, vw, vh * f); FX.strokeStyle = "rgba(255,255,255,.6)"; FX.lineWidth = 1.5 * k; FX.strokeRect(vx - vw / 2, vy - vh / 2, vw, vh);
       FX.fillStyle = "rgba(251,242,226,.75)"; FX.font = `${10 * k}px ui-monospace, monospace`; FX.textAlign = "right"; FX.fillText(st.swim ? "SWIM · REFILL" : `INK ${Math.round(st.ink)}`, vx - vw, vy + vh / 2); FX.fillText(`TURF ${INK ? INK.turf() : 0} m²`, vx - vw, vy + vh / 2 + 14 * k); }
-    if (DUEL.on && MODE !== "cinema") { /* three hits, the score, the combo and how long it has left */ const x0 = w / 2, y0 = (PAD.touch ? 200 : 26) * k; FX.textAlign = "center";
+    if (DUEL.on && MODE !== "cinema") { /* three hits, the score, the combo and how long it has left */ const x0 = w / 2, y0 = (PAD.touch ? (h > w ? 104 : 22) : 26) * k; FX.textAlign = "center";
       for (let i = 0; i < 3; i++) { const x = x0 + (i - 1) * 20 * k; FX.beginPath(); FX.moveTo(x, y0 - 7 * k); FX.lineTo(x + 7 * k, y0); FX.lineTo(x, y0 + 7 * k); FX.lineTo(x - 7 * k, y0); FX.closePath(); FX.fillStyle = i < GAME.hp ? "rgba(255,58,168,.95)" : "rgba(20,14,10,.4)"; FX.fill(); FX.strokeStyle = "rgba(255,255,255,.7)"; FX.lineWidth = k; FX.stroke(); }
       FX.fillStyle = "rgba(251,242,226,.95)"; FX.font = `700 ${20 * k}px Georgia, serif`; FX.fillText(String(GAME.score), x0, y0 + 34 * k);
       if (GAME.combo > 1) { const s2 = 1 + GAME.mark * 2.5; FX.font = `italic 700 ${26 * k * s2}px Georgia, serif`; FX.fillStyle = "rgba(242,208,74,.98)"; FX.fillText("×" + Math.min(GAME.combo, 10), x0, y0 + 66 * k); FX.fillStyle = "rgba(242,208,74,.8)"; FX.fillRect(x0 - 30 * k, y0 + 74 * k, 60 * k * Math.max(0, GAME.comboT / 3.4), 3 * k); } }
