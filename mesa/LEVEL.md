@@ -63,6 +63,26 @@ Uncle Mesa's six-shooter fires paintballs. Hold Space or the mouse button to spr
 - **Other targets.** Outlaws go down painted, and their colour pools under them. Prisms still crack and shatter.
 - **The buffer.** Every splat and drip is one instance in a single instanced mesh, 1,600 at a time; the oldest is reused.
 
+## The horned motorcycle (`touki.js`)
+
+After Touki Bouki (Djibril Diop Mambéty, 1973). A 1970s road bike is parked by the title gate:
+- spoked wheels and chrome fenders, a black tank, a long seat and a sissy bar;
+- a finned twin engine and an exhaust;
+- high chrome bars, with round mirrors on tall stalks;
+- a round headlight over the plate "10";
+- a zebu skull strapped over the bars, its horns sweeping out wide and nearly flat and curling up at the tips, as on the poster.
+
+**Anta** waits beside it: a Black woman with short natural hair, an olive-green shirt, mustard trousers and a tan leather satchel. When Uncle Mesa rides, she rides pillion. She is from the one cast and takes paint like everyone else.
+
+**Riding** (E, then W A S D, Shift to open it up):
+- **Speed:** up to 19 m/s, or about 27 m/s with Shift, which also lifts the front into a wheelie.
+- **The bike's body:** it leans into turns, pitches with the ground under each wheel, and the fork turns with the steer.
+- **Engine:** the library's small two-stroke idle, pitched up with speed, with smoke from the exhaust.
+- **Collisions:** a Rapier character controller keeps it out of walls. Hit one above 13 m/s and the horns hit first and everyone goes over.
+- **Paint:** Uncle Mesa can still be painted while riding, because his body rides with the bike.
+
+**Not yet:** there is no motorbike clip in the motion library, so the riders use `sitting-idle`, with their legs forward along the tank.
+
 ## Built on
 
 | Part | Used for |

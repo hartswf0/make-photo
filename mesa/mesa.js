@@ -75,9 +75,11 @@
   const make = (c, label) => { let ch = null; try { ch = window.CAST_2086.make(T, c.base, c.s); } catch (e) { console.warn(label, e); } if (!ch) return null; if (ch.label && ch.label.sprite) ch.label.sprite.visible = false; scene.add(ch.group); ch.group.traverse(o => { if (o.isMesh) o.castShadow = true; }); return ch; };
   const me = make(MESA, "mesa");
   const outlaws = OUTLAWS.map((c, i) => ({ ch: make(c, "outlaw"), name: c.s.name, id: "outlaw" + i, state: "away", t: 0 }));
+  /* Anta, from Touki Bouki: short natural hair, an olive-green shirt, mustard trousers, a tan leather satchel. She waits by the bike. */
+  const anta = make(spec("selam_wire", { name: "Anta", scale: .97, build: .94, fem: .82, skinHex: 0x2c1a10, hair: "croppedCoily", hairHex: 0x100c0a, outer: "none", shirtHex: 0x6a6c48, trouserHex: 0xb8893a, tibebTrim: false }), "anta");
   let motion = null;
   try { motion = window.Mesh2MotionWorldBridge.createWorldCastDriver(T, { clipsBaseUrl: "../motion-pipeline/mesh2motion/clips", preload: ["idle", "walk", "jog", "sprint", "crouch-walk", "crouch-idle", "horse-idle", "horse-walk", "horse-trot", "sitting-idle", "idle-foldarms", "angry"], defaultBlend: 1, defaultFade: .25 });
-    motion.registerActor("mesa", me, { defaultClip: "idle", blend: 1 }); for (const o of outlaws) if (o.ch) { motion.registerActor(o.id, o.ch, { defaultClip: "idle", blend: 1 }); o.ch.group.visible = false; } } catch (e) { console.warn("motion", e); motion = null; }
+    motion.registerActor("mesa", me, { defaultClip: "idle", blend: 1 }); if (anta) motion.registerActor("anta", anta, { defaultClip: "idle-foldarms", blend: 1 }); for (const o of outlaws) if (o.ch) { motion.registerActor(o.id, o.ch, { defaultClip: "idle", blend: 1 }); o.ch.group.visible = false; } } catch (e) { console.warn("motion", e); motion = null; }
   /* his signature pieces, carried with the body: round white-rimmed glasses, the yellow-and-blue MESA CHIP pocket badge, the dark-weave poncho, the revolver */
   const glasses = new T.Group(); { const rim = new T.MeshStandardMaterial({ color: 0xf4f2ec, roughness: .3, metalness: .2 }), lens = new T.MeshStandardMaterial({ color: 0xf2c84a, transparent: true, opacity: .35, roughness: .05, metalness: .3 });
     for (const s of [-1, 1]) { const r = new T.Mesh(new T.TorusGeometry(.028, .0045, 8, 24), rim); r.position.x = s * .033; glasses.add(r); const l = new T.Mesh(new T.CircleGeometry(.027, 20), lens); l.position.x = s * .033; glasses.add(l); }
@@ -130,7 +132,16 @@
       for (const bi of BODY_BONES) { const b = ch.bones[bi]; if (!b) continue; b.getWorldPosition(_bw); const d = _bw.distanceToSquared(q); if (d < bd) { bd = d; best = b; } }
       if (!best) return; const local = best.worldToLocal(q.clone()); ch.paint.marks.push({ bone: best, local, r: (s2 ? .1 : .17) + Math.random() * .08, col, t: BNOW.value }); if (ch.paint.marks.length > NM) ch.paint.marks.shift(); } }
   function paintStep(t) { BNOW.value = t; for (const ch of PAINTED) { if (!ch || !ch.paint) continue; const P = ch.paint; P.marks.forEach((m, i) => { m.bone.localToWorld(_bw.copy(m.local)); P.U.uBP.value[i].set(_bw.x, _bw.y, _bw.z, m.r); P.U.uBC.value[i].set(m.col.r, m.col.g, m.col.b, m.t); }); P.U.uBN.value = P.marks.length; } }
-  const PAINTED = [me, ...outlaws.map(o => o.ch)]; PAINTED.forEach(paintable);
+  const PAINTED = [me, anta, ...outlaws.map(o => o.ch)].filter(Boolean); PAINTED.forEach(paintable);
+
+  /* ---------- the horned motorcycle (mesa/touki.js): parked by the title gate, Anta beside it ---------- */
+  const TK = window.MesaTouki.build(T); scene.add(TK.group);
+  const BK = { x: 7, z: 128, h: Math.PI, speed: 0, steer: 0, lean: 0, wheelie: 0, pitch: 0, rode: false };
+  const bkBody = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(BK.x, heightAt(BK.x, BK.z) + .6, BK.z)), bkCol = world.createCollider(R.ColliderDesc.cuboid(.3, .5, 1.0), bkBody); OWNER.set(bkCol.handle, { kind: "bike" });
+  const bkCtrl = world.createCharacterController(.05); bkCtrl.enableSnapToGround(.8); bkCtrl.enableAutostep(.35, .3, true); bkCtrl.setApplyImpulsesToDynamicBodies(true); bkCtrl.setMaxSlopeClimbAngle(38 * Math.PI / 180);
+  const satchel = new T.Mesh(new T.BoxGeometry(.26, .22, .1), new T.MeshStandardMaterial({ color: 0x9a6a36, roughness: .7 })); satchel.castShadow = true; scene.add(satchel);
+  const ANTA_AT = { x: 9.2, z: 127.4 }; if (anta) { anta.group.position.set(ANTA_AT.x, heightAt(ANTA_AT.x, ANTA_AT.z), ANTA_AT.z); anta.group.rotation.y = -1.9; }
+  const SEATH = window.__seatH || .46, _bq = new T.Quaternion(), _be = new T.Euler(), _bs = new T.Vector3(), _bu = new T.Vector3();
 
   /* the controller */
   const ctrl = world.createCharacterController(.03); ctrl.enableAutostep(.5, .2, true); ctrl.enableSnapToGround(.5); ctrl.setApplyImpulsesToDynamicBodies(true); ctrl.setMaxSlopeClimbAngle(50 * Math.PI / 180);
@@ -204,12 +215,14 @@
     S.launch(from); S.launch(from); puff(from.clone().addScaledVector(d, .3), col, d.clone().multiplyScalar(2), .5, .08, 1.6, false); }
 
   /* ---------- jobs, offers, modes ---------- */
-  const GOALS = [["gate", "Pass through the title gate"], ["iris", "Sight the mesas through the clockwork iris"], ["horse", "Ride the lone horse"], ["prism", "Shatter a glass prism"], ["duel", "Win the duel (Game mode)"], ["cathedral", "Descend into the glass cathedral"], ["oasis", "Find the oasis"], ["zig", "Sit on the ziggurat steps"], ["turf", "Ink 250 m² of turf. It cures to glass"], ["tags", "Fill the four tag spots on Main Street"]];
+  const GOALS = [["gate", "Pass through the title gate"], ["iris", "Sight the mesas through the clockwork iris"], ["horse", "Ride the lone horse"], ["prism", "Shatter a glass prism"], ["duel", "Win the duel (Game mode)"], ["cathedral", "Descend into the glass cathedral"], ["oasis", "Find the oasis"], ["zig", "Sit on the ziggurat steps"], ["turf", "Ink 250 m² of turf. It cures to glass"], ["tags", "Fill the four tag spots on Main Street"], ["touki", "Ride the horned motorcycle with Anta"]];
   const done = {}; $("goals").innerHTML = GOALS.map(([k, t]) => `<li data-k="${k}">${t}</li>`).join("");
   function complete(k, line) { if (done[k]) return; done[k] = true; const li = $("goals").querySelector(`[data-k="${k}"]`); if (li) li.classList.add("done"); S.chime(); if (line) say(line, 4); }
   let lineT = 0; function say(t, sec = 3) { $("line").textContent = t; $("line").classList.add("on"); lineT = sec; }
   const near = (a, b, r) => Math.hypot(a.x - b.x, a.z - b.z) < r;
   function offer() { const p = { x: st.x, z: st.z };
+    if (st.mode === "bike") return Math.abs(BK.speed) < 2 ? { label: "Get off", run: () => { st.mode = "foot"; S.engine(false); st.x = BK.x + Math.cos(BK.h) * 1.2; st.z = BK.z - Math.sin(BK.h) * 1.2; st.y = heightAt(st.x, st.z); meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); me.group.rotation.set(0, st.heading, 0); } } : null;
+    if (st.mode === "foot" && near(p, BK, 2.6)) return { label: "Ride the horned bike", run: () => { st.mode = "bike"; st.gun = false; holdGun(false); S.engine(true); if (!BK.rode) { BK.rode = true; say("Anta climbs on behind him. The horns point the way out of town.", 3.5); } complete("touki", "The zebu horns cut the wind. Touki Bouki: the journey of the hyena."); } };
     if (st.mode === "ride") return { label: "Get down", run: () => { st.mode = "foot"; const M = mount.state; st.x = M.x + Math.cos(M.heading) * 1.6; st.z = M.z - Math.sin(M.heading) * 1.6; st.y = heightAt(st.x, st.z); meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); } };
     if (st.mode === "sit") return { label: "Stand", run: () => { st.mode = "foot"; } };
     if (st.mode !== "foot") return null;
@@ -267,6 +280,7 @@
     function wake() { if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; } ctx = new (window.AudioContext || window.webkitAudioContext)(); master = ctx.createGain(); master.gain.value = .8; master.connect(ctx.destination);
       const n = Math.floor(ctx.sampleRate * 3), ir = ctx.createBuffer(2, n, ctx.sampleRate); for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < n; i++) { const t = i / ctx.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6) * (t < .12 ? .15 : 1) * (1 + 1.2 * Math.exp(-((t - .5) ** 2) * 200) + .8 * Math.exp(-((t - 1.1) ** 2) * 120)); } }
       wet = ctx.createConvolver(); wet.buffer = ir; const wg = ctx.createGain(); wg.gain.value = .4; wet.connect(wg).connect(master);
+      fetch(SOUND + "bajaj_start_idle.mp3").then(r => r.arrayBuffer()).then(a => ctx.decodeAudioData(a)).then(b => { buf.engine = b; }).catch(() => { });
       for (const k of ["wind_plain", "wind_gusts"]) fetch(SOUND + k + ".mp3").then(r => r.arrayBuffer()).then(a => ctx.decodeAudioData(a)).then(b => { buf[k] = b; const s = ctx.createBufferSource(); s.buffer = b; s.loop = true; const g = ctx.createGain(); g.gain.value = k === "wind_plain" ? .16 : 0; s.connect(g).connect(master); s.start(); if (k === "wind_gusts") stormG = g; }).catch(() => { }); }
     function out(p, gain = 1, w = .35) { const g = ctx.createGain(); g.gain.value = gain; let node = g; if (p) { const pn = ctx.createPanner(); pn.panningModel = "HRTF"; pn.refDistance = 5; pn.positionX.value = p.x; pn.positionY.value = p.y; pn.positionZ.value = p.z; g.connect(pn); node = pn; } node.connect(master); if (w) { const s = ctx.createGain(); s.gain.value = w; node.connect(s).connect(wet); } return g; }
     function noise(sec) { const n = Math.floor(ctx.sampleRate * sec), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; return b; }
@@ -293,6 +307,8 @@
       pad(chord) { if (!ctx) return; for (const f of chord) for (const det of [-3, 3]) { const o = ctx.createOscillator(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain(), t = ctx.currentTime; o.type = "sawtooth"; o.frequency.value = f; o.detune.value = det;
           const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 900; lfo.frequency.value = 5.2; lg.gain.value = .015; lfo.connect(lg).connect(g.gain); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.035, t + 1.2); g.gain.linearRampToValueAtTime(0, t + 6); o.connect(lp).connect(g).connect(out(null, 1, .7)); o.start(t); lfo.start(t); o.stop(t + 6.1); lfo.stop(t + 6.1); }
         tone(null, chord[2] * 2, chord[2] * 2.0, 2.4, .05, "sine", .8, .6, .4); tone(null, chord[1] * 2, chord[1] * 2, 2.4, .045, "sine", .8, 2.2, .4); },
+      engine(on) { if (!ctx) return; if (on && !this._eng && buf.engine) { const src = ctx.createBufferSource(); src.buffer = buf.engine; src.loop = true; const g = ctx.createGain(); g.gain.value = .4; src.connect(g).connect(master); src.start(); this._eng = src; } if (!on && this._eng) { this._eng.stop(); this._eng = null; } },
+      engineRate(r) { if (this._eng) this._eng.playbackRate.value = r; },
       storm(on) { if (stormG && ctx) stormG.gain.linearRampToValueAtTime(on ? .5 : 0, ctx.currentTime + 2); } }; })();
 
   /* ---------- the ink ---------- */
@@ -325,9 +341,32 @@
       mount.update(dt, { throttle: fwd, steer: turn, pace: run ? 3 : 1 }, heightAt); const M = mount.state; mount.saddleAt(_sp, _sq);
       me.group.position.copy(_sp).add(new T.Vector3(0, -.62, 0)); me.group.quaternion.copy(_sq); st.x = M.x; st.z = M.z; st.y = _sp.y - 1.2; st.heading = M.heading;
       if (motion) try { motion.setClip("mesa", Math.abs(M.speed || 0) > 3.5 ? "horse-trot" : Math.abs(M.speed || 0) > .3 ? "horse-walk" : "horse-idle", { fade: .3 }); } catch (e) { }
+    } else if (st.mode === "bike") {
+      const boost = run ? 1.45 : 1, max = 19 * boost;
+      BK.speed = lerp(BK.speed, fwd > 0 ? max * fwd : fwd < 0 ? (BK.speed > 1 ? 0 : -4) : 0, 1 - Math.exp(-dt * (fwd > 0 ? .7 : fwd < 0 ? 2.6 : 1.1)));
+      BK.steer = lerp(BK.steer, turn * .42, 1 - Math.exp(-dt * 6)); BK.h += BK.speed * Math.tan(BK.steer) / 1.46 * dt;
+      const want = v3(Math.sin(BK.h) * BK.speed * dt, -.5 * dt, Math.cos(BK.h) * BK.speed * dt); bkBody.setTranslation(v3(BK.x, heightAt(BK.x, BK.z) + .6, BK.z), true);
+      bkCtrl.computeColliderMovement(bkCol, want, R.QueryFilterFlags.EXCLUDE_DYNAMIC, undefined, c => c !== meCol);
+      const mv = bkCtrl.computedMovement(), blocked = Math.hypot(want.x - mv.x, want.z - mv.z); BK.x += mv.x; BK.z += mv.z;
+      if (blocked > .04) { if (Math.abs(BK.speed) > 13) { BK.speed = 0; S.engine(false); st.x = BK.x; st.z = BK.z; st.y = heightAt(BK.x, BK.z); st.heading = BK.h; meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); fall("The horns hit first. Everyone goes over."); } else BK.speed *= .35; }
+      BK.lean = lerp(BK.lean, -BK.steer * clamp(Math.abs(BK.speed) / 9, 0, 1.4) * 1.05, 1 - Math.exp(-dt * 5)); BK.wheelie = lerp(BK.wheelie, run && fwd > 0 && BK.speed < max * .75 ? .2 : 0, 1 - Math.exp(-dt * 3));
+      if (st.mode === "bike") { st.x = BK.x; st.z = BK.z; st.y = heightAt(BK.x, BK.z); st.heading = BK.h; S.engineRate(.7 + Math.abs(BK.speed) * .055); if (Math.random() < dt * (4 + BK.speed)) { const ex = TK.group.localToWorld(TK.exhaust.clone()); puff(ex, 0xe8dccb, new T.Vector3(-Math.sin(BK.h), .4, -Math.cos(BK.h)), 1.2, .12, 3, false); } }
+      meBody.setTranslation(v3(BK.x, st.y + 1.25, BK.z), true);   /* his body rides with the bike, so paint can still find him */
+      if (motion) try { motion.setClip("mesa", "sitting-idle", { fade: .3 }); } catch (e) { }
     } else if (st.mode === "sit") { me.group.position.set(st.x, st.y, st.z); me.group.rotation.set(0, st.heading, 0); if (motion) try { motion.setClip("mesa", "sitting-idle", { fade: .4 }); } catch (e) { } }
     else if (st.mode === "down") { st.downT += dt; const k = st.downT < 2.2 ? smooth(0, .35, st.downT) : 1 - smooth(2.2, 3, st.downT); me.group.position.set(st.x, st.y + k * .25, st.z); me.group.rotation.set(-k * Math.PI / 2 * .95, st.heading, 0, "YXZ"); if (motion) try { motion.setClip("mesa", "idle", { fade: .2 }); } catch (e) { } if (st.downT > 3) { st.mode = "foot"; me.group.rotation.set(0, st.heading, 0); } }
     if (st.mode !== "ride") { mount.update(dt, { throttle: 0, steer: 0, pace: 0 }, heightAt); }
+    /* the bike sits on its two wheels: pitch from the ground under each, lean into the turn, the fork turns with the steer */
+    { if (st.mode !== "bike") { BK.speed = lerp(BK.speed, 0, 1 - Math.exp(-dt * 2)); BK.lean = lerp(BK.lean, st.mode === "foot" ? .12 : 0, 1 - Math.exp(-dt * 2)); BK.steer = lerp(BK.steer, .3, 1 - Math.exp(-dt * 2)); }
+      const sx = Math.sin(BK.h), cz = Math.cos(BK.h), fy = heightAt(BK.x + sx * .74, BK.z + cz * .74), ry = heightAt(BK.x - sx * .72, BK.z - cz * .72), y = (fy + ry) / 2;
+      BK.pitch = Math.atan2(ry - fy, 1.46) - BK.wheelie; TK.group.position.set(BK.x, y + Math.sin(BK.wheelie) * .3, BK.z); TK.group.rotation.set(BK.pitch, BK.h, BK.lean, "YXZ"); TK.fork.rotation.y = BK.steer * .9;
+      for (const w of TK.wheels) w.rotation.x += BK.speed * dt / .35; TK.group.updateMatrixWorld(true);
+      _be.set(0, BK.h, 0); _bq.setFromEuler(_be); bkBody.setNextKinematicTranslation(v3(BK.x, y + .6, BK.z)); bkBody.setNextKinematicRotation({ x: _bq.x, y: _bq.y, z: _bq.z, w: _bq.w });
+      _bu.set(0, 1, 0).applyQuaternion(TK.group.quaternion);
+      if (st.mode === "bike") { me.group.position.copy(TK.group.localToWorld(_bs.copy(TK.seat))).addScaledVector(_bu, -SEATH); me.group.quaternion.copy(TK.group.quaternion); }
+      if (anta) { if (BK.rode && (st.mode === "bike" || near({ x: BK.x, z: BK.z }, { x: anta.group.position.x, z: anta.group.position.z }, 1.5))) { anta.group.position.copy(TK.group.localToWorld(_bs.copy(TK.pillion))).addScaledVector(_bu, -SEATH); anta.group.quaternion.copy(TK.group.quaternion); if (motion) try { motion.setClip("anta", "sitting-idle", { fade: .3 }); } catch (e) { } }
+        else { if (motion) try { motion.setClip("anta", "idle-foldarms", { fade: .3 }); } catch (e) { } }
+        const ch = boneW(anta, 3, new T.Vector3()), f = new T.Vector3(0, 0, 1).applyQuaternion(anta.group.quaternion); satchel.position.copy(ch).addScaledVector(f, -.17).add(new T.Vector3(0, -.32, 0)); satchel.quaternion.copy(anta.group.quaternion); } }
 
     /* physics */
     { const n = Math.max(1, Math.ceil(dt * 60)); for (let k = 0; k < n; k++) { world.step(); fstep++; } }
@@ -371,7 +410,7 @@
     /* the camera */
     { let dist = WIDE ? 6.2 : 4.8, up = 2.3, side = 0, h = st.heading, lookUp = 1.5, fov = 52;
       if (st.gun && st.mode === "foot") { dist = 2.9; up = 1.7; side = .7; fov = lerp(46, 34, st.steady); if (near(st, Z.clockwork_iris, 9)) fov = 22; }
-      if (st.mode === "ride") { dist = 8; up = 3.2; } if (st.mode === "sit") { dist = 5; up = 1.6; h = st.heading + 1.2; } if (st.mode === "down") { dist = 6; up = 3.5; }
+      if (st.mode === "ride") { dist = 8; up = 3.2; } if (st.mode === "bike") { dist = 6.4 + Math.abs(BK.speed) * .08; up = 2.2; lookUp = 1.3; fov = 52 + Math.abs(BK.speed) * .6; } if (st.mode === "sit") { dist = 5; up = 1.6; h = st.heading + 1.2; } if (st.mode === "down") { dist = 6; up = 3.5; }
       let want = new T.Vector3(st.x - Math.sin(h) * dist + Math.cos(h) * side, st.y + up, st.z - Math.cos(h) * dist - Math.sin(h) * side), look = new T.Vector3(st.x + Math.sin(h) * (st.gun ? 6 : 1.5), st.y + lookUp, st.z + Math.cos(h) * (st.gun ? 6 : 1.5));
       want.y = Math.max(want.y, heightAt(want.x, want.z) + .8);
       camPos.lerp(want, 1 - Math.exp(-dt * (st.gun ? 10 : 4))); camLook.lerp(look, 1 - Math.exp(-dt * 6));
@@ -412,6 +451,6 @@
 
   resize(); $("boot").classList.add("done"); $("title").classList.add("on"); setTimeout(() => { $("title").classList.remove("on"); GRIDON = false; }, 6500);
   say("This land ain't dust anymore. It's data. And it remembers.", 5);
-  window.__mesa = { paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
+  window.__mesa = { BK, TK, anta, paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
   requestAnimationFrame(frame);
 })().catch(e => { console.error(e); const b = document.getElementById("boot-s"); if (b) b.textContent = "Something went wrong: " + e.message; });
