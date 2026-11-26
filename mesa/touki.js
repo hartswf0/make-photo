@@ -1,6 +1,6 @@
 /* The horned motorcycle, after Touki Bouki (Djibril Diop Mambéty, 1973): a 1970s road bike with high chrome bars, round mirrors
-   on tall stalks, a round headlight over the plate "10", a zebu skull lashed over the bars with its long horns sweeping out
-   and up, the way Mory rides it out of Dakar, and the Dogon kanaga standing on the sissy bar behind.
+   on tall stalks, a round headlight over the plate "10", and a zebu skull lashed over the bars with its long horns sweeping out
+   and up, the way Mory rides it out of Dakar.
    MesaTouki.build(T) -> { group, wheels: [front, rear], fork, seat: Vector3 (rider), pillion: Vector3, exhaust: Vector3 }.
    The bike faces +z; its origin is on the ground between the wheels. */
 (() => {
@@ -30,6 +30,11 @@
     const stripe = new T.Mesh(new T.SphereGeometry(.172, 16, 10, 0, Math.PI * 2, 1.2, .25), chrome); stripe.scale.copy(tank.scale); stripe.position.copy(tank.position); g.add(stripe);
     const seat = new T.Mesh(new T.BoxGeometry(.28, .09, .78), leather); seat.position.set(0, .86, -.33); g.add(seat);
     tube([-.12, .86, -.7], [-.12, 1.35, -.78], .012, chrome); tube([.12, .86, -.7], [.12, 1.35, -.78], .012, chrome); tube([-.12, 1.35, -.78], [.12, 1.35, -.78], .012, chrome);
+    /* the Dogon kanaga on the rear, as on Mory's bike: an upright, an upper bar whose ends rise, a lower bar whose ends fall */
+    { const wood = new T.MeshStandardMaterial({ color: 0x5a3a22, roughness: .85 }), k = (a, b, r = .018) => tube(a, b, r, wood);
+      k([0, 1.35, -.78], [0, 2.05, -.8], .022); k([-.3, 1.88, -.79], [.3, 1.88, -.79]); k([-.3, 1.88, -.79], [-.32, 2.06, -.79]); k([.3, 1.88, -.79], [.32, 2.06, -.79]);
+      k([-.26, 1.58, -.79], [.26, 1.58, -.79]); k([-.26, 1.58, -.79], [-.28, 1.4, -.79]); k([.26, 1.58, -.79], [.28, 1.4, -.79]);
+      const head = new T.Mesh(new T.BoxGeometry(.08, .1, .05), wood); head.position.set(0, 2.08, -.8); g.add(head); }
     const tail = new T.Mesh(new T.BoxGeometry(.1, .05, .04), new T.MeshStandardMaterial({ color: 0xd02020, emissive: 0x801010, emissiveIntensity: .6 })); tail.position.set(0, .78, -.82); g.add(tail);
     /* fork, high bars, grips, round mirrors on tall stalks */
     const fork = new T.Group(); g.add(fork); fork.position.set(0, 1.02, .52);
@@ -51,12 +56,6 @@
     for (const s of [-1, 1]) { const curve = new T.CatmullRomCurve3([new T.Vector3(s * .1, .07, -.02), new T.Vector3(s * .5, .06, -.06), new T.Vector3(s * .95, .1, -.05), new T.Vector3(s * 1.3, .2, .02), new T.Vector3(s * 1.48, .36, .12)]);   /* wide and nearly flat, curling up only at the tips, as on the poster */
       const N = 16; for (let k = 0; k < N; k++) { const a = curve.getPoint(k / N), b = curve.getPoint((k + 1) / N), r0 = .085 * (1 - k / N) + .008, r1 = .085 * (1 - (k + 1) / N) + .006;
         const seg = new T.Mesh(new T.CylinderGeometry(r1, r0, a.distanceTo(b) * 1.04, 10), k > N * .75 ? new T.MeshStandardMaterial({ color: 0xd8ccb0, roughness: .6 }) : bone); seg.position.copy(a).add(b).multiplyScalar(.5); seg.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), b.clone().sub(a).normalize()); skull.add(seg); } }
-    /* the Dogon kanaga on the rear, as Mory's bike carries it in the film: an upright with two crossbars, the upper one's ends turned
-       up to the sky and the lower one's turned down to the earth */
-    { const kn = new T.Group(), kb = new T.MeshStandardMaterial({ color: 0x18120e, roughness: .7 }), kw = new T.MeshStandardMaterial({ color: 0xf2ece0, roughness: .7 }), kr = new T.MeshStandardMaterial({ color: 0xb8222a, roughness: .6 });
-      const bx = (w, h, x, y, m) => { const b = new T.Mesh(new T.BoxGeometry(w, h, .03), m); b.position.set(x, y, 0); kn.add(b); return b; };
-      bx(.04, .62, 0, .31, kb); bx(.46, .04, 0, .46, kb); bx(.46, .04, 0, .2, kb); for (const s of [-1, 1]) { bx(.04, .15, s * .21, .535, kb); bx(.04, .15, s * .21, .125, kb); bx(.05, .04, s * .21, .62, kr); bx(.05, .04, s * .21, .04, kr); bx(.04, .042, s * .1, .46, kw); bx(.04, .042, s * .1, .2, kw); }
-      for (const y of [.33, .08]) bx(.042, .05, 0, y, kw); const hd = bx(.09, .09, 0, .68, kr); hd.rotation.z = Math.PI / 4; kn.position.set(0, 1.35, -.79); kn.rotation.x = -.08; g.add(kn); }
     g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     return { group: g, wheels: [front, rear], fork, seat: new T.Vector3(0, .86, -.18), pillion: new T.Vector3(0, .9, -.55), exhaust: new T.Vector3(.18, .38, -.98) };
   }

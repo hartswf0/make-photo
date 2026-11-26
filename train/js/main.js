@@ -12,6 +12,8 @@ import { createInteract } from './interact.js';
 import { createGame, ROOF_Y } from './game.js';
 import { buildProps } from './props.js';
 import { createHeist } from './heist.js';
+import { makeCan } from './cans.js';
+import { createTalk } from './talk.js';
 import { createAudio } from './audio.js';
 
 const mobile = matchMedia('(pointer:coarse)').matches || innerWidth < 760;
@@ -67,12 +69,14 @@ const TALK = { 1: [['Sit. The window is the only thing in here that changes.', '
 const BEEWORD = ['none', 'none', 'one', 'a dozen', 'hundreds', 'thousands', 'a man of them', 'the beam is solid with them', 'all of them'];
 const tmp2 = new THREE.Vector3();
 let gameSys = null;
+const talk = createTalk({ game, stub });
+const talkCtx = p => () => { const ci = p.walk ? locate(cars, p.walk.x).i : p.car, nx = cars[ci + 1]; return { next: nx ? nx.name : null, nextSub: nx ? nx.sub : '', car: cars[ci].name, bees: BEEWORD[p.walk ? locate(cars, p.walk.x).i : p.car] || 'none', spam: heist ? heist.H.spam : 0, stings: state.stings }; };
 const USE = /^(ladder|controls|queen|smoker)/;   // the only things the heist's action button uses besides robbing
 function personItem(p) {
   const carOf = () => p.walk ? locate(cars, p.walk.x).i : p.car;
   interact.add({ id: p.key, radius: 1.5, pos: () => tmp2.copy(p.root.position).setY(DIM.FLOOR + 1.35), get car() { return carOf(); }, title: p.role, kicker: 'Passenger',
     rows: () => [['Carriage', cars[carOf()].name], ['Doing', p.walk ? 'walking the train' : p.loco.sitting ? (p.loco.talking ? 'talking' : 'sitting') : p.loco.working || (p.loco.dancing ? 'dancing' : 'standing')], ['Spoken to', game.talked.has(p.key) ? 'Yes' : 'Not yet']],
-    verbs: () => [{ label: p.walk ? 'Show a stub' : 'Talk', run: it => { const opts = TALK[carOf()] || TALK[1], [line, d, gift] = p.walk ? [`Tickets. Any stub will do. You have ${game.stubs.size}.`, game.stubs.size ? 'greet' : 'dazed'] : opts[game.talked.size % opts.length];
+    verbs: () => [{ label: 'Talk', run: () => { interact.close(); talk.open(p, talkCtx(p), (q, text) => bubble(q, text)); return false; } }, { label: p.walk ? 'Show a stub' : 'Ask for something', run: it => { const opts = TALK[carOf()] || TALK[1], [line, d, gift] = p.walk ? [`Tickets. Any stub will do. You have ${game.stubs.size}.`, game.stubs.size ? 'greet' : 'dazed'] : opts[game.talked.size % opts.length];
       if (p.walk && game.stubs.size >= 5 && !game.key) { game.key = true; game.inv.push('cab key'); stub('Given: the cab key', 'the locomotive is forward of the quiet car'); }
       game.talked.add(p.key); it.note = '“' + line + '”'; deed(d); if (gift && !game.inv.includes(gift)) { game.inv.push(gift); if (gift === 'veil') game.veil = true; stub('Given: ' + gift, p.role); } return true; } }] });
 }
@@ -94,7 +98,7 @@ const PEOPLE = [['imani', 1, 5, { sitting: true }], ['elder', 1, 16, { sitting: 
   ['bride', 7, [-3.5, -.7, 1], { working: 'clapping' }], ['elder', 7, [-1.2, .75, 1], { working: 'clapping' }], ['rahel', 8, [-3, .5, 1], { dancing: 'pump' }], ['saba', 8, [-6, -.5, 1], { working: 'pray' }]];
 const DENSITY = [.03, 0, .03, .1, .22, .36, .52, .72, 1];   // how much of the swarm is aboard, by carriage: one bee in the quiet car, all of them in the hive
 const DEEDS = { stung: ['jump', .9], swat: ['reject', 1.6], dazed: ['confused', 2.4], angry: ['angry', 2.2], kneel: ['pray', 3], dance: ['dance-arm-pump', 3], clap: ['clapping', 2], crouch: ['crouch-idle', 1.6], greet: ['greeting', 2], win: ['victory', 2.4] };
-function deed(name) { const d = DEEDS[name]; if (!d || !hero) return false; state.react = { clip: d[0], until: state.t + d[1] }; if (name === 'stung') { state.stings++; stub('Stung', `${state.stings} so far · ${cars[state.lastCar]?.name || ''}`); } return true; }
+function deed(name) { const d = DEEDS[name]; if (!d || !hero) return false; state.react = { clip: d[0], until: state.t + d[1] }; if (name === 'stung') { audio.fx('sting'); navigator.vibrate?.(60); state.stings++; stub('Stung', `${state.stings} so far · ${cars[state.lastCar]?.name || ''}`); } return true; }
 function bootCast() {
   try {
     cast = loadCast();
@@ -157,7 +161,7 @@ function stepActor(dt) {
     hero.root.position.set(actor.x, actor.roof ? ROOF_Y : DIM.FLOOR + (actor.seated ? SEAT_Y : 0), actor.z); hero.root.rotation.y = actor.yaw;
     hero.loco = { speedMps: actor.speed, sitting: actor.seated }; hero.clip = state.react && state.t < state.react.until ? state.react.clip : actor.roof && land.env.tunnel ? 'crouch-idle' : null;
     // from the apiary car on, the bees sting without being asked
-    if (!actor.seated && !actor.roof && !state.calm && !state.decoy && !game.veil && !state.bee && loc.i >= 4 && state.t > state.nextSting) { state.nextSting = state.t + 22 - loc.i * 2 + Math.random() * 8; if (state.t > 6) deed('stung'); } hero.root.visible = !(rig.st.shot.id === 'pov');
+    if (!actor.seated && !actor.roof && !state.calm && !state.decoy && !game.veil && !state.bee && game.mode !== 'game' && loc.i >= 4 && state.t > state.nextSting) { state.nextSting = state.t + 22 - loc.i * 2 + Math.random() * 8; if (state.t > 6) deed('stung'); } hero.root.visible = !(rig.st.shot.id === 'pov');
   }
   return loc;
 }
@@ -208,7 +212,7 @@ function frame() {
   const loc = stepActor(dt); stepTake(dt); stepRun();
   const portal = worlds ? worlds.nearest(tmp.set(actor.x, DIM.FLOOR + 1.2, actor.z), 3.2) : null, own = worlds && worlds.portals.find(p => p.car === loc.car);
   const ctx = { a: actor, car: loc.car, aisleZ: loc.aisleZ, side: actor.seated ? Math.sign(actor.z) || 1 : (own && Math.abs(own.pos.z) > .5 ? Math.sign(own.pos.z) : 1), bee: bees.lead, t: state.t, dist: journey.dist, speed: journey.speed, noseX: train.noseX, tailX: train.tailX };
-  ctx.shoulder = state.shoulder; ctx.heist = game.mode === 'game';
+  ctx.shoulder = state.shoulder; ctx.heist = game.mode === 'game'; ctx.high = state.high || run.on;   // the run and its seed use the high rear camera: whole body, feet and the door ahead
   if (ctx.heist && !state.bee && !run.on && rig.st.shot.id !== 'follow') setShot('follow', true);
   if (ctx.heist && !state.bee) { input.yaw = input.pitch = 0; rig.st.yaw = rig.st.pitch = 0; rig.st.zoom = 1; }   // the heist camera is fixed: a stray drag must not tip the lens
   if (ctx.heist) { const cN = cars[cars.length - 1]; if (actor.x < cN.x + cN.walkMin + .6) actor.cam = 1; if (actor.x > cars[0].x - DIM.L / 2 + 2.2) actor.cam = -1; }
@@ -222,15 +226,17 @@ function frame() {
   state.camCar = rig.st.shot.inside ? locate(cars, camera.position.x).i : loc.i;
   land.update(journey.dist, camera.position.x, state.t); stepEnv(dt, loc);
   if (own) goal.copy(own.pos);
-  bees.update(dt, state.t, { cars, camCar: Math.max(1, state.camCar), actor, cup, goal: own ? goal : null, density: state.empty && state.camCar <= 1 ? -1 : (DENSITY[Math.max(1, state.camCar)] ?? 1) * (state.calm ? .25 : 1) });
+  bees.update(dt, state.t, { cars, camCar: Math.max(1, game.mode === 'game' && !state.bee ? loc.i : state.camCar), actor, cup, goal: own ? goal : null, density: state.empty && state.camCar <= 1 ? -1 : (DENSITY[Math.max(1, state.camCar)] ?? 1) * (state.calm ? .25 : 1),
+    hostile: game.mode === 'game' && !state.calm && !game.veil && !state.bee && !actor.roof, anger: clamp((loc.i - 1) / 8, 0, .8), actorCar: loc.i, head: tmp2.set(actor.x, DIM.FLOOR + (state.cans ? 1.3 : 1.6), actor.z), eye: camera.position, decoy: state.decoy && heist.H.decoyPos ? heist.H.decoyPos : null, onSting: () => deed('stung') });
+  audio.swarm(Math.min(1, bees.state.near / 26), Math.min(1, bees.state.anger / 14)); audio.steps(actor.speed, dt, state.cans); audio.music(game.mode === 'game');
   for (const c of cans) c.visible = !(state.empty && c.userData.car === 1);
-  for (const d of train.doors) { const near = Math.abs(actor.x - d.x) < 1.9 || (rig.st.shot.inside && (d.x - actor.x) * (d.x - camera.position.x) < 0) || Math.abs(camera.position.x - d.x) < .8 || people.some(p => p.walk && Math.abs(p.walk.x - d.x) < 1.6); d.open = damp(d.open, near ? 1 : 0, near ? 7 : 3, dt); d.g.position.z = d.open * .88; }
+  for (const d of train.doors) { const near = Math.abs(actor.x - d.x) < 1.9 || (rig.st.shot.inside && (d.x - actor.x) * (d.x - camera.position.x) < 0) || Math.abs(camera.position.x - d.x) < .8 || people.some(p => p.walk && Math.abs(p.walk.x - d.x) < 1.6); if (near && d.open < .3 && !d.snd) { d.snd = 1; audio.fx('door'); } if (!near && d.open < .1) d.snd = 0; d.open = damp(d.open, near ? 1 : 0, near ? 7 : 3, dt); d.g.position.z = d.open * .88; }
   for (const p of people) {
     let ci = p.car;
     if (p.walk) { const w = p.walk; w.x += w.dir * .8 * dt; if (w.x > w.b) w.dir = -1; if (w.x < w.a) w.dir = 1; const l = locate(cars, w.x); ci = l.i; p.root.position.set(w.x, DIM.FLOOR, l.aisleZ + .12); p.root.rotation.y = w.dir * Math.PI / 2; p.loco = { speedMps: .8 }; }
     p.root.visible = Math.abs(ci - state.camCar) <= 2 && !(state.empty && ci === 1); p.wake(Math.abs(ci - state.camCar) <= 1);
   }
-  if (cast) cast.update(dt);
+  if (cast) cast.update(dt); stepCans(dt);
   for (const c of cars) c.group.visible = !rig.st.shot.inside || Math.abs(c.i - state.camCar) <= 3;
   if (worlds) worlds.update(state.t, state.camCar, M);
   const stood = journey.phase === 'dwell' || (journey.phase === 'held' && journey.speed < .4), halt = stood && !actor.seated && !portal && !actor.roof;
@@ -238,11 +244,13 @@ function frame() {
   if (gameSys) { gameSys.update(dt, state.t); if (state.t - goalT > .4) { goalT = state.t; ui.goals(gameSys.goals, game.mode); } }
   placeSun(); const lab = interact.label();
   const tgt = ctx.heist && heist ? heist.target(loc.i) : null, v0 = ctx.heist && interact.near && USE.test(interact.near.id) ? interact.near.verbs()[0] : null;
-  if (heist) heist.update(dt, loc.i);
-  if (ctx.heist) ui.context(tgt ? `${tgt.label} · ${tgt.what}` : v0 ? v0.label : (journey.phase === 'dwell' ? `Get off · ${nextHalt().name}` : null));
+  if (heist) heist.update(dt, loc.i); stepBubbles();
+  const victim = state.bee ? stingTarget() : null; { const np = !state.bee && !actor.seated && !talk.openFor ? people.find(q => q.root.visible && Math.hypot(q.root.position.x - actor.x, q.root.position.z - actor.z) < 1.5) : null; state.talkTo = np; ui.talkBtn(np ? talk.personaOf(np).name : null); }
+  if (state.bee) ui.context(victim ? 'STING · ' + (victim === hero ? 'the traveler' : victim.role) : null);
+  else if (ctx.heist) ui.context(tgt ? `${tgt.label} · ${tgt.what}` : v0 ? v0.label : (journey.phase === 'dwell' ? `Get off · ${nextHalt().name}` : null));
   else ui.context(lab && (!actor.seated || interact.open) ? lab : actor.seated ? 'Stand' : portal ? `Enter · ${portal.world.title}` : halt ? `Get off · ${nextHalt().name}` : nearestSeat() ? 'Sit' : null);
   ui.status(journey, land.env, rig.st.shot, `stubs ${game.stubs.size}/${game.total} · stings ${state.stings}${game.inv.length ? ' · ' + game.inv.join(', ') : ''}${state.bee ? ' · you are the bee' : ''}`);
-  audio.update(journey.speed, rig.st.shot.inside ? 1 : .6, dark, bees.lead.p.distanceTo(camera.position));
+  audio.update(journey.speed, rig.st.shot.inside ? 1 : .6, dark);
   renderPass(state.pass, scene, camera);
 }
 const axis = (p, n) => (input.keys.has(p) ? 1 : 0) - (input.keys.has(n) ? 1 : 0);
@@ -267,7 +275,7 @@ async function seed(id) {
   const c = cars[sd.car]; state.take = false; state.walkGoal = null; journey.dist = sd.km * 1000; journey.phase = 'run'; journey.speed = journey.cruise;
   if (sd.seat !== undefined) { const st = sd.seat < 0 ? c.playerSeat : c.seats[sd.seat]; actor.seated = true; actor.seat = { car: c, ...st }; actor.x = c.x + st.x; actor.z = st.z; actor.dir = st.face; }
   else { actor.seated = false; actor.x = c.x + sd.x; actor.dir = sd.dir || -1; actor.z = c.aisleZ + (sd.z || 0); actor.yaw = actor.dir * Math.PI / 2; if (sd.walk) state.walkGoal = actor.x + actor.dir * sd.walk; }
-  state.forceSwarm = !!sd.swarm; state.empty = !!sd.empty; setShot(sd.shot); const st = rig.st; st.yaw = sd.yaw || 0; st.pitch = sd.pitch || 0; st.zoom = sd.zoom || 1; if (sd.mt !== undefined) st.mem.t0 = state.t - sd.mt;
+  state.forceSwarm = !!sd.swarm; state.empty = !!sd.empty; setCans(!!sd.cans); state.high = !!sd.high; actor.cam = actor.dir; if (sd.cans && game.mode === 'game') gameSys.setMode('world'); setShot(sd.shot); const st = rig.st; st.yaw = sd.yaw || 0; st.pitch = sd.pitch || 0; st.zoom = sd.zoom || 1; if (sd.mt !== undefined) st.mem.t0 = state.t - sd.mt;
   document.body.classList.add('nohud'); return sd;
 }
 function b64(buf) { let s = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 32768) s += String.fromCharCode.apply(null, u.subarray(i, i + 32768)); return btoa(s); }
@@ -286,13 +294,29 @@ function capture(w = 1280, h = 720) {
 }
 
 gameSys = createGame({ scene, cars, train, bees, interact, actor, journey, state, stub, deed, env: land.env });
-const heist = createHeist({ scene, cars, train, props, people, actor, state, stub, deed, game, sys: gameSys });
+const heist = createHeist({ scene, cars, train, props, people, actor, state, stub, deed, game, sys: gameSys, audio, onRob: p => { talk.remember(p, 'The traveler robbed a tin of SPAM out of my pocket.'); bubble(p, ['Hey! That was mine!', 'Thief!', 'I felt that.', 'Put it back.'][Math.floor(state.t) % 4]); } });
+for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, () => audio.start(), { once: true });   // sound is on from the first touch
+
+// ---- all people are SPAM: every body on the train swapped for a walking tin
+function setCans(on) { state.cans = on; [hero, ...people].forEach((p, k) => { if (!p) return; if (on && !p.can) { p.can = makeCan(p === hero ? 0 : 1 + (k % 7)); p.can.group.userData.cls = 'person'; p.root.add(p.can.group); } if (p.can) p.can.group.visible = on; p.ch.group.visible = !on; }); return on; }
+function stepCans(dt) { if (!state.cans) return; if (hero && hero.can) hero.can.update(dt, actor.speed, actor.seated, state.react && state.t < state.react.until ? 1 : 0); for (const p of people) if (p.can && p.root.visible) p.can.update(dt, p.walk ? .8 : 0, !!p.loco.sitting, p.loco.talking ? (Math.sin(state.t * 2 + p.root.position.x) > .6 ? 1 : 0) : 0); }
+
+// ---- speech over heads, and the bee's sting
+const bubbles = new Map();
+function bubble(p, text) { let b = bubbles.get(p); if (!b) { b = document.createElement('div'); b.className = 'bubble'; document.body.append(b); bubbles.set(p, b); } b.textContent = text; b.hidden = false; b.until = state.t + Math.min(9, 2.5 + text.length * .06); }
+function stepBubbles() { for (const [p, b] of bubbles) { if (b.hidden) continue; if (state.t > b.until || !p.root.visible) { b.hidden = true; continue; } tmp.copy(p.root.position); tmp.y += 2.15; tmp.project(camera); const on = tmp.z < 1 && Math.abs(tmp.x) < 1.1; b.style.display = on ? '' : 'none'; b.style.left = ((tmp.x + 1) / 2 * innerWidth) + 'px'; b.style.top = ((1 - tmp.y) / 2 * innerHeight) + 'px'; } }
+/** In bee mode: who is within a wing's length. The traveler counts. */
+function stingTarget() { const bp = bees.lead.p; let best = null, bd = .75; for (const p of [hero, ...people]) { if (!p || !p.root.visible) continue; const dx = p.root.position.x - bp.x, dz = p.root.position.z - bp.z, dy = p.root.position.y + 1.2 - bp.y, d = Math.hypot(dx, dz) + Math.abs(dy) * .4; if (d < bd) { bd = d; best = p; } } return best; }
+function sting(p) { if (state.t < (state.stingCool || 0)) return false; state.stingCool = state.t + 1.2; state.given = (state.given || 0) + 1; audio.fx('sting'); navigator.vibrate?.(50);
+  if (p === hero) { deed('stung'); } else { p.clip = 'jump'; setTimeout(() => { p.clip = 'reject'; }, 700); setTimeout(() => { p.clip = null; }, 2300); talk.remember(p, 'I was stung by a bee, on the neck.'); bubble(p, ['Ah! It got me!', 'A bee! In here!', 'Get it off, get it OFF.', 'That is the second one today.'][state.given % 4]); }
+  bees.lead.v.multiplyScalar(-1); state.beeYaw += Math.PI; bees.lead.p.y += .4; stub('You sting ' + (p === hero ? 'the traveler' : p.role), `${state.given} given`); return true; }
 
 // ---- the run: a rehearsal of the single world-model session. Third-person lock, WASD, and at each door the cue that would be sent.
 const run = { on: false, cars: [], n: 1 };
 async function startRun() {
   if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds;
-  run.cars = seeds.filter(x => x.run).sort((a, b) => a.run - b.run); run.on = true; run.n = 1; state.take = false; state.stings = 0; state.empty = !!run.cars[0].empty;
+  const spam = params.get('run') !== 'worlds';   // ?run is SPAM on a Train; ?run=worlds is the earlier corpus run
+  run.cars = spam ? (await (await fetch('data/spam_session.json')).json()).run.map((c, k) => ({ ...c, car: k + 1 })) : seeds.filter(x => x.run).sort((a, b) => a.run - b.run); run.on = true; run.n = 1; actor.cam = -1; state.take = false; state.stings = 0; state.empty = spam || !!run.cars[0].empty; setCans(spam); if (game.mode === 'game') gameSys.setMode('world');
   if (worlds && worlds.stage.active) await worlds.exit();
   actor.seated = false; actor.x = cars[1].x + 5.6; actor.z = 0; actor.dir = -1; actor.yaw = -Math.PI / 2; state.walkGoal = null; rig.set('follow'); ui.shot('follow', false);
   document.body.classList.add('run'); ui.cue(run.cars[0], 1, run.cars.length, true); stub('The run', 'one session · hold W · a cue at every door'); return true;
@@ -301,7 +325,8 @@ function stepRun() {
   if (!run.on) return; if (rig.st.shot.id !== 'follow') rig.set('follow');
   const next = run.cars[run.n]; if (!next) return;
   const door = train.doors.find(d => d.car.i === next.car - 1 && d.x < d.car.x);     // the rear door of the carriage he is leaving
-  if (door && door.open > .5 && actor.x - door.x < 1.9) { run.n++; ui.cue(next, run.n, run.cars.length, false); state.log.push({ t: +state.t.toFixed(1), cue: next.id }); try { navigator.clipboard.writeText(next.genie).catch(() => {}); } catch { } }
+  const last = !door && next.car > cars.length - 1 && actor.x < cars[cars.length - 1].x - 3;   // the train has eight doors' worth of rooms; the ninth cue falls at the far end of the hive
+  if (last || (door && door.open > .5 && actor.x - door.x < 1.9)) { run.n++; ui.cue(next, run.n, run.cars.length, false); state.log.push({ t: +state.t.toFixed(1), cue: next.id }); try { navigator.clipboard.writeText(next.genie).catch(() => {}); } catch { } }
 }
 
 // ---- light that casts: the sun through the windows, and a sky for the brass to reflect
@@ -329,6 +354,7 @@ function toggleBee(on = !state.bee) { state.bee = on; bees.lead.manual = on; sta
 
 // ---- actions
 async function act() {
+  if (state.bee) { const v = stingTarget(); return v ? sting(v) : false; }
   if (worlds && worlds.stage.active) return worlds.exit();
   if (game.mode === 'game' && heist) { const loc = locate(cars, actor.x), tgt = heist.target(loc.i); if (actor.seated) stand(); if (tgt) return tgt.run(); const n = interact.near, v0 = n && USE.test(n.id) ? n.verbs()[0] : null; if (v0) return v0.run(n); if (journey.phase === 'dwell') return getOff(); return; }
   if (interact.open || (interact.near && !actor.seated)) return interact.act();
@@ -355,15 +381,15 @@ const api = {
   act, stand, sit, still, record, swarm: (on = !state.forceSwarm) => (state.forceSwarm = on), jump: km => { journey.dist = km * 1000; journey.phase = 'run'; },
   walkTo: car => { if (actor.seated) stand(); state.walkGoal = cars[clamp(car, 0, 7)].x; }, enter: id => { const p = worlds.portals.find(p => p.ids.includes(id)); return p && worlds.enter(p, id); }, exit: () => worlds.exit(),
   next: d => { const s = worlds.stage; if (s.active) { s.portal.show(s.portal.index + d); return worlds.enter(s.portal); } }, live: () => worlds.toggleLive(),
-  run: startRun, endRun: () => { run.on = false; state.empty = false; document.body.classList.remove('run'); ui.cue(null); }, mode: m => { if (m === 'game' && actor.seated) stand(); return gameSys.setMode(m); }, throw: () => heist.throwCan(), turn: () => { actor.cam *= -1; return actor.cam; }, heist: () => ({ ...heist.H, loose: undefined }), get sys() { return gameSys; }, smoke: () => gameSys.smoke(), goals: () => gameSys.goals.map(q => ({ id: q.id, done: !!q.done() })), pass: n => { state.pass = PASSES.includes(n) ? n : PASSES[(PASSES.indexOf(state.pass) + 1) % PASSES.length]; stub('Pass', state.pass); return state.pass; }, passes: () => PASSES.slice(), bee: toggleBee, game: () => ({ stubs: game.stubs.size, total: game.total, talked: game.talked.size, inv: game.inv.slice(), water: game.water, stings: state.stings }), interact, deed, deeds: () => Object.keys(DEEDS), seed, capture, seeds: async () => { if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds; return seeds; },
+  run: startRun, cans: on => setCans(on ?? !state.cans), endRun: () => { run.on = false; state.empty = false; setCans(false); document.body.classList.remove('run'); ui.cue(null); }, mode: m => { if (m === 'game' && actor.seated) stand(); return gameSys.setMode(m); }, throw: () => heist.throwCan(), turn: () => { actor.cam *= -1; return actor.cam; }, heist: () => ({ ...heist.H, loose: undefined }), get sys() { return gameSys; }, smoke: () => gameSys.smoke(), goals: () => gameSys.goals.map(q => ({ id: q.id, done: !!q.done() })), pass: n => { state.pass = PASSES.includes(n) ? n : PASSES[(PASSES.indexOf(state.pass) + 1) % PASSES.length]; stub('Pass', state.pass); return state.pass; }, passes: () => PASSES.slice(), talkNear: () => { const p = state.talkTo; if (!p) return false; interact.close(); talk.open(p, talkCtx(p), (q, text) => bubble(q, text)); return true; }, sting: () => { const v = stingTarget(); return v ? sting(v) : false; }, talk, say: async (role, text) => { const p = people.find(q => q.id === role); if (!p) return null; const r = await talk.ask(p, text, talkCtx(p)()); bubble(p, r.text); return r; }, bee: toggleBee, game: () => ({ stubs: game.stubs.size, total: game.total, talked: game.talked.size, inv: game.inv.slice(), water: game.water, stings: state.stings }), interact, deed, deeds: () => Object.keys(DEEDS), seed, capture, seeds: async () => { if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds; return seeds; },
   log: () => state.log.slice(), rig: (w, h) => rig.export({ a: actor, car: locate(cars, actor.x).car, aisleZ: 0, side: 1, bee: bees.lead, t: state.t, dist: journey.dist, speed: journey.speed, noseX: train.noseX, tailX: train.tailX }, w, h),
   observe: () => ({ t: +state.t.toFixed(2), km: +(journey.dist / 1000).toFixed(3), speed: +journey.speed.toFixed(1), phase: journey.phase, car: cars[state.lastCar]?.key, seated: actor.seated, stings: state.stings, x: +actor.x.toFixed(2), shot: rig.st.shot.id, take: state.take, run: run.on ? run.n : 0, world: worlds?.stage.active ? worlds.stage.id : null, segment: land.env.segment?.type || null, people: people.length, calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
-  _: { scene, camera, renderer, train, land, rig, actor, journey, state, input, get people() { return people; }, get cast() { return cast; }, get hero() { return hero; } },
+  _: { scene, camera, renderer, train, land, rig, actor, journey, state, input, get people() { return people; }, beeLead: bees.lead, get cast() { return cast; }, get hero() { return hero; } },
 };
 window.trainFilm = api;
 ui.bind({ api, input, audio, setShot, worldsRef: () => worlds, state });
 addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; const k = e.key.toLowerCase(); input.keys.add(k);
-  if (k === 'e' || k === 'enter') act(); else if (k === 'f') deed('stung'); else if (k === 'g') deed('swat'); else if (k === 'v') deed('dazed'); else if (k === 't') api.take(); else if (k === 'c') setShot(SHOTS[(SHOTS.indexOf(rig.st.shot) + 1) % SHOTS.length].id); else if (k === 'p') still(); else if (k === 'h') ui.hud(state.hud = !state.hud); else if (k === 'escape' && worlds?.stage.active) worlds.exit(); else if (k === 'b') toggleBee(); else if ((k === ' ' || k === 'x') && !state.bee) heist.throwCan(); else if (k === 'z' && game.mode === 'game') actor.cam *= -1; else if (k === 'r') gameSys.smoke(); else if (k === 'm') api.pass(); else if (k === 'q') state.shoulder *= -1; else if (k === 'escape' || k === 'backspace') interact.close(); else if (/^[1-9]$/.test(k)) { if (interact.open) interact.run(+k - 1); else setShot(SHOTS[+k - 1].id); } });
+  if (k === 'e' || k === 'enter') act(); else if (k === 'f') deed('stung'); else if (k === 'g') deed('swat'); else if (k === 'v') deed('dazed'); else if (k === 't') api.take(); else if (k === 'c') setShot(SHOTS[(SHOTS.indexOf(rig.st.shot) + 1) % SHOTS.length].id); else if (k === 'p') still(); else if (k === 'h') ui.hud(state.hud = !state.hud); else if (k === 'escape' && worlds?.stage.active) worlds.exit(); else if (k === 'b') toggleBee(); else if (k === 'y') api.talkNear(); else if ((k === ' ' || k === 'x') && !state.bee) heist.throwCan(); else if (k === 'z' && game.mode === 'game') actor.cam *= -1; else if (k === 'r') gameSys.smoke(); else if (k === 'm') api.pass(); else if (k === 'q') state.shoulder *= -1; else if (k === 'escape' || k === 'backspace') interact.close(); else if (/^[1-9]$/.test(k)) { if (interact.open) interact.run(+k - 1); else setShot(SHOTS[+k - 1].id); } });
 addEventListener('keyup', e => input.keys.delete(e.key.toLowerCase())); addEventListener('blur', () => input.keys.clear());
 
 ui.loading('laying track');

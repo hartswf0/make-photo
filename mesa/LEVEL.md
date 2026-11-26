@@ -36,8 +36,7 @@ A cyber-western of glass, built from the film's keyframe breakdown (`keyframes.j
 3. the crane into the cathedral;
 4. the silhouette wall in profile;
 5. the curtain wall pullback;
-6. the ziggurat;
-7. the triptych.
+6. the ziggurat.
 
 ## Paint: the graffiti game (`ink.js`)
 
@@ -71,8 +70,7 @@ After Touki Bouki (Djibril Diop Mambéty, 1973). A 1970s road bike is parked by 
 - a finned twin engine and an exhaust;
 - high chrome bars, with round mirrors on tall stalks;
 - a round headlight over the plate "10";
-- a zebu skull strapped over the bars, its horns sweeping out wide and nearly flat and curling up at the tips, as on the poster;
-- the Dogon kanaga standing on the sissy bar: the cross the film puts on the rear of Mory's bike, which the poster does not show.
+- a zebu skull strapped over the bars, its horns sweeping out wide and nearly flat and curling up at the tips, as on the poster.
 
 **Anta** waits beside it: a Black woman with short natural hair, an olive-green shirt, mustard trousers and a tan leather satchel. When Uncle Mesa rides, she rides pillion. She is from the one cast and takes paint like everyone else.
 
@@ -84,39 +82,6 @@ After Touki Bouki (Djibril Diop Mambéty, 1973). A 1970s road bike is parked by 
 - **Paint:** Uncle Mesa can still be painted while riding, because his body rides with the bike.
 
 **Not yet:** there is no motorbike clip in the motion library, so the riders use `sitting-idle`, with their legs forward along the tank.
-
-## The triptych (`triptych.js`)
-
-Three windows of leaded glass stand behind the ziggurat on a wall as tall as it, the wings turned in like an open altarpiece. They are painted in code on canvases at load, after the way Afewerk Tekle built *The Total Liberation of Africa* (Africa Hall, Addis Ababa, 1961): jewel colour, frontal long-faced figures cut from big planes, and a heavy black line drawn with a broad nib. The drawing is this level's own, and its three verses are the level's opening line.
-
-| Window | Verse | What is in it |
-|---|---|---|
-| THEN | it was dust | a herder with a staff and his zebu, face on, under a red sky; vultures; a pole whose wire carries nothing |
-| THEN AND NOW | it is data | Uncle Mesa lifts a torch with a chip of blue glass in its flame; Anta's open hand beside him; four of the town behind |
-| NOW AND THE FUTURE | and it remembers | a child holds the chip up to a rising sun; a woman's hand on his shoulder; the curtain wall; the horned bike small on a road of light |
-
-**How a window is made.** Flat pieces of colour are drawn first. The sheet is then cut into jittered cells on rings around the torch flame, so every shard in all three windows points at the one light. Each cell takes its own tone. Lead follows the edges of the drawing, then faces, hands and lettering go on top, then the iron bars.
-
-**The glass tracks three things:**
-- **The sun.** The windows' colour is thrown through them onto the sand, the ziggurat steps, Uncle Mesa, Anta and the outlaws. It swings and stretches with the time of day (1–6): short at noon, a hundred metres down the canyon at golden hour. The lead falls as dark lines, and the verses can be read on the ground. A sandstorm puts it out.
-- **Uncle Mesa.** Every painted eye follows him (twenty of them, the zebu's included). When he is far off or behind the glass they turn up to the flame. A glow walks behind the glass beside him.
-- **The torch.** Light leaves the flame in slow rings and crosses all three windows.
-
-Stand in each window's light and it gives its verse.
-
-## The swarms (`swarm.js`)
-
-A figure in a swarm is not a character. One hidden cast character plays the motion-capture clips, and its bones are recorded every frame. A figure is a few hundred flat panes, each with a lead rim, each pinned to one bone, all drawn as instances of a single triangle. Each figure reads the recording a little further back, so no two are in step.
-
-| Swarm | Where | What it does | Cost |
-|---|---|---|---|
-| The procession | round the ziggurat | Ten robed figures led by a torchbearer pour out of the centre window as loose shards, take their bodies on the sand to the east, walk round the front through the windows' light, and go back into the glass on the west side. Walk behind the torch for five seconds | 1 hidden rig, 1 draw, about 1,900 panes |
-| The stained-glass knight | the north window of the sunken cathedral | Come near on the cathedral floor and his panes leave the lead, form him on the mirror, and he comes for Uncle Mesa with a sword of red glass. In reach he swings (`hammering`) and puts him down. Each paintball knocks panes off him, stained with the paint; nine hits and he is in pieces. Later the pieces fly home | 1 hidden rig, 1 draw, about 300 panes |
-| The zebu | the salt ring, 370 m out | Twelve long-horned cattle of glass, two calves among them. They walk the ring, graze when still, keep apart, and gallop from the bike. Ride beside them | 1 draw, about 950 panes |
-| The spores | over the oasis | Ninety-six lit bodies, each trailing three beads. They come down and ring Uncle Mesa. Paint landing near them scatters them and stains them | 1 draw |
-| The tail light | behind the bike | Above about 30 km/h a red streak follows the last seventeen metres of road, after Kaneda's | 1 draw |
-
-**The knight is this level's own design:** steel-blue panes with gold trim, a red plume, a sun over a mesa on the breastplate. The idea of a knight stepping out of a window is from *Young Sherlock Holmes* (1985).
 
 ## The sky and the salt flats
 
@@ -133,6 +98,24 @@ Three references, used together:
 - **The Continuous Monument** (Superstudio, 1969): a colossal 64 m wall of green glass grid stands on the salt to the east, sixteen panels on an arc at 485 m.
 - **The edge of the world** is al-Idrisi's sea from the Tabula Rogeriana (1154): deep blue, with white zigzag waves following the curve of the rim.
 - **The buttes** are al-Idrisi's mountains: ten islands of rock at the rim, in bands of red, yellow, orange and purple, edged in dark ink and scalloped with scales.
+
+## Swarms (`swarm.js`) and the Hall of Liberation (`tekle.js`)
+
+One swarm for each reference. Each is our own hand-made version, not a copy.
+
+**How a glass figure is made.** A hidden scion character (a "driver") runs real motion-capture clips on the shared motion driver.
+- **Shards on bones.** Hundreds of instanced glass shards are pinned to its bones. Each shard has a bone, an offset in that bone's frame, a spin and a colour.
+- **Cheap crowds.** Any number of figures can wear the same pose, each with its own place and heading. A procession costs one skeleton and one draw call.
+- **What shards can do.** Fly in from a window to form a figure; be knocked loose by a paint hit, fall, bounce, lie for a few seconds and fly home; take the paint's colour; all blow out at once.
+
+**What each reference became:**
+
+| Reference | Our own version | Its swarm |
+|---|---|---|
+| Afewerk Tekle, *Total Liberation of Africa* (Africa Hall, 1961) | **The Hall of Liberation** behind the ziggurat: three 22 × 44 m panels painted in code. *Then* is cool and fractured: a dark sun, chains, bowed figures. *Then and now* is the torchbearer raising the flame against a burst of broken light. *Now and the future* is gold, red and green: a rising sun, raised arms, towers, gears, a rocket. Jewel-tone mosaic, figures with large dark eyes in white shamma with tibeb borders, and heavy lead drawn as long calligraphic sweeps over structural bars. The glass throws its colours on the ground | **The procession**: seven marchers of white, brown, green and red glass step one by one out of the centre panel and walk round the ziggurat, right arms raised; the first carries a lit torch |
+| The Stained Glass Knight (*Young Sherlock Holmes*, 1985) | **The knight in the sunken glass cathedral**, with a red glass sword and plume. When Uncle Mesa comes down onto the mirror floor, the knight leaps out of a canyon window and hunts him: walking, jogging, then a wind-up and a cut that knocks him flat | 760 shards of silver, gold and red. Paint knocks shards loose and recolours them; after 16 hits he shatters across the floor. He waits in the glass again 30 s after you leave |
+| Touki Bouki (1973) | **The Dogon kanaga** on the bike's rear, as on Mory's | **A herd of 14 zebu** (hump, dewlap, lyre horns, a walking gait) flocking over the salt flats: separation, alignment, cohesion and a wandering goal. They are shy of the rider and run when he comes close |
+| *Scavengers Reign*, *Akira* | **The Akira trail**: the bike's red tail light leaves a band of light behind it at speed | **160 glass seed-moths** at the oasis in cyan, magenta, lime, violet and gold. They drift, gather round a passer-by, and scatter from every splat |
 
 ## Built on
 
@@ -153,7 +136,24 @@ The glass is painted at load on canvases: leaded cells around a jittered grid, l
 - **Sound:** gunfire and glass are synthesized.
 - **Phones:** there are no touch controls.
 - **The overworld:** not poured into the trough yet.
-- **The zebu's bones:** no cast skeleton fits a cow, so their gait is worked out in `swarm.js`, not motion capture.
-- **The knight:** he keeps to the cathedral floor and has no way round obstacles.
-- **The procession:** it cannot be touched or painted.
-- **Tested** in a headless browser with software rendering only: not yet on a phone or a real graphics card.
+
+## Handmade (PAE-09)
+
+The knight scene, held still as a description and a score taken from this level's own knight machine, is built four times from the bottom up by four SCION swarms: Afewerk Tekle (one fixed leaded window, only the light moves), Lucasfilm 1985 (hand-keyed convex shards), Djibril Diop Mambéty (a griot collage cut from this game's own frames) and Mœbius and Otomo (a clean line, light trails, a bloom before each break). Each film is measured from its own pixels and judged by independent critics: [PAE-09 · MESA CHIP, handmade](https://hartswf0.github.io/bolas/paeleo/mesa-chip/).
+
+## The SCION lenses (L)
+
+The four PAE-09 swarms are also ways of seeing the playable world. Press **L**, or the lens button, to cycle through them. You can also open the level with `?lens=tekle`, `lucas85`, `mambety` or `moebius`.
+
+The game itself does not change: walking, spraying, swimming in ink, the horned motorcycle, the duel, the knight, the stained-glass murals and the mirrors all work as before. The scene renders to a colour and depth target, and one full-screen pass (`lens.js`) turns that picture into the swarm's language.
+
+| Lens | What you see while you play |
+|---|---|
+| **Tekle · leaded light** | One window, cut once. The cutting is fixed to the glass of the screen and never moves, and the world is the light passing through it. Each piece takes the light at its centre. The lead thickens wherever depth breaks, so the light itself draws Uncle Mesa's and the knight's contours. |
+| **1985 · shard light** | A rack focus that follows the fight: it pulls to the knight when the knight is out of the glass and near, and back to Uncle Mesa otherwise. Each facet's highlight blooms on its own, and the shutter stays open across frames, like accumulated sub-frames. |
+| **Mambéty · told** | The picture holds and jumps on a plucked rhythm (2, 1, 1, 3, 1, 2, 1, 1, 2, 3 film frames) and cuts on every event, such as a hit, a fall or the shatter. The stock is hot and worn. When he goes down, or the knight goes to pieces, the zebu horns of the motorcycle interrupt, painted with every colour fired so far. |
+| **Mœbius · line** | One black line of constant weight wherever depth or colour breaks, with flat colour. Bright, saturated things leave Akira trails: paintballs in flight, the red sword, lit glass. |
+
+![Tekle](lens-tekle.jpg) ![1985](lens-lucas85.jpg) ![Mambéty](lens-mambety.jpg) ![Mœbius](lens-moebius.jpg)
+
+`lenses.mp4` is a real play session in the glass cathedral with the knight hunting: Uncle Mesa sprays and walks, and the lens changes every few seconds (Plain, Tekle, 1985, Mambéty, Mœbius). It was recorded in software WebGL, so the frame rate is low.

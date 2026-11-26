@@ -19,8 +19,21 @@ export const CARS = [
   { key: 'hive', name: 'The hive', sub: 'the last carriage is not a carriage', windows: 'none' },
 ];
 
+// Dedicated rehearsal layout. Indices: 0 locomotive, 1 empty seed, 2–9 door cues.
+export const SPAM_CARS = [
+  CARS[0],
+  {key:'seed',fit:'quiet',name:'Empty seed',sub:'one Classic can, no bees or passengers',windows:'both'},
+  {key:'classic',fit:'quiet',name:'Classic / One Bee',sub:'the first encounter',windows:'both'},
+  {key:'dining',name:'The Dining Car',sub:'twelve bees and bouncy desserts',windows:'both'},
+  {key:'wax',name:'Wax and Gold',sub:'letters, wax seals and a balance',windows:'both'},
+  {key:'mailworks',name:'Mailworks',sub:'physical and digital spam',windows:'both'},
+  {key:'spamcinema',name:'Cinema and Doubles',sub:'a film of the world we occupy',windows:'both'},
+  {key:'hotHoney',fit:'greenhouse',name:'Hot Honey / Apiary',sub:'half for me, half for the swarm',windows:'both',glassRoof:true},
+  {key:'slop',name:'The Slop Sea',sub:'a factory of bouncy copies',windows:'both'},
+  {key:'hive',name:'The Sacred Hive',sub:'a world within every cell',windows:'both'}
+];
 function shell(b, M, car, i) {
-  const glassRoof = !!car.glassRoof, last = i === DIM.CARS - 1;
+  const glassRoof = !!car.glassRoof, last = car.last ?? (i === DIM.CARS - 1);
   // floor, runner, underframe
   b.box(M.floor, 0, -.06, 0, L, .12, HW * 2);
   b.box(M.iron, 0, -.34, 0, L - .5, .44, 2.3);
@@ -252,6 +265,63 @@ FIT.hive = (b, M, c) => {
   c.walkMin = -L / 2 + 2.6; c.noLamps = true; c.aisleHalf = .5;
 };
 
+// New SPAM-specific fit-outs, all with a continuous clear central aisle.
+FIT.wax = (b,M,c) => {
+  b.box(M.carpet,0,.006,0,L-.4,.012,.82);
+  for(const s of [-1,1])for(const x of [-6,-3,0,3,6]){
+    b.stand(M.walnut,x,0,s*1.03,2.3,.78,.70);
+    for(let k=0;k<3;k++){const xx=x+(k-1)*.63;
+      b.box(M.brass,xx,.87,s*1.10,.49,.16,.43);
+      b.box(M.iron,xx,.4,s*1.03,.48,.44,.04);
+      if(s===1)for(let j=0;j<3;j++){
+        b.box(M.walnut,xx,1.02+j*.31,s*1.29,.52,.035,.20);
+        b.box(M.linen,xx,1.16+j*.31,s*1.20,.43,.18,.08);
+      }
+    }
+    if(s===-1){b.box(M.iron,x,.42,s*1.04,1.05,.7,.60);b.cyl(M.brass,x,.43,s*.69,.08,.08,.04,8,Math.PI/2);}
+  }
+  c.aisleHalf=.40;
+};
+FIT.mailworks = (b,M,c) => {
+  b.box(M.iron,0,.008,0,L-.4,.016,.85);c.cool=true;
+  for(const s of [-1,1])for(const x of [-6,-3,0,3,6]){
+    b.stand(M.iron,x,0,s*1.07,2.55,.70,.67);
+    b.box(M.steel,x,.73,s*1.05,2.48,.07,.62);
+    for(let j=0;j<7;j++)b.cyl(M.iron,x-1.1+j*.35,.78,s*1.06,.06,.06,.54,8,Math.PI/2);
+    b.box(M.crt,x,1.35,s*1.24,1.22,.78,.34);
+    b.plane(M.lampCool,x,1.38,s*.99,1.04,.56,s===1?Math.PI:0);
+    for(let j=0;j<3;j++)b.box(M.linen,x+(j-1)*.56,.84,s*1.05,.32,.045,.22);
+    c.glows.push([x,1.4,s*.85,.7,0x7fd8cf]);
+  }
+  c.aisleHalf=.40;
+};
+FIT.spamcinema = (b,M,c) => {
+  b.box(M.carpet,0,.008,0,L-.4,.016,.95);
+  for(const s of [-1,1]){
+    for(const x of [-6,-2,2,6]){bench(b,M,x,s*1.02,-1,.78,c.seats);}
+    for(let j=0;j<8;j++)b.box(M.velvet,-7+j*2,1.65,s*1.38,1.8,.60,.05);
+  }
+  b.box(M.brass,0,1.6,-1.34,3.6,1.65,.06);
+  b.plane(M.linen,0,1.6,-1.28,3.4,1.45,0);
+  b.stand(M.iron,3,0,1.10,.40,1.2,.40);b.box(M.brass,3,1.34,1.1,.52,.3,.32);
+  for(const x of [2.87,3.13])b.cyl(M.iron,x,1.63,1.1,.16,.16,.04,14,Math.PI/2);
+  c.projector={x:3,y:1.34,z:1.1};c.dim=true;c.aisleHalf=.40;
+};
+FIT.slop = (b,M,c) => {
+  b.box(M.iron,0,.008,0,L-.4,.016,.82);c.cool=true;
+  for(const s of [-1,1]){
+    b.stand(M.iron,0,0,s*1.05,L-2,.62,.70);
+    b.box(M.steel,0,.66,s*1.05,L-2,.08,.66);
+    for(let j=0;j<24;j++)b.cyl(M.iron,-7.5+j*.64,.71,s*1.05,.07,.07,.56,8,Math.PI/2);
+    for(const x of [-6,-1,4]){
+      b.box(M.tealDark,x,1.43,s*1.10,1.9,1.35,.62);
+      b.box(M.black,x,.99,s*.77,1.5,.39,.04);
+      b.box(M.lampCool,x,1.74,s*.76,.74,.26,.03);
+      b.cyl(M.brass,x+.64,1.78,s*.76,.10,.10,.06,8,Math.PI/2);
+    }
+  }
+  c.aisleHalf=.42;
+};
 function loco(b, M, c) {
   const cab0 = -L / 2, cab1 = -L / 2 + 3.2, nose = L / 2;
   b.box(M.iron, 0, -.3, 0, L, .5, 2.7);
@@ -291,15 +361,15 @@ function loco(b, M, c) {
   c.walkMin = cab0 + .2; c.walkMax = cab1 - .5; c.aisleHalf = .7;
 }
 
-export function buildTrain(scene, M) {
+export function buildTrain(scene, M, layout = CARS) {
   const root = new THREE.Group(); root.name = 'train'; scene.add(root);
-  const cars = CARS.map((def, i) => {
-    const c = { ...def, i, x: carX(i), doorSpots: [], seats: [], glows: [], lamps: [], hives: [], props: {}, aisleZ: 0, aisleHalf: .38, walkMin: -L / 2 - GAP / 2, walkMax: L / 2 + GAP / 2 };
+  const cars = layout.map((def, i) => {
+    const c = { ...def, i, last:i===layout.length-1, spam:layout===SPAM_CARS, x: carX(i), doorSpots: [], seats: [], glows: [], lamps: [], hives: [], props: {}, aisleZ: 0, aisleHalf: .38, walkMin: -L / 2 - GAP / 2, walkMax: L / 2 + GAP / 2 };
     c.group = new THREE.Group(); c.group.position.set(c.x, DIM.FLOOR, 0); root.add(c.group);
     const b = new Batch();
     if (i === 0) loco(b, M, c);
     else {
-      shell(b, M, c, i); FIT[c.key](b, M, c);
+      shell(b, M, c, i); FIT[c.fit || c.key](b, M, c);
       const cool = c.cool, n = c.key === 'cinema' ? 2 : 5;
       for (let k = 0; k < n; k++) {
         const x = -L / 2 + (L / n) * (k + .5);
@@ -335,11 +405,11 @@ export function buildTrain(scene, M) {
   // sliding doors: closed until someone comes, so the next carriage stays unseen until the door is opened
   const doors = [];
   for (const c of cars) for (const x of c.doorSpots) {
-    const g = new THREE.Group(), leaf = new Batch(); leaf.box(M.walnut, 0, 0, 0, .05, 2.03, .86); leaf.box(M.brass, 0, 0, 0, .06, 2.03, .03); leaf.box(M.lamp, 0, .52, 0, .058, .5, .34); leaf.box(M.brass, .035, -.05, -.32, .03, .16, .03); leaf.box(M.brass, -.035, -.05, -.32, .03, .16, .03);
+    const g = new THREE.Group(), leaf = new Batch(); leaf.box(c.spam ? M.tealDark : M.walnut, 0, 0, 0, .05, 2.03, .86); leaf.box(M.brass, 0, 0, 0, .06, 2.03, .03); leaf.box(M.lamp, 0, .52, 0, .058, .5, .34); leaf.box(M.brass, .035, -.05, -.32, .03, .16, .03); leaf.box(M.brass, -.035, -.05, -.32, .03, .16, .03);
     leaf.build(g).forEach(m => { m.matrixAutoUpdate = false; }); g.position.set(x, 1.02, 0); c.group.add(g); doors.push({ car: c, g, x: c.x + x, open: 0 });
   }
   const tail = cars[cars.length - 1], hl = cars[0];
-  return { root, cars, doors, spin, glowMats, glowTex, wheelCount: wheelPos.length, length: DIM.SPAN * DIM.CARS, tailX: tail.x - L / 2, noseX: hl.x + L / 2 };
+  return { root, cars, doors, spin, glowMats, glowTex, wheelCount: wheelPos.length, length: DIM.SPAN * cars.length, tailX: tail.x - L / 2, noseX: hl.x + L / 2 };
 }
 
 /** Which carriage contains a train-frame x, and the walkable aisle there. */

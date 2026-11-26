@@ -19,6 +19,7 @@ export function createUI({ shots }) {
     context(label) { if (label === ctxLabel) return; ctxLabel = label; $('act').hidden = !label; if (label) $('act').textContent = label; },
     status(j, env, shot, extra = '') { if (performance.now() - statusT < 250) return; statusT = performance.now(); $('status').textContent = `km ${(j.dist / 1000 % 9).toFixed(2)} · ${Math.round(j.speed * 3.6)} km/h · ${shot.lens}${env.segment && env.segment.type !== 'station' ? ' · ' + env.segment.name : nextName ? ' · next ' + nextName : ''}`; $('score').textContent = extra; },
     next(name) { nextName = name; },
+    talkBtn(name) { const b = $('talkBtn'); b.hidden = !name; if (name) b.textContent = 'TALK · ' + name; },
     goals(list, mode) { const box = $('goals'); box.hidden = mode !== 'game'; if (box.hidden) return; box.textContent = ''; const n = list.filter(q => q.done()).length; box.dataset.count = `${n}/${list.length}`; let first = true; for (const q of list) { const d = q.done(), li = el('li', d ? 'done' : first ? (first = false, 'next') : '', q.text + (q.show && !d && q.show() ? ' · ' + q.show() : '')); box.append(li); } },
     /** The cue card of the run: what would be sent into the session at this door. */
     cue(c, n, of, opening) { const box = $('cue'); box.hidden = !c; if (!c) return; cueText = c.genie; $('cueN').textContent = `${opening ? 'Sent with the seed' : 'Send now · door ' + (n - 1) + ' is open'} · carriage ${n} of ${of}`; $('cueTitle').textContent = c.title.replace(/^\d+\. /, '');
@@ -35,7 +36,8 @@ export function createUI({ shots }) {
       ribbon.addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) { setShot(b.dataset.shot); document.body.classList.remove('pick'); } });
       $('camBtn').onclick = () => { document.body.classList.toggle('pick'); document.body.classList.remove('menu'); }; $('menuBtn').onclick = () => { document.body.classList.toggle('menu'); document.body.classList.remove('pick'); };
       $('tools').addEventListener('click', () => document.body.classList.remove('menu')); $('goals').onclick = () => $('goals').classList.toggle('all'); $('passBtn').onclick = () => api.pass();
-      $('runBtn').onclick = () => document.body.classList.contains('run') ? api.endRun() : api.run(); $('cueCopy').onclick = async () => { try { await navigator.clipboard.writeText(cueText); $('cueCopy').textContent = 'Copied'; setTimeout(() => $('cueCopy').textContent = 'Copy cue', 1200); } catch { } };
+      $('runBtn').onclick = () => document.body.classList.contains('run') ? api.endRun() : location.assign('spam.html?run'); $('cueCopy').onclick = async () => { try { await navigator.clipboard.writeText(cueText); $('cueCopy').textContent = 'Copied'; setTimeout(() => $('cueCopy').textContent = 'Copy cue', 1200); } catch { } };
+      $('talkBtn').onclick = () => api.talkNear();
       $('beeBtn').onclick = () => api.bee(); $('smokeBtn').onclick = () => api.smoke(); $('throwBtn').onclick = () => api.throw(); $('turnBtn').onclick = () => api.turn();
       $('modes').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const m = b.dataset.mode; if (m === 'cinema') { api.mode('world'); api.take(true); b.classList.add('on'); } else { api.take(false); api.mode(m); } });
       $('take').onclick = () => api.take(); $('rec').onclick = () => api.record(); $('still').onclick = () => api.still(); $('act').onclick = () => api.act();

@@ -46,6 +46,12 @@ Eighteen mounts and eight moves. A mount is a place for the lens; a move travels
 
 The take (▶) cuts between them and walks him down the train. `trainFilm.rig()` returns every position as a posed pinhole camera.
 
+## SPAM on a Train: all people are SPAM
+
+The current run. One seed and eight door cues, written by the project's author, in `SPAM-HANDOFF.md` and `data/spam_session.json`. The seed picture is `seeds/spam_0_seed.jpg`: a living SPAM Classic can alone in an empty carriage, composed in the 3D train and dressed on its depth.
+
+`index.html?run` rehearses it: the traveler and every passenger become walking cans (`js/cans.js`: a tin with a flavor label, a gold pull-tab lid that lifts to show the loaf, two eyes, metal arms and legs), the first carriage is empty, and each door shows its cue. The train's rooms are still in their built order, so the cue for a door does not always match the room behind it: the cues say dining, wax and gold, mailworks, cinema, apiary, slop sea, hive; the train has dining, greenhouse, apiary, mirror, surveillance, cinema, hive. The ninth room's cue falls at the far end of the hive. `?run=worlds` is the earlier run below.
+
 ## The run: one empty carriage, then seven doors
 
 The main use of the seeds. One world-model session, third person, W held down.
@@ -91,8 +97,36 @@ A co-op pod race on the salt flat beside the Sealed Line. The craft is two SPAM-
 
 - Phone: a lever on each side of the screen, one thumb each, or two people on one phone. Keys: W/S and ↑/↓, E throw, Enter boost. Gamepad: the two sticks are the two engines (or two pads, one stick each).
 - Physics is Rapier: rigid bodies for the engines, pod, rivals, thrown cans, walls, rotating sweepers and bumpers; the hover, the binder and the cables are spring forces in `js/racers.js`.
+- **Glass on the flat** (`js/glass.js`), all made in code:
+  - A stained-glass triptych inside the first bend, painted on canvases: *what the hive kept*, *what the train carried*, *what the can will hold*. It throws its colours on the salt.
+  - A procession of glass figures walks out from under it behind a torch. They are a motion-capture skeleton that is never drawn, with shards pinned to its bones, so the whole crowd is one draw call.
+  - A glass knight, called out of a smaller window across the road, patrols it with a red sword. A thrown can knocks panes off him; three break him and pay a long boost and three cans. He re-forms.
+  - A herd of zebu flocks on the infield and shies from the racers. Anta rides a horned motorcycle with a kanaga cross on the rear and a red tail light that hangs in the air.
+  - Luminous spores live at the oasis, come to you when you pass, and scatter from a thrown can.
 - Five rivals, four cans to pick with different mass, grip and boost, boost pads, crates of ammunition, three laps.
 - Sound is synthesised: one engine in each ear, and a 138 bpm march that adds parts on laps two and three.
+
+### Passengers who talk (`js/talk.js`)
+
+Walk up to anyone and press TALK (Y). Type, or tap a question. Each passenger has a persona and a memory stream: what you said, what they said, that you robbed them, that a bee stung them. Speech shows over their heads.
+
+- **With a key** (☰ → Voices) they answer through a language model, in character, from that memory. The key stays in the browser and goes only to the endpoint you name (OpenAI chat or responses, or Anthropic). A key already saved on this site by el-desierto's Train Field or island-ecology's hive pages is picked up automatically.
+- **Without a key** they answer the question asked from their own lines: who they are, what is behind the next door, how many bees, whether you can have their SPAM.
+- This continues two earlier pieces. Train Field's four passengers ride here by name (Noor the dispatcher, Mila the student, Oren the old man, Cass the tourist) with their lists of what each one sees; the persona-plus-memory-stream shape is the hive simulation's.
+
+### Being the bee
+
+In bee mode (B), fly within a wing's length of anyone, the traveler included, and the button reads STING. They jump, swat and say so, and remember it.
+
+### The cast
+
+Each passenger has their own skin tone, hair and coat, set per role in `js/cast.js`.
+
+### Bees and sound in the heist
+
+The bees inside are striped bodies that steer and face where they fly. Each keeps a place in its carriage; a share of them, growing toward the rear, are angry and go for his head, and a sting is a bee actually reaching him. A thrown can pulls every bee in the carriage onto it for eight seconds.
+
+Sound starts on the first touch: rails and joints, a five-voice wing chord that swells with the bees near the lens and tightens when they are angry, footsteps, doors, pick-ups, robbing, throws, the can landing, stings, and a slow pentatonic line under the game.
 
 ## The game on the train
 

@@ -5,8 +5,6 @@
      W A S D walk or ride · Shift run or gallop · E do what is here (mount the horse, sit at the booth or on the ziggurat)
      R draw · Space or click fire · X golden smoke · P poncho · T sandstorm · Z fall · G glass-block grid · 1–6 pads and time of day
      World / Game / Cinema at the bottom; Wide toggles the barrel-scope mask.
-   Behind the ziggurat: the triptych (mesa/triptych.js), three painted windows whose light and eyes follow the sun and Uncle Mesa.
-   Glass swarms (mesa/swarm.js): the procession, the stained-glass knight, the zebu, the spores, the bike's tail light.
    Built on make-photo's parts: the one cast (CAST_2086) on Mesh2Motion clips, Rapier (heightfield, walls, prism shards, a character
    controller), makeDonkey for the mount (the film's horse is still the donkey), and the trough's glass look for the reticle. */
 (async () => {
@@ -21,6 +19,7 @@
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6)); renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap; renderer.localClippingEnabled = true;
   const scene = new T.Scene(), camera = new T.PerspectiveCamera(52, 1, .1, 5000);
+  const LENS = window.MesaLens ? window.MesaLens.create({ T, renderer }) : null;   /* the SCION lenses (lens.js): L cycles them */
   scene.fog = new T.FogExp2(0xf0c890, .0016);
   /* the painted skybox: horizontal bands of yellow and blue over the salt, as in the film's brushstroke strata (01:10) */
   const SKY = { uSun: { value: new T.Vector3(.3, .2, -.9).normalize() }, uA: { value: new T.Color("#f2c84a") }, uB: { value: new T.Color("#3a6ab8") }, uC: { value: new T.Color("#f4e8d2") }, uStorm: { value: 0 }, uTime: { value: 0 } };
@@ -49,7 +48,7 @@
   const hemi = new T.HemisphereLight(0xfff0d8, 0x9a5a2e, .8); scene.add(hemi);
   const sun = new T.DirectionalLight(0xffe2b0, 2.8); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 700 }); sun.shadow.bias = -.0004; scene.add(sun, sun.target);
   const fx = $("fx"), FX = fx.getContext("2d"), grid = $("grid"), GX = grid.getContext("2d");
-  const resize = () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); for (const c of [fx, grid]) { c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio; } if (MIR) MIR.rt.setSize(Math.round(innerWidth * .5), Math.round(innerHeight * .5)); };
+  const resize = () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); for (const c of [fx, grid]) { c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio; } if (MIR) MIR.rt.setSize(Math.round(innerWidth * .5), Math.round(innerHeight * .5)); if (LENS) LENS.resize(); };
   let MIR = null; addEventListener("resize", resize);
 
   /* ---------- the world ---------- */
@@ -103,7 +102,6 @@
   const shards = [];
 
   let INK = null;   /* the paint: mesa/ink.js, created once the sound is up */
-  let TRI = null, SW = null;   /* the triptych (mesa/triptych.js) and the glass swarms (mesa/swarm.js) */
 
   /* ---------- Uncle Mesa, the outlaws, from the one cast ---------- */
   boot("Waking Uncle Mesa…");
@@ -117,9 +115,12 @@
   const outlaws = OUTLAWS.map((c, i) => ({ ch: make(c, "outlaw"), name: c.s.name, id: "outlaw" + i, state: "away", t: 0 }));
   /* Anta, from Touki Bouki: short natural hair, an olive-green shirt, mustard trousers, a tan leather satchel. She waits by the bike. */
   const anta = make(spec("selam_wire", { name: "Anta", scale: .97, build: .94, fem: .82, skinHex: 0x2c1a10, hair: "croppedCoily", hairHex: 0x100c0a, outer: "none", shirtHex: 0x6a6c48, trouserHex: 0xb8893a, tibebTrim: false }), "anta");
+  /* the hidden drivers: scion skeletons that run motion capture for the glass figures; their own bodies are never drawn */
+  const kD = make(spec("tex", { name: "Knight", scale: 1.08, build: 1.1, fem: .05, outer: "none" }), "knight"), pD = make(spec("yared_krar", { name: "Marcher", outer: "none" }), "marcher");
+  for (const d of [kD, pD]) if (d) { d.group.visible = false; d.group.position.set(0, -200, 0); }
   let motion = null;
-  try { motion = window.Mesh2MotionWorldBridge.createWorldCastDriver(T, { clipsBaseUrl: "../motion-pipeline/mesh2motion/clips", preload: ["idle", "walk", "jog", "sprint", "crouch-walk", "crouch-idle", "horse-idle", "horse-walk", "horse-trot", "sitting-idle", "idle-foldarms", "angry", "hammering"], defaultBlend: 1, defaultFade: .25 });
-    motion.registerActor("mesa", me, { defaultClip: "idle", blend: 1 }); if (anta) motion.registerActor("anta", anta, { defaultClip: "idle-foldarms", blend: 1 }); for (const o of outlaws) if (o.ch) { motion.registerActor(o.id, o.ch, { defaultClip: "idle", blend: 1 }); o.ch.group.visible = false; } } catch (e) { console.warn("motion", e); motion = null; }
+  try { motion = window.Mesh2MotionWorldBridge.createWorldCastDriver(T, { clipsBaseUrl: "../motion-pipeline/mesh2motion/clips", preload: ["idle", "walk", "jog", "sprint", "crouch-walk", "crouch-idle", "horse-idle", "horse-walk", "horse-trot", "sitting-idle", "idle-foldarms", "angry"], defaultBlend: 1, defaultFade: .25 });
+    motion.registerActor("mesa", me, { defaultClip: "idle", blend: 1 }); if (anta) motion.registerActor("anta", anta, { defaultClip: "idle-foldarms", blend: 1 }); if (kD) motion.registerActor("knightD", kD, { defaultClip: "idle", blend: 1 }); if (pD) motion.registerActor("procD", pD, { defaultClip: "walk", blend: 1 }); for (const o of outlaws) if (o.ch) { motion.registerActor(o.id, o.ch, { defaultClip: "idle", blend: 1 }); o.ch.group.visible = false; } } catch (e) { console.warn("motion", e); motion = null; }
   /* his signature pieces, carried with the body: round white-rimmed glasses, the yellow-and-blue MESA CHIP pocket badge, the dark-weave poncho, the revolver */
   const glasses = new T.Group(); { const rim = new T.MeshStandardMaterial({ color: 0xf4f2ec, roughness: .3, metalness: .2 }), lens = new T.MeshStandardMaterial({ color: 0xf2c84a, transparent: true, opacity: .35, roughness: .05, metalness: .3 });
     for (const s of [-1, 1]) { const r = new T.Mesh(new T.TorusGeometry(.028, .0045, 8, 24), rim); r.position.x = s * .033; glasses.add(r); const l = new T.Mesh(new T.CircleGeometry(.027, 20), lens); l.position.x = s * .033; glasses.add(l); }
@@ -195,6 +196,63 @@
   mount.group.traverse(o => { if (o.isMesh) o.castShadow = true; });
   const _sp = new T.Vector3(), _sq = new T.Quaternion();
 
+  /* ---------- the Hall of Liberation (mesa/tekle.js) behind the ziggurat, and the swarms (mesa/swarm.js) ---------- */
+  const HALL = window.MesaTekle.hall(T, { x: Z.ziggurat_steps.x, z: Z.ziggurat_steps.z - 36, y: heightAt(Z.ziggurat_steps.x, Z.ziggurat_steps.z - 36) - .5, W: 22, H: 44 }); scene.add(HALL.group);
+  { const hc = world.createCollider(R.ColliderDesc.cuboid(41, 26, 2.5).setTranslation(HALL.group.position.x, HALL.group.position.y + 26, HALL.group.position.z)); OWNER.set(hc.handle, { kind: "static", tag: "hall" }); }
+  /* the stained-glass knight: 420 shards of silver, gold and red on a scion skeleton; a red glass sword; a plume */
+  const KN = kD ? window.MesaSwarm.shards(T, scene, { driver: kD, figures: 1, per: 760, size: 1.35, heightAt, palette: [0xc8d6de, 0xb0c2cc, 0x9ab0bc, 0xd8e2e8, 0xe8c060, 0x8aa0b0, 0xd8342c] }) : null;
+  const KNIGHT = { state: "window", x: 0, z: W.PIT.z, h: 0, hp: 16, t: 0, cool: 0, swing: 0 };
+  const blade = new T.Mesh(new T.BoxGeometry(.06, 1.15, .02), new T.MeshStandardMaterial({ color: 0xd8342c, emissive: 0x9a1020, emissiveIntensity: .9, roughness: .1, metalness: .3, transparent: true, opacity: .9 })); blade.geometry.translate(0, .55, 0); blade.visible = false; scene.add(blade);
+  const plume = new T.Mesh(new T.ConeGeometry(.09, .5, 8), new T.MeshStandardMaterial({ color: 0xd8342c, emissive: 0x7a1010, emissiveIntensity: .6 })); plume.rotation.x = -.6; plume.visible = false; scene.add(plume);
+  const kBody = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(0, -60, 0)), kCol = world.createCollider(R.ColliderDesc.capsule(.6, .38), kBody); OWNER.set(kCol.handle, { kind: "knight" });
+  if (KN) KN.place(0, 0, -100, 0, 0);
+  /* the procession: seven marchers of glass, white shamma, brown hands and faces, green and red sashes; the first carries the torch */
+  const NP = 7, PR = pD ? window.MesaSwarm.shards(T, scene, { driver: pD, figures: NP, per: 300, size: 1.2, heightAt, palette: [0xf4f1e8, 0xe6ecee, 0xdfe6ea, 0x6a3820, 0x5a3018, 0x2a9a5a, 0xd8342c, 0xf2c84a] }) : null;
+  const PROC = { started: false, s: 0, formAt: [] }, LOOP = t => { const zz = Z.ziggurat_steps, a = t * Math.PI * 2; return { x: zz.x + Math.sin(a) * 27, z: zz.z - 2 + Math.cos(a) * 21 }; };
+  if (PR) for (let i = 0; i < NP; i++) PR.place(i, 0, -100, 0, 0);
+  const torch = new T.Group(); { const pole = new T.Mesh(new T.CylinderGeometry(.03, .035, .9, 8), new T.MeshStandardMaterial({ color: 0x5a3018 })); pole.position.y = .1; torch.add(pole); const fl = new T.Mesh(new T.ConeGeometry(.16, .55, 10), new T.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: .9, blending: T.AdditiveBlending })); fl.position.y = .8; torch.add(fl); torch.userData.flame = fl; const L = new T.PointLight(0xffa040, 12, 14, 2); L.position.y = .8; torch.add(L); } torch.visible = false; scene.add(torch);
+  /* the zebu herd on the salt, and the glass seed-moths at the oasis */
+  const HERD = window.MesaSwarm.herd(T, scene, { n: 14, center: { x: 0, z: -60 }, rMin: 318, rMax: 405, heightAt });
+  const SPORE = window.MesaSwarm.spores(T, scene, { n: 160, center: { x: Z.oasis_pond.x, y: W.oasisY, z: Z.oasis_pond.z }, radius: 30 });
+  /* the Akira trail: the bike's red tail light leaves a ribbon behind it at speed */
+  const TRAILN = 60, trailG = new T.BufferGeometry(), trailP = new Float32Array(TRAILN * 2 * 3), trailC = new Float32Array(TRAILN * 2 * 3), trailI = [];
+  for (let k = 0; k < TRAILN - 1; k++) { const a = k * 2; trailI.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  trailG.setAttribute("position", new T.BufferAttribute(trailP, 3)); trailG.setAttribute("color", new T.BufferAttribute(trailC, 3)); trailG.setIndex(trailI);
+  const trail = new T.Mesh(trailG, new T.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide })); trail.frustumCulled = false; scene.add(trail); const TRAIL = [];
+  function swarmStep(dt, t) {
+    /* the knight: waits in the cathedral's glass; steps out when Uncle Mesa comes down onto the mirror floor */
+    if (KN && kD) { const K = KNIGHT, inCath = st.y < W.cathedralY + 1.5 && Math.abs(st.x) < W.PIT.hx + 2 && Math.abs(st.z - W.PIT.z) < W.PIT.hz + 2;
+      if (K.state === "window" && inCath) { const side = st.x > 0 ? -1 : 1; K.x = side * 5.5; K.z = clamp(st.z - 8, W.PIT.z - W.PIT.hz + 3, W.PIT.z + W.PIT.hz - 3); K.h = Math.atan2(st.x - K.x, st.z - K.z); K.hp = 16; KN.place(0, K.x, W.cathedralY, K.z, K.h); KN.form(0, new T.Vector3(side * 12, W.cathedralY + 9, K.z), 2.6); K.state = "forming"; K.t = 0; S.glass(new T.Vector3(side * 12, W.cathedralY + 9, K.z), 1.4); say("A knight steps out of the glass, and draws.", 3); }
+      else if (K.state === "forming") { K.t += dt; if (KN.formed(0)) K.state = "hunt"; }
+      else if (K.state === "hunt" || K.state === "strike") { const dx = st.x - K.x, dz = st.z - K.z, d = Math.hypot(dx, dz); K.h = Math.atan2(dx, dz); K.cool = Math.max(0, K.cool - dt);
+        if (K.state === "hunt") { const sp = d > 9 ? 3.6 : d > 1.8 ? 2.2 : 0; K.x += Math.sin(K.h) * sp * dt; K.z += Math.cos(K.h) * sp * dt; if (motion) try { motion.setClip("knightD", sp > 3 ? "jog" : sp > 0 ? "walk" : "idle", { fade: .25 }); } catch (e) { } if (d < 2 && K.cool <= 0 && st.mode !== "down") { K.state = "strike"; K.swing = 0; } }
+        else { K.swing += dt; if (motion) try { motion.setClip("knightD", "idle", { fade: .2 }); } catch (e) { } if (K.swing > .75 && K.swing - dt <= .75 && d < 2.6) { S.glass(new T.Vector3(st.x, st.y + 1.2, st.z), .5); fall("The glass sword knocks him flat."); } if (K.swing > 1.1) { K.state = "hunt"; K.cool = 1.4; } }
+        const gy = inCath || st.y < W.cathedralY + 3 ? W.cathedralY : heightAt(K.x, K.z); KN.place(0, K.x, gy, K.z, K.h); kBody.setNextKinematicTranslation(v3(K.x, gy + .95, K.z)); }
+      else if (K.state === "shattered") { K.t += dt; kBody.setNextKinematicTranslation(v3(0, -60, 0)); if (K.t > 30 && !inCath) K.state = "window"; }
+      else kBody.setNextKinematicTranslation(v3(0, -60, 0));
+      /* the sword arm: raised on the wind-up, cut down on the swing; the blade rides the hand */
+      const live = K.state === "hunt" || K.state === "strike" || K.state === "forming"; blade.visible = plume.visible = live && KN.formed(0);
+      if (live) { const f = new T.Vector3(Math.sin(K.h), 0, Math.cos(K.h)), up = new T.Vector3(0, 1, 0);
+        const aim = K.state === "strike" ? (K.swing < .55 ? f.clone().multiplyScalar(.3).add(up).normalize() : f.clone().add(new T.Vector3(0, -.6, 0)).normalize()) : f.clone().add(new T.Vector3(0, -.3, 0)).normalize();
+        const kq = new T.Quaternion().setFromAxisAngle(up, -K.h), local = aim.clone().applyQuaternion(kq); aimArm(kD, local);
+        const hand = KN.bonePoint(0, 20, null, new T.Vector3()), elbow = KN.bonePoint(0, 18, null, new T.Vector3()); blade.position.copy(hand); blade.quaternion.setFromUnitVectors(up, hand.clone().sub(elbow).normalize());
+        KN.bonePoint(0, 7, new T.Vector3(0, .22, -.05), plume.position); plume.rotation.y = K.h; } }
+    /* the procession: forms out of the centre panel one marcher at a time, then walks round the ziggurat, the torch held up */
+    if (PR && pD) { if (!PROC.started && Math.hypot(st.x - HALL.group.position.x, st.z - HALL.group.position.z) < 130) { PROC.started = true; PROC.t = 0; say("The marchers step down out of the glass.", 3); }
+      if (PROC.started) { PROC.t += dt; PROC.s += dt * .012; if (motion) try { motion.setClip("procD", "walk", { fade: .3 }); } catch (e) { }
+        aimArm(pD, new T.Vector3(.15, 1, .35).normalize());
+        for (let i = 0; i < NP; i++) { const u = PROC.s - i * .035, p = LOOP(u), p2 = LOOP(u + .002), h = Math.atan2(p2.x - p.x, p2.z - p.z);
+          if (PROC.formAt[i] === undefined && PROC.t > i * 1.3) { PROC.formAt[i] = PROC.t; PR.form(i, HALL.torchAt.clone().add(new T.Vector3((i - 3) * 3, -8, 0)), 2.4); }
+          PR.place(i, p.x, heightAt(p.x, p.z), p.z, h); }
+        torch.visible = PROC.formAt[0] !== undefined; if (torch.visible) { PR.bonePoint(0, 20, null, torch.position); torch.userData.flame.scale.set(1 + Math.sin(t * 13) * .12, 1 + Math.sin(t * 9) * .2, 1); } } }
+    if (KN) KN.update(dt); if (PR) PR.update(dt);
+    HERD.update(dt, st); SPORE.update(dt, t, st);
+    /* the Akira trail */
+    { const tl = TK.group.localToWorld(new T.Vector3(0, .78, -.84)); if (st.mode === "bike" && Math.abs(BK.speed) > 4) TRAIL.unshift({ p: tl, r: new T.Vector3(Math.cos(BK.h), 0, -Math.sin(BK.h)), t }); while (TRAIL.length > TRAILN || (TRAIL.length && t - TRAIL[TRAIL.length - 1].t > 1.4)) TRAIL.pop();
+      for (let k = 0; k < TRAILN; k++) { const e = TRAIL[Math.min(k, TRAIL.length - 1)], a = TRAIL.length ? Math.max(0, 1 - (t - e.t) / 1.4) * (k < TRAIL.length ? 1 : 0) : 0, p = e ? e.p : new T.Vector3(0, -99, 0);
+        const rv = e ? e.r : new T.Vector3(1, 0, 0); trailP.set([p.x + rv.x * .16, p.y + .05, p.z + rv.z * .16, p.x - rv.x * .16, p.y - .05, p.z - rv.z * .16], k * 6);   /* a flat band at tail-light height, so a chase camera sees it */ trailC.set([a * 2.4, a * .2, a * .3, a * 2.4, a * .2, a * .3], k * 6); }
+      trailG.attributes.position.needsUpdate = trailG.attributes.color.needsUpdate = true; } }
+
   /* ---------- effects: muzzle plumes, curved light tracers, glass shards, golden smoke, sand ribbons, floating spectacles, dust ---------- */
   const puffTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const q = c.getContext("2d"), g = q.createRadialGradient(32, 32, 2, 32, 32, 32); g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(1, "rgba(255,255,255,0)"); q.fillStyle = g; q.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
   const puffs = []; for (let i = 0; i < 90; i++) { const s = new T.Sprite(new T.SpriteMaterial({ map: puffTex, transparent: true, depthWrite: false, opacity: 0 })); s.visible = false; scene.add(s); puffs.push({ s, t: 9, life: 1, v: new T.Vector3(), grow: 1 }); }
@@ -212,10 +270,11 @@
   /* ---------- shooting ---------- */
   function fire(dir) { if (st.cool > 0 || st.mode === "down" || !INK) return; if (st.ink < 1.5) { st.cool = .25; S.dry(); return; } st.cool = .095; st.recoil = .5; st.ink -= 1.5;
     const o = new T.Vector3(); if (gun.parent) gun.localToWorld(o.set(0, 0, .26)); else o.set(st.x, st.y + 1.4, st.z);
-    const spread = .018 + (1 - st.steady) * .03, d = dir.clone().add(new T.Vector3((Math.random() - .5) * spread, (Math.random() - .5) * spread + .035, (Math.random() - .5) * spread)).normalize(), col = PAINT[paintN++ % PAINT.length];
+    const spread = .018 + (1 - st.steady) * .03, d = dir.clone().add(new T.Vector3((Math.random() - .5) * spread, (Math.random() - .5) * spread + .035, (Math.random() - .5) * spread)).normalize(), col = PAINT[paintN++ % PAINT.length]; if (LENS) LENS.event("fire", col);
     INK.fire(o, d, col, 30 + Math.random() * 4); puff(o.clone().addScaledVector(d, .12), col, d.clone().multiplyScalar(1.5), .3, .05, 1.4, false); S.launch(o); }
-  function inkHit(who, q, n, d, col, owner) {   /* what a paintball does besides land: prisms crack, outlaws go down in their own colour, shards skitter */
-    if (SW) SW.onPaint(q, col); if (who && who.kind === "glass") return owner === "outlaw" ? true : who.hit(q, n, d, col);
+  function inkHit(who, q, n, d, col, owner) {
+    SPORE.scatter(q, 1);
+    if (who && who.kind === "knight" && owner !== "outlaw") { KN.hit(0, q, .42, col); KNIGHT.hp--; if (LENS) LENS.event("hit", col); S.glass(q, .5); if (KNIGHT.hp <= 0 && KNIGHT.state !== "shattered") { KN.shatter(0, d); if (LENS) LENS.event("shatter"); KNIGHT.state = "shattered"; KNIGHT.t = 0; S.glass(q, 2); complete("knight", "The knight goes to pieces on the mirror floor, every shard still holding its colour."); } return true; }   /* what a paintball does besides land: prisms crack, outlaws go down in their own colour, shards skitter */
     if (who && who.kind === "prism") { const p = who.p; p.hp--; S.glass(q, .3); if (p.hp <= 0) shatter(p, d); return false; }
     if (who && who.kind === "me") { if (owner !== "outlaw") return true; paintBody(me, q, col, 3); if (st.mode !== "down") { $("hurt").classList.add("on"); setTimeout(() => $("hurt").classList.remove("on"), 260); fall("The paint takes him off his feet."); } return true; }
     if (who && who.kind === "outlaw") { const ol = who.o; paintBody(ol.ch, q, col, 3); if (ol.state === "idle" || ol.state === "telegraph" || ol.state === "fire") { ol.state = "fall"; ol.t = 0; S.thud(q); say(`${ol.name} goes down, painted to the hat.`, 2); }
@@ -256,7 +315,7 @@
     S.launch(from); S.launch(from); puff(from.clone().addScaledVector(d, .3), col, d.clone().multiplyScalar(2), .5, .08, 1.6, false); }
 
   /* ---------- jobs, offers, modes ---------- */
-  const GOALS = [["gate", "Pass through the title gate"], ["iris", "Sight the mesas through the clockwork iris"], ["horse", "Ride the lone horse"], ["prism", "Shatter a glass prism"], ["duel", "Win the duel (Game mode)"], ["cathedral", "Descend into the glass cathedral"], ["oasis", "Find the oasis"], ["zig", "Sit on the ziggurat steps"], ["turf", "Ink 250 m² of turf. It cures to glass"], ["tags", "Fill the four tag spots on Main Street"], ["touki", "Ride the horned motorcycle with Anta"], ["light", "Stand in the light of all three windows"], ["procession", "Walk behind the torch with the glass procession"], ["knight", "Break the stained-glass knight"], ["zebu", "Run the zebu on the salt"], ["spores", "Let the spores ring you at the oasis"]];
+  const GOALS = [["gate", "Pass through the title gate"], ["iris", "Sight the mesas through the clockwork iris"], ["horse", "Ride the lone horse"], ["prism", "Shatter a glass prism"], ["duel", "Win the duel (Game mode)"], ["cathedral", "Descend into the glass cathedral"], ["oasis", "Find the oasis"], ["zig", "Sit on the ziggurat steps"], ["turf", "Ink 250 m² of turf. It cures to glass"], ["tags", "Fill the four tag spots on Main Street"], ["touki", "Ride the horned motorcycle with Anta"], ["knight", "Shatter the stained-glass knight in the cathedral"]];
   const done = {}; $("goals").innerHTML = GOALS.map(([k, t]) => `<li data-k="${k}">${t}</li>`).join("");
   function complete(k, line) { if (done[k]) return; done[k] = true; const li = $("goals").querySelector(`[data-k="${k}"]`); if (li) li.classList.add("done"); S.chime(); if (line) say(line, 4); }
   let lineT = 0; function say(t, sec = 3) { $("line").textContent = t; $("line").classList.add("on"); lineT = sec; }
@@ -272,7 +331,7 @@
     if (near(p, W.booth.userData.seat, 2.2)) return { label: "Take a seat at the booth", run: () => { st.mode = "sit"; const s = W.booth.userData.seat; st.x = s.x; st.z = s.z; st.y = s.y - .7; st.heading = Math.PI; say("Uncle Chip's booth. Under the glass sign, a man can sit and still draw.", 3); } };
     return null; }
   let MODE = "world"; function setMode(m) { MODE = m; document.body.classList.toggle("cinema", m === "cinema"); for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", b.dataset.mode === m); DUEL.on = m === "game"; if (m === "game") { DUEL.wave = 0; DUEL.left = 0; DUEL.next = 2.5; say("Game. The outlaws are coming to the arena.", 2.5); } DIR.i = 0; DIR.t = 0; }
-  function fall(line) { if (st.mode === "ride") { st.mode = "foot"; } st.mode = "down"; st.downT = 0; if (line) say(line, 2); S.thud(new T.Vector3(st.x, st.y, st.z)); }
+  function fall(line) { if (LENS) LENS.event("fall"); if (st.mode === "ride") { st.mode = "foot"; } st.mode = "down"; st.downT = 0; if (line) say(line, 2); S.thud(new T.Vector3(st.x, st.y, st.z)); }
 
   /* ---------- the director (Cinema): the breakdown's six cameras ---------- */
   const DIR = { i: 0, t: 0 }, SHOTS = [
@@ -281,8 +340,7 @@
     { name: "#3 crane descent into the cathedral", f: t => { const y = W.cathedralY; return [[0, y + 46 - t * 40, W.PIT.z + 50 - t * 20], [0, y + 2, W.PIT.z - 10]]; } },
     { name: "#4 the silhouette wall in profile", f: t => { const w = Z.silhouette_wall, y = heightAt(w.x, w.z); return [[w.x - 30 + t * 30, y + 2.2, w.z + 26], [w.x - 30 + t * 30, y + 3, w.z - 8]]; } },
     { name: "#5 wide pullback from the curtain wall", f: t => { const z = Z.north_curtain_wall.z; return [[20, 6 + t * 50, z + 60 + t * 160], [0, 60, z]]; } },
-    { name: "#6 the ziggurat, closing", f: t => { const s = W.zig.seat; return [[s.x + 20 - t * 4, s.y + 1.2, s.z + 2], [s.x, s.y + 1, s.z]]; } },
-    { name: "#7 the triptych: then, then and now, now and the future", f: t => { const z = Z.ziggurat_steps, y = heightAt(z.x, z.z); return [[z.x - 16 + t * 32, y + 9 + t * 5, z.z + 46 - t * 8], [z.x, y + 21, z.z - 17]]; } }];
+    { name: "#6 the ziggurat, closing", f: t => { const s = W.zig.seat; return [[s.x + 20 - t * 4, s.y + 1.2, s.z + 2], [s.x, s.y + 1, s.z]]; } }];
 
   /* ---------- input ---------- */
   const keys = {}; addEventListener("keydown", e => { if (e.repeat) return; keys[e.code] = true; S.wake();
@@ -295,13 +353,16 @@
     if (e.code === "KeyZ" && st.mode !== "down") fall("He goes down. He gets up.");
     if (e.code === "KeyG") GRIDON = !GRIDON;
     if (/^Digit[1-6]$/.test(e.code)) mood(+e.code.slice(5) - 1);
-    if (e.code === "KeyV") setMode(MODE === "cinema" ? "world" : "cinema"); });
+    if (e.code === "KeyV") setMode(MODE === "cinema" ? "world" : "cinema");
+    if (e.code === "KeyL" && LENS) { LENS.cycle(); lensUI(); } });
   addEventListener("keyup", e => { keys[e.code] = false; });
   const mouse = { x: 0, y: .08, on: false }; canvas.addEventListener("pointermove", e => { mouse.x = e.clientX / innerWidth * 2 - 1; mouse.y = -(e.clientY / innerHeight * 2 - 1); mouse.on = true; });
   canvas.addEventListener("pointerdown", () => { S.wake(); mouse.down = true; }); addEventListener("pointerup", () => { mouse.down = false; });
   $("do").addEventListener("click", () => { const o = offer(); if (o) o.run(); });
   for (const b of document.querySelectorAll("[data-mode]")) b.addEventListener("click", () => setMode(b.dataset.mode));
   $("wide").addEventListener("click", () => { WIDE = !WIDE; $("wide").setAttribute("aria-pressed", WIDE); });
+  function lensUI() { const b = $("lens"); if (!b || !LENS) return; b.textContent = LENS.label(); b.setAttribute("aria-pressed", LENS.on()); if (LENS.on()) say({ tekle: "Afewerk Tekle: one window, cut once. Only the light moves.", lucas85: "1985: every facet takes its own light; the focus follows the fight.", mambety: "Mambéty: told, not shot. It holds, it jumps, the horns come back.", moebius: "Mœbius and Otomo: one line, flat colour, light that stays behind." }[LENS.name], 3); }
+  if ($("lens")) { $("lens").addEventListener("click", () => { LENS.cycle(); lensUI(); }); lensUI(); }
   $("gridb").addEventListener("click", () => { GRIDON = !GRIDON; });
   const ray = new T.Raycaster(); function aimDir() { ray.setFromCamera(new T.Vector2(mouse.on ? mouse.x : 0, mouse.on ? mouse.y : .08), camera); return ray.ray.direction.clone(); }
   const GRAB = document.createElement("canvas"); let GRIDON = true, WIDE = true, STORM = 0, STORMON = false, gridT = 0;
@@ -358,22 +419,9 @@
       const y = heightAt(x, z) + 4.2; return { name, p: new T.Vector3(x + s2 * .25, y, z), n: new T.Vector3(s2, 0, 0), w: 6.4, h: 3.4, need: 10, color: [0xf2d04a, 0x2fd0d8, 0xe85aa8, 0xf2a83a][i], mural: W.leaded(500 + i, { cells: 6, text, size: 96 }) }; });
     INK = window.MesaInk.create({ T, scene, world, R, OWNER, exclude: () => meCol, heightAt, S, puff, say, complete, onHit: inkHit, tags: TAGS }); }
 
-  /* ---------- the triptych behind the ziggurat, and the swarms of glass ---------- */
-  boot("Painting the three windows…"); await new Promise(r => setTimeout(r, 30));
-  const LIT = [0, 0, 0];
-  try { TRI = window.MesaTriptych.create({ T, scene, heightAt, zone: Z.ziggurat_steps });
-    for (const k of TRI.colliders) { const q = new T.Quaternion().setFromEuler(new T.Euler(0, k.ry, 0)), c = world.createCollider(R.ColliderDesc.cuboid(k.hx, k.hy, k.hz).setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }).setTranslation(k.x, k.y, k.z)); OWNER.set(c.handle, { kind: "static", tag: k.tag }); }
-    /* their light falls on the sand, on the ziggurat, and on anyone who stands in it */
-    W.root.traverse(o => { if (o.isMesh && (o.userData.cls === "ground" || o.userData.cls === "zig")) TRI.patch(o.material); });
-    for (const ch of PAINTED) ch.group.traverse(o => { if (!o.isMesh || !o.material) return; for (const m of Array.isArray(o.material) ? o.material : [o.material]) if (m && m.isMeshStandardMaterial && !m.transparent) TRI.patch(m); });
-  } catch (e) { console.warn("triptych", e); TRI = null; }
-  boot("Waking the glass…");
-  try { SW = window.MesaSwarm.create({ T, scene, world, R, OWNER, heightAt, W, TRI, motion, S, puff, say, complete, fall, st, BK, TK,
-      makeRig: id => { const ch = make(spec("yared_krar", { name: id, outer: "none" }), id); if (ch) ch.group.traverse(o => { o.castShadow = false; }); return ch; } }); } catch (e) { console.warn("swarm", e); SW = null; }
-
   /* ---------- the frame ---------- */
   boot("Opening the iris…");
-  const clock = new T.Clock(), IRIS = { open: 0 }, _tw = new T.Vector3(); let offerNow = null, fstep = 0;
+  const clock = new T.Clock(), IRIS = { open: 0 }; let offerNow = null, fstep = 0;
   const camPos = new T.Vector3(st.x, st.y + 3, st.z + 8), camLook = new T.Vector3(st.x, st.y + 1.5, st.z);
   function frame() {
     const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
@@ -430,9 +478,7 @@
     if (st.gun && st.mode === "foot" && (keys.Space || mouse.down)) fire(aimDir()); else st.ink = Math.min(100, st.ink + dt * 5);
     if (INK) { INK.step(dt, t); INK.setSun(SKY.uSun.value, scene.fog.color, scene.fog.density); if (INK.turf() >= 250) complete("turf", "250 square metres of the desert are yours, and all of it has turned to glass."); }
     if (motion) try { motion.update(dt); } catch (e) { }
-    if (TRI) { TRI.step(dt, t, boneW(me, 7, _tw), SKY.uSun.value, 1 - STORM); const li = TRI.lightAt(st.x, st.y + 1, st.z);
-      if (li >= 0 && !LIT[li] && lineT <= 0) { LIT[li] = 1; say(TRI.VERSE[li], 5.5); S.bloom(_tw); if (LIT[0] && LIT[1] && LIT[2]) complete("light"); } }
-    if (SW) SW.step(dt, t, SKY.uSun.value, scene.fog);
+    swarmStep(dt, t);
     if (st.gun && st.mode === "foot") aimArm(me, aimDir());
     for (const o of outlaws) if (o.state === "telegraph" || o.state === "fire") { const d = new T.Vector3(st.x - o.x, 1.2 + (o.state === "fire" ? .1 : -.25), st.z - o.z).normalize(); aimArm(o.ch, d); }
 
@@ -485,8 +531,11 @@
     const mi = W.mirrors.map(m => ({ m, d: Math.hypot(camera.position.x - m.x, camera.position.z - m.z) })).sort((a, b) => a.d - b.d)[0];
     for (const m of W.mirrors) { m.mesh.material.uniforms.uRes.value.set(renderer.domElement.width, renderer.domElement.height); m.mesh.material.uniforms.uOn.value = 0; }
     if (mi && mi.d < mi.m.r && camera.position.y > mi.m.y) { const y = mi.m.y, vc = MIR.vcam; vc.copy(camera); vc.position.y = 2 * y - camera.position.y; const f = new T.Vector3(0, 0, -1).applyQuaternion(camera.quaternion); f.y = -f.y; const u = new T.Vector3(0, 1, 0).applyQuaternion(camera.quaternion); u.y = -u.y; vc.up.copy(u); vc.lookAt(vc.position.clone().add(f)); vc.updateMatrixWorld();
-      MIR.clip.constant = -y; renderer.clippingPlanes = [MIR.clip]; for (const m of W.mirrors) m.mesh.visible = false; renderer.setRenderTarget(MIR.rt); renderer.render(scene, vc); renderer.setRenderTarget(null); renderer.clippingPlanes = []; for (const m of W.mirrors) m.mesh.visible = true;   /* no mirror draws while the mirror texture is being written */ mi.m.mesh.material.uniforms.uTime.value = t; mi.m.mesh.material.uniforms.uOn.value = 1; }
-    renderer.render(scene, camera);
+      MIR.clip.constant = -y; renderer.clippingPlanes = [MIR.clip]; mi.m.mesh.visible = false; renderer.setRenderTarget(MIR.rt); renderer.render(scene, vc); renderer.setRenderTarget(null); renderer.clippingPlanes = []; mi.m.mesh.visible = true; mi.m.mesh.material.uniforms.uTime.value = t; mi.m.mesh.material.uniforms.uOn.value = 1; }
+    if (LENS && LENS.on()) {   /* the lens focuses on what matters: the knight when it is out of the glass and near, else Uncle Mesa */
+      const K = KNIGHT, kOut = K.state === "hunt" || K.state === "strike" || K.state === "forming", kd = Math.hypot(camera.position.x - K.x, camera.position.z - K.z);
+      const md = camera.position.distanceTo(new T.Vector3(st.x, st.y + 1.2, st.z)); LENS.render(scene, camera, dt, { focus: kOut && kd < 40 ? Math.min(kd, md * 1.6) : md });
+    } else renderer.render(scene, camera);
     overlay(dt); requestAnimationFrame(frame);
   }
 
@@ -509,6 +558,6 @@
 
   resize(); $("boot").classList.add("done"); $("title").classList.add("on"); setTimeout(() => { $("title").classList.remove("on"); GRIDON = false; }, 6500);
   say("This land ain't dust anymore. It's data. And it remembers.", 5);
-  window.__mesa = { TRI, SW, BK, TK, anta, paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
+  window.__mesa = { KNIGHT, KN, PR, PROC, HERD, SPORE, HALL, BK, TK, anta, paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
   requestAnimationFrame(frame);
 })().catch(e => { console.error(e); const b = document.getElementById("boot-s"); if (b) b.textContent = "Something went wrong: " + e.message; });
