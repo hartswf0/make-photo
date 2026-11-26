@@ -91,6 +91,12 @@ A co-op pod race on the salt flat beside the Sealed Line. The craft is two SPAM-
 
 - Phone: a lever on each side of the screen, one thumb each, or two people on one phone. Keys: W/S and ↑/↓, E throw, Enter boost. Gamepad: the two sticks are the two engines (or two pads, one stick each).
 - Physics is Rapier: rigid bodies for the engines, pod, rivals, thrown cans, walls, rotating sweepers and bumpers; the hover, the binder and the cables are spring forces in `js/racers.js`.
+- **Glass on the flat** (`js/glass.js`), all made in code:
+  - A stained-glass triptych inside the first bend, painted on canvases: *what the hive kept*, *what the train carried*, *what the can will hold*. It throws its colours on the salt.
+  - A procession of glass figures walks out from under it behind a torch. They are a motion-capture skeleton that is never drawn, with shards pinned to its bones, so the whole crowd is one draw call.
+  - A glass knight, called out of a smaller window across the road, patrols it with a red sword. A thrown can knocks panes off him; three break him and pay a long boost and three cans. He re-forms.
+  - A herd of zebu flocks on the infield and shies from the racers. Anta rides a horned motorcycle with a kanaga cross on the rear and a red tail light that hangs in the air.
+  - Luminous spores live at the oasis, come to you when you pass, and scatter from a thrown can.
 - Five rivals, four cans to pick with different mass, grip and boost, boost pads, crates of ammunition, three laps.
 - Sound is synthesised: one engine in each ear, and a 138 bpm march that adds parts on laps two and three.
 

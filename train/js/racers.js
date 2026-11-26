@@ -1,6 +1,7 @@
 // SPAM WARS · Can Racers. Two engines, one pod, two drivers: each player holds one engine's throttle, so steering is an argument.
 // Physics is Rapier (rigid bodies, walls, sweepers, thrown cans); the binder, the cables and the hover are forces written here.
 import * as THREE from 'three';
+import { initGlass, hornedBike, tail } from './glass.js';
 
 const $ = id => document.getElementById(id), clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
 const mobile = matchMedia('(pointer:coarse)').matches;
@@ -83,8 +84,8 @@ function makePlayer(c) {
 }
 function tag(text, col) { const k = document.createElement('canvas'); k.width = 256; k.height = 64; const q = k.getContext('2d'); q.fillStyle = col; q.fillRect(0, 8, 256, 48); q.fillStyle = '#fff'; q.font = '900 34px Arial Black, Impact'; q.textAlign = 'center'; q.textBaseline = 'middle'; q.fillText(text, 128, 34, 240); const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(k), depthTest: false })); sp.scale.set(3.2, .8, 1); sp.position.y = 2.2; return sp; }
 const PILOTS = ['VOSS', 'MARA', 'NATE', 'ANTA', 'BEKELE'];
-function makeAI(c, n) { const g = grid(n), b = mkBody(g.x, g.z, g.yaw, 1.7, .45, 1.4, 5 * c.mass), eng = [canMesh(c), canMesh(c)], pm = podMesh(c, 1); eng.forEach(m => scene.add(m)); scene.add(pm); pm.add(tag(PILOTS[n - 1] || c.name, c.a));
-  return { c, b, eng, pm, lane: (n % 3 - 1) * 4.5, skill: .74 + (n * .37 % .14), ammo: 2, cool: 4 + n * 2, boostT: 0, stun: 0, idx: g.i, lap: -1, prog: 0, done: 0, name: PILOTS[n - 1] || c.name, mid: new THREE.Vector3(), yaw: g.yaw, speed: 0, podP: new THREE.Vector3(g.x, HOVER, g.z) }; }
+function makeAI(c, n) { const g = grid(n), b = mkBody(g.x, g.z, g.yaw, 1.7, .45, 1.4, 5 * c.mass), eng = [canMesh(c), canMesh(c)], pm = podMesh(c, 1); const bike = PILOTS[n - 1] === 'ANTA' ? hornedBike() : null; if (bike) { pm.clear(); pm.add(bike); eng.forEach(m => { m.visible = false; }); } eng.forEach(m => scene.add(m)); scene.add(pm); pm.add(tag(PILOTS[n - 1] || c.name, c.a));
+  return { c, b, eng, pm, lane: (n % 3 - 1) * 4.5, skill: .74 + (n * .37 % .14), ammo: 2, cool: 4 + n * 2, boostT: 0, stun: 0, idx: g.i, lap: -1, prog: 0, done: 0, bike: !!bike, trail: bike ? tail(scene) : null, name: PILOTS[n - 1] || c.name, mid: new THREE.Vector3(), yaw: g.yaw, speed: 0, podP: new THREE.Vector3(g.x, HOVER, g.z) }; }
 
 // thrown cans
 const shots = []; for (let k = 0; k < 10; k++) { const m = new THREE.Mesh(new THREE.BoxGeometry(.7, .5, .45), new THREE.MeshStandardMaterial({ map: labelTex(CANS[k % 4]), roughness: .4 })); m.visible = false; m.castShadow = true; scene.add(m);
@@ -172,7 +173,8 @@ function stepAI(r, dt) {
   b.addForce({ x: f.x * T, y: 0, z: f.z * T }, true);
   r.cool -= dt; if (r.cool <= 0 && r.ammo > 0 && state.phase === 'race') { const t = racers.find(o => o !== r && o.prog > r.prog && o.prog - r.prog < 26 && Math.abs(Math.atan2(o.mid.x - p.x, o.mid.z - p.z) - yaw) < .2); if (t) { fire(r); r.cool = 5 + Math.random() * 4; } }
 }
-let shake = 0;
+let shake = 0, glass = null;
+initGlass({ scene, P, NOR, racers, shots, getMe: () => me, smack, flash, audio, mobile }).then(g => { glass = g; }).catch(e => console.warn('glass', e));
 const mm = $('map'), mq = mm.getContext('2d'), MB = (() => { let a = 1e9, b = -1e9, c = 1e9, d = -1e9; for (const p of P) { a = Math.min(a, p.x); b = Math.max(b, p.x); c = Math.min(c, p.z); d = Math.max(d, p.z); } const sc = 100 / Math.max(b - a, d - c); return p => [120 - (10 + (p.x - a) * sc), 10 + (p.z - c) * sc]; })();
 function drawMap() { mq.clearRect(0, 0, 120, 120); mq.strokeStyle = '#ffffffcc'; mq.lineWidth = 4; mq.beginPath(); for (let i = 0; i <= NS; i += 6) { const [x, y] = MB(P[i % NS]); i ? mq.lineTo(x, y) : mq.moveTo(x, y); } mq.closePath(); mq.stroke();
   for (const r of racers) { const [x, y] = MB(r.mid); mq.fillStyle = r.player ? '#ffd92e' : r.c.a; mq.strokeStyle = '#fff'; mq.lineWidth = 1.5; mq.beginPath(); mq.arc(x, y, r.player ? 6 : 4, 0, 7); mq.fill(); mq.stroke(); } }
@@ -192,12 +194,13 @@ function frame(now) { requestAnimationFrame(frame); const dt = Math.min(.05, (no
   for (const s of sweepers) s.g.rotation.y = s.a;
   for (const r of racers) { progress(r);
     if (r.player) { r.e.forEach((e, k) => { const p = e.translation(), q = e.rotation(); r.eng[k].position.set(p.x, p.y, p.z); r.eng[k].quaternion.set(q.x, q.y, q.z, q.w); const th = Math.max(0, r.thr[k]) + (r.boostT > 0 ? 1 : 0); r.eng[k].flame.scale.set(1, 1, .2 + th * 1.4); r.eng[k].flame.material.color.setHex(r.boostT > 0 ? 0xff9a2e : 0x66e0ff); audio.engine(k, r.thr[k], r.speed, r.boostT > 0 ? 1 : 0); });
-      const pp = r.pod.translation(), pq = r.pod.rotation(); r.pm.position.set(pp.x, pp.y, pp.z); r.pm.quaternion.set(pq.x, pq.y, pq.z, pq.w); const L = r.lines.geometry.attributes.position.array, a = r.eng[0].position, b = r.eng[1].position; L.set([a.x, a.y, a.z, b.x, b.y, b.z, a.x, a.y, a.z, pp.x, pp.y + .3, pp.z, b.x, b.y, b.z, pp.x, pp.y + .3, pp.z]); r.lines.geometry.attributes.position.needsUpdate = true; r.lines.material.color.setHex(Math.random() > .5 ? 0xff7ae0 : 0xffffff); }
-    else { const f = fwdOf(r.yaw, tmpF), rx = f.z, rz = -f.x; r.eng.forEach((m, k) => { const s = k ? 1 : -1; m.position.set(r.mid.x + rx * s * 1.3, r.mid.y, r.mid.z + rz * s * 1.3); m.rotation.y = r.yaw; m.flame.scale.z = .4 + r.speed * .03; }); tmpV.set(r.mid.x - f.x * 4.6, HOVER, r.mid.z - f.z * 4.6); r.podP.lerp(tmpV, Math.min(1, dt * 5)); r.pm.position.copy(r.podP); r.pm.rotation.y = r.yaw; }
+      const pp = r.pod.translation(), pq = r.pod.rotation(); r.pm.position.set(pp.x, pp.y, pp.z); r.pm.quaternion.set(pq.x, pq.y, pq.z, pq.w); const L = r.lines.geometry.attributes.position.array, a = r.eng[0].position, b = r.eng[1].position; L.set([a.x, a.y, a.z, b.x, b.y, b.z, a.x, a.y, a.z, pp.x, pp.y + .3, pp.z, b.x, b.y, b.z, pp.x, pp.y + .3, pp.z]); r.lines.geometry.attributes.position.needsUpdate = true; r.lines.material.color.setHex(Math.random() > .5 ? 0xff7ae0 : 0xffffff); r.trails = r.trails || [tail(scene), tail(scene)]; r.eng.forEach((m, k) => { const f = fwdOf(r.yaw, tmpF); r.trails[k](m.position.x - f.x * 1.4, m.position.y, m.position.z - f.z * 1.4, dt, r.speed > 26 || r.boostT > 0); }); }
+    else { const f = fwdOf(r.yaw, tmpF), rx = f.z, rz = -f.x; r.eng.forEach((m, k) => { const s = k ? 1 : -1; m.position.set(r.mid.x + rx * s * 1.3, r.mid.y, r.mid.z + rz * s * 1.3); m.rotation.y = r.yaw; m.flame.scale.z = .4 + r.speed * .03; }); if (r.bike) { r.pm.position.set(r.mid.x, HOVER, r.mid.z); r.pm.rotation.set(0, r.yaw, clamp(-r.b.angvel().y * .35, -.5, .5), 'YXZ'); r.trail(r.mid.x - f.x * 1.4, 1.5, r.mid.z - f.z * 1.4, dt, r.speed > 12); } else { tmpV.set(r.mid.x - f.x * 4.6, HOVER, r.mid.z - f.z * 4.6); r.podP.lerp(tmpV, Math.min(1, dt * 5)); r.pm.position.copy(r.podP); r.pm.rotation.y = r.yaw; } }
     if (state.phase === 'race') { for (const pd of pads) if (r.boostT <= 0 && (P[pd.i].x - r.mid.x) ** 2 + (P[pd.i].z - r.mid.z) ** 2 < 30) { r.boostT = 1.5; if (r.player) { audio.fx('boost'); flash('BOOST'); } }
       for (const cr of crates) if (cr.back <= 0 && cr.m.position.distanceToSquared(r.mid) < 9) { cr.back = 6; cr.m.visible = false; r.ammo = Math.min(9, r.ammo + 3); if (r.player) { audio.fx('pick'); flash('+3 SPAM'); } } } }
   for (const r of racers) if (r.speed > 6 && Math.random() < dt * (r.player ? 40 + (r.slip || 0) * 12 : 10)) { const f = fwdOf(r.yaw, tmpF); puff(r.mid.x - f.x * 2 + (Math.random() - .5) * 3, r.mid.z - f.z * 2 + (Math.random() - .5) * 3, -f.x * 3, -f.z * 3); }
   for (let k = 0; k < DN; k++) if (dustV[k * 4 + 3] > 0) { dustV[k * 4 + 3] -= dt * .9; dustP[k * 3] += dustV[k * 4] * dt; dustP[k * 3 + 1] += dustV[k * 4 + 1] * dt; dustP[k * 3 + 2] += dustV[k * 4 + 2] * dt; if (dustV[k * 4 + 3] <= 0) dustP[k * 3 + 1] = -99; } dustG.attributes.position.needsUpdate = true;
+  if (glass) glass.update(dt);
   for (const cr of crates) { cr.m.rotation.y += dt * 2; if (cr.back > 0 && (cr.back -= dt) <= 0) cr.m.visible = true; }
   for (const s of shots) if (s.life > 0) { s.life -= dt; const p = s.b.translation(), q = s.b.rotation(); s.m.position.set(p.x, p.y, p.z); s.m.quaternion.set(q.x, q.y, q.z, q.w);
     for (const r of racers) if (r !== s.owner && s.life > 0 && (r.mid.x - p.x) ** 2 + (r.mid.z - p.z) ** 2 < 6.5 && p.y < 3) { smack(r, s.owner.mid); s.life = 0; }
@@ -213,4 +216,4 @@ function frame(now) { requestAnimationFrame(frame); const dt = Math.min(.05, (no
   if (flashT > 0 && (flashT -= dt) <= 0) flashEl.classList.remove('on');
   renderer.render(scene, camera); }
 requestAnimationFrame(frame);
-window.canRacers = { P, NS, state, racers, get me() { return me; }, begin, pick, setMode, inp, fire: () => me && fire(me), observe: () => me && ({ phase: state.phase, t: +state.t.toFixed(1), lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), ammo: me.ammo, y: +me.mid.y.toFixed(2), pos: racers.slice().sort((a, b) => b.prog - a.prog).indexOf(me) + 1, ai: racers.filter(r => !r.player).map(r => r.lap * NS + r.idx) }) };
+window.canRacers = { get glass() { return glass; }, camera, renderer, scene, P, NS, state, racers, get me() { return me; }, begin, pick, setMode, inp, fire: () => me && fire(me), observe: () => me && ({ phase: state.phase, t: +state.t.toFixed(1), lap: me.lap, idx: me.idx, speed: +me.speed.toFixed(1), ammo: me.ammo, y: +me.mid.y.toFixed(2), pos: racers.slice().sort((a, b) => b.prog - a.prog).indexOf(me) + 1, ai: racers.filter(r => !r.player).map(r => r.lap * NS + r.idx) }) };
