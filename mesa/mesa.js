@@ -204,7 +204,7 @@
   const KNIGHT = { state: "window", x: 0, z: W.PIT.z, h: 0, hp: 16, t: 0, cool: 0, swing: 0 };
   const blade = new T.Mesh(new T.BoxGeometry(.06, 1.15, .02), new T.MeshStandardMaterial({ color: 0xd8342c, emissive: 0x9a1020, emissiveIntensity: .9, roughness: .1, metalness: .3, transparent: true, opacity: .9 })); blade.geometry.translate(0, .55, 0); blade.visible = false; scene.add(blade);
   const plume = new T.Mesh(new T.ConeGeometry(.09, .5, 8), new T.MeshStandardMaterial({ color: 0xd8342c, emissive: 0x7a1010, emissiveIntensity: .6 })); plume.rotation.x = -.6; plume.visible = false; scene.add(plume);
-  const kBody = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(0, -60, 0)), kCol = world.createCollider(R.ColliderDesc.capsule(.6, .38), kBody); OWNER.set(kCol.handle, { kind: "knight" });
+  const kBody = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(0, -60, 0)), kCol = world.createCollider(R.ColliderDesc.capsule(.7, .72).setSensor(false), kBody); OWNER.set(kCol.handle, { kind: "knight" });   /* as wide as its glass body, so paint that visibly lands on it counts */
   if (KN) KN.place(0, 0, -100, 0, 0);
   /* the procession: seven marchers of glass, white shamma, brown hands and faces, green and red sashes; the first carries the torch */
   const NP = 7, PR = pD ? window.MesaSwarm.shards(T, scene, { driver: pD, figures: NP, per: 300, size: 1.2, heightAt, palette: [0xf4f1e8, 0xe6ecee, 0xdfe6ea, 0x6a3820, 0x5a3018, 0x2a9a5a, 0xd8342c, 0xf2c84a] }) : null;
@@ -222,7 +222,7 @@
   function swarmStep(dt, t) {
     /* the knight: waits in the cathedral's glass; steps out when Uncle Mesa comes down onto the mirror floor */
     if (KN && kD) { const K = KNIGHT, inCath = st.y < W.cathedralY + 1.5 && Math.abs(st.x) < W.PIT.hx + 2 && Math.abs(st.z - W.PIT.z) < W.PIT.hz + 2;
-      if (K.state === "window" && inCath) { const side = st.x > 0 ? -1 : 1; K.x = side * 5.5; K.z = clamp(st.z - 8, W.PIT.z - W.PIT.hz + 3, W.PIT.z + W.PIT.hz - 3); K.h = Math.atan2(st.x - K.x, st.z - K.z); K.hp = 16; KN.place(0, K.x, W.cathedralY, K.z, K.h); KN.form(0, new T.Vector3(side * 12, W.cathedralY + 9, K.z), 2.6); K.state = "forming"; K.t = 0; S.glass(new T.Vector3(side * 12, W.cathedralY + 9, K.z), 1.4); say("A knight steps out of the glass, and draws.", 3); }
+      if (K.state === "window" && inCath) { const side = st.x > 0 ? -1 : 1; K.x = side * 5.5; K.z = clamp(st.z - 8, W.PIT.z - W.PIT.hz + 3, W.PIT.z + W.PIT.hz - 3); K.h = Math.atan2(st.x - K.x, st.z - K.z); K.hp = window.__trials ? window.__trials.hp : 16; KN.place(0, K.x, W.cathedralY, K.z, K.h); KN.form(0, new T.Vector3(side * 12, W.cathedralY + 9, K.z), 2.6); K.state = "forming"; K.t = 0; S.glass(new T.Vector3(side * 12, W.cathedralY + 9, K.z), 1.4); say("A knight steps out of the glass, and draws.", 3); }
       else if (K.state === "forming") { K.t += dt; if (KN.formed(0)) K.state = "hunt"; }
       else if (K.state === "hunt" || K.state === "strike") { const dx = st.x - K.x, dz = st.z - K.z, d = Math.hypot(dx, dz); K.h = Math.atan2(dx, dz); K.cool = Math.max(0, K.cool - dt);
         if (K.state === "hunt") { const sp = d > 9 ? 3.6 : d > 1.8 ? 2.2 : 0; K.x += Math.sin(K.h) * sp * dt; K.z += Math.cos(K.h) * sp * dt; if (motion) try { motion.setClip("knightD", sp > 3 ? "jog" : sp > 0 ? "walk" : "idle", { fade: .25 }); } catch (e) { } if (d < 2 && K.cool <= 0 && st.mode !== "down") { K.state = "strike"; K.swing = 0; } }
@@ -274,7 +274,7 @@
     INK.fire(o, d, col, 30 + Math.random() * 4); puff(o.clone().addScaledVector(d, .12), col, d.clone().multiplyScalar(1.5), .3, .05, 1.4, false); S.launch(o); }
   function inkHit(who, q, n, d, col, owner) {
     SPORE.scatter(q, 1);
-    if (who && who.kind === "knight" && owner !== "outlaw") { KN.hit(0, q, .42, col); KNIGHT.hp--; if (LENS) LENS.event("hit", col); S.glass(q, .5); if (KNIGHT.hp <= 0 && KNIGHT.state !== "shattered") { KN.shatter(0, d); if (LENS) LENS.event("shatter"); KNIGHT.state = "shattered"; KNIGHT.t = 0; S.glass(q, 2); complete("knight", "The knight goes to pieces on the mirror floor, every shard still holding its colour."); } return true; }   /* what a paintball does besides land: prisms crack, outlaws go down in their own colour, shards skitter */
+    if (who && who.kind === "knight" && owner !== "outlaw") { const dmg = window.__trials ? window.__trials.hit(q, col) : 1; KN.hit(0, q, .42, col); KNIGHT.hp -= dmg; if (LENS) LENS.event("hit", col); S.glass(q, .5); if (KNIGHT.hp <= 0 && KNIGHT.state !== "shattered") { KN.shatter(0, d); if (LENS) LENS.event("shatter"); if (window.__trials) window.__trials.win(); KNIGHT.state = "shattered"; KNIGHT.t = 0; S.glass(q, 2); complete("knight", "The knight goes to pieces on the mirror floor, every shard still holding its colour."); } return true; }   /* what a paintball does besides land: prisms crack, outlaws go down in their own colour, shards skitter */
     if (who && who.kind === "prism") { const p = who.p; p.hp--; S.glass(q, .3); if (p.hp <= 0) shatter(p, d); return false; }
     if (who && who.kind === "me") { if (owner !== "outlaw") return true; paintBody(me, q, col, 3); if (st.mode !== "down") { $("hurt").classList.add("on"); setTimeout(() => $("hurt").classList.remove("on"), 260); fall("The paint takes him off his feet."); } return true; }
     if (who && who.kind === "outlaw") { const ol = who.o; paintBody(ol.ch, q, col, 3); if (ol.state === "idle" || ol.state === "telegraph" || ol.state === "fire") { ol.state = "fall"; ol.t = 0; S.thud(q); say(`${ol.name} goes down, painted to the hat.`, 2); }
@@ -331,7 +331,7 @@
     if (near(p, W.booth.userData.seat, 2.2)) return { label: "Take a seat at the booth", run: () => { st.mode = "sit"; const s = W.booth.userData.seat; st.x = s.x; st.z = s.z; st.y = s.y - .7; st.heading = Math.PI; say("Uncle Chip's booth. Under the glass sign, a man can sit and still draw.", 3); } };
     return null; }
   let MODE = "world"; function setMode(m) { MODE = m; document.body.classList.toggle("cinema", m === "cinema"); for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", b.dataset.mode === m); DUEL.on = m === "game"; if (m === "game") { DUEL.wave = 0; DUEL.left = 0; DUEL.next = 2.5; say("Game. The outlaws are coming to the arena.", 2.5); } DIR.i = 0; DIR.t = 0; }
-  function fall(line) { if (LENS) LENS.event("fall"); if (st.mode === "ride") { st.mode = "foot"; } st.mode = "down"; st.downT = 0; if (line) say(line, 2); S.thud(new T.Vector3(st.x, st.y, st.z)); }
+  function fall(line) { if (LENS) LENS.event("fall"); if (window.__trials) window.__trials.fall(); if (st.mode === "ride") { st.mode = "foot"; } st.mode = "down"; st.downT = 0; if (line) say(line, 2); S.thud(new T.Vector3(st.x, st.y, st.z)); }
 
   /* ---------- the director (Cinema): the breakdown's six cameras ---------- */
   const DIR = { i: 0, t: 0 }, SHOTS = [
@@ -558,6 +558,6 @@
 
   resize(); $("boot").classList.add("done"); $("title").classList.add("on"); setTimeout(() => { $("title").classList.remove("on"); GRIDON = false; }, 6500);
   say("This land ain't dust anymore. It's data. And it remembers.", 5);
-  window.__mesa = { KNIGHT, KN, PR, PROC, HERD, SPORE, HALL, BK, TK, anta, paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
+  window.__mesa = { T, scene, camera, W, LENS, say, lensUI, KNIGHT, KN, PR, PROC, HERD, SPORE, HALL, BK, TK, anta, paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
   requestAnimationFrame(frame);
 })().catch(e => { console.error(e); const b = document.getElementById("boot-s"); if (b) b.textContent = "Something went wrong: " + e.message; });
