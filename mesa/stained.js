@@ -13,10 +13,10 @@
     const cv = document.createElement("canvas"); cv.id = "stained"; Object.assign(cv.style, { position: "fixed", inset: "0", width: "100%", height: "100%", pointerEvents: "none", zIndex: 1, display: "none" });
     const gl = renderer.domElement; gl.after(cv);
     const ctx = cv.getContext("2d"); const sm = document.createElement("canvas"), sctx = sm.getContext("2d");   /* accelerated: the frame is scaled down on the GPU, and only the tiny result is read */
-    let W = 0, H = 0, SW = 0, SH = 0, fixed = null, tint = null, px = null, fr = 0;
+    let W = 0, H = 0, SW = 0, SH = 0, fixed = null, tint = null, px = null, fr = 0, VOR = null;
     let CELL = 30;   /* css px between sites of the fixed cutting: about 42 across, whatever the screen, so the cost is constant */
     function layout() {
-      W = Math.round(innerWidth); H = Math.round(innerHeight); CELL = Math.max(18, W / 42); cv.width = W; cv.height = H; SW = Math.max(16, Math.round(W / 8)); SH = Math.max(9, Math.round(H / 8)); sm.width = SW; sm.height = SH; px = null;
+      W = Math.round(innerWidth); H = Math.round(innerHeight); CELL = Math.max(18, W / 42); cv.width = W; cv.height = H; SW = Math.max(16, Math.round(W / 8)); SH = Math.max(9, Math.round(H / 8)); sm.width = SW; sm.height = SH; px = null; VOR = null;
       let s = 1961; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647; fixed = [];
       for (let y = CELL * .5; y < H + CELL; y += CELL * .87) for (let x = (Math.round(y / CELL) % 2) * CELL * .5; x < W + CELL; x += CELL) fixed.push([x + (rnd() - .5) * CELL * .8, y + (rnd() - .5) * CELL * .8]);
       tint = fixed.map(() => [(rnd() - .5) * 18, (rnd() - .5) * .14]);   /* each pot of glass: its own hue shift and depth */
@@ -30,26 +30,23 @@
       if (cv.style.display === "none") { cv.style.display = "block"; layout(); }
       if (W !== Math.round(innerWidth) || H !== Math.round(innerHeight)) layout();
       if (!px || (++fr & 1) === 0) { sctx.drawImage(gl, 0, 0, SW, SH); px = sctx.getImageData(0, 0, SW, SH).data; }   /* the light is read every other frame */
-      const pts = fixed.slice(), heavy = new Set(), n0 = pts.length;
-      /* the figures carry their own cells: a site on each node and a ring of small cells around it */
-      for (const nd of nodes || []) {
-        const c = project(nd.p); if (!c || c[0] < -40 || c[0] > W + 40 || c[1] < -40 || c[1] > H + 40) continue;
-        const e = project(new T.Vector3(nd.p.x, nd.p.y + nd.r, nd.p.z)); const rr = e ? Math.max(5, Math.min(90, Math.hypot(e[0] - c[0], e[1] - c[1]))) : 10;
-        /* a small cluster of cells fills the body, so its silhouette reads in glass */
-        for (let j = -1; j <= 1; j++) for (let k = -1; k <= 1; k++) { if (nd.heavy) heavy.add(pts.length); pts.push([c[0] + k * rr * .8 + (j & 1) * rr * .4, c[1] + j * rr * .8]); }
-      }
-      const vor = d3.Delaunay.from(pts).voronoi([0, 0, W, H]);
-      ctx.globalAlpha = 1; ctx.fillStyle = "#120c0a"; ctx.fillRect(0, 0, W, H);   /* the lead behind everything */
+      /* the window: the world shows through the glass. Each piece tints what is behind it, the lead cuts it, and the figures
+         stand clear in front of the window, so you can always see who is where. */
+      const pts = fixed, vor = VOR || (VOR = d3.Delaunay.from(pts).voronoi([0, 0, W, H]));
+      ctx.clearRect(0, 0, W, H); ctx.globalAlpha = .34;
       for (let i = 0; i < pts.length; i++) {
         const [x, y] = pts[i]; const sx = Math.min(SW - 1, Math.max(0, Math.round(x / W * SW))), sy = Math.min(SH - 1, Math.max(0, Math.round(y / H * SH))), o = (sy * SW + sx) * 4;
-        let [h, s, l] = rgb2hsl(px[o], px[o + 1], px[o + 2]); const tt = i < n0 ? tint[i] : [0, 0];
-        h = (h + tt[0] + 360) % 360; s = Math.min(1, s * 1.35 + .12); l = Math.min(.82, Math.max(.1, l * 1.08 + .04 + tt[1]));   /* backlit glass: more saturated than the world behind it */
+        let [h, s, l] = rgb2hsl(px[o], px[o + 1], px[o + 2]); const tt = tint[i];
+        h = (h + tt[0] * 2 + 360) % 360; s = Math.min(1, s * 1.6 + .3); l = Math.min(.7, Math.max(.25, l + tt[1]));   /* a pot of coloured glass over the light */
         ctx.beginPath(); vor.renderCell(i, ctx); ctx.fillStyle = `hsl(${h.toFixed(0)},${(s * 100).toFixed(0)}%,${(l * 100).toFixed(0)}%)`; ctx.fill();
       }
-      ctx.lineJoin = "round"; ctx.strokeStyle = "#120c0a";
-      ctx.lineWidth = 2.2; ctx.beginPath(); vor.render(ctx); ctx.stroke();                 /* the lead */
-      ctx.lineWidth = 2.8; ctx.beginPath(); for (const i of heavy) vor.renderCell(i, ctx); ctx.stroke();   /* heavier lead draws the figures */
-      ctx.globalAlpha = .1; ctx.strokeStyle = "#fff6dc"; ctx.lineWidth = 1; ctx.beginPath(); vor.render(ctx); ctx.stroke(); ctx.globalAlpha = 1;   /* a glint along the cames */
+      ctx.lineJoin = "round"; ctx.strokeStyle = "#120c0a"; ctx.globalAlpha = .62; ctx.lineWidth = Math.max(1.2, CELL / 16); ctx.beginPath(); vor.render(ctx); ctx.stroke();   /* the lead */
+      ctx.globalAlpha = .14; ctx.strokeStyle = "#fff6dc"; ctx.lineWidth = 1; ctx.beginPath(); vor.render(ctx); ctx.stroke(); ctx.globalAlpha = 1;   /* a glint along the cames */
+      /* the figures in front of the window: the glass is cut away around them, and a heavy came rings each one */
+      const circ = [];
+      for (const nd of nodes || []) { const c = project(nd.p); if (!c) continue; const e = project(new T.Vector3(nd.p.x, nd.p.y + nd.r * 2.2, nd.p.z)); if (!e) continue; circ.push([c[0], c[1], Math.max(8, Math.min(160, Math.hypot(e[0] - c[0], e[1] - c[1])))]); }
+      ctx.strokeStyle = "#120c0a"; ctx.lineWidth = Math.max(2.5, CELL / 7); ctx.globalAlpha = .85; ctx.beginPath(); for (const [x, y, r] of circ) { ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2); } ctx.stroke();
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = "destination-out"; ctx.beginPath(); for (const [x, y, r] of circ) { ctx.moveTo(x + r - 1, y); ctx.arc(x, y, Math.max(1, r - ctx.lineWidth * .45), 0, Math.PI * 2); } ctx.fill(); ctx.globalCompositeOperation = "source-over";
     }
     function hide() { cv.style.display = "none"; }
     return { draw, hide };
