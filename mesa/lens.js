@@ -60,11 +60,11 @@ vec3 tekle(vec2 uv) {
 vec3 lucas(vec2 uv) {
   float z = lin(uv); float coc = clamp(abs(z - uFocus) / max(z, 0.5) * 1.6, 0.0, 1.0) * 5.0 * uDpr;
   vec3 acc = vec3(0.0); float wt = 0.0; vec3 hi = vec3(0.0);
-  for (int k = 0; k < 16; k++) {
-    float a = float(k) * 2.39996, r = sqrt((float(k) + 0.5) / 16.0);
-    vec2 o = vec2(cos(a), sin(a)) * r * coc / uRes; vec3 c = disp(uv + o); acc += c; wt += 1.0;
-    vec2 o2 = vec2(cos(a), sin(a)) * r * 9.0 * uDpr / uRes; vec3 c2 = disp(uv + o2); hi += max(c2 - 0.78, 0.0); }
-  vec3 c = acc / wt + hi / 16.0 * 1.6;                                          /* each facet's highlight blooms on its own */
+  for (int k = 0; k < 8; k++) {
+    float a = float(k) * 2.39996, r = sqrt((float(k) + 0.5) / 8.0);
+    vec2 dir = vec2(cos(a), sin(a)) * r; vec3 c = disp(uv + dir * coc / uRes); acc += c; wt += 1.0;
+    hi += max(disp(uv + dir * 9.0 * uDpr / uRes) - 0.78, 0.0); }
+  vec3 c = acc / wt + hi / 8.0 * 1.6;                                          /* each facet's highlight blooms on its own */
   c = c * vec3(1.04, 1.0, 0.93) + vec3(0.012, 0.006, 0.0);
   vec3 prev = texture2D(tPrev, uv).rgb; c = mix(c, prev, 0.42 * (1.0 - uFresh)); /* four sub-frames: the shutter stays open */
   return c;
@@ -90,13 +90,14 @@ vec3 moebius(vec2 uv) {
   vec2 px = uDpr * 1.15 / uRes; float z = lin(uv);
   float zl = lin(uv - vec2(px.x, 0.0)), zr = lin(uv + vec2(px.x, 0.0)), zu = lin(uv + vec2(0.0, px.y)), zd = lin(uv - vec2(0.0, px.y));
   float de = (abs(zl + zr - 2.0 * z) + abs(zu + zd - 2.0 * z)) / max(z, 0.5);
-  float lc = luma(disp(uv)), ll = luma(disp(uv - vec2(px.x, 0.0))), lr = luma(disp(uv + vec2(px.x, 0.0))), lu = luma(disp(uv + vec2(0.0, px.y))), ld = luma(disp(uv - vec2(0.0, px.y)));
+  vec3 cur = disp(uv);
+  float ll = luma(disp(uv - vec2(px.x, 0.0))), lr = luma(disp(uv + vec2(px.x, 0.0))), lu = luma(disp(uv + vec2(0.0, px.y))), ld = luma(disp(uv - vec2(0.0, px.y)));
   float le = length(vec2(lr - ll, lu - ld));
   float line = max(smoothstep(0.035, 0.07, de), smoothstep(0.16, 0.26, le));
-  vec3 hsv = rgb2hsv(disp(uv)); hsv.z = mix(hsv.z, floor(hsv.z * 3.0 + 0.6) / 3.0, 0.8); hsv.y = min(1.0, hsv.y * 1.12);
+  vec3 hsv = rgb2hsv(cur); hsv.z = mix(hsv.z, floor(hsv.z * 3.0 + 0.6) / 3.0, 0.8); hsv.y = min(1.0, hsv.y * 1.12);
   vec3 fl = hsv2rgb(hsv); fl = mix(fl, vec3(0.98, 0.95, 0.9), 0.08);
   vec3 c = mix(fl, vec3(0.085, 0.07, 0.08), line);
-  vec3 cur = disp(uv); vec3 ch = rgb2hsv(cur);
+  vec3 ch = rgb2hsv(cur);
   vec3 prev = texture2D(tPrev, uv).rgb; vec3 ph = rgb2hsv(prev);
   float glow = step(0.55, ch.y) * step(0.72, ch.z);                             /* bright, saturated: paint in flight, the red sword, lit glass */
   c = mix(c, cur * 1.08, glow);
@@ -116,13 +117,13 @@ void main() {
 
   function create({ T, renderer }) {
     let name = "plain"; try { const q = new URLSearchParams(location.search).get("lens"); if (NAMES.includes(q)) name = q; } catch (e) { }
-    const size = new T.Vector2(); let rt = null, outA = null, outB = null;
+    const SCALE = .7; const size = new T.Vector2(); let rt = null, outA = null, outB = null;
     function make() {
-      renderer.getDrawingBufferSize(size); const w = Math.max(2, size.x), h = Math.max(2, size.y);
+      renderer.getDrawingBufferSize(size); const w = Math.max(2, Math.round(size.x * SCALE)), h = Math.max(2, Math.round(size.y * SCALE));
       for (const r of [rt, outA, outB]) if (r) r.dispose();
       rt = new T.WebGLRenderTarget(w, h, { type: T.HalfFloatType });   /* not multisampled, so its depth can be read in every browser */ rt.depthTexture = new T.DepthTexture(w, h); rt.depthTexture.type = T.UnsignedIntType;
       outA = new T.WebGLRenderTarget(w, h); outB = new T.WebGLRenderTarget(w, h);
-      U.uRes.value.set(w, h); U.uDpr.value = renderer.getPixelRatio(); U.uCell.value = 11 * renderer.getPixelRatio();
+      U.uRes.value.set(w, h); U.uDpr.value = renderer.getPixelRatio() * SCALE; U.uCell.value = 11 * renderer.getPixelRatio() * SCALE;
     }
     const U = { tCol: { value: null }, tDepth: { value: null }, tPrev: { value: null }, tIns: { value: null }, uRes: { value: new T.Vector2(2, 2) }, uTime: { value: 0 }, uNear: { value: .1 }, uFar: { value: 5000 },
       uFocus: { value: 8 }, uCell: { value: 13 }, uIns: { value: 0 }, uDpr: { value: 1 }, uFresh: { value: 1 }, uLens: { value: 1 } };

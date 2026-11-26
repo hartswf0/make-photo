@@ -19,7 +19,9 @@
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6)); renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap; renderer.localClippingEnabled = true;
   const scene = new T.Scene(), camera = new T.PerspectiveCamera(52, 1, .1, 5000);
+  const GOV = { avg: 1 / 60, t: 0, base: Math.min(devicePixelRatio, 1.6) };
   const LENS = window.MesaLens ? window.MesaLens.create({ T, renderer }) : null;   /* the SCION lenses (lens.js): L cycles them */
+  const GLASS = window.MesaStained ? window.MesaStained.create({ T, renderer, camera }) : null;   /* Tekle's lens, drawn the island-ecology way (stained.js) */
   scene.fog = new T.FogExp2(0xf0c890, .0024);
   /* the painted skybox: horizontal bands of yellow and blue over the salt, as in the film's brushstroke strata (01:10) */
   const SKY = { uSun: { value: new T.Vector3(.3, .2, -.9).normalize() }, uA: { value: new T.Color("#f2c84a") }, uB: { value: new T.Color("#3a6ab8") }, uC: { value: new T.Color("#f4e8d2") }, uStorm: { value: 0 }, uTime: { value: 0 } };
@@ -485,6 +487,10 @@
   const camPos = new T.Vector3(st.x, st.y + 3, st.z + 8), camLook = new T.Vector3(st.x, st.y + 1.5, st.z);
   function frame() {
     let dt = Math.min(clock.getDelta(), .05); const t = clock.elapsedTime; if (GAME.slow > 0) { GAME.slow -= dt; dt *= .35; }
+    /* playable first: if the frame rate falls, render fewer pixels; when it recovers, give them back */
+    GOV.avg += (dt - GOV.avg) * .05; GOV.t += dt;
+    if (GOV.t > 1.5) { GOV.t = 0; const fps = 1 / Math.max(1e-3, GOV.avg), pr = renderer.getPixelRatio();
+      if (fps < 40 && pr > .55) { renderer.setPixelRatio(Math.max(.55, pr - .2)); resize(); } else if (fps > 57 && pr < GOV.base - .01) { renderer.setPixelRatio(Math.min(GOV.base, pr + .1)); resize(); } }
     const padM = Math.hypot(PAD.mx, PAD.my), fwd = clamp((keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + (Math.abs(PAD.my) > .25 ? PAD.my : 0), -1, 1), turn = clamp((keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0) - (Math.abs(PAD.mx) > .25 ? PAD.mx : 0), -1, 1), run = keys.ShiftLeft || keys.ShiftRight || padM > .9;
     const trig = (keys.Space || mouse.down || PAD.fire) && st.mode === "foot";
     if (trig && !st.gun) { st.gun = true; holdGun(true); S.cock(); st.cool = .16; }   /* pulling the trigger draws */
@@ -605,10 +611,16 @@
     for (const m of W.mirrors) { m.mesh.material.uniforms.uRes.value.set(renderer.domElement.width, renderer.domElement.height); m.mesh.material.uniforms.uOn.value = 0; }
     if (mi && mi.d < mi.m.r && camera.position.y > mi.m.y) { const y = mi.m.y, vc = MIR.vcam; vc.copy(camera); vc.position.y = 2 * y - camera.position.y; const f = new T.Vector3(0, 0, -1).applyQuaternion(camera.quaternion); f.y = -f.y; const u = new T.Vector3(0, 1, 0).applyQuaternion(camera.quaternion); u.y = -u.y; vc.up.copy(u); vc.lookAt(vc.position.clone().add(f)); vc.updateMatrixWorld();
       MIR.clip.constant = -y; renderer.clippingPlanes = [MIR.clip]; for (const m of W.mirrors) m.mesh.visible = false; renderer.setRenderTarget(MIR.rt); renderer.render(scene, vc); renderer.setRenderTarget(null); renderer.clippingPlanes = []; for (const m of W.mirrors) m.mesh.visible = true; mi.m.mesh.material.uniforms.uTime.value = t; mi.m.mesh.material.uniforms.uOn.value = 1; }
-    if (LENS && LENS.on()) {   /* the lens focuses on what matters: the knight when it is out of the glass and near, else Uncle Mesa */
+    if (LENS && LENS.name === "tekle" && GLASS) {   /* the game at full speed, the glass cut over it: the figures carry their own cells */
+      renderer.render(scene, camera); const nodes = [], V = (x, y, z) => new T.Vector3(x, y, z);
+      for (const h of [.15, .5, .85, 1.15, 1.45, 1.72]) nodes.push({ p: V(st.x, st.y + h, st.z), r: .24, heavy: true });
+      const K = KNIGHT; if (K.state === "hunt" || K.state === "strike" || K.state === "forming") { const ky = Math.abs(st.y - W.cathedralY) < 3 ? W.cathedralY : heightAt(K.x, K.z); for (const h of [.2, .6, 1.0, 1.4, 1.8, 2.15]) nodes.push({ p: V(K.x, ky + h, K.z), r: .34, heavy: true }); }
+      for (const o of outlaws) if (o.ch && o.ch.group.visible) { const q = o.ch.group.position; nodes.push({ p: V(q.x, q.y + 1.0, q.z), r: .4, heavy: true }); nodes.push({ p: V(q.x, q.y + 1.65, q.z), r: .22, heavy: true }); }
+      GLASS.draw(nodes);
+    } else if (LENS && LENS.on()) { if (GLASS) GLASS.hide();   /* the lens focuses on what matters: the knight when it is out of the glass and near, else Uncle Mesa */
       const K = KNIGHT, kOut = K.state === "hunt" || K.state === "strike" || K.state === "forming", kd = Math.hypot(camera.position.x - K.x, camera.position.z - K.z);
       const md = camera.position.distanceTo(new T.Vector3(st.x, st.y + 1.2, st.z)); LENS.render(scene, camera, dt, { focus: kOut && kd < 40 ? Math.min(kd, md * 1.6) : md });
-    } else renderer.render(scene, camera);
+    } else { if (GLASS) GLASS.hide(); renderer.render(scene, camera); }
     overlay(dt); requestAnimationFrame(frame);
   }
 
