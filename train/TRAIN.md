@@ -114,6 +114,14 @@ Walk up to anyone and press TALK (Y). Type, or tap a question. Each passenger ha
 - **Without a key** they answer the question asked from their own lines: who they are, what is behind the next door, how many bees, whether you can have their SPAM.
 - This continues two earlier pieces. Train Field's four passengers ride here by name (Noor the dispatcher, Mila the student, Oren the old man, Cass the tourist) with their lists of what each one sees; the persona-plus-memory-stream shape is the hive simulation's.
 
+### The honeybee (`js/beemodel.js`)
+
+The bee you fly is built from the animal: a head wider than long with wrapping compound eyes, elbowed antennae, mandibles and a tongue; a furred thorax; two pairs of veined wings; six jointed legs, the hind tibiae broad and carrying pollen; an abdomen of six banded plates and a sting.
+
+It moves as one does. In a hover it hangs tail-low with its legs dangling; at speed it tips nose-down and the legs tuck and trail; it rolls into turns and its head leads. The wings beat with ghosted strokes, sweep back and fold over the abdomen when it lands, and the tongue unfolds. The abdomen breathes by telescoping, and curls under with the sting out when it stings. The antennae never stop.
+
+The swarm is a lighter cast of the same body (head, eyes, thorax, banded abdomen, legs, antennae, both wing pairs), lit, and pitched by each bee's own speed.
+
 ### Being the bee (`js/beeworld.js`)
 
 B, or the Bee button. Three things the traveler never has.
