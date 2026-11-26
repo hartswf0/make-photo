@@ -38,18 +38,24 @@ A cyber-western of glass, built from the film's keyframe breakdown (`keyframes.j
 5. the curtain wall pullback;
 6. the ziggurat.
 
-## Shooting the world into stained glass
+## Paint: the graffiti game (`ink.js`)
 
-Every shot that lands on the world (sand, rock, adobe, wood or stone) grows a bloom of leaded stained glass there:
-- **The shader.** One patch on every opaque material of the world (`patchGlass` in `mesa.js`). Inside a bloom's sphere, the surface becomes glass:
-  - cells are laid out on the surface's own plane (top, side or front, by its normal);
-  - dark lead runs where two cells meet;
-  - each cell takes a colour from the palette, leaning toward the shot's paint;
-  - the glass glows.
-- **Blooms merge and grow.** A shot close to an earlier one widens it, up to 5.5 m.
-- **Painted ground stays painted.** 48 blooms are live at once. Older blooms on the ground are baked into a world-space glass map (`uBake`); older blooms on walls fade.
-- **Light and sound.** Tracers are drawn in the shot's paint colour, and each bloom rings a glass chime.
-- **Goal:** 24 windows.
+Uncle Mesa's six-shooter fires paintballs. Hold Space or the mouse button to spray, as a Splatoon shooter does.
+
+- **The ball.** A real projectile on an arc, stretched along its speed, dropping beads as it goes.
+- **Where it lands.** The liquid follows the rain kit's membrane (`night-post/rain/demos/water.js`): blob fields added together and cut at a threshold, so touching drops merge into one body with one hard, bright edge. Each splat is that field, evaluated in a shader on a decal laid against the surface it hit:
+  - a main blob;
+  - satellite droplets thrown forward;
+  - a streak along the line of travel;
+  - small extra splats sprayed past it.
+- **On a wall the ink runs.** Drips crawl down the face over about 1.8 s and stop in a bead.
+- **Then it cures.** For about 1.2 s the ink is wet: bold, glossy, with a darker rim where the bead rolls over. Then it crystallizes from the rim inward: lead lines grow through it, each cell takes its own glass colour leaning toward the paint, and the glass glows with a little sparkle while it sets. The cells are laid out on the surface's own plane, so neighbouring splats share one window.
+- **Swimming.** Hold Shift on ink: Uncle Mesa crouches and moves through it at 6 m/s, refilling the tank.
+- **The ink tank.** Each shot costs 1.5 of 100. It refills slowly on its own and fast while swimming. The vial by the reticle shows how full it is, in the colour of the next shot.
+- **Turf.** Each square metre of upward ground that you ink counts once. The goal is 250 m².
+- **Tag spots.** Four frames on the Main Street fronts. Ten hits inside one and it blooms into a lettered stained-glass mural: MESA CHIP, DATA REMEMBERS, UNCLE MESA, THIS LAND.
+- **Other targets.** Outlaws go down painted, and their colour pools under them. Prisms still crack and shatter.
+- **The buffer.** Every splat and drip is one instance in a single instanced mesh, 1,600 at a time; the oldest is reused.
 
 ## Built on
 
