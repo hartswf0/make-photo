@@ -75,5 +75,5 @@ export function createGame({ scene, cars, train, bees, interact, actor, journey,
         : [{ label: 'Faster / slower', run: () => { journey.phase = 'run'; journey.cruise = speeds[(speeds.indexOf(journey.cruise) + 1) % speeds.length]; return true; } }, { label: journey.phase === 'held' ? 'Release the brake' : 'Stop the train here', run: () => { journey.phase = journey.phase === 'held' ? 'run' : 'held'; return true; } },
           { label: 'Sound the horn', run: () => { if (!g.calm) hurt(25, 'The horn'); else stub('The horn', 'it carries down the valley'); return true; } }] }); }
   function setMode(m) { g.mode = m; document.body.dataset.mode = m; for (const b of document.querySelectorAll('#modes button')) b.classList.toggle('on', b.dataset.mode === m); return m; }
-  return { goals, update, smoke, setMode, swarm: S, cloud, g };
+  return { goals, update, smoke, setMode, hit: hurt, swarm: S, cloud, g };
 }

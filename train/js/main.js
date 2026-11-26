@@ -11,6 +11,7 @@ import { createUI } from './ui.js';
 import { createInteract } from './interact.js';
 import { createGame, ROOF_Y } from './game.js';
 import { buildProps } from './props.js';
+import { createHeist } from './heist.js';
 import { createAudio } from './audio.js';
 
 const mobile = matchMedia('(pointer:coarse)').matches || innerWidth < 760;
@@ -49,7 +50,7 @@ try { if (window.makeWaterWifiCan) for (const [ci, x, y, z, ry] of [[1, bay(4) -
 
 // ---- state
 const seat0 = quiet.playerSeat;
-const actor = { x: quiet.x + seat0.x, z: seat0.z, dir: 1, yaw: Math.PI / 2, seated: true, seat: { car: quiet, ...seat0 }, speed: 0 };
+const actor = { cam: -1, x: quiet.x + seat0.x, z: seat0.z, dir: 1, yaw: Math.PI / 2, seated: true, seat: { car: quiet, ...seat0 }, speed: 0 };
 const journey = { dist: +(params.get('at') || 600), speed: 0, cruise: 26, dwell: 0, phase: 'run', wheel: 0 };
 const state = { pass: 'beauty', calm: false, hostile: false, bee: false, beeYaw: Math.PI, beePitch: 0, shoulder: 1, stings: 0, nextSting: 12, react: null, doorCar: -1, t: 0, take: false, takeT: 0, takeI: 0, walkGoal: null, camCar: 1, log: [], paused: false, lastCar: -1, lastSeg: null, hud: true };
 const input = { jx: 0, jy: 0, yaw: 0, pitch: 0, keys: new Set() };
@@ -66,6 +67,7 @@ const TALK = { 1: [['Sit. The window is the only thing in here that changes.', '
 const BEEWORD = ['none', 'none', 'one', 'a dozen', 'hundreds', 'thousands', 'a man of them', 'the beam is solid with them', 'all of them'];
 const tmp2 = new THREE.Vector3();
 let gameSys = null;
+const USE = /^(ladder|controls|queen|smoker)/;   // the only things the heist's action button uses besides robbing
 function personItem(p) {
   const carOf = () => p.walk ? locate(cars, p.walk.x).i : p.car;
   interact.add({ id: p.key, radius: 1.5, pos: () => tmp2.copy(p.root.position).setY(DIM.FLOOR + 1.35), get car() { return carOf(); }, title: p.role, kicker: 'Passenger',
@@ -132,12 +134,14 @@ function sit() { const s = nearestSeat(); if (!s) return; actor.seated = true; a
 function stepActor(dt) {
   let mx = 0, mz = 0;
   const k = input.keys, live = state.bee ? 0 : 1, jx = live * input.jx + live * (k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0), jy = live * input.jy + live * (k.has('w') || k.has('arrowup') ? 1 : 0) - (k.has('s') || k.has('arrowdown') ? 1 : 0);
+  const heisting = game.mode === 'game' && !state.bee;
   if (Math.abs(jx) + Math.abs(jy) > .08) {
     state.walkGoal = null; if (actor.seated) stand();
+    if (heisting) { mx = jy * actor.cam; mz = jx * actor.cam; } else
     if (rig.st.shot.inside && rig.st.shot.frame !== 'bee') { camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize(); mx = fwd.x * jy - fwd.z * jx; mz = fwd.z * jy + fwd.x * jx; }
     else { mx = jy; mz = jx; }
-  } else if (state.walkGoal !== null && !actor.seated) { const d = state.walkGoal - actor.x; if (Math.abs(d) < .3) state.walkGoal = null; else mx = Math.sign(d) * .75; }
-  const len = Math.hypot(mx, mz), sp = Math.min(1, len) * 1.45;
+  } else if (state.walkGoal !== null && !actor.seated) { const d = state.walkGoal - actor.x; if (Math.abs(d) < .3) state.walkGoal = null; else mx = Math.sign(d) * (heisting ? 1 : .75); }
+  const len = Math.hypot(mx, mz), sp = Math.min(1, len) * (heisting ? 2.5 : 1.45);
   if (len > .01 && !actor.seated) {
     actor.x += mx / len * sp * dt; actor.z += mz / len * sp * dt;
     const cN = cars[cars.length - 1], c0 = cars[0]; actor.x = clamp(actor.x, cN.x + cN.walkMin, c0.x + c0.walkMax);
@@ -153,7 +157,7 @@ function stepActor(dt) {
     hero.root.position.set(actor.x, actor.roof ? ROOF_Y : DIM.FLOOR + (actor.seated ? SEAT_Y : 0), actor.z); hero.root.rotation.y = actor.yaw;
     hero.loco = { speedMps: actor.speed, sitting: actor.seated }; hero.clip = state.react && state.t < state.react.until ? state.react.clip : actor.roof && land.env.tunnel ? 'crouch-idle' : null;
     // from the apiary car on, the bees sting without being asked
-    if (!actor.seated && !actor.roof && !state.calm && !game.veil && !state.bee && loc.i >= 4 && state.t > state.nextSting) { state.nextSting = state.t + 22 - loc.i * 2 + Math.random() * 8; if (state.t > 6) deed('stung'); } hero.root.visible = !(rig.st.shot.id === 'pov');
+    if (!actor.seated && !actor.roof && !state.calm && !state.decoy && !game.veil && !state.bee && loc.i >= 4 && state.t > state.nextSting) { state.nextSting = state.t + 22 - loc.i * 2 + Math.random() * 8; if (state.t > 6) deed('stung'); } hero.root.visible = !(rig.st.shot.id === 'pov');
   }
   return loc;
 }
@@ -204,7 +208,9 @@ function frame() {
   const loc = stepActor(dt); stepTake(dt); stepRun();
   const portal = worlds ? worlds.nearest(tmp.set(actor.x, DIM.FLOOR + 1.2, actor.z), 3.2) : null, own = worlds && worlds.portals.find(p => p.car === loc.car);
   const ctx = { a: actor, car: loc.car, aisleZ: loc.aisleZ, side: actor.seated ? Math.sign(actor.z) || 1 : (own && Math.abs(own.pos.z) > .5 ? Math.sign(own.pos.z) : 1), bee: bees.lead, t: state.t, dist: journey.dist, speed: journey.speed, noseX: train.noseX, tailX: train.tailX };
-  ctx.shoulder = state.shoulder;
+  ctx.shoulder = state.shoulder; ctx.heist = game.mode === 'game';
+  if (ctx.heist && !state.bee && !run.on && rig.st.shot.id !== 'follow') setShot('follow', true);
+  if (ctx.heist) { const cN = cars[cars.length - 1]; if (actor.x < cN.x + cN.walkMin + .6) actor.cam = 1; if (actor.x > cars[0].x - DIM.L / 2 + 2.2) actor.cam = -1; }
   if (state.bee) {   // the player is the bee: fly where you look
     const B = bees.lead, ks = input.keys, f = input.jy + axis('w', 's'), sd = input.jx + axis('d', 'a'); state.beeYaw += input.yaw; state.beePitch = clamp(state.beePitch - input.pitch, -1.2, 1.2); input.yaw = input.pitch = 0;
     B.v.set(Math.cos(state.beeYaw) * Math.cos(state.beePitch), Math.sin(state.beePitch), Math.sin(state.beeYaw) * Math.cos(state.beePitch));
@@ -230,7 +236,10 @@ function frame() {
   interact.update(state.bee ? bees.lead.p : tmp.set(actor.x, (actor.roof ? ROOF_Y : DIM.FLOOR) + 1.2, actor.z), state.t, actor.roof ? loc.i : state.camCar);
   if (gameSys) { gameSys.update(dt, state.t); if (state.t - goalT > .4) { goalT = state.t; ui.goals(gameSys.goals, game.mode); } }
   placeSun(); const lab = interact.label();
-  ui.context(lab && (!actor.seated || interact.open) ? lab : actor.seated ? 'Stand' : portal ? `Enter · ${portal.world.title}` : halt ? `Get off · ${nextHalt().name}` : nearestSeat() ? 'Sit' : null);
+  const tgt = ctx.heist && heist ? heist.target(loc.i) : null, v0 = ctx.heist && interact.near && USE.test(interact.near.id) ? interact.near.verbs()[0] : null;
+  if (heist) heist.update(dt, loc.i);
+  if (ctx.heist) ui.context(tgt ? `${tgt.label} · ${tgt.what}` : v0 ? v0.label : (journey.phase === 'dwell' ? `Get off · ${nextHalt().name}` : null));
+  else ui.context(lab && (!actor.seated || interact.open) ? lab : actor.seated ? 'Stand' : portal ? `Enter · ${portal.world.title}` : halt ? `Get off · ${nextHalt().name}` : nearestSeat() ? 'Sit' : null);
   ui.status(journey, land.env, rig.st.shot, `stubs ${game.stubs.size}/${game.total} · stings ${state.stings}${game.inv.length ? ' · ' + game.inv.join(', ') : ''}${state.bee ? ' · you are the bee' : ''}`);
   audio.update(journey.speed, rig.st.shot.inside ? 1 : .6, dark, bees.lead.p.distanceTo(camera.position));
   renderPass(state.pass, scene, camera);
@@ -276,6 +285,7 @@ function capture(w = 1280, h = 720) {
 }
 
 gameSys = createGame({ scene, cars, train, bees, interact, actor, journey, state, stub, deed, env: land.env });
+const heist = createHeist({ scene, cars, train, props, people, actor, state, stub, deed, game, sys: gameSys });
 
 // ---- the run: a rehearsal of the single world-model session. Third-person lock, WASD, and at each door the cue that would be sent.
 const run = { on: false, cars: [], n: 1 };
@@ -319,6 +329,7 @@ function toggleBee(on = !state.bee) { state.bee = on; bees.lead.manual = on; sta
 // ---- actions
 async function act() {
   if (worlds && worlds.stage.active) return worlds.exit();
+  if (game.mode === 'game' && heist) { const loc = locate(cars, actor.x), tgt = heist.target(loc.i); if (actor.seated) stand(); if (tgt) return tgt.run(); const n = interact.near, v0 = n && USE.test(n.id) ? n.verbs()[0] : null; if (v0) return v0.run(n); if (journey.phase === 'dwell') return getOff(); return; }
   if (interact.open || (interact.near && !actor.seated)) return interact.act();
   if (actor.seated) return stand();
   if ((journey.phase === 'dwell' || (journey.phase === 'held' && journey.speed < .4)) && !actor.roof && !(worlds && worlds.nearest(tmp.set(actor.x, DIM.FLOOR + 1.2, actor.z), 3.2))) return getOff();
@@ -343,7 +354,7 @@ const api = {
   act, stand, sit, still, record, swarm: (on = !state.forceSwarm) => (state.forceSwarm = on), jump: km => { journey.dist = km * 1000; journey.phase = 'run'; },
   walkTo: car => { if (actor.seated) stand(); state.walkGoal = cars[clamp(car, 0, 7)].x; }, enter: id => { const p = worlds.portals.find(p => p.ids.includes(id)); return p && worlds.enter(p, id); }, exit: () => worlds.exit(),
   next: d => { const s = worlds.stage; if (s.active) { s.portal.show(s.portal.index + d); return worlds.enter(s.portal); } }, live: () => worlds.toggleLive(),
-  run: startRun, endRun: () => { run.on = false; state.empty = false; document.body.classList.remove('run'); ui.cue(null); }, mode: m => gameSys.setMode(m), get sys() { return gameSys; }, smoke: () => gameSys.smoke(), goals: () => gameSys.goals.map(q => ({ id: q.id, done: !!q.done() })), pass: n => { state.pass = PASSES.includes(n) ? n : PASSES[(PASSES.indexOf(state.pass) + 1) % PASSES.length]; stub('Pass', state.pass); return state.pass; }, passes: () => PASSES.slice(), bee: toggleBee, game: () => ({ stubs: game.stubs.size, total: game.total, talked: game.talked.size, inv: game.inv.slice(), water: game.water, stings: state.stings }), interact, deed, deeds: () => Object.keys(DEEDS), seed, capture, seeds: async () => { if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds; return seeds; },
+  run: startRun, endRun: () => { run.on = false; state.empty = false; document.body.classList.remove('run'); ui.cue(null); }, mode: m => { if (m === 'game' && actor.seated) stand(); return gameSys.setMode(m); }, throw: () => heist.throwCan(), turn: () => { actor.cam *= -1; return actor.cam; }, heist: () => ({ ...heist.H, loose: undefined }), get sys() { return gameSys; }, smoke: () => gameSys.smoke(), goals: () => gameSys.goals.map(q => ({ id: q.id, done: !!q.done() })), pass: n => { state.pass = PASSES.includes(n) ? n : PASSES[(PASSES.indexOf(state.pass) + 1) % PASSES.length]; stub('Pass', state.pass); return state.pass; }, passes: () => PASSES.slice(), bee: toggleBee, game: () => ({ stubs: game.stubs.size, total: game.total, talked: game.talked.size, inv: game.inv.slice(), water: game.water, stings: state.stings }), interact, deed, deeds: () => Object.keys(DEEDS), seed, capture, seeds: async () => { if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds; return seeds; },
   log: () => state.log.slice(), rig: (w, h) => rig.export({ a: actor, car: locate(cars, actor.x).car, aisleZ: 0, side: 1, bee: bees.lead, t: state.t, dist: journey.dist, speed: journey.speed, noseX: train.noseX, tailX: train.tailX }, w, h),
   observe: () => ({ t: +state.t.toFixed(2), km: +(journey.dist / 1000).toFixed(3), speed: +journey.speed.toFixed(1), phase: journey.phase, car: cars[state.lastCar]?.key, seated: actor.seated, stings: state.stings, x: +actor.x.toFixed(2), shot: rig.st.shot.id, take: state.take, run: run.on ? run.n : 0, world: worlds?.stage.active ? worlds.stage.id : null, segment: land.env.segment?.type || null, people: people.length, calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
   _: { scene, camera, renderer, train, land, rig, actor, journey, state, input, get people() { return people; }, get cast() { return cast; }, get hero() { return hero; } },
@@ -351,7 +362,7 @@ const api = {
 window.trainFilm = api;
 ui.bind({ api, input, audio, setShot, worldsRef: () => worlds, state });
 addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; const k = e.key.toLowerCase(); input.keys.add(k);
-  if (k === 'e' || k === 'enter') act(); else if (k === 'f') deed('stung'); else if (k === 'g') deed('swat'); else if (k === 'v') deed('dazed'); else if (k === 't') api.take(); else if (k === 'c') setShot(SHOTS[(SHOTS.indexOf(rig.st.shot) + 1) % SHOTS.length].id); else if (k === 'p') still(); else if (k === 'h') ui.hud(state.hud = !state.hud); else if (k === 'escape' && worlds?.stage.active) worlds.exit(); else if (k === 'b') toggleBee(); else if (k === 'r') gameSys.smoke(); else if (k === 'm') api.pass(); else if (k === 'q') state.shoulder *= -1; else if (k === 'escape' || k === 'backspace') interact.close(); else if (/^[1-9]$/.test(k)) { if (interact.open) interact.run(+k - 1); else setShot(SHOTS[+k - 1].id); } });
+  if (k === 'e' || k === 'enter') act(); else if (k === 'f') deed('stung'); else if (k === 'g') deed('swat'); else if (k === 'v') deed('dazed'); else if (k === 't') api.take(); else if (k === 'c') setShot(SHOTS[(SHOTS.indexOf(rig.st.shot) + 1) % SHOTS.length].id); else if (k === 'p') still(); else if (k === 'h') ui.hud(state.hud = !state.hud); else if (k === 'escape' && worlds?.stage.active) worlds.exit(); else if (k === 'b') toggleBee(); else if ((k === ' ' || k === 'x') && !state.bee) heist.throwCan(); else if (k === 'z' && game.mode === 'game') actor.cam *= -1; else if (k === 'r') gameSys.smoke(); else if (k === 'm') api.pass(); else if (k === 'q') state.shoulder *= -1; else if (k === 'escape' || k === 'backspace') interact.close(); else if (/^[1-9]$/.test(k)) { if (interact.open) interact.run(+k - 1); else setShot(SHOTS[+k - 1].id); } });
 addEventListener('keyup', e => input.keys.delete(e.key.toLowerCase())); addEventListener('blur', () => input.keys.clear());
 
 ui.loading('laying track');
@@ -360,5 +371,5 @@ buildWorlds({ scene, train, renderer, ui, toast: stub }).then(w => { worlds = w;
   for (const pt of w.portals) interact.add({ id: 'threshold' + pt.car.i, car: pt.car.i, pos: () => pt.pos, radius: 2.6, kicker: 'Threshold', title: () => pt.world.title,
     rows: () => [['Source', pt.world.source], ['Kind', pt.world.kind === 'footage' ? 'a frame of footage' : 'a generated keyframe'], ['World', `${pt.index + 1} of ${pt.ids.length} behind this pane`]],
     verbs: () => [{ label: 'Step through', run: () => { state.take = false; stub('Through the threshold', pt.world.title); w.enter(pt); return false; } }, { label: 'Next world', run: () => { pt.show(pt.index + 1); return true; } }] }); if (params.get('world')) api.enter(params.get('world')); }).catch(e => console.warn('worlds unavailable', e));
-Promise.resolve(bootCast()).then(() => { if (params.has('game')) gameSys.setMode('game'); if (params.get('pass')) state.pass = params.get('pass');
+Promise.resolve(bootCast()).then(() => { if (!params.has('world') && !params.has('run') && !params.has('take') && !params.get('seed') && !params.get('shot')) api.mode('game'); if (params.get('pass')) state.pass = params.get('pass');
   if (params.has('run')) startRun(); else if (params.get('seed')) seed(params.get('seed')); else if (params.get('shot')) setShot(params.get('shot')); else setShot('profile'); if (params.has('take')) api.take(true); stub('BEES ON A TRAIN', 'the sealed line · the train is moving, you cannot get off'); });
