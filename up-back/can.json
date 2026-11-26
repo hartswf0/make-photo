@@ -1,0 +1,36 @@
+{
+ "can": 1,
+ "id": "up-back",
+ "name": "Up Back",
+ "version": "2026.11.26",
+ "page": "./index.html",
+ "status": "standalone, with a gate into the trough. The yard is built inside up-back.js with its own renderer and loop, so it cannot be poured yet; the gate arrives at Grand Teton.",
+ "entry": {
+  "script": null,
+  "world": null,
+  "adapter": "ground@1 (planned)"
+ },
+ "begin": {
+  "in": "its own world",
+  "at": "the wingback chair in the den"
+ },
+ "leads": {
+  "to": "../atlas/overworld.html",
+  "gate": "past the Airstream at the top of the yard",
+  "island": "teton",
+  "with": "../atlas/trough-gate.js"
+ },
+ "frame": {
+  "units": "metres",
+  "scale": "true",
+  "axes": "x east, z south"
+ },
+ "verbs": [
+  "walk",
+  "run",
+  "sit",
+  "pick",
+  "knock",
+  "drive (the Deere)"
+ ]
+}

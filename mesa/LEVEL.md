@@ -23,6 +23,21 @@ A cyber-western of glass, built from the film's keyframe breakdown (`keyframes.j
 - **Uncle Mesa** is drawn as the film's frames draw him: lean, a flat brim far wider than his shoulders, round glasses, a beard to the chest, a white shirt.
 - **The big glass** (the canyon walls, the curtain wall, the columns) is square panes of pale blue, grey and amber with the colour dragged across in strokes, as the film's glass walls are. The small glass (windows, prisms, the sign, the hall) keeps its leaded cells.
 
+## The way through, and on into the trough
+
+Five missions in order, shown one at a time, each with a gold beam on the place and an arrow with the distance on the glass:
+1. walk north through the title gate;
+2. clear the street with Anta;
+3. ride the horned bike to the oasis while Anta shoots from the back;
+4. go down into the glass cathedral and break the knight;
+5. carry the chip north to the **trough gate**, east of the ziggurat. "Pour into the trough" leaves for the trough (`atlas/overworld.html`), arriving at Ethiopia on Mars. See `can.json` and `atlas/JERRYCAN.md`.
+
+- **Anta is the second gun.** Past the gate she follows at his right shoulder or rides pillion, and paints the nearest outlaw or the knight about every second and a half. Her hits count toward the combo. When he goes down she hauls him up early. This is co-op with a partner the game plays; two phones in one world would need a relay server, which the site does not have.
+- **Aiming in three stages.** From the hip the camera is wide. As the aim settles (faster standing still) the camera comes in over the shoulder and the lens narrows. Settled and locked, the ring turns white: that shot is a true shot, hits twice as hard, kicks the lens, and slows time when it drops a man. Then the aim has to settle again.
+- **The bike.** "Call the bike" brings it to his side from anywhere. On a phone a thumb on the stick is the throttle, leaning it steers, and pulling it right back brakes. Steering calms with speed, and it takes a harder hit to go over the bars. Both riders hold on with both hands.
+- **Animation.** He backpedals with the gun up (`walk-backwards`), leaps on a dash (`jump`), and raises his arms on a cleared wave (`victory`) while Anta claps; his arm kicks up with each shot; she waves when he first comes near (`greeting`).
+- **On a phone** the picture is drawn at fewer pixels with a smaller shadow map, and landscape has its own layout.
+
 ## Keyframe → zone → mechanic
 
 | Keyframe | Time | Zone (`mesa-world.js`) | Effect | Mechanic |

@@ -500,3 +500,22 @@ Each can is an experiment in what one more service lets the whole world do:
 - Mars brings physics, mini-games and cutscenes.
 
 Once a service is in the trough, every can can use it.
+
+
+---
+
+## Beginning in your own world (the rule from 2026-11-26)
+
+A new edition is never dropped loose into the open world. From now on every edition:
+
+1. **Begins in its own world**, on its own page, at one named starting point (`begin` in its `can.json`).
+2. **Leads the player through it**: a short chain of missions, each with a beam to walk to and an arrow on the glass.
+3. **Ends at a trough gate** (`atlas/trough-gate.js`): a stone trough of cyan water, a blue jerry can on its rim and a beam. `TroughGate.go(from, island)` leaves for `atlas/overworld.html?island=…&from=…` and notes `from` in `dw.carry`.
+4. **Says where the gate arrives** (`leads` in its `can.json`). Until the edition has its own island, that is the nearest fitting one.
+
+| Edition | Begins | Gate | Arrives at |
+|---|---|---|---|
+| MESA CHIP (`mesa/`) | the title gate | east of the ziggurat, after five missions | Ethiopia on Mars |
+| Up Back (`up-back/`) | the chair in the den | past the Airstream | Grand Teton |
+
+Neither is on the trough's shelf (`atlas/cans.json`) yet: pouring them in needs an island each in the archipelago build and an entry on the `ground@1` adapter.
