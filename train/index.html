@@ -111,6 +111,20 @@ body[data-mode="game"] #joy{width:132px;height:132px}
 body.inworld #map,body.inworld #loot,body.inworld #throwBtn,body.inworld #turnBtn,body.run #map,body.run #loot,body.run #throwBtn,body.run #turnBtn{display:none!important}
 @media (max-width:560px){#map button{height:42px}#map b{font-size:8.5px}}
 #talkBtn{left:50%;transform:translateX(-50%);bottom:calc(122px + var(--sab));padding:11px 16px;border-radius:20px;background:var(--paper);color:var(--ink);font:800 12px/1 Arial,sans-serif;letter-spacing:.08em;box-shadow:0 4px 16px rgba(0,0,0,.4)}#talkBtn[hidden]{display:none}body.inworld #talkBtn,body.run #talkBtn{display:none}
+/* ---- bee mode: a stick, up and down, and one button */
+#stingFx{top:30%;left:0;right:0;text-align:center;font:900 clamp(44px,13vw,110px)/1 "Arial Black",Impact,sans-serif;font-style:italic;color:#ffd92e;text-shadow:0 5px 0 #7a1f1d;opacity:0;pointer-events:none}
+#stingFx::after{content:attr(data-pack);display:block;font:800 14px/1.6 Arial,sans-serif;font-style:normal;letter-spacing:.14em;color:#fff;text-shadow:0 1px 6px #000;text-transform:uppercase}
+#stingFx.on{animation:sting .9s ease-out}@keyframes sting{0%{opacity:1;transform:scale(1.5) rotate(-4deg)}20%{transform:scale(1) rotate(2deg)}80%{opacity:1}100%{opacity:0;transform:scale(1.05)}}
+/* a film frame: bars top and bottom, and the controls live in them, dim until touched */
+body.bee::before,body.bee::after{content:"";position:fixed;left:0;right:0;height:calc(7vh + var(--sat));background:#050403;pointer-events:none;z-index:3}body.bee::before{top:0}body.bee::after{bottom:0;height:calc(7vh + var(--sab))}
+body.bee #joy{opacity:.5;width:104px;height:104px;bottom:calc(3vh + var(--sab))}body.bee #joy:active{opacity:.9}body.bee #sendBtn{opacity:.6;width:74px;height:74px;font-size:11px;bottom:calc(3vh + 92px + var(--sab))}body.bee #sendBtn:active{opacity:1}
+body.bee #beeOut,body.bee #swarmHud{top:calc(1.2vh + var(--sat))}body.bee #swarmN{font-size:30px;display:inline}body.bee #swarmHud span{margin-left:6px}body.bee #stingFx{top:22%}
+#swarmHud,#sendBtn,#beeOut{display:none}
+body.bee #swarmHud{display:block;top:calc(12px + var(--sat));right:calc(14px + var(--sar));text-align:right;text-shadow:0 1px 8px #000}#swarmN{display:block;font:900 44px/.9 "Arial Black",Impact,sans-serif;color:#ffd92e}#swarmHud span{font:800 10px/1 Arial;letter-spacing:.16em;text-transform:uppercase}
+body.bee #sendBtn{display:block;right:calc(18px + var(--sar));bottom:calc(142px + var(--sab));width:92px;height:92px;border-radius:50%;background:#3a1c05;border:3px solid #ffd92e;color:#ffd92e;font:900 13px/1.15 "Arial Black",Impact,sans-serif}#sendBtn.off{opacity:.35}
+body.bee #beeOut{display:block;top:calc(10px + var(--sat));left:calc(12px + var(--sal));padding:10px 14px;border-radius:18px;background:rgba(11,13,12,.6);border:1px solid var(--line);font:700 12px/1 var(--mono)}
+body.bee #map,body.bee #loot,body.bee #throwBtn,body.bee #turnBtn,body.bee #talkBtn,body.bee #title,body.bee #modes,body.bee #bar,body.bee #goals,body.bee #smokeBtn,body.bee #stubs,body.bee #hint,body.bee #panel{display:none!important}
+body.bee #act{background:#ffd92e;color:#3a1c05;font:900 15px/1.1 "Arial Narrow",Arial,sans-serif;font-style:normal;text-transform:uppercase;min-height:54px;bottom:calc(3vh + 8px + var(--sab));max-width:56vw}
 .bubble{position:fixed;z-index:4;transform:translate(-50%,-100%);max-width:min(260px,70vw);background:var(--paper);color:#2a1d10;font:italic 14px/1.3 var(--serif);padding:8px 11px;border-radius:12px 12px 12px 2px;box-shadow:0 4px 14px rgba(0,0,0,.4);pointer-events:none}.bubble[hidden]{display:none}
 #talk{left:50%;transform:translateX(-50%);bottom:calc(60px + var(--sab));width:min(440px,calc(100vw - 20px));background:rgba(14,18,34,.94);border:1px solid var(--line);z-index:7;display:block}#talk[hidden]{display:none}
 #talk header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#141a36}#talkName{font:800 20px/1 "Arial Narrow",Arial,sans-serif;text-transform:uppercase}#talkRole{display:block;font:12px/1.3 var(--mono);opacity:.75;margin-top:3px}#talkClose{font-size:18px;padding:6px 10px}
@@ -179,6 +193,8 @@ body.inworld #talk,body.inworld .bubble{display:none}
   <button id="pBack">Back</button>
 </aside>
 <button id="talkBtn" class="hud" hidden>TALK</button>
+<div id="stingFx" class="hud"></div>
+<div id="swarmHud" class="hud"><b id="swarmN">0</b><span>with you</span></div><button id="sendBtn" class="hud">SEND<br>SWARM</button><button id="beeOut" class="hud">← back to him</button>
 <aside id="talk" class="hud" hidden>
   <header><div><b id="talkName"></b><span id="talkRole"></span></div><button id="talkClose" aria-label="Close">✕</button></header>
   <div id="talkLog"></div>

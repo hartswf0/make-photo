@@ -6,6 +6,23 @@ A cyber-western of glass, built from the film's keyframe breakdown (`keyframes.j
 
 **The source film.** The 3-minute cut the breakdown describes is not in the repositories. The El Desierto clip #1147, "MESA CHIP: The Cyber-Western M", is 10 seconds of a cyan grid over the mesas, a chip in the fingers and a rider's eye. So this level follows the written breakdown, not measured frames.
 
+## Playing it
+
+- **On a phone:** the left thumb is a stick wherever it lands; the right thumb turns the view; hold **Fire** to shoot, and slide the same thumb to turn while shooting. The pink button above Fire does what is here (mount, sit, get down). Push the stick to its edge to run, and to swim on your own ink.
+- **On a keyboard:** W A S D move where the camera faces, the arrows (or the mouse at the edge of the frame) turn it, Shift runs, Space or a click shoots, E does what is here.
+- **Shooting:** pulling the trigger draws; the gun goes away after a few seconds of quiet (R keeps it out). A shot goes to the reticle. If an outlaw, the knight or a prism is within about ten degrees of it, a pink ring closes on him and the shot leads the drop to hit. Each shot throws a pink plume and a ribbon of light, as in the film at 02:13.
+- **The shootout** is on from the start (the other choices are Wander and Cinema) and comes to him wherever he is, once he is through the title gate:
+  - **Outlaws** ride in three at a time and keep moving between shots. Each takes two hits: the first staggers him, the second puts him down. Each wave is faster than the last. The red ring is still the draw.
+  - **Glass chips** hang and drift near him. Breaking one pays ink.
+  - **Combo.** Every hit inside about three seconds of the last rings one note higher up a scale, scores more (up to ×10) and speeds the gun. A miss does not break it; time does, and so does being hit.
+  - **Three hits.** He has three; they come back one at a time when he is left alone. At none he goes down, loses 300 and gets up.
+  - **Dash** (Q, or the blue button): a short burst that paint cannot touch.
+  - **Aim help.** While firing, the view leans toward whatever the gun has found. The cone is wider on a touch screen.
+  - Clearing a wave slows time for a moment.
+- **The trail:** one goal shows at a time; tap it for the whole list.
+- **Uncle Mesa** is drawn as the film's frames draw him: lean, a flat brim far wider than his shoulders, round glasses, a beard to the chest, a white shirt.
+- **The big glass** (the canyon walls, the curtain wall, the columns) is square panes of pale blue, grey and amber with the colour dragged across in strokes, as the film's glass walls are. The small glass (windows, prisms, the sign, the hall) keeps its leaded cells.
+
 ## Keyframe → zone → mechanic
 
 | Keyframe | Time | Zone (`mesa-world.js`) | Effect | Mechanic |
@@ -134,7 +151,6 @@ The glass is painted at load on canvases: leaded cells around a jittered grid, l
 - **The source film.** Measuring it would let the look be tuned the way Mars was (`mars/v2g`). The 3-minute cut is needed.
 - **The horse:** it is still the donkey.
 - **Sound:** gunfire and glass are synthesized.
-- **Phones:** there are no touch controls.
 - **The overworld:** not poured into the trough yet.
 
 ## Handmade (PAE-09)

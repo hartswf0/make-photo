@@ -114,9 +114,18 @@ Walk up to anyone and press TALK (Y). Type, or tap a question. Each passenger ha
 - **Without a key** they answer the question asked from their own lines: who they are, what is behind the next door, how many bees, whether you can have their SPAM.
 - This continues two earlier pieces. Train Field's four passengers ride here by name (Noor the dispatcher, Mila the student, Oren the old man, Cass the tourist) with their lists of what each one sees; the persona-plus-memory-stream shape is the hive simulation's.
 
-### Being the bee
+### Being the bee (`js/beeworld.js`)
 
-In bee mode (B), fly within a wing's length of anyone, the traveler included, and the button reads STING. They jump, swat and say so, and remember it.
+B, or the Bee button. Three things the traveler never has.
+
+- **A bee's eye.** Full resolution and sharp where you look; hexagonal facets only at the edge of sight. A bee's colours are laid over ours so the room still reads. Ultraviolet shows as a violet-white that pulses.
+- **Framed like a film.** The camera rides behind and above the bee, so the bee, its swarm and the length of the carriage are in one frame. Let go of the stick and it turns back to face down the train. Bars top and bottom hold the few controls, dim until touched.
+- **A world written in ultraviolet**, drawn only for the bee's camera: bullseyes on every prop that still hides something sweet, nectar guides on the greenhouse flowers, a mark on every neck, a scent trail down the aisle to the queen, and one line the bees wrote on the wall of each carriage.
+- **A body that is a swarm.** You start as one bee. Fly close to others and they join and stay with you from carriage to carriage; the count is top right. They bunch behind you when you slow and string out when you go. SEND (F) lets them go ahead to the nearest person in front, and they sting when enough arrive.
+
+Flight is one stick: push to fly, lean to turn. Height looks after itself, and a face ahead draws you toward it. You hear your own wings, rising as you push and turn, with the swarm under them. People move at six-tenths speed while you are a bee.
+
+**Being stung.** A flinch, a swat, a few steps back down the aisle at a walk, a hand to the neck, then back to their place. They keep to the aisle, stop short of the end wall and of each other, and someone seated only starts up out of the seat.
 
 ### The cast
 

@@ -15,7 +15,7 @@ export function buildBees(scene, M, mobile) {
   const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
   const dot = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.beginPath(); g.ellipse(16, 16, 13, 7, .5, 0, 7); g.fill(); return new THREE.CanvasTexture(c); })();
   const swarm = new THREE.Points(sg, new THREE.PointsMaterial({ color: 0x241606, size: .34, map: dot, alphaTest: .4, sizeAttenuation: true, transparent: true, opacity: 0 })); swarm.frustumCulled = false; scene.add(swarm);
-  const state = { swarm: 0, swarmWant: 0, side: 1, near: 0, anger: 0, cool: 0 }, tgt = new THREE.Vector3();
+  const state = { swarm: 0, swarmWant: 0, side: 1, near: 0, anger: 0, cool: 0, followers: 0 }, tgt = new THREE.Vector3();
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(1, 1, 1), e = new THREE.Euler(), tmp = new THREE.Vector3();
 
   function rehome(b, cars, ci) {
@@ -35,28 +35,35 @@ export function buildBees(scene, M, mobile) {
     tmp.copy(lead.target); tmp.x += Math.sin(t * 2.3) * .22 * wob; tmp.y += Math.sin(t * 3.1) * .12 * wob + (lead.landed ? .012 : 0); tmp.z += Math.cos(t * 1.7) * .2 * wob;
     lead.v.copy(tmp).sub(lead.p); const dl = lead.v.length(); lead.p.addScaledVector(lead.v, Math.min(1, dt * (dl > 3 ? 6 : 2.6)));
     if (dl > .001) lead.v.multiplyScalar(1 / dl); }
-    let near = 0, mad = 0; state.cool -= dt;
+    let near = 0, mad = 0, fol = 0, atMob = 0; const joinedN = state.followers; state.cool -= dt;
     for (let k = 0; k < N; k++) {
       const b = bees[k];
       if (k === 0) b.p.copy(lead.p);
       else {
-        if (Math.abs(b.car - camCar) > 1) rehome(b, cars, camCar + (k % 3) - 1);
-        if (Math.abs(b.p.x - b.home.x) > 14) { b.p.copy(b.home); b.v.set(0, 0, 0); }   // a bee sent to another carriage is already there
+        if (!ctx.follow) b.joined = false;
+        if (!b.joined && Math.abs(b.car - camCar) > 1) rehome(b, cars, camCar + (k % 3) - 1);
+        if (!b.joined && Math.abs(b.p.x - b.home.x) > 14) { b.p.copy(b.home); b.v.set(0, 0, 0); }   // a bee sent to another carriage is already there
         // each bee steers: to its place in the carriage, or to a thrown can, or, if it is one of the angry ones, to his head
-        const a = t * b.sp + b.ph, shownNow = ctx.density >= 0 && k < 1 + ctx.density * (N - 1), angry = ctx.hostile && !ctx.decoy && shownNow && b.car === ctx.actorCar && (k % 10) / 10 < ctx.anger;
-        if (ctx.decoy && b.car === ctx.actorCar) tgt.set(ctx.decoy.x + Math.sin(a * 3) * .35, ctx.decoy.y + .15 + Math.abs(Math.sin(a * 2)) * .3, ctx.decoy.z + Math.cos(a * 3) * .35);
+        const a = t * b.sp + b.ph, shownNow = b.joined || (ctx.density >= 0 && k < 1 + ctx.density * (N - 1)), angry = ctx.hostile && !ctx.follow && !ctx.decoy && shownNow && b.car === ctx.actorCar && (k % 10) / 10 < ctx.anger;
+        // flown past closely enough, a bee joins you and stays joined from carriage to carriage: the swarm is something you gather
+        if (ctx.follow && !b.joined && shownNow && b.p.distanceToSquared(ctx.follow) < 12) { b.joined = true; b.rank = joinedN; ctx.onJoin && ctx.onJoin(joinedN + 1); }
+        const here = b.joined;
+        if (b.joined) { fol++; b.rank = fol;
+          if (ctx.mob) { tgt.set(ctx.mob.x + Math.sin(a * 5 + k) * .3, ctx.mob.y + Math.sin(a * 4) * .28, ctx.mob.z + Math.cos(a * 5 + k) * .3); if (b.p.distanceToSquared(ctx.mob) < .5) atMob++; }
+          else { const back = .35 + Math.sqrt(b.rank) * (.16 + ctx.spread * .2), r = .12 + Math.sqrt(b.rank) * (.05 + ctx.spread * .05), ang = b.rank * 2.4 + a * (1.2 - ctx.spread * .6); tgt.set(ctx.follow.x - lead.v.x * back + Math.cos(ang) * r * -lead.v.z, ctx.follow.y + Math.sin(ang) * r, ctx.follow.z - lead.v.z * back + Math.cos(ang) * r * lead.v.x); } }
+        else if (ctx.decoy && b.car === ctx.actorCar) tgt.set(ctx.decoy.x + Math.sin(a * 3) * .35, ctx.decoy.y + .15 + Math.abs(Math.sin(a * 2)) * .3, ctx.decoy.z + Math.cos(a * 3) * .35);
         else if (angry) tgt.set(ctx.head.x + Math.sin(a * 2.3 + k) * .5, ctx.head.y + Math.sin(a * 1.7) * .3, ctx.head.z + Math.cos(a * 2.3 + k) * .5);
         else tgt.set(b.home.x + Math.sin(a) * b.r + (noise2(a * .3, k) - .5), b.home.y + Math.sin(a * 1.7 + k) * .25, b.home.z + Math.cos(a * 1.3) * b.r * .7);
-        const gain = angry ? 9 : ctx.decoy ? 7 : 4, vmax = angry ? 6.5 : 4; b.v.x += (tgt.x - b.p.x) * gain * dt; b.v.y += (tgt.y - b.p.y) * gain * dt; b.v.z += (tgt.z - b.p.z) * gain * dt; b.v.multiplyScalar(1 - Math.min(.9, dt * 2.6)); const sp = b.v.length(); if (sp > vmax) b.v.multiplyScalar(vmax / sp);
+        const lively = here, gain = ctx.mob && lively ? 16 : lively ? 10 : angry ? 9 : ctx.decoy ? 7 : 4, vmax = ctx.mob && lively ? 9 : lively ? 8 : angry ? 6.5 : 4; b.v.x += (tgt.x - b.p.x) * gain * dt; b.v.y += (tgt.y - b.p.y) * gain * dt; b.v.z += (tgt.z - b.p.z) * gain * dt; b.v.multiplyScalar(1 - Math.min(.9, dt * 2.6)); const sp = b.v.length(); if (sp > vmax) b.v.multiplyScalar(vmax / sp);
         b.p.addScaledVector(b.v, dt); b.p.z = clamp(b.p.z, -1.36, 1.36); b.p.y = clamp(b.p.y, DIM.FLOOR + .12, DIM.FLOOR + DIM.ROOF - .1); if (b.p.y < -10) b.p.copy(tgt);
         if (shownNow) { const dc = b.p.distanceToSquared(ctx.eye); if (dc < 9) near++; if (angry) { mad++; if (state.cool <= 0 && b.p.distanceToSquared(ctx.head) < .12) { state.cool = 2.4 - ctx.anger; b.v.multiplyScalar(-2.5); ctx.onSting && ctx.onSting(); } } }
       }
       e.set(0, k === 0 ? Math.atan2(-lead.v.z, lead.v.x || 1e-6) : Math.atan2(-b.v.z, b.v.x || 1e-6), 0); q.setFromEuler(e);
-      const shown = ctx.density >= 0 && k < 1 + ctx.density * (N - 1); s.setScalar(k === 0 ? 1.5 : shown ? 1 : 0); m.compose(b.p, q, s); mesh.setMatrixAt(k, m); if (!shown) { wing.setMatrixAt(k, m); continue; }
+      const shown = b.joined || (ctx.density >= 0 && k < 1 + ctx.density * (N - 1)); s.setScalar(k === 0 ? 1.5 : shown ? 1 : 0); m.compose(b.p, q, s); mesh.setMatrixAt(k, m); if (!shown) { wing.setMatrixAt(k, m); continue; }
       s.set(1, 1, .4 + Math.abs(Math.sin(t * 90 + k)) * 1.2); if (k === 0 && lead.landed > .8) s.z = .5;
       tmp.copy(b.p).y += .016; m.compose(tmp, q, s); wing.setMatrixAt(k, m);
     }
-    mesh.instanceMatrix.needsUpdate = wing.instanceMatrix.needsUpdate = true; state.near = near; state.anger = mad;
+    mesh.instanceMatrix.needsUpdate = wing.instanceMatrix.needsUpdate = true; state.near = near; state.anger = mad; state.followers = fol; state.atMob = atMob;
     // swarm ribbon
     state.swarm = damp(state.swarm, state.swarmWant, .8, dt); swarm.material.opacity = Math.min(1, state.swarm * 1.2); swarm.visible = state.swarm > .01;
     if (swarm.visible) {

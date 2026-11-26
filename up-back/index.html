@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <title>Up Back</title>
+  <meta name="description" content="A wet November yard in East Tennessee: a wingback chair and a cane, a fig bush, two trucks, a Deere, a camper on blocks and an Airstream at the top of the hill.">
+  <script type="importmap">{"imports":{"three":"../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
+  <style>
+    :root { --ink: #f3ede2; --dim: rgba(243, 237, 226, .66); --line: rgba(243, 237, 226, .3); --stage: #14110f; --leaf: #d98a3a; --fig: #7a4a8a; --serif: Georgia, "Times New Roman", serif; --mono: ui-monospace, Menlo, Consolas, monospace; color-scheme: dark; }
+    html, body { margin: 0; height: 100%; background: var(--stage); color: var(--ink); font: 12px/1.4 var(--mono); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+    canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; outline: none; }
+    [hidden] { display: none !important; }
+    .top { position: fixed; left: 0; right: 0; top: 0; z-index: 4; padding: calc(16px + env(safe-area-inset-top, 0px)) 6vw 0; pointer-events: none; display: grid; gap: 3px; text-shadow: 0 1px 8px rgba(0, 0, 0, .7); }
+    .top b { font: italic 400 clamp(20px, 3vw, 28px)/1.2 var(--serif); } .top span { color: var(--dim); letter-spacing: .14em; text-transform: uppercase; font-size: 10px; }
+    #next { color: var(--ink); letter-spacing: .04em; text-transform: none; font-size: 11px; margin-top: 6px; } #next::before { content: "○ "; color: var(--leaf); }
+    #line { position: fixed; left: 0; right: 0; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 4; padding: 0 22px; text-align: center; font: italic 400 clamp(16px, 2.4vw, 22px)/1.4 var(--serif); text-shadow: 0 1px 12px rgba(0, 0, 0, .95); pointer-events: none; opacity: 0; transition: opacity .7s; text-wrap: balance; }
+    #line.on { opacity: 1; }
+    .bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; padding: 10px 6vw calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 8px; align-items: center; }
+    .bar .keys { color: var(--dim); letter-spacing: .1em; text-transform: uppercase; font-size: 10px; margin-right: auto; }
+    button { all: unset; cursor: pointer; font: 600 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink); border: 1px solid var(--line); padding: 11px 13px; background: rgba(20, 17, 15, .5); }
+    button:focus-visible { outline: 2px solid var(--leaf); outline-offset: 2px; }
+    #do { background: var(--leaf); border-color: var(--leaf); color: #1a120a; }
+    #stick { position: fixed; z-index: 5; width: 112px; height: 112px; margin: -56px 0 0 -56px; border: 1px solid var(--line); border-radius: 50%; background: rgba(20, 17, 15, .25); pointer-events: none; }
+    #stick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px; border-radius: 50%; background: rgba(243, 237, 226, .55); }
+    body.touch .keys { display: none; } body.touch #do { position: fixed; right: 6vw; bottom: calc(40px + env(safe-area-inset-bottom, 0px)); z-index: 5; padding: 18px 20px; border-radius: 40px; } body.touch #line { bottom: calc(120px + env(safe-area-inset-bottom, 0px)); }
+    #boot { position: fixed; inset: 0; display: grid; place-items: center; background: var(--stage); z-index: 9; transition: opacity .8s; text-align: center; padding: 24px; } #boot.done { opacity: 0; pointer-events: none; }
+    #boot b { display: block; font: italic 400 34px/1.3 var(--serif); margin-bottom: 8px; } #boot span { color: var(--dim); font-size: 11px; letter-spacing: .08em; }
+  </style>
+</head>
+<body>
+  <canvas id="c" tabindex="0" aria-label="Up Back, a wet November yard. W A S D move, arrows turn, Shift run, E do what is here."></canvas>
+  <header class="top"><b>Up Back</b><span id="where">The den</span><span id="next"></span></header>
+  <div id="line" aria-live="polite"></div>
+  <div id="stick" hidden><i></i></div>
+  <div class="bar"><span class="keys">W A S D · arrows turn · Shift run · E do what is here</span><button id="do" type="button" hidden></button></div>
+  <div id="boot" role="status"><div><b>Up Back</b><span id="boot-s">Raking leaves…</span></div></div>
+  <script src="../field-plates/three.js"></script>
+  <script src="../donkey/donkey.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-eye-globe.js?v=v6sculpt1"></script><script src="../donkey/scion-eyelids.js?v=v6sculpt1"></script>
+  <script src="../donkey/human-physical-v6.js?v=v6sculpt1"></script><script src="../donkey/human-sculpt-v3.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-groom-garments.js?v=v6sculpt2"></script><script src="../donkey/characters.js?v=cast2"></script>
+  <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
+  <script src="../soundtrack/soundtrack.js?v=1" data-album="firstwintera" data-albums="firstwintera,firstwinterb,kudzucontact,volholla,glass,deepsea,yegelle"></script>
+  <script src="./up-back.js?v=1"></script>
+</body>
+</html>

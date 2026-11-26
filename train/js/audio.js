@@ -26,9 +26,12 @@ export function createAudio() {
       if (musicOn && t > seqT) { const spb = 60 / 92 / 2, bar = [45, 45, 48, 43][Math.floor(seqI / 8) % 4], line = [0, 3, 5, 7, 10, 7, 5, 3][seqI % 8]; if (seqI % 2 === 0) tone('triangle', N(bar), t, spb * 1.8, .16); if ([0, 3, 4, 6].includes(seqI % 8)) tone('sine', N(bar + 24 + line), t, spb * 2.4, .07); if (seqI % 8 === 4) noise(t, .05, .05, 'highpass', 5000); seqT = t + spb; seqI++; } },
     /** level 0..1: how much swarm is near the lens. anger 0..1 tightens and raises it. */
     swarm(level, anger) { if (!ctx || !on) return; const t = ctx.currentTime, base = 205 + anger * 70; for (const w of wings) w.o.frequency.setTargetAtTime(base + w.det * (1 + anger), t, .15); wingFilt.frequency.setTargetAtTime(480 + anger * 900 + level * 300, t, .2); wingGain.gain.setTargetAtTime(Math.min(.2, level * .2 + anger * .05 * level), t, .25); },
+    /** Your own wings, close: about 230 beats a second, rising when you push and when you turn, with the swarm thickening under it. */
+    buzz(on_, speed = 0, turn = 0, n = 0) { if (!ctx || !on) return; if (!A._bz) { const o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter(), am = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain(); o.type = 'sawtooth'; o2.type = 'square'; f.type = 'bandpass'; f.Q.value = 2.2; g.gain.value = 0; lfo.frequency.value = 28; lg.gain.value = .35; am.gain.value = .7; lfo.connect(lg).connect(am.gain); o.connect(f); o2.connect(f); f.connect(am).connect(g).connect(master); o.start(); o2.start(); lfo.start(); A._bz = { o, o2, g, f }; }
+      const t = ctx.currentTime, b = A._bz, hz = 215 + speed * 14 + turn * 22; b.o.frequency.setTargetAtTime(hz, t, .05); b.o2.frequency.setTargetAtTime(hz * 2.01, t, .05); b.f.frequency.setTargetAtTime(hz * 2.6, t, .08); b.g.gain.setTargetAtTime(on_ ? .13 + speed * .012 + Math.min(.08, n * .002) : 0, t, .12); },
     steps(speed, dt, metal) { if (!ctx || !on || speed < .3) return; stepT -= dt * speed; if (stepT <= 0) { stepT = .62; const t = ctx.currentTime; metal ? tone('square', 900 + Math.random() * 200, t, .04, .06, 300) : noise(t, .05, .09, 'lowpass', 500); } },
     fx(n) { if (!ctx || !on) return; const t = ctx.currentTime;
-      if (n === 'sting') { tone('sawtooth', 1400, t, .12, .22, 300); noise(t, .08, .2, 'highpass', 3000); }
+      if (n === 'sting') { tone('sawtooth', 1800, t, .16, .3, 240); tone('sine', 90, t, .22, .5, 40); noise(t, .1, .3, 'highpass', 3000); }
       else if (n === 'pick') { tone('square', 660, t, .07, .14); tone('square', 990, t + .07, .1, .14); noise(t, .04, .1, 'bandpass', 2500, 4); }
       else if (n === 'rob') { for (let k = 0; k < 4; k++) noise(t + k * .05, .03, .14, 'bandpass', 1800 + k * 300, 5); tone('square', 520, t + .2, .08, .14); tone('square', 780, t + .28, .12, .14); }
       else if (n === 'throw') noise(t, .22, .22, 'bandpass', 700, .8);
@@ -37,6 +40,9 @@ export function createAudio() {
       else if (n === 'door') { noise(t, .5, .14, 'bandpass', 420, .7); tone('sine', 90, t + .42, .12, .25, 60); }
       else if (n === 'win') [0, 4, 7, 12, 16].forEach((iv, k) => tone('triangle', N(57 + iv), t + k * .11, .5, .18));
       else if (n === 'out') tone('sawtooth', 300, t, .9, .25, 60);
+      else if (n === 'join') tone('sine', 880 + Math.random() * 500, t, .09, .1, 1500);
+      else if (n === 'send') { noise(t, .5, .25, 'bandpass', 600, 1.5); tone('sawtooth', 240, t, .5, .16, 520); }
+      else if (n === 'yelp') { const o = ctx.createOscillator(), g = ctx.createGain(), v = ctx.createOscillator(), vg = ctx.createGain(), f0 = 380 + Math.random() * 260; o.type = 'sawtooth'; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 2.3, t + .12); o.frequency.exponentialRampToValueAtTime(f0 * .8, t + .7); v.frequency.value = 14; vg.gain.value = 40; v.connect(vg).connect(o.frequency); const fl = ctx.createBiquadFilter(); fl.type = 'bandpass'; fl.frequency.value = 1100; fl.Q.value = 2; env(g, t, .02, .7, .3); o.connect(fl).connect(g).connect(master); o.start(t); v.start(t); o.stop(t + .8); v.stop(t + .8); }
       else if (n === 'smoke') noise(t, .5, .16, 'lowpass', 1400); } };
   return A;
 }
