@@ -85,6 +85,15 @@ The page opens in Game. It is a run of rooms to rob, after Void Bastards: read t
 
 `js/heist.js`. World mode (`?world`) keeps the inspect panel, stubs, cameras and the rest described below.
 
+## SPAM Wars · Can Racers (`racers.html`)
+
+A co-op pod race on the salt flat beside the Sealed Line. The craft is two SPAM-can engines joined by an energy binder, towing a pod on two cables. **Each player holds one engine's throttle**, so going straight takes agreement and turning takes one of you easing off. Player 1 also throws SPAM; player 2 fires the boost. Solo (M) puts both engines on one stick.
+
+- Phone: a lever on each side of the screen, one thumb each, or two people on one phone. Keys: W/S and ↑/↓, E throw, Enter boost. Gamepad: the two sticks are the two engines (or two pads, one stick each).
+- Physics is Rapier: rigid bodies for the engines, pod, rivals, thrown cans, walls, rotating sweepers and bumpers; the hover, the binder and the cables are spring forces in `js/racers.js`.
+- Five rivals, four cans to pick with different mass, grip and boost, boost pads, crates of ammunition, three laps.
+- Sound is synthesised: one engine in each ear, and a 138 bpm march that adds parts on laps two and three.
+
 ## The game on the train
 
 The bar at the bottom left switches **World** (walk and film, nothing asks anything of you), **Game** (goals, and the swarm is hostile) and **Cinema** (the unattended take). `?game` starts in Game.
