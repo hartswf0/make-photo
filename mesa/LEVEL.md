@@ -140,3 +140,20 @@ The glass is painted at load on canvases: leaded cells around a jittered grid, l
 ## Handmade (PAE-09)
 
 The knight scene, held still as a description and a score taken from this level's own knight machine, is built four times from the bottom up by four SCION swarms: Afewerk Tekle (one fixed leaded window, only the light moves), Lucasfilm 1985 (hand-keyed convex shards), Djibril Diop Mambéty (a griot collage cut from this game's own frames) and Mœbius and Otomo (a clean line, light trails, a bloom before each break). Each film is measured from its own pixels and judged by independent critics: [PAE-09 · MESA CHIP, handmade](https://hartswf0.github.io/bolas/paeleo/mesa-chip/).
+
+## The SCION lenses (L)
+
+The four PAE-09 swarms are also ways of seeing the playable world. Press **L**, or the lens button, to cycle through them. You can also open the level with `?lens=tekle`, `lucas85`, `mambety` or `moebius`.
+
+The game itself does not change: walking, spraying, swimming in ink, the horned motorcycle, the duel, the knight, the stained-glass murals and the mirrors all work as before. The scene renders to a colour and depth target, and one full-screen pass (`lens.js`) turns that picture into the swarm's language.
+
+| Lens | What you see while you play |
+|---|---|
+| **Tekle · leaded light** | One window, cut once. The cutting is fixed to the glass of the screen and never moves, and the world is the light passing through it. Each piece takes the light at its centre. The lead thickens wherever depth breaks, so the light itself draws Uncle Mesa's and the knight's contours. |
+| **1985 · shard light** | A rack focus that follows the fight: it pulls to the knight when the knight is out of the glass and near, and back to Uncle Mesa otherwise. Each facet's highlight blooms on its own, and the shutter stays open across frames, like accumulated sub-frames. |
+| **Mambéty · told** | The picture holds and jumps on a plucked rhythm (2, 1, 1, 3, 1, 2, 1, 1, 2, 3 film frames) and cuts on every event, such as a hit, a fall or the shatter. The stock is hot and worn. When he goes down, or the knight goes to pieces, the zebu horns of the motorcycle interrupt, painted with every colour fired so far. |
+| **Mœbius · line** | One black line of constant weight wherever depth or colour breaks, with flat colour. Bright, saturated things leave Akira trails: paintballs in flight, the red sword, lit glass. |
+
+![Tekle](lens-tekle.jpg) ![1985](lens-lucas85.jpg) ![Mambéty](lens-mambety.jpg) ![Mœbius](lens-moebius.jpg)
+
+`lenses.mp4` is a real play session in the glass cathedral with the knight hunting: Uncle Mesa sprays and walks, and the lens changes every few seconds (Plain, Tekle, 1985, Mambéty, Mœbius). It was recorded in software WebGL, so the frame rate is low.

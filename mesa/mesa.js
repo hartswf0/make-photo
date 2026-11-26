@@ -19,6 +19,7 @@
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6)); renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap; renderer.localClippingEnabled = true;
   const scene = new T.Scene(), camera = new T.PerspectiveCamera(52, 1, .1, 5000);
+  const LENS = window.MesaLens ? window.MesaLens.create({ T, renderer }) : null;   /* the SCION lenses (lens.js): L cycles them */
   scene.fog = new T.FogExp2(0xf0c890, .0016);
   /* the painted skybox: horizontal bands of yellow and blue over the salt, as in the film's brushstroke strata (01:10) */
   const SKY = { uSun: { value: new T.Vector3(.3, .2, -.9).normalize() }, uA: { value: new T.Color("#f2c84a") }, uB: { value: new T.Color("#3a6ab8") }, uC: { value: new T.Color("#f4e8d2") }, uStorm: { value: 0 }, uTime: { value: 0 } };
@@ -47,7 +48,7 @@
   const hemi = new T.HemisphereLight(0xfff0d8, 0x9a5a2e, .8); scene.add(hemi);
   const sun = new T.DirectionalLight(0xffe2b0, 2.8); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 700 }); sun.shadow.bias = -.0004; scene.add(sun, sun.target);
   const fx = $("fx"), FX = fx.getContext("2d"), grid = $("grid"), GX = grid.getContext("2d");
-  const resize = () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); for (const c of [fx, grid]) { c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio; } if (MIR) MIR.rt.setSize(Math.round(innerWidth * .5), Math.round(innerHeight * .5)); };
+  const resize = () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); for (const c of [fx, grid]) { c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio; } if (MIR) MIR.rt.setSize(Math.round(innerWidth * .5), Math.round(innerHeight * .5)); if (LENS) LENS.resize(); };
   let MIR = null; addEventListener("resize", resize);
 
   /* ---------- the world ---------- */
@@ -269,11 +270,11 @@
   /* ---------- shooting ---------- */
   function fire(dir) { if (st.cool > 0 || st.mode === "down" || !INK) return; if (st.ink < 1.5) { st.cool = .25; S.dry(); return; } st.cool = .095; st.recoil = .5; st.ink -= 1.5;
     const o = new T.Vector3(); if (gun.parent) gun.localToWorld(o.set(0, 0, .26)); else o.set(st.x, st.y + 1.4, st.z);
-    const spread = .018 + (1 - st.steady) * .03, d = dir.clone().add(new T.Vector3((Math.random() - .5) * spread, (Math.random() - .5) * spread + .035, (Math.random() - .5) * spread)).normalize(), col = PAINT[paintN++ % PAINT.length];
+    const spread = .018 + (1 - st.steady) * .03, d = dir.clone().add(new T.Vector3((Math.random() - .5) * spread, (Math.random() - .5) * spread + .035, (Math.random() - .5) * spread)).normalize(), col = PAINT[paintN++ % PAINT.length]; if (LENS) LENS.event("fire", col);
     INK.fire(o, d, col, 30 + Math.random() * 4); puff(o.clone().addScaledVector(d, .12), col, d.clone().multiplyScalar(1.5), .3, .05, 1.4, false); S.launch(o); }
   function inkHit(who, q, n, d, col, owner) {
     SPORE.scatter(q, 1);
-    if (who && who.kind === "knight" && owner !== "outlaw") { KN.hit(0, q, .42, col); KNIGHT.hp--; S.glass(q, .5); if (KNIGHT.hp <= 0 && KNIGHT.state !== "shattered") { KN.shatter(0, d); KNIGHT.state = "shattered"; KNIGHT.t = 0; S.glass(q, 2); complete("knight", "The knight goes to pieces on the mirror floor, every shard still holding its colour."); } return true; }   /* what a paintball does besides land: prisms crack, outlaws go down in their own colour, shards skitter */
+    if (who && who.kind === "knight" && owner !== "outlaw") { KN.hit(0, q, .42, col); KNIGHT.hp--; if (LENS) LENS.event("hit", col); S.glass(q, .5); if (KNIGHT.hp <= 0 && KNIGHT.state !== "shattered") { KN.shatter(0, d); if (LENS) LENS.event("shatter"); KNIGHT.state = "shattered"; KNIGHT.t = 0; S.glass(q, 2); complete("knight", "The knight goes to pieces on the mirror floor, every shard still holding its colour."); } return true; }   /* what a paintball does besides land: prisms crack, outlaws go down in their own colour, shards skitter */
     if (who && who.kind === "prism") { const p = who.p; p.hp--; S.glass(q, .3); if (p.hp <= 0) shatter(p, d); return false; }
     if (who && who.kind === "me") { if (owner !== "outlaw") return true; paintBody(me, q, col, 3); if (st.mode !== "down") { $("hurt").classList.add("on"); setTimeout(() => $("hurt").classList.remove("on"), 260); fall("The paint takes him off his feet."); } return true; }
     if (who && who.kind === "outlaw") { const ol = who.o; paintBody(ol.ch, q, col, 3); if (ol.state === "idle" || ol.state === "telegraph" || ol.state === "fire") { ol.state = "fall"; ol.t = 0; S.thud(q); say(`${ol.name} goes down, painted to the hat.`, 2); }
@@ -330,7 +331,7 @@
     if (near(p, W.booth.userData.seat, 2.2)) return { label: "Take a seat at the booth", run: () => { st.mode = "sit"; const s = W.booth.userData.seat; st.x = s.x; st.z = s.z; st.y = s.y - .7; st.heading = Math.PI; say("Uncle Chip's booth. Under the glass sign, a man can sit and still draw.", 3); } };
     return null; }
   let MODE = "world"; function setMode(m) { MODE = m; document.body.classList.toggle("cinema", m === "cinema"); for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", b.dataset.mode === m); DUEL.on = m === "game"; if (m === "game") { DUEL.wave = 0; DUEL.left = 0; DUEL.next = 2.5; say("Game. The outlaws are coming to the arena.", 2.5); } DIR.i = 0; DIR.t = 0; }
-  function fall(line) { if (st.mode === "ride") { st.mode = "foot"; } st.mode = "down"; st.downT = 0; if (line) say(line, 2); S.thud(new T.Vector3(st.x, st.y, st.z)); }
+  function fall(line) { if (LENS) LENS.event("fall"); if (st.mode === "ride") { st.mode = "foot"; } st.mode = "down"; st.downT = 0; if (line) say(line, 2); S.thud(new T.Vector3(st.x, st.y, st.z)); }
 
   /* ---------- the director (Cinema): the breakdown's six cameras ---------- */
   const DIR = { i: 0, t: 0 }, SHOTS = [
@@ -352,13 +353,16 @@
     if (e.code === "KeyZ" && st.mode !== "down") fall("He goes down. He gets up.");
     if (e.code === "KeyG") GRIDON = !GRIDON;
     if (/^Digit[1-6]$/.test(e.code)) mood(+e.code.slice(5) - 1);
-    if (e.code === "KeyV") setMode(MODE === "cinema" ? "world" : "cinema"); });
+    if (e.code === "KeyV") setMode(MODE === "cinema" ? "world" : "cinema");
+    if (e.code === "KeyL" && LENS) { LENS.cycle(); lensUI(); } });
   addEventListener("keyup", e => { keys[e.code] = false; });
   const mouse = { x: 0, y: .08, on: false }; canvas.addEventListener("pointermove", e => { mouse.x = e.clientX / innerWidth * 2 - 1; mouse.y = -(e.clientY / innerHeight * 2 - 1); mouse.on = true; });
   canvas.addEventListener("pointerdown", () => { S.wake(); mouse.down = true; }); addEventListener("pointerup", () => { mouse.down = false; });
   $("do").addEventListener("click", () => { const o = offer(); if (o) o.run(); });
   for (const b of document.querySelectorAll("[data-mode]")) b.addEventListener("click", () => setMode(b.dataset.mode));
   $("wide").addEventListener("click", () => { WIDE = !WIDE; $("wide").setAttribute("aria-pressed", WIDE); });
+  function lensUI() { const b = $("lens"); if (!b || !LENS) return; b.textContent = LENS.label(); b.setAttribute("aria-pressed", LENS.on()); if (LENS.on()) say({ tekle: "Afewerk Tekle: one window, cut once. Only the light moves.", lucas85: "1985: every facet takes its own light; the focus follows the fight.", mambety: "Mambéty: told, not shot. It holds, it jumps, the horns come back.", moebius: "Mœbius and Otomo: one line, flat colour, light that stays behind." }[LENS.name], 3); }
+  if ($("lens")) { $("lens").addEventListener("click", () => { LENS.cycle(); lensUI(); }); lensUI(); }
   $("gridb").addEventListener("click", () => { GRIDON = !GRIDON; });
   const ray = new T.Raycaster(); function aimDir() { ray.setFromCamera(new T.Vector2(mouse.on ? mouse.x : 0, mouse.on ? mouse.y : .08), camera); return ray.ray.direction.clone(); }
   const GRAB = document.createElement("canvas"); let GRIDON = true, WIDE = true, STORM = 0, STORMON = false, gridT = 0;
@@ -528,7 +532,10 @@
     for (const m of W.mirrors) { m.mesh.material.uniforms.uRes.value.set(renderer.domElement.width, renderer.domElement.height); m.mesh.material.uniforms.uOn.value = 0; }
     if (mi && mi.d < mi.m.r && camera.position.y > mi.m.y) { const y = mi.m.y, vc = MIR.vcam; vc.copy(camera); vc.position.y = 2 * y - camera.position.y; const f = new T.Vector3(0, 0, -1).applyQuaternion(camera.quaternion); f.y = -f.y; const u = new T.Vector3(0, 1, 0).applyQuaternion(camera.quaternion); u.y = -u.y; vc.up.copy(u); vc.lookAt(vc.position.clone().add(f)); vc.updateMatrixWorld();
       MIR.clip.constant = -y; renderer.clippingPlanes = [MIR.clip]; mi.m.mesh.visible = false; renderer.setRenderTarget(MIR.rt); renderer.render(scene, vc); renderer.setRenderTarget(null); renderer.clippingPlanes = []; mi.m.mesh.visible = true; mi.m.mesh.material.uniforms.uTime.value = t; mi.m.mesh.material.uniforms.uOn.value = 1; }
-    renderer.render(scene, camera);
+    if (LENS && LENS.on()) {   /* the lens focuses on what matters: the knight when it is out of the glass and near, else Uncle Mesa */
+      const K = KNIGHT, kOut = K.state === "hunt" || K.state === "strike" || K.state === "forming", kd = Math.hypot(camera.position.x - K.x, camera.position.z - K.z);
+      const md = camera.position.distanceTo(new T.Vector3(st.x, st.y + 1.2, st.z)); LENS.render(scene, camera, dt, { focus: kOut && kd < 40 ? Math.min(kd, md * 1.6) : md });
+    } else renderer.render(scene, camera);
     overlay(dt); requestAnimationFrame(frame);
   }
 
