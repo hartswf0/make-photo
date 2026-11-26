@@ -19,6 +19,7 @@ export function createUI({ shots }) {
     context(label) { if (label === ctxLabel) return; ctxLabel = label; $('act').hidden = !label; if (label) $('act').textContent = label; },
     status(j, env, shot, extra = '') { if (performance.now() - statusT < 250) return; statusT = performance.now(); $('status').textContent = `km ${(j.dist / 1000 % 9).toFixed(2)} · ${Math.round(j.speed * 3.6)} km/h · ${shot.lens}${env.segment && env.segment.type !== 'station' ? ' · ' + env.segment.name : nextName ? ' · next ' + nextName : ''}`; $('score').textContent = extra; },
     next(name) { nextName = name; },
+    swarm(n) { $('swarmN').textContent = n; $('sendBtn').classList.toggle('off', n < 3); },
     sting(combo, pack) { const e = $('stingFx'); e.textContent = combo > 1 ? `STUNG ×${combo}` : 'STUNG'; e.dataset.pack = pack > 3 ? `with ${pack} behind you` : ''; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); },
     talkBtn(name) { const b = $('talkBtn'); b.hidden = !name; if (name) b.textContent = 'TALK · ' + name; },
     goals(list, mode) { const box = $('goals'); box.hidden = mode !== 'game'; if (box.hidden) return; box.textContent = ''; const n = list.filter(q => q.done()).length; box.dataset.count = `${n}/${list.length}`; let first = true; for (const q of list) { const d = q.done(), li = el('li', d ? 'done' : first ? (first = false, 'next') : '', q.text + (q.show && !d && q.show() ? ' · ' + q.show() : '')); box.append(li); } },
@@ -39,7 +40,7 @@ export function createUI({ shots }) {
       $('tools').addEventListener('click', () => document.body.classList.remove('menu')); $('goals').onclick = () => $('goals').classList.toggle('all'); $('passBtn').onclick = () => api.pass();
       $('runBtn').onclick = () => document.body.classList.contains('run') ? api.endRun() : location.assign('spam.html?run'); $('cueCopy').onclick = async () => { try { await navigator.clipboard.writeText(cueText); $('cueCopy').textContent = 'Copied'; setTimeout(() => $('cueCopy').textContent = 'Copy cue', 1200); } catch { } };
       $('talkBtn').onclick = () => api.talkNear();
-      for (const [id, k] of [['beeUp', 'up'], ['beeDown', 'down']]) { const b = $(id); b.addEventListener('pointerdown', e => { e.preventDefault(); input[k] = true; }); for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => { input[k] = false; }); }
+      $('sendBtn').onclick = () => api.send();
       $('beeOut').onclick = () => api.bee(false);
       $('beeBtn').onclick = () => api.bee(); $('smokeBtn').onclick = () => api.smoke(); $('throwBtn').onclick = () => api.throw(); $('turnBtn').onclick = () => api.turn();
       $('modes').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const m = b.dataset.mode; if (m === 'cinema') { api.mode('world'); api.take(true); b.classList.add('on'); } else { api.take(false); api.mode(m); } });
