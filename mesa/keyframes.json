@@ -1,0 +1,14 @@
+[
+  { "id": "kf_01_grid_intro", "t": "00:00:04", "zone": "title_gate", "fx": ["glass_grid", "barrel_mask", "dust"], "action": "spawn_reveal" },
+  { "id": "kf_02_iris_portal", "t": "00:00:16", "zone": "clockwork_iris", "fx": ["brass_aperture", "rack_focus"], "action": "sightline_aim" },
+  { "id": "kf_03_glasses_sand", "t": "00:00:39", "zone": "dune_open", "fx": ["floating_spectacles", "gold_sand_ribbons"], "action": "toggle_storm" },
+  { "id": "kf_04_mural_sign", "t": "00:01:01", "zone": "main_street_glass", "fx": ["stained_glass_glow", "cyan_amber_smoke"], "action": "prism_cover" },
+  { "id": "kf_05_glass_canyon", "t": "00:01:28", "zone": "cathedral_trench", "fx": ["god_rays", "floor_refraction"], "action": "canyon_traverse" },
+  { "id": "kf_06_horse_standoff", "t": "00:01:31", "zone": "silhouette_wall", "fx": ["backlit_stripes", "golden_haze"], "action": "mount_horse" },
+  { "id": "kf_07_poncho_ridge", "t": "00:01:56", "zone": "hoodoo_ridge", "fx": ["dust_trail"], "action": "toggle_poncho" },
+  { "id": "kf_08_outlaw_glare", "t": "00:02:01", "zone": "duel_arena", "fx": ["low_angle_shadow"], "action": "enemy_telegraph" },
+  { "id": "kf_09_mesa_chip_fire", "t": "00:02:13", "zone": "uncle_chip_booth", "fx": ["magenta_muzzle_plume", "curved_light_tracer"], "action": "quick_draw_fire" },
+  { "id": "kf_10_curtain_monolith", "t": "00:02:24", "zone": "north_curtain_wall", "fx": ["vertical_caustics"], "action": "mounted_gallop" },
+  { "id": "kf_11_oasis_mirror", "t": "00:02:40", "zone": "oasis_pond", "fx": ["planar_reflection", "iridescent_sky"], "action": "oasis_standoff" },
+  { "id": "kf_12_ziggurat_end", "t": "00:03:03", "zone": "ziggurat_steps", "fx": ["low_sun_glint", "vertical_glass_slabs"], "action": "sit_tableau" }
+]
