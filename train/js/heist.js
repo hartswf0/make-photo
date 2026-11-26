@@ -45,9 +45,11 @@ export function createHeist({ scene, cars, train, props, people, actor, state, s
     if (sys.cloud.visible && actor.roof) { const s = sys.swarm.p; t.v.set(s.x - actor.x, s.y - y0 + 2, s.z - actor.z).normalize().multiplyScalar(13); }   // on the roof it flies at the swarm
     t.live = 1.6; deed('swat'); return true;
   }
+  let shown = true;
   function update(dt, ci) {
-    if (game.mode !== 'game') return;
-    for (const c of H.loose) if (c.m.visible && Math.abs(c.x - actor.x) < .9 && !actor.roof) { c.m.visible = false; H.spam++; H.left[c.car]--; stub('+1 SPAM', cars[c.car].name); }
+    const on = game.mode === 'game'; if (on !== shown) { shown = on; for (const c of H.loose) c.m.visible = on && !c.taken; }   // the loose cans belong to the heist; the film and the run do not see them
+    if (!on) return;
+    for (const c of H.loose) if (c.m.visible && Math.abs(c.x - actor.x) < .9 && !actor.roof) { c.m.visible = false; c.taken = true; H.spam++; H.left[c.car]--; stub('+1 SPAM', cars[c.car].name); }
     for (const t of throwsPool) {
       if (t.live > 0) { t.live -= dt; t.v.y -= 9.8 * dt; t.m.position.addScaledVector(t.v, dt); t.m.rotation.x += dt * 9; t.m.rotation.z += dt * 6;
         const floor = (t.m.position.y > F + 2 || actor.roof ? F + DIM.ROOF + .24 : F + .1);
