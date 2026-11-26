@@ -116,7 +116,13 @@ Walk up to anyone and press TALK (Y). Type, or tap a question. Each passenger ha
 
 ### Being the bee
 
-In bee mode (B), fly within a wing's length of anyone, the traveler included, and the button reads STING. They jump, swat and say so, and remember it.
+B, or the Bee button. The screen clears to a stick, up and down, and one button.
+
+- **Flight** has weight: it accelerates, banks through turns, dives faster than it climbs, and bumps off the glass, floor and ceiling.
+- **The swarm follows you.** Every bee in the carriage falls in behind the one you fly.
+- **Sting**: within a wing's length of anyone, the traveler included. The world holds for a tenth of a second, the lens kicks, and the whole swarm comes down on them.
+- **They freak out**: a jump, then flailing up and down the aisle, spinning, shouting, longer and wilder the more bees came with you and the more stings in a row. Passengers nearby recoil. Then they go back to their place and remember it.
+- **Sound**: the wing chord rises with your speed and peaks during a mobbing; each sting has a crack and a different yelp.
 
 ### The cast
 
