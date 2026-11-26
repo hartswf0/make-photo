@@ -10,6 +10,7 @@ import { loadCast } from './cast.js';
 import { createUI } from './ui.js';
 import { createInteract } from './interact.js';
 import { createGame, ROOF_Y } from './game.js';
+import { buildProps } from './props.js';
 import { createAudio } from './audio.js';
 
 const mobile = matchMedia('(pointer:coarse)').matches || innerWidth < 760;
@@ -57,7 +58,7 @@ const audio = createAudio();
 const stub = (title, sub = '') => { state.log.push({ t: +state.t.toFixed(1), km: +(journey.dist / 1000).toFixed(2), title, sub }); if (state.log.length > 400) state.log.shift(); ui.toast(title, sub); };
 let worlds = null, cast = null, people = [], hero = null;
 const interact = createInteract({ scene, cars, camera, stub }), game = interact.game;
-interact.loadCorpus().catch(e => console.warn('no corpus', e));
+const props = buildProps(train, M); interact.loadCorpus(props).catch(e => console.warn('no corpus', e));
 // what the passengers say and do to him, by carriage: [line, what it does to him, what they hand over]
 const TALK = { 1: [['Sit. The window is the only thing in here that changes.', 'greet']], 2: [['We applaud whoever comes through that door. It is not personal.', 'dazed'], ['The briefcase is not yours. Neither is the shoe.', 'swat']],
   3: [['Half for you. Half for them. Never both.', 'greet', 'half a comb']], 4: [['Wear this. They sting what they can see the face of.', 'kneel', 'veil']], 5: [['I heard what you were thinking just now. So did they.', 'dazed']],

@@ -8,38 +8,39 @@ const $ = id => document.getElementById(id);
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x !== undefined) e.textContent = x; return e; };
 
 export function createInteract({ scene, cars, camera, stub }) {
-  const items = [], game = { stubs: new Set(), total: 0, talked: new Set(), inv: [], veil: false, water: 12 };
+  const items = [], game = { stubCars: new Set(), stubs: new Set(), total: 0, talked: new Set(), inv: [], veil: false, water: 12 };
   let open = null, near = null;
   const v = new THREE.Vector3(), T = it => typeof it.title === 'function' ? it.title() : it.title;
   /** item: { id, car, at:[x,y,z] local to the carriage (or pos(): Vector3), title, kicker, rows(): [[k, v]], verbs(): [{ label, run }], radius, gone } */
   function add(it) { it.radius = it.radius || 1.5; it.world = new THREE.Vector3(); items.push(it); return it; }
   const where = it => it.pos ? it.world.copy(it.pos()) : it.world.set(cars[it.car].x + it.at[0], DIM.FLOOR + it.at[1], it.at[2]);
 
-  // ---- ticket stubs: one per world of the corpus, hanging beside the aisle of the carriage it was poured into
-  const geo = new THREE.BoxGeometry(.19, .11, .012), mat = new THREE.MeshBasicMaterial({ color: 0xf2c14a });
-  let stubs = null, stubItems = [];
-  async function loadCorpus() {
+  // ---- the corpus lives in the props: each thing in a carriage keeps the stubs of the worlds it stands for
+  const norm = x => x.toLowerCase().replace(/[^a-z0-9]/g, '');
+  let tags = null, holders = [];
+  async function loadCorpus(props) {
     const data = (await (await fetch('data/corpus.json')).json()).stubs; game.total = data.length;
-    stubs = new THREE.InstancedMesh(geo, mat, data.length); stubs.frustumCulled = false; scene.add(stubs);
-    const by = {}; for (const s of data) (by[s.car] = by[s.car] || []).push(s);
-    for (const [ci, list] of Object.entries(by)) { const c = cars[ci], n = list.length;
-      list.forEach((s, k) => { const x = DIM.L / 2 - 1.6 - (k + .5) * (DIM.L - 3.6) / n, side = k % 2 ? 1 : -1, z = c.aisleZ + side * (c.aisleHalf + .16), y = 1.0 + ((k * 7) % 5) * .09;
-        const it = add({ id: s.uid, car: +ci, at: [x, y, z], radius: 1.15, stub: s, index: stubItems.length, kicker: `${s.uid} · ${s.chapter}`, title: s.name,
-          rows: () => [['Kind', s.kind || s.genre || 'world'], ['Holds', s.holds.slice(0, 2).join(', ') || '—'], ['Does', s.does || '—'], ['Stub', game.stubs.has(s.uid) ? 'Taken' : 'Hanging here']],
-          note: s.what, verbs: () => game.stubs.has(s.uid) ? [] : [{ label: 'Take the stub', run: () => { game.stubs.add(s.uid); it.gone = true; stub(s.name, `stub ${game.stubs.size} of ${game.total} · ${s.chapter}`); return true; } }] });
-        stubItems.push(it); }); }
+    const left = new Set(data);
+    for (const pr of props) { pr.stubs = []; for (const s of [...left]) if (s.car === pr.car && pr.worlds.some(w => norm(s.name).includes(w))) { pr.stubs.push(s); left.delete(s); } }
+    for (const s of left) { const inCar = props.filter(p => p.car === s.car); if (!inCar.length) continue; inCar.sort((a, b) => a.stubs.length - b.stubs.length)[0].stubs.push(s); }   // every world rides somewhere
+    tags = new THREE.InstancedMesh(new THREE.OctahedronGeometry(.035, 0), new THREE.MeshBasicMaterial({ color: 0xf2c14a }), props.length); tags.frustumCulled = false; scene.add(tags);
+    props.forEach((pr, k) => { let read = 0; const mine = () => pr.stubs.filter(s => !game.stubs.has(s.uid));
+      const it = add({ id: 'prop' + k, car: pr.car, at: pr.at, radius: 1.35, index: k, prop: pr, kicker: () => `${cars[pr.car].name} · ${pr.stubs.length} world${pr.stubs.length === 1 ? '' : 's'}`, title: pr.title,
+        rows: () => { const s = pr.stubs[read % Math.max(1, pr.stubs.length)]; return s ? [['World', `${s.uid} ${s.name}`], ['From', s.chapter], ['Holds', s.holds.slice(0, 2).join(', ') || '—'], ['Stubs here', `${pr.stubs.length - mine().length} of ${pr.stubs.length} taken`]] : [['Stubs here', 'none']]; },
+        verbs: () => [...(mine().length ? [{ label: `Take ${mine().length} stub${mine().length === 1 ? '' : 's'}`, run: () => { const n = mine(); n.forEach(s => game.stubs.add(s.uid)); game.stubCars.add(pr.car); stub(pr.title, `${n.length} stub${n.length === 1 ? '' : 's'} · ${game.stubs.size} of ${game.total}`); return true; } }] : []),
+          ...(pr.stubs.length > 1 ? [{ label: 'Read the next', run: () => { read++; it.note = pr.stubs[read % pr.stubs.length].what; return true; } }] : [])] });
+      it.note = pr.stubs[0] ? pr.stubs[0].what : ''; it.left = mine; holders.push(it); });
   }
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), one = new THREE.Vector3();
   function drawStubs(t, camCar) {
-    if (!stubs) return;
-    for (const it of stubItems) { const show = !it.gone && Math.abs(it.car - camCar) <= 1; where(it); e.set(0, t * 1.2 + it.index, Math.sin(t * 2 + it.index) * .1); q.setFromEuler(e); one.setScalar(show ? 1 : 0);
-      v.copy(it.world).y += Math.sin(t * 1.6 + it.index) * .03; m4.compose(v, q, one); stubs.setMatrixAt(it.index, m4); }
-    stubs.instanceMatrix.needsUpdate = true;
+    if (!tags) return;
+    for (const it of holders) { const show = it.left().length && Math.abs(it.car - camCar) <= 1; where(it); e.set(0, t * 1.5 + it.index, 0); q.setFromEuler(e); one.setScalar(show ? 1 : 0); v.copy(it.world).y += .32 + Math.sin(t * 2 + it.index) * .03; m4.compose(v, q, one); tags.setMatrixAt(it.index, m4); }
+    tags.instanceMatrix.needsUpdate = true;
   }
 
   // ---- the panel
   function show(it) {
-    open = it; const p = $('panel'); p.hidden = false; $('pKicker').textContent = it.kicker || ''; $('pTitle').textContent = T(it);
+    open = it; const p = $('panel'); p.hidden = false; $('pKicker').textContent = typeof it.kicker === 'function' ? it.kicker() : it.kicker || ''; $('pTitle').textContent = T(it);
     const rows = $('pRows'); rows.textContent = ''; for (const [k, val] of it.rows ? it.rows() : []) { const r = el('div', 'row'); r.append(el('span', '', k), el('b', '', val)); rows.append(r); }
     $('pNote').textContent = it.note || ''; $('pNote').hidden = !it.note;
     const vs = $('pVerbs'); vs.textContent = ''; (it.verbs ? it.verbs() : []).forEach((vb, k) => { const b = el('button', 'verb'); b.append(el('kbd', '', String(k + 1)), el('span', '', vb.label)); b.onclick = () => run(k); vs.append(b); });

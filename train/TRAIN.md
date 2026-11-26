@@ -78,7 +78,7 @@ The bar at the bottom left switches **World** (walk and film, nothing asks anyth
 | System | What it does | Where |
 |---|---|---|
 | Inspect | Walk up to anything and press E: a panel of facts and numbered verbs. Passengers, doors, thresholds, cans, the smoker, the ladders, the controls, the queen's cell. | `js/interact.js` |
-| Stubs | 158 worlds of the corpus hang beside the aisles of the carriages they were poured into. Inspect one to read it; take it to keep it. | `data/corpus.json` |
+| Props and stubs | The things the door cues describe are built in the carriages: 56 props across seven cars (the lockers and briefcase, the aquarium, the cliff with its comb, the rifles behind the honey jars, the graffiti wall, the treaty table, the safes and the sorting wall, the script unrolling in the hive). Each keeps the stubs of the worlds it stands for, 158 in all. Inspect to read them; take them to keep them. | `js/props.js`, `data/corpus.json` |
 | Passengers | Talk: each says a line for their carriage and does something to him. The child gives half a comb, the beekeeper the veil, the conductor the cab key for five stubs. | `TALK` in `js/main.js` |
 | The bee | B: you are the lead bee. Fly where you look, through shut doors, Space up, Shift down. Two bee cameras. | `toggleBee` |
 | The great swarm | One body of 1,100 with four states: it shadows him outside the glass, circles when he is on the roof, dives, and reels when smoked. A dive that lands stings twice unless he wears the veil. Tunnels strip some off; the horn scatters it. At zero it settles and the whole train goes quiet. Twelve stings from it and he comes round in the apiary car. | `js/game.js` |
@@ -94,6 +94,10 @@ M cycles the frame through beauty, clay, normals, depth, object classes and wire
 ### Light
 
 On desktop the sun casts: through the windows onto the seats and floor, and the train and the swarm onto the land and the roofs. Metals reflect a small sky. Phones skip the shadow pass.
+
+### Interface
+
+One camera button (the current shot; tap for the full list), one menu (run, take, record, still, sound, bee, passes, hide), the mode bar, the stick and one action button. In Game the goals fold to the next one; tap to see all eight. Keys still work on desktop: E, 1–3, B, R, M, Q, C, T, H, F, G, V.
 
 ## Seeds for world-model takes
 
