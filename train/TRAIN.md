@@ -106,6 +106,12 @@ A co-op pod race on the salt flat beside the Sealed Line. The craft is two SPAM-
 - Five rivals, four cans to pick with different mass, grip and boost, boost pads, crates of ammunition, three laps.
 - Sound is synthesised: one engine in each ear, and a 138 bpm march that adds parts on laps two and three.
 
+### Bees and sound in the heist
+
+The bees inside are striped bodies that steer and face where they fly. Each keeps a place in its carriage; a share of them, growing toward the rear, are angry and go for his head, and a sting is a bee actually reaching him. A thrown can pulls every bee in the carriage onto it for eight seconds.
+
+Sound starts on the first touch: rails and joints, a five-voice wing chord that swells with the bees near the lens and tightens when they are angry, footsteps, doors, pick-ups, robbing, throws, the can landing, stings, and a slow pentatonic line under the game.
+
 ## The game on the train
 
 The bar at the bottom left switches **World** (walk and film, nothing asks anything of you), **Game** (goals, and the swarm is hostile) and **Cinema** (the unattended take). `?game` starts in Game.
