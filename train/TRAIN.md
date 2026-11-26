@@ -46,6 +46,12 @@ Eighteen mounts and eight moves. A mount is a place for the lens; a move travels
 
 The take (▶) cuts between them and walks him down the train. `trainFilm.rig()` returns every position as a posed pinhole camera.
 
+## SPAM on a Train: all people are SPAM
+
+The current run. One seed and eight door cues, written by the project's author, in `SPAM-HANDOFF.md` and `data/spam_session.json`. The seed picture is `seeds/spam_0_seed.jpg`: a living SPAM Classic can alone in an empty carriage, composed in the 3D train and dressed on its depth.
+
+`index.html?run` rehearses it: the traveler and every passenger become walking cans (`js/cans.js`: a tin with a flavor label, a gold pull-tab lid that lifts to show the loaf, two eyes, metal arms and legs), the first carriage is empty, and each door shows its cue. The train's rooms are still in their built order, so the cue for a door does not always match the room behind it: the cues say dining, wax and gold, mailworks, cinema, apiary, slop sea, hive; the train has dining, greenhouse, apiary, mirror, surveillance, cinema, hive. The ninth room's cue falls at the far end of the hive. `?run=worlds` is the earlier run below.
+
 ## The run: one empty carriage, then seven doors
 
 The main use of the seeds. One world-model session, third person, W held down.

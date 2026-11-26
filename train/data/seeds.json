@@ -1117,6 +1117,27 @@
     "He reaches the closed door at the far end and puts his hand on the brass handle."
    ],
    "far": 40
+  },
+  {
+   "id": "spam_0_seed",
+   "title": "SPAM on a Train: the seed",
+   "car": 1,
+   "x": 5.6,
+   "dir": -1,
+   "walk": 0,
+   "km": 0.5,
+   "shot": "follow",
+   "empty": true,
+   "cans": true,
+   "ref": "assets/worlds/quiet.jpg",
+   "settle": 4500,
+   "frame": "Wide third-person view from behind one living blue-and-yellow SPAM Classic can character standing in the central aisle of an empty vintage railway carriage, seen whole including its feet: a rounded rectangular tin body with a blue label and yellow SPAM lettering, a gold pull-tab lid, small articulated metal arms and legs. Muted petroleum-teal panelled walls, worn burgundy bench seats on both sides, curved timber ceiling with amber lamps, brass window surrounds, golden highlands outside the windows. No passengers, no bees, no luggage. A closed teal sliding door at the far end of the carriage.",
+   "scene": "The one picture for SPAM on a Train: a living can, alone, in an empty carriage, a closed door ahead.",
+   "genie": "Continuous third-person game take, behind one living blue-and-yellow SPAM Classic can with small articulated metal arms and legs, a rounded rectangular tin body, a gold pull-tab lid and two small eyes. Every person in this world is an anthropomorphic can of SPAM. There are no human characters. The protagonist walks upright with a steady, short, planted-foot gait, keeping the same silhouette and label. He begins alone in an empty vintage railway carriage, with muted petroleum-teal walls, worn burgundy seats, curved timber ceiling, brass window surrounds and golden highlands passing outside. There are no other passengers and no bees yet. A closed teal sliding door stands ahead. Wide rear third-person follow camera, showing the whole can and feet. No cuts, dissolves, body morphs, sudden camera changes or HUD. Ordinary rail sound, metal footsteps. Every new carriage is revealed only beyond its physical doorway. Objects remain in their places unless they physically move. Bees are small recognizable flying insects, not sparkling particles. Keep the same train, direction of travel and protagonist throughout.",
+   "events": [
+    "He walks the length of the empty carriage.",
+    "He reaches the closed teal door and opens it."
+   ]
   }
  ],
  "run": {
