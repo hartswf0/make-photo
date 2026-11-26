@@ -3443,7 +3443,7 @@
     const isImani = id.includes("imani") || name.includes("imani") || (spec.outer === "duster" && spec.toolBelt);
     const isMakeda = id.includes("makeda") || name.includes("makeda") || spec.hair === "cornrowBraids";
     const isHanna = id.includes("hanna") || name.includes("hanna") || id.includes("op_f") || spec.hair === "ponytail";
-    const isElder = Boolean(spec.beard) || spec.hair === "turban" || ((spec.fem !== undefined ? spec.fem : 0.65) < 0.35 && spec.outer === "shamma");
+    const isElder = !spec.ownColors && (Boolean(spec.beard) || spec.hair === "turban" || ((spec.fem !== undefined ? spec.fem : 0.65) < 0.35 && spec.outer === "shamma"));   /* ownColors: a spec that names its own garment colours keeps them */
     const outerStyle = isYouth ? "none" : (isMakeda ? "shamma" : (spec.outer || "duster"));
 
     const meshes = [];

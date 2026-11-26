@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <title>Sunday at Eastminster</title>
+  <meta name="description" content="A custodian cowboy's Sunday morning in East Knoxville: unlock the church, ring the bell, paint the raccoons off the trash, fight back the kudzu, haul hay to Holston Hills on the tractor, and fly a helicopter off World Headquarters around the Sunsphere.">
+  <script type="importmap">{"imports":{"three":"../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
+  <style>
+    :root { --ink: #f4efe4; --dim: rgba(244, 239, 228, .66); --line: rgba(244, 239, 228, .3); --stage: #14181c; --accent: #e0761e; --glass: rgba(161, 232, 228, .9);
+      --serif: Georgia, "Times New Roman", serif; --mono: ui-monospace, Menlo, Consolas, monospace; color-scheme: dark; }
+    html, body { margin: 0; height: 100%; background: var(--stage); color: var(--ink); font: 12px/1.4 var(--mono); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+    canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; outline: none; }
+    #fx { pointer-events: none; z-index: 2; }
+    [hidden] { display: none !important; }
+    .top { position: fixed; left: 0; right: 0; top: 0; z-index: 3; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 28px; background: linear-gradient(rgba(20, 24, 28, .55), transparent); pointer-events: none; display: grid; gap: 3px; }
+    .top b { font: italic 400 clamp(20px, 3vw, 28px)/1.2 var(--serif); }
+    .top span { color: var(--dim); letter-spacing: .14em; text-transform: uppercase; font-size: 10px; }
+    #goals { position: fixed; right: 16px; top: calc(16px + env(safe-area-inset-top, 0px)); z-index: 3; margin: 0; padding: 10px 12px; list-style: none; display: grid; gap: 5px; max-width: 270px; background: rgba(20, 24, 28, .5); border: 1px solid var(--line); font-size: 11px; }
+    #goals li { color: var(--dim); } #goals li.done { color: var(--ink); text-decoration: line-through; text-decoration-color: var(--accent); }
+    #goals li::before { content: "○ "; color: var(--accent); } #goals li.done::before { content: "● "; }
+    #line { position: fixed; left: 0; right: 0; bottom: calc(78px + env(safe-area-inset-bottom, 0px)); z-index: 3; padding: 0 20px; text-align: center; font: italic 400 clamp(16px, 2.4vw, 23px)/1.4 var(--serif); text-shadow: 0 1px 12px rgba(0, 0, 0, .9); pointer-events: none; opacity: 0; transition: opacity .7s; text-wrap: balance; }
+    #line.on { opacity: 1; }
+    .bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 3; padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: linear-gradient(transparent, rgba(20, 24, 28, .7) 40%); }
+    .bar .keys { color: var(--dim); letter-spacing: .1em; text-transform: uppercase; font-size: 10px; margin-right: auto; }
+    button { all: unset; cursor: pointer; font: 600 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink); border: 1px solid var(--line); padding: 10px 12px; }
+    button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    #do { background: var(--accent); border-color: var(--accent); }
+    #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .45s; z-index: 4; }
+    #fade.on { opacity: 1; }
+    #boot { position: fixed; inset: 0; display: grid; place-items: center; background: var(--stage); z-index: 9; transition: opacity .6s; text-align: center; padding: 24px; }
+    #boot.done { opacity: 0; pointer-events: none; }
+    #boot b { display: block; font: italic 400 26px/1.3 var(--serif); margin-bottom: 8px; }
+    #boot span { color: var(--dim); font-size: 11px; letter-spacing: .08em; }
+    @media (max-width: 640px) { #goals { top: auto; bottom: 120px; right: 12px; left: 12px; max-width: none; } .bar .keys { display: none; } }
+  </style>
+</head>
+<body>
+  <canvas id="c" tabindex="0" aria-label="East Knoxville on a Sunday morning. W A S D to walk or drive, Shift to run, E to do what is here, R for the paintball marker, Space or click to fire, C for a wide camera."></canvas>
+  <canvas id="fx"></canvas>
+  <header class="top"><b>Sunday at Eastminster</b><span id="where">East Knoxville</span></header>
+  <ol id="goals" aria-label="The Sunday list"></ol>
+  <div id="line" aria-live="polite"></div>
+  <div class="bar">
+    <span class="keys">W A S D walk or drive · Shift run · E do · R marker · Space or click fire · C wide · in the air: Space climbs, Shift sinks</span>
+    <button id="aim" type="button" title="The paintball marker (R)">Marker</button>
+    <button id="do" type="button" title="Do what is here (E)" hidden></button>
+  </div>
+  <div id="fade"></div>
+  <div id="boot" role="status"><div><b>Sunday at Eastminster</b><span id="boot-s">Getting the keys…</span></div></div>
+
+  <script src="../field-plates/three.js"></script>
+  <script src="../donkey/donkey.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-eye-globe.js?v=v6sculpt1"></script><script src="../donkey/scion-eyelids.js?v=v6sculpt1"></script>
+  <script src="../donkey/human-physical-v6.js?v=v6sculpt1"></script><script src="../donkey/human-sculpt-v3.js?v=v6sculpt1"></script>
+  <script src="../donkey/scion-groom-garments.js?v=v6sculpt1"></script><script src="../donkey/characters.js?v=cast2"></script>
+  <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
+  <script src="./knox-world.js?v=1"></script>
+  <script src="./knox.js?v=1"></script>
+</body>
+</html>
