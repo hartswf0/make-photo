@@ -63,6 +63,43 @@
   for (const p of W.prisms) { p.col = world.createCollider(R.ColliderDesc.cylinder(1.3, 1.05).setTranslation(p.x, p.y, p.z)); OWNER.set(p.col.handle, { kind: "prism", p }); }
   const shards = [];
 
+  /* ---------- the stained-glass world: a shot does not leave a hole, it grows leaded glass where it lands ----------
+     Every opaque material of the world gets the same shader patch. A bloom is a sphere (centre, radius) with a paint colour; inside it
+     the surface turns into stained glass: cells laid out on the surface's own plane (top, side or front, by its normal), dark lead
+     where two cells meet, each cell a colour of the palette leaning toward the shot's paint, and the glass glows. Blooms that land
+     close together merge and grow, so the desert can be painted over a shot at a time. */
+  const NB = 48, GLASS = { uHits: { value: Array.from({ length: NB }, () => new T.Vector4(0, -999, 0, 0)) }, uHitC: { value: Array.from({ length: NB }, () => new T.Color()) }, uN: { value: 0 }, uTime: { value: 0 } };
+  const blooms = [], BK = document.createElement("canvas"); BK.width = BK.height = 1024; const BKX = BK.getContext("2d"), bakeTex = new T.CanvasTexture(BK); bakeTex.colorSpace = T.NoColorSpace; bakeTex.flipY = false;   /* canvas row = +z, as the shader reads it */
+  GLASS.uBake = { value: bakeTex }; GLASS.uB = { value: new T.Vector4(W.BOUND.x0, W.BOUND.z0, W.BOUND.x1 - W.BOUND.x0, W.BOUND.z1 - W.BOUND.z0) };
+  function bake(b) { const B = W.BOUND, u = (b.c.x - B.x0) / (B.x1 - B.x0) * 1024, v = (b.c.z - B.z0) / (B.z1 - B.z0) * 1024, r = b.target / (B.x1 - B.x0) * 1024, c = b.col, g = BKX.createRadialGradient(u, v, 0, u, v, r);
+    const rgb = `${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)}`; g.addColorStop(0, `rgba(${rgb},1)`); g.addColorStop(.62, `rgba(${rgb},1)`); g.addColorStop(1, `rgba(${rgb},0)`); BKX.fillStyle = g; BKX.beginPath(); BKX.arc(u, v, r, 0, 6.29); BKX.fill(); bakeTex.needsUpdate = true; }
+  function patchGlass(m) { if (!m || m.userData.sg || !m.isMeshStandardMaterial || m.transparent) return; m.userData.sg = true; m.customProgramCacheKey = () => "stained-glass-world";
+    m.onBeforeCompile = sh => { Object.assign(sh.uniforms, GLASS);
+      sh.vertexShader = "varying vec3 vSgP; varying vec3 vSgN;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n vSgP = (modelMatrix * vec4(transformed, 1.)).xyz; vSgN = normalize(mat3(modelMatrix) * objectNormal);");
+      sh.fragmentShader = `uniform vec4 uHits[${NB}]; uniform vec3 uHitC[${NB}]; uniform int uN; uniform float uTime; uniform sampler2D uBake; uniform vec4 uB; varying vec3 vSgP; varying vec3 vSgN;
+        vec2 sgH2(vec2 p){ p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3))); return fract(sin(p) * 43758.5453); }
+        float sgH1(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 23758.5453); }
+        vec3 sgPal(float h){ return h < .15 ? vec3(.18,.82,.85) : h < .3 ? vec3(.95,.66,.23) : h < .44 ? vec3(.85,.2,.17) : h < .58 ? vec3(.95,.82,.29) : h < .72 ? vec3(.16,.6,.35) : h < .86 ? vec3(.16,.29,.72) : vec3(.91,.35,.66); }
+        ` + sh.fragmentShader.replace("void main() {", "void main() {\n float sgCov = 0.; vec3 sgGlow = vec3(0.);")
+        .replace("#include <color_fragment>", `#include <color_fragment>
+          vec3 sgPc = vec3(0.); for (int i = 0; i < ${NB}; i++) { if (i >= uN) break; vec4 h = uHits[i]; float d = distance(vSgP, h.xyz); float k = 1. - smoothstep(h.w * .62, h.w, d); if (k > sgCov) { sgCov = k; sgPc = uHitC[i]; } }
+          if (vSgN.y > .6) { vec4 bk = texture2D(uBake, (vSgP.xz - uB.xy) / uB.zw); if (bk.a > sgCov) { sgCov = bk.a; sgPc = bk.rgb; } }
+          if (sgCov > 0.) { vec3 n = abs(vSgN); vec2 p = (n.y > .6 ? vSgP.xz : n.x > n.z ? vSgP.zy : vSgP.xy) * 1.7;
+            vec2 g = floor(p), f = fract(p); float d1 = 8., d2 = 8.; vec2 id = g;
+            for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) { vec2 o = vec2(float(x), float(y)), r = o + sgH2(g + o) * .8 + .1 - f; float d = dot(r, r); if (d < d1) { d2 = d1; d1 = d; id = g + o; } else if (d < d2) d2 = d; }
+            float lead = smoothstep(.035, .09, sqrt(d2) - sqrt(d1)); vec3 cell = mix(sgPal(sgH1(id)), sgPc, .3) * (.9 + .35 * sgH1(id + 7.)); cell = pow(cell, vec3(1.25));
+            float edge = smoothstep(.0, .25, sgCov); diffuseColor.rgb = mix(diffuseColor.rgb, mix(vec3(.05, .04, .03), cell, lead), edge);
+            sgGlow = cell * lead * edge * (.85 + .2 * sin(uTime * 1.7 + id.x * 3. + id.y)); }`)
+        .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\n roughnessFactor = mix(roughnessFactor, .12, sgCov);")
+        .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n totalEmissiveRadiance += sgGlow;"); };
+    m.needsUpdate = true; }
+  W.root.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(patchGlass); });
+  function bloom(p, color) { let b = blooms.find(x => x.c.distanceTo(p) < Math.max(1.2, x.target * .7));
+    if (b) { b.target = Math.min(5.5, b.target + .55); b.col.lerp(new T.Color(color), .35); }
+    else { b = { c: p.clone(), r: 0, target: 1.3 + Math.random() * .7, col: new T.Color(color) }; if (blooms.length >= NB) bake(blooms.shift()); blooms.push(b); }
+    S.bloom(p); if (blooms.length >= 24) complete("glass", "The desert takes the colour. Every shot leaves a window."); }
+  function bloomStep(dt) { blooms.forEach((b, i) => { b.r = lerp(b.r, b.target, 1 - Math.exp(-dt * 5)); GLASS.uHits.value[i].set(b.c.x, b.c.y, b.c.z, b.r); GLASS.uHitC.value[i].copy(b.col); }); GLASS.uN.value = blooms.length; }
+
   /* ---------- Uncle Mesa, the outlaws, from the one cast ---------- */
   boot("Waking Uncle Mesa…");
   const spec = (base, s) => ({ base, s: Object.assign({ ownColors: true }, s) });
@@ -109,8 +146,9 @@
   const puffs = []; for (let i = 0; i < 90; i++) { const s = new T.Sprite(new T.SpriteMaterial({ map: puffTex, transparent: true, depthWrite: false, opacity: 0 })); s.visible = false; scene.add(s); puffs.push({ s, t: 9, life: 1, v: new T.Vector3(), grow: 1 }); }
   function puff(p, color, v, life = 1.2, size = .3, grow = 1.5, add = false) { const q = puffs.find(x => x.t >= x.life) || puffs[0]; q.t = 0; q.life = life; q.s.visible = true; q.s.position.copy(p); q.v.copy(v); q.size = size; q.grow = grow; q.s.material.color.set(color); q.s.material.blending = add ? T.AdditiveBlending : T.NormalBlending; q.s.material.opacity = .85; }
   const tracers = [];
-  function tracer(a, b) { a = a.clone().addScaledVector(b.clone().sub(a).normalize(), .6); const mid = a.clone().lerp(b, .5).add(new T.Vector3((Math.random() - .5) * 1.2, .6 + Math.random() * .8, (Math.random() - .5) * 1.2)), curve = new T.QuadraticBezierCurve3(a.clone(), mid, b.clone());
-    for (const [col, rad] of [[0xff3aa8, .012], [0xff2a4a, .028]]) { const m = new T.Mesh(new T.TubeGeometry(curve, 24, rad, 6, false), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .95, blending: T.AdditiveBlending, depthWrite: false })); scene.add(m); tracers.push({ m, t: 0 }); } }
+  const PAINT = [0x2fd0d8, 0xf2a83a, 0xd8342c, 0xf2d04a, 0x2a9a5a, 0x2a4ab8, 0xe85aa8]; let paintN = 0;
+  function tracer(a, b, paint) { a = a.clone().addScaledVector(b.clone().sub(a).normalize(), .6); const mid = a.clone().lerp(b, .5).add(new T.Vector3((Math.random() - .5) * 1.2, .6 + Math.random() * .8, (Math.random() - .5) * 1.2)), curve = new T.QuadraticBezierCurve3(a.clone(), mid, b.clone());
+    for (const [col, rad] of [[paint ?? 0xff3aa8, .012], [0xff2a4a, .028]]) { const m = new T.Mesh(new T.TubeGeometry(curve, 24, rad, 6, false), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .95, blending: T.AdditiveBlending, depthWrite: false })); scene.add(m); tracers.push({ m, t: 0 }); } }
   const flash = new T.PointLight(0x40e0e0, 0, 30, 2); scene.add(flash);
   const ribbons = []; { const g = new T.PlaneGeometry(14, .5, 24, 1); for (let i = 0; i < 46; i++) { const m = new T.Mesh(g, new T.MeshBasicMaterial({ color: i % 3 ? 0xf2c060 : 0xffe08a, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide })); scene.add(m); ribbons.push({ m, ph: Math.random() * 6, r: 6 + Math.random() * 30, y: Math.random() * 8, sp: .4 + Math.random() * .6 }); } }
   const specs = []; { const rim = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 }); for (let i = 0; i < 7; i++) { const g = new T.Group(); for (const s of [-1, 1]) { const r = new T.Mesh(new T.TorusGeometry(.5, .05, 8, 32), rim); r.position.x = s * .6; g.add(r); } scene.add(g); specs.push({ g, ph: Math.random() * 6, r: 4 + Math.random() * 6 }); } specs.mat = rim; }
@@ -124,12 +162,12 @@
     for (let i = 0; i < 5; i++) puff(o.clone().addScaledVector(d, .25 + i * .12), i % 2 ? 0xd8205a : 0xff4ab8, d.clone().multiplyScalar(2.5 + i).add(new T.Vector3(0, .3, 0)), .7, .07, 1.6, true);
     flash.color.set(0xff3aa8); flash.position.copy(o); flash.intensity = 40; S.shot(o);
     const hit = world.castRayAndGetNormal(new R.Ray(v3(o.x, o.y, o.z), v3(d.x, d.y, d.z)), 400, true, undefined, undefined, meCol);
-    const toi = hit ? (hit.timeOfImpact ?? hit.toi) : 120, end = o.clone().addScaledVector(d, toi); tracer(o, end);
+    const toi = hit ? (hit.timeOfImpact ?? hit.toi) : 120, end = o.clone().addScaledVector(d, toi), paint = PAINT[paintN++ % PAINT.length]; tracer(o, end, paint);
     if (!hit) return; const who = OWNER.get(hit.collider.handle);
     if (who && who.kind === "prism") { const p = who.p; p.hp--; S.glass(end, .4); puff(end, 0x40e0e0, new T.Vector3(0, 1, 0), .5, .4, 3, true); if (p.hp <= 0) shatter(p, d); }
     else if (who && who.kind === "outlaw") { const ol = who.o; if (ol.state === "idle" || ol.state === "telegraph" || ol.state === "fire") { ol.state = "fall"; ol.t = 0; S.thud(end); say(`${ol.name} goes down in the dust.`, 2); } }
     else if (who && who.kind === "shard") who.b.applyImpulseAtPoint(v3(d.x * .5, .3, d.z * .5), v3(end.x, end.y, end.z), true);
-    else { puff(end, 0xe8c890, new T.Vector3(0, .8, 0), .8, .3, 2); S.ric(end); } }
+    else { puff(end, PAINT[(paintN - 1) % PAINT.length], new T.Vector3(0, .8, 0), .8, .25, 2, true); bloom(end, PAINT[(paintN - 1) % PAINT.length]); } }
   function shatter(p, d) { p.broken = true; p.mesh.visible = false; world.removeCollider(p.col, true); flash.color.set(Math.random() < .5 ? 0x40e0e0 : 0xffb040); flash.position.set(p.x, p.y, p.z); flash.intensity = 120; S.glass(new T.Vector3(p.x, p.y, p.z), 1.2);
     for (let i = 0; i < 16; i++) { const s = .25 + Math.random() * .35, m = new T.Mesh(new T.TetrahedronGeometry(s), p.mesh.material); m.castShadow = true; scene.add(m);
       const b = world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(p.x + (Math.random() - .5), p.y + (Math.random() - .5) * 2, p.z + (Math.random() - .5)).setAngularDamping(.3));
@@ -165,7 +203,7 @@
     else if (who && who.kind === "prism") { S.glass(new T.Vector3(who.p.x, who.p.y, who.p.z), .3); say("The prism takes the bullet for him.", 1.6); } }
 
   /* ---------- jobs, offers, modes ---------- */
-  const GOALS = [["gate", "Pass through the title gate"], ["iris", "Sight the mesas through the clockwork iris"], ["horse", "Ride the lone horse"], ["prism", "Shatter a glass prism"], ["duel", "Win the duel (Game mode)"], ["cathedral", "Descend into the glass cathedral"], ["oasis", "Find the oasis"], ["zig", "Sit on the ziggurat steps"]];
+  const GOALS = [["gate", "Pass through the title gate"], ["iris", "Sight the mesas through the clockwork iris"], ["horse", "Ride the lone horse"], ["prism", "Shatter a glass prism"], ["duel", "Win the duel (Game mode)"], ["cathedral", "Descend into the glass cathedral"], ["oasis", "Find the oasis"], ["zig", "Sit on the ziggurat steps"], ["glass", "Shoot the desert into stained glass (24 windows)"]];
   const done = {}; $("goals").innerHTML = GOALS.map(([k, t]) => `<li data-k="${k}">${t}</li>`).join("");
   function complete(k, line) { if (done[k]) return; done[k] = true; const li = $("goals").querySelector(`[data-k="${k}"]`); if (li) li.classList.add("done"); S.chime(); if (line) say(line, 4); }
   let lineT = 0; function say(t, sec = 3) { $("line").textContent = t; $("line").classList.add("on"); lineT = sec; }
@@ -237,6 +275,7 @@
       listener(cam) { if (!ctx) return; const L = ctx.listener, f = new T.Vector3(0, 0, -1).applyQuaternion(cam.quaternion); if (L.positionX) { L.positionX.value = cam.position.x; L.positionY.value = cam.position.y; L.positionZ.value = cam.position.z; L.forwardX.value = f.x; L.forwardY.value = f.y; L.forwardZ.value = f.z; L.upX.value = 0; L.upY.value = 1; L.upZ.value = 0; } },
       shot(p, g = 1) { burst(p, .08, "highpass", 1500, 1.1 * g, .07, .4); burst(p, .4, "lowpass", 600, .9 * g, .35, .6); tone(p, 120, 40, .25, .6 * g, "sine", .3); },
       ric(p) { tone(p, 3200, 900, .25, .08, "sawtooth", .3); },
+      bloom(p) { if (!ctx) return; const f = [784, 988, 1175, 1319, 1568][Math.floor(Math.random() * 5)]; tone(p, f, f, 1.4, .06, "sine", .7, .05, .02); tone(p, f * 2.01, f * 2.01, .9, .025, "sine", .7, .08); burst(p, .2, "highpass", 5000, .12, .18, .4); },
       glass(p, k = 1) { if (!ctx) return; burst(p, .3 * k, "highpass", 3500, .6 * k, .3 * k, .5); for (let i = 0; i < 10 * k; i++) tone(p, 2500 + Math.random() * 4000, 2000 + Math.random() * 3000, .2 + Math.random() * .4, .05, "sine", .5, Math.random() * .5 * k); },
       thud(p) { burst(p, .3, "lowpass", 200, .9, .28, .3); },
       tick(p) { tone(p, 1800, 1700, .05, .15, "square", .2); tone(p, 1800, 1700, .05, .15, "square", .2, .5); tone(p, 1800, 1700, .05, .15, "square", .2, 1); },
@@ -279,7 +318,7 @@
     /* physics */
     { const n = Math.max(1, Math.ceil(dt * 60)); for (let k = 0; k < n; k++) { world.step(); fstep++; } }
     for (const s of shards) { const p = s.b.translation(), r = s.b.rotation(); s.m.position.set(p.x, p.y, p.z); s.m.quaternion.set(r.x, r.y, r.z, r.w); }
-    duelStep(dt);
+    duelStep(dt); bloomStep(dt); GLASS.uTime.value = t;
     if (motion) try { motion.update(dt); } catch (e) { }
     if (st.gun && st.mode === "foot") aimArm(me, aimDir());
     for (const o of outlaws) if (o.state === "telegraph" || o.state === "fire") { const d = new T.Vector3(st.x - o.x, 1.2 + (o.state === "fire" ? .1 : -.25), st.z - o.z).normalize(); aimArm(o.ch, d); }
@@ -354,6 +393,6 @@
 
   resize(); $("boot").classList.add("done"); $("title").classList.add("on"); setTimeout(() => { $("title").classList.remove("on"); GRIDON = false; }, 6500);
   say("This land ain't dust anymore. It's data. And it remembers.", 5);
-  window.__mesa = { st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
+  window.__mesa = { blooms, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
   requestAnimationFrame(frame);
 })().catch(e => { console.error(e); const b = document.getElementById("boot-s"); if (b) b.textContent = "Something went wrong: " + e.message; });
