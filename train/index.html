@@ -50,7 +50,7 @@ body.inworld #joy{bottom:calc(150px + var(--sab))}
 #cue[hidden]{display:none}#cue .k{font:600 10px/1.3 var(--mono);letter-spacing:.2em;color:var(--brass);text-transform:uppercase}#cueTitle{font:italic 22px/1.2 var(--serif);margin:4px 0 6px}
 #cue dl{margin:0 0 8px;display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:14px;line-height:1.4}#cue dt{font:600 10px/2 var(--mono);letter-spacing:.14em;text-transform:uppercase;opacity:.7}#cue dd{margin:0}
 #cue.flash{animation:cue .9s}@keyframes cue{0%{border-color:var(--paper);background:rgba(197,154,62,.5)}100%{}}
-body.run #ribbon,body.run #keys,body.run #stubs{display:none}body.run #act{bottom:calc(200px + var(--sab))}body.run #joy{bottom:calc(200px + var(--sab))}body.run #runBtn{background:var(--brass);color:var(--ink)}
+body.run #ribbon,body.run #keys,body.run #stubs,body.run #hint,body.run #panel{display:none!important}body.run #act{bottom:calc(200px + var(--sab))}body.run #joy{bottom:calc(200px + var(--sab))}body.run #runBtn{background:var(--brass);color:var(--ink)}
 @media (max-width:560px){#cue dl{font-size:12.5px}#cueTitle{font-size:18px}}
 #modes{left:calc(14px + var(--sal));bottom:calc(60px + var(--sab));display:flex}#modes button{font:600 11px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;padding:11px 13px;border:1px solid var(--line);background:rgba(11,13,12,.6);margin-right:-1px}#modes button.on{background:var(--paper);color:var(--ink)}
 @media (pointer:coarse){#modes{bottom:calc(196px + var(--sab))}}

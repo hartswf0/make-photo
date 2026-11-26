@@ -12,6 +12,7 @@ import { createInteract } from './interact.js';
 import { createGame, ROOF_Y } from './game.js';
 import { buildProps } from './props.js';
 import { createHeist } from './heist.js';
+import { makeCan } from './cans.js';
 import { createAudio } from './audio.js';
 
 const mobile = matchMedia('(pointer:coarse)').matches || innerWidth < 760;
@@ -230,7 +231,7 @@ function frame() {
     if (p.walk) { const w = p.walk; w.x += w.dir * .8 * dt; if (w.x > w.b) w.dir = -1; if (w.x < w.a) w.dir = 1; const l = locate(cars, w.x); ci = l.i; p.root.position.set(w.x, DIM.FLOOR, l.aisleZ + .12); p.root.rotation.y = w.dir * Math.PI / 2; p.loco = { speedMps: .8 }; }
     p.root.visible = Math.abs(ci - state.camCar) <= 2 && !(state.empty && ci === 1); p.wake(Math.abs(ci - state.camCar) <= 1);
   }
-  if (cast) cast.update(dt);
+  if (cast) cast.update(dt); stepCans(dt);
   for (const c of cars) c.group.visible = !rig.st.shot.inside || Math.abs(c.i - state.camCar) <= 3;
   if (worlds) worlds.update(state.t, state.camCar, M);
   const stood = journey.phase === 'dwell' || (journey.phase === 'held' && journey.speed < .4), halt = stood && !actor.seated && !portal && !actor.roof;
@@ -267,7 +268,7 @@ async function seed(id) {
   const c = cars[sd.car]; state.take = false; state.walkGoal = null; journey.dist = sd.km * 1000; journey.phase = 'run'; journey.speed = journey.cruise;
   if (sd.seat !== undefined) { const st = sd.seat < 0 ? c.playerSeat : c.seats[sd.seat]; actor.seated = true; actor.seat = { car: c, ...st }; actor.x = c.x + st.x; actor.z = st.z; actor.dir = st.face; }
   else { actor.seated = false; actor.x = c.x + sd.x; actor.dir = sd.dir || -1; actor.z = c.aisleZ + (sd.z || 0); actor.yaw = actor.dir * Math.PI / 2; if (sd.walk) state.walkGoal = actor.x + actor.dir * sd.walk; }
-  state.forceSwarm = !!sd.swarm; state.empty = !!sd.empty; setShot(sd.shot); const st = rig.st; st.yaw = sd.yaw || 0; st.pitch = sd.pitch || 0; st.zoom = sd.zoom || 1; if (sd.mt !== undefined) st.mem.t0 = state.t - sd.mt;
+  state.forceSwarm = !!sd.swarm; state.empty = !!sd.empty; setCans(!!sd.cans); if (sd.cans && game.mode === 'game') gameSys.setMode('world'); setShot(sd.shot); const st = rig.st; st.yaw = sd.yaw || 0; st.pitch = sd.pitch || 0; st.zoom = sd.zoom || 1; if (sd.mt !== undefined) st.mem.t0 = state.t - sd.mt;
   document.body.classList.add('nohud'); return sd;
 }
 function b64(buf) { let s = ''; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 32768) s += String.fromCharCode.apply(null, u.subarray(i, i + 32768)); return btoa(s); }
@@ -288,11 +289,16 @@ function capture(w = 1280, h = 720) {
 gameSys = createGame({ scene, cars, train, bees, interact, actor, journey, state, stub, deed, env: land.env });
 const heist = createHeist({ scene, cars, train, props, people, actor, state, stub, deed, game, sys: gameSys });
 
+// ---- all people are SPAM: every body on the train swapped for a walking tin
+function setCans(on) { state.cans = on; [hero, ...people].forEach((p, k) => { if (!p) return; if (on && !p.can) { p.can = makeCan(p === hero ? 0 : 1 + (k % 7)); p.can.group.userData.cls = 'person'; p.root.add(p.can.group); } if (p.can) p.can.group.visible = on; p.ch.group.visible = !on; }); return on; }
+function stepCans(dt) { if (!state.cans) return; if (hero && hero.can) hero.can.update(dt, actor.speed, actor.seated, state.react && state.t < state.react.until ? 1 : 0); for (const p of people) if (p.can && p.root.visible) p.can.update(dt, p.walk ? .8 : 0, !!p.loco.sitting, p.loco.talking ? (Math.sin(state.t * 2 + p.root.position.x) > .6 ? 1 : 0) : 0); }
+
 // ---- the run: a rehearsal of the single world-model session. Third-person lock, WASD, and at each door the cue that would be sent.
 const run = { on: false, cars: [], n: 1 };
 async function startRun() {
   if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds;
-  run.cars = seeds.filter(x => x.run).sort((a, b) => a.run - b.run); run.on = true; run.n = 1; state.take = false; state.stings = 0; state.empty = !!run.cars[0].empty;
+  const spam = params.get('run') !== 'worlds';   // ?run is SPAM on a Train; ?run=worlds is the earlier corpus run
+  run.cars = spam ? (await (await fetch('data/spam_session.json')).json()).run.map((c, k) => ({ ...c, car: k + 1 })) : seeds.filter(x => x.run).sort((a, b) => a.run - b.run); run.on = true; run.n = 1; state.take = false; state.stings = 0; state.empty = spam || !!run.cars[0].empty; setCans(spam); if (game.mode === 'game') gameSys.setMode('world');
   if (worlds && worlds.stage.active) await worlds.exit();
   actor.seated = false; actor.x = cars[1].x + 5.6; actor.z = 0; actor.dir = -1; actor.yaw = -Math.PI / 2; state.walkGoal = null; rig.set('follow'); ui.shot('follow', false);
   document.body.classList.add('run'); ui.cue(run.cars[0], 1, run.cars.length, true); stub('The run', 'one session · hold W · a cue at every door'); return true;
@@ -301,7 +307,8 @@ function stepRun() {
   if (!run.on) return; if (rig.st.shot.id !== 'follow') rig.set('follow');
   const next = run.cars[run.n]; if (!next) return;
   const door = train.doors.find(d => d.car.i === next.car - 1 && d.x < d.car.x);     // the rear door of the carriage he is leaving
-  if (door && door.open > .5 && actor.x - door.x < 1.9) { run.n++; ui.cue(next, run.n, run.cars.length, false); state.log.push({ t: +state.t.toFixed(1), cue: next.id }); try { navigator.clipboard.writeText(next.genie).catch(() => {}); } catch { } }
+  const last = !door && next.car > cars.length - 1 && actor.x < cars[cars.length - 1].x - 3;   // the train has eight doors' worth of rooms; the ninth cue falls at the far end of the hive
+  if (last || (door && door.open > .5 && actor.x - door.x < 1.9)) { run.n++; ui.cue(next, run.n, run.cars.length, false); state.log.push({ t: +state.t.toFixed(1), cue: next.id }); try { navigator.clipboard.writeText(next.genie).catch(() => {}); } catch { } }
 }
 
 // ---- light that casts: the sun through the windows, and a sky for the brass to reflect
@@ -355,7 +362,7 @@ const api = {
   act, stand, sit, still, record, swarm: (on = !state.forceSwarm) => (state.forceSwarm = on), jump: km => { journey.dist = km * 1000; journey.phase = 'run'; },
   walkTo: car => { if (actor.seated) stand(); state.walkGoal = cars[clamp(car, 0, 7)].x; }, enter: id => { const p = worlds.portals.find(p => p.ids.includes(id)); return p && worlds.enter(p, id); }, exit: () => worlds.exit(),
   next: d => { const s = worlds.stage; if (s.active) { s.portal.show(s.portal.index + d); return worlds.enter(s.portal); } }, live: () => worlds.toggleLive(),
-  run: startRun, endRun: () => { run.on = false; state.empty = false; document.body.classList.remove('run'); ui.cue(null); }, mode: m => { if (m === 'game' && actor.seated) stand(); return gameSys.setMode(m); }, throw: () => heist.throwCan(), turn: () => { actor.cam *= -1; return actor.cam; }, heist: () => ({ ...heist.H, loose: undefined }), get sys() { return gameSys; }, smoke: () => gameSys.smoke(), goals: () => gameSys.goals.map(q => ({ id: q.id, done: !!q.done() })), pass: n => { state.pass = PASSES.includes(n) ? n : PASSES[(PASSES.indexOf(state.pass) + 1) % PASSES.length]; stub('Pass', state.pass); return state.pass; }, passes: () => PASSES.slice(), bee: toggleBee, game: () => ({ stubs: game.stubs.size, total: game.total, talked: game.talked.size, inv: game.inv.slice(), water: game.water, stings: state.stings }), interact, deed, deeds: () => Object.keys(DEEDS), seed, capture, seeds: async () => { if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds; return seeds; },
+  run: startRun, cans: on => setCans(on ?? !state.cans), endRun: () => { run.on = false; state.empty = false; setCans(false); document.body.classList.remove('run'); ui.cue(null); }, mode: m => { if (m === 'game' && actor.seated) stand(); return gameSys.setMode(m); }, throw: () => heist.throwCan(), turn: () => { actor.cam *= -1; return actor.cam; }, heist: () => ({ ...heist.H, loose: undefined }), get sys() { return gameSys; }, smoke: () => gameSys.smoke(), goals: () => gameSys.goals.map(q => ({ id: q.id, done: !!q.done() })), pass: n => { state.pass = PASSES.includes(n) ? n : PASSES[(PASSES.indexOf(state.pass) + 1) % PASSES.length]; stub('Pass', state.pass); return state.pass; }, passes: () => PASSES.slice(), bee: toggleBee, game: () => ({ stubs: game.stubs.size, total: game.total, talked: game.talked.size, inv: game.inv.slice(), water: game.water, stings: state.stings }), interact, deed, deeds: () => Object.keys(DEEDS), seed, capture, seeds: async () => { if (!seeds) seeds = (await (await fetch('data/seeds.json')).json()).seeds; return seeds; },
   log: () => state.log.slice(), rig: (w, h) => rig.export({ a: actor, car: locate(cars, actor.x).car, aisleZ: 0, side: 1, bee: bees.lead, t: state.t, dist: journey.dist, speed: journey.speed, noseX: train.noseX, tailX: train.tailX }, w, h),
   observe: () => ({ t: +state.t.toFixed(2), km: +(journey.dist / 1000).toFixed(3), speed: +journey.speed.toFixed(1), phase: journey.phase, car: cars[state.lastCar]?.key, seated: actor.seated, stings: state.stings, x: +actor.x.toFixed(2), shot: rig.st.shot.id, take: state.take, run: run.on ? run.n : 0, world: worlds?.stage.active ? worlds.stage.id : null, segment: land.env.segment?.type || null, people: people.length, calls: renderer.info.render.calls, tris: renderer.info.render.triangles }),
   _: { scene, camera, renderer, train, land, rig, actor, journey, state, input, get people() { return people; }, get cast() { return cast; }, get hero() { return hero; } },
