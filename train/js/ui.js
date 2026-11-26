@@ -40,7 +40,7 @@ export function createUI({ shots }) {
       $('tools').addEventListener('click', () => document.body.classList.remove('menu')); $('goals').onclick = () => $('goals').classList.toggle('all'); $('passBtn').onclick = () => api.pass();
       $('runBtn').onclick = () => document.body.classList.contains('run') ? api.endRun() : location.assign('spam.html?run'); $('cueCopy').onclick = async () => { try { await navigator.clipboard.writeText(cueText); $('cueCopy').textContent = 'Copied'; setTimeout(() => $('cueCopy').textContent = 'Copy cue', 1200); } catch { } };
       $('talkBtn').onclick = () => api.talkNear();
-      $('sendBtn').onclick = () => api.send();
+      $('sendBtn').onclick = () => api.send(); let ei = 0; $('emoBtn').onclick = () => { const n = api.emotes(); ei = (ei + 1) % n.length; api.emote(n[ei], 2.5); };
       $('beeOut').onclick = () => api.bee(false);
       $('beeBtn').onclick = () => api.bee(); $('smokeBtn').onclick = () => api.smoke(); $('throwBtn').onclick = () => api.throw(); $('turnBtn').onclick = () => api.turn();
       $('modes').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const m = b.dataset.mode; if (m === 'cinema') { api.mode('world'); api.take(true); b.classList.add('on'); } else { api.take(false); api.mode(m); } });

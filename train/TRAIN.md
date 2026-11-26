@@ -114,6 +114,16 @@ Walk up to anyone and press TALK (Y). Type, or tap a question. Each passenger ha
 - **Without a key** they answer the question asked from their own lines: who they are, what is behind the next door, how many bees, whether you can have their SPAM.
 - This continues two earlier pieces. Train Field's four passengers ride here by name (Noor the dispatcher, Mila the student, Oren the old man, Cass the tourist) with their lists of what each one sees; the persona-plus-memory-stream shape is the hive simulation's.
 
+### The bee (`js/beemodel.js`)
+
+A small cartoon character, about fifteen centimetres long, readable at a glance: a big head with two large eyes, brows, a mouth and cheeks; two short arms; antennae that work like ears; a fat striped body that squashes and stretches; two round wings.
+
+It has sixteen expressions: idle, happy, laugh, angry, charge, smug, scared, sad, curious, dizzy, sleepy, wave, point, shrug, yes, no. Each sets brows, lids, pupils, mouth, cheeks, antennae, arms and posture, and most add a motion (a bounce, a tremble, a wave, a nod, a head-shake, spinning eyes). It blinks, looks into its turns, leans with speed and rolls with the stick.
+
+The game plays them: happy when a bee joins, angry when it locks on to someone, a wind-up and then smug when it stings (it laughs at the traveler), pointing when it sends the swarm, a shrug when there are too few, no when nobody is ahead, dizzy off the glass, and when left alone it gets curious, sleepy or waves. The ☺ button (X) plays the next one on demand. `trainFilm.emote(name)`.
+
+The swarm is the same character cast simply: body, stripes, head, two eyes, antennae, wings.
+
 ### Being the bee (`js/beeworld.js`)
 
 B, or the Bee button. Three things the traveler never has.

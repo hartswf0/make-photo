@@ -207,3 +207,18 @@ The knight's collider now matches its glass body (radius 0.72 m), so paint that 
 `trials.mp4` is a real playthrough by a test bot (2.5× speed, software WebGL). It used the test setting `?trialhp=3` (a three-hit knight, so a slow machine can finish), and it won all four trials with no falls. At full strength the knight has 16 HP.
 
 ![I](trial-1.jpg) ![II](trial-2.jpg) ![III](trial-3.jpg) ![IV](trial-4.jpg)
+
+## Playable first: stained glass the island-ecology way
+
+**The Tekle lens.** It is now drawn the way `hartswf0/island-ecology` (*BEES ON A TRAIN*, `skill-analyzer.html`) draws stained glass: a real Voronoi of sites built with **d3-delaunay**, drawn as vector cells (fill, then lead) on a 2D canvas over the game. That is far cheaper than the old per-pixel cell search.
+- **The cutting** is fixed, about 42 pieces across whatever the screen, so the cost is constant.
+- **The figures carry their own cells.** Uncle Mesa, the knight and the outlaws each carry a cluster of small sites, so their silhouettes read in glass and the lead follows their bodies.
+- **Colour.** Every cell takes its light from a small GPU-scaled sample of the frame, refreshed every other frame, and is saturated as backlit glass.
+
+`vendor/d3-delaunay.min.js` is d3-delaunay 6.0.4 (ISC, with Delaunator), vendored so it works offline.
+
+**The other lenses** render the scene at 0.7 scale and take far fewer texture reads.
+
+**A frame-rate governor.** If the game falls below 40 fps it renders fewer pixels, in steps down to 0.55 pixel ratio, and gives them back when it recovers.
+
+**The glass-block grid (G).** It reads the frame back every frame while it is on, which is the first 6.5 s after loading and whenever you press G. A profile found this was most of the CPU time in a software-rendered session. Turn it off with G if the opening feels slow.

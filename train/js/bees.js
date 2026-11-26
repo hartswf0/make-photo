@@ -1,12 +1,13 @@
 // Bees: inhabitants, narrative force and camera guide. One lead bee, a drift of ordinary ones, and a swarm outside.
 import * as THREE from 'three';
 import { DIM, noise2, damp, clamp } from './kit.js';
+import { makeHoneybee, swarmBeeGeometry } from './beemodel.js';
 
 export function buildBees(scene, M, mobile) {
-  const N = mobile ? 110 : 360, geo = (() => { const parts = [[.022, -.05, 0x16110a], [.03, -.012, 0xf2b21e], [.032, .03, 0x16110a], [.03, .066, 0xf2b21e], [.02, .098, 0x16110a]].map(([r, x, c]) => { const g = new THREE.SphereGeometry(r, 6, 5).toNonIndexed(); g.translate(x, 0, 0); const col = new THREE.Color(c), a = new Float32Array(g.attributes.position.count * 3); for (let i = 0; i < a.length; i += 3) { a[i] = col.r; a[i + 1] = col.g; a[i + 2] = col.b; } g.setAttribute('color', new THREE.BufferAttribute(a, 3)); return g; });
-    let n = 0; for (const g of parts) n += g.attributes.position.count; const P = new Float32Array(n * 3), C = new Float32Array(n * 3); let o = 0; for (const g of parts) { P.set(g.attributes.position.array, o); C.set(g.attributes.color.array, o); o += g.attributes.position.array.length; } const G = new THREE.BufferGeometry(); G.setAttribute('position', new THREE.BufferAttribute(P, 3)); G.setAttribute('color', new THREE.BufferAttribute(C, 3)); return G; })();
-  const mesh = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true }), N); mesh.frustumCulled = false; scene.add(mesh);
-  const wing = new THREE.InstancedMesh(new THREE.PlaneGeometry(.07, .12).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xfff4d6, transparent: true, opacity: .35, side: THREE.DoubleSide, depthWrite: false }), N); wing.frustumCulled = false; scene.add(wing);
+  const N = mobile ? 110 : 360, cast = swarmBeeGeometry(.1);
+  const mesh = new THREE.InstancedMesh(cast.body, new THREE.MeshLambertMaterial({ vertexColors: true }), N); mesh.frustumCulled = false; scene.add(mesh);
+  const wing = new THREE.InstancedMesh(cast.wings, new THREE.MeshBasicMaterial({ color: 0xeaf6ff, transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false }), N); wing.frustumCulled = false; scene.add(wing);
+  const heroBee = makeHoneybee(.15); scene.add(heroBee.group); let prevLead = null;
   const bees = []; for (let k = 0; k < N; k++) bees.push({ v: new THREE.Vector3(), p: new THREE.Vector3(0, -50, 0), home: new THREE.Vector3(), r: .3 + Math.random() * .9, ph: Math.random() * 100, car: -9, sp: .6 + Math.random() });
   const lead = { p: new THREE.Vector3(-23, 2.4, 1.1), v: new THREE.Vector3(1, 0, 0), target: new THREE.Vector3(), landed: 0 };
   // exterior swarm: a ribbon of points that paces the train
@@ -58,11 +59,14 @@ export function buildBees(scene, M, mobile) {
         b.p.addScaledVector(b.v, dt); b.p.z = clamp(b.p.z, -1.36, 1.36); b.p.y = clamp(b.p.y, DIM.FLOOR + .12, DIM.FLOOR + DIM.ROOF - .1); if (b.p.y < -10) b.p.copy(tgt);
         if (shownNow) { const dc = b.p.distanceToSquared(ctx.eye); if (dc < 9) near++; if (angry) { mad++; if (state.cool <= 0 && b.p.distanceToSquared(ctx.head) < .12) { state.cool = 2.4 - ctx.anger; b.v.multiplyScalar(-2.5); ctx.onSting && ctx.onSting(); } } }
       }
-      e.set(0, k === 0 ? Math.atan2(-lead.v.z, lead.v.x || 1e-6) : Math.atan2(-b.v.z, b.v.x || 1e-6), 0); q.setFromEuler(e);
-      const shown = b.joined || (ctx.density >= 0 && k < 1 + ctx.density * (N - 1)); s.setScalar(k === 0 ? 1.5 : shown ? 1 : 0); m.compose(b.p, q, s); mesh.setMatrixAt(k, m); if (!shown) { wing.setMatrixAt(k, m); continue; }
-      s.set(1, 1, .4 + Math.abs(Math.sin(t * 90 + k)) * 1.2); if (k === 0 && lead.landed > .8) s.z = .5;
-      tmp.copy(b.p).y += .016; m.compose(tmp, q, s); wing.setMatrixAt(k, m);
+      const hs = Math.hypot(b.v.x, b.v.z); e.set(0, Math.atan2(-b.v.z, b.v.x || 1e-6), k === 0 ? 0 : clamp(.25 - hs * .09 + b.v.y * .1, -.5, .45), 'YZX'); q.setFromEuler(e);   // tail-low when slow, nose-down when fast
+      const shown = k > 0 && (b.joined || (ctx.density >= 0 && k < 1 + ctx.density * (N - 1))); s.setScalar(shown ? 1 : 0); m.compose(b.p, q, s); mesh.setMatrixAt(k, m); if (!shown) { wing.setMatrixAt(k, m); continue; }
+      s.set(1, Math.sin(t * 90 + k * 1.7), 1); m.compose(b.p, q, s); wing.setMatrixAt(k, m);                                  // the wing pair is cast raised; flipping it through zero is the beat
     }
+    { // the bee you follow, in full
+      const H = ctx.hero || {}, moved = prevLead ? Math.hypot(lead.p.x - prevLead.x, lead.p.z - prevLead.z) / Math.max(dt, .001) : 0; (prevLead || (prevLead = lead.p.clone())).copy(lead.p);
+      heroBee.group.position.copy(lead.p); heroBee.group.rotation.y = Math.atan2(-lead.v.z, lead.v.x || 1e-6); heroBee.group.visible = ctx.density >= 0 || !!ctx.follow;
+      heroBee.update(dt, { speed: H.speed !== undefined ? H.speed : Math.min(1, moved / 3), turn: H.turn || 0, landed: lead.landed > .7 ? 1 : 0, look: H.look }); }
     mesh.instanceMatrix.needsUpdate = wing.instanceMatrix.needsUpdate = true; state.near = near; state.anger = mad; state.followers = fol; state.atMob = atMob;
     // swarm ribbon
     state.swarm = damp(state.swarm, state.swarmWant, .8, dt); swarm.material.opacity = Math.min(1, state.swarm * 1.2); swarm.visible = state.swarm > .01;
@@ -74,5 +78,5 @@ export function buildBees(scene, M, mobile) {
       sg.attributes.position.needsUpdate = true;
     }
   }
-  return { update, lead, state, count: N };
+  return { update, lead, state, count: N, hero: heroBee };
 }
