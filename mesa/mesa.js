@@ -69,7 +69,7 @@
      where two cells meet, each cell a colour of the palette leaning toward the shot's paint, and the glass glows. Blooms that land
      close together merge and grow, so the desert can be painted over a shot at a time. */
   const NB = 48, GLASS = { uHits: { value: Array.from({ length: NB }, () => new T.Vector4(0, -999, 0, 0)) }, uHitC: { value: Array.from({ length: NB }, () => new T.Color()) }, uN: { value: 0 }, uTime: { value: 0 } };
-  const blooms = [], BK = document.createElement("canvas"); BK.width = BK.height = 1024; const BKX = BK.getContext("2d"), bakeTex = new T.CanvasTexture(BK); bakeTex.colorSpace = T.NoColorSpace;
+  const blooms = [], BK = document.createElement("canvas"); BK.width = BK.height = 1024; const BKX = BK.getContext("2d"), bakeTex = new T.CanvasTexture(BK); bakeTex.colorSpace = T.NoColorSpace; bakeTex.flipY = false;   /* canvas row = +z, as the shader reads it */
   GLASS.uBake = { value: bakeTex }; GLASS.uB = { value: new T.Vector4(W.BOUND.x0, W.BOUND.z0, W.BOUND.x1 - W.BOUND.x0, W.BOUND.z1 - W.BOUND.z0) };
   function bake(b) { const B = W.BOUND, u = (b.c.x - B.x0) / (B.x1 - B.x0) * 1024, v = (b.c.z - B.z0) / (B.z1 - B.z0) * 1024, r = b.target / (B.x1 - B.x0) * 1024, c = b.col, g = BKX.createRadialGradient(u, v, 0, u, v, r);
     const rgb = `${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)}`; g.addColorStop(0, `rgba(${rgb},1)`); g.addColorStop(.62, `rgba(${rgb},1)`); g.addColorStop(1, `rgba(${rgb},0)`); BKX.fillStyle = g; BKX.beginPath(); BKX.arc(u, v, r, 0, 6.29); BKX.fill(); bakeTex.needsUpdate = true; }

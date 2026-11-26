@@ -38,6 +38,19 @@ A cyber-western of glass, built from the film's keyframe breakdown (`keyframes.j
 5. the curtain wall pullback;
 6. the ziggurat.
 
+## Shooting the world into stained glass
+
+Every shot that lands on the world (sand, rock, adobe, wood or stone) grows a bloom of leaded stained glass there:
+- **The shader.** One patch on every opaque material of the world (`patchGlass` in `mesa.js`). Inside a bloom's sphere, the surface becomes glass:
+  - cells are laid out on the surface's own plane (top, side or front, by its normal);
+  - dark lead runs where two cells meet;
+  - each cell takes a colour from the palette, leaning toward the shot's paint;
+  - the glass glows.
+- **Blooms merge and grow.** A shot close to an earlier one widens it, up to 5.5 m.
+- **Painted ground stays painted.** 48 blooms are live at once. Older blooms on the ground are baked into a world-space glass map (`uBake`); older blooms on walls fade.
+- **Light and sound.** Tracers are drawn in the shot's paint colour, and each bloom rings a glass chime.
+- **Goal:** 24 windows.
+
 ## Built on
 
 | Part | Used for |
