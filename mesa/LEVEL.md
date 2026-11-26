@@ -173,3 +173,22 @@ The game itself does not change: walking, spraying, swimming in ink, the horned 
 ![Tekle](lens-tekle.jpg) ![1985](lens-lucas85.jpg) ![Mambéty](lens-mambety.jpg) ![Mœbius](lens-moebius.jpg)
 
 `lenses.mp4` is a real play session in the glass cathedral with the knight hunting: Uncle Mesa sprays and walks, and the lens changes every few seconds (Plain, Tekle, 1985, Mambéty, Mœbius). It was recorded in software WebGL, so the frame rate is low.
+
+## The Four Trials (the game)
+
+Press **Enter**, or the **Trials** button, to play. You can also open the level with `?trials`. Uncle Mesa meets the glass knight in the sunken cathedral four times, once in each SCION world, and each world's way of seeing is the rule of the fight. A card before each trial gives its rule.
+
+| Trial | World | Rule |
+|---|---|---|
+| I · Leaded light | Tekle | Only light moves. A column of light moves on across the fight. The knight breaks only while it stands in the light; anywhere else, paint just colours the glass. |
+| II · Shard light | 1985 | The rack focus. Hold your aim until it is sharp. Moving, turning or spraying throws the focus, so you plant and fire in bursts. |
+| III · Told | Mambéty | A plucked string keeps time. A shot on the beat breaks twice as much glass; a shot off it barely scratches. |
+| IV · The line | Mœbius | Every hit blooms. Hit again inside the bloom to chain it: ×2, ×3, ×4. |
+
+You have four falls per trial. After each cut of the sword, the knight steps back and takes a breath while he gets up. The score comes from the clock and the falls. The final card totals all four trials, and the best total is kept in your browser. Esc leaves the trials.
+
+The knight's collider now matches its glass body (radius 0.72 m), so paint that visibly lands on the knight counts. Before this change the collider was a thin capsule inside the shards, and most visible hits passed through.
+
+`trials.mp4` is a real playthrough by a test bot (2.5× speed, software WebGL). It used the test setting `?trialhp=3` (a three-hit knight, so a slow machine can finish), and it won all four trials with no falls. At full strength the knight has 16 HP.
+
+![I](trial-1.jpg) ![II](trial-2.jpg) ![III](trial-3.jpg) ![IV](trial-4.jpg)
