@@ -28,8 +28,8 @@ export const SHOTS = [
     at: c => ({ pos: V(c.a.x + .3, F + 1.42, c.side * (HW - .3)), look: V(c.a.x + 14, F + 1.1, c.side * 40) }) },
   { id: 'cctv', label: 'CCTV', frame: 'carriage', inside: true, fov: 82, lens: 'fixed surveillance',
     at: c => ({ pos: V(c.car.x + L / 2 - .5, F + 2.12, HW - .32), look: V(c.car.x - 2.5, F + .7, -.5) }) },
-  { id: 'bee', label: 'Bee cam', frame: 'bee', inside: true, fov: 78, lens: 'macro wide',
-    at: c => ({ pos: V(c.bee.p.x - c.bee.v.x * 1.15, c.bee.p.y + .32 - c.bee.v.y * .7, c.bee.p.z - c.bee.v.z * 1.15), look: V(c.bee.p.x + c.bee.v.x * 1.5, c.bee.p.y + c.bee.v.y * 1.5, c.bee.p.z + c.bee.v.z * 1.5) }) },   // far enough back to see the swarm gather behind you
+  { id: 'bee', label: 'Bee cam', frame: 'bee', inside: true, fov: 66, lens: 'macro wide',
+    at: c => ({ pos: V(c.bee.p.x - c.bee.v.x * 1.9, c.bee.p.y + .42, c.bee.p.z * .45 - c.bee.v.z * 1.2), look: V(c.bee.p.x + c.bee.v.x * 5, c.bee.p.y - .25, c.bee.p.z + c.bee.v.z * 3) }) },   // behind and above: the bee, its swarm and the length of the car in one frame
   { id: 'beepov', label: 'Bee eyes', frame: 'bee', inside: true, fov: 104, lens: 'compound, first person',
     at: c => ({ pos: V(c.bee.p.x + c.bee.v.x * .03, c.bee.p.y + .01, c.bee.p.z + c.bee.v.z * .03), look: V(c.bee.p.x + c.bee.v.x, c.bee.p.y + c.bee.v.y, c.bee.p.z + c.bee.v.z) }) },
   { id: 'lean', label: 'Lean out', frame: 'train', fov: 52, lens: 'out of the window',
