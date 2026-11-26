@@ -106,6 +106,22 @@ A co-op pod race on the salt flat beside the Sealed Line. The craft is two SPAM-
 - Five rivals, four cans to pick with different mass, grip and boost, boost pads, crates of ammunition, three laps.
 - Sound is synthesised: one engine in each ear, and a 138 bpm march that adds parts on laps two and three.
 
+### Passengers who talk (`js/talk.js`)
+
+Walk up to anyone and press TALK (Y). Type, or tap a question. Each passenger has a persona and a memory stream: what you said, what they said, that you robbed them, that a bee stung them. Speech shows over their heads.
+
+- **With a key** (☰ → Voices) they answer through a language model, in character, from that memory. The key stays in the browser and goes only to the endpoint you name (OpenAI chat or responses, or Anthropic). A key already saved on this site by el-desierto's Train Field or island-ecology's hive pages is picked up automatically.
+- **Without a key** they answer the question asked from their own lines: who they are, what is behind the next door, how many bees, whether you can have their SPAM.
+- This continues two earlier pieces. Train Field's four passengers ride here by name (Noor the dispatcher, Mila the student, Oren the old man, Cass the tourist) with their lists of what each one sees; the persona-plus-memory-stream shape is the hive simulation's.
+
+### Being the bee
+
+In bee mode (B), fly within a wing's length of anyone, the traveler included, and the button reads STING. They jump, swat and say so, and remember it.
+
+### The cast
+
+Each passenger has their own skin tone, hair and coat, set per role in `js/cast.js`.
+
 ### Bees and sound in the heist
 
 The bees inside are striped bodies that steer and face where they fly. Each keeps a place in its carriage; a share of them, growing toward the rear, are angry and go for his head, and a sting is a bee actually reaching him. A thrown can pulls every bee in the carriage onto it for eight seconds.

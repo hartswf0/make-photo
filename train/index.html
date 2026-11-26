@@ -107,6 +107,18 @@ body[data-mode="game"] #joy{width:132px;height:132px}
 #banner h2{font:900 28px/1 "Arial Black",Impact,sans-serif;color:#ffd92e;margin:0 0 10px;text-transform:uppercase}#banner p{font:14px/1.5 var(--mono);margin:0 0 14px}#bannerOk{background:#ffd92e;color:#17307a;font:800 14px/1 Arial,sans-serif;padding:12px 18px;text-transform:uppercase}
 body.inworld #map,body.inworld #loot,body.inworld #throwBtn,body.inworld #turnBtn,body.run #map,body.run #loot,body.run #throwBtn,body.run #turnBtn{display:none!important}
 @media (max-width:560px){#map button{height:42px}#map b{font-size:8.5px}}
+#talkBtn{left:50%;transform:translateX(-50%);bottom:calc(122px + var(--sab));padding:11px 16px;border-radius:20px;background:var(--paper);color:var(--ink);font:800 12px/1 Arial,sans-serif;letter-spacing:.08em;box-shadow:0 4px 16px rgba(0,0,0,.4)}#talkBtn[hidden]{display:none}body.inworld #talkBtn,body.run #talkBtn{display:none}
+.bubble{position:fixed;z-index:4;transform:translate(-50%,-100%);max-width:min(260px,70vw);background:var(--paper);color:#2a1d10;font:italic 14px/1.3 var(--serif);padding:8px 11px;border-radius:12px 12px 12px 2px;box-shadow:0 4px 14px rgba(0,0,0,.4);pointer-events:none}.bubble[hidden]{display:none}
+#talk{left:50%;transform:translateX(-50%);bottom:calc(60px + var(--sab));width:min(440px,calc(100vw - 20px));background:rgba(14,18,34,.94);border:1px solid var(--line);z-index:7;display:block}#talk[hidden]{display:none}
+#talk header{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#141a36}#talkName{font:800 20px/1 "Arial Narrow",Arial,sans-serif;text-transform:uppercase}#talkRole{display:block;font:12px/1.3 var(--mono);opacity:.75;margin-top:3px}#talkClose{font-size:18px;padding:6px 10px}
+#talkLog{max-height:30vh;overflow:auto;padding:8px 12px}#talkLog p{margin:6px 0;font:15px/1.35 var(--serif)}#talkLog .me{text-align:right;opacity:.75;font-style:italic}#talkLog .them{color:var(--paper)}
+#talkQuick{display:flex;gap:6px;overflow-x:auto;padding:4px 12px 8px;scrollbar-width:none}#talkQuick button{flex:none;font:12px/1 var(--mono);padding:9px 11px;border:1px solid var(--line);border-radius:16px;white-space:nowrap}
+#talkForm{display:flex;border-top:1px solid var(--line)}#talkIn{flex:1;min-width:0;background:none;border:0;color:inherit;font:16px/1 var(--serif);padding:13px 12px;outline:none}#talkForm button{background:var(--brass);color:var(--ink);font:800 13px/1 Arial;padding:0 18px;text-transform:uppercase}
+#talkLive{font:10px/1.4 var(--mono);opacity:.6;padding:5px 12px}
+.sheetv{position:fixed;inset:0;z-index:9;background:rgba(5,6,12,.8);display:grid;place-items:center;padding:16px}.sheetv[hidden]{display:none}.sheetv>div{background:#141a36;border:1px solid var(--line);padding:18px;max-width:420px;width:100%}
+.sheetv h3{margin:0 0 6px;font:800 22px/1 "Arial Narrow",Arial;text-transform:uppercase}.sheetv p{font:13px/1.45 var(--serif);opacity:.85;margin:0 0 12px}.sheetv label{display:block;font:10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;margin:10px 0 0}.sheetv input{display:block;width:100%;margin-top:5px;padding:10px;background:#0b0d18;border:1px solid var(--line);color:inherit;font:14px var(--mono)}
+.rowv{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}.rowv button{padding:11px 16px;border:1px solid var(--line);font:800 12px/1 Arial;text-transform:uppercase}#voiceSave{background:var(--brass);color:var(--ink)}
+body.inworld #talk,body.inworld .bubble{display:none}
 #fade{position:fixed;inset:0;z-index:8;background:radial-gradient(circle,#e8b24a,#3a1c05 70%);opacity:0;pointer-events:none;transition:opacity .35s}#fade.on{opacity:1}
 #clip{position:fixed;inset:0;z-index:9;background:rgba(5,4,3,.94);display:grid;place-items:center}#clip[hidden]{display:none}
 #clipVideo{max-width:100vw;max-height:100dvh;background:#000}#clipClose{position:absolute;top:calc(12px + var(--sat));right:14px}
@@ -138,6 +150,7 @@ body.inworld #map,body.inworld #loot,body.inworld #throwBtn,body.inworld #turnBt
   <button class="btn" id="rec" title="Record the canvas to a video file"><span>●</span><i> Rec</i></button>
   <button class="btn" id="still" title="Save a still (P)"><span>◎</span><i> Still</i></button>
   <button class="btn" id="snd" title="Sound"><span>♪</span><i> Sound</i></button>
+  <button class="btn" id="voiceBtn" title="Give the passengers a live voice"><span>✎</span><i> Voices</i></button>
   <button class="btn" id="passBtn" title="Render passes (M)"><span>▦</span><i> Passes</i></button>
   <button class="btn" id="hud" title="Hide the interface (H)"><span>◐</span><i> Hide</i></button>
 </div>
@@ -162,6 +175,19 @@ body.inworld #map,body.inworld #loot,body.inworld #throwBtn,body.inworld #turnBt
   <div id="pVerbs"></div>
   <button id="pBack">Back</button>
 </aside>
+<button id="talkBtn" class="hud" hidden>TALK</button>
+<aside id="talk" class="hud" hidden>
+  <header><div><b id="talkName"></b><span id="talkRole"></span></div><button id="talkClose" aria-label="Close">✕</button></header>
+  <div id="talkLog"></div>
+  <div id="talkQuick"><button>Who are you?</button><button>What is in the next car?</button><button>Why the bees?</button><button>Can I have your SPAM?</button></div>
+  <form id="talkForm"><input id="talkIn" placeholder="Say something" autocomplete="off" enterkeyhint="send"><button>Say</button></form>
+  <div id="talkLive"></div>
+</aside>
+<div id="voices" class="sheetv" hidden><div>
+  <h3>Voices</h3><p>With a key, passengers answer through a language model. It stays in this browser and is sent only to the endpoint below. A key already saved by Train Field or the hive pages on this site is picked up automatically.</p>
+  <label>Key<input id="keyIn" type="password" autocomplete="off"></label><label>Endpoint<input id="endIn"></label><label>Model<input id="modelIn"></label>
+  <div class="rowv"><button id="voiceCancel">Cancel</button><button id="voiceSave">Save</button></div>
+</div></div>
 <aside id="cue" class="hud" hidden>
   <div class="k" id="cueN"></div>
   <div id="cueTitle"></div>
