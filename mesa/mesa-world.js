@@ -44,10 +44,14 @@
 
   /* ---------- stained glass, painted on a canvas: cells of colour held in lead ---------- */
   const PAL = ["#2fd0d8", "#f2a83a", "#d8342c", "#f2d04a", "#2a9a5a", "#2a4ab8", "#e85aa8", "#f6efe0"];
-  const CACHE = new Map();
+  const CACHE = new Map(), WASH = ["#a9c4de", "#7f9fc6", "#dfe8ea", "#e9b866", "#f2dcae", "#9aa0a6", "#e08a3a", "#5d7fae"];
   function leaded(T, seed, opt = {}) { const key = JSON.stringify(opt) + "|" + (opt.text ? seed : seed % 6); if (CACHE.has(key)) return CACHE.get(key);
     const S = opt.text ? 512 : 256, c = document.createElement("canvas"); c.width = c.height = S; const q = c.getContext("2d"), n = opt.cells || 9, pal = opt.pal || PAL;
-    if (opt.stripes) { const bands = opt.stripes; for (let i = 0; i < bands; i++) { q.fillStyle = pal[(i + seed) % pal.length]; q.fillRect(0, i * S / bands, S, S / bands + 1); }
+    if (opt.wash) { /* big glass, as the film shows it: square panes of pale blue, grey and amber, the colour dragged across in long strokes */
+      const wp = opt.pal || WASH, g = q.createLinearGradient(0, 0, 0, S); g.addColorStop(0, wp[seed % 3]); g.addColorStop(1, wp[3 + seed % 3]); q.fillStyle = g; q.fillRect(0, 0, S, S);
+      for (let i = 0; i < 150; i++) { const y = hash(i, seed) * S, x = hash(i, seed + 3) * S - 40, ww = 30 + hash(i, seed + 5) * 150, hh = 2 + hash(i, seed + 7) * 11; q.globalAlpha = .1 + hash(i, seed + 9) * .26; q.fillStyle = wp[Math.floor(hash(i, seed + 11) * wp.length)]; q.fillRect(x, y, ww, hh); } q.globalAlpha = 1;
+      q.strokeStyle = "rgba(34,30,28,.8)"; q.lineWidth = S / 150; const cols = opt.cols || 4, rows = opt.rows || 4; for (let i = 0; i <= cols; i++) { q.beginPath(); q.moveTo(i * S / cols, 0); q.lineTo(i * S / cols, S); q.stroke(); } for (let j = 0; j <= rows; j++) { q.beginPath(); q.moveTo(0, j * S / rows); q.lineTo(S, j * S / rows); q.stroke(); } }
+    else if (opt.stripes) { const bands = opt.stripes; for (let i = 0; i < bands; i++) { q.fillStyle = pal[(i + seed) % pal.length]; q.fillRect(0, i * S / bands, S, S / bands + 1); }
       q.strokeStyle = "#1a1410"; q.lineWidth = S / 85; for (let i = 0; i <= bands; i++) { q.beginPath(); q.moveTo(0, i * S / bands); q.lineTo(S, i * S / bands); q.stroke(); } q.lineWidth = S / 170; for (let i = 0; i <= 6; i++) { q.beginPath(); q.moveTo(i * S / 6 + (i % 2) * S / 25, 0); q.lineTo(i * S / 6 - (i % 2) * S / 25, S); q.stroke(); } }
     else { /* a jittered grid of cells, each pixel compared only with the nine cells around it */
       const P = [], cw = S / n; for (let i = 0; i < n; i++) { P.push([]); for (let j = 0; j < n; j++) { const col = pal[Math.floor(hash(i * 7 + seed, j * 3) * pal.length)]; P[i].push([(i + .15 + hash(i + seed, j) * .7) * cw, (j + .15 + hash(j, i + seed * 3) * .7) * cw, parseInt(col.slice(1, 3), 16), parseInt(col.slice(3, 5), 16), parseInt(col.slice(5, 7), 16)]); } }
@@ -137,7 +141,7 @@
 
     /* ---------- the glass canyon: two walls of towering stained-glass slabs, the trench between them, prisms for cover ---------- */
     for (let i = 0; i < 18; i++) for (const s of [-1, 1]) { const z = -40 - i * 13, x = s * (13 + hash(i, s) * 3), y = heightAt(x, z), h = 24 + hash(i, s + 4) * 38, w = 11, d = 2.4;
-      const m = new T.Mesh(new T.BoxGeometry(d, h, w), glassMat(T, leaded(T, i * 3 + (s > 0 ? 100 : 0), { cells: 8 }), { opacity: .78 })); m.position.set(x, y + h / 2, z); m.rotation.y = (hash(i, 9) - .5) * .15; root.add(m); glass.push(m);
+      const m = new T.Mesh(new T.BoxGeometry(d, h, w), glassMat(T, leaded(T, i * 3 + (s > 0 ? 100 : 0), { wash: true }), { opacity: .7, emissiveIntensity: .32 })); m.position.set(x, y + h / 2, z); m.rotation.y = (hash(i, 9) - .5) * .15; root.add(m); glass.push(m);
       solid(x, y + h / 2, z, d / 2, h / 2, w / 2, m.rotation.y, "canyon");
       if (i % 3 === 1) { const c = new T.Mesh(new T.PlaneGeometry(6, 9), new T.MeshBasicMaterial({ map: m.material.map, transparent: true, opacity: .35, blending: T.AdditiveBlending, depthWrite: false })); c.rotation.x = -Math.PI / 2; c.position.set(x - s * 6, heightAt(x - s * 6, z) + .06, z); root.add(c); caustics.push(c); } }
     const prismTx = leaded(T, 300, { cells: 5, pal: ["#2fd0d8", "#f2a83a", "#e9f4f0", "#f2d04a"] });
@@ -172,12 +176,12 @@
     const zig = { seat: null }; { const zz = Z.ziggurat_steps, y = heightAt(zz.x, zz.z), stone = M(0xd8b48a, { roughness: .95 });
       for (let k = 0; k < 6; k++) { const w = 36 - k * 5, d = 26 - k * 3.6, s = box(w, 1.2, d, stone); s.position.set(zz.x, y + .6 + k * 1.2, zz.z - k * .6); root.add(shadowOf(s)); solid(zz.x, y + .6 + k * 1.2, zz.z - k * .6, w / 2, .6, d / 2, 0, "ziggurat"); }
       zig.seat = new T.Vector3(zz.x + 6, y + 2.4, zz.z + 26 / 2 - 4.6);
-      const colTx = leaded(T, 900, { cells: 6, pal: ["#f2d04a", "#2fd0d8", "#f2a83a", "#e9f4f0"] });
+      const colTx = leaded(T, 900, { wash: true, cols: 1, rows: 4 });
       for (let i = 0; i < 7; i++) { const x = zz.x - 24 + i * 8, h = 30 + (i % 3) * 12, c = new T.Mesh(new T.BoxGeometry(3, h, 3), glassMat(T, colTx, { opacity: .8 })); c.position.set(x, y + h / 2, zz.z - 22); root.add(c); glass.push(c); solid(x, y + h / 2, zz.z - 22, 1.5, h / 2, 1.5, 0, "column"); } }
 
     /* ---------- the north curtain wall: colossal vertical glass monoliths across the end of the world ---------- */
-    { const cz = Z.north_curtain_wall.z, tx = [leaded(T, 1200, { cells: 5, pal: ["#d8342c", "#2fd0d8", "#f2d04a"] }), leaded(T, 1201, { cells: 5, pal: ["#2fd0d8", "#f2a83a", "#e9f4f0"] })];
-      for (let i = 0; i < 22; i++) { const x = -190 + i * 18 + hash(i) * 5, h = 110 + hash(i, 1) * 90, w = 14, y = heightAt(x, cz), m = new T.Mesh(new T.BoxGeometry(w, h, 5), glassMat(T, tx[i % 2], { opacity: .7, emissiveIntensity: .45 })); m.position.set(x, y + h / 2 - 2, cz - hash(i, 2) * 20); root.add(m); glass.push(m); solid(x, y + h / 2, m.position.z, w / 2, h / 2, 2.5, 0, "curtain"); } }
+    { const cz = Z.north_curtain_wall.z, tx = [leaded(T, 1200, { wash: true, cols: 2, rows: 2 }), leaded(T, 1201, { wash: true, cols: 2, rows: 2 })]; for (const t of tx) { t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(1, 6); }
+      for (let i = 0; i < 22; i++) { const x = -190 + i * 18 + hash(i) * 5, h = 110 + hash(i, 1) * 90, w = 14, y = heightAt(x, cz), m = new T.Mesh(new T.BoxGeometry(w, h, 5), glassMat(T, tx[i % 2], { opacity: .62, emissiveIntensity: .28 })); m.position.set(x, y + h / 2 - 2, cz - hash(i, 2) * 20); root.add(m); glass.push(m); solid(x, y + h / 2, m.position.z, w / 2, h / 2, 2.5, 0, "curtain"); } }
 
     const horseAt = { x: Z.silhouette_wall.x + 6, z: Z.silhouette_wall.z, h: Math.PI / 2 };
     function zoneAt(x, z) { let best = null, bd = 1e9; for (const k in Z) { const q = Z[k], d = Math.hypot(x - q.x, z - q.z) - q.r; if (d < bd) { bd = d; best = q; } } if (Math.hypot(x, z + 60) > 300) return "The Salt Flats"; return bd < 25 ? best.name : "The Desert"; }
