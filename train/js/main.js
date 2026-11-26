@@ -223,7 +223,7 @@ function frame() {
   if (own) goal.copy(own.pos);
   bees.update(dt, state.t, { cars, camCar: Math.max(1, state.camCar), actor, cup, goal: own ? goal : null, density: state.empty && state.camCar <= 1 ? -1 : (DENSITY[Math.max(1, state.camCar)] ?? 1) * (state.calm ? .25 : 1) });
   for (const c of cans) c.visible = !(state.empty && c.userData.car === 1);
-  for (const d of train.doors) { const near = Math.abs(actor.x - d.x) < 1.9 || people.some(p => p.walk && Math.abs(p.walk.x - d.x) < 1.6); d.open = damp(d.open, near ? 1 : 0, near ? 7 : 3, dt); d.g.position.z = d.open * .88; }
+  for (const d of train.doors) { const near = Math.abs(actor.x - d.x) < 1.9 || (rig.st.shot.inside && (d.x - actor.x) * (d.x - camera.position.x) < 0) || Math.abs(camera.position.x - d.x) < .8 || people.some(p => p.walk && Math.abs(p.walk.x - d.x) < 1.6); d.open = damp(d.open, near ? 1 : 0, near ? 7 : 3, dt); d.g.position.z = d.open * .88; }
   for (const p of people) {
     let ci = p.car;
     if (p.walk) { const w = p.walk; w.x += w.dir * .8 * dt; if (w.x > w.b) w.dir = -1; if (w.x < w.a) w.dir = 1; const l = locate(cars, w.x); ci = l.i; p.root.position.set(w.x, DIM.FLOOR, l.aisleZ + .12); p.root.rotation.y = w.dir * Math.PI / 2; p.loco = { speedMps: .8 }; }
