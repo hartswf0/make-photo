@@ -210,6 +210,7 @@ function frame() {
   const ctx = { a: actor, car: loc.car, aisleZ: loc.aisleZ, side: actor.seated ? Math.sign(actor.z) || 1 : (own && Math.abs(own.pos.z) > .5 ? Math.sign(own.pos.z) : 1), bee: bees.lead, t: state.t, dist: journey.dist, speed: journey.speed, noseX: train.noseX, tailX: train.tailX };
   ctx.shoulder = state.shoulder; ctx.heist = game.mode === 'game';
   if (ctx.heist && !state.bee && !run.on && rig.st.shot.id !== 'follow') setShot('follow', true);
+  if (ctx.heist && !state.bee) { input.yaw = input.pitch = 0; rig.st.yaw = rig.st.pitch = 0; rig.st.zoom = 1; }   // the heist camera is fixed: a stray drag must not tip the lens
   if (ctx.heist) { const cN = cars[cars.length - 1]; if (actor.x < cN.x + cN.walkMin + .6) actor.cam = 1; if (actor.x > cars[0].x - DIM.L / 2 + 2.2) actor.cam = -1; }
   if (state.bee) {   // the player is the bee: fly where you look
     const B = bees.lead, ks = input.keys, f = input.jy + axis('w', 's'), sd = input.jx + axis('d', 'a'); state.beeYaw += input.yaw; state.beePitch = clamp(state.beePitch - input.pitch, -1.2, 1.2); input.yaw = input.pitch = 0;
