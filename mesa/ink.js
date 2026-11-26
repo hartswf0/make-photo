@@ -100,8 +100,8 @@
     /* ---------- paintballs ---------- */
     const ballG = new T.SphereGeometry(.09, 14, 10), balls = [], ballMats = new Map();
     const bm = col => { const k = col.getHexString(); if (!ballMats.has(k)) ballMats.set(k, new T.MeshStandardMaterial({ color: col, roughness: .12, metalness: .05, emissive: col, emissiveIntensity: .35 })); return ballMats.get(k); };
-    function fire(o, d, color, speed = 34) { if (balls.length >= MAXB) { const old = balls.shift(); scene.remove(old.m); } const col = new T.Color(color), m = new T.Mesh(ballG, bm(col)); m.position.copy(o); scene.add(m);
-      balls.push({ m, v: d.clone().multiplyScalar(speed), col, t: 0 }); }
+    function fire(o, d, color, speed = 34, opt = {}) { if (balls.length >= MAXB) { const old = balls.shift(); scene.remove(old.m); } const col = new T.Color(color), m = new T.Mesh(ballG, bm(col)); m.position.copy(o); scene.add(m);
+      balls.push({ m, v: d.clone().multiplyScalar(speed), col, t: 0, owner: opt.owner || "mesa", exclude: opt.exclude }); }
     function splat(p, n, dir, col, big = 1) {
       const along = dir.clone(), incid = 1 - Math.abs(dir.dot(n)), size = (1.05 + Math.random() * .5) * big, stretch = clamp(incid * 1.3, 0, 1);
       decal(p, n, along, size, size * (1 + stretch * .6), col, 0, 1, stretch);
@@ -114,9 +114,9 @@
     const cures = [];
     function step(dt, t) { NOW.value = t;
       for (let i = balls.length - 1; i >= 0; i--) { const b = balls[i], p = b.m.position; b.t += dt; b.v.y -= 9.81 * dt; const len = b.v.length() * dt, d = b.v.clone().normalize();
-        const hit = world.castRayAndGetNormal(new R.Ray(v3(p.x, p.y, p.z), v3(d.x, d.y, d.z)), len, true, undefined, undefined, c.exclude && c.exclude());
+        const hit = world.castRayAndGetNormal(new R.Ray(v3(p.x, p.y, p.z), v3(d.x, d.y, d.z)), len, true, undefined, undefined, b.exclude !== undefined ? b.exclude : c.exclude && c.exclude());
         if (hit) { const toi = hit.timeOfImpact ?? hit.toi, q = p.clone().addScaledVector(d, toi), n = new T.Vector3(hit.normal.x, hit.normal.y, hit.normal.z), who = OWNER.get(hit.collider.handle);
-          scene.remove(b.m); balls.splice(i, 1); const handled = c.onHit ? c.onHit(who, q, n, d, b.col) : false; if (!handled) splat(q, n, d, b.col); continue; }
+          scene.remove(b.m); balls.splice(i, 1); const handled = c.onHit ? c.onHit(who, q, n, d, b.col, b.owner) : false; if (!handled) splat(q, n, d, b.col); continue; }
         p.addScaledVector(d, len); b.m.quaternion.setFromUnitVectors(_y.set(0, 1, 0), d); b.m.scale.set(1, 1 + Math.min(1.6, b.v.length() * .03), 1);
         if (c.puff && Math.random() < dt * 22) c.puff(p.clone(), b.col, b.v.clone().multiplyScalar(.05), .35, .03, .6, false);
         if (b.t > 4) { scene.remove(b.m); balls.splice(i, 1); } }
