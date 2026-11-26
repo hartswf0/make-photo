@@ -8,7 +8,7 @@ export const ROOF_Y = F + ROOF + .14;
 
 export function createGame({ scene, cars, train, bees, interact, actor, journey, state, stub, deed, env }) {
   const g = interact.game; Object.assign(g, { mode: 'world', swarm: 100, calm: false, smoker: false, key: false, hijacked: false, roofed: false, knelt: false, venom: 0 });
-  const stubCars = () => new Set([...g.stubs].map(u => interact.items.find(i => i.id === u)?.car)).size;
+  const stubCars = () => g.stubCars.size;
   const goals = [
     { id: 'stubs', text: 'Take a stub in seven carriages', done: () => stubCars() >= 7, show: () => `${stubCars()}/7` },
     { id: 'veil', text: 'Get the veil from the beekeeper', done: () => g.veil },
@@ -21,7 +21,7 @@ export function createGame({ scene, cars, train, bees, interact, actor, journey,
   ];
 
   // ---- the great swarm: one body made of many, with a mind of four states
-  const N = 1100, seed = new Float32Array(N * 3); for (let k = 0; k < N * 3; k++) seed[k] = Math.random();
+  const N = matchMedia('(pointer:coarse)').matches ? 380 : 1100, seed = new Float32Array(N * 3); for (let k = 0; k < N * 3; k++) seed[k] = Math.random();
   // real bodies, not points: they catch the sun, cast on the roof, and appear in every render pass
   const cloud = new THREE.InstancedMesh(new THREE.OctahedronGeometry(.032, 0).scale(1.8, .8, .8), new THREE.MeshLambertMaterial({ color: 0x3a2406, emissive: 0x2a1802 }), N); cloud.frustumCulled = false; cloud.visible = false; cloud.castShadow = true; cloud.userData.cls = 'bee'; scene.add(cloud);
   const m4 = new THREE.Matrix4(), q4 = new THREE.Quaternion(), e4 = new THREE.Euler(), s4 = new THREE.Vector3(), p4 = new THREE.Vector3();
