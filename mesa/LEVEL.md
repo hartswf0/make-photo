@@ -99,6 +99,24 @@ Three references, used together:
 - **The edge of the world** is al-Idrisi's sea from the Tabula Rogeriana (1154): deep blue, with white zigzag waves following the curve of the rim.
 - **The buttes** are al-Idrisi's mountains: ten islands of rock at the rim, in bands of red, yellow, orange and purple, edged in dark ink and scalloped with scales.
 
+## Swarms (`swarm.js`) and the Hall of Liberation (`tekle.js`)
+
+One swarm for each reference. Each is our own hand-made version, not a copy.
+
+**How a glass figure is made.** A hidden scion character (a "driver") runs real motion-capture clips on the shared motion driver.
+- **Shards on bones.** Hundreds of instanced glass shards are pinned to its bones. Each shard has a bone, an offset in that bone's frame, a spin and a colour.
+- **Cheap crowds.** Any number of figures can wear the same pose, each with its own place and heading. A procession costs one skeleton and one draw call.
+- **What shards can do.** Fly in from a window to form a figure; be knocked loose by a paint hit, fall, bounce, lie for a few seconds and fly home; take the paint's colour; all blow out at once.
+
+**What each reference became:**
+
+| Reference | Our own version | Its swarm |
+|---|---|---|
+| Afewerk Tekle, *Total Liberation of Africa* (Africa Hall, 1961) | **The Hall of Liberation** behind the ziggurat: three 22 × 44 m panels painted in code. *Then* is cool and fractured: a dark sun, chains, bowed figures. *Then and now* is the torchbearer raising the flame against a burst of broken light. *Now and the future* is gold, red and green: a rising sun, raised arms, towers, gears, a rocket. Jewel-tone mosaic, figures with large dark eyes in white shamma with tibeb borders, and heavy lead drawn as long calligraphic sweeps over structural bars. The glass throws its colours on the ground | **The procession**: seven marchers of white, brown, green and red glass step one by one out of the centre panel and walk round the ziggurat, right arms raised; the first carries a lit torch |
+| The Stained Glass Knight (*Young Sherlock Holmes*, 1985) | **The knight in the sunken glass cathedral**, with a red glass sword and plume. When Uncle Mesa comes down onto the mirror floor, the knight leaps out of a canyon window and hunts him: walking, jogging, then a wind-up and a cut that knocks him flat | 760 shards of silver, gold and red. Paint knocks shards loose and recolours them; after 16 hits he shatters across the floor. He waits in the glass again 30 s after you leave |
+| Touki Bouki (1973) | **The Dogon kanaga** on the bike's rear, as on Mory's | **A herd of 14 zebu** (hump, dewlap, lyre horns, a walking gait) flocking over the salt flats: separation, alignment, cohesion and a wandering goal. They are shy of the rider and run when he comes close |
+| *Scavengers Reign*, *Akira* | **The Akira trail**: the bike's red tail light leaves a band of light behind it at speed | **160 glass seed-moths** at the oasis in cyan, magenta, lime, violet and gold. They drift, gather round a passer-by, and scatter from every splat |
+
 ## Built on
 
 | Part | Used for |

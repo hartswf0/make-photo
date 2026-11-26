@@ -30,6 +30,11 @@
     const stripe = new T.Mesh(new T.SphereGeometry(.172, 16, 10, 0, Math.PI * 2, 1.2, .25), chrome); stripe.scale.copy(tank.scale); stripe.position.copy(tank.position); g.add(stripe);
     const seat = new T.Mesh(new T.BoxGeometry(.28, .09, .78), leather); seat.position.set(0, .86, -.33); g.add(seat);
     tube([-.12, .86, -.7], [-.12, 1.35, -.78], .012, chrome); tube([.12, .86, -.7], [.12, 1.35, -.78], .012, chrome); tube([-.12, 1.35, -.78], [.12, 1.35, -.78], .012, chrome);
+    /* the Dogon kanaga on the rear, as on Mory's bike: an upright, an upper bar whose ends rise, a lower bar whose ends fall */
+    { const wood = new T.MeshStandardMaterial({ color: 0x5a3a22, roughness: .85 }), k = (a, b, r = .018) => tube(a, b, r, wood);
+      k([0, 1.35, -.78], [0, 2.05, -.8], .022); k([-.3, 1.88, -.79], [.3, 1.88, -.79]); k([-.3, 1.88, -.79], [-.32, 2.06, -.79]); k([.3, 1.88, -.79], [.32, 2.06, -.79]);
+      k([-.26, 1.58, -.79], [.26, 1.58, -.79]); k([-.26, 1.58, -.79], [-.28, 1.4, -.79]); k([.26, 1.58, -.79], [.28, 1.4, -.79]);
+      const head = new T.Mesh(new T.BoxGeometry(.08, .1, .05), wood); head.position.set(0, 2.08, -.8); g.add(head); }
     const tail = new T.Mesh(new T.BoxGeometry(.1, .05, .04), new T.MeshStandardMaterial({ color: 0xd02020, emissive: 0x801010, emissiveIntensity: .6 })); tail.position.set(0, .78, -.82); g.add(tail);
     /* fork, high bars, grips, round mirrors on tall stalks */
     const fork = new T.Group(); g.add(fork); fork.position.set(0, 1.02, .52);
