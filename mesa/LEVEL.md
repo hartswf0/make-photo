@@ -136,3 +136,7 @@ The glass is painted at load on canvases: leaded cells around a jittered grid, l
 - **Sound:** gunfire and glass are synthesized.
 - **Phones:** there are no touch controls.
 - **The overworld:** not poured into the trough yet.
+
+## Handmade (PAE-09)
+
+The knight scene, held still as a description and a score taken from this level's own knight machine, is built four times from the bottom up by four SCION swarms: Afewerk Tekle (one fixed leaded window, only the light moves), Lucasfilm 1985 (hand-keyed convex shards), Djibril Diop Mambéty (a griot collage cut from this game's own frames) and Mœbius and Otomo (a clean line, light trails, a bloom before each break). Each film is measured from its own pixels and judged by independent critics: [PAE-09 · MESA CHIP, handmade](https://hartswf0.github.io/bolas/paeleo/mesa-chip/).
