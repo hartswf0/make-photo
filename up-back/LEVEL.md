@@ -34,7 +34,7 @@ Each sits on the ground under its own length and width, squats when it pulls awa
 
 ## Uncle Chip, the donkey and the coyote
 
-- **Uncle Chip** is the one in the chair, drawn as the MESA CHIP film draws him: a lean white man with a brim far wider than his shoulders, round gold glasses, a brown beard to the chest, a white shirt, jeans, and boots that are half sandal (a tooled shaft over an open strapped foot with a rubber toe).
+- **Uncle Chip** is the one in the chair, after the MESA CHIP film: a lean, fair, weathered man; a tan hat with a creased crown and a wide brim rolled a little at the sides; round wire glasses; hair to the shoulders; a full brown-grey beard down the chest, ragged at the end, with a heavy moustache; a white shirt, jeans, and boots that are half sandal. The hat, hair, beard and glasses are sculpted in `up-back.js` and ride his head bone. The cast paints faces from portraits, so his skin is re-toned in the shader, keeping the portrait's light and dark. `?nostart` plus `window.__ubCam = { pos, at, fov }` gives a fixed camera for close study.
 - **The donkey** grazes by the fig bush, drinks at the creek, and backs away from moving machines. With a fig in your pocket it comes to you; give it one and it follows for a minute and a half. It can be ridden (W walks on, A and D turn, Shift trots). It brays at the coyote.
 - **The coyote** keeps to the edge of the woods, bolts from people, engines and paint, howls now and then, and comes in for ripe figs on the bushes you planted when nobody is near.
 - Paint sticks to both.
