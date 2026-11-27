@@ -36,14 +36,14 @@
   <div id="stick" hidden><i></i></div>
   <div class="bar"><span class="keys">W A S D · arrows turn · Shift run · E do what is here</span><button id="do" type="button" hidden></button></div>
   <div id="boot" role="status"><div><b>Up Back</b><span id="boot-s">Raking leaves…</span></div></div>
-  <script src="../field-plates/three.js"></script>
-  <script src="../donkey/donkey.js?v=v6sculpt1"></script>
-  <script src="../donkey/scion-eye-globe.js?v=v6sculpt1"></script><script src="../donkey/scion-eyelids.js?v=v6sculpt1"></script>
-  <script src="../donkey/human-physical-v6.js?v=v6sculpt1"></script><script src="../donkey/human-sculpt-v3.js?v=v6sculpt1"></script>
-  <script src="../donkey/scion-groom-garments.js?v=v6sculpt2"></script><script src="../donkey/characters.js?v=cast2"></script>
-  <script src="../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"></script>
-  <script src="../soundtrack/soundtrack.js?v=2" data-album="firstwintera"></script>
-  <script src="../atlas/trough-gate.js?v=1"></script>
-  <script src="./up-back.js?v=2"></script>
+  <script>
+  /* Scripts are loaded in order, each tried up to four times: GitHub Pages sometimes answers one file with a 503, and one missing
+     script used to stop the whole page. They are fetched in parallel first (preload), so order costs nothing. */
+  (async () => { const L = [{"src": "../field-plates/three.js"}, {"src": "../donkey/donkey.js?v=v6sculpt1"}, {"src": "../donkey/scion-eye-globe.js?v=v6sculpt1"}, {"src": "../donkey/scion-eyelids.js?v=v6sculpt1"}, {"src": "../donkey/human-physical-v6.js?v=v6sculpt1"}, {"src": "../donkey/human-sculpt-v3.js?v=v6sculpt1"}, {"src": "../donkey/scion-groom-garments.js?v=v6sculpt2"}, {"src": "../donkey/characters.js?v=cast2"}, {"src": "../motion-pipeline/mesh2motion/m2m-world-bridge.js?v=2"}, {"src": "../soundtrack/soundtrack.js?v=2", "data": {"album": "firstwintera"}}, {"src": "../atlas/trough-gate.js?v=1"}, {"src": "./up-back.js?v=2"}], say = t => { const b = document.getElementById("boot-s"); if (b) b.textContent = t; };
+    for (const s of L) { const l = document.createElement("link"); l.rel = "preload"; l.as = "script"; l.href = s.src; document.head.appendChild(l); }
+    const one = (s, n) => new Promise((ok, no) => { const e = document.createElement("script"); e.src = s.src + (n ? (s.src.includes("?") ? "&" : "?") + "retry=" + n : ""); e.async = false; for (const k in s.data || {}) e.dataset[k] = s.data[k]; e.onload = ok; e.onerror = () => { e.remove(); no(); }; document.body.appendChild(e); });
+    for (const s of L) { let done = false; for (let n = 0; n < 4 && !done; n++) { try { await one(s, n); done = true; } catch (e) { say("The line dropped. Trying again…"); await new Promise(r => setTimeout(r, 600 * (n + 1))); } }
+      if (!done) { say("Could not load the game. Tap to try again."); document.getElementById("boot").addEventListener("click", () => location.reload()); return; } } })();
+  </script>
 </body>
 </html>
