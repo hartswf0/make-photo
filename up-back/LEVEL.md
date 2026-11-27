@@ -32,6 +32,16 @@ Each sits on the ground under its own length and width, squats when it pulls awa
 - **Breaking.** Everything placed in the yard comes apart into its own boards, panels and parts, each with a body: the den, the camper, the Airstream, the trailer, the garage panel by panel (lose three and the roof comes down), the bench and engine inside it. Trees fall the way they are pushed. The trucks and the Deere have to ram at speed; the mower and bicycle cannot.
 - **Going in.** The garage is open to the south: a bench with paint cans, an engine on a stand, tyres, one bulb. The Airstream has a room in it (Step inside, once you have laid a hand on it). The den was always open.
 
+## A place with things to do
+
+Fifteen things, shown one at a time, each with an orange arrow and a distance on screen: get up, the photograph, the mower, knock down six cans, the Denali, pick a fig, the generator, the Suburban, the Deere, plant a fig, the ruin, the camper, the trailer, the excavator, the Airstream.
+
+- **The ruin of a house** stands east of the yard in the woods: a stone foundation a few courses high with gaps, a chimney, a door frame, a rusted bed frame, steps, and a cellar hole. Every length of wall breaks on its own; the chimney comes down from the bottom.
+- **Growing.** Pick a fig, dig a hole with either bucket, stand in it and plant. The fig comes up in about a minute and a half and bears four figs, which can be planted in turn.
+- **Making things work.** The generator in the garage starts on the cord: the bulb comes up and so does a string of lights down to the den. Break the generator and they go out.
+- **The map** (the Map button, or M): the yard from above, north up, with every painted square metre in its colour, holes and piles, what is standing and what is broken, trees, vehicles, plants, you and your friend. It gives square metres painted and the share of up back.
+- **Paint sticks to everything it hits.** On the ground and walls it is the leaded glass. On vehicles, people and loose things it is wet discs fixed to them, so it rides with them. Trees are the exception (see Not yet).
+
 ## Physics (Rapier)
 
 The ground, trees and walls are solid. Loose things have real bodies and tumble: the yellow cart, the white barrel, two pyramids of paint cans, four tyres, two drums. Vehicles and people shove them; paintballs knock them and count them.
@@ -46,7 +56,7 @@ The gun is MESA CHIP's (`mesa/ink.js`): a ball on an arc that lands wet, runs on
 
 - Each phone moves its own player and resolves hits on itself: a friend's ball that lands on you, or on the vehicle you are driving, is a tag. The header shows tags for and against.
 - Whoever last drove a vehicle owns its position; the other phone follows it. A vehicle someone is driving cannot be taken.
-- Shared as well: the arm positions, everything broken, every tree felled, and every bucketful dug or tipped.
+- Shared as well: figs planted, the generator, the arm positions, everything broken, every tree felled, and every bucketful dug or tipped.
 - Not shared: loose props and pieces, what a bucket is carrying, leaves, figs, and paint already on the ground when someone joins (new paint is, because every shot is replayed on both phones).
 - Peer to peer through PeerJS's public broker; no account and no server of ours. Tested with two tabs over a stand-in channel (`?netlocal`), not yet phone to phone.
 
