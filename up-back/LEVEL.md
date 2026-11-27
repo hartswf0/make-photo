@@ -98,3 +98,14 @@ The gun is MESA CHIP's (`mesa/ink.js`): a ball on an arc that lands wet, runs on
 - Water is worked out separately on each phone, so two players' creeks can differ slightly. Stakes and the truck's load are not shared.
 - Shrubs cannot be broken. Vehicles cannot be broken or picked up. Broken pieces are capped at 280; the oldest disappear.
 - The excavator's cab cannot be entered on foot, and its arm does not collide with things: it breaks them or grabs them.
+
+## People, and choosing who you are
+
+`person(cfg, id)` builds anyone who walks here from one description: body, build, skin, hat, hair, hair colour, beard, glasses, shirt,
+trousers. Four are ready made in `WHO` (Uncle Chip, Anta, Tex, June). The start card has **Choose who you are**: pick one of the four, or
+open *design your own* and set each part. The choice is kept on the phone (`upback.who`) and sent to the other player, who sees you as you
+made yourself.
+
+Hair and beards are a mass first and hairs second. `mass()` lays a combed, clumped surface from the root line to a ragged end (the beard
+from the jaw, the hair from under the hat), painted with streaks of the hair's four tones, which also give it relief. `locks()` then lays
+a few hundred loose curled hairs along that surface so the edge is soft. The moustache is hairs alone.
