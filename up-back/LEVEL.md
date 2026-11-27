@@ -32,6 +32,21 @@ Each sits on the ground under its own length and width, squats when it pulls awa
 - **Breaking.** Everything placed in the yard comes apart into its own boards, panels and parts, each with a body: the den, the camper, the Airstream, the trailer, the garage panel by panel (lose three and the roof comes down), the bench and engine inside it. Trees fall the way they are pushed. The trucks and the Deere have to ram at speed; the mower and bicycle cannot.
 - **Going in.** The garage is open to the south: a bench with paint cans, an engine on a stand, tyres, one bulb. The Airstream has a room in it (Step inside, once you have laid a hand on it). The den was always open.
 
+## Uncle Chip, the donkey and the coyote
+
+- **Uncle Chip** is the one in the chair, drawn as the MESA CHIP film draws him: a lean white man with a brim far wider than his shoulders, round gold glasses, a brown beard to the chest, a white shirt, jeans, and boots that are half sandal (a tooled shaft over an open strapped foot with a rubber toe).
+- **The donkey** grazes by the fig bush, drinks at the creek, and backs away from moving machines. With a fig in your pocket it comes to you; give it one and it follows for a minute and a half. It can be ridden (W walks on, A and D turn, Shift trots). It brays at the coyote.
+- **The coyote** keeps to the edge of the woods, bolts from people, engines and paint, howls now and then, and comes in for ripe figs on the bushes you planted when nobody is near.
+- Paint sticks to both.
+
+## What happens
+
+- **Driving.** A vehicle has a heading and, separately, a velocity. Tyres pull one round to the other only as fast as their grip allows: full on dry ground, less on loose fill, very little in water. So the trucks slide and the tracked machines do not. A vehicle leaves the ground when the ground falls away under a climb (a pile is a ramp), comes down under gravity, and lands with a thump. It presses ruts into wet or loose earth and throws spray in water.
+- **Water.** It is raining, so any hole deeper than about 30 cm slowly fills. Running water carries loose fill off with it: a dam of dumped earth holds until it is overtopped, then breaches.
+- **Earth.** Take the ground from under a tree or a structure (about 90 cm) and it comes down.
+- **What the yard kept.** Seven things are buried. On foot, a tick in the ear quickens as you walk over one; dig to its depth and it comes up out of the ground.
+- Two more jobs: dig up three things the yard kept, and get a vehicle off the ground for most of a second.
+
 ## Groundwork
 
 Our own take on the earthmoving sandbox, sized for a phone.
@@ -79,6 +94,7 @@ The gun is MESA CHIP's (`mesa/ink.js`): a ball on an arc that lands wet, runs on
 - Trees do not take paint (their colliders are fatter than their trunks, so the glass would float).
 - No boat.
 - Groundwork still to come: paydirt and a wash plant, a bulldozer blade, winching a bogged truck out, ruts, and hauling machines on a trailer.
+- The donkey, the coyote and the buried things are separate on each phone.
 - Water is worked out separately on each phone, so two players' creeks can differ slightly. Stakes and the truck's load are not shared.
 - Shrubs cannot be broken. Vehicles cannot be broken or picked up. Broken pieces are capped at 280; the oldest disappear.
 - The excavator's cab cannot be entered on foot, and its arm does not collide with things: it breaks them or grabs them.
