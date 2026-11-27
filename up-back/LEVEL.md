@@ -32,6 +32,19 @@ Each sits on the ground under its own length and width, squats when it pulls awa
 - **Breaking.** Everything placed in the yard comes apart into its own boards, panels and parts, each with a body: the den, the camper, the Airstream, the trailer, the garage panel by panel (lose three and the roof comes down), the bench and engine inside it. Trees fall the way they are pushed. The trucks and the Deere have to ram at speed; the mower and bicycle cannot.
 - **Going in.** The garage is open to the south: a bench with paint cans, an engine on a stand, tyres, one bulb. The Airstream has a room in it (Step inside, once you have laid a hand on it). The den was always open.
 
+## Groundwork
+
+Our own take on the earthmoving sandbox, sized for a phone.
+
+- **Soil in layers.** Topsoil for the first half metre digs easily and shows dark. Clay, to two metres, digs at half the rate and shows orange. Gravel below is slow, grey, and only the excavator cuts it. Loose fill is paler.
+- **Slumping.** Nothing stands steeper than its material allows: piles spread to about 37 degrees and cut banks fall in past about 52.
+- **Water.** A spring in the west woods feeds a creek that runs down the side of the yard. Water moves a square metre at a time, downhill, pools in any hole, and soaks away slowly. Dig a ditch from the creek and it follows. Wheels bog in it; tracks wade. A fig with water at its roots fruits again, and anything planted near water grows three and a half times as fast.
+- **Grade stakes.** On foot, **Stake** (or G) plants one end of a line, then the other. A strip five metres wide between them shows red where the ground is high, blue where it is low, green where it is on grade, with the share on grade counted. On the Deere, **Grade** holds the bucket to the line: drive it and the bucket cuts the red, carries it, and fills the blue.
+- **The dump truck** stands near the excavator. Tip a bucket over its bed to load it (8 m³). **Tip** raises the bed and pours a pile behind.
+- **One-tap digging.** In the excavator, **Scoop** runs a whole stroke (lower, curl in, lift) and **Dump** curls out. Either thumb on a stick takes the arm back.
+- **Four jobs**, each measured from the ground and the water themselves and shown with a running figure: dig a ditch from the creek to the fig bush; stake and grade a line of 15 m or more to 85%; haul 8 m³ to the pad with the cones; make a pond of 10 m³ in a hole of your own.
+- **The map** also shows water, the grade line and the pad.
+
 ## A place with things to do
 
 Fifteen things, shown one at a time, each with an orange arrow and a distance on screen: get up, the photograph, the mower, knock down six cans, the Denali, pick a fig, the generator, the Suburban, the Deere, plant a fig, the ruin, the camper, the trailer, the excavator, the Airstream.
@@ -65,5 +78,7 @@ The gun is MESA CHIP's (`mesa/ink.js`): a ball on an arc that lands wet, runs on
 - The trucks are boxy.
 - Trees do not take paint (their colliders are fatter than their trunks, so the glass would float).
 - No boat.
+- Groundwork still to come: paydirt and a wash plant, a bulldozer blade, winching a bogged truck out, ruts, and hauling machines on a trailer.
+- Water is worked out separately on each phone, so two players' creeks can differ slightly. Stakes and the truck's load are not shared.
 - Shrubs cannot be broken. Vehicles cannot be broken or picked up. Broken pieces are capped at 280; the oldest disappear.
 - The excavator's cab cannot be entered on foot, and its arm does not collide with things: it breaks them or grabs them.
