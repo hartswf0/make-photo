@@ -114,10 +114,13 @@
     spec("yared_krar", { name: "Outlaw Ramón", skinHex: 0x6a4430, hair: "feltHat", hatHex: 0x3a2a1e, beard: true, hairHex: 0x14100c, outer: "duster", coatHex: 0x3a2e24, shirtHex: 0x2a2420, trouserHex: 0x24201c, build: .9 }),
     spec("yared_krar", { name: "Outlaw Silas", skinHex: 0x3a2418, hair: "feltHat", hatHex: 0x1e1a16, beard: true, hairHex: 0x100c0a, outer: "duster", coatHex: 0x1e2226, shirtHex: 0x3a3430, trouserHex: 0x1e1c1a, build: .92 })];
   const make = (c, label) => { let ch = null; try { ch = window.CAST_2086.make(T, c.base, c.s); } catch (e) { console.warn(label, e); } if (!ch) return null; if (ch.label && ch.label.sprite) ch.label.sprite.visible = false; scene.add(ch.group); ch.group.traverse(o => { if (o.isMesh) o.castShadow = true; }); return ch; };
-  const me = make(MESA, "mesa");
+  /* two players (mesa/net.js): the one who opened the link plays Anta, so on that phone "me" is Anta and the partner is Uncle Mesa */
+  const NET = window.MesaNet || { role: "solo", live: false, send() { }, on() { } }, GUEST = NET.role === "guest", GL = () => GUEST && NET.live;
+  const ANTASPEC = spec("selam_wire", { name: "Anta", scale: .97, build: .94, fem: .82, skinHex: 0x2c1a10, hair: "croppedCoily", hairHex: 0x100c0a, outer: "none", shirtHex: 0x6a6c48, trouserHex: 0xb8893a, tibebTrim: false });
+  const me = make(GUEST ? ANTASPEC : MESA, "mesa");
   const outlaws = OUTLAWS.map((c, i) => ({ ch: make(c, "outlaw"), name: c.s.name, id: "outlaw" + i, state: "away", t: 0 }));
   /* Anta, from Touki Bouki: short natural hair, an olive-green shirt, mustard trousers, a tan leather satchel. She waits by the bike. */
-  const anta = make(spec("selam_wire", { name: "Anta", scale: .97, build: .94, fem: .82, skinHex: 0x2c1a10, hair: "croppedCoily", hairHex: 0x100c0a, outer: "none", shirtHex: 0x6a6c48, trouserHex: 0xb8893a, tibebTrim: false }), "anta");
+  const anta = make(GUEST ? MESA : ANTASPEC, "anta"), MCH = GUEST ? anta : me, ACH = GUEST ? me : anta;   /* whoever is Uncle Mesa wears the brim, glasses and beard; whoever is Anta carries the satchel */
   /* the hidden drivers: scion skeletons that run motion capture for the glass figures; their own bodies are never drawn */
   const kD = make(spec("tex", { name: "Knight", scale: 1.08, build: 1.1, fem: .05, outer: "none" }), "knight"), pD = make(spec("yared_krar", { name: "Marcher", outer: "none" }), "marcher");
   for (const d of [kD, pD]) if (d) { d.group.visible = false; d.group.position.set(0, -200, 0); }
@@ -281,8 +284,10 @@
     else d = dir.clone().add(new T.Vector3((Math.random() - .5) * spread, (Math.random() - .5) * spread + .035, (Math.random() - .5) * spread)).normalize();
     const tru = st.steady >= .85 && !!LOCK.p; if (tru) { st.steady = .35; GAME.kick = 1; S.shot(o, .5); }   /* a settled, locked shot is a true shot: it hits twice as hard */
     tracer(o, o.clone().addScaledVector(d, tru ? 16 : 9), tru ? 0xffffff : col); puff(o.clone().addScaledVector(d, .2), 0xff3aa8, d.clone().multiplyScalar(2.4), .4, .14, 2.6, true); S.shot(o, .22); if (LENS) LENS.event("fire", col);
-    INK.fire(o, d, col, LOCK.p ? 32 : 30 + Math.random() * 4, { owner: tru ? "true" : "mesa", exclude: meCol }); puff(o.clone().addScaledVector(d, .12), col, d.clone().multiplyScalar(1.5), .3, .05, 1.4, false); S.launch(o); }
+    INK.fire(o, d, col, LOCK.p ? 32 : 30 + Math.random() * 4, { owner: GL() ? "ghost" : tru ? "true" : "mesa", exclude: meCol }); if (NET.live) NET.send({ e: "f", o: [r2(o.x), r2(o.y), r2(o.z)], d: [d.x, d.y, d.z], c: col, v: 31, k: "p" }); puff(o.clone().addScaledVector(d, .12), col, d.clone().multiplyScalar(1.5), .3, .05, 1.4, false); S.launch(o); }
   function inkHit(who, q, n, d, col, owner) {
+    if (owner === "ghost" || GL()) { /* on the second phone a ball only paints: the first player's game decides what it did */ if (who && who.kind === "outlaw") { paintBody(who.o.ch, q, col, 2); return true; } if (who && who.kind === "partner") { paintBody(anta, q, col, 2); return true; } return !!(who && (who.kind === "me" || who.kind === "chip" || who.kind === "knight")); }
+    if (who && who.kind === "partner") { if (owner === "outlaw") { paintBody(anta, q, col, 3); NET.send({ e: "h" }); } return true; }
     SPORE.scatter(q, 1);
     if (who && who.kind === "knight" && owner !== "outlaw") { const dmg = window.__trials ? window.__trials.hit(q, col) : (owner === "true" ? 2 : 1); KN.hit(0, q, .42, col); KNIGHT.hp -= dmg; if (LENS) LENS.event("hit", col); S.glass(q, .5); if (KNIGHT.hp <= 0 && KNIGHT.state !== "shattered") { KN.shatter(0, d); if (LENS) LENS.event("shatter"); if (window.__trials) window.__trials.win(); KNIGHT.state = "shattered"; KNIGHT.t = 0; S.glass(q, 2); complete("knight", "The knight goes to pieces on the mirror floor, every shard still holding its colour."); } return true; }   /* what a paintball does besides land: prisms crack, outlaws go down in their own colour, shards skitter */
     if (who && who.kind === "prism") { const p = who.p; p.hp--; S.glass(q, .3); if (p.hp <= 0) shatter(p, d); return false; }
@@ -320,12 +325,39 @@
     if (!best && (KNIGHT.state === "hunt" || KNIGHT.state === "strike")) { const p = new T.Vector3(KNIGHT.x, W.cathedralY + 1.25, KNIGHT.z); if (p.distanceTo(from) < 40) best = p; }
     if (!best) { AN.cool = .4; return; } const tf = best.distanceTo(from) / 30; best.y += .5 * 9.81 * tf * tf; const d = best.sub(from).normalize(); d.x += (Math.random() - .5) * .07; d.z += (Math.random() - .5) * .07; d.normalize();
     AN.dir.copy(d); AN.aimT = .55; AN.cool = 1.3 + Math.random() * .6; INK.fire(from.clone().addScaledVector(d, .4), d, DAKAR[AN.n++ % DAKAR.length], 30, { owner: "anta", exclude: meCol }); S.launch(from); }
+  /* ---------- the other player. PN is where their phone last said they were; NW is the world as the first player's game last saw it. */
+  const PN = { has: false, x: 0, y: 0, z: 0, h: 0, sp: 0, mode: "foot", gun: false, ax: 0, ay: 0, az: 1 }; let NW = null, NETT = 0;
+  const pBody = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(0, -55, 0)), pCol = world.createCollider(R.ColliderDesc.capsule(.55, .3), pBody); OWNER.set(pCol.handle, { kind: "partner" });
+  const r2 = v => Math.round(v * 100) / 100;
+  function partnerStep(dt) { const g = anta.group, k = 1 - Math.exp(-dt * 12);
+    if (PN.mode === "bike" || PN.mode === "pillion") { g.position.copy(TK.group.localToWorld(_bs.copy(PN.mode === "bike" ? TK.seat : TK.pillion))).addScaledVector(_bu, -SEATH); g.quaternion.copy(TK.group.quaternion); if (motion) try { motion.setClip("anta", "sitting-idle", { fade: .3 }); } catch (e) { } }
+    else { if (Math.hypot(PN.x - g.position.x, PN.z - g.position.z) > 12) g.position.set(PN.x, PN.y, PN.z); g.position.set(lerp(g.position.x, PN.x, k), lerp(g.position.y, PN.y, k), lerp(g.position.z, PN.z, k)); const down = PN.mode === "down"; g.rotation.set(down ? -1.45 : 0, g.rotation.y + wrapA(PN.h - g.rotation.y) * k, 0, "YXZ"); if (down) g.position.y += .22;
+      if (motion) try { if (PN.mode === "sit") motion.setClip("anta", "sitting-idle", { fade: .3 }); else motion.setActorLocomotion("anta", { speedMps: PN.sp, blend: 1 }); } catch (e) { } }
+    if (PN.gun) { AN.dir.set(PN.ax, PN.ay, PN.az); AN.aimT = .2; } else AN.aimT = 0; pBody.setNextKinematicTranslation(v3(g.position.x, g.position.y + .85, g.position.z)); }
+  function netSend(dt) { NETT += dt; if (!NET.live || NETT < .08) return; NETT = 0; const a = st.gun ? aimDir() : null, m = { e: "s", x: r2(st.x), y: r2(st.y), z: r2(st.z), h: r2(st.heading), sp: r2(st.speed), mode: st.mode, gun: !!st.gun };
+    if (a) { m.ax = r2(a.x); m.ay = r2(a.y); m.az = r2(a.z); }
+    if (!GUEST) m.w = { o: outlaws.map(o => [r2(o.x || 0), r2(o.z || 0), r2(o.ch.group.rotation.y), o.state, r2(Math.max(0, o.t)), o.ch.group.visible ? 1 : 0]), d: [DUEL.wave, DUEL.left], g: [GAME.score, GAME.combo, r2(GAME.comboT)], mi: MI, b: [r2(BK.x), r2(BK.z), r2(BK.h), r2(BK.speed), BK.rode ? 1 : 0] };
+    NET.send(m); }
+  function hurtMe() { if (st.mode === "down" || GAME.dashT > 0 || GAME.hurtT <= .9) return; $("hurt").classList.add("on"); setTimeout(() => $("hurt").classList.remove("on"), 260); GAME.hp--; GAME.hurtT = 0; GAME.shake = .6; S.hurt(); if (GAME.hp <= 0) { GAME.hp = 3; fall("Three hits. Down, and up again."); st.downT = 1.5; } }
+  NET.on("s", d => { const first = !PN.has; Object.assign(PN, d); PN.has = true; if (d.w) NW = d.w; if (first && GUEST) { st.mode = "foot"; st.x = d.x + 1.6; st.z = d.z + .6; st.y = heightAt(st.x, st.z); CAM.yaw = st.heading = d.h; meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); } });
+  NET.on("f", d => { if (!INK) return; const o = new T.Vector3(...d.o), dir = new T.Vector3(...d.d); if (GUEST) { const n = d.k === "outlaw" ? 3 : 1; for (let k = 0; k < n; k++) INK.fire(o, k ? dir.clone().add(new T.Vector3((Math.random() - .5) * .03, (Math.random() - .5) * .02, (Math.random() - .5) * .03)).normalize() : dir, d.c, d.v + k, { owner: "ghost", exclude: d.k === "outlaw" && outlaws[d.i] ? outlaws[d.i].body.collider(0) : pCol }); }
+    else INK.fire(o, dir, d.c, d.v, { owner: "anta", exclude: pCol }); S.launch(o); });
+  NET.on("h", () => hurtMe());
+  if (GUEST) { const b = document.querySelector(".top b"); if (b) b.textContent = "Anta"; }
+  NET.on("join", () => { if (GUEST) { done.gate = true; nextGoal(); if (MODE !== "game") setMode("game"); say("You are Anta. Stay close to Uncle Mesa: when he takes the bike, you are on the back.", 6); } else say("Anta is here. Two guns now.", 4); S.chime(); });
+  NET.on("leave", () => { PN.has = false; NW = null; pBody.setNextKinematicTranslation(v3(0, -55, 0)); if (st.mode === "pillion") st.mode = "foot"; say(GUEST ? "The line to Uncle Mesa dropped. Trying again…" : "Your friend has gone. Anta rides on with you.", 4); });
+  function duelGuest(dt) { if (!NW) return; DUEL.wave = NW.d[0]; DUEL.left = NW.d[1]; if (NW.g[1] > GAME.combo) GAME.mark = .16; GAME.score = NW.g[0]; GAME.combo = NW.g[1]; GAME.comboT = NW.g[2];
+    outlaws.forEach((o, i) => { const s2 = NW.o[i], g = o.ch.group, ring = rings[i]; if (!s2) return; const k = 1 - Math.exp(-dt * 10), was = o.state; o.state = s2[3]; g.visible = !!s2[5]; if (was === "away" || o.x === undefined) { o.x = s2[0]; o.z = s2[1]; } o.x = lerp(o.x, s2[0], k); o.z = lerp(o.z, s2[1], k);
+      g.rotation.y = s2[2]; g.rotation.x = lerp(g.rotation.x, o.state === "fall" ? -Math.PI / 2 : 0, 1 - Math.exp(-dt * 6)); g.position.set(o.x, heightAt(o.x, o.z) + (o.state === "fall" ? .2 : 0), o.z);
+      if (motion) try { if (o.state === "run") motion.setActorLocomotion(o.id, { speedMps: 3.6, blend: 1 }); else motion.setClip(o.id, o.state === "stagger" ? "angry" : "idle", { fade: .15 }); } catch (e) { }
+      ring.visible = o.state === "telegraph"; if (ring.visible) { drawRing(ring, s2[4] / 1.2); const h = new T.Vector3(); boneW(o.ch, 7, h); ring.position.copy(h).add(new T.Vector3(0, .45, 0)); }
+      o.body.setNextKinematicTranslation(o.state === "away" || o.state === "fall" || !g.visible ? v3(0, -50, 0) : v3(g.position.x, g.position.y + .85, g.position.z)); }); }
   function dash() { if (GAME.dashCool > 0 || st.mode !== "foot") return; const m = Math.hypot(GAME.mvx, GAME.mvz); GAME.dx = m > .1 ? GAME.mvx / m : Math.sin(st.heading); GAME.dz = m > .1 ? GAME.mvz / m : Math.cos(st.heading); GAME.dashT = .26; GAME.dashCool = .85; S.whoosh(); }
   const pickSpot = o => { const a = Math.atan2(o.x - st.x, o.z - st.z) + (Math.random() < .5 ? -1 : 1) * (.45 + Math.random() * .7), r = 8 + Math.random() * 9; o.tx = st.x + Math.sin(a) * r; o.tz = st.z + Math.cos(a) * r; };
   function startWave() { DUEL.wave++; DUEL.left = outlaws.length;
     outlaws.forEach((o, i) => { const a = CAM.yaw + (i - 1) * .75 + (Math.random() - .5) * .4, r = 21 + Math.random() * 7; o.x = st.x + Math.sin(a) * r; o.z = st.z + Math.cos(a) * r; o.hp = 2; o.state = "run"; o.t = -i * .6; o.ch.group.visible = true; o.ch.group.rotation.set(0, a + Math.PI, 0); o.ch.group.position.set(o.x, heightAt(o.x, o.z), o.z); pickSpot(o); for (let k = 0; k < 4; k++) puff(new T.Vector3(o.x, heightAt(o.x, o.z) + .4, o.z), 0xe8c890, new T.Vector3((Math.random() - .5) * 2, 1, (Math.random() - .5) * 2), 1.2, .5, 3, false); });
     say(DUEL.wave === 1 ? "Three of them, and they do not stand still. The red ring is the draw: shoot first, or dash." : `Wave ${DUEL.wave}.`, 3.5); S.bell(); }
-  function duelStep(dt) {
+  function duelStep(dt) { if (GL()) return duelGuest(dt);
     if (!DUEL.on) { outlaws.forEach((o, i) => { if (o.ch) o.ch.group.visible = false; rings[i].visible = false; o.state = "away"; o.body.setNextKinematicTranslation(v3(0, -50, 0)); }); DUEL.left = 0; return; }
     if (!done.gate || inPit()) return;   /* not before the gate, and not down in the cathedral: that is the knight's */
     if (DUEL.left === 0) { DUEL.next += dt; if (DUEL.next > (DUEL.wave ? 5 : 1.5)) { DUEL.next = 0; startWave(); } return; }
@@ -345,15 +377,16 @@
     for (let i = 0; i < 7; i++) { const m = new T.Mesh(g, W.glassMat(W.leaded(700 + i, { cells: 3, pal: cols[i % 3] }), { opacity: .92, emissiveIntensity: 1.2 })); m.visible = false; scene.add(m); const b = world.createRigidBody(R.RigidBodyDesc.kinematicPositionBased().setTranslation(0, -70 - i, 0)), c = world.createCollider(R.ColliderDesc.ball(.58), b), ch = { m, b, alive: false, t: -1 - i * .8, ph: i * 1.7, x: 0, y: 0, z: 0 }; OWNER.set(c.handle, { kind: "chip", ch }); CHIPS.push(ch); } }
   function gameStep(dt, t) { GAME.comboT -= dt; if (GAME.comboT <= 0) GAME.combo = 0; GAME.dashT = Math.max(0, GAME.dashT - dt); GAME.dashCool = Math.max(0, GAME.dashCool - dt); GAME.mark = Math.max(0, GAME.mark - dt); GAME.shake = Math.max(0, GAME.shake - dt * 2.2); GAME.kick = Math.max(0, (GAME.kick || 0) - dt * 5); GAME.cheer = Math.max(0, (GAME.cheer || 0) - dt); GAME.hurtT += dt; if (GAME.hp < 3 && GAME.hurtT > 7) { GAME.hp++; GAME.hurtT = 0; }
     if (GAME.dashT > 0 && Math.random() < dt * 60) puff(new T.Vector3(st.x, st.y + .3 + Math.random(), st.z), 0xf2d8a8, new T.Vector3(-GAME.dx * 2, .4, -GAME.dz * 2), .5, .3, 2.5, false);
-    const live = DUEL.on && done.gate && st.mode === "foot" && !inPit();
+    const live = !GL() && DUEL.on && done.gate && st.mode === "foot" && !inPit();
     for (const c of CHIPS) { if (!c.alive) { c.m.visible = false; c.b.setNextKinematicTranslation(v3(0, -70, 0)); c.t += dt; if (c.t > 0 && live) { const a = CAM.yaw + (Math.random() - .5) * 2.4, r = 9 + Math.random() * 15; c.x = st.x + Math.sin(a) * r; c.z = st.z + Math.cos(a) * r; c.y = Math.max(heightAt(c.x, c.z), st.y) + 2.4 + Math.random() * 2; c.alive = true; c.life = 16; c.grow = 0; } continue; }
       c.life -= dt; c.grow = Math.min(1, c.grow + dt * 4); c.x += Math.cos(t * .6 + c.ph) * dt * 1.1; const y = c.y + Math.sin(t * 1.7 + c.ph) * .4; c.m.visible = true; c.m.position.set(c.x, y, c.z); c.m.rotation.y += dt * 2.2; c.m.scale.setScalar(c.grow * (c.life < 1 ? Math.max(.01, c.life) : 1)); c.b.setNextKinematicTranslation(v3(c.x, y, c.z));
       if (c.life < 0 || Math.hypot(c.x - st.x, c.z - st.z) > 42) { c.alive = false; c.t = -1; } } }
   function drawRing(s, k) { const c = s.material.map.image, q = c.getContext("2d"); q.clearRect(0, 0, 128, 128); q.lineWidth = 10; q.strokeStyle = "rgba(255,60,60,.35)"; q.beginPath(); q.arc(64, 64, 48, 0, 6.29); q.stroke(); q.strokeStyle = "rgba(255,40,60,.95)"; q.beginPath(); q.arc(64, 64, 48, -Math.PI / 2, -Math.PI / 2 + clamp(k, 0, 1) * 6.283); q.stroke(); s.material.map.needsUpdate = true; }
   const DAKAR = [0xd8342c, 0xf2c81e, 0x1f9a4a, 0x2a6ad8];   /* Touki Bouki: the red, yellow and green of the flag, and the blue of the Dakar sky */
-  function outlawShot(o) { if (!INK) return; const from = new T.Vector3(); boneW(o.ch, 20, from); const to = new T.Vector3(st.x, st.y + 1.2, st.z), L = to.distanceTo(from), tf = L / 28; to.y += .5 * 9.81 * tf * tf;
+  function outlawShot(o) { if (!INK) return; const from = new T.Vector3(); boneW(o.ch, 20, from); const tp = NET.live && PN.has && Math.random() < .45 ? anta.group.position : st, to = new T.Vector3(tp.x, tp.y + 1.2, tp.z), L = to.distanceTo(from), tf = L / 28; to.y += .5 * 9.81 * tf * tf;
     const d = to.sub(from).normalize(), col = DAKAR[(o.shots = (o.shots || 0) + 1) % DAKAR.length];
     for (let k = 0; k < 3; k++) INK.fire(from.clone().addScaledVector(d, .4), d.clone().add(new T.Vector3((Math.random() - .5) * .03, (Math.random() - .5) * .02, (Math.random() - .5) * .03)).normalize(), col, 27 + k, { owner: "outlaw", exclude: o.body.collider(0) });
+    if (NET.live) NET.send({ e: "f", o: [r2(from.x + d.x * .4), r2(from.y + d.y * .4), r2(from.z + d.z * .4)], d: [d.x, d.y, d.z], c: col, v: 27, k: "outlaw", i: outlaws.indexOf(o) });
     S.launch(from); S.launch(from); puff(from.clone().addScaledVector(d, .3), col, d.clone().multiplyScalar(2), .5, .08, 1.6, false); }
 
   /* ---------- jobs, offers, modes ---------- */
@@ -372,13 +405,13 @@
     { t: "Carry the chip north to the trough", at: () => [GATE.x, GATE.z], ok: () => false }];
   let MI = 0; const misLi = document.createElement("li"), WAY = new T.Mesh(new T.CylinderGeometry(.35, .35, 120, 10, 1, true), new T.MeshBasicMaterial({ color: 0xf2d04a, transparent: true, opacity: .3, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false })), WAYAT = new T.Vector3(); WAY.visible = false; scene.add(WAY);
   misLi.className = "next"; misLi.textContent = MIS[0].t; $("goals").prepend(misLi);
-  function missionStep() { const m = MIS[MI]; if (!m) return; if (m.ok()) { MI++; S.chime(); const n = MIS[MI]; if (n) { misLi.textContent = n.t; say(n.t + ".", 4.5); } return; }
+  function missionStep() { if (GL() && NW && NW.mi !== MI && MIS[NW.mi]) { MI = NW.mi; misLi.textContent = MIS[MI].t; say(MIS[MI].t + ".", 4.5); } const m = MIS[MI]; if (!m) return; if (!GL() && m.ok()) { MI++; S.chime(); const n = MIS[MI]; if (n) { misLi.textContent = n.t; say(n.t + ".", 4.5); } return; }
     const a = MODE === "cinema" ? null : m.at(); WAY.visible = !!a && MI !== 4; if (a) { WAYAT.set(a[0], heightAt(a[0], a[1]) + 1.2, a[1]); WAY.position.set(a[0], WAYAT.y + 59, a[1]); } else WAYAT.y = -9999; }
   let lineT = 0; function say(t, sec = 3) { $("line").textContent = t; $("line").classList.add("on"); lineT = sec; }
   const near = (a, b, r) => Math.hypot(a.x - b.x, a.z - b.z) < r;
   function offer() { const p = { x: st.x, z: st.z };
     if (st.mode === "bike") return Math.abs(BK.speed) < 7 ? { label: "Get off", run: () => { st.mode = "foot"; S.engine(false); st.x = BK.x + Math.cos(BK.h) * 1.2; st.z = BK.z - Math.sin(BK.h) * 1.2; st.y = heightAt(st.x, st.z); meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); me.group.rotation.set(0, st.heading, 0); } } : null;
-    if (st.mode === "foot" && near(p, BK, 3.6)) return { label: "Ride the horned bike", run: () => { st.mode = "bike"; st.gun = false; holdGun(false); S.engine(true); if (!BK.rode) { BK.rode = true; say("Anta climbs on behind him. The horns point the way out of town.", 3.5); } complete("touki", "The zebu horns cut the wind. Touki Bouki: the journey of the hyena."); } };
+    if (st.mode === "foot" && !GL() && near(p, BK, 3.6)) return { label: "Ride the horned bike", run: () => { st.mode = "bike"; st.gun = false; holdGun(false); S.engine(true); if (!BK.rode) { BK.rode = true; say("Anta climbs on behind him. The horns point the way out of town.", 3.5); } complete("touki", "The zebu horns cut the wind. Touki Bouki: the journey of the hyena."); } };
     if (st.mode === "ride") return { label: "Get down", run: () => { st.mode = "foot"; const M = mount.state; st.x = M.x + Math.cos(M.heading) * 1.6; st.z = M.z - Math.sin(M.heading) * 1.6; st.y = heightAt(st.x, st.z); meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); } };
     if (st.mode === "sit") return { label: "Stand", run: () => { st.mode = "foot"; } };
     if (st.mode !== "foot") return null;
@@ -386,7 +419,7 @@
     if (near(p, mount.state, 3)) return { label: "Saddle up", run: () => { st.mode = "ride"; st.gun = false; holdGun(false); complete("horse", "Uncle Mesa swings up in front of the striped glass, and the wall throws his shadow forty feet long."); S.neigh(); } };
     if (near(p, W.zig.seat, 4)) return { label: "Sit and rest", run: () => { st.mode = "sit"; st.x = W.zig.seat.x; st.z = W.zig.seat.z; st.y = W.zig.seat.y; st.heading = Math.PI / 2; complete("zig", "He sits on the warm steps in the low sun, and the glass columns burn gold behind him."); } };
     if (near(p, W.booth.userData.seat, 2.2)) return { label: "Take a seat at the booth", run: () => { st.mode = "sit"; const s = W.booth.userData.seat; st.x = s.x; st.z = s.z; st.y = s.y - .7; st.heading = Math.PI; say("Uncle Chip's booth. Under the glass sign, a man can sit and still draw.", 3); } };
-    if (done.gate && !near(p, BK, 3.6)) return { label: "Call the bike", run: () => { BK.x = st.x + Math.cos(CAM.yaw) * 2.4; BK.z = st.z - Math.sin(CAM.yaw) * 2.4; BK.h = CAM.yaw; BK.speed = 0; S.cock(); say("Anta brings the bike round.", 2); } };
+    if (done.gate && !GL() && !near(p, BK, 3.6)) return { label: "Call the bike", run: () => { BK.x = st.x + Math.cos(CAM.yaw) * 2.4; BK.z = st.z - Math.sin(CAM.yaw) * 2.4; BK.h = CAM.yaw; BK.speed = 0; S.cock(); say("Anta brings the bike round.", 2); } };
     return null; }
   let MODE = "world"; function setMode(m) { MODE = m; document.body.classList.toggle("cinema", m === "cinema"); for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", b.dataset.mode === m); DUEL.on = m === "game"; if (m === "game") { DUEL.wave = 0; DUEL.left = 0; DUEL.next = 0; GAME.score = 0; GAME.combo = 0; GAME.hp = 3; } DIR.i = 0; DIR.t = 0; }
   function fall(line) { if (LENS) LENS.event("fall"); if (window.__trials) window.__trials.fall(); if (st.mode === "ride") { st.mode = "foot"; } st.mode = "down"; st.downT = 0; if (line) say(line, 2); S.thud(new T.Vector3(st.x, st.y, st.z)); }
@@ -518,10 +551,11 @@
     if (GOV.t > 1.5) { GOV.t = 0; const fps = 1 / Math.max(1e-3, GOV.avg), pr = renderer.getPixelRatio();
       if (fps < 40 && pr > .55) { renderer.setPixelRatio(Math.max(.55, pr - .2)); resize(); } else if (fps > 57 && pr < GOV.base - .01) { renderer.setPixelRatio(Math.min(GOV.base, pr + .1)); resize(); } }
     const padM = Math.hypot(PAD.mx, PAD.my), fwd = clamp((keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + (Math.abs(PAD.my) > .25 ? PAD.my : 0), -1, 1), turn = clamp((keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0) - (Math.abs(PAD.mx) > .25 ? PAD.mx : 0), -1, 1), run = keys.ShiftLeft || keys.ShiftRight || padM > .9;
-    const kfwd = fwd, kturn = turn, trig = (keys.Space || mouse.down || PAD.fire) && st.mode === "foot";
+    const kfwd = fwd, kturn = turn, trig = (keys.Space || mouse.down || PAD.fire) && (st.mode === "foot" || st.mode === "pillion");
+    if (GL() && NW) { BK.x = NW.b[0]; BK.z = NW.b[1]; BK.h = NW.b[2]; BK.speed = NW.b[3]; BK.rode = true; if (PN.mode === "bike" && st.mode === "foot") { st.mode = "pillion"; say("On the back. Shoot.", 2); } else if (PN.mode !== "bike" && st.mode === "pillion") { st.mode = "foot"; st.x = BK.x + Math.cos(BK.h) * 1.3; st.z = BK.z - Math.sin(BK.h) * 1.3; st.y = heightAt(st.x, st.z); meBody.setTranslation(v3(st.x, st.y + .85, st.z), true); me.group.rotation.set(0, st.heading, 0); } }
     if (trig && !st.gun) { st.gun = true; holdGun(true); S.cock(); st.cool = .16; }   /* pulling the trigger draws */
     if (trig) st.gunT = 3.5; else if (st.gun && !st.gunLock) { st.gunT = (st.gunT || 0) - dt; if (st.gunT <= 0) { st.gun = false; st.steady = 0; holdGun(false); } }
-    if (st.mode !== "foot" && st.mode !== "down") { CAM.yaw = st.heading; CAM.pitch = 0; }
+    if (st.mode !== "foot" && st.mode !== "down" && st.mode !== "pillion") { CAM.yaw = st.heading; CAM.pitch = 0; }
     st.cool = Math.max(0, st.cool - dt); st.recoil = Math.max(0, st.recoil - dt * 5); st.steady = clamp(st.steady + dt * (st.gun ? (st.speed < .4 ? 1.7 : .8) : -3), 0, 1);   /* the aim settles: quicker standing still */
     if (lineT > 0) { lineT -= dt; if (lineT <= 0) $("line").classList.remove("on"); }
     if (st.mode === "foot") {
@@ -562,6 +596,9 @@
       if (st.mode === "bike") { st.x = BK.x; st.z = BK.z; st.y = heightAt(BK.x, BK.z); st.heading = BK.h; S.engineRate(.7 + Math.abs(BK.speed) * .055); if (Math.random() < dt * (4 + BK.speed)) { const ex = TK.group.localToWorld(TK.exhaust.clone()); puff(ex, 0xe8dccb, new T.Vector3(-Math.sin(BK.h), .4, -Math.cos(BK.h)), 1.2, .12, 3, false); } }
       meBody.setTranslation(v3(BK.x, st.y + 1.25, BK.z), true);   /* his body rides with the bike, so paint can still find him */
       if (motion) try { motion.setClip("mesa", "sitting-idle", { fade: .3 }); } catch (e) { }
+    } else if (st.mode === "pillion") {   /* the second player on the back of the bike: carried, free to look round and shoot */
+      CAM.yaw += ((keys.ArrowLeft || keys.KeyA ? 1 : 0) - (keys.ArrowRight || keys.KeyD ? 1 : 0)) * dt * 2.2; if (!PAD.look && !trig) CAM.yaw += wrapA(BK.h - CAM.yaw) * (1 - Math.exp(-dt * .8));
+      st.x = BK.x; st.z = BK.z; st.y = heightAt(BK.x, BK.z); st.heading = CAM.yaw; st.speed = 0; meBody.setTranslation(v3(BK.x, st.y + 1.25, BK.z), true); if (motion) try { motion.setClip("mesa", "sitting-idle", { fade: .3 }); } catch (e) { }
     } else if (st.mode === "sit") { me.group.position.set(st.x, st.y, st.z); me.group.rotation.set(0, st.heading, 0); if (motion) try { motion.setClip("mesa", "sitting-idle", { fade: .4 }); } catch (e) { } }
     else if (st.mode === "down") { st.downT += dt; const k = st.downT < 2.2 ? smooth(0, .35, st.downT) : 1 - smooth(2.2, 3, st.downT); me.group.position.set(st.x, st.y + k * .25, st.z); me.group.rotation.set(-k * Math.PI / 2 * .95, st.heading, 0, "YXZ"); if (motion) try { motion.setClip("mesa", "idle", { fade: .2 }); } catch (e) { } if (st.downT > 3) { st.mode = "foot"; me.group.rotation.set(0, st.heading, 0); } }
     if (st.mode !== "ride") { mount.update(dt, { throttle: 0, steer: 0, pace: 0 }, heightAt); }
@@ -572,36 +609,36 @@
       for (const w of TK.wheels) w.rotation.x += BK.speed * dt / .35; TK.group.updateMatrixWorld(true);
       _be.set(0, BK.h, 0); _bq.setFromEuler(_be); bkBody.setNextKinematicTranslation(v3(BK.x, y + .6, BK.z)); bkBody.setNextKinematicRotation({ x: _bq.x, y: _bq.y, z: _bq.z, w: _bq.w });
       _bu.set(0, 1, 0).applyQuaternion(TK.group.quaternion);
-      if (st.mode === "bike") { me.group.position.copy(TK.group.localToWorld(_bs.copy(TK.seat))).addScaledVector(_bu, -SEATH); me.group.quaternion.copy(TK.group.quaternion); }
-      if (anta) { if (BK.rode && (st.mode === "bike" || near({ x: BK.x, z: BK.z }, { x: anta.group.position.x, z: anta.group.position.z }, 1.5))) { anta.group.position.copy(TK.group.localToWorld(_bs.copy(TK.pillion))).addScaledVector(_bu, -SEATH); anta.group.quaternion.copy(TK.group.quaternion); if (motion) try { motion.setClip("anta", "sitting-idle", { fade: .3 }); } catch (e) { } }
+      if (st.mode === "bike" || st.mode === "pillion") { me.group.position.copy(TK.group.localToWorld(_bs.copy(st.mode === "bike" ? TK.seat : TK.pillion))).addScaledVector(_bu, -SEATH); me.group.quaternion.copy(TK.group.quaternion); }
+      if (anta) { if (NET.live && PN.has) partnerStep(dt); else if (BK.rode && (st.mode === "bike" || near({ x: BK.x, z: BK.z }, { x: anta.group.position.x, z: anta.group.position.z }, 1.5))) { anta.group.position.copy(TK.group.localToWorld(_bs.copy(TK.pillion))).addScaledVector(_bu, -SEATH); anta.group.quaternion.copy(TK.group.quaternion); if (motion) try { motion.setClip("anta", "sitting-idle", { fade: .3 }); } catch (e) { } }
         else if (done.gate) { /* on foot she keeps to his left, out of the line of the camera */ const g = anta.group.position, tx = st.x - Math.sin(CAM.yaw) * .6 - Math.cos(CAM.yaw) * 2.6, tz = st.z - Math.cos(CAM.yaw) * .6 + Math.sin(CAM.yaw) * 2.6, dx = tx - g.x, dz = tz - g.z, d = Math.hypot(dx, dz), sp = d > 6 ? 5.2 : d > 1.1 ? 2.2 : 0;
           if (d > 34) { g.x = tx; g.z = tz; } else if (sp) { g.x += dx / d * sp * dt; g.z += dz / d * sp * dt; anta.group.rotation.set(0, Math.atan2(dx, dz), 0); } else if (AN.aimT > 0) anta.group.rotation.set(0, Math.atan2(AN.dir.x, AN.dir.z), 0);
           g.y = heightAt(g.x, g.z); if (motion) try { if (GAME.cheer > 0 && !sp) motion.setClip("anta", "clapping", { fade: .2 }); else motion.setActorLocomotion("anta", { speedMps: sp, blend: 1 }); } catch (e) { } }
         else { if (motion) try { motion.setClip("anta", near(st, anta.group.position, 7) ? "greeting" : "idle-foldarms", { fade: .3 }); } catch (e) { } }
-        antaStep(dt);
-        const ch = boneW(anta, 3, new T.Vector3()), f = new T.Vector3(0, 0, 1).applyQuaternion(anta.group.quaternion); satchel.position.copy(ch).addScaledVector(f, -.17).add(new T.Vector3(0, -.32, 0)); satchel.quaternion.copy(anta.group.quaternion); } }
+        if (!NET.live) antaStep(dt);
+        const ch = boneW(ACH, 3, new T.Vector3()), f = new T.Vector3(0, 0, 1).applyQuaternion(ACH.group.quaternion); satchel.position.copy(ch).addScaledVector(f, -.17).add(new T.Vector3(0, -.32, 0)); satchel.quaternion.copy(ACH.group.quaternion); } }
 
     /* physics */
     { const n = Math.max(1, Math.ceil(dt * 60)); for (let k = 0; k < n; k++) { world.step(); fstep++; } }
     for (const s of shards) { const p = s.b.translation(), r = s.b.rotation(); s.m.position.set(p.x, p.y, p.z); s.m.quaternion.set(r.x, r.y, r.z, r.w); }
-    duelStep(dt); gameStep(dt, t); missionStep(); paintStep(t);
+    duelStep(dt); gameStep(dt, t); missionStep(); netSend(dt); paintStep(t);
     if (window.MesaScore) { /* the score follows the fight: how many are up, the combo, whether he is down, whether he is under the dune */ const up = DUEL.on ? outlaws.filter(o => o.state !== "away" && o.state !== "fall").length : 0, kn = KNIGHT.state === "hunt" || KNIGHT.state === "strike" ? 1 : 0;
       SCH = lerp(SCH, clamp(up * .28 + kn * .7 + (st.mode === "bike" ? .45 : 0) + GAME.combo * .03, 0, 1), 1 - Math.exp(-dt * 1.2)); window.MesaScore.set({ heat: SCH, combo: GAME.combo, down: st.mode === "down", pit: inPit() }); }
     if (trig && st.gun) { fire(aimDir()); if (LOCK.p) { /* the view leans toward what the gun has found */ const want = Math.atan2(LOCK.p.x - st.x, LOCK.p.z - st.z); CAM.yaw += wrapA(want - CAM.yaw) * (1 - Math.exp(-dt * (PAD.touch ? 5 : 2))); } } else { st.ink = Math.min(100, st.ink + dt * 6); if (st.gun && st.mode === "foot") aimDir(); else LOCK.p = null; }
     if (INK) { INK.step(dt, t); INK.setSun(SKY.uSun.value, scene.fog.color, scene.fog.density); if (INK.turf() >= 250) complete("turf", "250 square metres of the desert are yours, and all of it has turned to glass."); }
     if (motion) try { motion.update(dt); } catch (e) { }
     swarmStep(dt, t);
-    if (st.gun && st.mode === "foot" && !(GAME.cheer > 0 && st.speed < .3 && !trig)) aimArm(me, aimDir().add(_lk.set(0, st.recoil * .3, 0)).normalize());   /* the arm kicks up with each shot */
+    if (st.gun && (st.mode === "foot" || st.mode === "pillion") && !(GAME.cheer > 0 && st.speed < .3 && !trig)) aimArm(me, aimDir().add(_lk.set(0, st.recoil * .3, 0)).normalize());   /* the arm kicks up with each shot */
     if (st.mode === "bike") { const d = _lk.set(0, -.42, .9).applyQuaternion(TK.group.quaternion).normalize().clone(); aimArm(me, d); aimArm(me, d, true); }   /* both hands on the bars */
     if (anta) { if (AN.aimT > 0) aimArm(anta, AN.dir); else if (BK.rode && st.mode === "bike") { const d = _lk.set(0, -.2, .95).applyQuaternion(TK.group.quaternion).normalize().clone(); aimArm(anta, d); aimArm(anta, d, true); } }
     for (const o of outlaws) if (o.state === "telegraph" || o.state === "fire") { const d = new T.Vector3(st.x - o.x, 1.2 + (o.state === "fire" ? .1 : -.25), st.z - o.z).normalize(); aimArm(o.ch, d); }
 
     /* his pieces follow his head and chest */
-    { const head = boneW(me, 7, new T.Vector3()), chest = boneW(me, 3, new T.Vector3()), f = new T.Vector3(0, 0, 1).applyQuaternion(me.group.quaternion), up = new T.Vector3(0, 1, 0).applyQuaternion(me.group.quaternion);
-      glasses.position.copy(head).addScaledVector(f, .105).addScaledVector(up, .045); glasses.quaternion.copy(me.group.quaternion); glasses.rotateY(Math.PI);
-      brim.position.copy(head).addScaledVector(up, BRIM_UP).addScaledVector(f, .01); brim.quaternion.copy(me.group.quaternion); longBeard.position.copy(head).addScaledVector(f, .075).addScaledVector(up, BEARD_UP); longBeard.quaternion.copy(me.group.quaternion); longBeard.rotateX(-.12);
-      badge.position.copy(chest).addScaledVector(f, .135).add(new T.Vector3(-Math.cos(st.heading) * .08, .05, Math.sin(st.heading) * .08)); badge.quaternion.copy(me.group.quaternion); badge.visible = !st.poncho;
-      poncho.visible = st.poncho; poncho.position.copy(chest).addScaledVector(up, -.18); poncho.quaternion.copy(me.group.quaternion);
+    { const head = boneW(MCH, 7, new T.Vector3()), chest = boneW(MCH, 3, new T.Vector3()), f = new T.Vector3(0, 0, 1).applyQuaternion(MCH.group.quaternion), up = new T.Vector3(0, 1, 0).applyQuaternion(MCH.group.quaternion);
+      glasses.position.copy(head).addScaledVector(f, .105).addScaledVector(up, .045); glasses.quaternion.copy(MCH.group.quaternion); glasses.rotateY(Math.PI);
+      brim.position.copy(head).addScaledVector(up, BRIM_UP).addScaledVector(f, .01); brim.quaternion.copy(MCH.group.quaternion); longBeard.position.copy(head).addScaledVector(f, .075).addScaledVector(up, BEARD_UP); longBeard.quaternion.copy(MCH.group.quaternion); longBeard.rotateX(-.12);
+      badge.position.copy(chest).addScaledVector(f, .135).add(new T.Vector3(-Math.cos(MCH.group.rotation.y) * .08, .05, Math.sin(MCH.group.rotation.y) * .08)); badge.quaternion.copy(MCH.group.quaternion); badge.visible = !st.poncho;
+      poncho.visible = st.poncho; poncho.position.copy(chest).addScaledVector(up, -.18); poncho.quaternion.copy(MCH.group.quaternion);
       if (st.smokeT > 0) { st.smokeT -= dt; if (Math.random() < dt * 30) puff(head.clone().addScaledVector(f, .16).addScaledVector(up, -.06), Math.random() < .5 ? 0xf2c84a : 0xffe08a, f.clone().multiplyScalar(.5).add(new T.Vector3(0, .35, 0)), 2.4, .12, 2.8, true); } }
 
     /* the iris breathes; it opens wide when he stands in it with the gun up (the sightline) */
@@ -627,7 +664,7 @@
       sun.position.copy(SKY.uSun.value).multiplyScalar(300).add(new T.Vector3(st.x, st.y, st.z)); sun.target.position.set(st.x, st.y, st.z); scene.fog.color.copy(SKY.uC.value).lerp(new T.Color(.93, .72, .42), STORM); }
 
     /* the camera */
-    { const tall = camera.aspect < 1; let dist = tall ? 6.4 : WIDE ? 6.2 : 4.8, up = 2.3, side = 0, h = st.mode === "foot" || st.mode === "down" ? CAM.yaw : st.heading, lookUp = (tall && st.gun ? 1.0 : 1.5) + CAM.pitch * 7, fov = tall ? 62 : 52;
+    { const tall = camera.aspect < 1; let dist = tall ? 6.4 : WIDE ? 6.2 : 4.8, up = 2.3, side = 0, h = st.mode === "foot" || st.mode === "down" || st.mode === "pillion" ? CAM.yaw : st.heading, lookUp = (tall && st.gun ? 1.0 : 1.5) + CAM.pitch * 7, fov = tall ? 62 : 52;
       if (st.gun && st.mode === "foot") { const a = smooth(.1, .9, st.steady);   /* from the hip, to the shoulder, to the eye: the camera comes in as the aim settles */
         dist = lerp(tall ? 5.6 : 4.2, tall ? 3.7 : 2.5, a); up = lerp(tall ? 2.4 : 2.0, tall ? 2.0 : 1.75, a); side = lerp(.6, tall ? 1.0 : .95, a); fov = lerp(tall ? 64 : 54, tall ? 46 : 36, a) - (GAME.kick || 0) * 5; if (near(st, Z.clockwork_iris, 9) && Math.cos(CAM.yaw) < -.8) fov = 22; } up -= CAM.pitch * 2.5;
       if (st.mode === "ride") { dist = 8; up = 3.2; } if (st.mode === "bike") { dist = 6.4 + Math.abs(BK.speed) * .08; up = 2.2; lookUp = 1.3; fov = 52 + Math.abs(BK.speed) * .6; } if (st.mode === "sit") { dist = 5; up = 1.6; h = st.heading + 1.2; } if (st.mode === "down") { dist = 6; up = 3.5; }
@@ -681,7 +718,7 @@
       for (let i = 0; i < 3; i++) { const x = x0 + (i - 1) * 20 * k; FX.beginPath(); FX.moveTo(x, y0 - 7 * k); FX.lineTo(x + 7 * k, y0); FX.lineTo(x, y0 + 7 * k); FX.lineTo(x - 7 * k, y0); FX.closePath(); FX.fillStyle = i < GAME.hp ? "rgba(255,58,168,.95)" : "rgba(20,14,10,.4)"; FX.fill(); FX.strokeStyle = "rgba(255,255,255,.7)"; FX.lineWidth = k; FX.stroke(); }
       FX.fillStyle = "rgba(251,242,226,.95)"; FX.font = `700 ${20 * k}px Georgia, serif`; FX.fillText(String(GAME.score), x0, y0 + 34 * k);
       if (GAME.combo > 1) { const s2 = 1 + GAME.mark * 2.5; FX.font = `italic 700 ${26 * k * s2}px Georgia, serif`; FX.fillStyle = "rgba(242,208,74,.98)"; FX.fillText("×" + Math.min(GAME.combo, 10), x0, y0 + 66 * k); FX.fillStyle = "rgba(242,208,74,.8)"; FX.fillRect(x0 - 30 * k, y0 + 74 * k, 60 * k * Math.max(0, GAME.comboT / 3.4), 3 * k); } }
-    if (!st.gun || st.mode !== "foot") return; let cx = (mouse.on ? (mouse.x + 1) / 2 : .5) * w, cy = (mouse.on ? (1 - mouse.y) / 2 : .45) * h; const r = lerp(34, 9, st.steady) * k * (1 + st.recoil * .6);
+    if (!st.gun || (st.mode !== "foot" && st.mode !== "pillion")) return; let cx = (mouse.on ? (mouse.x + 1) / 2 : .5) * w, cy = (mouse.on ? (1 - mouse.y) / 2 : .45) * h; const r = lerp(34, 9, st.steady) * k * (1 + st.recoil * .6);
     if (LOCK.p) { const sp = _lk.copy(LOCK.p).project(camera); cx = (sp.x + 1) / 2 * w; cy = (1 - sp.y) / 2 * h; FX.beginPath(); FX.arc(cx, cy, r + 7 * k, 0, Math.PI * 2); FX.strokeStyle = st.steady >= .85 ? "rgba(255,244,200,1)" : "rgba(255,58,168,.95)"; FX.lineWidth = (st.steady >= .85 ? 4 : 2.5) * k; FX.stroke(); }
     if (GAME.mark > 0) { const m = (10 + GAME.mark * 60) * k; FX.strokeStyle = "rgba(255,255,255,.95)"; FX.lineWidth = 3 * k; FX.beginPath(); for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { FX.moveTo(cx + a * m * .5, cy + b * m * .5); FX.lineTo(cx + a * m, cy + b * m); } FX.stroke(); }
     for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + performance.now() / 2600, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r, s = 3.2 * k; FX.beginPath(); FX.ellipse(x, y, s, s * 1.25, a, 0, Math.PI * 2); FX.fillStyle = "rgba(161,232,228,.6)"; FX.fill(); FX.strokeStyle = "rgba(255,255,255,.6)"; FX.lineWidth = k; FX.stroke(); }
@@ -689,6 +726,6 @@
 
   resize(); $("boot").classList.add("done"); $("title").classList.add("on"); setTimeout(() => { $("title").classList.remove("on"); GRIDON = false; }, 3600);
   setMode("game"); say("This land ain't dust anymore. It's data. And it remembers.", 5);
-  window.__mesa = { AN, MIS, GATE, get MI() { return MI; }, set MI(v) { MI = v; misLi.textContent = MIS[v].t; }, T, scene, camera, LENS, say, lensUI, GAME, CHIPS, dash, PAD, CAM, LOCK, tune(b, d) { BRIM_UP = b; BEARD_UP = d; }, KNIGHT, KN, PR, PROC, HERD, SPORE, HALL, BK, TK, anta, paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
+  window.__mesa = { NET, PN, GUEST, AN, MIS, GATE, get MI() { return MI; }, set MI(v) { MI = v; misLi.textContent = MIS[v].t; }, T, scene, camera, LENS, say, lensUI, GAME, CHIPS, dash, PAD, CAM, LOCK, tune(b, d) { BRIM_UP = b; BEARD_UP = d; }, KNIGHT, KN, PR, PROC, HERD, SPORE, HALL, BK, TK, anta, paintBody, get me() { return me; }, get ink() { return INK; }, st, done, W, outlaws, DUEL, mount, offer, fire, aimDir, setMode, mood, toggleStorm, complete, keys, get motion() { return !!motion; }, frames: () => fstep, get grid() { return GRIDON; }, set grid(v) { GRIDON = v; } };
   requestAnimationFrame(frame);
 })().catch(e => { console.error(e); const b = document.getElementById("boot-s"); if (b) b.textContent = "Something went wrong: " + e.message; });
