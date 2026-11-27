@@ -43,6 +43,17 @@ Five missions in order, shown one at a time, each with a gold beam on the place 
 - **The score** is the default and is played in the browser; nothing is streamed. Ninety-two beats a minute in the tizita minor on D. A drone and a plucked krar figure always play; a bass comes in when outlaws are up; kick, rim and shaker when the fight is on; a whistled line at a ×4 combo, an octave higher at ×8. While he is down it all goes under water. In the cathedral it thins out and echoes.
 - **The picker** on the music strip switches to any of the 86 MOTO halls instead, streamed from the moto site. It is on screen on a phone, under the goal.
 
+## For two (`net.js`)
+
+- **How to start.** The first card has two buttons: Play, and Play with a friend. The second makes a link such as `…/mesa/?with=jade-saguaro-36` and opens the phone's share sheet. You can start at once; your friend drops in beside you. Invite is also in the menu.
+- **Who you are.** The one who made the link is Uncle Mesa. Whoever opens it is Anta, with her own stick, aim and Fire.
+- **What is shared.** The first player's game is the one that counts: outlaws, waves, score, combo, missions and the bike. Each phone moves and aims its own player, so the hand never waits on the network. Anta's shots are sent to the first game, which decides what they hit. Outlaws shoot at either of you.
+- **The bike.** When Uncle Mesa mounts, Anta is on the back at once, free to look round and shoot. When he gets off, so does she.
+- **How it connects.** Browser to browser (WebRTC through PeerJS, vendored in `vendor/`). PeerJS's public broker introduces the two phones and relays when it must; nothing passes through a server of ours, and there is no account.
+- **The link preview** is `share.jpg` (1200 × 630), set in the page's Open Graph tags.
+- **Not shared yet:** the knight's state, the glass chips (the second player does not see them), paint on the ground, time of day, and the Four Trials. If the first player leaves, the game ends for both.
+- **Tested** with two tabs over a stand-in channel (`?netlocal`). The real phone-to-phone connection could not be tested from the build machine.
+
 ## Keyframe → zone → mechanic
 
 | Keyframe | Time | Zone (`mesa-world.js`) | Effect | Mechanic |

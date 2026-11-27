@@ -5,7 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <link rel="icon" type="image/svg+xml" href="../favicon.svg">
   <title>MESA CHIP</title>
-  <meta name="description" content="A cyber-western of glass, built from the film's keyframe breakdown: Uncle Mesa walks north from the title gate through the clockwork iris and the glass canyon to the ziggurat under the curtain wall.">
+  <meta name="description" content="A cyber-western of glass for one or two. Paint the outlaws, ride the horned bike, break the knight, carry the chip to the trough.">
+  <meta property="og:type" content="website"><meta property="og:site_name" content="make-photo"><meta property="og:title" content="MESA CHIP · ride with me">
+  <meta property="og:description" content="A cyber-western of glass for two phones. Open the link and you are Anta, the second gun.">
+  <meta property="og:url" content="https://hartswf0.github.io/make-photo/mesa/"><meta property="og:image" content="https://hartswf0.github.io/make-photo/mesa/share.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="MESA CHIP · ride with me"><meta name="twitter:description" content="A cyber-western of glass for two phones."><meta name="twitter:image" content="https://hartswf0.github.io/make-photo/mesa/share.jpg">
+  <meta name="theme-color" content="#1a120c"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
   <script type="importmap">{"imports":{"three":"../highland-exposure/motion-lab/vendor/three/three.module.js","three/addons/":"../highland-exposure/motion-lab/vendor/three/addons/"}}</script>
   <style>
     :root { --ink: #fbf2e2; --dim: rgba(251, 242, 226, .64); --line: rgba(251, 242, 226, .3); --stage: #1a120c; --cyan: #2fd0d8; --amber: #f2a83a; --magenta: #ff3aa8;
@@ -76,7 +81,7 @@
     <span class="keys">W A S D · arrows turn · Shift run · E do · Space or click to shoot · Q dash · L lens · Enter trials · 1–6 time of day</span>
     <button id="gridb" type="button" aria-pressed="true" title="Glass-block grid (G)">Grid</button>
     <button id="wide" type="button" aria-pressed="true" title="Barrel-scope mask">Wide</button>
-    <button id="lens" type="button" aria-pressed="false" title="SCION lens (L): Tekle, 1985, Mambéty, Mœbius">Plain</button>
+    <button id="inviteb" type="button" onclick="MesaNet.invite()">Invite</button><button id="lens" type="button" aria-pressed="false" title="SCION lens (L): Tekle, 1985, Mambéty, Mœbius">Plain</button>
     <div class="modes" role="group" aria-label="How to be here"><button type="button" data-mode="game" aria-pressed="true">Shootout</button><button type="button" data-mode="world" aria-pressed="false">Wander</button><button type="button" data-mode="cinema" aria-pressed="false">Cinema</button></div>
   </div>
   <div id="boot" role="status"><div><b>MESA CHIP</b><span id="boot-s">Cutting glass…</span></div></div>
@@ -95,7 +100,9 @@
   <script src="./stained.js?v=5"></script>
   <script src="./lens.js?v=2"></script>
   <script src="../atlas/trough-gate.js?v=1"></script>
-  <script src="./mesa.js?v=18"></script>
+  <script src="./vendor/peerjs.min.js"></script>
+  <script src="./net.js?v=1"></script>
+  <script src="./mesa.js?v=19"></script>
   <script src="./score.js?v=1"></script>
   <script src="../soundtrack/soundtrack.js?v=2" data-album="glass" data-score="MesaScore"></script>
   <script src="./trials.js?v=5"></script>
